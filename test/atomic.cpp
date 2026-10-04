@@ -1,5 +1,7 @@
 #include "app.hpp"
 #include "compat/atomic.hpp"
+#include "compat/atomic-wrapper.hpp"
+#include "compat/atomic-flag-wrapper.hpp"
 #include <array>
 #include <latch>
 #include <limits>
@@ -174,6 +176,73 @@ void test_release_acquire()
     fm_assert(payload == rounds);
 }
 
+template<typename T>
+void test_wrapper_semantics()
+{
+    Atomic<T> x;
+    fm_assert(x.load() == 0);
+    x.store(10, memory_order::release);
+    fm_assert(x.load(memory_order::acquire) == 10);
+    fm_assert(x.exchange(11) == 10);
+
+    T expected = 11;
+    fm_assert(x.compare_exchange_strong(expected, 12));
+    expected = 0;
+    fm_assert(!x.compare_exchange_strong(expected, 13));
+    fm_assert(expected == 12);
+    expected = 12;
+    while (!x.compare_exchange_weak(expected, 14))
+        fm_assert(expected == 12);
+
+    fm_assert(x.fetch_add(2) == 14);
+    fm_assert(x.fetch_sub(4) == 16);
+    fm_assert(x.fetch_and(0b1010) == 12);
+    fm_assert(x.fetch_or(0b0101) == 0b1000);
+    fm_assert(x.fetch_xor(0b1111) == 0b1101);
+    fm_assert(x.load() == 0b0010);
+
+    Atomic<T> y{42};
+    fm_assert(y.load(memory_order::relaxed) == 42);
+}
+
+void test_atomic_flag()
+{
+    AtomicFlag f;
+    fm_assert(!f.test());
+    fm_assert(!f.test_and_set());
+    fm_assert(f.test());
+    fm_assert(f.test_and_set());
+    f.clear();
+    fm_assert(!f.test(memory_order::relaxed));
+}
+
+void test_wrapper_contention()
+{
+    Atomic<int32_t> counter;
+    run_threads(num_threads, [&](int) {
+        for (int j = 0; j < iterations; ++j)
+            counter.fetch_add(1, memory_order::relaxed);
+    });
+    fm_assert(counter.load() == num_threads * iterations);
+}
+
+void test_atomic_flag_contention()
+{
+    AtomicFlag lock;
+    int counter = 0; // not atomic, guarded by the flag
+    run_threads(num_threads, [&](int) {
+        for (int j = 0; j < iterations; ++j)
+        {
+            while (lock.test_and_set(memory_order::acquire))
+                while (lock.test(memory_order::relaxed))
+                    cpu_relax();
+            counter++;
+            lock.clear(memory_order::release);
+        }
+    });
+    fm_assert(counter == num_threads * iterations);
+}
+
 } // namespace
 
 void Test::test_atomic()
@@ -193,6 +262,18 @@ void Test::test_atomic()
     test_fetch_sub_contention();
     test_bitwise_contention();
     test_release_acquire();
+
+    test_wrapper_semantics<int8_t>();
+    test_wrapper_semantics<uint8_t>();
+    test_wrapper_semantics<int16_t>();
+    test_wrapper_semantics<uint16_t>();
+    test_wrapper_semantics<int32_t>();
+    test_wrapper_semantics<uint32_t>();
+    test_wrapper_semantics<int64_t>();
+    test_wrapper_semantics<uint64_t>();
+    test_atomic_flag();
+    test_wrapper_contention();
+    test_atomic_flag_contention();
 }
 
 } // namespace floormat
