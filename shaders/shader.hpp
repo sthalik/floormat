@@ -30,7 +30,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     Vector4 tint() const { return _tint; }
     tile_shader& set_tint(const Vector4& tint);
     bool is_lightmap_enabled() const { return _enable_lightmap; }
-    tile_shader& set_lightmap_enabled(bool value);
+    tile_shader& set_lightmap(GL::AbstractTexture* tex);
 
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
     template<typename T = float> static constexpr Math::Vector2<T> unproject(const Math::Vector2<T>& px);
@@ -84,13 +84,14 @@ private:
     };
 
     texture_unit_cache& tuc; // NOLINT(*-avoid-const-or-ref-data-members)
+    GL::AbstractTexture* _lightmap = nullptr;
     Vector2d _camera_offset;
     Vector2i _camera_offsetʹ;
     Vector4 _tint, _real_tint;
     Vector2 _scale;
     Vector2i _real_camera_offsetʹ;
     bool _enable_lightmap : 1 = false;
-    Int _sampler = 0, _real_sampler;
+    Int _sampler = 0, _real_sampler, _real_lightmap_sampler;
 };
 
 template<typename T, typename... Xs>
