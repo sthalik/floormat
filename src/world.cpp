@@ -20,6 +20,8 @@
 #include <cr/Pointer.h>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
+#include <array>
+#include <bit>
 
 using namespace floormat;
 
@@ -28,7 +30,7 @@ namespace floormat {
 struct world::Impl
 {
     Pointer<Pass::PoolRegistry> _pass_registry;
-    Pointer<Pass::PoolRegistry> _cover_pass_registry;
+    std::array<Pointer<Pass::Pool>, std::countr_zero(chunk_size_xy) + 1> _cover_pass_pools;
     Pointer<Pass::Pool> _raycast_pass_pool;
 };
 
@@ -39,12 +41,14 @@ Grid::Pass::PoolRegistry& world::pass_pool_registry()
     return *impl->_pass_registry;
 }
 
-Grid::Pass::PoolRegistry& world::cover_pass_registry()
+Grid::Pass::Pool& world::cover_pass_pool(uint32_t div_size)
 {
-    // validate() snaps div_size down to bbox_size, so pool_for(d) yields a d/d pool
-    if (!impl->_cover_pass_registry)
-        impl->_cover_pass_registry.reset(new Grid::Pass::PoolRegistry{chunk_size_xy});
-    return *impl->_cover_pass_registry;
+    fm_assert(std::has_single_bit(div_size) && div_size <= chunk_size_xy);
+    // below Pass::Grid::min_bbox_size, validate() keeps div_size and raises only bbox_size
+    auto& p = impl->_cover_pass_pools[(uint32_t)std::countr_zero(div_size)];
+    if (!p)
+        p.reset(new Grid::Pass::Pool{Grid::Pass::Params{div_size}.validate()});
+    return *p;
 }
 
 Grid::Pass::Pool& world::raycast_pass_pool()
@@ -83,7 +87,8 @@ world::world(world&& w) noexcept :
         return;
     // pooled grids point back at the source world
     impl->_pass_registry.reset();
-    impl->_cover_pass_registry.reset();
+    for (auto& p : impl->_cover_pass_pools)
+        p.reset();
     impl->_raycast_pass_pool.reset();
 }
 
@@ -123,7 +128,8 @@ world& world::operator=(world&& w) noexcept
         c->_world = this;
     // see the move ctor
     impl->_pass_registry.reset();
-    impl->_cover_pass_registry.reset();
+    for (auto& p : impl->_cover_pass_pools)
+        p.reset();
     impl->_raycast_pass_pool.reset();
 
     _unique_id = move(w._unique_id);

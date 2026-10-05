@@ -16,8 +16,7 @@ namespace {
 using namespace floormat::imgui;
 
 constexpr inline uint32_t default_div_size = 8;
-// Cover::Params::validate() rejects 1 and 2, below Pass::Grid::min_bbox_size.
-constexpr uint32_t div_sizes[] = { 4, 8, 16, 32, 64, 128, 256 };
+constexpr uint32_t div_sizes[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
 // odd, so the clicked chunk is in the middle
 constexpr uint32_t chunk_spans[] = { 1, 3, 5, 7 };
 
@@ -146,7 +145,7 @@ void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
     const Vector2 dx = pX - p00;
     const Vector2 dy = pY - p00;
 
-    const auto rgb = [](uint8_t d, uint32_t md) -> ImU32 {
+    const auto rgb = [](uint16_t d, uint32_t md) -> ImU32 {
         const float t = md > 0 ? Math::min(float(d) / float(md), 1.f) : 0.f;
         float r, g, b;
         if (t < 0.5f)
@@ -166,7 +165,7 @@ void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
         for (uint32_t cx = 0; cx < dc; cx++)
         {
             const uint32_t idx = Cover::Grid::get_cell_index(cx, cy, dc);
-            const uint8_t d = cg.distance(idx, sk);
+            const uint16_t d = cg.distance(idx, sk);
             const auto color = rgb(d, max_d);
             const Vector2 base = p00 + dx * float(cx) + dy * float(cy);
             const Vector2 q1 = base + dx;

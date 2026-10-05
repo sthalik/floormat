@@ -3,6 +3,7 @@
 #include "compat/debug.hpp"
 #include "compat/function2.hpp"
 #include "src/grid-pass.hpp"
+#include "src/grid-cover.hpp"
 #include "src/intra-coord.inl"
 #include "src/hole.hpp"
 #include "src/RTree.hpp"
@@ -1317,6 +1318,35 @@ void test_hole_still_opens_blocked_ground(uint32_t div_size)
     fm_assert(n > 0 && n < dc*dc);
 }
 
+void test_cover_east_distance(uint32_t div_size)
+{
+    auto w = world();
+    auto& c = w[COORD];
+    add_ground_all(c);
+    add_wall_north(c, {8, 8});
+    rebuild_passability(c);
+
+    Cover::Pool pool{Cover::Params{div_size}};
+    pool.maybe_mark_stale_all(w.frame_no());
+    Cover::Grid g = pool[c];
+    g.build_if_stale();
+    fm_assert(g.built_octants() & 1u);
+
+    const auto east_px = [&](Vector2i pos) {
+        return (uint32_t)g.distance(g.get_cell_index_from_coord(intra_coord{pos}), 0) * div_size;
+    };
+    fm_assert_equal(chunk_size_xy, east_px({0, 0}));
+
+    // "empty" walls are 8 deep: the wall spans intra x 512..575, y 504..511
+    const auto pos = Vector2i{400, 508};
+    const auto center_x = (uint32_t)pos.x() / div_size * div_size + div_size / 2;
+    const auto expected = 512 - center_x;
+    // aligned octants count from the cleared cells, up to half the pass grid's bbox short
+    const auto slack = 2 * Math::max(div_size, Pass::Grid::min_bbox_size);
+    const auto d = east_px(pos);
+    fm_assert(d <= expected && d + slack >= expected);
+}
+
 } // namespace
 
 void test_grid()
@@ -1382,6 +1412,8 @@ void test_grid()
             test_hole_marker_never_blocks(ds, p);
         test_hole_still_opens_blocked_ground(ds);
     }
+    for (const auto ds : { 1u, 2u, 8u })
+        test_cover_east_distance(ds);
     test_bit_matches_every_position();
 }
 

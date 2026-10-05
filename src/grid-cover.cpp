@@ -2,7 +2,6 @@
 #include "grid.inl"
 #include "intra-coord.inl"
 #include "grid-pass.hpp"
-#include "grid-pass-pool.hpp"
 #include "object.hpp"
 #include "world.hpp"
 #include "raycast.hpp"
@@ -19,14 +18,13 @@ namespace floormat::detail::grid {
 
 struct CoverCell
 {
-    // units of params.div_size. A 1-chunk ray is chunk_size_xy / div_size units,
-    // which saturates at 255 for div_size 4.
-    uint8_t distance[Cover::octant_count];
+    // units of params.div_size
+    uint16_t distance[Cover::octant_count];
 };
 
 namespace {
 
-static_assert(sizeof(CoverCell) == Cover::octant_count);
+static_assert(sizeof(CoverCell) == Cover::octant_count * sizeof(uint16_t));
 
 using Cover::Params;
 using Cover::octant_count;
@@ -60,7 +58,7 @@ constexpr std::array<uint8_t, octant_count> octant_order = {
     17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31,
 };
 
-uint8_t raycast_one(chunk& self,
+uint16_t raycast_one(chunk& self,
                     uint32_t cell_x, uint32_t cell_y,
                     uint32_t div_size, uint32_t octant,
                     Pass::Pool& pass_pool,
@@ -92,8 +90,7 @@ uint8_t raycast_one(chunk& self,
     else
         dist_px = (uint32_t)Vector2(r.collision - from).length();
 
-    const auto units = Math::min(dist_px, max_ray_px) / div_size;
-    return (uint8_t)Math::min<uint32_t>(units, 255);
+    return (uint16_t)(Math::min(dist_px, max_ray_px) / div_size);
 }
 
 } // namespace
@@ -157,7 +154,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
         return false;
 
     const uint32_t div_size = params.div_size;
-    auto& pass_pool = w->cover_pass_registry().pool_for(div_size);
+    auto& pass_pool = w->cover_pass_pool(div_size);
     fm_assert(pass_pool.params().div_size == div_size);
     pass_pool.maybe_mark_stale_all(w->frame_no());
     Timeline timeline;
@@ -230,8 +227,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
                 dist_px = Math::min<uint32_t>(dist_px, 65535u);
                 px_dist[idx] = (uint16_t)dist_px;
 
-                const uint32_t units = Math::min<uint32_t>(dist_px, chunk_size_xy) / div_size;
-                cells[idx].distance[k] = (uint8_t)Math::min<uint32_t>(units, 255);
+                cells[idx].distance[k] = (uint16_t)(Math::min<uint32_t>(dist_px, chunk_size_xy) / div_size);
             }
         }
     }
@@ -289,7 +285,7 @@ namespace floormat::Grid::Cover {
 
 Params Params::validate() const
 {
-    fm_assert(div_size >= Pass::Grid::min_bbox_size);
+    fm_assert(div_size > 0);
     fm_assert(chunk_size_xy % div_size == 0);
     return *this;
 }
@@ -322,7 +318,7 @@ const detail::grid::CoverCell& Grid::cell(uint32_t index) const
     return grid->cells[index];
 }
 
-uint8_t Grid::distance(uint32_t index, uint32_t octant) const
+uint16_t Grid::distance(uint32_t index, uint32_t octant) const
 {
     fm_debug_assert(octant < octant_count);
     return cell(index).distance[octant];

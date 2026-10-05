@@ -151,7 +151,7 @@ public:
 
     Grid::Pass::Pool& raycast_pass_pool();
     Grid::Pass::PoolRegistry& pass_pool_registry();
-    Grid::Pass::PoolRegistry& cover_pass_registry();
+    Grid::Pass::Pool& cover_pass_pool(uint32_t div_size);
 
     static constexpr std::array<Vector2b, 8> neighbor_offsets = {{
         {-1, -1}, {-1,  0}, { 0, -1}, { 1,  1}, { 1,  0}, { 0,  1}, { 1, -1}, {-1,  1},
