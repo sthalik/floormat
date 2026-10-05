@@ -8,6 +8,12 @@
 
 namespace floormat {
 
+namespace {
+
+constexpr auto locked_lru = (size_t)-1;
+
+} // namespace
+
 struct texture_unit_cache::unit_data final
 {
     GL::AbstractTexture* ptr;
@@ -78,11 +84,16 @@ texture_unit_cache::texture_unit_cache() :
     unit_count{get_unit_count()},
     units{ValueInit, unit_count}
 {
+    // Unit 0 belongs to ImGui. Its binds bypass this cache, so a texture
+    // cached there would be overwritten and still report a hit.
+    lock(0);
 }
 
 void texture_unit_cache::invalidate()
 {
-    units = Array<unit_data>{ValueInit, unit_count};
+    for (auto& unit : units)
+        if (unit.lru_val != locked_lru)
+            unit = {};
     lru_counter = 0;
     cache_miss_count = 0;
     cache_hit_count = 0;
@@ -93,7 +104,7 @@ void texture_unit_cache::lock(size_t i, GL::AbstractTexture* tex)
     fm_assert(i < unit_count);
     // id stays 0: the (AbstractTexture*)-1 sentinel is rejected by bind()'s
     // assert, so a locked entry can never match
-    units[i] = { .ptr = tex, .id = 0, .lru_val = (uint64_t)-1, };
+    units[i] = { .ptr = tex, .id = 0, .lru_val = locked_lru, };
 }
 
 void texture_unit_cache::unlock(size_t i, bool reuse_immediately)
