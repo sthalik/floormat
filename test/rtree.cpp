@@ -1,9 +1,12 @@
 #include "app.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
+#include "src/scenery-proto.hpp"
+#include "src/point.inl"
 #include "src/RTree.hpp"
 #include "src/nanosecond.inl"
 #include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 
 namespace floormat {
@@ -88,6 +91,34 @@ void test2()
     fm_assert_equal(1, c2.rtree()->Count());
 }
 
+void test3()
+{
+    auto w = world();
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    constexpr auto pos = global_coords{ch, {8, 8}};
+
+    auto proto = make_critter_proto();
+    proto.r = rotation::N;
+    proto.bbox_size = {10, 58};
+    auto C = w.make_object<critter>(w.make_id(), pos, move(proto));
+
+    // the box turned east only touches this one in place, so can_rotate passes
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_offset = {36, 0};
+    p.bbox_size   = {14, 6};
+    p.pass        = pass_mode::blocked;
+    w.make_scenery(w.make_id(), pos, move(p));
+
+    fm_assert(C->can_move_to({}));
+    auto index = C->index();
+    auto dt = Ns{Seconds};
+    const auto result = C->move_toward(index, dt, point{pos, {11, 0}});
+    fm_assert(C->can_move_to({}));
+    fm_assert(result.blocked && !result.moved);
+}
+
 } // namespace
 
 
@@ -95,6 +126,7 @@ void Test::test_rtree()
 {
     test1();
     test2();
+    test3();
 }
 
 } // namespace floormat

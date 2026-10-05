@@ -450,6 +450,15 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
 
         if (!off_i.isZero())
         {
+            if (r != new_r)
+            {
+                if (!can_rotate(new_r))
+                {
+                    ok = false;
+                    break;
+                }
+                rotate(index, new_r);
+            }
             //Debug{} << "foo1" << C.offset_frac_;
             if (!sweep_critter(*this, Vector2(off_i)).has_collider &&
                 move_to(index, off_i, new_r))
