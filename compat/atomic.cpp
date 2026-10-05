@@ -25,40 +25,11 @@ namespace {
 
 #if !FM_ATOMIC_MSVC
 
-enum class op : uint8_t { load, store, rmw, };
-
-// An order the operation can't take becomes seq_cst, as GCC does itself.
-template<op K, int N>
-constexpr inline int valid_order = (K == op::load  && (N == __ATOMIC_RELEASE || N == __ATOMIC_ACQ_REL)) ||
-                                   (K == op::store && (N == __ATOMIC_ACQUIRE || N == __ATOMIC_ACQ_REL))
-                                   ? __ATOMIC_SEQ_CST : N;
-
-template<int N> using order_c = std::integral_constant<int, N>;
-
-// GCC treats an order that isn't a constant as seq_cst, so each case passes one.
-template<op K, typename F>
-[[fm_always_inline]] inline decltype(auto) with_order(memory_order o, F&& f) noexcept
-{
-    switch (o)
-    {
-    case memory_order::relaxed: return f(order_c<valid_order<K, __ATOMIC_RELAXED>>{});
-    case memory_order::acquire: return f(order_c<valid_order<K, __ATOMIC_ACQUIRE>>{});
-    case memory_order::release: return f(order_c<valid_order<K, __ATOMIC_RELEASE>>{});
-    case memory_order::acq_rel: return f(order_c<valid_order<K, __ATOMIC_ACQ_REL>>{});
-    case memory_order::seq_cst: break;
-    }
-    return f(order_c<__ATOMIC_SEQ_CST>{});
-}
-
 // failure order of a compare-exchange can't be release or acq_rel
-constexpr int failure_order(int o) noexcept
+[[fm_always_inline]] constexpr int failure_order(memory_order o) noexcept
 {
-    switch (o)
-    {
-    case __ATOMIC_RELEASE: return __ATOMIC_RELAXED;
-    case __ATOMIC_ACQ_REL: return __ATOMIC_ACQUIRE;
-    default: return o;
-    }
+    using enum memory_order;
+    return (int)(o == release ? relaxed : o == acq_rel ? acquire : o);
 }
 
 // i386 SysV only aligns 64-bit integers to 4 bytes. Tell the compiler the
@@ -73,8 +44,6 @@ template<typename T> using A = typename aligned_<T>::type;
 
 template<typename T> [[fm_always_inline]] inline volatile A<T>* al(volatile T* p) noexcept { return (volatile A<T>*)p; }
 template<typename T> [[fm_always_inline]] inline const volatile A<T>* al(const volatile T* p) noexcept { return (const volatile A<T>*)p; }
-
-#define FM_ATOMIC_ORDER(c) decltype(c)::value
 
 #else
 
@@ -198,9 +167,7 @@ template<typename T> I<T> to_int(T x) noexcept { return (I<T>)x; }
 template<atomic_type T> [[fm_always_inline]] T atomic_load(const volatile T* p, memory_order o) noexcept
 {
 #if !FM_ATOMIC_MSVC
-    return with_order<op::load>(o, [p](auto c) __attribute__((always_inline)) {
-        return __atomic_load_n(al(p), FM_ATOMIC_ORDER(c));
-    });
+    return __atomic_load_n(al(p), (int)o);
 #else
     T ret = (T)Ops<T>::load(ptr(p));
 #ifdef _M_ARM64
@@ -217,9 +184,7 @@ template<atomic_type T> [[fm_always_inline]] T atomic_load(const volatile T* p, 
 template<atomic_type T> [[fm_always_inline]] void atomic_store(volatile T* p, std::type_identity_t<T> x, memory_order o) noexcept
 {
 #if !FM_ATOMIC_MSVC
-    with_order<op::store>(o, [p, x](auto c) __attribute__((always_inline)) {
-        __atomic_store_n(al(p), x, FM_ATOMIC_ORDER(c));
-    });
+    __atomic_store_n(al(p), x, (int)o);
 #else
     if (o == memory_order::seq_cst)
         (void)Ops<T>::xchg(ptr(p), to_int(x));
@@ -239,9 +204,7 @@ template<atomic_type T> [[fm_always_inline]] void atomic_store(volatile T* p, st
 template<atomic_type T> [[fm_always_inline]] T atomic_exchange(volatile T* p, std::type_identity_t<T> x, memory_order o) noexcept
 {
 #if !FM_ATOMIC_MSVC
-    return with_order<op::rmw>(o, [p, x](auto c) __attribute__((always_inline)) {
-        return __atomic_exchange_n(al(p), x, FM_ATOMIC_ORDER(c));
-    });
+    return __atomic_exchange_n(al(p), x, (int)o);
 #else
     (void)o;
     return (T)Ops<T>::xchg(ptr(p), to_int(x));
@@ -252,13 +215,7 @@ template<atomic_type T> [[fm_always_inline]] bool atomic_compare_exchange(volati
 {
 #if !FM_ATOMIC_MSVC
     A<T> e = expected;
-    bool ret = with_order<op::rmw>(o, [&](auto c) __attribute__((always_inline)) {
-        constexpr int success = FM_ATOMIC_ORDER(c), failure = failure_order(success);
-        if (weak)
-            return __atomic_compare_exchange_n(al(p), &e, desired, true, success, failure);
-        else
-            return __atomic_compare_exchange_n(al(p), &e, desired, false, success, failure);
-    });
+    bool ret = __atomic_compare_exchange_n(al(p), &e, desired, weak, (int)o, failure_order(o));
     expected = e;
     return ret;
 #else
@@ -282,9 +239,7 @@ template<atomic_type T> [[fm_always_inline]] bool atomic_compare_exchange_weak(v
     template<atomic_type T> [[fm_always_inline]]                                                    \
     T atomic_fetch_##name(volatile T* p, std::type_identity_t<T> x, memory_order o) noexcept        \
     {                                                                                               \
-        return with_order<op::rmw>(o, [p, x](auto c) __attribute__((always_inline)) {              \
-            return __atomic_fetch_##name(al(p), x, FM_ATOMIC_ORDER(c));                             \
-        });                                                                                         \
+        return __atomic_fetch_##name(al(p), x, (int)o);                                             \
     }
 #else
 #define FM_ATOMIC_FETCH_OP(name, msvc_op, msvc_arg)                                                 \
@@ -307,9 +262,7 @@ FM_ATOMIC_FETCH_OP(xor, xor_, to_int(x))
 [[fm_always_inline]] void atomic_thread_fence(memory_order o) noexcept
 {
 #if !FM_ATOMIC_MSVC
-    with_order<op::rmw>(o, [](auto c) __attribute__((always_inline)) {
-        __atomic_thread_fence(FM_ATOMIC_ORDER(c));
-    });
+    __atomic_thread_fence((int)o);
 #else
     if (o == memory_order::relaxed)
         return;

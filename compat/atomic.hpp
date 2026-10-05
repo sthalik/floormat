@@ -24,6 +24,7 @@ concept atomic_type = std::same_as<T, int8_t>  || std::same_as<T, uint8_t>  ||
 // 64-bit values must be 8-byte aligned. i386 SysV only aligns them to 4 by default.
 // Definitions live in atomic.cpp and are explicitly instantiated for each atomic_type.
 // With LTO, calls get inlined and the memory order becomes a constant.
+// Without it, GCC treats every order as seq_cst.
 
 template<atomic_type T> [[nodiscard]] T atomic_load(const volatile T* p, memory_order o = memory_order::seq_cst) noexcept;
 template<atomic_type T> void atomic_store(volatile T* p, std::type_identity_t<T> x, memory_order o = memory_order::seq_cst) noexcept;
