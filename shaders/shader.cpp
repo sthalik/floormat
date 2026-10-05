@@ -46,7 +46,7 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
     setUniform(OffsetUniform, Vector2(_real_camera_offsetʹ)*.5f);
     setUniform(EnableLightmapUniform, _enable_lightmap);
     setUniform(SamplerUniform, _real_sampler = _sampler);
-    setUniform(LightmapSamplerUniform, 1);
+    setUniform(LightmapSamplerUniform, _real_lightmap_sampler = 0);
 }
 
 tile_shader::~tile_shader() = default;
@@ -72,10 +72,11 @@ tile_shader& tile_shader::set_tint(const Vector4& tint)
     return *this;
 }
 
-tile_shader& tile_shader::set_lightmap_enabled(bool value)
+tile_shader& tile_shader::set_lightmap(GL::AbstractTexture* tex)
 {
-    if (value != _enable_lightmap)
-        setUniform(EnableLightmapUniform, _enable_lightmap = value);
+    _lightmap = tex;
+    if ((tex != nullptr) != _enable_lightmap)
+        setUniform(EnableLightmapUniform, _enable_lightmap = tex != nullptr);
     return *this;
 }
 
@@ -102,6 +103,12 @@ void tile_shader::draw_pre(GL::AbstractTexture& tex)
     set_sampler(id);
     if (_sampler != _real_sampler)
         setUniform(SamplerUniform, _real_sampler = _sampler);
+
+    // GL rejects a draw with two sampler types on one unit. The cache
+    // never hands out unit 0, so the atlas can't be there.
+    const auto lightmap_id = _lightmap ? tuc.bind(_lightmap) : 0;
+    if (lightmap_id != _real_lightmap_sampler)
+        setUniform(LightmapSamplerUniform, _real_lightmap_sampler = lightmap_id);
 }
 
 void tile_shader::draw_post(GL::AbstractTexture& tex) // NOLINT(*-convert-member-functions-to-static)
