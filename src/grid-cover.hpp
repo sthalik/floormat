@@ -41,7 +41,7 @@ public:
     uint32_t get_cell_index_from_coord(intra_coord pos) const;
 
     const detail::grid::CoverCell& cell(uint32_t index) const;
-    uint8_t distance(uint32_t index, uint32_t octant) const;
+    uint16_t distance(uint32_t index, uint32_t octant) const;
 
     uint32_t div_count() const;
     uint64_t build_no() const;
