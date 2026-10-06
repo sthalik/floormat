@@ -15,10 +15,10 @@ uniform Lightmap {
     float _pad0, _pad1, _pad2;
 };
 
-noperspective in vec4 v_penumbras;
-noperspective in vec3 v_edges;
-noperspective in vec3 v_proj_pos;
-noperspective in vec4 v_endpoints;
+in vec4 v_penumbras;
+in vec3 v_edges;
+in vec3 v_proj_pos;
+in vec4 v_endpoints;
 
 layout (location = 0) out vec4 color0;
 layout (location = 1) out vec4 color1;
