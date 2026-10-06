@@ -21,10 +21,12 @@ layout (location = 1) in vec2 a_shadow_coord;  // x: endpoint select, y: near/fa
 // light quad attribute (reuses location 0 as vec3)
 // layout (location = 0) in vec3 position;
 
-noperspective out vec4 v_penumbras;
-noperspective out vec3 v_edges; // z = edge clip, xy = light penetration
-noperspective out vec3 v_proj_pos;
-noperspective out vec4 v_endpoints;
+// Perspective-correct: the far vertices have w = 0, and the fragment shader uses only
+// ratios of these, which cancel the interpolated w. noperspective comes out NaN on Mesa.
+out vec4 v_penumbras;
+out vec3 v_edges; // z = edge clip, xy = light penetration
+out vec3 v_proj_pos;
+out vec4 v_endpoints;
 
 mat2 adjugate(mat2 m) {
     return mat2(m[1][1], -m[0][1], -m[1][0], m[0][0]);
@@ -53,15 +55,18 @@ void main() {
         // stays under 180°. Beyond that, the projected far vertices cross and
         // the quad degenerates (split winding → slivers with face culling,
         // shadow wrap-around without it). The break point is:
-        //   lr_clip_max = min_dist * tan((π - α) / 2)
+        //   lr_clip_max = min_dist * tan((π - α) / 2) = min_dist * (1 + cos α) / sin α
         // where α is the segment's angular span seen from the light.
         // The 0.98 factor keeps a safety margin below the degeneration boundary.
+        // No acos()/tan(): acos() rounds α to 0 for a segment seen edge-on, and tan(float(π)/2) < 0.
         float len_a = length(delta_a);
         float len_b = length(delta_b);
         float min_dist = min(len_a, len_b);
-        float alpha = acos(clamp(dot(delta_a / len_a, delta_b / len_b), -1.0, 1.0));
-        float max_lr = min_dist * tan((3.14159265 - alpha) * 0.5);
-        lr_clip = min(lr_clip, 0.98 * max_lr);
+        vec2 dir_a = delta_a / len_a, dir_b = delta_b / len_b;
+        float cos_alpha = dot(dir_a, dir_b);
+        float sin_alpha = abs(dir_a.x * dir_b.y - dir_a.y * dir_b.x);
+        float max_lr = 0.98 * min_dist * (1.0 + cos_alpha);
+        lr_clip = min(lr_clip, max_lr / max(sin_alpha, 1e-30));
 
         vec2 offset_a = vec2(-lr_clip,  lr_clip) * normalize(delta_a).yx;
         vec2 offset_b = vec2( lr_clip, -lr_clip) * normalize(delta_b).yx;
