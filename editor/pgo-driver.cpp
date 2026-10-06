@@ -1299,15 +1299,17 @@ task app::scene_lightmap()
                 dark += v < 16;
                 sat += v >= 250;
             }
-            const auto total = (uint32_t)(data.size()/4);
+            const auto total = (uint32_t)(data.size()/4), medium = total - dark - sat;
             const auto mean = (double)sum/total;
-            const auto dark_pct = (double)dark*100/total, sat_pct = (double)sat*100/total;
-            fm_debug("lightmap: accum %ux%u, mean %.1f, dark %.1f%%, saturated %.1f%%",
-                     (uint32_t)img.size().x(), (uint32_t)img.size().y(),
-                     mean, dark_pct, sat_pct);
-            // measured at mean 60.8, 43.0% dark, 3.6% saturated
-            fm_assert(mean >= 8 && mean <= 200);
-            fm_assert(dark_pct < 90 && sat_pct < 50);
+            const auto dark_pct = (double)dark*100/total, medium_pct = (double)medium*100/total,
+                       sat_pct = (double)sat*100/total;
+            fm_debug("lightmap: accum %ux%u, mean %.1f, dark %.1f%%, medium %.1f%%, saturated %.1f%%",
+                     (unsigned)img.size().x(), (unsigned)img.size().y(),
+                     mean, dark_pct, medium_pct, sat_pct);
+            fm_assert(mean > 45 && mean < 85);
+            fm_assert(dark_pct > 30 && dark_pct < 50);
+            fm_assert(medium_pct > 45 && medium_pct < 65);
+            fm_assert(sat_pct > 1 && sat_pct < 8);
         }
     }
 
