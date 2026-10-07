@@ -20,6 +20,7 @@ void test_astar_pool();
 void test_atomic();
 void test_bitmask();
 void test_bptr();
+void test_bptr_intrusive();
 void test_chunk_iter();
 void test_coords();
 void test_intra_coord();
