@@ -1,6 +1,7 @@
 #pragma once
 #include "borrowed-ptr-fwd.hpp"
 #include "borrowed-ptr-policy.hpp"
+#include "assert.hpp"
 #include "defs.hpp"
 #if fm_ASAN
 #include <sanitizer/asan_interface.h>
@@ -15,6 +16,24 @@ struct bptr_base
     bptr_base(bptr_base&&) noexcept;
     bptr_base& operator=(const bptr_base&) noexcept;
     bptr_base& operator=(bptr_base&&) noexcept;
+};
+
+// bptr{InPlace} puts the control block right in front of the object, so bptr{raw} finds it.
+// Must be the first polymorphic base. test/bptr-intrusive.cpp lists what can't work.
+template<typename Policy>
+struct intrusive_bptr_base : bptr_base
+{
+    using intrusive_policy = Policy;
+
+    void* operator new(size_t) = delete;
+    void* operator new(size_t, std::align_val_t) = delete;
+    void* operator new[](size_t) = delete;
+    void* operator new[](size_t, std::align_val_t) = delete;
+    // The deleted overloads would hide the global placement new from Corrade's containers.
+    void* operator new(size_t, void* p) noexcept { return p; }
+    void operator delete(void*, void*) noexcept {}
+    // A deleted one makes the virtual destructor ill-formed.
+    void operator delete(void*) noexcept { fm_abort("delete on an intrusive bptr object"); }
 };
 } // namespace floormat
 
@@ -152,6 +171,63 @@ struct inplace_block final : control_block<Policy>
     }
 };
 
+// The object starts right after the block. Padding goes before the block, so an over-aligned
+// object doesn't change the distance intrusive_control_block() subtracts.
+template<typename U, typename Policy>
+struct intrusive_block final : control_block<Policy>
+{
+    using block = control_block<Policy>;
+    using ptr_int = typename block::ptr_int;
+    static constexpr size_t align = alignof(U) > alignof(block) ? alignof(U) : alignof(block);
+    static constexpr size_t offset = (sizeof(block) + align - 1) & ~(align - 1);
+    struct alignas(align) storage { unsigned char bytes[offset + sizeof(U)]; };
+
+    intrusive_block() noexcept: block{nullptr} {}
+
+    template<typename... Ts>
+    static block* create(Ts&&... args) noexcept(noexcept(U{std::declval<Ts>()...}))
+    {
+        static_assert(sizeof(intrusive_block) == sizeof(block));
+        auto start = reinterpret_cast<ptr_int>(Policy::allocator::template allocate<storage>());
+        auto* b = ::new (reinterpret_cast<void*>(start + offset - sizeof(block))) intrusive_block;
+        // Odd until the constructor returns, so bptr{this} inside it fails block_from_raw()'s check.
+        Policy::counter::store(b->_ptr, (start + offset) | 1);
+        block_guard<Policy> guard{b};
+        auto* u = ::new (reinterpret_cast<void*>(start + offset)) U{forward<Ts>(args)...};
+        fm_assert((const void*)static_cast<bptr_base*>(u) == (const void*)u);
+        guard.b = nullptr;
+        Policy::counter::store(b->_ptr, block::to_int(u));
+        return b;
+    }
+
+    void dispose(bptr_base* p) noexcept override
+    {
+        auto* u = static_cast<U*>(p);
+        u->~U();
+        poison(u, sizeof(U));
+    }
+
+    void deallocate() noexcept override
+    {
+        auto start = reinterpret_cast<ptr_int>(this) + sizeof(block) - offset;
+        unpoison(reinterpret_cast<void*>(start + offset), sizeof(U));
+        this->~intrusive_block();
+        Policy::allocator::template deallocate<storage>(reinterpret_cast<void*>(start));
+    }
+};
+
+// Integer arithmetic: stepping a pointer to the object back past its start is UB.
+template<typename Policy>
+control_block<Policy>* intrusive_control_block(bptr_base* p) noexcept
+{
+    using block = control_block<Policy>;
+    return std::launder(reinterpret_cast<block*>(block::to_int(p) - sizeof(block)));
+}
+
+template<typename U>
+concept Intrusive = requires { typename U::intrusive_policy; } &&
+                    std::is_base_of_v<intrusive_bptr_base<typename U::intrusive_policy>, U>;
+
 } // namespace floormat::detail_bptr
 
 namespace floormat {
@@ -173,7 +249,14 @@ namespace floormat::detail_bptr {
 template<typename U, typename Policy, typename... Ts>
 CORRADE_ALWAYS_INLINE control_block<Policy>* make_block(Ts&&... args) noexcept(noexcept(U{std::declval<Ts>()...}))
 {
-    auto* b = bptr_traits<U, Policy>::inplace_block::create(forward<Ts>(args)...);
+    control_block<Policy>* b;
+    if constexpr (Intrusive<U>)
+    {
+        static_assert(std::is_same_v<typename U::intrusive_policy, Policy>, "intrusive type used with another policy");
+        b = intrusive_block<U, Policy>::create(forward<Ts>(args)...);
+    }
+    else
+        b = bptr_traits<U, Policy>::inplace_block::create(forward<Ts>(args)...);
     Policy::stats::block_allocated();
     Policy::stats::object_constructed();
     return b;
@@ -184,10 +267,23 @@ CORRADE_ALWAYS_INLINE control_block<Policy>* block_from_raw(U* ptr) noexcept
 {
     if (!ptr)
         return nullptr;
-    auto* b = bptr_traits<U, Policy>::ptr_block::create(ptr);
-    Policy::stats::block_allocated();
-    Policy::stats::object_constructed();
-    return b;
+    if constexpr (Intrusive<U>)
+    {
+        static_assert(std::is_same_v<typename U::intrusive_policy, Policy>, "intrusive type used with another policy");
+        bptr_base* p = ptr;
+        auto* b = intrusive_control_block<Policy>(p);
+        // Fails in the object's constructor or destructor, and for an object bptr{InPlace} didn't make.
+        fm_assert(Policy::counter::load(b->_ptr) == b->to_int(p));
+        b->add_ref();
+        return b;
+    }
+    else
+    {
+        auto* b = bptr_traits<U, Policy>::ptr_block::create(ptr);
+        Policy::stats::block_allocated();
+        Policy::stats::object_constructed();
+        return b;
+    }
 }
 
 template<typename From, typename To>
