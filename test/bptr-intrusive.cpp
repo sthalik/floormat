@@ -21,8 +21,8 @@
 //   basic_bptr<IFoo, other_policy>{InPlace, 1};  basic_bptr<IFoo, other_policy>{raw};
 //       static_assert: an intrusive type has one policy, the one it derives with.
 //   bptr{this}  in a type whose policy isn't non_atomic_refcount
-//       The deduction guide picks non_atomic_refcount, so the same static_assert fires.
-//       Spell it basic_bptr<IFoo, P>{this}.
+//       bptr is basic_bptr<T, non_atomic_refcount>, so the same static_assert fires.
+//       basic_bptr{this} deduces the type's own policy.
 //   struct X : virtual intrusive_bptr_base<P> {};
 //       dispose() can't static_cast down from a virtual base.
 //   struct X : IFoo, IOther {};  with two intrusive bases
@@ -67,6 +67,8 @@ static_assert(!can_new<IPlain> && !can_new_array<IPlain> && !can_new_nothrow<IPl
 static_assert(can_placement_new<IPlain>);
 static_assert(detail_bptr::Intrusive<IPlain> && !detail_bptr::Intrusive<Plain>);
 static_assert(std::is_same_v<bptr<IPlain>, std::decay_t<decltype(bptr{std::declval<IPlain*>()})>>);
+static_assert(std::is_same_v<bptr<IPlain>, decltype(basic_bptr{std::declval<IPlain*>()})>);
+static_assert(std::is_same_v<bptr<Plain>, decltype(basic_bptr{std::declval<Plain*>()})>);
 
 template<typename P>
 struct suite
@@ -105,6 +107,7 @@ struct suite
     static void test14();
     static void test15();
     static void test16();
+    static void test17();
 
     static void run(const char* policy);
 };
@@ -119,7 +122,7 @@ struct suite<P>::IFoo : intrusive_bptr_base<P>
     IFoo(const IFoo& other) noexcept : intrusive_bptr_base<P>{other}, x{other.x} { ++alive; }
     ~IFoo() noexcept override { --alive; fm_assert(alive >= 0); }
 
-    bptr<IFoo> self() { return bptr<IFoo>{this}; }
+    bptr<IFoo> self() { return basic_bptr{this}; }
 };
 
 template<typename P>
@@ -532,6 +535,26 @@ void suite<P>::test16()
 }
 
 template<typename P>
+void suite<P>::test17()
+{
+    IFoo::alive = 0;
+    auto a = bptr<IBar>{InPlace, 17, 19};
+    IBar* raw = &*a;
+    auto b = basic_bptr{raw};
+    auto c = basic_bptr{static_cast<const IFoo*>(raw)};
+    auto d = raw->self();
+    static_assert(std::is_same_v<decltype(b), bptr<IBar>>);
+    static_assert(std::is_same_v<decltype(c), bptr<const IFoo>>);
+    fm_assert(b == a && c == a && d == a && a.use_count() == 4);
+    a = nullptr;
+    b = nullptr;
+    d = nullptr;
+    fm_assert(IFoo::alive == 1 && c->x == 17);
+    c = nullptr;
+    fm_assert(IFoo::alive == 0);
+}
+
+template<typename P>
 void suite<P>::run(const char* policy)
 {
     run_test<P>(policy, 1, test1);
@@ -558,6 +581,7 @@ void suite<P>::run(const char* policy)
         test16();
         check_leaks<P>(before, policy, "test", 16, false);
     }
+    run_test<P>(policy, 17, test17);
 }
 
 } // namespace

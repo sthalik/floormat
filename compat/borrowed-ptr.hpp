@@ -381,6 +381,10 @@ public:
     friend basic_bptr<To, P> static_pointer_cast(const basic_bptr<From, P>& p) noexcept;
 };
 
+// The guides must not overlap, or clang and MSVC find bptr{p} ambiguous.
+template<typename T> requires (!detail_bptr::Intrusive<T>) basic_bptr(T* ptr) -> basic_bptr<T, non_atomic_refcount>;
+template<detail_bptr::Intrusive T> basic_bptr(T* ptr) -> basic_bptr<T, typename T::intrusive_policy>;
+
 #ifdef __GNUG__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
