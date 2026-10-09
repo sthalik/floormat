@@ -33,9 +33,9 @@ template<typename T> rtree_pool<T>::~rtree_pool() noexcept
 template<typename T>
 template<typename... Xs>
 T* rtree_pool<T>::construct(Xs&&... args)
-noexcept(std::is_nothrow_constructible_v<T, decltype(forward<Xs>(args))...>)
+noexcept(noexcept(T{std::declval<Xs>()...}))
 {
-    live_count++;
+    T* ret;
 
     if (!free_list)
     {
@@ -53,11 +53,11 @@ noexcept(std::is_nothrow_constructible_v<T, decltype(forward<Xs>(args))...>)
 #endif
         node_u* n;
         n =  new node_u;
-        if constexpr(std::is_nothrow_default_constructible_v<T>)
-            return new (&n->data) T{forward<Xs>(args)...};
+        if constexpr(noexcept(T{std::declval<Xs>()...}))
+            ret = new (&n->data) T{forward<Xs>(args)...};
         else
             try {
-                return new (&n->data) T{forward<Xs>(args)...};
+                ret = new (&n->data) T{forward<Xs>(args)...};
             } catch (...) {
                 delete n;
                 throw;
@@ -70,17 +70,20 @@ noexcept(std::is_nothrow_constructible_v<T, decltype(forward<Xs>(args))...>)
 #endif
         auto* n = free_list;
         free_list = free_list->next;
-        if constexpr(std::is_nothrow_default_constructible_v<T>)
-            return new (&n->data) T{forward<Xs>(args)...};
+        if constexpr(noexcept(T{std::declval<Xs>()...}))
+            ret = new (&n->data) T{forward<Xs>(args)...};
         else
             try {
-                return new (&n->data) T{forward<Xs>(args)...};
+                ret = new (&n->data) T{forward<Xs>(args)...};
             } catch (...) {
                 n->next = free_list;
                 free_list = n;
                 throw;
             }
     }
+
+    live_count++;
+    return ret;
 }
 
 template<typename T>

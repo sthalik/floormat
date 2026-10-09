@@ -13,7 +13,7 @@ template<typename T> struct rtree_pool final
 
     template<typename... Xs>
     T* construct(Xs&&... args)
-    noexcept(std::is_nothrow_constructible_v<T, decltype(forward<Xs>(args))...>);
+    noexcept(noexcept(T{std::declval<Xs>()...}));
 
     void free(T* pool) noexcept(std::is_nothrow_destructible_v<T>);
 
