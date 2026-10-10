@@ -109,6 +109,7 @@ void chunk::mark_modified() noexcept
 chunk::chunk(class world& w, chunk_coords_ ch) noexcept :
     _world{&w},
     _rtree{InPlaceInit},
+    _hole_rtree{InPlaceInit},
     _coord{ch},
     _pass_gen{w.next_pass_gen()}
 {
@@ -121,6 +122,9 @@ chunk::~chunk() noexcept
     _teardown = true;
     _objects.clear();
     _rtree->RemoveAll();
+    _hole_rtree->RemoveAll();
+    if (_light_rtree)
+        _light_rtree->RemoveAll();
 }
 
 void chunk::sort_objects()
@@ -139,7 +143,12 @@ void chunk::add_object_pre(const bptr<object>& e)
         mark_scenery_modified();
     // the static path isn't gated on _pass_modified because it only sets dirty flags,
     // and one of them lands on the neighbor chunks
-    if (!dyn || upd_passability)
+    if (e->type() == object_type::light)
+    {
+        if (bbox bb; _bbox_for_scenery(*e, bb))
+            _add_light_bbox(bb);
+    }
+    else if (!dyn || upd_passability)
         _add_bbox_static_(e);
     else if (!_pass_modified) [[likely]]
     {
@@ -182,7 +191,12 @@ void chunk::remove_object(const object& e, size_t i)
     if (!dyn)
         mark_scenery_modified();
 
-    if (!dyn || upd_passability)
+    if (e.type() == object_type::light)
+    {
+        if (bbox bb; _bbox_for_scenery(e, bb))
+            _remove_light_bbox(bb);
+    }
+    else if (!dyn || upd_passability)
         _remove_bbox_static_(eʹ);
     else if (!_pass_modified) [[likely]]
     {

@@ -1269,9 +1269,8 @@ void test_bit_exact(const exact_config& cfg)
     fm_assert((uint32_t)(dc*dc) - count_passable(g) == cleared);
 }
 
-// A hole marker is a collision_type::none rtree entry, never a collider. Its pass_mode only
-// picks which pass_through_mask filter_bbox_through_holes() cuts for. search.cpp, raycast.cpp
-// and sweep-aabb.cpp all skip type none no matter the mode; build_impl() must agree.
+// A hole marker lives in the hole tree, never in the collision tree. Its pass_mode only picks
+// which pass_through_mask filter_bbox_through_holes() cuts for, so no mode may block anything.
 void test_hole_marker_never_blocks(uint32_t div_size, pass_mode hole_pass)
 {
     auto w = world();
@@ -1281,8 +1280,9 @@ void test_hole_marker_never_blocks(uint32_t div_size, pass_mode hole_pass)
     h->set_bbox({}, {}, Vector2ub{48, 32}, hole_pass);
     rebuild_passability(c);
 
-    // "tiles" ground is pass_mode::pass, so the marker is the only entry
-    fm_assert(c.rtree()->Count() == 1);
+    // "tiles" ground is pass_mode::pass, so the collision tree is empty
+    fm_assert(c.rtree()->Count() == 0);
+    fm_assert(c.hole_rtree()->Count() == 1);
     constexpr auto ctr = Vector2(tile_size_xy*8);
     fm_assert(Search::is_passable_1(c, ctr - Vector2{8}, ctr + Vector2{8}, Search::without_critters()));
 

@@ -80,6 +80,11 @@ public:
     uint64_t pass_gen() const noexcept;
     RTree* rtree() noexcept;
     const RTree* rtree() const noexcept;
+    RTree* hole_rtree() noexcept;
+    const RTree* hole_rtree() const noexcept;
+    // null until the chunk's first light
+    RTree* light_rtree() noexcept;
+    const RTree* light_rtree() const noexcept;
     class world& world() noexcept;
     const class world& world() const noexcept;
 
@@ -115,7 +120,7 @@ private:
     Pointer<wall_stuff> _walls;
     object_storage _objects;
     class world* _world;
-    Pointer<RTree> _rtree;
+    Pointer<RTree> _rtree, _hole_rtree, _light_rtree;
     chunk* _next = nullptr;
     chunk* _prev = nullptr;
     chunk_coords_ _coord;
@@ -144,6 +149,13 @@ private:
     [[nodiscard]] static bool _bbox_for_scenery(const object& s, bbox& value) noexcept;
     [[nodiscard]] static bool _bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
                                                 Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept;
+
+    static void _rtree_insert(RTree& t, const bbox& x);
+    static void _rtree_remove(RTree& t, const bbox& x);
+
+    void _add_light_bbox(const bbox& x);
+    void _remove_light_bbox(const bbox& x);
+    void _replace_light_bbox(const bbox& x0, const bbox& x, bool b0, bool b);
 
     void _remove_bbox_dynamic(const bbox& x);
     void _remove_bbox_static(const bptr<object>& e, const bbox& x);

@@ -24,6 +24,8 @@ namespace floormat {
 bool collision_data::operator==(const collision_data&) const noexcept = default;
 bool chunk::bbox::operator==(const floormat::chunk::bbox& other) const noexcept = default;
 Chunk_RTree* chunk::rtree() noexcept { ensure_passability(); return &*_rtree; }
+Chunk_RTree* chunk::hole_rtree() noexcept { ensure_passability(); return &*_hole_rtree; }
+Chunk_RTree* chunk::light_rtree() noexcept { ensure_passability(); return _light_rtree.get(); }
 world& chunk::world() noexcept { return *_world; }
 const class world& chunk::world() const noexcept { return *_world; }
 
@@ -31,6 +33,18 @@ const chunk::RTree* chunk::rtree() const noexcept
 {
     fm_assert(!is_passability_modified());
     return _rtree.get();
+}
+
+const chunk::RTree* chunk::hole_rtree() const noexcept
+{
+    fm_assert(!is_passability_modified());
+    return _hole_rtree.get();
+}
+
+const chunk::RTree* chunk::light_rtree() const noexcept
+{
+    fm_assert(!is_passability_modified());
+    return _light_rtree.get();
 }
 
 namespace {
@@ -51,12 +65,8 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
 {
     bool has_holes = false;
     constexpr auto bounds = chunk_collision_bounds<Range2Di>;
-    for (const bptr<object>& eʹʹ : c.objects())
+    for (const struct hole& e : c.objects().list<struct hole>())
     {
-        auto& eʹ = *eʹʹ;
-        if (eʹ.type() != object_type::hole) [[likely]]
-            continue;
-        const auto& e = static_cast<struct hole&>(eʹ);
         if (!e.flags.enabled)
             continue;
         if (Vector2ui{e.bbox_size}.product() == 0)
@@ -78,8 +88,8 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
     return has_holes;
 }
 
-void filter_bbox_through_holes(Chunk_RTree& rtree, object_id id, Range2D bbox, bool has_holes,
-                               pass_through_mask mask)
+void filter_bbox_through_holes(Chunk_RTree& rtree, const Chunk_RTree& holes, object_id id, Range2D bbox,
+                               bool has_holes, pass_through_mask mask)
 {
     fm_assert((bbox.max() > bbox.min()).all());
     if (!has_holes)
@@ -88,7 +98,7 @@ start:
     fm_assert((bbox.max() > bbox.min()).all());
 
     Range2D hole;
-    bool ret = chunk::find_hole_in_bbox(hole, rtree, bbox, mask);
+    bool ret = chunk::find_hole_in_bbox(hole, holes, bbox, mask);
 
     if (ret) [[likely]]
         rtree.Insert(bbox.min().data(), bbox.max().data(), id);
@@ -107,7 +117,7 @@ start:
         else
         {
             for (auto i = 0u; i < res.size; i++)
-                filter_bbox_through_holes(rtree, id, res.array[i], has_holes, mask);
+                filter_bbox_through_holes(rtree, holes, id, res.array[i], has_holes, mask);
         }
     }
 }
@@ -119,7 +129,7 @@ bool chunk::find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Range2D b
     bool ret = true;
     rtree.Search(bbox.min().data(), bbox.max().data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (can_pass_through_mask(mask, pass_mode(x.pass)) && x.type == (uint64_t)collision_type::none)
+        if (can_pass_through_mask(mask, pass_mode(x.pass)) /*&& x.type == (uint64_t)collision_type::none*/)
         {
             Range2D holeʹ {
                 { r.m_min[0], r.m_min[1] },
@@ -138,10 +148,10 @@ bool chunk::find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Range2D b
 void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max,
                                   pass_through_mask mask)
 {
-    const auto& rtree = *c.rtree();
+    const auto& rtree = *c.hole_rtree();
     rtree.Search(bb_min.data(), bb_max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (can_pass_through_mask(mask, pass_mode(x.pass)) && x.type == (uint64_t)collision_type::none)
+        if (can_pass_through_mask(mask, pass_mode(x.pass)) /*&& x.type == (uint64_t)collision_type::none*/)
         {
             Vector2 hmin = {r.m_min[0], r.m_min[1]}, hmax = {r.m_max[0], r.m_max[1]};
             if (rect_intersects(hmin, hmax, bb_min, bb_max))
@@ -166,17 +176,21 @@ void chunk::ensure_passability() noexcept
     _pass_modified = false;
 
     _rtree->RemoveAll();
+    _hole_rtree->RemoveAll();
+    if (_light_rtree)
+        _light_rtree->RemoveAll();
 
     //Debug{} << ".. reset passability" << _coord;
 
     bool has_holes = false;
     auto& rtree = *_rtree;
+    auto& holes = *_hole_rtree;
     {
-        has_holes |= add_holes_from_chunk<false>(rtree, *this, {});
+        has_holes |= add_holes_from_chunk<false>(holes, *this, {});
         const auto nbs = _world->neighbors(_coord);
         for (auto i = 0u; i < 8; i++)
             if (nbs[i])
-                has_holes |= add_holes_from_chunk<true>(rtree, *nbs[i], world::neighbor_offsets[i]);
+                has_holes |= add_holes_from_chunk<true>(holes, *nbs[i], world::neighbor_offsets[i]);
     }
 
     for (auto i = 0u; i < TILE_COUNT; i++)
@@ -187,7 +201,7 @@ void chunk::ensure_passability() noexcept
             if (pass == pass_mode::pass) [[likely]]
                 continue;
             auto id = make_id(collision_type::geometry, pass, i+1);
-            filter_bbox_through_holes(rtree, id, whole_tile(i), has_holes, can_walk_through_mask);
+            filter_bbox_through_holes(rtree, holes, id, whole_tile(i), has_holes, can_walk_through_mask);
         }
     }
     for (auto i = 0u; i < TILE_COUNT; i++)
@@ -197,22 +211,28 @@ void chunk::ensure_passability() noexcept
         {
             auto depth = (float)atlas->info().depth;
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
-            filter_bbox_through_holes(rtree, id, wall_north(i, depth), has_holes, not_blocked_pass_through_mask);
+            filter_bbox_through_holes(rtree, holes, id, wall_north(i, depth), has_holes, not_blocked_pass_through_mask);
 
             if (const auto* west = tile.wall_west_atlas().get())
-                filter_bbox_through_holes(rtree, id, wall_pillar(i, (float)west->info().depth, depth),
+                filter_bbox_through_holes(rtree, holes, id, wall_pillar(i, (float)west->info().depth, depth),
                                           has_holes, not_blocked_pass_through_mask);
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
             auto depth = (float)atlas->info().depth;
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT*2+i+1);
-            filter_bbox_through_holes(rtree, id, wall_west(i, depth), has_holes, not_blocked_pass_through_mask);
+            filter_bbox_through_holes(rtree, holes, id, wall_west(i, depth), has_holes, not_blocked_pass_through_mask);
         }
     }
     for (const bptr<object>& eʹ : objects())
     {
         auto& e = *eʹ;
+        if (e.type() == object_type::light)
+        {
+            if (bbox bb; _bbox_for_scenery(e, bb))
+                _add_light_bbox(bb);
+            continue;
+        }
         if (e.updates_passability())
             continue;
         if (Vector2ui{e.bbox_size}.product() == 0)
@@ -221,7 +241,7 @@ void chunk::ensure_passability() noexcept
         if (_bbox_for_scenery(e, bb))
         {
             if (!e.is_dynamic())
-                filter_bbox_through_holes(rtree, std::bit_cast<object_id>(bb.data),
+                filter_bbox_through_holes(rtree, holes, std::bit_cast<object_id>(bb.data),
                                           Math::Range2D<float>{bb.pos},
                                           has_holes, not_blocked_pass_through_mask);
             else
@@ -259,10 +279,49 @@ void chunk::_add_bbox_static_(const bptr<object>& e)
     e->mark_neighbor_chunks_modified();
 }
 
-void chunk::_remove_bbox_dynamic(const bbox& x)
+void chunk::_rtree_remove(RTree& t, const bbox& x)
 {
     auto start = Vector2(x.pos.min()), end = Vector2(x.pos.max());
-    _rtree->Remove(start.data(), end.data(), std::bit_cast<object_id>(x.data));
+    t.Remove(start.data(), end.data(), std::bit_cast<object_id>(x.data));
+}
+
+void chunk::_rtree_insert(RTree& t, const bbox& x)
+{
+    fm_assert((x.pos.max() > x.pos.min()).all());
+    auto start = Vector2(x.pos.min()), end = Vector2(x.pos.max());
+    t.Insert(start.data(), end.data(), std::bit_cast<object_id>(x.data));
+}
+
+void chunk::_add_light_bbox(const bbox& x)
+{
+    if (_pass_modified)
+        return;
+    if (!_light_rtree)
+        _light_rtree = Pointer<RTree>{InPlaceInit};
+    _rtree_insert(*_light_rtree, x);
+}
+
+void chunk::_remove_light_bbox(const bbox& x)
+{
+    if (_pass_modified)
+        return;
+    fm_assert(_light_rtree);
+    _rtree_remove(*_light_rtree, x);
+}
+
+void chunk::_replace_light_bbox(const bbox& x0, const bbox& x, bool b0, bool b)
+{
+    if (b0 && b && x0 == x)
+        return;
+    if (b0)
+        _remove_light_bbox(x0);
+    if (b)
+        _add_light_bbox(x);
+}
+
+void chunk::_remove_bbox_dynamic(const bbox& x)
+{
+    _rtree_remove(*_rtree, x);
     //Debug{} << "bbox <<< dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
 
@@ -274,9 +333,7 @@ void chunk::_remove_bbox_static(const bptr<object>& e, [[maybe_unused]] const bb
 
 void chunk::_add_bbox_dynamic(const bbox& x)
 {
-    fm_assert((x.pos.max() > x.pos.min()).all());
-    auto start = Vector2(x.pos.min()), end = Vector2(x.pos.max());
-    _rtree->Insert(start.data(), end.data(), std::bit_cast<object_id>(x.data));
+    _rtree_insert(*_rtree, x);
     //Debug{} << "bbox >>> dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
 
@@ -341,7 +398,9 @@ void chunk::_replace_bbox_static(const bptr<object>& e, const bbox& x0, const bb
 void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x,
                            bool b0, bool b, bool upd, bool is_dynamic)
 {
-    if (!is_dynamic || upd)
+    if (e->type() == object_type::light)
+        _replace_light_bbox(x0, x, b0, b);
+    else if (!is_dynamic || upd)
         _replace_bbox_static(e, x0, x, b0, b);
     else
         _replace_bbox_dynamic(x0, x, b0, b);

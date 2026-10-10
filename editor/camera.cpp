@@ -87,9 +87,8 @@ object_id app::get_object_colliding_with_cursor()
             c.ensure_passability();
             auto t0 = Vector2(pt - point{ch, {}, {}});
             auto t1 = t0+Vector2(1e-4f);
-            const auto* rtree = c.rtree();
             object_id ret = 0;
-            rtree->Search(t0.data(), t1.data(), [&](uint64_t data, const rect_type& rect) {
+            const auto pick = [&](uint64_t data, const rect_type& rect) {
                 [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
                 if (x.type == (uint64_t)collision_type::geometry)
                     return true;
@@ -104,7 +103,12 @@ object_id app::get_object_colliding_with_cursor()
                     }
                 }
                 return true;
-            });
+            };
+            c.rtree()->Search(t0.data(), t1.data(), pick);
+            if (!ret)
+                c.hole_rtree()->Search(t0.data(), t1.data(), pick);
+            if (const auto* lights = c.light_rtree(); !ret && lights)
+                lights->Search(t0.data(), t1.data(), pick);
             if (ret)
                 return ret;
         }

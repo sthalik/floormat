@@ -293,10 +293,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     nb->rtree()->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r)
                     {
                         auto x = std::bit_cast<collision_data>(data);
+                        fm_debug3_assert(x.type != (uint64_t)collision_type::none);
                         if (x.id == self || x.pass == (uint64_t)pass_mode::pass)
-                            return true;
-                        // same hole-marker filter as is_passable_1
-                        if (x.type == (uint64_t)collision_type::none)
                             return true;
                         auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
                         if (pred(*nb, x, range) == path_search_continue::pass)

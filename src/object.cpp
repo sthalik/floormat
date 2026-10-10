@@ -265,7 +265,9 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
     const bool b0 = c->_bbox_for_scenery(*this, bb0);
     set_bbox_(offset_, bb_offset_, bb_size_, pass_);
     const bool b = c->_bbox_for_scenery(*this, bb);
-    if (upd_pass)
+    if (type() == object_type::light)
+        c->_replace_light_bbox(bb0, bb, b0, b);
+    else if (upd_pass)
         mark_neighbor_chunks_modified();
     else if (!dyn)
         c->mark_passability_modified();

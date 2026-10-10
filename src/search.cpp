@@ -68,10 +68,9 @@ bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
     bool ret = true;
     (void)is_passable_common(c, min, max, [&](uint64_t x, const Chunk_RTree::Rect& r) {
         auto data = std::bit_cast<collision_data>(x);
+        // hole markers live in hole_rtree()
+        fm_debug3_assert(data.type != (uint64_t)collision_type::none);
         if (data.pass == (uint64_t)pass_mode::pass)
-            return true;
-        // hole markers aren't colliders no matter their pass mode
-        if (data.type == (uint64_t)collision_type::none)
             return true;
         auto rect = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
         if (!rect_intersects(min, max, rect.min(), rect.max()))

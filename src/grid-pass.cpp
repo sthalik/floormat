@@ -203,10 +203,8 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
         const float pmax[2] = { pmax_self[0] - off.x(), pmax_self[1] - off.y() };
         c->rtree()->Search(pmin, pmax, [&](object_id data, const auto& r) {
             const auto x = std::bit_cast<collision_data>(data);
+            fm_debug3_assert(x.type != (uint64_t)collision_type::none);
             if (x.pass == (uint64_t)pass_mode::pass)
-                return true;
-            // same hole-marker filter as is_passable_1
-            if (x.type == (uint64_t)collision_type::none)
                 return true;
             auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
             if (predicate(*c, x, range) == path_search_continue::pass)

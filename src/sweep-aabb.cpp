@@ -74,8 +74,6 @@ sweep_result find_swept_collider(chunk& c, Range2D start, Vector2 displacement, 
     sweep_result res = { .has_collider = false, /*.pos = limits<float>::max*/ };
 
     auto cb = [&](chunk& self, collision_data data, Range2D r) {
-        if (data.type == (uint64_t)collision_type::none)
-            return path_search_continue::pass;
         if (p(self, data, r) == path_search_continue::pass)
             return path_search_continue::pass;
         // search.cpp:107 shifts the search bbox into self's frame before firing
