@@ -4,6 +4,9 @@
 #include "src/scenery-proto.hpp"
 #include "src/light.hpp"
 #include "src/hole.hpp"
+#include "src/collision.hpp"
+#include "src/tile-image.hpp"
+#include "src/wall-atlas.hpp"
 #include "src/search.hpp"
 #include "src/point.inl"
 #include "src/RTree.hpp"
@@ -13,6 +16,8 @@
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
+#include <bit>
+#include <cr/Optional.h>
 
 namespace floormat {
 
@@ -215,6 +220,98 @@ void test_hole_tree()
     fm_assert(found == 1);
 }
 
+Optional<collision_data> entry_at(chunk& c, Vector2 pt)
+{
+    Optional<collision_data> ret;
+    const auto pt2 = pt + Vector2{1e-4f};
+    c.rtree()->Search(pt.data(), pt2.data(), [&](object_id id, const chunk::RTree::Rect&) {
+        fm_assert(!ret);
+        ret = std::bit_cast<collision_data>(id);
+        return true;
+    });
+    return ret;
+}
+
+bool passable_at(chunk& c, Vector2 pt)
+{
+    return Search::is_passable_1(c, pt - Vector2{2}, pt + Vector2{2}, Search::without_critters());
+}
+
+// The part of a wall or scenery under a hole keeps the hole's pass mode, so a window stays solid
+// to walkers.
+void test_hole_pass_modes()
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    constexpr auto pos = global_coords{ch, {8, 8}};
+    const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
+    const auto ctr = Vector2{8, 8} * tile_size<Vector2>;
+    const auto mid = Vector2{ctr.x(), ctr.y() - half_tile<float> - (float)W.atlas->info().depth/2};
+    const auto side = mid - Vector2{24, 0};
+
+    hole_proto hp;
+    hp.offset = {0, -tile_size_xy/2};
+    hp.bbox_size = {32, 32};
+
+    for (auto p : { pass_mode::pass, pass_mode::see_through, pass_mode::shoot_through })
+    {
+        auto w = world();
+        auto& c = w[ch];
+        c[{8, 8}].wall_north() = W;
+        hp.pass = p;
+        (void)w.make_object<hole>(w.make_id(), pos, hp);
+
+        const auto e = entry_at(c, mid);
+        if (p == pass_mode::pass)
+            fm_assert(!e);
+        else
+            fm_assert(e && e->type == (uint64_t)collision_type::geometry && e->pass == (uint64_t)p);
+        fm_assert(passable_at(c, mid) == (p == pass_mode::pass));
+        const auto s = entry_at(c, side);
+        fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
+    }
+
+    {
+        auto w = world();
+        auto& c = w[ch];
+        c[{8, 8}].wall_north() = W;
+        hp.pass = pass_mode::see_through;
+        (void)w.make_object<hole>(w.make_id(), pos, hp);
+        auto hp2 = hp;
+        hp2.offset.x() = 16;
+        hp2.pass = pass_mode::pass;
+        (void)w.make_object<hole>(w.make_id(), pos, hp2);
+
+        const auto e = entry_at(c, mid - Vector2{8, 0});
+        fm_assert(e && e->pass == (uint64_t)pass_mode::see_through);
+        fm_assert(!entry_at(c, mid + Vector2{8, 0}));
+        fm_assert(!entry_at(c, mid + Vector2{24, 0}));
+        const auto s = entry_at(c, side);
+        fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
+    }
+
+    {
+        auto w = world();
+        auto& c = w[ch];
+        scenery_proto p;
+        p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+        p.subtype     = generic_scenery_proto{};
+        p.bbox_offset = {};
+        p.bbox_size   = {32, 32};
+        p.pass        = pass_mode::blocked;
+        w.make_scenery(w.make_id(), pos, move(p));
+        hole_proto hp3;
+        hp3.bbox_size = {16, 16};
+        hp3.pass = pass_mode::shoot_through;
+        (void)w.make_object<hole>(w.make_id(), pos, hp3);
+
+        const auto e = entry_at(c, ctr);
+        fm_assert(e && e->type == (uint64_t)collision_type::scenery && e->pass == (uint64_t)pass_mode::shoot_through);
+        fm_assert(!passable_at(c, ctr));
+        const auto s = entry_at(c, ctr - Vector2{12, 0});
+        fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
+    }
+}
+
 } // namespace
 
 
@@ -225,6 +322,7 @@ void Test::test_rtree()
     test3();
     test_light_tree();
     test_hole_tree();
+    test_hole_pass_modes();
 }
 
 } // namespace floormat

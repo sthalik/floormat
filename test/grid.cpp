@@ -1269,8 +1269,8 @@ void test_bit_exact(const exact_config& cfg)
     fm_assert((uint32_t)(dc*dc) - count_passable(g) == cleared);
 }
 
-// A hole marker lives in the hole tree, never in the collision tree. Its pass_mode only picks
-// which pass_through_mask filter_bbox_through_holes() cuts for, so no mode may block anything.
+// A hole marker lives in the hole tree, never in the collision tree, so over open ground no
+// pass_mode may block anything.
 void test_hole_marker_never_blocks(uint32_t div_size, pass_mode hole_pass)
 {
     auto w = world();

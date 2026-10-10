@@ -89,7 +89,7 @@ public:
     const class world& world() const noexcept;
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
-    [[nodiscard]] static bool find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Range2D bbox, pass_through_mask mask);
+    [[nodiscard]] static Optional<Pair<Range2D, pass_mode>> find_hole_in_bbox(const Chunk_RTree& rtree, Range2D bbox, pass_through_mask mask);
     using hole_callback = const fu2::function_view<void(Math::Range2D<float> hole, Math::Range1D<uint8_t> z) const>;
     static void get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max, pass_through_mask mask);
 

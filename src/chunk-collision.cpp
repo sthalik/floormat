@@ -16,6 +16,7 @@
 #include <bit>
 #include <utility>
 #include <cr/StructuredBindings.h>
+#include <cr/Optional.h>
 #include <cr/Pair.h>
 #include <mg/Range.h>
 
@@ -97,19 +98,32 @@ void filter_bbox_through_holes(Chunk_RTree& rtree, const Chunk_RTree& holes, obj
 start:
     fm_assert((bbox.max() > bbox.min()).all());
 
-    Range2D hole;
-    bool ret = chunk::find_hole_in_bbox(hole, holes, bbox, mask);
+    auto found = chunk::find_hole_in_bbox(holes, bbox, mask);
 
-    if (ret) [[likely]]
+    if (!found) [[likely]]
         rtree.Insert(bbox.min().data(), bbox.max().data(), id);
     else
     {
+        const auto [hole, hole_pass] = *found;
         auto res = CutResult<float>::cut(bbox, hole);
         if (!res.found())
         {
             rtree.Insert(bbox.min().data(), bbox.max().data(), id);
+            return;
         }
-        else if (res.size == 1)
+        auto x = std::bit_cast<collision_data>(id);
+        if (hole_pass != pass_mode::pass && x.pass != (uint64_t)pass_mode::pass)
+        {
+            if (x.pass < (uint64_t)hole_pass)
+                x.pass = (uint64_t)hole_pass;
+            // holes this open or less can't change it anymore, which also ends the recursion
+            auto maskʹ = mask;
+            for (auto i = 0u; i <= x.pass; i++)
+                maskʹ[i] = false;
+            filter_bbox_through_holes(rtree, holes, std::bit_cast<object_id>(x), Math::intersect(bbox, hole),
+                                      has_holes, maskʹ);
+        }
+        if (res.size == 1)
         {
             bbox = res.array[0];
             goto start;
@@ -124,21 +138,21 @@ start:
 
 } // namespace
 
-bool chunk::find_hole_in_bbox(Range2D& hole, const Chunk_RTree& rtree, Range2D bbox, pass_through_mask mask)
+Optional<Pair<Range2D, pass_mode>> chunk::find_hole_in_bbox(const Chunk_RTree& rtree, Range2D bbox, pass_through_mask mask)
 {
-    bool ret = true;
+    Optional<Pair<Range2D, pass_mode>> ret;
     rtree.Search(bbox.min().data(), bbox.max().data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
         if (can_pass_through_mask(mask, pass_mode(x.pass)) /*&& x.type == (uint64_t)collision_type::none*/)
         {
-            Range2D holeʹ {
+            Range2D hole {
                 { r.m_min[0], r.m_min[1] },
                 { r.m_max[0], r.m_max[1] },
             };
-            if (rect_intersects(holeʹ.min(), holeʹ.max(), bbox.min(), bbox.max()))
+            if (rect_intersects(hole.min(), hole.max(), bbox.min(), bbox.max()))
             {
-                hole = holeʹ;
-                return ret = false;
+                ret = {InPlaceInit, hole, pass_mode(x.pass)};
+                return false;
             }
         }
         return true;
