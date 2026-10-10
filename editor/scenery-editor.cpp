@@ -85,13 +85,12 @@ void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s, 
 {
     if (!s)
     {
-        auto& c = w[pos.chunk3()];
-        while (auto id = a.get_object_colliding_with_cursor())
+        while (auto id = a.get_object_colliding_with_cursor(false))
         {
             auto eʹ = w.find_object(id);
-            if (!eʹ || &eʹ->chunk() != &c)
+            if (!eʹ)
                 break;
-            c.kill_object(*eʹ, eʹ->index());
+            eʹ->chunk().kill_object(*eʹ, eʹ->index());
         }
     }
     else

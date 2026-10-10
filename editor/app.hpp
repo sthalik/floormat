@@ -68,7 +68,7 @@ struct app final : floormat_app
     static int run_from_argv(int argc, const char* const* argv);
     static fm_settings parse_cmdline(int argc, const char* const* argv);
     ~app() override;
-    object_id get_object_colliding_with_cursor();
+    object_id get_object_colliding_with_cursor(bool virtual_objects);
     floormat_main& main();
     const struct cursor_state& cursor_state();
     clickable* find_clickable_scenery(const Optional<Vector2i>& pixel);

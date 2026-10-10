@@ -47,13 +47,12 @@ void vobj_editor::place_tile(world& w, global_coords pos, const vobj_* x, struct
 {
     if (!x)
     {
-        auto& c = w[pos.chunk3()];
-        while (auto id = a.get_object_colliding_with_cursor())
+        while (auto id = a.get_object_colliding_with_cursor(true))
         {
             auto eʹ = w.find_object(id);
-            if (!eʹ || &eʹ->chunk() != &c || !eʹ->is_virtual())
+            if (!eʹ /*|| !eʹ->is_virtual()*/) // the pick searches only the hole and light trees
                 break;
-            c.kill_object(*eʹ, eʹ->index());
+            eʹ->chunk().kill_object(*eʹ, eʹ->index());
         }
     }
     else

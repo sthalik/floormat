@@ -63,7 +63,7 @@ void app::reset_camera_offset()
     update_cursor_tile(cursor.pixel);
 }
 
-object_id app::get_object_colliding_with_cursor()
+object_id app::get_object_colliding_with_cursor(bool virtual_objects)
 {
     const auto chunks = M->get_draw_bounds(_chunk_bounds_array, {});
 
@@ -104,11 +104,14 @@ object_id app::get_object_colliding_with_cursor()
                 }
                 return true;
             };
-            c.rtree()->Search(t0.data(), t1.data(), pick);
-            if (!ret)
+            if (!virtual_objects)
+                c.rtree()->Search(t0.data(), t1.data(), pick);
+            else
+            {
                 c.hole_rtree()->Search(t0.data(), t1.data(), pick);
-            if (const auto* lights = c.light_rtree(); !ret && lights)
-                lights->Search(t0.data(), t1.data(), pick);
+                if (const auto* lights = c.light_rtree(); !ret && lights)
+                    lights->Search(t0.data(), t1.data(), pick);
+            }
             if (ret)
                 return ret;
         }
