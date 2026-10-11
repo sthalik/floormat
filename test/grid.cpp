@@ -515,19 +515,22 @@ void test_chunk_pass_gen_monotonic_after_move_assign()
 
 void test_grids_after_world_move_ctor()
 {
+    Pass::Pool pool{Pass::Params{16, pass_mode::pass}};
     auto a = world();
+    uint64_t build_no;
     {
         auto& c = a[COORD];
         add_ground_all(c);
         rebuild_passability(c);
-        tick(a, a.raycast_pass_pool());
-        a.raycast_pass_pool()[c].build_if_stale(Search::without_critters());
+        tick(a, pool);
+        auto g = pool[c];
+        g.build_if_stale(Search::without_critters());
+        build_no = g.build_no();
     }
     auto b = world(move(a));
-    auto& pool = b.raycast_pass_pool();
     tick(b, pool);
     Pass::Grid g = pool[b[COORD]];
-    g.build_if_stale(Search::without_critters());
+    fm_assert(g.build_no() == build_no);
     const auto dc = g.div_count();
     fm_assert(count_passable(g) == dc * dc);
 }
@@ -543,6 +546,7 @@ void test_world_move_ctor_from_moved_from()
 
 void test_grids_dropped_by_world_move_assign()
 {
+    Pass::Pool pool{Pass::Params{16, pass_mode::pass}};
     auto a = world();
     a[COORD];
     auto b = world();
@@ -550,27 +554,28 @@ void test_grids_dropped_by_world_move_assign()
         auto& c = b[chunk_coords_{5, 5, 0}];
         add_ground_all(c);
         rebuild_passability(c);
-        tick(b, b.raycast_pass_pool());
-        b.raycast_pass_pool()[c].build_if_stale(Search::without_critters());
+        tick(b, pool);
+        pool[c].build_if_stale(Search::without_critters());
     }
-    b = move(a);
-    auto& pool = b.raycast_pass_pool();
-    tick(b, pool);
     fm_assert(pool.pooled_count() == 0);
+    b = move(a);
+    fm_assert(pool.pooled_count() == 1);
+    tick(b, pool);
 }
 
 void test_world_assign_into_moved_from()
 {
+    Pass::Pool pool{Pass::Params{16, pass_mode::pass}};
     auto a = world();
     make_chunk_row(a, 3);
     auto b = world(move(a));
     a = move(b);
     fm_assert(a.contains(chunk_coords_{2, 0, 0}));
     a[COORD];
-    tick(a, a.raycast_pass_pool());
+    tick(a, pool);
     b = world();
     b[COORD];
-    tick(b, b.raycast_pass_pool());
+    tick(b, pool);
 }
 
 void test_frame_counter_ticks_independently(uint32_t div_size)

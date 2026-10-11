@@ -1,6 +1,7 @@
 #include "src/raycast-diag.hpp"
 #include "src/raycast.hpp"
 #include "src/raycast-loop.hpp"
+#include "src/grid-pass.hpp"
 #include "src/collision.hpp"
 #include "src/pass-mode.hpp"
 #include "src/point.inl"
@@ -69,11 +70,13 @@ world make_world()
     return w;
 }
 
-auto run(point from, point to, world& w, bool b, float len)
+constexpr auto pool_params = Pass::Params{16, tile_size_xy, pass_mode::shoot_through};
+
+auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
 {
     constexpr float fuzz = TILE_SIZE2.x();
     auto diag = rc::raycast_diag_s{};
-    auto res = raycast_with_diag(diag, w, from, to, 0);
+    auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue());
     if (res.success != b)
     {
         fm_error("success != %s", b ? "true" : "false");
@@ -96,17 +99,18 @@ auto run(point from, point to, world& w, bool b, float len)
 void Raycast(benchmark::State& state)
 {
     auto w = make_world();
+    Pass::Pool pool{pool_params};
 
     const auto test = [&] {
       { constexpr auto from = point{{0, 0, 0}, {11,12}, {1,-32}};
-        fm_assert(run(from, point{{  1,   3, 0}, { 0,  1}, {-21,  23}}, w, false,  2288));
-        fm_assert(run(from, point{{  1,   3, 0}, { 8, 10}, {- 9, -13}}, w, true,   3075));
-        fm_assert(run(from, point{{  0,   3, 0}, {14,  4}, {  3,  15}}, w, true,   2614));
-        fm_assert(run(from, point{{  0,   1, 0}, { 8, 12}, {-27, -19}}, w, false,   752));
-        fm_assert(run(from, point{{  2,  33, 0}, {15, 11}, {- 4,  29}}, w, true,  33809));
-        fm_assert(run(from, point{{  0,   1, 0}, { 6, 13}, {- 3, -11}}, w, false,   913));
+        fm_assert(run(pool, from, point{{  1,   3, 0}, { 0,  1}, {-21,  23}}, w, false,  2288));
+        fm_assert(run(pool, from, point{{  1,   3, 0}, { 8, 10}, {- 9, -13}}, w, true,   3075));
+        fm_assert(run(pool, from, point{{  0,   3, 0}, {14,  4}, {  3,  15}}, w, true,   2614));
+        fm_assert(run(pool, from, point{{  0,   1, 0}, { 8, 12}, {-27, -19}}, w, false,   752));
+        fm_assert(run(pool, from, point{{  2,  33, 0}, {15, 11}, {- 4,  29}}, w, true,  33809));
+        fm_assert(run(pool, from, point{{  0,   1, 0}, { 6, 13}, {- 3, -11}}, w, false,   913));
       }
-      { fm_assert(run(      point{{  0,   0, 0}, { 1,  0}, {-17,  17}},
+      { fm_assert(run(pool, point{{  0,   0, 0}, { 1,  0}, {-17,  17}},
                             point{{  0, - 7, 0}, { 1, 15}, {-11,   5}}, w, true,   6220));
       }
     };
@@ -172,7 +176,7 @@ point project_to(point from, point to, int extra_tiles)
     return point::normalize_coords(to, Vector2i{dx, dy});
 }
 
-bool run_dense(point from, point to_orig, world& w)
+bool run_dense(Pass::Pool& pool, point from, point to_orig, world& w)
 {
     auto seg = to_orig - from;
     auto seg_len = Math::sqrt((float)(seg.x()*(int64_t)seg.x() + seg.y()*(int64_t)seg.y()));
@@ -182,7 +186,7 @@ bool run_dense(point from, point to_orig, world& w)
         return false;
     }
     auto to = project_to(from, to_orig, 2);
-    auto res = raycast(w, from, to, 0);
+    auto res = raycast(w, from, to, 0, pool, Search::never_continue());
     if (res.success)
     {
         fm_error("ray did not hit (success=true means no collision)");
@@ -199,18 +203,19 @@ bool run_dense(point from, point to_orig, world& w)
 void Raycast_Dense(benchmark::State& state)
 {
     auto w = make_dense_world();
+    Pass::Pool pool{pool_params};
 
     const auto test = [&] {
-        fm_assert(run_dense(point{{ 0,  0, 0}, { 0,  0}, {  0,   0}},
-                            point{{ 3,  4, 0}, {11,  5}, {-25, -11}}, w));
-        fm_assert(run_dense(point{{-1, -1, 0}, {13,  8}, { -2,  17}},
-                            point{{-1,-10, 0}, { 6, 12}, { 24,  29}}, w));
-        fm_assert(run_dense(point{{ 0,  0, 0}, { 9, 12}, {-25,   2}},
-                            point{{ 0,  7, 0}, {12, 14}, { 27, -13}}, w));
-        fm_assert(run_dense(point{{ 3,  0, 0}, { 8,  7}, { -7,  -4}},
-                            point{{ 7,  4, 0}, { 1,  7}, {-26,  26}}, w));
-        fm_assert(run_dense(point{{ 0,  0, 0}, { 0,  0}, {  0,   0}},
-                            point{{-6, -5, 0}, {15,  4}, {-15,  23}}, w));
+        fm_assert(run_dense(pool, point{{ 0,  0, 0}, { 0,  0}, {  0,   0}},
+                                  point{{ 3,  4, 0}, {11,  5}, {-25, -11}}, w));
+        fm_assert(run_dense(pool, point{{-1, -1, 0}, {13,  8}, { -2,  17}},
+                                  point{{-1,-10, 0}, { 6, 12}, { 24,  29}}, w));
+        fm_assert(run_dense(pool, point{{ 0,  0, 0}, { 9, 12}, {-25,   2}},
+                                  point{{ 0,  7, 0}, {12, 14}, { 27, -13}}, w));
+        fm_assert(run_dense(pool, point{{ 3,  0, 0}, { 8,  7}, { -7,  -4}},
+                                  point{{ 7,  4, 0}, { 1,  7}, {-26,  26}}, w));
+        fm_assert(run_dense(pool, point{{ 0,  0, 0}, { 0,  0}, {  0,   0}},
+                                  point{{-6, -5, 0}, {15,  4}, {-15,  23}}, w));
     };
 
     for (int i = 0; i < 3; i++) test();

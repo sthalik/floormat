@@ -74,12 +74,12 @@ world make_world()
     return w;
 }
 
-auto run(point from, point to, world& w, bool b, float len)
+auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
 {
     constexpr float fuzz = TILE_SIZE2.x();
     auto diag = rc::raycast_diag_s{};
-    auto res = raycast_with_diag(diag, w, from, to, 0);
-    const auto div = (int)w.raycast_pass_pool().params().div_size;
+    auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue());
+    const auto div = (int)pool.params().div_size;
     for (const auto& q : diag.queries)
         fm_assert(Vector2i(intra_coord{q.center}) % div == Vector2i{div / 2});
     if (res.success != b)
@@ -146,16 +146,24 @@ void Test::test_raycast()
     test_window(pass_mode::see_through);
     test_window(pass_mode::shoot_through);
 
+    Pass::Pool pool{Pass::Params{16, tile_size_xy, pass_mode::pass}};
+    const auto ray = [&](world& w, point from, point to, object_id self) {
+        return raycast(w, from, to, self, pool, Search::never_continue());
+    };
+    const auto ray_diag = [&](rc::raycast_diag_s& diag, world& w, point from, point to, object_id self) {
+        return raycast_with_diag(diag, w, from, to, self, pool, Search::never_continue());
+    };
+
     auto w = make_world();
     { constexpr auto from = point{{0, 0, 0}, {11,12}, {1,-32}};
-      fm_assert(run(from, point{{  1,   3, 0}, { 0,  1}, {-21,  23}}, w, false,  2288));
-      fm_assert(run(from, point{{  1,   3, 0}, { 8, 10}, {- 9, -13}}, w, true,   3075));
-      fm_assert(run(from, point{{  0,   3, 0}, {14,  4}, {  3,  15}}, w, true,   2614));
-      fm_assert(run(from, point{{  0,   1, 0}, { 8, 12}, {-27, -19}}, w, false,   752));
-      fm_assert(run(from, point{{  2,  33, 0}, {15, 11}, {- 4,  29}}, w, true,  33809));
-      fm_assert(run(from, point{{  0,   1, 0}, { 6, 13}, {- 3, -11}}, w, false,   913));
+      fm_assert(run(pool, from, point{{  1,   3, 0}, { 0,  1}, {-21,  23}}, w, false,  2288));
+      fm_assert(run(pool, from, point{{  1,   3, 0}, { 8, 10}, {- 9, -13}}, w, true,   3075));
+      fm_assert(run(pool, from, point{{  0,   3, 0}, {14,  4}, {  3,  15}}, w, true,   2614));
+      fm_assert(run(pool, from, point{{  0,   1, 0}, { 8, 12}, {-27, -19}}, w, false,   752));
+      fm_assert(run(pool, from, point{{  2,  33, 0}, {15, 11}, {- 4,  29}}, w, true,  33809));
+      fm_assert(run(pool, from, point{{  0,   1, 0}, { 6, 13}, {- 3, -11}}, w, false,   913));
     }
-    { fm_assert(run(      point{{  0,   0, 0}, { 1,  0}, {-17,  17}},
+    { fm_assert(run(pool, point{{  0,   0, 0}, { 1,  0}, {-17,  17}},
                           point{{  0, - 7, 0}, { 1, 15}, {-11,   5}}, w, true,   6220));
     }
     {
@@ -164,14 +172,14 @@ void Test::test_raycast()
             {4, 5},
             {6, 7},
         };
-        run(p, p, w, true, 0);
+        run(pool, p, p, w, true, 0);
     }
     {
         constexpr auto from = point{{0, 0, 0}, {11, 12}, {1, -32}};
         auto diag = rc::raycast_diag_s{};
-        (void)raycast_with_diag(diag, w, from, point{{0, 1, 0}, {8, 12}, {-27, -19}}, 0);
+        (void)ray_diag(diag, w, from, point{{0, 1, 0}, {8, 12}, {-27, -19}}, 0);
         fm_assert(!diag.path.isEmpty());
-        (void)raycast_with_diag(diag, w, from, from, 0);
+        (void)ray_diag(diag, w, from, from, 0);
         fm_assert(diag.V.isZero() && diag.path.isEmpty() && diag.queries.isEmpty());
     }
     {   // the nearest collider must win even when a farther rect's entry into an
@@ -190,7 +198,7 @@ void Test::test_raycast()
         auto B = w2.make_object<critter>(w2.make_id(), {ch, {4, 2}}, blocker);
 
         auto diag = rc::raycast_diag_s{};
-        auto res = raycast_with_diag(diag, w2, point{ch, {2, 2}, {}}, point{ch, {12, 4}, {}}, 0);
+        auto res = ray_diag(diag, w2, point{ch, {2, 2}, {}}, point{ch, {12, 4}, {}}, 0);
         fm_assert(res.has_result);
         fm_assert(!res.success);
         fm_assert(res.collider.id == B->id);
@@ -209,7 +217,7 @@ void Test::test_raycast()
         p.bbox_size = Vector2ub{200, 60};
         auto C = w2.make_object<critter>(w2.make_id(), {ch, {15, 8}}, p);
 
-        auto res = raycast(w2, point{ch2, {3, 1}, {-2, 0}}, point{ch2, {3, 12}, {-2, 0}}, 0);
+        auto res = ray(w2, point{ch2, {3, 1}, {-2, 0}}, point{ch2, {3, 12}, {-2, 0}}, 0);
         fm_assert(res.has_result);
         fm_assert(!res.success);
         fm_assert(res.collider.id == C->id);
@@ -223,27 +231,27 @@ void Test::test_raycast()
         auto C = w2.make_object<critter>(w2.make_id(), {ch, {8, 5}}, p);
 
         auto diag = rc::raycast_diag_s{};
-        auto fwd = raycast_with_diag(diag, w2, point{ch, {2, 5}, {}}, point{ch, {13, 5}, {}}, 0);
+        auto fwd = ray_diag(diag, w2, point{ch, {2, 5}, {}}, point{ch, {13, 5}, {}}, 0);
         fm_assert(diag.dir.y() == 0);
         fm_assert(!fwd.success);
         fm_assert(fwd.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 362.5f) < 1);
 
-        auto back = raycast_with_diag(diag, w2, point{ch, {13, 5}, {}}, point{ch, {2, 5}, {}}, 0);
+        auto back = ray_diag(diag, w2, point{ch, {13, 5}, {}}, point{ch, {2, 5}, {}}, 0);
         fm_assert(!back.success);
         fm_assert(back.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 298.5f) < 1);
 
-        auto top = raycast_with_diag(diag, w2, point{ch, {2, 5}, {0, -13}}, point{ch, {13, 5}, {0, -13}}, 0);
+        auto top = ray_diag(diag, w2, point{ch, {2, 5}, {0, -13}}, point{ch, {13, 5}, {0, -13}}, 0);
         fm_assert(top.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 362.5f) < 1);
 
-        auto bottom = raycast_with_diag(diag, w2, point{ch, {2, 5}, {0, 13}}, point{ch, {13, 5}, {0, 13}}, 0);
+        auto bottom = ray_diag(diag, w2, point{ch, {2, 5}, {0, 13}}, point{ch, {13, 5}, {0, 13}}, 0);
         fm_assert(bottom.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 362.5f) < 1);
 
-        fm_assert(raycast(w2, point{ch, {2, 5}, {0,  14}}, point{ch, {13, 5}, {0,  14}}, 0).success);
-        fm_assert(raycast(w2, point{ch, {2, 5}, {0, -14}}, point{ch, {13, 5}, {0, -14}}, 0).success);
+        fm_assert(ray(w2, point{ch, {2, 5}, {0,  14}}, point{ch, {13, 5}, {0,  14}}, 0).success);
+        fm_assert(ray(w2, point{ch, {2, 5}, {0, -14}}, point{ch, {13, 5}, {0, -14}}, 0).success);
     }
     {
         auto w2 = world{};
@@ -254,27 +262,27 @@ void Test::test_raycast()
         auto C = w2.make_object<critter>(w2.make_id(), {ch, {5, 8}}, p);
 
         auto diag = rc::raycast_diag_s{};
-        auto fwd = raycast_with_diag(diag, w2, point{ch, {5, 1}, {}}, point{ch, {5, 14}, {}}, 0);
+        auto fwd = ray_diag(diag, w2, point{ch, {5, 1}, {}}, point{ch, {5, 14}, {}}, 0);
         fm_assert(diag.dir.x() == 0);
         fm_assert(!fwd.success);
         fm_assert(fwd.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 430.5f) < 1);
 
-        auto back = raycast_with_diag(diag, w2, point{ch, {5, 14}, {}}, point{ch, {5, 1}, {}}, 0);
+        auto back = ray_diag(diag, w2, point{ch, {5, 14}, {}}, point{ch, {5, 1}, {}}, 0);
         fm_assert(!back.success);
         fm_assert(back.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 366.5f) < 1);
 
-        auto left = raycast_with_diag(diag, w2, point{ch, {5, 1}, {-11, 0}}, point{ch, {5, 14}, {-11, 0}}, 0);
+        auto left = ray_diag(diag, w2, point{ch, {5, 1}, {-11, 0}}, point{ch, {5, 14}, {-11, 0}}, 0);
         fm_assert(left.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 430.5f) < 1);
 
-        auto right = raycast_with_diag(diag, w2, point{ch, {5, 1}, {11, 0}}, point{ch, {5, 14}, {11, 0}}, 0);
+        auto right = ray_diag(diag, w2, point{ch, {5, 1}, {11, 0}}, point{ch, {5, 14}, {11, 0}}, 0);
         fm_assert(right.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 430.5f) < 1);
 
-        fm_assert(raycast(w2, point{ch, {5, 1}, { 12, 0}}, point{ch, {5, 14}, { 12, 0}}, 0).success);
-        fm_assert(raycast(w2, point{ch, {5, 1}, {-12, 0}}, point{ch, {5, 14}, {-12, 0}}, 0).success);
+        fm_assert(ray(w2, point{ch, {5, 1}, { 12, 0}}, point{ch, {5, 14}, { 12, 0}}, 0).success);
+        fm_assert(ray(w2, point{ch, {5, 1}, {-12, 0}}, point{ch, {5, 14}, {-12, 0}}, 0).success);
     }
     {   // A ray running along a box side makes the slab test compute 0 * inf = NaN.
         // ray_aabb_intersection passes it as min/max's second argument, which Magnum

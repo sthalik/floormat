@@ -6,7 +6,7 @@
 #include <cr/Array.h>
 
 namespace floormat::Search { struct cache; }
-namespace floormat::Grid::Pass { class Pool; }
+namespace floormat::Grid::Pass { class Pool; class PoolRegistry; }
 
 namespace floormat {
 
@@ -29,6 +29,7 @@ public:
     void clear();
 
     struct Search::cache* cache();
+    Grid::Pass::PoolRegistry& pass_pool_registry();
 
     // todo add simple bresenham short-circuit
     template<int Debug = 0>
@@ -47,6 +48,7 @@ private:
     static constexpr auto initial_capacity = TILE_COUNT * 32 * Search::div_factor*Search::div_factor;
 
     safe_ptr<struct Search::cache> _cache;
+    safe_ptr<Grid::Pass::PoolRegistry> _pass_registry;
     Array<visited> nodes;
     Array<frontier> Q;
     Array<point> temp_nodes;

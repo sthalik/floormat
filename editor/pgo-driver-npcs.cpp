@@ -137,7 +137,7 @@ task app::scene_npcs()
 
     // Its own pool: grids built through this pred would put critters into every later search of
     // the same size.
-    Pass::Pool crit_pool{w.pass_pool_registry().pool_for(critter_size).params()};
+    Pass::Pool crit_pool{M->astar().pass_pool_registry().pool_for(critter_size).params()};
     object_id searcher = 0;
     const auto except_searcher = [&searcher](chunk&, collision_data data, Range2D) {
         return data.type == (uint64_t)collision_type::scenery && data.id == searcher

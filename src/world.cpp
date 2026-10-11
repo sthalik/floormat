@@ -8,62 +8,22 @@
 #include "scenery-proto.hpp"
 #include "light.hpp"
 #include "hole.hpp"
-#include "grid-pass.hpp"
-#include "grid-pass-pool.hpp"
-#include "search-constants.hpp"
-#include "tile-defs.hpp"
 #include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
 #include "compat/non-const.hpp"
-#include <cr/Pointer.h>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <array>
-#include <bit>
 
 using namespace floormat;
 
 namespace floormat {
 
-struct world::Impl
-{
-    Pointer<Pass::PoolRegistry> _pass_registry;
-    std::array<Pointer<Pass::Pool>, std::countr_zero(chunk_size_xy) + 1> _cover_pass_pools;
-    Pointer<Pass::Pool> _raycast_pass_pool;
-};
-
-Grid::Pass::PoolRegistry& world::pass_pool_registry()
-{
-    if (!impl->_pass_registry)
-        impl->_pass_registry.reset(new Grid::Pass::PoolRegistry{(uint32_t)Search::div_size.x()});
-    return *impl->_pass_registry;
-}
-
-Grid::Pass::Pool& world::cover_pass_pool(uint32_t div_size)
-{
-    fm_assert(std::has_single_bit(div_size) && div_size <= chunk_size_xy);
-    // below Pass::Grid::min_bbox_size, validate() keeps div_size and raises only bbox_size
-    auto& p = impl->_cover_pass_pools[(uint32_t)std::countr_zero(div_size)];
-    if (!p)
-        p.reset(new Grid::Pass::Pool{Grid::Pass::Params{div_size, pass_mode::shoot_through}.validate()});
-    return *p;
-}
-
-Grid::Pass::Pool& world::raycast_pass_pool()
-{
-    // raycast builds grids with never_continue() but Dijkstra builds with the
-    // caller's predicate. sharing a registry pool would mix the two.
-    if (!impl->_raycast_pass_pool)
-        impl->_raycast_pass_pool.reset(new Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)Search::div_size.x(), tile_size_xy, pass_mode::pass}.validate()});
-    return *impl->_raycast_pass_pool;
-}
-
 world::world() : _unique_id{InPlace} {}
 
 world::world(world&& w) noexcept :
-    impl{move(w.impl)},
     _chunk_table{move(w._chunk_table)},
     _objects{move(w._objects)},
     _head{w._head},
@@ -83,13 +43,6 @@ world::world(world&& w) noexcept :
     w._script_finalized = false;
     for (chunk* c = _head; c; c = c->_next)
         c->_world = this;
-    if (!impl.get()) // moved from
-        return;
-    // pooled grids point back at the source world
-    impl->_pass_registry.reset();
-    for (auto& p : impl->_cover_pass_pools)
-        p.reset();
-    impl->_raycast_pass_pool.reset();
 }
 
 world& world::operator=(world&& w) noexcept
@@ -108,7 +61,6 @@ world& world::operator=(world&& w) noexcept
         c->on_teardown();
     // suppress unregister; _chunk_table is replaced wholesale below
     _teardown = true;
-    impl = move(w.impl);
     _objects = move(w._objects);
     while (_head)
     {
@@ -126,11 +78,6 @@ world& world::operator=(world&& w) noexcept
     w._tail = nullptr;
     for (chunk* c = _head; c; c = c->_next)
         c->_world = this;
-    // see the move ctor
-    impl->_pass_registry.reset();
-    for (auto& p : impl->_cover_pass_pools)
-        p.reset();
-    impl->_raycast_pass_pool.reset();
 
     _unique_id = move(w._unique_id);
     fm_debug_assert(_unique_id);
@@ -145,7 +92,7 @@ world& world::operator=(world&& w) noexcept
 world::~world() noexcept
 {
     fm_assert(_script_finalized || !_script_initialized);
-    if (!impl.get()) // moved from
+    if (!_unique_id) // moved from
         return;
     for (chunk* c = _head; c; c = c->_next)
         c->on_teardown();

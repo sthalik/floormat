@@ -102,6 +102,19 @@ struct CoverGrid : GridBase
     bool fill_next_unfilled(chunk& self);
 };
 
+struct CoverPool : Pool<CoverGrid>
+{
+    Pass::Pool pass_pool;
+
+    explicit CoverPool(Params p);
+};
+
+CoverPool::CoverPool(Params p):
+    Pool<CoverGrid>{p},
+    pass_pool{Pass::Params{params.div_size, pass_mode::shoot_through}}
+{
+}
+
 uint32_t CoverGrid::get_cell_index(uint32_t x, uint32_t y, uint32_t div_count)
 {
     return GridBase::pack_bit_index(x, y, div_count);
@@ -139,7 +152,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
         return false;
 
     const uint32_t div_size = params.div_size;
-    auto& pass_pool = self.world().cover_pass_pool(div_size);
+    auto& pass_pool = static_cast<CoverPool*>(pool)->pass_pool;
     fm_assert(pass_pool.params().div_size == div_size);
     pass_pool.maybe_mark_stale_all(self.world().frame_no());
     Timeline timeline;
@@ -367,7 +380,7 @@ void Pool::build_if_stale_all()
         static_cast<detail::grid::CoverGrid*>(g)->build_if_stale();
 }
 
-Pool::Pool(Params params): pool{new detail::grid::Pool<detail::grid::CoverGrid>{params}} { }
+Pool::Pool(Params params): pool{new detail::grid::CoverPool{params}} { }
 Pool::~Pool() noexcept { delete pool; }
 Params Pool::params() const { return pool->params; }
 uint64_t Pool::frame_no() const { return pool->frame_no; }

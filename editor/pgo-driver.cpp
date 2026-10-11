@@ -249,6 +249,8 @@ Vector2i sprite_center_pixel(app& A, const object& e)
     fm_abort("no clickable for object %zu", (size_t)e.id);
 }
 
+constexpr auto raycast_params = Pass::Params{16, tile_size_xy, pass_mode::shoot_through};
+
 } // namespace
 
 void app::set_key_state(key k, bool is_pressed)
@@ -1007,6 +1009,7 @@ task app::scene_raycast()
     auto C = ensure_player_character(w);
     const auto from = C->position();
     center_camera_on(from);
+    Pass::Pool pool{raycast_params};
 
     // The distinct integer endpoints on the circle, in angular order. Sampling 8*r evenly spaced
     // angles -- one per pixel of circumference -- both repeats and misses: a fifth of the samples
@@ -1071,7 +1074,7 @@ task app::scene_raycast()
         for (auto i = 0u; i < num_sampled; i++)
         {
             const auto to = point::normalize_coords(from, wp[i * n/num_sampled]);
-            const auto r = raycast(w, from, to, C->id);
+            const auto r = raycast(w, from, to, C->id, pool, Search::never_continue());
             sampled_hits += !r.success;
             mean_dist += point::distance(from, r.success ? to : r.collision);
         }
@@ -1105,7 +1108,7 @@ task app::scene_raycast()
                 // Asserts the cursor resolved to a world point.
                 (void)cursor_point();
                 num_rays++;
-                D.rays[k] = raycast_with_diag(D.diags[k], w, from, to, C->id);
+                D.rays[k] = raycast_with_diag(D.diags[k], w, from, to, C->id, pool, Search::never_continue());
                 k++;
             }
             D.num_rays = k;
@@ -1348,9 +1351,9 @@ task app::scene_grids()
     const auto center = C->position();
     center_camera_on(center);
 
-    Pass::Pool pass_raycast{Pass::Params{(uint32_t)Search::div_size.x(), tile_size_xy, pass_mode::pass}.validate()};
-    Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}.validate()};
-    Pass::Pool pass_critter{Pass::Params{tile_size_xy, tile_size_xy, pass_mode::pass}.validate()};
+    Pass::Pool pass_raycast{raycast_params};
+    Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}};
+    Pass::Pool pass_critter{Pass::Params{tile_size_xy, tile_size_xy, pass_mode::pass}};
 
     // maybe_mark_stale_all() is where the version compare and the eager ensure_passability() of
     // the chunk and its neighbours live, so it does the whole per-frame discipline for us. The

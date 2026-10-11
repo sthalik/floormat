@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/safe-ptr.hpp"
 #include "compat/base-of.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include "chunk.hpp"
@@ -9,8 +8,6 @@
 #include "object-type.hpp"
 #include "scenery-type.hpp"
 #include "loader/policy.hpp"
-
-namespace floormat::Grid::Pass { class Pool; class PoolRegistry; }
 
 namespace floormat {
 
@@ -32,8 +29,6 @@ private:
         bool operator==(const unique_id& other) const;
     };
 
-    struct Impl;
-    safe_ptr<Impl> impl;
     detail::chunk_table _chunk_table;
     object_table _objects;
     chunk* _head = nullptr;
@@ -148,10 +143,6 @@ public:
     std::array<const chunk*, 8> neighbors(chunk_coords_ coord) const;
 
     void chunk_table_prepare_frame();
-
-    Grid::Pass::Pool& raycast_pass_pool();
-    Grid::Pass::PoolRegistry& pass_pool_registry();
-    Grid::Pass::Pool& cover_pass_pool(uint32_t div_size);
 
     static constexpr std::array<Vector2b, 8> neighbor_offsets = {{
         {-1, -1}, {-1,  0}, { 0, -1}, { 1,  1}, { 1,  0}, { 0,  1}, { 1, -1}, {-1,  1},

@@ -9,6 +9,7 @@ class chunk;
 namespace floormat::detail::grid {
 struct CoverGrid;
 struct CoverCell;
+struct CoverPool;
 } // namespace
 
 
@@ -60,7 +61,7 @@ public:
 
 class Pool final
 {
-    detail::grid::Pool<detail::grid::CoverGrid>* pool;
+    detail::grid::CoverPool* pool;
 
 public:
     explicit Pool(Params params);

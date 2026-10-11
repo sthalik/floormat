@@ -6,6 +6,8 @@
 #include "src/critter.hpp"
 #include "src/world.hpp"
 #include "src/raycast-diag.hpp"
+#include "src/grid-pass.hpp"
+#include "src/tile-defs.hpp"
 #include "../raycast-draw.hpp"
 #include <cinttypes>
 #include <cstdio>
@@ -58,6 +60,7 @@ struct raycast_test final : base_test
     std::array<pending_s, max_pending_rays> pending;
     uint32_t num_pending = 0;
     raycast_diag_s diag;
+    Pass::Pool pool{Pass::Params{16, tile_size_xy, pass_mode::shoot_through}};
 
     ~raycast_test() noexcept override;
 
@@ -232,7 +235,7 @@ struct raycast_test final : base_test
                 fm_warn("raycast: wrong Z value");
                 continue;
             }
-            result = raycast_with_diag(diag, w, p.from, p.to, p.self);
+            result = raycast_with_diag(diag, w, p.from, p.to, p.self, pool, Search::never_continue());
         }
         num_pending = 0;
     }

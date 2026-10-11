@@ -50,6 +50,7 @@ class world& main_impl::reset_world(class world&& w) noexcept
             fm_assert_equal(uint32_t{2}, eʹ.use_count());
 
     _world = move(w);
+    _astar = safe_ptr<class astar>{InPlaceInit};
     _world.chunk_table_prepare_frame();
     _first_frame = true;
     return _world;

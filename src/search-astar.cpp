@@ -229,7 +229,8 @@ void do_dir(world& w, Grid::Pass::Pool& pool, Search::cache& cache,
 } // namespace
 
 astar::astar() :
-    _cache{InPlaceInit, (uint32_t)Search::div_size.x()}
+    _cache{InPlaceInit, (uint32_t)Search::div_size.x()},
+    _pass_registry{InPlaceInit, (uint32_t)Search::div_size.x()}
 {
 }
 
@@ -248,6 +249,7 @@ void astar::clear()
 }
 
 Search::cache* astar::cache() { return &*_cache; }
+Grid::Pass::PoolRegistry& astar::pass_pool_registry() { return *_pass_registry; }
 
 template<int Debug>
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
@@ -255,7 +257,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    const pred& p, const heuristic& h)
 {
     const auto size = Math::max(own_size, min_size);
-    auto& pool = w.pass_pool_registry().pool_for(Math::max(size.x(), size.y()));
+    auto& pool = _pass_registry->pool_for(Math::max(size.x(), size.y()));
     return Dijkstra<Debug>(w, pool, from, to, max_dist, own_size, p, h);
 }
 
@@ -289,6 +291,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     const auto params = pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert(params.min_pass == pass_mode::pass);
+    fm_assert(params.div_size <= (uint32_t)div_size.x());
     pool.maybe_mark_stale_all(w.frame_no());
 
     auto* const from_chunk = w.at(from.chunk3());

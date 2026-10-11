@@ -27,10 +27,8 @@ struct raycast_result_s
          success    : 1 = false;
 };
 
-[[nodiscard]] raycast_result_s raycast(world& w, point from, point to, object_id self);
 [[nodiscard]] raycast_result_s raycast(world& w, point from, point to, object_id self,
                                        Grid::Pass::Pool& pass_grid_pool, Search::pred const& pred);
-[[nodiscard]] raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self);
 [[nodiscard]] raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self,
                                                  Grid::Pass::Pool& pass_grid_pool, const Search::pred& pred);
 
