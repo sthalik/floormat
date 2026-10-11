@@ -10,7 +10,7 @@ cd -- "$(dirname -- "$0")"
 # Merge_Skipped is out for the same reason: it early-outs and reads ~0 ns. Merge_Blocked is in
 # because its long streaks make the merge nearly free, so it is the most sensitive fixture to
 # anything in the per-quad path.
-filter='SpriteBatch_(Merge_(Blocked|Shuffled|Interleaved)|Chunk_|Emit_|Frame)|Raycast$|Raycast_Dense$|Loader_json|Grid_Build|Dijkstra|Critter_move|Bitmask'
+filter='SpriteBatch_(Merge_(Blocked|Shuffled|Interleaved)|Chunk_|Emit_|Frame)|Raycast$|Raycast_Dense$|Loader_json|Grid_Build|Cover_Build|Dijkstra|Critter_move|Bitmask'
 reps=5
 min_time=0.1s
 outdir=build/bench
