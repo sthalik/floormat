@@ -76,7 +76,7 @@ sweep_result find_swept_collider(chunk& c, Range2D start, Vector2 displacement, 
     auto cb = [&](chunk& self, collision_data data, Range2D r) {
         if (p(self, data, r) == path_search_continue::pass)
             return path_search_continue::pass;
-        // search.cpp:107 shifts the search bbox into self's frame before firing
+        // Search::detail::is_passable_ shifts the search bbox into self's frame before firing
         // the pred, so r is in self-local coords; lift back into c's frame.
         const auto sc = self.coord();
         const Vector2 off{
