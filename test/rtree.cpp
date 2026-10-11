@@ -269,7 +269,7 @@ bool passable_at(chunk& c, Vector2 pt)
 }
 
 // The part of a wall, scenery or ground under a more open hole takes the hole's pass mode, so a
-// window stays solid to walkers.
+// window stays solid to walkers. A hole of equal mode cuts scenery too.
 void test_hole_pass_modes()
 {
     constexpr auto ch = chunk_coords_{0, 0, 0};
@@ -340,6 +340,38 @@ void test_hole_pass_modes()
         fm_assert(!passable_at(c, ctr));
         const auto s = entry_at(c, ctr - Vector2{12, 0});
         fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
+    }
+
+    for (auto p : { pass_mode::see_through, pass_mode::pass })
+    {
+        auto w = world();
+        auto& c = w[ch];
+        scenery_proto sp;
+        sp.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+        sp.subtype     = generic_scenery_proto{};
+        sp.bbox_offset = {};
+        sp.bbox_size   = {32, 32};
+        sp.pass        = p;
+        w.make_scenery(w.make_id(), pos, move(sp));
+        hole_proto hp5;
+        hp5.bbox_size = {16, 16};
+        hp5.pass = p;
+        (void)w.make_object<hole>(w.make_id(), pos, hp5);
+
+        const auto e = entry_at(c, ctr);
+        if (p == pass_mode::pass)
+            fm_assert(!e);
+        else
+            fm_assert(e && e->type == (uint64_t)collision_type::scenery && e->pass == (uint64_t)p);
+        const auto s = entry_at(c, ctr - Vector2{12, 0});
+        fm_assert(s && s->type == (uint64_t)collision_type::scenery && s->pass == (uint64_t)p);
+        uint32_t pieces = 0;
+        const auto min = ctr - Vector2{32}, max = ctr + Vector2{32};
+        c.rtree()->Search(min.data(), max.data(), [&](object_id, const chunk::RTree::Rect&) {
+            pieces++;
+            return true;
+        });
+        fm_assert(pieces > 1);
     }
 
     {
