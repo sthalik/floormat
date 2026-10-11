@@ -31,7 +31,13 @@ inline void from_json(const json& j, chunk_coords_& val)
 }
 
 inline void to_json(json& j, global_coords coord) { j = std::tuple<chunk_coords, local_coords, int8_t>{ coord.chunk(), coord.local(), coord.z() }; }
-inline void from_json(const json& j, global_coords& coord) { std::tuple<chunk_coords, local_coords, int8_t> t = j; auto [ch, pos, z] = t; coord = { ch, pos, z }; }
+inline void from_json(const json& j, global_coords& coord)
+{
+    std::tuple<chunk_coords, local_coords, int> t = j;
+    auto [ch, pos, z] = t;
+    fm_soft_assert(z >= chunk_z_min && z <= chunk_z_max);
+    coord = { ch, pos, int8_t(z) };
+}
 
 } // namespace floormat
 
@@ -57,7 +63,12 @@ void adl_serializer<tile_image_proto>::from_json(const json& j, floormat::tile_i
 }
 
 void adl_serializer<local_coords>::to_json(json& j, const local_coords& val) { using nlohmann::to_json; to_json(j, local_coords_{val.x, val.y}); }
-void adl_serializer<local_coords>::from_json(const json& j, local_coords& val) { using nlohmann::from_json; local_coords_ proxy{}; from_json(j, proxy); val = {proxy.x, proxy.y}; }
+void adl_serializer<local_coords>::from_json(const json& j, local_coords& val)
+{
+    const int x = j.at("x"), y = j.at("y");
+    fm_soft_assert(x >= 0 && x < (int)TILE_MAX_DIM && y >= 0 && y < (int)TILE_MAX_DIM);
+    val = { uint8_t(x), uint8_t(y) };
+}
 
 void adl_serializer<chunk_coords>::to_json(json& j, const chunk_coords& val) { using nlohmann::to_json; to_json(j, val); }
 void adl_serializer<chunk_coords>::from_json(const json& j, chunk_coords& val) { using nlohmann::from_json; from_json(j, val); }

@@ -48,6 +48,19 @@ void Test::test_json() // NOLINT(readability-convert-member-functions-to-static)
         }
         fm_assert(caught);
     }
+    {
+        const auto expect_throw = [](auto&& fn) {
+            bool caught = false;
+            try { fn(); }
+            catch (const floormat::exception&) { caught = true; }
+            fm_assert(caught);
+        };
+        const auto g = global_coords{chunk_coords_{-3, 4, chunk_z_min}, local_coords{15, 0}};
+        const nlohmann::json j = g;
+        fm_assert(j.get<global_coords>() == g);
+        expect_throw([] { (void)nlohmann::json::parse(R"([{"x":0,"y":0},{"x":0,"y":0},15])").get<global_coords>(); });
+        expect_throw([] { (void)nlohmann::json{{"x", 16}, {"y", 0}}.get<local_coords>(); });
+    }
 }
 
 void Test::test_json2()
