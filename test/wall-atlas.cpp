@@ -133,6 +133,8 @@ void test_bad_json()
     const auto with_depth = [](int depth) { json j; j["name"] = "x"; j["depth"] = depth; return j; };
     expect_throw([&] { (void)read_info_header(with_depth(-1)); });
     expect_throw([&] { (void)read_info_header(with_depth(40000)); });
+    expect_throw([&] { (void)read_info_header(with_depth(0x101)); });
+    fm_assert(read_info_header(with_depth(0x100)).depth == 0x100);
     json jframes; jframes["frames"] = 5;
     expect_throw([&] { (void)read_all_frames(jframes); });
     expect_throw([] { (void)read_group_metadata(json(3)); });

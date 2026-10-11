@@ -249,7 +249,8 @@ Info read_info_header(const json& jroot)
     fm_soft_assert(jroot.contains(("depth")));
     // read signed first to catch nlohmann's negative→huge-unsigned wrap, as in serialize/anim.cpp
     const int64_t d = jroot["depth"];
-    fm_soft_assert(d > 0 && d < 1<<15);
+    // a deeper wall reaches past chunk_collision_bounds
+    fm_soft_assert(d > 0 && d <= 0x100);
     Info val = {std::string{jroot["name"]}, (unsigned)d};
     if (jroot.contains("pass-mode"))
         val.passability = jroot["pass-mode"];

@@ -79,7 +79,7 @@ Vector2ui wall_atlas::expected_size(unsigned depth, Group_ group)
     constexpr auto size = Vector3ui{iTILE_SIZE};
     static_assert(size.x() == size.y());
 
-    fm_assert(depth > 0 && depth < 1<<15);
+    fm_assert(depth > 0 && depth <= 0x100);
     CORRADE_ASSUME(group < Group_::COUNT);
 
     switch (group)
