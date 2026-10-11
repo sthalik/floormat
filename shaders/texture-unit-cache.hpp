@@ -14,6 +14,7 @@ struct texture_unit_cache final
     struct statistics { size_t cache_hit, cache_miss; };
 
     texture_unit_cache();
+    ~texture_unit_cache() noexcept;
 
     [[nodiscard]] int32_t bind(GL::AbstractTexture* ptr);
     [[nodiscard]] int32_t bind(GL::AbstractTexture& x);

@@ -89,6 +89,8 @@ texture_unit_cache::texture_unit_cache() :
     lock(0);
 }
 
+texture_unit_cache::~texture_unit_cache() noexcept = default;
+
 void texture_unit_cache::invalidate()
 {
     for (auto& unit : units)

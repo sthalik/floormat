@@ -9,9 +9,9 @@
 #include "serialize/pass-mode.hpp"
 #include "serialize/magnum-vector.hpp"
 #include "json-wrapper.hpp"
+#include "compat/swl-variant.hpp"
 #include <cr/String.h>
 #include <nlohmann/json.hpp>
-#include <swl/variant.hpp>
 
 namespace floormat {
 

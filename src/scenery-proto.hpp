@@ -1,7 +1,7 @@
 #pragma once
 #include "scenery-type.hpp"
 #include "object.hpp"
-#include <swl/variant.hpp>
+#include "compat/swl-variant.hpp"
 
 namespace floormat {
 
