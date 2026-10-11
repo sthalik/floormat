@@ -4,6 +4,17 @@
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
 #include "shaders/texture-unit-cache.hpp"
+#include "src/world.hpp"
+#include "src/scenery-proto.hpp"
+#include "loader/loader.hpp"
+#include "compat/borrowed-ptr.inl"
+#include <cr/Pair.h>
+#include <cr/StridedArrayView.h>
+#include <mg/Color.h>
+#include <mg/DefaultFramebuffer.h>
+#include <mg/Image.h>
+#include <mg/PixelFormat.h>
+#include <mg/Renderer.h>
 #include <mg/Texture.h>
 #include <mg/TextureFormat.h>
 
@@ -131,6 +142,59 @@ void test_tuc_stale_binding()
     fm_assert_equal(unit, tuc.bind(tex));
     fm_assert_equal(2uz, tuc.stats().cache_miss);
 }
+
+Pair<Color4ub, Color4ub> lit_behind_object(lightmap_shader& L, pass_mode pass)
+{
+    constexpr auto light_pos = Vector2(4, 8) * TILE_SIZE2, behind = Vector2(12, 8) * TILE_SIZE2,
+                   north = Vector2(4, 0) * TILE_SIZE2;
+
+    auto w = world();
+    auto proto = scenery_proto(loader.scenery("table0"));
+    proto.offset = {};
+    proto.bbox_offset = {};
+    proto.bbox_size = Vector2ub(tile_size_xy/2);
+    proto.pass = pass;
+    w.make_scenery(w.make_id(), {{0, 0, 0}, {8, 8}}, move(proto));
+
+    L.begin_occlusion();
+    L.add_chunk({}, w[chunk_coords_{0, 0, 0}]);
+    L.end_occlusion();
+    L.bind();
+    L.add_light({}, light_s{.center = light_pos, .color = Vector4ub{255}, .falloff = light_falloff::constant});
+    L.finish();
+
+    // same mapping as lightmap_shader::add_segment(): the chunk at offset 0 sits iter_bounds() chunks in
+    const auto ns = (float)lightmap_shader::iter_bounds();
+    const auto size = L.accum_texture().imageSize(0);
+    const auto texel_at = [&](Vector2 pos) {
+        const auto t = Vector2i((pos + chunk_size<Vector2>*ns + half_tile<Vector2>) * Vector2(size) / (chunk_size<Vector2>*2*ns));
+        const auto img = L.accum_texture().subImage(0, {t, t + Vector2i{1}}, Image2D{PixelFormat::RGBA8Unorm});
+        return img.pixels<Color4ub>()[0][0];
+    };
+    return { texel_at(behind), texel_at(north) };
+}
+
+void test_lightmap_object_shadows()
+{
+    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
+    GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
+    GL::Renderer::enable(GL::Renderer::Feature::Blending);
+
+    texture_unit_cache tuc;
+    lightmap_shader L{tuc};
+
+    const auto [shadow, lit] = lit_behind_object(L, pass_mode::blocked);
+    fm_assert_equal(Color4ub{255}, lit);
+    fm_assert(shadow.r() < lit.r()/2);
+    for (auto pass : { pass_mode::see_through, pass_mode::shoot_through, pass_mode::pass })
+    {
+        const auto [behind, north] = lit_behind_object(L, pass);
+        fm_assert_equal(north, behind);
+    }
+
+    GL::Renderer::disable(GL::Renderer::Feature::Blending);
+    GL::defaultFramebuffer.bind();
+}
 } // namespace
 
 void test_shader()
@@ -138,6 +202,7 @@ void test_shader()
     test_point();
     test_shader_program();
     test_tuc_stale_binding();
+    test_lightmap_object_shadows();
     test_clip_depth();
 }
 

@@ -401,7 +401,7 @@ void lightmap_shader::add_objects(Vector2 neighbor_offset, chunk& c)
         const auto& e = *eʹ;
         if (e.is_virtual())
             continue;
-        if (e.pass == pass_mode::pass || e.pass == pass_mode::see_through)
+        if (e.pass != pass_mode::blocked)
             continue;
         auto center = Vector2(e.offset) + Vector2(e.bbox_offset) +
                       Vector2(e.coord.local()) * TILE_SIZE2;
