@@ -565,7 +565,7 @@ void chunk::ensure_wall_mesh(SpriteBatch& sb)
         _walls_modified = false;
         wall_static_mesh.clear();
         auto& W = *_walls;
-        for (uint32_t k = 0; k < TILE_COUNT; k++)
+        for (uint32_t k = TILE_COUNT; k--; ) // front-to-back, so early-Z rejects more fragments
         {
             const auto coord = global_coords{_coord, local_coords{k}};
 
