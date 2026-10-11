@@ -57,8 +57,14 @@ constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) 
 
 constexpr bool point::operator==(const point&) const noexcept = default;
 
-constexpr global_coords point::coord() const { return {{cx, cy}, tile, cz}; }
-constexpr chunk_coords_ point::chunk3() const { return {cx, cy, cz}; }
+constexpr global_coords point::coord() const { return {chunk3(), tile}; }
+
+constexpr chunk_coords_ point::chunk3() const
+{
+    [[assume(cz >= chunk_z_min && cz <= chunk_z_max)]];
+    return {cx, cy, cz};
+}
+
 constexpr chunk_coords point::chunk() const { return {cx, cy}; }
 constexpr local_coords point::local() const { return tile; }
 constexpr Vector2b point::offset() const { return _offset; }

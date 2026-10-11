@@ -2,6 +2,7 @@
 #include "ground-atlas.hpp"
 #include "src/tile.hpp"
 #include "src/global-coords.hpp"
+#include "compat/exception.hpp"
 #include <tuple>
 #include <nlohmann/json.hpp>
 
@@ -18,7 +19,16 @@ struct local_coords_ final {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(local_coords_, x, y)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(chunk_coords, x, y)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(chunk_coords_, x, y, z)
+
+inline void to_json(json& j, const chunk_coords_& val) { j = json{{"x", val.x}, {"y", val.y}, {"z", val.z}}; }
+
+inline void from_json(const json& j, chunk_coords_& val)
+{
+    const int16_t x = j.at("x"), y = j.at("y");
+    const int z = j.at("z");
+    fm_soft_assert(z >= chunk_z_min && z <= chunk_z_max);
+    val = chunk_coords_{x, y, int8_t(z)};
+}
 
 inline void to_json(json& j, global_coords coord) { j = std::tuple<chunk_coords, local_coords, int8_t>{ coord.chunk(), coord.local(), coord.z() }; }
 inline void from_json(const json& j, global_coords& coord) { std::tuple<chunk_coords, local_coords, int8_t> t = j; auto [ch, pos, z] = t; coord = { ch, pos, z }; }

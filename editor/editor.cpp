@@ -54,19 +54,15 @@ auto editor::get_snap_value(snap_mode snap, int mods) const -> snap_mode
 
 global_coords editor::apply_snap(global_coords pos, global_coords last, snap_mode snap) noexcept
 {
-    auto rpos = pos.raw();
     switch (snap)
     {
     default:
-        break;
+        return pos;
     case snap_mode::horizontal:
-        rpos.y = last.raw().y;
-        break;
+        return { pos.raw().x, last.raw().y, nullptr };
     case snap_mode::vertical:
-        rpos.x = last.raw().x;
-        break;
+        return { last.raw().x, pos.raw().y, nullptr };
     }
-    return pos;
 }
 
 void editor::on_mouse_move(world& world, global_coords& pos, int mods)

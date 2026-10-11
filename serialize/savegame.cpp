@@ -1178,10 +1178,13 @@ ok:
         magic_type magic; magic << s;
         fm_soft_assert(magic == chunk_magic);
 
-        chunk_coords_ coord;
-        visit(coord, r);
-        fm_soft_assert(coord.z >= chunk_z_min && coord.z <= chunk_z_max);
-        auto& c = w[coord];
+        int16_t x, y;
+        int8_t z;
+        visit(x, r);
+        visit(y, r);
+        visit(z, r);
+        fm_soft_assert(z >= chunk_z_min && z <= chunk_z_max);
+        auto& c = w[chunk_coords_{x, y, z}];
 
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {

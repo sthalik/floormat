@@ -3,7 +3,10 @@
 #include "serialize/wall-atlas.hpp"
 #include "serialize/magnum-vector.hpp"
 #include "serialize/json-helper.hpp"
+#include "serialize/tile.hpp"
 #include "compat/assert.hpp"
+#include "compat/exception.hpp"
+#include "src/global-coords.hpp"
 #include "src/ground-atlas.hpp"
 #include "loader/ground-cell.hpp"
 #include "src/world.hpp"
@@ -11,6 +14,7 @@
 #include "loader/wall-cell.hpp"
 #include <cr/StringView.h>
 #include <cr/Path.h>
+#include <nlohmann/json.hpp>
 
 namespace floormat {
 
@@ -28,6 +32,21 @@ void Test::test_json() // NOLINT(readability-convert-member-functions-to-static)
         volatile float zero = 0;
         Magnum::Math::Vector3 vec{0.f/zero, -1.f/zero, 123.f};
         json_helper::to_json(vec, Path::join(output_dir, "vec3_inf.json"));
+    }
+    {
+        const auto c = chunk_coords_{-3, 4, chunk_z_max};
+        const nlohmann::json j = c;
+        fm_assert(j.get<chunk_coords_>() == c);
+        bool caught = false;
+        try
+        {
+            (void)nlohmann::json{{"x", 0}, {"y", 0}, {"z", chunk_z_max + 1}}.get<chunk_coords_>();
+        }
+        catch (const floormat::exception&)
+        {
+            caught = true;
+        }
+        fm_assert(caught);
     }
 }
 

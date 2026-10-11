@@ -2778,7 +2778,7 @@ void check_chunk_table_random()
         {
             pos = pos + world::neighbor_offsets[r >> 9 & 7];
             if ((r >> 12) % 32 == 0)
-                pos.z = int8_t(chunk_z_min + (pos.z - chunk_z_min + (r >> 17 & 1 ? 1 : chunk_z_count - 1)) % chunk_z_count);
+                pos = {pos.x, pos.y, int8_t(chunk_z_min + (pos.z - chunk_z_min + (r >> 17 & 1 ? 1 : chunk_z_count - 1)) % chunk_z_count)};
         }
         const bool ins = (r >> 20) % 5 < (op / 500 % 2 ? 1u : 4u);
         if (ins && !lookup(pos))

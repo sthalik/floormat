@@ -139,6 +139,53 @@ void test_pixel_to_point()
     }
 }
 
+static_assert(!std::is_assignable_v<decltype((std::declval<chunk_coords_&>().x)), int16_t>);
+static_assert(!std::is_assignable_v<decltype((std::declval<chunk_coords_&>().z)), int8_t>);
+static_assert(!std::is_assignable_v<decltype((std::declval<global_coords&>().raw().x)), uint32_t>);
+static_assert(std::is_trivially_copy_constructible_v<chunk_coords_> && std::is_trivially_destructible_v<chunk_coords_>);
+static_assert(std::is_trivially_copy_constructible_v<global_coords> && std::is_trivially_destructible_v<global_coords>);
+
+constexpr bool test_chunk_coords_assign()
+{
+    const auto b = chunk_coords_{-4, 5, chunk_z_min};
+    auto a = chunk_coords_{1, 2, 3};
+    a = b;
+    fm_assert(a == b);
+    const auto& a2 = a;
+    fm_assert(&(a = a2) == &a && a == b);
+    a = chunk_coords_{7, -8, chunk_z_max};
+    a += Vector2i{1, -1};
+    fm_assert(a == chunk_coords_{8, -9, chunk_z_max});
+    a -= Vector2i{2, 2};
+    fm_assert(a == chunk_coords_{6, -11, chunk_z_max});
+    a -= Vector3i{1, 1, 1};
+    fm_assert(a == chunk_coords_{5, -12, chunk_z_max - 1});
+    a += Vector3i{-5, 12, 1};
+    fm_assert(a == chunk_coords_{0, 0, chunk_z_max});
+    return true;
+}
+
+constexpr bool test_global_coords_assign()
+{
+    const auto a = global_coords{chunk_coords_{1, -2, 3}, local_coords{4, 5}};
+    auto b = global_coords{};
+    b = a;
+    fm_assert(b == a);
+    const auto& b2 = b;
+    fm_assert(&(b = b2) == &b && b == a);
+    b += Vector2i{17, -3};
+    fm_assert(b == a + Vector2i{17, -3});
+    fm_assert(b.chunk3() == chunk_coords_{2, -2, 3} && b.local() == local_coords{5, 2});
+    b -= Vector2i{17, -3};
+    fm_assert(b == a);
+    return true;
+}
+
+#if __cpp_constexpr >= 202406L
+static_assert(test_chunk_coords_assign());
+static_assert(test_global_coords_assign());
+#endif
+
 } // namespace
 
 void Test::test_coords()
@@ -146,6 +193,8 @@ void Test::test_coords()
     test_normalize_point();
     test_point();
     test_pixel_to_point();
+    fm_assert(test_chunk_coords_assign());
+    fm_assert(test_global_coords_assign());
 }
 
 } // namespace floormat

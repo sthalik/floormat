@@ -1,5 +1,6 @@
 #pragma once
 #include "local-coords.hpp"
+#include <new>
 #include <mg/Vector3.h>
 
 namespace floormat {
@@ -28,8 +29,8 @@ struct chunk_coords final {
 };
 
 struct chunk_coords_ final {
-    int16_t x = 0, y = 0;
-    int8_t z = 0;
+    const int16_t x = 0, y = 0;
+    const int8_t z = 0;
 
     constexpr chunk_coords_() noexcept = default;
     constexpr chunk_coords_(int16_t x, int16_t y, int8_t z) noexcept : x{x}, y{y}, z{z}
@@ -37,25 +38,29 @@ struct chunk_coords_ final {
         fm_assert(z >= chunk_z_min && z <= chunk_z_max);
     }
     constexpr chunk_coords_(chunk_coords c, int8_t z) noexcept : chunk_coords_{c.x, c.y, z} {}
+    constexpr chunk_coords_(const chunk_coords_&) noexcept = default;
+    constexpr chunk_coords_& operator=(const chunk_coords_& other) noexcept;
 
     constexpr bool operator==(const chunk_coords_&) const noexcept = default;
     friend Debug& operator<<(Debug& dbg, const chunk_coords_& pt);
 
     template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_ operator+(Math::Vector2<T> off) const noexcept
     {
+        [[assume(z >= chunk_z_min && z <= chunk_z_max)]];
         return { int16_t(x + int{off.x()}), int16_t(y + int{off.y()}), z };
     }
     template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_ operator-(Math::Vector2<T> off) const noexcept
     {
+        [[assume(z >= chunk_z_min && z <= chunk_z_max)]];
         return { int16_t(x - int{off.x()}), int16_t(y - int{off.y()}), z };
     }
     template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_& operator+=(Math::Vector2<T> off) noexcept
     {
-        x = int16_t(x + int{off.x()}); y = int16_t(y + int{off.y()}); return *this;
+        return *this = *this + off;
     }
     template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_& operator-=(Math::Vector2<T> off) noexcept
     {
-        x = int16_t(x - int{off.x()}); y = int16_t(y - int{off.y()}); return *this;
+        return *this = *this - off;
     }
 
     template<typename T> requires std::is_integral_v<T> constexpr chunk_coords_ operator+(Math::Vector3<T> off) const noexcept
@@ -91,9 +96,15 @@ struct chunk_coords_ final {
     size_t hash() const noexcept;
 };
 
+constexpr chunk_coords_& chunk_coords_::operator=(const chunk_coords_& other) noexcept
+{
+    if (this != &other)
+        ::new (static_cast<void*>(this)) auto{other};
+    return *this;
+}
+
 struct global_coords final
 {
-    struct raw_coords { uint32_t &x, &y; operator Vector2ui() const { return {x, y}; } }; // NOLINT
     struct raw_coords_ { uint32_t x, y; operator Vector2ui() const { return {x, y}; } };
 
 private:
@@ -101,10 +112,12 @@ private:
     using s0 = std::integral_constant<int32_t, int32_t(u0::value)>;
     using z0 = std::integral_constant<int32_t, (1 << 0)>;
     using z_mask = std::integral_constant<uint32_t, (1u << 4) - 1u << 20>;
-    uint32_t x = u0::value<<4|z0::value<<20, y = u0::value<<4;
+    const uint32_t x = u0::value<<4|z0::value<<20, y = u0::value<<4;
 
 public:
     constexpr global_coords() noexcept = default;
+    constexpr global_coords(const global_coords&) noexcept = default;
+    constexpr global_coords& operator=(const global_coords& other) noexcept;
     constexpr global_coords(chunk_coords c, local_coords xy, int8_t z) noexcept :
         global_coords{chunk_coords_{c, z}, xy}
     {}
@@ -134,7 +147,6 @@ public:
     constexpr chunk_coords_ chunk3() const noexcept { return chunk_coords_(*this); }
     constexpr operator chunk_coords_() const noexcept;
     constexpr raw_coords_ raw() const noexcept;
-    constexpr raw_coords raw() noexcept;
     constexpr int8_t z() const noexcept;
 
     template<typename T> explicit constexpr inline operator Math::Vector2<T>() const noexcept;
@@ -149,6 +161,13 @@ public:
 
     size_t hash() const noexcept;
 };
+
+constexpr global_coords& global_coords::operator=(const global_coords& other) noexcept
+{
+    if (this != &other)
+        ::new (static_cast<void*>(this)) auto{other};
+    return *this;
+}
 
 constexpr local_coords global_coords::local() const noexcept
 {
@@ -166,7 +185,6 @@ constexpr global_coords::operator chunk_coords_() const noexcept
 }
 
 constexpr auto global_coords::raw() const noexcept -> raw_coords_ { return {x, y}; }
-constexpr auto global_coords::raw() noexcept -> raw_coords { return {x, y}; }
 
 constexpr int8_t global_coords::z() const noexcept
 {
@@ -192,9 +210,7 @@ constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept
 
 constexpr global_coords& global_coords::operator+=(Vector2i vec) noexcept
 {
-    x = uint32_t((int64_t)x+vec[0]);
-    y = uint32_t((int64_t)y+vec[1]);
-    return *this;
+    return *this = *this + vec;
 }
 
 constexpr global_coords global_coords::operator-(Vector2i vec) const noexcept
@@ -204,9 +220,7 @@ constexpr global_coords global_coords::operator-(Vector2i vec) const noexcept
 
 constexpr global_coords& global_coords::operator-=(Vector2i vec) noexcept
 {
-    x = uint32_t((int64_t)x-vec[0]);
-    y = uint32_t((int64_t)y-vec[1]);
-    return *this;
+    return *this = *this - vec;
 }
 
 constexpr Vector2i global_coords::operator-(global_coords other) const noexcept
