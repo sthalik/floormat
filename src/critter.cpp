@@ -149,22 +149,35 @@ void advance_anim_frames(critter& C, uint32_t nsteps, float anim_speed, uint32_t
     C.frame = uint16_t((uint32_t(C.frame) + whole) % nframes_atlas);
 }
 
+using Frac = decltype(critter::offset_frac);
+constexpr auto frac = (float{limits<Frac>::max}+1)/2;
+
+struct pixel_step_s { Vector2i off_i; Vector2 rem; };
+
+// offset_frac keeps only the leftover's length, re-applied along the next direction.
+// A diagonal leftover can exceed 1 px, so clamp to nsteps per axis.
+pixel_step_s pixel_step(Frac offset_frac, Vector2 vec, uint32_t nsteps)
+{
+    constexpr auto inv_frac = 1 / frac;
+    const auto offset_ = vec * float(nsteps) + (float)offset_frac * inv_frac * vec;
+    const Vector2i off_i = Math::clamp(Vector2i(offset_), -int(nsteps), int(nsteps));
+    return { off_i, offset_ - Vector2(off_i) };
+}
+
+Frac offset_frac_from(Vector2 rem)
+{
+    return Frac(Math::clamp(rem.length() * frac, 0.f, float(limits<Frac>::max)));
+}
+
 // offset_frac: scalar magnitude of pending sub-pixel motion.
 // update_movement clears on stuck so alternatives()' alt-direction isZero writes don't leak.
 step_result update_movement_body(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
 {
-    const auto vec = rotation_to_vec(new_r);
-    using Frac = decltype(critter::offset_frac);
-    constexpr auto frac = (float{limits<Frac>::max}+1)/2;
-    constexpr auto inv_frac = 1 / frac;
-    const auto from_accum = C.offset_frac * inv_frac * vec;
-    const auto offset_ = vec * float(nsteps) + from_accum;
-    const auto off_i = Vector2i(offset_);
+    const auto [off_i, rem] = pixel_step(C.offset_frac, rotation_to_vec(new_r), nsteps);
 
     if (off_i.isZero())
     {
-        const auto rem = offset_.length();
-        C.offset_frac = Frac(rem * frac);
+        C.offset_frac = offset_frac_from(rem);
         return step_result::accumulated;
     }
 
@@ -176,8 +189,7 @@ step_result update_movement_body(size_t& i, critter& C, const anim_def& info, ui
     if (!C.move_to(i, off_i, visible_r)) [[unlikely]]
         return step_result::blocked;
 
-    const auto rem = Math::fmod(offset_, 1.f).length();
-    C.offset_frac = Frac(rem * frac);
+    C.offset_frac = offset_frac_from(rem);
     advance_anim_frames(C, nsteps, C.anim_speed, info.nframes);
     return step_result::moved;
 }
@@ -431,19 +443,8 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         constexpr uint32_t len_limit = tile_size_xy;
         const auto nsteps = (uint8_t)Math::min({nframes, step.count, len_limit});
         fm_assert(nsteps > 0);
-        using Frac = decltype(critter::offset_frac);
-        constexpr auto frac = (float{limits<Frac>::max}+1)/2;
-        constexpr auto inv_frac = 1 / frac;
-        const auto vec = rotation_to_vec(new_r);
-        const auto from_accum = (float)offset_frac * inv_frac * vec;
-        const auto offset_ = vec * float(nsteps) + from_accum;
-        // Clamp to movement budget consumed this iteration
-        const auto abs_limit = Vector2i(Math::abs(step.direction)) * int(nsteps);
-        const auto off_i = Math::clamp(Vector2i(offset_), -abs_limit, abs_limit);
-        //Debug{} << "vec" << vec << "mag" << mag << "off_i" << off_i << "offset_" << C.offset_frac_;
-        const auto rem_vec = offset_ - Vector2(off_i);
-        const auto rem_frac = Math::clamp(rem_vec.length() * frac, 0.f, float(limits<Frac>::max));
-        offset_frac = Frac(rem_frac);
+        const auto [off_i, rem] = pixel_step(offset_frac, rotation_to_vec(new_r), nsteps);
+        offset_frac = offset_frac_from(rem);
 
         //DBG << "nsteps" << nsteps;
         nframes -= nsteps;

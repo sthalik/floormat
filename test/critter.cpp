@@ -4,6 +4,7 @@
 #include "src/point.inl"
 #include "src/world.hpp"
 #include "src/critter.hpp"
+#include "src/anim-atlas.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/tile-image.hpp"
 #include "compat/borrowed-ptr.inl"
@@ -152,6 +153,34 @@ void test_dt_invariance()
     fm_assert(point::distance_l1(p_10fps, p_60fps) <= tol);
 }
 
+void test_offset_frac_diag_to_cardinal()
+{
+    auto w = world();
+    object_id id = 0;
+    auto npc_ = w.ensure_player_character(id, make_proto(1.f));
+    auto& npc = *npc_;
+    auto idx = npc.index();
+    const auto frame = Second / npc.atlas->info().fps;
+
+    // leaves a leftover over 1 px, which a cardinal step must not spend in one frame
+    const auto walk_diagonal = [&] {
+        npc.teleport_to(idx, {{0, 0, 0}, {8, 8}, {0, 0}}, rotation_COUNT);
+        npc.offset_frac = {};
+        for (auto i = 0u; i < 4; i++)
+            npc.update_movement(idx, frame, rotation::SE);
+        return npc.position();
+    };
+
+    const auto p0 = walk_diagonal();
+    npc.update_movement(idx, frame, rotation::E);
+    fm_assert_equal(Vector2i{1, 0}, npc.position() - p0);
+
+    const auto p1 = walk_diagonal();
+    auto dt = frame;
+    (void)npc.move_toward(idx, dt, point::normalize_coords(p1, Vector2i{10, 0}));
+    fm_assert_equal(Vector2i{1, 0}, npc.position() - p1);
+}
+
 void test_player_character_id_lowest()
 {
     auto w = world();
@@ -222,6 +251,7 @@ void Test::test_critter()
     test3("dt=16.667 accel=50 r=NE no-unroll=true",  constantly(Millisecond * 16.667), 50, NE, true);
 
     test_dt_invariance();
+    test_offset_frac_diag_to_cardinal();
     test_player_character_id_lowest();
 
     if (is_noisy)
