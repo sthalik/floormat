@@ -5,12 +5,35 @@
 #include "compat/function2.hpp"
 #include "compat/spinlock.hpp"
 #include <bit>
+#include <cr/GrowableArray.h>
 
 namespace floormat::detail::grid {
 
 namespace {
 Spinlock g_build_seq_lock;
 uint64_t g_build_seq = 0;
+
+Spinlock g_slot_lock;
+Array<uint32_t> g_free_slots;
+uint32_t g_slot_count = 0;
+
+uint32_t take_slot_index()
+{
+    Locker<Spinlock> guard{g_slot_lock};
+    if (!g_free_slots.isEmpty())
+    {
+        const auto i = g_free_slots.back();
+        arrayRemoveSuffix(g_free_slots);
+        return i;
+    }
+    return g_slot_count++;
+}
+
+void put_slot_index(uint32_t i)
+{
+    Locker<Spinlock> guard{g_slot_lock};
+    arrayAppend(g_free_slots, i);
+}
 } // namespace
 
 uint64_t GridBase::next_build_no()
@@ -20,7 +43,7 @@ uint64_t GridBase::next_build_no()
 }
 
 GridBase::GridBase(chunk& ch):
-    c{&ch}, w{&ch.world()}, coord{ch.coord()}
+    c{&ch}, coord{ch.coord()}
 {
     versions.fill((uint64_t)-1);
 }
@@ -38,41 +61,28 @@ void GridBase::mark_stale()
 void GridBase::reset_base_for_reuse(chunk& ch)
 {
     c = &ch;
-    w = &ch.world();
     coord = ch.coord();
     neighbors = {};
     versions.fill((uint64_t)-1);
 }
 
-void GridBase::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk)
+void GridBase::maybe_mark_stale()
 {
-    auto* current = at_chunk(coord);
-    if (c != current)
-    {
-        c = current;
-        mark_stale();
-        return;
-    }
+    fm_debug3_assert(c && c->world().at(coord) == c);
 
     if (is_stale())
         return;
 
-    auto cur_ver = current ? current->pass_gen() : (uint64_t)-1;
-    if (versions[8] != cur_ver)
+    if (versions[8] != c->pass_gen())
     {
         mark_stale();
         return;
     }
 
+    auto& w = c->world();
     for (auto i = 0u; i < 8; i++)
     {
-        auto* nb = at_chunk(coord + world::neighbor_offsets[i]);
-        if (nb != neighbors[i])
-        {
-            neighbors[i] = nb;
-            mark_stale();
-            return;
-        }
+        auto* nb = w.at(coord + world::neighbor_offsets[i]);
         auto nb_ver = nb ? nb->pass_gen() : (uint64_t)-1;
         if (nb_ver != versions[i])
         {
@@ -80,11 +90,6 @@ void GridBase::maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) co
             return;
         }
     }
-}
-
-void GridBase::maybe_mark_stale()
-{
-    maybe_mark_stale_impl([this](chunk_coords_ ch) { return w->at(ch); });
 }
 
 uint32_t GridBase::pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count)
@@ -144,6 +149,61 @@ uint32_t free_list::size() const
     for (auto* p = list; p; p = p->next)
         n++;
     return n;
+}
+
+grid_slots::grid_slots() noexcept = default;
+
+grid_slots::~grid_slots() noexcept
+{
+    for (auto* g : slots)
+        if (g)
+            g->pool->release(g);
+}
+
+PoolBase::PoolBase(): slot_index{take_slot_index()} {}
+
+PoolBase::~PoolBase() noexcept
+{
+    fm_assert(live.isEmpty());
+    put_slot_index(slot_index);
+}
+
+void PoolBase::attach(chunk& c, GridBase* g)
+{
+    fm_debug_assert(g->c == &c && g->live_index == (uint32_t)-1);
+    g->pool = this;
+    g->live_index = (uint32_t)live.size();
+    arrayAppend(live, g);
+    if (!c._grid_slots)
+        c._grid_slots.emplace();
+    auto& s = c._grid_slots->slots;
+    if (slot_index >= s.size())
+        arrayResize(s, ValueInit, slot_index + 1);
+    fm_debug_assert(!s[slot_index]);
+    s[slot_index] = g;
+}
+
+void PoolBase::release(GridBase* g) noexcept
+{
+    fm_debug_assert(g->pool == this && g->live_index < live.size() && live[g->live_index] == g);
+    auto* last = live.back();
+    live[g->live_index] = last;
+    last->live_index = g->live_index;
+    arrayRemoveSuffix(live);
+    g->live_index = (uint32_t)-1;
+    g->c = nullptr;
+    freelist.put(g);
+}
+
+void PoolBase::detach_all() noexcept
+{
+    for (auto* g : live)
+    {
+        auto& s = g->c->_grid_slots->slots;
+        fm_debug_assert(s[slot_index] == g);
+        s[slot_index] = nullptr;
+        g->c = nullptr;
+    }
 }
 
 void cascade_mark_neighbors_stale(

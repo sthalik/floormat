@@ -12,7 +12,6 @@
 #include <cr/Array.h>
 #include <mg/Functions.h>
 #include <mg/Timeline.h>
-#include <gtl/phmap.hpp>
 
 namespace floormat::detail::grid {
 
@@ -140,9 +139,9 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
         return false;
 
     const uint32_t div_size = params.div_size;
-    auto& pass_pool = w->cover_pass_pool(div_size);
+    auto& pass_pool = self.world().cover_pass_pool(div_size);
     fm_assert(pass_pool.params().div_size == div_size);
-    pass_pool.maybe_mark_stale_all(w->frame_no());
+    pass_pool.maybe_mark_stale_all(self.world().frame_no());
     Timeline timeline;
     timeline.start();
 
@@ -329,18 +328,14 @@ bool Grid::ensure_octant(uint32_t k)
     fm_debug_assert(k < octant_count);
     detail::grid::check_frame_sync(pool, grid);
     grid->build_if_stale();
-    auto* sc = grid->w->at(grid->coord);
-    fm_assert(sc);
-    return grid->fill_octant(k, *sc);
+    return grid->fill_octant(k, *grid->c);
 }
 
 bool Grid::fill_next_unfilled()
 {
     detail::grid::check_frame_sync(pool, grid);
     grid->build_if_stale();
-    auto* sc = grid->w->at(grid->coord);
-    fm_assert(sc);
-    return grid->fill_next_unfilled(*sc);
+    return grid->fill_next_unfilled(*grid->c);
 }
 
 uint32_t Grid::built_octants() const
@@ -362,25 +357,14 @@ Grid Pool::wrap(detail::grid::CoverGrid* g) const noexcept
 void Pool::maybe_mark_stale_all(uint64_t frame_no)
 {
     pool->frame_no = frame_no;
-    for (auto it = pool->grids.begin(); it != pool->grids.end(); )
-    {
-        auto* g = it->second;
+    for (auto* g : pool->live)
         g->maybe_mark_stale();
-        if (!g->w->at(g->coord))
-        {
-            g->c = nullptr;
-            it = pool->grids.erase(it);
-            pool->put(g);
-        }
-        else
-            ++it;
-    }
 }
 
 void Pool::build_if_stale_all()
 {
-    for (auto& [_, g] : pool->grids)
-        g->build_if_stale();
+    for (auto* g : pool->live)
+        static_cast<detail::grid::CoverGrid*>(g)->build_if_stale();
 }
 
 Pool::Pool(Params params): pool{new detail::grid::Pool<detail::grid::CoverGrid>{params}} { }

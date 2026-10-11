@@ -13,7 +13,6 @@
 #include <cr/BitArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
-#include <gtl/phmap.hpp>
 
 //#define FLOORMAT_GRID_PASS_DEBUG 1
 
@@ -439,8 +438,8 @@ void Grid::mark_stale()
 {
     grid->mark_stale();
     detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
-        auto it = pool->grids.find(ch);
-        return it != pool->grids.end() ? it->second : nullptr;
+        auto* c = grid->c->world().at(ch);
+        return c ? pool->find(*c) : nullptr;
     });
 }
 
@@ -450,8 +449,8 @@ void Grid::maybe_mark_stale()
     grid->maybe_mark_stale();
     if (!was_stale && grid->is_stale())
         detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
-            auto it = pool->grids.find(ch);
-            return it != pool->grids.end() ? it->second : nullptr;
+            auto* c = grid->c->world().at(ch);
+            return c ? pool->find(*c) : nullptr;
         });
 }
 
@@ -461,31 +460,21 @@ void Grid::build_if_stale(const pred& predicate) { grid->build_if_stale(predicat
 void Pool::maybe_mark_stale_all(uint64_t frame_no)
 {
     pool->frame_no = frame_no;
-    for (auto it = pool->grids.begin(); it != pool->grids.end(); )
+    for (auto* base : pool->live)
     {
-        auto* g = it->second;
+        auto* g = static_cast<detail::grid::PassGrid*>(base);
         Grid{g, pool}.maybe_mark_stale();
-        if (!g->c)
-        {
-            it = pool->grids.erase(it);
-            pool->put(g);
-        }
-        else
-        {
-            ++it;
-
-            g->c->ensure_passability();
-            for (auto* nb : g->w->neighbors(g->coord))
-                if (nb)
-                    nb->ensure_passability();
-        }
+        g->c->ensure_passability();
+        for (auto* nb : g->c->world().neighbors(g->coord))
+            if (nb)
+                nb->ensure_passability();
     }
 }
 
 void Pool::build_if_stale_all(const pred& predicate)
 {
-    for (auto [k, grid] : pool->grids)
-        grid->build_if_stale(predicate);
+    for (auto* g : pool->live)
+        static_cast<detail::grid::PassGrid*>(g)->build_if_stale(predicate);
 }
 
 Pool::Pool(Params params): pool{new detail::grid::Pool<detail::grid::PassGrid>{params}} { }

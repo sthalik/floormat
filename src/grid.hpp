@@ -6,6 +6,7 @@
 #include "intra-coord-fwd.hpp"
 #include <array>
 #include <concepts>
+#include <cr/Array.h>
 
 namespace floormat {
 class chunk;
@@ -16,6 +17,7 @@ struct local_coords;
 namespace floormat::detail::grid {
 
 struct GridBase;
+struct PoolBase;
 
 template <typename T>
 concept BitGrid = requires(T t, chunk& ch, T::Params p) {
@@ -27,12 +29,13 @@ concept BitGrid = requires(T t, chunk& ch, T::Params p) {
 struct GridBase
 {
     GridBase* next = nullptr;
+    PoolBase* pool = nullptr;
     chunk* c;
-    world* w;
     chunk_coords_ coord;
     std::array<chunk*, 8> neighbors{};
     std::array<uint64_t, 9> versions;   // [0..7]=neighbors, [8]=self; -1 = stale
     uint64_t build_no = 0;
+    uint32_t live_index = (uint32_t)-1;
 
     explicit GridBase(chunk& ch);
     fm_DISABLE_MOVE_COPY(GridBase);
@@ -56,9 +59,6 @@ struct GridBase
 
 protected:
     ~GridBase() noexcept = default;
-
-private:
-    void maybe_mark_stale_impl(fu2::function_view<chunk*(chunk_coords_) const> const& at_chunk);
 };
 
 class free_list
@@ -69,6 +69,32 @@ public:
     void put(GridBase* p);
     bool is_empty() const;
     uint32_t size() const;
+};
+
+struct grid_slots
+{
+    Array<GridBase*> slots;
+
+    grid_slots() noexcept;
+    ~grid_slots() noexcept;
+    fm_DISABLE_MOVE_COPY(grid_slots);
+};
+
+struct PoolBase
+{
+    free_list freelist;
+    Array<GridBase*> live;
+    uint64_t frame_no = (uint64_t)-1;
+    const uint32_t slot_index;
+
+    PoolBase();
+    ~PoolBase() noexcept;
+    fm_DISABLE_MOVE_COPY(PoolBase);
+
+    GridBase* find(const chunk& c) const noexcept;
+    void attach(chunk& c, GridBase* g);
+    void release(GridBase* g) noexcept;
+    void detach_all() noexcept;
 };
 
 void cascade_mark_neighbors_stale(chunk_coords_ coord, fu2::function_view<GridBase*(chunk_coords_)> find);

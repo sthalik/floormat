@@ -3,6 +3,7 @@
 #include "world.hpp"
 #include "log.hpp"
 #include "RTree.h"
+#include "grid.hpp"
 #include "compat/non-const.hpp"
 #include "ground-atlas.hpp"
 #include <cr/Optional.h>

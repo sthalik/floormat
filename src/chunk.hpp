@@ -14,6 +14,11 @@
 #include <cr/Pointer.h>
 #include <mg/Range.h>
 
+namespace floormat::detail::grid {
+struct grid_slots;
+struct PoolBase;
+} // namespace floormat::detail::grid
+
 namespace floormat {
 
 class anim_atlas;
@@ -30,6 +35,7 @@ public:
     template<typename Chunk> friend struct tile_ref_;
     friend struct object;
     friend class world;
+    friend struct detail::grid::PoolBase;
 
     tile_ref operator[](size_t idx) noexcept;
     const_tile_ref operator[](size_t idx) const noexcept;
@@ -121,6 +127,7 @@ private:
     object_storage _objects;
     class world* _world;
     Pointer<RTree> _rtree, _hole_rtree, _light_rtree;
+    Pointer<detail::grid::grid_slots> _grid_slots;
     chunk* _next = nullptr;
     chunk* _prev = nullptr;
     chunk_coords_ _coord;
