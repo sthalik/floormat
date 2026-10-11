@@ -268,8 +268,8 @@ bool passable_at(chunk& c, Vector2 pt)
     return Search::is_passable_1(c, pt - Vector2{2}, pt + Vector2{2}, Search::without_critters());
 }
 
-// The part of a wall or scenery under a hole keeps the hole's pass mode, so a window stays solid
-// to walkers.
+// The part of a wall, scenery or ground under a more open hole takes the hole's pass mode, so a
+// window stays solid to walkers.
 void test_hole_pass_modes()
 {
     constexpr auto ch = chunk_coords_{0, 0, 0};
@@ -338,6 +338,21 @@ void test_hole_pass_modes()
         const auto e = entry_at(c, ctr);
         fm_assert(e && e->type == (uint64_t)collision_type::scenery && e->pass == (uint64_t)pass_mode::shoot_through);
         fm_assert(!passable_at(c, ctr));
+        const auto s = entry_at(c, ctr - Vector2{12, 0});
+        fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
+    }
+
+    {
+        auto w = world();
+        auto& c = w[ch];
+        c[{8, 8}].ground() = tile_image_proto{ loader.ground_atlas("texel"), 0 };
+        hole_proto hp4;
+        hp4.bbox_size = {16, 16};
+        hp4.pass = pass_mode::see_through;
+        (void)w.make_object<hole>(w.make_id(), pos, hp4);
+
+        const auto e = entry_at(c, ctr);
+        fm_assert(e && e->type == (uint64_t)collision_type::geometry && e->pass == (uint64_t)pass_mode::see_through);
         const auto s = entry_at(c, ctr - Vector2{12, 0});
         fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
     }

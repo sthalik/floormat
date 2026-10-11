@@ -90,15 +90,18 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
 }
 
 void filter_bbox_through_holes(Chunk_RTree& rtree, const Chunk_RTree& holes, object_id id, Range2D bbox,
-                               bool has_holes, pass_through_mask mask)
+                               bool has_holes)
 {
     fm_assert((bbox.max() > bbox.min()).all());
-    if (!has_holes)
+    const auto x = std::bit_cast<collision_data>(id);
+    if (!has_holes || x.pass == (uint64_t)pass_mode::pass)
         return rtree.Insert(bbox.min().data(), bbox.max().data(), id);
+    // only a more open hole cuts, so each recursion level raises the pass and the recursion ends
+    const auto min_pass = pass_mode(x.pass + 1);
 start:
     fm_assert((bbox.max() > bbox.min()).all());
 
-    auto found = chunk::find_hole_in_bbox(holes, bbox, mask);
+    auto found = chunk::find_hole_in_bbox(holes, bbox, min_pass);
 
     if (!found) [[likely]]
         rtree.Insert(bbox.min().data(), bbox.max().data(), id);
@@ -111,17 +114,12 @@ start:
             rtree.Insert(bbox.min().data(), bbox.max().data(), id);
             return;
         }
-        auto x = std::bit_cast<collision_data>(id);
-        if (hole_pass != pass_mode::pass && x.pass != (uint64_t)pass_mode::pass)
+        if (hole_pass != pass_mode::pass)
         {
-            if (x.pass < (uint64_t)hole_pass)
-                x.pass = (uint64_t)hole_pass;
-            // holes this open or less can't change it anymore, which also ends the recursion
-            auto maskʹ = mask;
-            for (auto i = 0u; i <= x.pass; i++)
-                maskʹ[i] = false;
-            filter_bbox_through_holes(rtree, holes, std::bit_cast<object_id>(x), Math::intersect(bbox, hole),
-                                      has_holes, maskʹ);
+            auto xʹ = x;
+            xʹ.pass = (uint64_t)hole_pass;
+            filter_bbox_through_holes(rtree, holes, std::bit_cast<object_id>(xʹ), Math::intersect(bbox, hole),
+                                      has_holes);
         }
         if (res.size == 1)
         {
@@ -131,19 +129,19 @@ start:
         else
         {
             for (auto i = 0u; i < res.size; i++)
-                filter_bbox_through_holes(rtree, holes, id, res.array[i], has_holes, mask);
+                filter_bbox_through_holes(rtree, holes, id, res.array[i], has_holes);
         }
     }
 }
 
 } // namespace
 
-Optional<Pair<Range2D, pass_mode>> chunk::find_hole_in_bbox(const Chunk_RTree& rtree, Range2D bbox, pass_through_mask mask)
+Optional<Pair<Range2D, pass_mode>> chunk::find_hole_in_bbox(const Chunk_RTree& rtree, Range2D bbox, pass_mode min_pass)
 {
     Optional<Pair<Range2D, pass_mode>> ret;
     rtree.Search(bbox.min().data(), bbox.max().data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (can_pass_through_mask(mask, pass_mode(x.pass)) /*&& x.type == (uint64_t)collision_type::none*/)
+        if (x.pass >= (uint64_t)min_pass /*&& x.type == (uint64_t)collision_type::none*/)
         {
             Range2D hole {
                 { r.m_min[0], r.m_min[1] },
@@ -215,7 +213,7 @@ void chunk::ensure_passability() noexcept
             if (pass == pass_mode::pass) [[likely]]
                 continue;
             auto id = make_id(collision_type::geometry, pass, i+1);
-            filter_bbox_through_holes(rtree, holes, id, whole_tile(i), has_holes, can_walk_through_mask);
+            filter_bbox_through_holes(rtree, holes, id, whole_tile(i), has_holes);
         }
     }
     for (auto i = 0u; i < TILE_COUNT; i++)
@@ -225,17 +223,17 @@ void chunk::ensure_passability() noexcept
         {
             auto depth = (float)atlas->info().depth;
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT+i+1);
-            filter_bbox_through_holes(rtree, holes, id, wall_north(i, depth), has_holes, not_blocked_pass_through_mask);
+            filter_bbox_through_holes(rtree, holes, id, wall_north(i, depth), has_holes);
 
             if (const auto* west = tile.wall_west_atlas().get())
                 filter_bbox_through_holes(rtree, holes, id, wall_pillar(i, (float)west->info().depth, depth),
-                                          has_holes, not_blocked_pass_through_mask);
+                                          has_holes);
         }
         if (const auto* atlas = tile.wall_west_atlas().get())
         {
             auto depth = (float)atlas->info().depth;
             auto id = make_id(collision_type::geometry, atlas->info().passability, TILE_COUNT*2+i+1);
-            filter_bbox_through_holes(rtree, holes, id, wall_west(i, depth), has_holes, not_blocked_pass_through_mask);
+            filter_bbox_through_holes(rtree, holes, id, wall_west(i, depth), has_holes);
         }
     }
     for (const bptr<object>& eʹ : objects())
@@ -256,8 +254,7 @@ void chunk::ensure_passability() noexcept
         {
             if (!e.is_dynamic())
                 filter_bbox_through_holes(rtree, holes, std::bit_cast<object_id>(bb.data),
-                                          Math::Range2D<float>{bb.pos},
-                                          has_holes, not_blocked_pass_through_mask);
+                                          Math::Range2D<float>{bb.pos}, has_holes);
             else
                 _add_bbox_dynamic(bb);
         }
