@@ -63,15 +63,16 @@ bool sat_rhombus_vs_rect(const std::array<Vector2i, 4>& poly, Range2Di screen_re
 
 bool check_chunk_visible(Vector2i camera, Vector2i win, Range2Di extra_pixels) noexcept
 {
-    constexpr auto len = chunk_size<int32_t>;
+    // the first tile is centered on the chunk origin, so the floor starts half a tile before it
+    constexpr auto lo = -half_tile<int32_t>, hi = chunk_size<int32_t> - half_tile<int32_t>;
     const Vector2i origin = win/2 + camera;
 
     // Chunk corners have even x+y, so the halving is exact.
     const std::array<Vector2i, 4> rhombus = {
-        tile_shader::projectʹ(Vector3i{0,   0,   0})/2 + origin,
-        tile_shader::projectʹ(Vector3i{len, 0,   0})/2 + origin,
-        tile_shader::projectʹ(Vector3i{len, len, 0})/2 + origin,
-        tile_shader::projectʹ(Vector3i{0,   len, 0})/2 + origin,
+        tile_shader::projectʹ(Vector3i{lo, lo, 0})/2 + origin,
+        tile_shader::projectʹ(Vector3i{hi, lo, 0})/2 + origin,
+        tile_shader::projectʹ(Vector3i{hi, hi, 0})/2 + origin,
+        tile_shader::projectʹ(Vector3i{lo, hi, 0})/2 + origin,
     };
 
     const Range2Di screen_rect{
