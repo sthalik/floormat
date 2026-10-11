@@ -301,9 +301,6 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         fm_debug3_assert(x.type != (uint64_t)collision_type::none);
                         if (x.id == self || x.pass >= min_pass)
                             return true;
-                        auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-                        if (pred(*nb, x, range) == path_search_continue::pass)
-                            return true;
                         auto ret = ray_aabb_intersection(origin, dir_inv_norm,
                                                          {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},
                                                            {r.m_max[0]+fuzz2, r.m_max[1]+fuzz2}}},
@@ -314,6 +311,10 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                             return true;
                         if (ret.tmin < min_tmin) [[likely]]
                         {
+                            // last, since without_critters looks up the object
+                            auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+                            if (pred(*nb, x, range) == path_search_continue::pass)
+                                return true;
                             min_tmin = ret.tmin;
                             result.collision = point::normalize_coords(from, Vector2i(dir * min_tmin));
                             result.collider = x;
