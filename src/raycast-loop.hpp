@@ -14,7 +14,6 @@ struct aabb_result
     bool result;
 };
 
-Vector2 pt_to_vec(point from, point pt);
 // Defined in the .cpp, which honors inf, so a finite-math caller still gets ±inf.
 Vector2 dir_inverse(Vector2 dir);
 std::array<uint8_t, 2> ray_aabb_signs(Vector2 ray_dir_inv_norm);

@@ -2,6 +2,7 @@
 #include "raycast-diag.hpp"
 #include "tile-constants.hpp"
 #include "intra-coord.inl"
+#include "point.inl"
 #include "pass-mode.hpp"
 #include "world.hpp"
 #include "grid-pass.hpp"
@@ -25,15 +26,6 @@ using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
 using Rect = typename RTree::Rect;
 
 } // namespace
-
-Vector2 pt_to_vec(point from, point pt)
-{
-    auto V = Vector2{};
-    V += (Vector2(pt.chunk()) - Vector2(from.chunk())) * chunk_size<Vector2>;
-    V += (Vector2(pt.local()) - Vector2(from.local())) * TILE_SIZE2;
-    V += (Vector2(pt.offset()) - Vector2(from.offset()));
-    return V;
-}
 
 Vector2 dir_inverse(Vector2 dir)
 {
@@ -80,8 +72,6 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
     return { tmin, tmin < tmax };
 }
 
-template bool within_chunk_bounds<int>(Math::Vector2<int> p0, Math::Vector2<int> p1);
-
 template<bool EnableDiagnostics>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
                                world& w, point from, point to, object_id self,
@@ -96,7 +86,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     constexpr auto inv_eps = 1e6f, eps = 1/inv_eps;
     constexpr auto fuzz2 = 0.5f;
 
-    auto V = pt_to_vec(from, to);
+    auto V = Vector2(to - from);
     auto ray_len = V.length();
 
     if (ray_len < eps)

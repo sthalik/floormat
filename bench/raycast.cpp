@@ -228,7 +228,6 @@ namespace old_rc {
 
 using rc::raycast_result_s;
 using rc::raycast_diag_s;
-using rc::detail::pt_to_vec;
 using rc::detail::dir_inverse;
 using rc::detail::ray_aabb_signs;
 using rc::detail::ray_aabb_intersection;
@@ -278,7 +277,7 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
 
     result.has_result = false;
 
-    auto V = pt_to_vec(from, to);
+    auto V = Vector2(to - from);
     auto ray_len = V.length();
 
     if (ray_len < eps)
