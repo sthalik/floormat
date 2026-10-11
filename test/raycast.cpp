@@ -11,6 +11,7 @@
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
+#include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 
 namespace floormat {
@@ -181,6 +182,14 @@ void Test::test_raycast()
         fm_assert(!diag.path.isEmpty());
         (void)ray_diag(diag, w, from, from, 0);
         fm_assert(diag.V.isZero() && diag.path.isEmpty() && diag.queries.isEmpty());
+    }
+    {
+        constexpr auto from = point{{0, 0, 0}, {11, 12}, {1, -32}};
+        auto diag = rc::raycast_diag_s{};
+        (void)ray_diag(diag, w, from, point{{2, 33, 0}, {15, 11}, {-4, 29}}, 0);
+        const auto path_cap = arrayCapacity(diag.path), queries_cap = arrayCapacity(diag.queries);
+        (void)ray_diag(diag, w, from, point{{0, 0, 0}, {12, 12}, {1, -32}}, 0);
+        fm_assert(arrayCapacity(diag.path) >= path_cap && arrayCapacity(diag.queries) >= queries_cap);
     }
     {   // the nearest collider must win even when a farther rect's entry into an
         // early cell puts it into the result before the walk reaches the near one

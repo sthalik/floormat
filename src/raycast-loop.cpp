@@ -170,7 +170,11 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
     if constexpr(EnableDiagnostics)
     {
+        auto path = move(diag.path);
+        auto queries = move(diag.queries);
         diag = {
+            .path = move(path),
+            .queries = move(queries),
             .V = V,
             .dir = dir,
             .dir_inv_norm = dir_inv_norm,
