@@ -138,6 +138,28 @@ void test_corner_touch()
     fm_assert(sweep_aabb_vs_aabb(start, V, Range2D{{20, -9}, {30, 11}}).has_collider);
 }
 
+void test_bbox_offset_min()
+{
+    auto w = world();
+    constexpr auto pos = global_coords{chunk_coords_{0, 0, 0}, {8, 8}};
+    constexpr auto bb = Vector2b{-127, -127};
+
+    auto proto = make_critter_proto();
+    proto.bbox_offset = {-128, -128};
+    auto C = w.make_object<critter>(w.make_id(), pos, move(proto));
+    fm_assert(C->bbox_offset == bb);
+
+    auto index = C->index();
+    C->teleport_to(index, pos, {1, 0}, rotation_COUNT);
+    fm_assert(C->bbox_offset == bb);
+    for (auto r : {rotation::E, rotation::S, rotation::W, rotation::N})
+        C->rotate(index, r);
+    fm_assert(C->bbox_offset == bb);
+
+    C->set_bbox(C->offset, {-128, 0}, C->bbox_size, C->pass);
+    fm_assert(C->bbox_offset == Vector2b(-127, 0));
+}
+
 uint32_t entries_at(const chunk::RTree& t, Vector2 pt)
 {
     uint32_t n = 0;
@@ -330,6 +352,7 @@ void Test::test_rtree()
     test2();
     test3();
     test_corner_touch();
+    test_bbox_offset_min();
     test_light_tree();
     test_hole_tree();
     test_hole_pass_modes();

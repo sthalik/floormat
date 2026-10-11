@@ -17,6 +17,13 @@
 
 namespace floormat {
 
+namespace {
+
+// rotate_point() turns -128 into -127, so storing -128 would move the box on the next teleport
+constexpr Vector2b clamp_bbox_offset(Vector2b x) { return Math::max(x, Vector2b{-127}); }
+
+} // namespace
+
 template class basic_bptr<object, non_atomic_refcount>;
 template class basic_bptr<const object, non_atomic_refcount>;
 
@@ -31,7 +38,7 @@ object_type object_proto::type_of() const noexcept { return type; }
 
 object::object(object_id id, class chunk& c, const object_proto& proto) :
     id{id}, c{&c}, atlas{proto.atlas},
-    offset{proto.offset}, bbox_offset{proto.bbox_offset},
+    offset{proto.offset}, bbox_offset{clamp_bbox_offset(proto.bbox_offset)},
     bbox_size{proto.bbox_size}, frame{proto.frame},
     delta{proto.delta}, r{proto.r}, pass{proto.pass}
 {
@@ -230,7 +237,7 @@ void object::set_bbox_(Vector2b offset_, Vector2b bb_offset, Vector2ub bb_size, 
 {
     fm_assert(offset_ >= -half_tile<Vector2b> && offset_ < half_tile<Vector2b>);
     non_const(offset)      = offset_;
-    non_const(bbox_offset) = bb_offset;
+    non_const(bbox_offset) = clamp_bbox_offset(bb_offset);
     non_const(bbox_size)   = bb_size;
     non_const(pass)        = pass_;
 }
