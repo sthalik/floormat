@@ -123,6 +123,14 @@ void Test::test_raycast()
         };
         run(p, p, w, true, 0);
     }
+    {
+        constexpr auto from = point{{0, 0, 0}, {11, 12}, {1, -32}};
+        auto diag = rc::raycast_diag_s{};
+        (void)raycast_with_diag(diag, w, from, point{{0, 1, 0}, {8, 12}, {-27, -19}}, 0);
+        fm_assert(!diag.path.isEmpty());
+        (void)raycast_with_diag(diag, w, from, from, 0);
+        fm_assert(diag.V.isZero() && diag.path.isEmpty() && diag.queries.isEmpty());
+    }
     {   // the nearest collider must win even when a farther rect's entry into an
         // early cell puts it into the result before the walk reaches the near one
         auto w2 = world{};

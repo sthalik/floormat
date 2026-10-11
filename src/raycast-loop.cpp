@@ -101,6 +101,15 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
     if (ray_len < eps)
     {
+        if constexpr(EnableDiagnostics)
+        {
+            diag.V = V;
+            diag.dir = {};
+            diag.dir_inv_norm = {};
+            diag.tmin = 0;
+            arrayClear(diag.path);
+            arrayClear(diag.queries);
+        }
         result = {
             .from = from,
             .to = to,
