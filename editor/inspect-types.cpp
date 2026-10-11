@@ -105,11 +105,11 @@ struct entity_accessors<object, inspect_intent_t> {
                 &object::bbox_size,
                 [](object& x, Vector2ub value)
                 {
-                    if (!ImGui::GetInputTextState(ImGui::GetActiveID()) || ImGui::IsItemDeactivatedAfterEdit())
-                    {
-                        value.x() = round_to_even(value.x(), x.bbox_size.x());
-                        value.y() = round_to_even(value.y(), x.bbox_size.y());
-                    }
+                    const bool editing = ImGui::GetInputTextState(ImGui::GetActiveID()) && !ImGui::IsItemDeactivatedAfterEdit();
+                    if (editing && value % Vector2ub{2} != Vector2ub{0})
+                        return;
+                    value.x() = round_to_even(value.x(), x.bbox_size.x());
+                    value.y() = round_to_even(value.y(), x.bbox_size.y());
                     x.set_bbox(x.offset, x.bbox_offset, value, x.pass);
                 },
                 [](const object& x) { return enable_bbox_editing(x) ? st::enabled : st::readonly; },

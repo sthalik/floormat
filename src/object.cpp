@@ -259,6 +259,8 @@ object::operator object_proto() const
 
 void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
 {
+    fm_assert(bb_size_ % Vector2ub{2} == Vector2ub{0});
+
     const bool pass_changed = pass_ != pass;
 
     if (offset_ == offset && bb_offset_ == bbox_offset && bb_size_ == bbox_size && !pass_changed)
