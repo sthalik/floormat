@@ -10,6 +10,7 @@
 #include "src/search.hpp"
 #include "src/point.inl"
 #include "src/RTree.hpp"
+#include "src/sweep-aabb.hpp"
 #include "src/RTree-search.hpp"
 #include "src/nanosecond.inl"
 #include "loader/loader.hpp"
@@ -127,6 +128,14 @@ void test3()
     const auto result = C->move_toward(index, dt, point{pos, {11, 0}});
     fm_assert(C->can_move_to({}));
     fm_assert(result.blocked && !result.moved);
+}
+
+void test_corner_touch()
+{
+    const auto start = Range2D{{0, 0}, {10, 10}};
+    constexpr auto V = Vector2{20, 20};
+    fm_assert(!sweep_aabb_vs_aabb(start, V, Range2D{{20, -10}, {30, 10}}).has_collider);
+    fm_assert(sweep_aabb_vs_aabb(start, V, Range2D{{20, -9}, {30, 11}}).has_collider);
 }
 
 uint32_t entries_at(const chunk::RTree& t, Vector2 pt)
@@ -320,6 +329,7 @@ void Test::test_rtree()
     test1();
     test2();
     test3();
+    test_corner_touch();
     test_light_tree();
     test_hole_tree();
     test_hole_pass_modes();
