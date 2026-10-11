@@ -61,7 +61,7 @@ struct grid_test final : base_test
     void update_post(app& a, const Ns&) override;
 };
 
-grid_test::grid_test(): pool{Pass::Params{8u, 8u}} {}
+grid_test::grid_test(): pool{Pass::Params{8u, 8u, pass_mode::pass}} {}
 
 void grid_test::draw_overlay(app& a)
 {

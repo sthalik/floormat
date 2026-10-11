@@ -47,7 +47,7 @@ Grid::Pass::Pool& world::cover_pass_pool(uint32_t div_size)
     // below Pass::Grid::min_bbox_size, validate() keeps div_size and raises only bbox_size
     auto& p = impl->_cover_pass_pools[(uint32_t)std::countr_zero(div_size)];
     if (!p)
-        p.reset(new Grid::Pass::Pool{Grid::Pass::Params{div_size}.validate()});
+        p.reset(new Grid::Pass::Pool{Grid::Pass::Params{div_size, pass_mode::shoot_through}.validate()});
     return *p;
 }
 
@@ -56,7 +56,7 @@ Grid::Pass::Pool& world::raycast_pass_pool()
     // raycast builds grids with never_continue() but Dijkstra builds with the
     // caller's predicate. sharing a registry pool would mix the two.
     if (!impl->_raycast_pass_pool)
-        impl->_raycast_pass_pool.reset(new Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)Search::div_size.x(), tile_size_xy}.validate()});
+        impl->_raycast_pass_pool.reset(new Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)Search::div_size.x(), tile_size_xy, pass_mode::pass}.validate()});
     return *impl->_raycast_pass_pool;
 }
 

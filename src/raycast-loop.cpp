@@ -144,7 +144,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     if (pool.frame_no() != w.frame_no())
         pool.maybe_mark_stale_all(w.frame_no());
 
-    const auto div_size_i = (int32_t)pool.params().div_size;
+    const auto params = pool.params();
+    const auto div_size_i = (int32_t)params.div_size;
+    const auto min_pass = (uint64_t)params.min_pass;
     const auto div_size_f = (float)div_size_i;
     const auto cells_per_chunk = chunk_size<int> / div_size_i;
 
@@ -299,11 +301,11 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
                     const auto origin = from_center - Vector2{nb_world_x, nb_world_y};
 
-                    nb->rtree()->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r)
+                    nb->rtree()->Search(fmin.data(), fmax.data(), [&, min_pass](uint64_t data, const Rect& r)
                     {
                         auto x = std::bit_cast<collision_data>(data);
                         fm_debug3_assert(x.type != (uint64_t)collision_type::none);
-                        if (x.id == self || x.pass == (uint64_t)pass_mode::pass)
+                        if (x.id == self || x.pass >= min_pass)
                             return true;
                         auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
                         if (pred(*nb, x, range) == path_search_continue::pass)

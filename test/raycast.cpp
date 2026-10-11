@@ -7,6 +7,8 @@
 #include "src/grid-pass.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
+#include "src/hole.hpp"
+#include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
 #include <mg/Functions.h>
@@ -99,10 +101,51 @@ auto run(point from, point to, world& w, bool b, float len)
     return true;
 }
 
+void test_window(pass_mode hole_pass)
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    constexpr auto pos = global_coords{ch, {8, 8}};
+    const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
+    const auto mid_y = (int8_t)(-tile_size_xy/2 - (int)W.atlas->info().depth/2);
+
+    auto w = world();
+    auto& c = w[ch];
+    c[pos.local()].wall_north() = W;
+    hole_proto hp;
+    hp.offset = {0, -tile_size_xy/2};
+    hp.bbox_size = {32, 32};
+    hp.pass = hole_pass;
+    (void)w.make_object<hole>(w.make_id(), pos, hp);
+
+    Pass::Pool shoot{Pass::Params{8, 8, pass_mode::shoot_through}};
+    Pass::Pool walk{Pass::Params{8, 8, pass_mode::pass}};
+    const auto open_at = [&](Pass::Pool& pool, int8_t x) {
+        pool.maybe_mark_stale_all(w.frame_no());
+        auto g = pool[c];
+        g.build_if_stale(Search::never_continue());
+        return g.bit(g.get_bitmask_index_from_coord(intra_coord{pos.local(), {x, mid_y}}));
+    };
+    const auto ray_passes = [&](Pass::Pool& pool, int8_t x) {
+        return raycast(w, point{ch, {8, 6}, {x, 0}}, point{ch, {8, 10}, {x, 0}}, 0,
+                       pool, Search::never_continue()).success;
+    };
+
+    const bool shoots = hole_pass == pass_mode::shoot_through;
+    fm_assert(open_at(shoot, 0) == shoots);
+    fm_assert(!open_at(walk, 0));
+    fm_assert(!open_at(shoot, -24));
+    fm_assert(ray_passes(shoot, 0) == shoots);
+    fm_assert(!ray_passes(walk, 0));
+    fm_assert(!ray_passes(shoot, -24));
+}
+
 } // namespace
 
 void Test::test_raycast()
 {
+    test_window(pass_mode::see_through);
+    test_window(pass_mode::shoot_through);
+
     auto w = make_world();
     { constexpr auto from = point{{0, 0, 0}, {11,12}, {1,-32}};
       fm_assert(run(from, point{{  1,   3, 0}, { 0,  1}, {-21,  23}}, w, false,  2288));

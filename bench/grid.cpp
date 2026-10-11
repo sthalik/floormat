@@ -79,7 +79,7 @@ void Grid_Build(benchmark::State& state)
     for (auto* cʹ : { &c1, &c2, &c3, &c4, &c5, &c6, &c7 })
         rebuild(*cʹ);
 
-    Pass::Pool pool{Pass::Params{(uint32_t)state.range(0)}};
+    Pass::Pool pool{Pass::Params{(uint32_t)state.range(0), pass_mode::pass}};
     pool.maybe_mark_stale_all(w.frame_no());
     pool.build_if_stale_all(Search::without_critters());
 

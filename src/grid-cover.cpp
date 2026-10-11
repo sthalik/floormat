@@ -29,20 +29,6 @@ static_assert(sizeof(CoverCell) == Cover::octant_count * sizeof(uint16_t));
 using Cover::Params;
 using Cover::octant_count;
 
-constexpr auto can_shoot_through_lambda = [](chunk& self, collision_data data, Range2D) {
-    if (data.pass == (uint64_t)pass_mode::shoot_through)
-        return path_search_continue::pass;
-    if (data.type == (uint64_t)collision_type::scenery)
-    {
-        auto obj = self.world().find_object(data.id);
-        fm_assert(obj);
-        if (obj->type() == object_type::critter)
-            return path_search_continue::pass;
-    }
-    return path_search_continue::blocked;
-};
-constexpr Search::pred can_shoot_through{can_shoot_through_lambda};
-
 Vector2 direction_for_octant(uint32_t k)
 {
     using namespace floormat;
@@ -82,7 +68,7 @@ uint16_t raycast_one(chunk& self,
     const Vector2i delta{Vector2(dir * (float)max_ray_px)};
     const point to = from + delta;
 
-    const auto r = raycast(self.world(), from, to, 0, pass_pool, can_shoot_through);
+    const auto r = raycast(self.world(), from, to, 0, pass_pool, Search::without_critters());
 
     uint32_t dist_px;
     if (!r.has_result || r.success)
@@ -182,7 +168,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
         else                 { sk = sk_diag; step_t = t_delta_x; }
 
         auto pass_grid = pass_pool[self];
-        pass_grid.build_if_stale(can_shoot_through);
+        pass_grid.build_if_stale(Search::without_critters());
 
         Array<uint16_t> px_dist{ValueInit, dc * dc};
 

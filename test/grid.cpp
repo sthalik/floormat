@@ -94,7 +94,7 @@ void test_ground_only_is_fully_passable(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
 
     Pass::Grid grid = pool[c];
@@ -112,7 +112,7 @@ void test_wall_blocks_some_cells(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     {
         Pass::Grid grid = pool[c];
@@ -143,7 +143,7 @@ void test_idempotent_rebuild(uint32_t div_size)
     add_wall_north(c, {4, 4});
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid grid = pool[c];
     grid.build_if_stale(Search::without_critters());
@@ -165,7 +165,7 @@ void test_neighbor_cascade(uint32_t div_size)
     rebuild_passability(c0);
     rebuild_passability(c1);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g0 = pool[c0];
     Pass::Grid g1 = pool[c1];
@@ -189,7 +189,7 @@ void test_collect_cleanup(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     {
         Pass::Grid grid = pool[c];
@@ -213,7 +213,7 @@ void test_add_remove_wall_restores_baseline(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     const auto baseline = count_passable_built(pool, c);
 
@@ -240,7 +240,7 @@ void test_neighbor_west_wall_affects_east_edge(uint32_t div_size)
     rebuild_passability(c0);
     rebuild_passability(c1);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     const auto base0 = count_passable_built(pool, c0);
 
@@ -260,7 +260,7 @@ void test_bit_from_tile_center_passable(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid grid = pool[c];
     grid.build_if_stale(Search::without_critters());
@@ -281,7 +281,7 @@ void test_wall_then_clear_ground_allows_collect(uint32_t div_size)
     add_wall_north(c, {4, 4});
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     { const auto passable = count_passable_built(pool, c);
       fm_assert(passable > 0); }
@@ -302,7 +302,7 @@ void test_cell_at_wall_is_blocked(uint32_t div_size)
     add_wall_north(c, {8, 8});
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -319,7 +319,7 @@ void test_cell_south_of_wall_is_passable(uint32_t div_size)
     add_wall_north(c, {8, 8});
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -335,7 +335,7 @@ void test_all_chunk_corners_passable(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -355,7 +355,7 @@ void test_div_count_derived_from_div_size(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -372,7 +372,7 @@ void test_pool_destruction_with_live_grids()
     rebuild_passability(c);
 
     {
-        Pass::Pool pool{Pass::Params{16}};
+        Pass::Pool pool{Pass::Params{16, pass_mode::pass}};
         tick(w, pool);
         Pass::Grid g = pool[c];
         g.build_if_stale(Search::without_critters());
@@ -395,7 +395,7 @@ void test_blocked_ground_blocks_all(uint32_t div_size)
     add_blocked_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -413,7 +413,7 @@ void test_multi_chunk_3x3_sanity(uint32_t div_size)
             rebuild_passability(c);
         }
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
 
     for (auto y = -1; y <= 1; y++)
@@ -437,7 +437,7 @@ void test_chunk_reinsertion_after_collect(uint32_t div_size)
         rebuild_passability(c);
     }
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     { Pass::Grid g = pool[*w.at(COORD)];
       g.build_if_stale(Search::without_critters());
@@ -580,7 +580,7 @@ void test_frame_counter_ticks_independently(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     { Pass::Grid g = pool[c];
       g.build_if_stale(Search::without_critters());
@@ -598,7 +598,7 @@ void test_frame_counter_ticks_independently(uint32_t div_size)
 void test_empty_pool_safe_tick(uint32_t div_size)
 {
     auto w = world();
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     tick(w, pool);
 }
@@ -610,7 +610,7 @@ void test_last_bit_index_valid(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -628,7 +628,7 @@ void test_wall_west_blocks(uint32_t div_size)
     c[{8, 8}].wall_west() = wall_proto();
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -645,7 +645,7 @@ void test_many_walls_strictly_reduce_passable(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     const auto base = count_passable_built(pool, c);
 
@@ -670,7 +670,7 @@ void test_repeated_ticks_noop_on_stable_world(uint32_t div_size)
     add_wall_north(c, {5, 5});
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     const auto first = count_passable_built(pool, c);
 
@@ -689,7 +689,7 @@ void test_explicit_wrapper_mark_stale_rebuilds(uint32_t div_size)
     add_wall_north(c, {4, 4});
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     const auto base = count_passable_built(pool, c);
 
@@ -706,7 +706,7 @@ void test_mark_modified_only_without_ensure_passability(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     const auto base = count_passable_built(pool, c);
 
@@ -728,7 +728,7 @@ void test_neighbor_mark_only_without_ensure_detected(uint32_t div_size)
     rebuild_passability(c0);
     rebuild_passability(c1);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     const auto base0 = count_passable_built(pool, c0);
 
@@ -743,7 +743,7 @@ void test_neighbor_mark_only_without_ensure_detected(uint32_t div_size)
 
 void test_params_preserved_through_pool(uint32_t div_size)
 {
-    Pass::Pool pool{Pass::Params{div_size, tile_size_xy}};
+    Pass::Pool pool{Pass::Params{div_size, tile_size_xy, pass_mode::pass}};
     const auto p = pool.params();
     fm_assert(p.div_size == div_size);
     fm_assert(p.bbox_size == tile_size_xy);
@@ -760,7 +760,7 @@ void test_collect_all_chunks_no_crash(uint32_t div_size)
             rebuild_passability(c);
         }
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
 
     for (auto y = -1; y <= 1; y++)
@@ -786,7 +786,7 @@ void test_pool_reuse_after_collect(uint32_t div_size)
     add_wall_north(c, {0, 0});
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     { Pass::Grid g = pool[c]; g.build_if_stale(Search::without_critters()); }
 
@@ -809,7 +809,7 @@ void test_pool_reuse_neighbors_collected(uint32_t div_size)
     { auto& ca = w[A]; add_wall_north(ca, {0, 0}); rebuild_passability(ca); }
     { auto& cb = w[B]; add_wall_north(cb, {0, 0}); rebuild_passability(cb); }
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     { (void)pool[*w.at(A)]; (void)pool[*w.at(B)]; }
 
@@ -836,7 +836,7 @@ void test_neighbor_lifecycle(uint32_t div_size)
     auto w = world();
     { auto& ca = w[A]; add_ground_all(ca); rebuild_passability(ca); }
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     fm_assert(count_passable_built(pool, *w.at(A)) > 0);
 
@@ -869,7 +869,7 @@ void test_self_collect_with_neighbor(uint32_t div_size)
     { auto& ca = w[A]; add_ground_all(ca); rebuild_passability(ca); }
     { auto& cb = w[B]; add_ground_all(cb); rebuild_passability(cb); }
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     (void)count_passable_built(pool, *w.at(A));
     (void)count_passable_built(pool, *w.at(B));
@@ -892,7 +892,7 @@ void test_pool_reuse_across_different_coord(uint32_t div_size)
     auto w = world();
     { auto& c = w[X]; add_ground_all(c); rebuild_passability(c); }
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     (void)count_passable_built(pool, *w.at(X));
 
@@ -915,7 +915,7 @@ void test_mark_and_ensure_preserve_frame_no(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     const auto frame = w.frame_no();
 
@@ -936,7 +936,7 @@ void test_mark_and_ensure_preserve_frame_no(uint32_t div_size)
 void test_multiple_pooled_items(uint32_t div_size)
 {
     auto w = world();
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     {
         auto& c = w[COORD];
@@ -984,7 +984,7 @@ void test_bitview_read_matches_bit(uint32_t div_size)
     c[{2, 6}].wall_west() = wall_proto();
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -1002,7 +1002,7 @@ void test_bitview_read_matches_bit(uint32_t div_size)
 void test_partial_collect_then_collect_survivors(uint32_t div_size)
 {
     auto w = world();
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
 
     {
         auto& a = w[COORD];
@@ -1066,7 +1066,7 @@ void test_bit_matches_every_position()
     }
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size, bbox_size}};
+    Pass::Pool pool{Pass::Params{div_size, bbox_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -1111,7 +1111,7 @@ void test_cell_spans_match_forward_map(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size, div_size}};
+    Pass::Pool pool{Pass::Params{div_size, div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -1150,7 +1150,7 @@ void test_div_anchor_matches_cell_span(uint32_t div_size, uint32_t bbox_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size, bbox_size}};
+    Pass::Pool pool{Pass::Params{div_size, bbox_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -1221,7 +1221,7 @@ void test_bit_exact(const exact_config& cfg)
     rebuild_passability(c);
     rebuild_passability(oc);
 
-    Pass::Pool pool{Pass::Params{cfg.div_size, cfg.bbox_size}};
+    Pass::Pool pool{Pass::Params{cfg.div_size, cfg.bbox_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -1286,7 +1286,7 @@ void test_hole_marker_never_blocks(uint32_t div_size, pass_mode hole_pass)
     constexpr auto ctr = Vector2(tile_size_xy*8);
     fm_assert(Search::is_passable_1(c, ctr - Vector2{8}, ctr + Vector2{8}, Search::without_critters()));
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
@@ -1310,7 +1310,7 @@ void test_hole_still_opens_blocked_ground(uint32_t div_size)
     h->set_bbox({}, {}, Vector2ub{tile_size_xy}, pass_mode::pass);
     rebuild_passability(c);
 
-    Pass::Pool pool{Pass::Params{div_size}};
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());

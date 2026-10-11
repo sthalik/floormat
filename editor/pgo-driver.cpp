@@ -1348,9 +1348,9 @@ task app::scene_grids()
     const auto center = C->position();
     center_camera_on(center);
 
-    Pass::Pool pass_raycast{Pass::Params{(uint32_t)Search::div_size.x(), tile_size_xy}.validate()};
-    Pass::Pool pass_cover{Pass::Params{8, 8}.validate()};
-    Pass::Pool pass_critter{Pass::Params{tile_size_xy, tile_size_xy}.validate()};
+    Pass::Pool pass_raycast{Pass::Params{(uint32_t)Search::div_size.x(), tile_size_xy, pass_mode::pass}.validate()};
+    Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}.validate()};
+    Pass::Pool pass_critter{Pass::Params{tile_size_xy, tile_size_xy, pass_mode::pass}.validate()};
 
     // maybe_mark_stale_all() is where the version compare and the eager ensure_passability() of
     // the chunk and its neighbours live, so it does the whole per-frame discipline for us. The

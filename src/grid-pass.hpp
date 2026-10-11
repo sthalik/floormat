@@ -1,6 +1,7 @@
 #pragma once
 #include "grid.hpp"
 #include "search-pred.hpp"
+#include "pass-mode.hpp"
 
 namespace floormat {
 struct local_coords;
@@ -20,9 +21,11 @@ struct Params
 {
     uint32_t div_size;
     uint32_t bbox_size;
+    pass_mode min_pass;
 
-    constexpr explicit Params(uint32_t div_size): div_size{div_size}, bbox_size{div_size} {}
-    constexpr Params(uint32_t div_size, uint32_t bbox_size): div_size{div_size}, bbox_size{bbox_size} {}
+    constexpr Params(uint32_t div_size, pass_mode min_pass): div_size{div_size}, bbox_size{div_size}, min_pass{min_pass} {}
+    constexpr Params(uint32_t div_size, uint32_t bbox_size, pass_mode min_pass):
+        div_size{div_size}, bbox_size{bbox_size}, min_pass{min_pass} {}
 
     Params validate() const;
 
@@ -82,7 +85,7 @@ public:
 
     void build_if_stale_all(const pred& predicate);
 
-    Params params() const;
+    const Params& params() const;
     uint64_t frame_no() const;
     uint32_t pooled_count() const;
 };

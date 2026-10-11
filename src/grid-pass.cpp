@@ -191,6 +191,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
                                  chunk_size<float> - half_tile<float> + half_bbox };
     const float inv_div = 1.f / (float)div_size;
     const int idiv_count = (int)div_countʹ;
+    const auto min_pass = (uint64_t)params.min_pass;
     all_empty = true;
 
     for (auto n = 0u; n < 9; n++)
@@ -204,7 +205,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
         c->rtree()->Search(pmin, pmax, [&](object_id data, const auto& r) {
             const auto x = std::bit_cast<collision_data>(data);
             fm_debug3_assert(x.type != (uint64_t)collision_type::none);
-            if (x.pass == (uint64_t)pass_mode::pass)
+            if (x.pass >= min_pass)
                 return true;
             auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
             if (predicate(*c, x, range) == path_search_continue::pass)
@@ -363,7 +364,8 @@ Params Params::validate() const
 
     auto bbox_sizeʹ = Math::max(Grid::min_bbox_size, bbox_size);
     auto div_sizeʹ  = calc_div_size(div_size, bbox_sizeʹ);
-    Params p{ div_sizeʹ, bbox_sizeʹ, };
+    Params p{ div_sizeʹ, bbox_sizeʹ, min_pass, };
+    fm_assert(p.min_pass > pass_mode::blocked && p.min_pass < pass_mode::COUNT);
     fm_assert(p.div_size > 0);
     fm_assert(chunk_size_xy % p.div_size == 0);
     fm_assert(p.bbox_size >= p.div_size);
@@ -488,7 +490,7 @@ void Pool::build_if_stale_all(const pred& predicate)
 
 Pool::Pool(Params params): pool{new detail::grid::Pool<detail::grid::PassGrid>{params}} { }
 Pool::~Pool() noexcept { delete pool; }
-Params Pool::params() const { return pool->params; }
+const Params& Pool::params() const { return pool->params; }
 uint64_t Pool::frame_no() const { return pool->frame_no; }
 uint32_t Pool::pooled_count() const { return pool->freelist.size(); }
 

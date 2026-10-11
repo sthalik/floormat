@@ -20,7 +20,7 @@ Pool& PoolRegistry::pool_for(uint32_t bbox_size)
         auto& slot = direct_[idx];
         if (!slot)
         {
-            slot.emplace(Params{div_size_, bbox});
+            slot.emplace(Params{div_size_, bbox, pass_mode::pass});
             slot->maybe_mark_stale_all(last_frame_no_);
         }
         return *slot;
@@ -29,7 +29,7 @@ Pool& PoolRegistry::pool_for(uint32_t bbox_size)
     for (auto& p : fallback_)
         if (p->params().bbox_size == bbox)
             return *p;
-    arrayAppend(fallback_, InPlaceInit, InPlaceInit, Params{div_size_, bbox});
+    arrayAppend(fallback_, InPlaceInit, InPlaceInit, Params{div_size_, bbox, pass_mode::pass});
     fallback_.back()->maybe_mark_stale_all(last_frame_no_);
     return *fallback_.back();
 }
