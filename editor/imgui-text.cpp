@@ -77,6 +77,8 @@ text_painter text_painter_pool::make(float font_size)
     return text_painter{&*_};
 }
 
+text_painter::text_painter(detail::text_painter_state* s) noexcept : _{s} {}
+
 text_painter::~text_painter()
 {
     if (_)

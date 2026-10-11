@@ -18,6 +18,8 @@ void anim_atlas_row::add_entry(const anim_atlas_entry& x)
     max_height = std::max((unsigned)mat.rows, max_height);
 }
 
+void anim_atlas_::add_entry(const anim_atlas_entry& x) { rows.back().add_entry(x); }
+
 void anim_atlas_::advance_row()
 {
     auto& row = rows.back();

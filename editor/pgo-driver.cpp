@@ -127,9 +127,12 @@ std::suspend_always task::promise_type::yield_value(pause p) noexcept
 
 bool task::promise_type::sub_awaiter::await_ready() const noexcept { return p.sub.done(); }
 void task::promise_type::sub_awaiter::await_suspend(handle_type) noexcept {}
+void task::promise_type::sub_awaiter::await_resume() const noexcept { p.sub = {}; }
 
+task::task(handle_type h) noexcept: h{h} {}
 task::~task() noexcept { if (h) h.destroy(); }
 task::task(task&& other) noexcept: h{other.h} { other.h = {}; }
+bool task::done() const noexcept { return !h || h.done(); }
 
 task& task::operator=(task&& other) noexcept
 {
@@ -190,6 +193,7 @@ task::iterator& task::iterator::operator++()
 }
 
 const pause& task::iterator::operator*() const noexcept { return h.promise().current; }
+bool task::iterator::operator==(sentinel) const noexcept { return !h || h.done(); }
 
 } // namespace floormat::pgo
 

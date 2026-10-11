@@ -16,7 +16,7 @@ class text_painter
 {
     detail::text_painter_state* _;
 
-    explicit text_painter(detail::text_painter_state* s) noexcept : _{s} {}
+    explicit text_painter(detail::text_painter_state* s) noexcept;
     friend class text_painter_pool;
 
     uint32_t format_grow(uint32_t need);

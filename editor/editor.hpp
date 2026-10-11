@@ -59,7 +59,7 @@ public:
 
     GL::Texture2D& palette_texture(sprite s);
 
-    [[nodiscard]] editor_mode mode() const noexcept { return _mode; }
+    [[nodiscard]] editor_mode mode() const noexcept;
     void set_mode(editor_mode mode);
 
     ground_editor* current_ground_editor() noexcept;
@@ -77,7 +77,7 @@ public:
     void on_release();
     void clear_selection();
     Optional<global_coords> mouse_drag_pos();
-    [[nodiscard]] bool is_dragging() const noexcept { return _last_pos && _last_pos->btn != editor_button::none; }
+    [[nodiscard]] bool is_dragging() const noexcept;
 
     using snap_mode = editor_snap_mode;
     using button = editor_button;

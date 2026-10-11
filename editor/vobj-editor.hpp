@@ -47,10 +47,10 @@ public:
 
     static void place_tile(world& w, global_coords pos, const vobj_* x, app& a);
 
-    auto cbegin() const noexcept { return _types.cbegin(); }
-    auto cend() const noexcept { return _types.cend(); }
-    auto begin() const noexcept { return _types.cbegin(); }
-    auto end() const noexcept { return _types.cend(); }
+    typename std::map<String, vobj_>::const_iterator cbegin() const noexcept;
+    typename std::map<String, vobj_>::const_iterator cend() const noexcept;
+    typename std::map<String, vobj_>::const_iterator begin() const noexcept;
+    typename std::map<String, vobj_>::const_iterator end() const noexcept;
 
 private:
     static std::map<String, vobj_> make_vobj_type_map();

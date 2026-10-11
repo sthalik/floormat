@@ -81,6 +81,11 @@ bool scenery_editor::is_anything_selected() const
     return _selected.proto.atlas != nullptr;
 }
 
+auto scenery_editor::cbegin() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cbegin(); }
+auto scenery_editor::cend() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cend(); }
+auto scenery_editor::begin() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cbegin(); }
+auto scenery_editor::end() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cend(); }
+
 void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s, app& a)
 {
     if (!s)

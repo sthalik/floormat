@@ -34,10 +34,10 @@ public:
     bool is_anything_selected() const;
     static void place_tile(world& w, global_coords pos, const scenery_& s, app& a);
 
-    auto cbegin() const noexcept { return _atlases.cbegin(); }
-    auto cend() const noexcept { return _atlases.cend(); }
-    auto begin() const noexcept { return _atlases.cbegin(); }
-    auto end() const noexcept { return _atlases.cend(); }
+    typename std::map<StringView, scenery_>::const_iterator cbegin() const noexcept;
+    typename std::map<StringView, scenery_>::const_iterator cend() const noexcept;
+    typename std::map<StringView, scenery_>::const_iterator begin() const noexcept;
+    typename std::map<StringView, scenery_>::const_iterator end() const noexcept;
 
 private:
     void load_atlases();

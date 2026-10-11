@@ -110,6 +110,8 @@ Optional<global_coords> editor::mouse_drag_pos()
         return NullOpt;
 }
 
+bool editor::is_dragging() const noexcept { return _last_pos && _last_pos->btn != editor_button::none; }
+
 void editor::on_click_(world& world, global_coords pos, button b)
 {
     if (auto* mode = current_ground_editor())
@@ -197,6 +199,8 @@ editor::editor(app* a) : _app{a} {}
 editor::editor(editor&&) noexcept = default;
 editor& editor::operator=(editor&&) noexcept = default;
 editor::~editor() noexcept = default;
+
+editor_mode editor::mode() const noexcept { return _mode; }
 
 void editor::set_mode(editor_mode mode)
 {

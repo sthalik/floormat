@@ -26,20 +26,20 @@ struct [[nodiscard]] task final
     {
         handle_type h;
 
-        bool operator==(sentinel) const noexcept { return !h || h.done(); }
+        bool operator==(sentinel) const noexcept;
         iterator& operator++();
         const pause& operator*() const noexcept;
     };
 
     task() noexcept = default;
-    explicit task(handle_type h) noexcept: h{h} {}
+    explicit task(handle_type h) noexcept;
     ~task() noexcept;
 
     fm_DISABLE_COPY(task);
     task(task&& other) noexcept;
     task& operator=(task&& other) noexcept;
 
-    bool done() const noexcept { return !h || h.done(); }
+    bool done() const noexcept;
     void start();
     void tick();
 
@@ -77,7 +77,7 @@ struct task::promise_type final
         // a frame the loop form never costs.
         bool await_ready() const noexcept;
         static void await_suspend(handle_type) noexcept;
-        void await_resume() const noexcept { p.sub = {}; }
+        void await_resume() const noexcept;
     };
 
     // Only reached by co_await, never by the one a co_yield expands to ([expr.await]/3.2).
