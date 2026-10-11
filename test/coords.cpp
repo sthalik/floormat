@@ -186,6 +186,22 @@ static_assert(test_chunk_coords_assign());
 static_assert(test_global_coords_assign());
 #endif
 
+// a failing fm_assert is not a constant expression, which leaves the requirement unsatisfied
+template<int8_t Z> concept gc_x_carry_ok = requires {
+    typename std::integral_constant<int, (global_coords{chunk_coords{chunk_xy_max, 0}, local_coords{15, 0}, Z} + Vector2i{1, 0}).z()>;
+};
+template<int8_t Z> concept gc_x_borrow_ok = requires {
+    typename std::integral_constant<int, (global_coords{chunk_coords{chunk_xy_min, 0}, local_coords{0, 0}, Z} - Vector2i{1, 0}).z()>;
+};
+static_assert(!gc_x_carry_ok<chunk_z_max> && !gc_x_borrow_ok<chunk_z_min>);
+static_assert(!gc_x_carry_ok<0> && !gc_x_borrow_ok<0>);
+
+template<int Z> concept point_z_ok = requires {
+    typename std::integral_constant<int, point{Vector3i{0, 0, Z}}.chunk3().z>;
+};
+static_assert(point_z_ok<chunk_z_max*tile_size_z> && !point_z_ok<(chunk_z_max+1)*tile_size_z>);
+static_assert(!point_z_ok<256*tile_size_z>);
+
 } // namespace
 
 void Test::test_coords()

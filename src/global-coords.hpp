@@ -205,7 +205,10 @@ template<typename T> constexpr global_coords::operator Math::Vector3<T>() const 
 
 constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept
 {
-    return { uint32_t((int64_t)x+vec[0]), uint32_t((int64_t)y+vec[1]), nullptr };
+    const auto nx = uint32_t((int64_t)x+vec[0]);
+    // a carry out of chunk x lands in the z bits, which the constructor's range check masks off
+    fm_assert(((nx ^ x) & z_mask::value) == 0);
+    return { nx, uint32_t((int64_t)y+vec[1]), nullptr };
 }
 
 constexpr global_coords& global_coords::operator+=(Vector2i vec) noexcept
@@ -215,7 +218,9 @@ constexpr global_coords& global_coords::operator+=(Vector2i vec) noexcept
 
 constexpr global_coords global_coords::operator-(Vector2i vec) const noexcept
 {
-    return { uint32_t((int64_t)x-vec[0]), uint32_t((int64_t)y-vec[1]), nullptr };
+    const auto nx = uint32_t((int64_t)x-vec[0]);
+    fm_assert(((nx ^ x) & z_mask::value) == 0);
+    return { nx, uint32_t((int64_t)y-vec[1]), nullptr };
 }
 
 constexpr global_coords& global_coords::operator-=(Vector2i vec) noexcept

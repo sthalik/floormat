@@ -18,15 +18,16 @@ constexpr point::point(Vector3i p)
         _offset[i] = (int8_t)(r % tile_size_xy - half_tile<int>);
     }
 
-    cz = (int8_t)floor_div<tile_size_z>(p.z());
+    const auto z = floor_div<tile_size_z>(p.z());
     tile = local_coords{t};
 
-    // a pixel past the chunk range would wrap silently into int16_t, so assert before the cast
+    // a pixel past the chunk range would wrap silently on the narrowing casts, so assert before them
     fm_assert(c.x() >= chunk_xy_min && c.x() <= chunk_xy_max && c.y() >= chunk_xy_min && c.y() <= chunk_xy_max
-           && cz >= chunk_z_min && cz <= chunk_z_max);
+           && z >= chunk_z_min && z <= chunk_z_max);
 
     cx = (int16_t)c.x();
     cy = (int16_t)c.y();
+    cz = (int8_t)z;
 }
 
 constexpr uint32_t point::distance(point a, point b)
