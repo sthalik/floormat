@@ -511,6 +511,7 @@ uint32_t sprite::layer() const       { return (uint32_t)_s->layer; }
 uint32_t sprite::width() const       { return (uint32_t)_s->width + 1; }
 uint32_t sprite::height() const      { return (uint32_t)_s->height + 1; }
 bool     sprite::is_rotated() const  { return _s->is_rotated != 0; }
+const SpriteAtlas::Sprite* sprite::raw() const { return _s; }
 
 sprite_atlas::sprite_atlas()
     : _atlas{InPlaceInit}
@@ -532,6 +533,8 @@ sprite_atlas& sprite_atlas::operator=(sprite_atlas&&) noexcept = default;
 
 uint16_t sprite_atlas::layer_size() const { return _atlas->layer_size; }
 uint16_t sprite_atlas::n_layers() const   { return _atlas->n_layers; }
+SpriteAtlas::Atlas* sprite_atlas::raw() { return _atlas.get(); }
+const SpriteAtlas::Atlas* sprite_atlas::raw() const { return _atlas.get(); }
 
 sprite sprite_atlas::add(const ImageView2D& pixels, bool allow_rotate)
 {

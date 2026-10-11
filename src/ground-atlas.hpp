@@ -28,9 +28,9 @@ public:
     ground_atlas(ground_def info, const ImageView2D& img);
     texcoords texcoords_for_id(size_t id) const;
     size_t num_tiles() const;
-    Vector2ub num_tiles2() const { return _def.size; }
+    Vector2ub num_tiles2() const;
     ArrayView<const sprite> raw_sprite_array() const;
-    StringView name() const { return _def.name; }
+    StringView name() const;
     enum pass_mode pass_mode() const;
 };
 

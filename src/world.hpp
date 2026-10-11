@@ -52,7 +52,7 @@ private:
     /// Allocate the next passability-generation stamp: chunks store it in _pass_gen at
     /// construction and on each change, and grids compare per-chunk stamps for staleness.
     /// Monotonic uint64, so a chunk reused at a recycled address can't collide (ABA).
-    uint64_t next_pass_gen() noexcept { return ++_pass_gen; }
+    uint64_t next_pass_gen() noexcept;
 
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
     [[noreturn]] static void throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected);
@@ -104,7 +104,7 @@ public:
     static void deserialize_old(world& w, ArrayView<const char> buf, uint16_t proto,
                                 loader_policy asset_policy) noexcept(false);
     uint64_t frame_no() const;
-    uint64_t increment_frame_no() { return _current_frame++; }
+    uint64_t increment_frame_no();
 
     template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c, Xs&&... xs) {

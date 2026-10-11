@@ -56,6 +56,8 @@ Quads::texcoords ground_atlas::texcoords_for_id(size_t i) const
 auto ground_atlas::raw_sprite_array() const -> ArrayView<const sprite> { return _frame_sprites; }
 
 size_t ground_atlas::num_tiles() const { return Vector2ui{_def.size}.product(); }
+Vector2ub ground_atlas::num_tiles2() const { return _def.size; }
+StringView ground_atlas::name() const { return _def.name; }
 enum pass_mode ground_atlas::pass_mode() const { return _def.pass; }
 
 String ground_atlas::make_path(StringView name)

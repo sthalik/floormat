@@ -46,6 +46,8 @@ size_t global_coords::hash() const noexcept
     return hash_buf(this, sizeof *this);
 }
 
+global_coords::raw_coords_::operator Vector2ui() const { return {x, y}; }
+
 namespace {
 
 static_assert(sizeof(decltype(local_coords::x))*8 == 8);

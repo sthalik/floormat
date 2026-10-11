@@ -91,12 +91,12 @@ struct new_delete_allocator
 
 struct no_stats
 {
-    static void block_allocated() noexcept {}
-    static void block_deallocated() noexcept {}
-    static void object_constructed() noexcept {}
-    static void object_disposed() noexcept {}
-    static void copied() noexcept {}
-    static void released() noexcept {}
+    static void block_allocated() noexcept;
+    static void block_deallocated() noexcept;
+    static void object_constructed() noexcept;
+    static void object_disposed() noexcept;
+    static void copied() noexcept;
+    static void released() noexcept;
 };
 
 } // namespace floormat::bptr_policy

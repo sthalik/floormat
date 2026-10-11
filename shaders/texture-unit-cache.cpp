@@ -156,5 +156,10 @@ size_t texture_unit_cache::get_unit_count()
 }
 
 int32_t texture_unit_cache::bind(GL::AbstractTexture& x) { return bind(&x); }
+void texture_unit_cache::lock(size_t i, GL::AbstractTexture& tex) { lock(i, &tex); }
+size_t texture_unit_cache::reuse_count() const { return cache_hit_count; }
+size_t texture_unit_cache::bind_count() const { return cache_miss_count; }
+auto texture_unit_cache::stats() const -> statistics { return statistics { cache_hit_count, cache_miss_count }; }
+void texture_unit_cache::reset_stats() { cache_miss_count = cache_hit_count = 0; }
 
 } // namespace floormat

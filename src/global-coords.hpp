@@ -105,7 +105,7 @@ constexpr chunk_coords_& chunk_coords_::operator=(const chunk_coords_& other) no
 
 struct global_coords final
 {
-    struct raw_coords_ { uint32_t x, y; operator Vector2ui() const { return {x, y}; } };
+    struct raw_coords_ { uint32_t x, y; operator Vector2ui() const; };
 
 private:
     using u0 = std::integral_constant<uint32_t, chunk_xy_bias>;

@@ -51,6 +51,13 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
 
 tile_shader::~tile_shader() = default;
 
+Vector2 tile_shader::scale() const { return _scale; }
+Vector2d tile_shader::camera_offset() const { return _camera_offset; }
+Vector2i tile_shader::camera_offsetʹ() const { return _camera_offsetʹ; }
+Vector4 tile_shader::tint() const { return _tint; }
+bool tile_shader::is_lightmap_enabled() const { return _enable_lightmap; }
+Int tile_shader::sampler() const { return _sampler; }
+
 tile_shader& tile_shader::set_scale(const Vector2& scale)
 {
     if (scale != _scale)

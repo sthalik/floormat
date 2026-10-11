@@ -66,7 +66,7 @@ struct erased_accessor final {
     template<typename Obj, typename FieldType> void write(Obj& x, move_qualified<FieldType> value) const noexcept;
 
     inline field_status is_enabled(const void* x) const noexcept;
-    inline bool can_write() const noexcept { return writer != nullptr; }
+    bool can_write() const noexcept;
     inline erased_constraints::range get_range(const void* x) const noexcept;
     inline erased_constraints::max_length get_max_length(const void* x) const noexcept;
 };

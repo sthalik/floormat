@@ -268,6 +268,9 @@ auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
 uint8_t wall_atlas::direction_count() const { return (uint8_t)_dir_array.size(); }
 auto wall_atlas::raw_frame_array() const -> ArrayView<const Frame> { return _frame_array; }
 auto wall_atlas::raw_sprite_array() const -> ArrayView<const sprite> { return _frame_sprites; }
+unsigned wall_atlas::depth() const { return _info.depth; }
+auto wall_atlas::info() const -> const Info& { return _info; }
+StringView wall_atlas::name() const { return _info.name; }
 
 Vector2ui wall_atlas::image_size() const
 {
@@ -296,6 +299,7 @@ bool Frame::operator==(const Frame&) const noexcept = default;
 bool Direction::operator==(const Direction&) const noexcept = default;
 bool Info::operator==(const Info&) const noexcept = default;
 bool DirArrayIndex::operator==(const DirArrayIndex&) const noexcept = default;
+DirArrayIndex::operator bool() const { return val != (uint8_t)-1; }
 bool Group::operator==(const Group&) const noexcept = default;
 
 } // namespace floormat::Wall

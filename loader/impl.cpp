@@ -79,5 +79,7 @@ void loader_impl::destroy()
     _sprite_atlas.reset(); // free it while the GL context is still alive
 }
 
+sprite_atlas& loader_impl::atlas() noexcept { return _sprite_atlas; }
+
 
 } // namespace floormat::loader_detail

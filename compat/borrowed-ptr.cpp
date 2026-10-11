@@ -20,6 +20,13 @@ void thread_check(thread_check_state& s) noexcept
         fm_assert(s.owner == tag);
 }
 
+void no_stats::block_allocated() noexcept {}
+void no_stats::block_deallocated() noexcept {}
+void no_stats::object_constructed() noexcept {}
+void no_stats::object_disposed() noexcept {}
+void no_stats::copied() noexcept {}
+void no_stats::released() noexcept {}
+
 } // namespace floormat::bptr_policy
 
 namespace floormat {

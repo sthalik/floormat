@@ -69,7 +69,7 @@ struct Info
 
 struct DirArrayIndex {
     uint8_t val = (uint8_t)-1;
-    explicit operator bool() const { return val != (uint8_t)-1; }
+    explicit operator bool() const;
 
     bool operator==(const DirArrayIndex&) const noexcept;
 };
@@ -138,9 +138,9 @@ public:
     ArrayView<const sprite> sprites(const Group& a) const;
     ArrayView<const sprite> raw_sprite_array() const;
 
-    unsigned depth() const { return _info.depth; } // todo use it in more places
-    const Info& info() const { return _info; }
-    StringView name() const { return _info.name; }
+    unsigned depth() const; // todo use it in more places
+    const Info& info() const;
+    StringView name() const;
     //StringView path() const { return _path; }
 
     Vector2ui image_size() const;

@@ -21,15 +21,15 @@ struct tile_shader final : private GL::AbstractShaderProgram
     explicit tile_shader(texture_unit_cache& tuc);
     ~tile_shader() override;
 
-    Vector2 scale() const { return _scale; }
+    Vector2 scale() const;
     tile_shader& set_scale(const Vector2& scale);
-    Vector2d camera_offset() const { return _camera_offset; }
+    Vector2d camera_offset() const;
     /// floor(camera_offset()). Its fraction stays in camera_offset().
-    Vector2i camera_offsetʹ() const { return _camera_offsetʹ; }
+    Vector2i camera_offsetʹ() const;
     tile_shader& set_camera_offset(const Vector2d& camera_offset);
-    Vector4 tint() const { return _tint; }
+    Vector4 tint() const;
     tile_shader& set_tint(const Vector4& tint);
-    bool is_lightmap_enabled() const { return _enable_lightmap; }
+    bool is_lightmap_enabled() const;
     tile_shader& set_lightmap(GL::AbstractTexture* tex);
 
     template<typename T = float> static constexpr Math::Vector2<T> project(const Math::Vector3<T>& pt);
@@ -50,7 +50,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     static constexpr float foreshortening_factor = float{0.5};
 
     tile_shader& set_sampler(Int sampler);
-    Int sampler() const { return _sampler; }
+    Int sampler() const;
 
 private:
     void draw_pre(GL::AbstractTexture& tex);

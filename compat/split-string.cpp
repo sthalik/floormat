@@ -131,4 +131,11 @@ split_array::split_array(split_string_view range):
     _size{(uint32_t)split_string_into({_parts, max_size}, range).size()}
 {}
 
+uint32_t split_array::size() const noexcept { return _size; }
+bool split_array::isEmpty() const noexcept { return _size == 0; }
+const StringView* split_array::data() const noexcept { return _parts; }
+const StringView* split_array::begin() const noexcept { return _parts; }
+const StringView* split_array::end() const noexcept { return _parts + _size; }
+split_array::operator ArrayView<const StringView>() const noexcept { return {_parts, _size}; }
+
 } // namespace floormat

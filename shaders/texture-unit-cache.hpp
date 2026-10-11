@@ -20,16 +20,16 @@ struct texture_unit_cache final
     [[nodiscard]] int32_t bind(GL::AbstractTexture& x);
     void invalidate();
     void lock(size_t i, GL::AbstractTexture* = (GL::AbstractTexture*)-1);
-    void lock(size_t i, GL::AbstractTexture& tex) { lock(i, &tex); }
+    void lock(size_t i, GL::AbstractTexture& tex);
     void unlock(size_t i, bool reuse_immediately = true);
 
-    size_t reuse_count() const { return cache_hit_count; }
-    size_t bind_count() const { return cache_miss_count; }
+    size_t reuse_count() const;
+    size_t bind_count() const;
 
     void output_stats();
-    statistics stats() const { return statistics { cache_hit_count, cache_miss_count }; }
+    statistics stats() const;
 
-    void reset_stats() { cache_miss_count = cache_hit_count = 0; }
+    void reset_stats();
 
 private:
     static size_t get_unit_count();

@@ -16,7 +16,7 @@ class sprite
 public:
     sprite(const SpriteAtlas::Sprite* s);
 
-    const SpriteAtlas::Sprite* raw() const { return _s; }
+    const SpriteAtlas::Sprite* raw() const;
 
     uint32_t x() const;
     uint32_t y() const;
@@ -73,8 +73,8 @@ public:
     // actually match what the caller expects to render.
     void dump_sprite(sprite s, StringView out_path);
 
-    SpriteAtlas::Atlas* raw() { return _atlas.get(); }
-    const SpriteAtlas::Atlas* raw() const { return _atlas.get(); }
+    SpriteAtlas::Atlas* raw();
+    const SpriteAtlas::Atlas* raw() const;
 
 private:
     Pointer<SpriteAtlas::Atlas> _atlas;

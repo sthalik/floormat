@@ -30,7 +30,7 @@ struct object_proto
     object_proto() noexcept;
     virtual ~object_proto() noexcept;
     virtual bool operator==(const object_proto&) const;
-    bool operator!=(const object_proto& o) const noexcept { return !operator==(o); }
+    bool operator!=(const object_proto& o) const noexcept;
     object_type type_of() const noexcept;
 
     object_proto& operator=(const object_proto&) noexcept;

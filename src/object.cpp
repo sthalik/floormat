@@ -28,6 +28,7 @@ template class basic_bptr<object, non_atomic_refcount>;
 template class basic_bptr<const object, non_atomic_refcount>;
 
 bool object_proto::operator==(const object_proto&) const = default;
+bool object_proto::operator!=(const object_proto& o) const noexcept { return !operator==(o); }
 object_proto::object_proto(const object_proto&) noexcept = default;
 object_proto& object_proto::operator=(const object_proto&) noexcept = default;
 object_proto::object_proto(object_proto&&) noexcept = default;

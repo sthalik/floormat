@@ -45,7 +45,7 @@ struct loader_impl final : loader_
 
     // >-----> sprite atlas >----->
     sprite_atlas _sprite_atlas{};
-    sprite_atlas& atlas() noexcept override { return _sprite_atlas; }
+    sprite_atlas& atlas() noexcept override;
 
     // >-----> ground >----->
     [[nodiscard]] static atlas_loader<class ground_atlas>* make_ground_atlas_loader();

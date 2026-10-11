@@ -95,12 +95,12 @@ public:
     split_array() noexcept = default;
     explicit split_array(split_string_view range);
 
-    uint32_t size() const noexcept { return _size; }
-    bool isEmpty() const noexcept { return _size == 0; }
-    const StringView* data() const noexcept { return _parts; }
-    const StringView* begin() const noexcept { return _parts; }
-    const StringView* end() const noexcept { return _parts + _size; }
-    operator ArrayView<const StringView>() const noexcept { return {_parts, _size}; }
+    uint32_t size() const noexcept;
+    bool isEmpty() const noexcept;
+    const StringView* data() const noexcept;
+    const StringView* begin() const noexcept;
+    const StringView* end() const noexcept;
+    operator ArrayView<const StringView>() const noexcept;
 };
 
 } // namespace floormat
