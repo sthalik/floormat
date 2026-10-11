@@ -50,8 +50,6 @@ wall_image_ref tile_ref_<Chunk>::wall_west() noexcept requires(!std::is_const_v<
 template<typename Chunk>
 tile_image_proto tile_ref_<Chunk>::ground() const noexcept
 {
-    if constexpr (!std::is_const_v<Chunk>)
-        _chunk->ensure_alloc_ground();
     if (!_chunk->_ground) [[unlikely]]
         return {};
     return { _chunk->_ground->atlases[i], _chunk->_ground->variants[i] };
@@ -94,32 +92,20 @@ bptr<class wall_atlas> tile_ref_<Chunk>::wall_west_atlas() const noexcept
 template<typename Chunk>
 tile_ref_<Chunk>::operator tile_proto() const noexcept
 {
-    if constexpr (!std::is_const_v<Chunk>)
+    tile_proto p;
+    if (_chunk->_ground)
     {
-        _chunk->ensure_alloc_ground();
-        _chunk->ensure_alloc_walls();
-        return {
-            _chunk->_ground->atlases[i],  _chunk->_walls->atlases[i*2+0],  _chunk->_walls->atlases[i*2+1],
-            _chunk->_ground->variants[i], _chunk->_walls->variants[i*2+0], _chunk->_walls->variants[i*2+1],
-        };
+        p.ground_atlas   = _chunk->_ground->atlases[i];
+        p.ground_variant = _chunk->_ground->variants[i];
     }
-    else
+    if (_chunk->_walls)
     {
-        tile_proto p;
-        if (_chunk->_ground)
-        {
-            p.ground_atlas   = _chunk->_ground->atlases[i];
-            p.ground_variant = _chunk->_ground->variants[i];
-        }
-        if (_chunk->_walls)
-        {
-            p.wall_north_atlas   = _chunk->_walls->atlases[i*2+0];
-            p.wall_west_atlas    = _chunk->_walls->atlases[i*2+1];
-            p.wall_north_variant = _chunk->_walls->variants[i*2+0];
-            p.wall_west_variant  = _chunk->_walls->variants[i*2+1];
-        }
-        return p;
+        p.wall_north_atlas   = _chunk->_walls->atlases[i*2+0];
+        p.wall_west_atlas    = _chunk->_walls->atlases[i*2+1];
+        p.wall_north_variant = _chunk->_walls->variants[i*2+0];
+        p.wall_west_variant  = _chunk->_walls->variants[i*2+1];
     }
+    return p;
 }
 
 template<typename Chunk>
