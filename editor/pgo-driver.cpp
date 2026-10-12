@@ -253,7 +253,7 @@ Vector2i sprite_center_pixel(app& A, const object& e)
     fm_abort("no clickable for object %zu", (size_t)e.id);
 }
 
-constexpr auto raycast_params = Pass::Params{16, tile_size_xy, pass_mode::shoot_through};
+constexpr auto raycast_params = Pass::Params{16, pass_mode::shoot_through};
 
 } // namespace
 

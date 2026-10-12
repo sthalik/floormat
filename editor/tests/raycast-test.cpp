@@ -60,7 +60,7 @@ struct raycast_test final : base_test
     std::array<pending_s, max_pending_rays> pending;
     uint32_t num_pending = 0;
     raycast_diag_s diag;
-    Pass::Pool pool{Pass::Params{16, tile_size_xy, pass_mode::shoot_through}};
+    Pass::Pool pool{Pass::Params{16, pass_mode::shoot_through}};
 
     ~raycast_test() noexcept override;
 

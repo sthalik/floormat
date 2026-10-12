@@ -70,7 +70,7 @@ world make_world()
     return w;
 }
 
-constexpr auto pool_params = Pass::Params{16, tile_size_xy, pass_mode::shoot_through};
+constexpr auto pool_params = Pass::Params{16, pass_mode::shoot_through};
 
 auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
 {
