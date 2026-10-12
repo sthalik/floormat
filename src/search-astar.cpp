@@ -146,17 +146,17 @@ frontier pop_from_heap(Array<frontier>& Q)
 bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
                        point a, point b, const astar::pred& p)
 {
-    constexpr int div = (int)div_size.x();
+    const int div = (int)pool.params().div_size;
 
     const Vector2i a_pix = Vector2i(intra_coord{a});
     const Vector2i b_pix = a_pix + (b - a);
     const Vector2i lo_pix = Math::min(a_pix, b_pix);
     const Vector2i hi_pix = Math::max(a_pix, b_pix);
 
-    const int idx_x_lo = floor_div<div>(lo_pix.x());
-    const int idx_x_hi = floor_div<div>(hi_pix.x());
-    const int idx_y_lo = floor_div<div>(lo_pix.y());
-    const int idx_y_hi = floor_div<div>(hi_pix.y());
+    const int idx_x_lo = floor_div(lo_pix.x(), div);
+    const int idx_x_hi = floor_div(hi_pix.x(), div);
+    const int idx_y_lo = floor_div(lo_pix.y(), div);
+    const int idx_y_hi = floor_div(hi_pix.y(), div);
 
     for (int iy = idx_y_lo; iy <= idx_y_hi; iy++)
         for (int ix = idx_x_lo; ix <= idx_x_hi; ix++)
