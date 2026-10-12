@@ -1367,9 +1367,9 @@ task app::scene_lightmap()
 
 task app::scene_grids()
 {
-    // One Pool exists per (div_size, bbox_size), so a scene touching a single shape leaves the
-    // others' build paths cold. These are the three the engine builds in play: the raycast pool,
-    // the pool cover rays walk, and a plain 64-px critter.
+    // build_impl's trip counts and branch weights vary with Params, so this builds a pool for each
+    // Params in play: raycast_params, the player's walk pool's, and cover's 8/8 shoot_through.
+    // pass_cover stands in for the last: with every pin blocked, both clear the same cells.
     // Pins per occupancy sample, and samples per frame. The work is the sample count -- each is
     // 16 pins and three pool builds -- and steps_per_frame does not change it. Frames are not
     // work: 84% of a fill frame is draw_world() re-emitting every stool placed so far, which grows
