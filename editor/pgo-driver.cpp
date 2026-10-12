@@ -16,6 +16,7 @@
 #include "src/tile-defs.hpp"
 #include "src/grid.hpp"
 #include "src/grid-pass.hpp"
+#include "src/grid-pass-pool.hpp"
 #include "src/grid-cover.hpp"
 #include "src/tile.hpp"
 #include "src/world.hpp"
@@ -1357,7 +1358,7 @@ task app::scene_grids()
 
     Pass::Pool pass_raycast{raycast_params};
     Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}};
-    Pass::Pool pass_critter{Pass::Params{tile_size_xy, tile_size_xy, pass_mode::pass}};
+    Pass::Pool pass_critter{M->astar().pass_pool_registry().pool_for(C->bbox_size.max()).params()};
 
     // maybe_mark_stale_all() is where the version compare and the eager ensure_passability() of
     // the chunk and its neighbours live, so it does the whole per-frame discipline for us. The
