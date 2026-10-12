@@ -140,14 +140,9 @@ void test_window(pass_mode hole_pass)
     fm_assert(!ray_passes(shoot, -24));
 }
 
-} // namespace
-
-void Test::test_raycast()
+void test_rays(const Pass::Params& params, world& w)
 {
-    test_window(pass_mode::see_through);
-    test_window(pass_mode::shoot_through);
-
-    Pass::Pool pool{Pass::Params{16, tile_size_xy, pass_mode::pass}};
+    Pass::Pool pool{params};
     const auto ray = [&](world& w, point from, point to, object_id self) {
         return raycast(w, from, to, self, pool, Search::never_continue());
     };
@@ -155,7 +150,6 @@ void Test::test_raycast()
         return raycast_with_diag(diag, w, from, to, self, pool, Search::never_continue());
     };
 
-    auto w = make_world();
     { constexpr auto from = point{{0, 0, 0}, {11,12}, {1,-32}};
       fm_assert(run(pool, from, point{{  1,   3, 0}, { 0,  1}, {-21,  23}}, w, false,  2288));
       fm_assert(run(pool, from, point{{  1,   3, 0}, { 8, 10}, {- 9, -13}}, w, true,   3075));
@@ -293,6 +287,22 @@ void Test::test_raycast()
         fm_assert(ray(w2, point{ch, {5, 1}, { 12, 0}}, point{ch, {5, 14}, { 12, 0}}, 0).success);
         fm_assert(ray(w2, point{ch, {5, 1}, {-12, 0}}, point{ch, {5, 14}, {-12, 0}}, 0).success);
     }
+}
+
+} // namespace
+
+void Test::test_raycast()
+{
+    test_window(pass_mode::see_through);
+    test_window(pass_mode::shoot_through);
+
+    constexpr uint32_t sizes[][2] = {
+        {4, 4}, {4, 16}, {8, 8}, {8, 13}, {16, 16}, {16, 64}, {32, 32}, {64, 64},
+    };
+    auto w = make_world();
+    for (const auto& [div, bbox] : sizes)
+        test_rays(Pass::Params{div, bbox, pass_mode::pass}, w);
+
     {   // A ray running along a box side makes the slab test compute 0 * inf = NaN.
         // ray_aabb_intersection passes it as min/max's second argument, which Magnum
         // drops, so the side counts as a hit. raycast() can't produce this yet:
