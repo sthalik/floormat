@@ -1023,9 +1023,11 @@ task app::scene_raycast()
     // only the changes fixes both, and gives an exact count to batch frames against. 0.15 px
     // finds 99.8% of what 0.125 px does for a sixth of the trig.
     constexpr float waypoint_step_px = .15f;
-    const auto build_waypoints = [](int ray_len) {
-        const auto n = (uint32_t)((float)(8*ray_len) / waypoint_step_px);
-        const auto step = 2.f * Math::Constants<float>::pi() / (float)n;
+    constexpr auto tau = 2.f * Math::Constants<float>::pi();
+    const auto num_steps = [](int ray_len) { return (uint32_t)((float)(8*ray_len) / waypoint_step_px); };
+    const auto build_waypoints = [&](int ray_len) {
+        const auto n = num_steps(ray_len);
+        const auto step = tau / (float)n;
         Array<Vector2i> out;
         arrayReserve(out, 8*(uint32_t)ray_len);
         for (auto i = 0u; i < n; i++)
@@ -1065,6 +1067,17 @@ task app::scene_raycast()
 
     uint32_t num_rays = 0, total_frames = 0;
     const auto frame0 = w.frame_no();
+
+    const auto cast = [&](uint32_t k, Vector2i offset) {
+        const auto to = point::normalize_coords(from, offset);
+        // Nothing reads the cursor here any more, but the sweep is what the editor's own
+        // pixel_to_point() path gets exercised by, and it keeps the pointer on the ray.
+        set_cursor_at(to);
+        // Asserts the cursor resolved to a world point.
+        (void)cursor_point();
+        num_rays++;
+        D.rays[k] = raycast_with_diag(D.diags[k], w, from, to, C->id, pool, Search::never_continue());
+    };
 
     for (const auto ray_len : pgo::raycast_radii)
     {
@@ -1106,15 +1119,7 @@ task app::scene_raycast()
                                                                   : f*rays_per_frame + j;
                 if (idx >= n)
                     continue;
-                const auto to = point::normalize_coords(from, wp[idx]);
-                // Nothing reads the cursor here any more, but the sweep is what the editor's own
-                // pixel_to_point() path gets exercised by, and it keeps the pointer on the ray.
-                set_cursor_at(to);
-                // Asserts the cursor resolved to a world point.
-                (void)cursor_point();
-                num_rays++;
-                D.rays[k] = raycast_with_diag(D.diags[k], w, from, to, C->id, pool, Search::never_continue());
-                k++;
+                cast(k++, wp[idx]);
             }
             D.num_rays = k;
             co_yield {};
@@ -1128,6 +1133,38 @@ task app::scene_raycast()
                  n, ray_len, num_frames, 360.*advance/n, sampled_hits, num_sampled,
                  (double)mean_dist);
     }
+
+    constexpr uint32_t spin_frames = 155;
+    constexpr int spin_r1 = 5*tile_size_xy/4;
+    const auto spin_r0 = pgo::raycast_radii[array_size(pgo::raycast_radii)-1];
+    const auto spin_rays0 = num_rays;
+    // Where the radar sweep's last revolution ended.
+    float theta = 0;
+    // (0, 0) is never on the circle, so the first ray is kept.
+    Vector2i prev;
+    for (auto f = 0u; f < spin_frames; f++)
+    {
+        const auto t = (float)(f+1) / (float)spin_frames;
+        const auto ray_len = (int)Math::round((float)spin_r0 - (float)(spin_r0 - spin_r1) * t*t);
+        const auto step = tau / (float)num_steps(ray_len);
+        uint32_t k = 0;
+        while (k < rays_per_frame)
+        {
+            const auto pt = Vector2i(Vector2{Math::cos(Rad{theta}), Math::sin(Rad{theta})} * (float)ray_len);
+            theta += step;
+            if (pt == prev)
+                continue;
+            prev = pt;
+            cast(k++, pt);
+        }
+        if (theta >= tau)
+            theta -= tau;
+        D.num_rays = k;
+        co_yield {};
+    }
+    total_frames += spin_frames;
+    fm_debug("raycast: %u rays spiralling from %d to %d px in %u frames",
+             num_rays - spin_rays0, spin_r0, spin_r1, spin_frames);
 
     D.num_rays = 0;
     fm_assert_equal((uint64_t)total_frames, w.frame_no() - frame0);
