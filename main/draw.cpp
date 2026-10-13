@@ -185,9 +185,11 @@ void main_impl::draw_world() noexcept
         _sprite_batch.draw(_shader, do_sort);
     };
 
+    // Walls first, so early-Z rejects the ground behind them. A translucent wall texel
+    // would hide the ground, since blending stays on and this pass writes depth.
     draw_batches([&](chunk& c, int16_t, int16_t, int8_t) {
-        c.ensure_ground_mesh(_sprite_batch);
         c.ensure_wall_mesh(_sprite_batch);
+        c.ensure_ground_mesh(_sprite_batch);
     }, false);  // depth-buffered opaque pass; no painter sort needed
 
     GL::Renderer::setDepthMask(false);
