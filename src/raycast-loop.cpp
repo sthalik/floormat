@@ -72,10 +72,43 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
     return { tmin, tmin < tmax };
 }
 
+aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, Vector2 ray_dir_inv_norm,
+                                          std::array<Vector2, 2> box_minmax, float radius,
+                                          std::array<uint8_t, 2> signs)
+{
+    const auto [bmin, bmax] = box_minmax;
+    const auto grown = ray_aabb_intersection(ray_origin, ray_dir_inv_norm,
+                                             {{bmin - Vector2{radius}, bmax + Vector2{radius}}}, signs);
+    // radius 0 skips the corner test, whose entry point rounding can put outside on both axes
+    if (!grown.result || radius == 0)
+        return { grown.tmin, grown.result };
+
+    // An entry outside the box on both axes lies in a corner square. Crossing from there
+    // into an edge strip passes through the corner's circle, so that circle decides.
+    const auto p = ray_origin + ray_dir * grown.tmin;
+    const bool out_x = p.x() < bmin.x() || p.x() > bmax.x(),
+               out_y = p.y() < bmin.y() || p.y() > bmax.y();
+    if (!out_x || !out_y)
+        return { grown.tmin, true };
+
+    // Ericson, Real-Time Collision Detection, 5.3.2
+    const Vector2 corner{ p.x() < bmin.x() ? bmin.x() : bmax.x(),
+                          p.y() < bmin.y() ? bmin.y() : bmax.y() };
+    const auto m = ray_origin - corner;
+    const float b = Math::dot(m, ray_dir);
+    const float c = Math::dot(m, m) - radius*radius;
+    if (c > 0 && b > 0)
+        return { 0, false };
+    const float discr = b*b - c;
+    if (discr < 0)
+        return { 0, false };
+    return { Math::max(0.f, -b - Math::sqrt(discr)), true };
+}
+
 template<bool EnableDiagnostics>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
                                world& w, point from, point to, object_id self,
-                               Grid::Pass::Pool& pool, const Search::pred& pred)
+                               Grid::Pass::Pool& pool, const Search::pred& pred, float radius)
 {
     raycast_result_s result;
     fm_assert(from.chunk3().z == to.chunk3().z);
@@ -97,6 +130,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             diag.dir = {};
             diag.dir_inv_norm = {};
             diag.tmin = 0;
+            diag.radius = radius;
             arrayClear(diag.path);
             arrayClear(diag.queries);
         }
@@ -135,6 +169,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         pool.maybe_mark_stale_all(w.frame_no());
 
     const auto params = pool.params();
+    fm_assert(radius >= 0);
+    fm_assert(min_pool_bbox_size(radius) <= params.bbox_size);
+    const auto grow = fuzz2 + radius;
     const auto div_size_i = (int32_t)params.div_size;
     const auto min_pass = (uint64_t)params.min_pass;
     const auto div_size_f = (float)div_size_i;
@@ -169,6 +206,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             .dir = dir,
             .dir_inv_norm = dir_inv_norm,
             .tmin = 0,
+            .radius = radius,
         };
         auto chunk_count_max = (uint32_t)(abs(V.x()) / chunk_size<float>
                                         + abs(V.y()) / chunk_size<float>) + 2u;
@@ -265,14 +303,14 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                 const Vector2i cell{local_cell_x, local_cell_y};
                 arrayAppend(diag.queries, bbox{
                     intra_coord{cell * div_size_i + Vector2i{div_size_i / 2}}.to_point(q_ch_coord),
-                    Vector2ui{(uint32_t)(div_size_i + 1), (uint32_t)(div_size_i + 1)},
+                    Vector2ui{(uint32_t)div_size_i + 1 + (uint32_t)Math::ceil(2*radius)},
                 });
             }
 
-            float cell_min_x_f = (float)cell_x * div_size_f - half_tile<float> - fuzz2;
-            float cell_max_x_f = (float)(cell_x + 1) * div_size_f - half_tile<float> + fuzz2;
-            float cell_min_y_f = (float)cell_y * div_size_f - half_tile<float> - fuzz2;
-            float cell_max_y_f = (float)(cell_y + 1) * div_size_f - half_tile<float> + fuzz2;
+            float cell_min_x_f = (float)cell_x * div_size_f - half_tile<float> - grow;
+            float cell_max_x_f = (float)(cell_x + 1) * div_size_f - half_tile<float> + grow;
+            float cell_min_y_f = (float)cell_y * div_size_f - half_tile<float> - grow;
+            float cell_max_y_f = (float)(cell_y + 1) * div_size_f - half_tile<float> + grow;
 
             for (int i = 0; i < 3; i++)
             {
@@ -301,10 +339,10 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         fm_debug3_assert(x.type != (uint64_t)collision_type::none);
                         if (x.id == self || x.pass >= min_pass)
                             return true;
-                        auto ret = ray_aabb_intersection(origin, dir_inv_norm,
-                                                         {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},
-                                                           {r.m_max[0]+fuzz2, r.m_max[1]+fuzz2}}},
-                                                         signs);
+                        auto ret = ray_rounded_rect_intersection(origin, dir, dir_inv_norm,
+                                                                 {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},
+                                                                   {r.m_max[0]+fuzz2, r.m_max[1]+fuzz2}}},
+                                                                 radius, signs);
                         if (!ret.result)
                             return true;
                         if (ret.tmin > ray_len) [[unlikely]]
@@ -316,7 +354,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                             if (pred(*nb, x, range) == path_search_continue::pass)
                                 return true;
                             min_tmin = ret.tmin;
-                            result.collision = point::normalize_coords(from, Vector2i(dir * min_tmin));
+                            const auto contact = Math::clamp(origin + dir * min_tmin, range.min(), range.max());
+                            result.collision = point::normalize_coords(from, Vector2i(contact - origin));
                             result.collider = x;
                             b = false;
                         }
@@ -404,8 +443,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 }
 
 template raycast_result_s do_raycasting<false>(std::nullptr_t, world&, point, point, object_id,
-                                               Grid::Pass::Pool&, const Search::pred&);
+                                               Grid::Pass::Pool&, const Search::pred&, float);
 template raycast_result_s do_raycasting<true>(raycast_diag_s&, world&, point, point, object_id,
-                                              Grid::Pass::Pool&, const Search::pred&);
+                                              Grid::Pass::Pool&, const Search::pred&, float);
 
 } // namespace floormat::rc::detail

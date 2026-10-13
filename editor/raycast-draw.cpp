@@ -2,6 +2,9 @@
 #include "app.hpp"
 #include "imgui-raii.hpp"
 #include "src/raycast-diag.hpp"
+#include "shaders/shader.hpp"
+#include <mg/Constants.h>
+#include <mg/Functions.h>
 
 namespace floormat {
 
@@ -43,6 +46,27 @@ void draw_raycast_line(app& a, const rc::raycast_result_s& r, float dot_size)
     draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, line_color, 2);
     draw.AddCircleFilled({p1.x(), p1.y()}, 10*dot_size, ring_color);
     draw.AddCircleFilled({p1.x(), p1.y()}, 7*dot_size, dot_color);
+}
+
+void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::raycast_diag_s& diag)
+{
+    if (r.success || diag.radius <= 0)
+        return;
+
+    // AddEllipse would hard-code project()'s axes.
+    // Sampling through project() follows any change to it.
+    constexpr uint32_t n = 48;
+    constexpr float step = 2.f * Math::Constants<float>::pi() / (float)n;
+    const auto center = a.point_to_pixel(r.from) + tile_shader::project(Vector3(diag.dir * diag.tmin, 0));
+    ImVec2 pts[n];
+    for (auto i = 0u; i < n; i++)
+    {
+        const auto theta = Rad{(float)i * step};
+        const auto p = center + tile_shader::project(Vector3(Vector2{Math::cos(theta), Math::sin(theta)} * diag.radius, 0));
+        pts[i] = {p.x(), p.y()};
+    }
+    const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4{1, .5f, 0, 1});
+    ImGui::GetForegroundDrawList()->AddPolyline(pts, (int)n, color, 2.f, ImDrawFlags_Closed);
 }
 
 void draw_raycast_diag(app& a, const rc::raycast_diag_s& diag)

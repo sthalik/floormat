@@ -19,6 +19,10 @@ Vector2 dir_inverse(Vector2 dir);
 std::array<uint8_t, 2> ray_aabb_signs(Vector2 ray_dir_inv_norm);
 aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
                                   std::array<Vector2, 2> box_minmax, std::array<uint8_t, 2> signs);
+// ray_dir must be unit length.
+aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, Vector2 ray_dir_inv_norm,
+                                          std::array<Vector2, 2> box_minmax, float radius,
+                                          std::array<uint8_t, 2> signs);
 
 template<typename T>
 constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
@@ -31,6 +35,6 @@ constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 template<bool EnableDiagnostics>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
                                world& w, point from, point to, object_id self,
-                               Grid::Pass::Pool& pool, const Search::pred& pred);
+                               Grid::Pass::Pool& pool, const Search::pred& pred, float radius);
 
 } // namespace floormat::rc::detail

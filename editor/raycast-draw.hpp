@@ -10,6 +10,9 @@ struct app;
 // dot_size scales the endpoint marker; 32 dots at the test's size cover the field they sit on.
 void draw_raycast_line(app& a, const rc::raycast_result_s& r, float dot_size = 1);
 
+// diag must come from the raycast_with_diag() call that returned r.
+void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::raycast_diag_s& diag);
+
 // One ray's DDA cells and RTree queries. Never more than one -- raycast_with_diag() reuses
 // the arrays per call.
 void draw_raycast_diag(app& a, const rc::raycast_diag_s& diag);

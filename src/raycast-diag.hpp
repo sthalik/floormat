@@ -19,7 +19,7 @@ struct raycast_diag_s
     Array<detail_rc::bbox> path{};
     Array<detail_rc::bbox> queries{};
     Vector2 V, dir, dir_inv_norm;
-    float tmin;
+    float tmin, radius;
 };
 
 } // namespace floormat::rc

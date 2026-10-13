@@ -14,6 +14,7 @@
 #include <array>
 #include <vector>
 #include <mg/Color.h>
+#include <mg/Functions.h>
 
 namespace floormat::tests {
 
@@ -54,13 +55,21 @@ void do_column(StringView name)
     ImGui::TableNextColumn();
 }
 
+Pass::Params pool_params(float radius)
+{
+    return { 16, Math::max(16u, min_pool_bbox_size(radius)), pass_mode::shoot_through };
+}
+
 struct raycast_test final : base_test
 {
     raycast_result_s result;
     std::array<pending_s, max_pending_rays> pending;
     uint32_t num_pending = 0;
+    pending_s last_ray;
+    bool has_last_ray = false;
+    float radius = 0;
     raycast_diag_s diag;
-    Pass::Pool pool{Pass::Params{16, pass_mode::shoot_through}};
+    Pointer<Pass::Pool> pool{InPlaceInit, pool_params(radius)};
 
     ~raycast_test() noexcept override;
 
@@ -87,6 +96,7 @@ struct raycast_test final : base_test
         else if (e.button == mouse_button_right && is_down)
         {
             result.has_result = false;
+            has_last_ray = false;
             num_pending = 0;
         }
         return false;
@@ -105,7 +115,18 @@ struct raycast_test final : base_test
             return;
 
         draw_raycast_line(a, result);
+        draw_raycast_projectile(a, result, diag);
         draw_raycast_diag(a, diag);
+    }
+
+    void set_radius(float r)
+    {
+        radius = r;
+        auto params = pool_params(radius);
+        if (pool->params().bbox_size != params.bbox_size)
+            pool = Pointer<Pass::Pool>{InPlaceInit, params};
+        if (has_last_ray && num_pending < max_pending_rays)
+            pending[num_pending++] = last_ray;
     }
 
     void draw_ui(app&, float) override
@@ -114,6 +135,10 @@ struct raycast_test final : base_test
         constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder |
                                     ImGuiTableColumnFlags_NoSort;
         constexpr auto colflags_0 = colflags_1 | ImGuiTableColumnFlags_WidthFixed;
+
+        float r = radius;
+        if (ImGui::SliderFloat("radius", &r, 0, 32, "%.1f px", ImGuiSliderFlags_AlwaysClamp))
+            set_radius(r);
 
         if (!result.has_result)
             return;
@@ -235,7 +260,9 @@ struct raycast_test final : base_test
                 fm_warn("raycast: wrong Z value");
                 continue;
             }
-            result = raycast_with_diag(diag, w, p.from, p.to, p.self, pool, Search::never_continue());
+            result = raycast_with_diag(diag, w, p.from, p.to, p.self, *pool, Search::never_continue(), radius);
+            last_ray = p;
+            has_last_ray = true;
         }
         num_pending = 0;
     }

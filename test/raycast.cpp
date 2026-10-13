@@ -287,7 +287,55 @@ void test_rays(const Pass::Params& params, world& w)
         fm_assert(ray(w2, point{ch, {5, 1}, { 12, 0}}, point{ch, {5, 14}, { 12, 0}}, 0).success);
         fm_assert(ray(w2, point{ch, {5, 1}, {-12, 0}}, point{ch, {5, 14}, {-12, 0}}, 0).success);
     }
+    {   // the 42x26 critter's fuzzed rect [-21.5, 21.5]x[-13.5, 13.5], grown by a circle
+        auto w2 = world{};
+        constexpr auto ch = chunk_coords_{8, 16, 0};
+
+        auto p = critter_proto{};
+        p.bbox_size = Vector2ub{42, 26};
+        auto C = w2.make_object<critter>(w2.make_id(), {ch, {8, 5}}, p);
+        const auto P0 = point{ch, {8, 5}, {}};
+
+        // y = 20 is skipped at 6.5 px: the circle only grazes the rect there
+        constexpr struct { float radius; int last_hit_y, first_miss_y; } cases[] = {
+            {6, 19, 20}, {6.5f, 19, 21},
+        };
+        auto diag = rc::raycast_diag_s{};
+        for (auto [radius, last_hit_y, first_miss_y] : cases)
+        {
+            if (rc::min_pool_bbox_size(radius) > pool.params().bbox_size)
+                continue;
+
+            const auto ray_r = [&](Vector2i from, Vector2i to) {
+                return raycast_with_diag(diag, w2, P0 + from, P0 + to, 0, pool, Search::never_continue(), radius);
+            };
+
+            for (int y = -last_hit_y; y <= last_hit_y; y++)
+            {
+                auto res = ray_r({-384, y}, {320, y});
+                fm_assert(!res.success);
+                fm_assert(res.collider.id == C->id);
+                const float dy = Math::max(0.f, Math::abs((float)y) - 13.5f);
+                fm_assert(Math::abs(diag.tmin - (384 - 21.5f - Math::sqrt(radius*radius - dy*dy))) < 1e-3f);
+                fm_assert(res.collision == P0 + Vector2i{-21, Math::clamp(y, -13, 13)});
+            }
+            fm_assert(ray_r({-384,  first_miss_y}, {320,  first_miss_y}).success);
+            fm_assert(ray_r({-384, -first_miss_y}, {320, -first_miss_y}).success);
+
+            // past the corner (21.5, 13.5) diagonally: 5.66 px away hits, 7.07 px misses
+            // though it crosses the rect grown by the square
+            auto res = ray_r({-57, 100}, {100, -57});
+            fm_assert(!res.success);
+            fm_assert(res.collider.id == C->id);
+            fm_assert(res.collision == P0 + Vector2i{21, 13});
+            fm_assert(ray_r({-55, 100}, {100, -55}).success);
+        }
+    }
 }
+
+static_assert(rc::min_pool_bbox_size(6) == 15);
+static_assert(rc::min_pool_bbox_size(6.25f) == 16);
+static_assert(rc::min_pool_bbox_size(6.5f) == 16);
 
 } // namespace
 
@@ -336,6 +384,29 @@ void Test::test_raycast()
         fm_assert(check({ -7,  67}, { 0, -1}, true,     48));
         fm_assert(check({ 11, -54}, { 0,  1}, max_side, 41));
         fm_assert(check({ 11,  67}, { 0, -1}, max_side, 48));
+    }
+    {
+        using namespace rc::detail;
+        constexpr auto box = std::array<Vector2, 2>{{{-7, -13}, {11, 19}}};
+        const auto check = [&](Vector2 origin, Vector2 dir, float radius, bool hit, float tmin) {
+            auto inv = dir_inverse(dir);
+            auto r = ray_rounded_rect_intersection(origin, dir, inv, box, radius, ray_aabb_signs(inv));
+            return r.result == hit && (!hit || Math::abs(r.tmin - tmin) < 1e-3f);
+        };
+
+        fm_assert(check({-53, -12}, {1, 0}, 0, true, 46));
+        fm_assert(check({-53,   0}, {1, 0}, 5, true, 41));
+        // the corner (-7, 19): 3-4-5 triangles
+        fm_assert(check({-53,  22}, {1, 0}, 5, true, 42));
+        fm_assert(check({-53,  23}, {1, 0}, 5, true, 43));
+
+        const auto c = box[1];
+        const auto n = Vector2{1, 1}.normalized(), d = Vector2{1, -1}.normalized();
+        fm_assert(check(c + n*4 - d*20, d, 5, true, 17));
+        fm_assert(check(c + n*6 - d*20, d, 5, false, 0));
+        fm_assert(check(c + n*2, d, 5, true, 0));
+        const auto o = c + n*6 - d*20, inv = dir_inverse(d);
+        fm_assert(ray_aabb_intersection(o, inv, {{box[0] - Vector2{5}, box[1] + Vector2{5}}}, ray_aabb_signs(inv)).result);
     }
 }
 
