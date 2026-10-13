@@ -300,7 +300,14 @@ const class world& object::world() const { return c->world(); }
 class chunk& object::chunk() { return *c; }
 class world& object::world() { return c->world(); }
 bool object::is_virtual() const { return false; }
-point object::position() const { return {coord, offset}; }
+point object::position() const
+{
+    // asserted by both writers: the constructor and set_bbox_()
+    const auto off = offset;
+    const int x = off.x(), y = off.y();
+    [[assume(x >= -half_tile<int> && x < half_tile<int> && y >= -half_tile<int> && y < half_tile<int>)]];
+    return {coord, off};
+}
 object_type object::type_of() const noexcept { return type(); }
 
 bool object::is_dynamic() const { return atlas->info().fps > 0; }
