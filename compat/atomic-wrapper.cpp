@@ -29,13 +29,15 @@ template<atomic_type T> [[fm_always_inline]] T Atomic<T>::fetch_and(T x, memory_
 template<atomic_type T> [[fm_always_inline]] T Atomic<T>::fetch_or (T x, memory_order o) noexcept { return atomic_fetch_or (&value, x, o); }
 template<atomic_type T> [[fm_always_inline]] T Atomic<T>::fetch_xor(T x, memory_order o) noexcept { return atomic_fetch_xor(&value, x, o); }
 
-template class Atomic<int8_t>;
-template class Atomic<uint8_t>;
-template class Atomic<int16_t>;
-template class Atomic<uint16_t>;
-template class Atomic<int32_t>;
-template class Atomic<uint32_t>;
-template class Atomic<int64_t>;
-template class Atomic<uint64_t>;
+template class Atomic<signed char>;
+template class Atomic<unsigned char>;
+template class Atomic<short>;
+template class Atomic<unsigned short>;
+template class Atomic<int>;
+template class Atomic<unsigned>;
+template class Atomic<long>;
+template class Atomic<unsigned long>;
+template class Atomic<long long>;
+template class Atomic<unsigned long long>;
 
 } // namespace floormat

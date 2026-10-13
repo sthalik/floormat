@@ -46,16 +46,13 @@ struct control_block : Policy::counter::block_state
     using count_type = typename counter::value_type;
     using stats = typename Policy::stats;
     template<typename X> using cell = typename counter::template cell<X>;
-    // compat/atomic.hpp takes only integers. Not uintptr_t: on macOS it is unsigned long,
-    // and uint64_t is unsigned long long.
-    using ptr_int = std::conditional_t<sizeof(void*) == sizeof(uint64_t), uint64_t, uint32_t>;
 
-    cell<ptr_int> _ptr;
+    cell<uintptr_t> _ptr;
     cell<count_type> _hard_count{1};
     cell<count_type> _soft_count{1}; // weak refs, plus one held by all hard refs together
 
-    static ptr_int to_int(bptr_base* p) noexcept { return reinterpret_cast<ptr_int>(p); }
-    static bptr_base* to_ptr(ptr_int x) noexcept { return reinterpret_cast<bptr_base*>(x); }
+    static uintptr_t to_int(bptr_base* p) noexcept { return reinterpret_cast<uintptr_t>(p); }
+    static bptr_base* to_ptr(uintptr_t x) noexcept { return reinterpret_cast<bptr_base*>(x); }
 
     explicit control_block(bptr_base* ptr) noexcept: _ptr{to_int(ptr)} {}
     control_block(const control_block&) = delete;
@@ -177,7 +174,6 @@ template<typename U, typename Policy>
 struct intrusive_block final : control_block<Policy>
 {
     using block = control_block<Policy>;
-    using ptr_int = typename block::ptr_int;
     static constexpr size_t align = alignof(U) > alignof(block) ? alignof(U) : alignof(block);
     static constexpr size_t offset = (sizeof(block) + align - 1) & ~(align - 1);
     struct alignas(align) storage { unsigned char bytes[offset + sizeof(U)]; };
@@ -188,7 +184,7 @@ struct intrusive_block final : control_block<Policy>
     static block* create(Ts&&... args) noexcept(noexcept(U{std::declval<Ts>()...}))
     {
         static_assert(sizeof(intrusive_block) == sizeof(block));
-        auto start = reinterpret_cast<ptr_int>(Policy::allocator::template allocate<storage>());
+        auto start = reinterpret_cast<uintptr_t>(Policy::allocator::template allocate<storage>());
         auto* b = ::new (reinterpret_cast<void*>(start + offset - sizeof(block))) intrusive_block;
         // Odd until the constructor returns, so bptr{this} inside it fails block_from_raw()'s check.
         Policy::counter::store(b->_ptr, (start + offset) | 1);
@@ -209,7 +205,7 @@ struct intrusive_block final : control_block<Policy>
 
     void deallocate() noexcept override
     {
-        auto start = reinterpret_cast<ptr_int>(this) + sizeof(block) - offset;
+        auto start = reinterpret_cast<uintptr_t>(this) + sizeof(block) - offset;
         unpoison(reinterpret_cast<void*>(start + offset), sizeof(U));
         this->~intrusive_block();
         Policy::allocator::template deallocate<storage>(reinterpret_cast<void*>(start));

@@ -313,14 +313,16 @@ FM_ATOMIC_FETCH_OP(xor, xor_, to_int(x))
     template T atomic_fetch_or <T>(volatile T*, T, memory_order) noexcept;                                  \
     template T atomic_fetch_xor<T>(volatile T*, T, memory_order) noexcept;
 
-FM_ATOMIC_INSTANTIATE(int8_t)
-FM_ATOMIC_INSTANTIATE(uint8_t)
-FM_ATOMIC_INSTANTIATE(int16_t)
-FM_ATOMIC_INSTANTIATE(uint16_t)
-FM_ATOMIC_INSTANTIATE(int32_t)
-FM_ATOMIC_INSTANTIATE(uint32_t)
-FM_ATOMIC_INSTANTIATE(int64_t)
-FM_ATOMIC_INSTANTIATE(uint64_t)
+FM_ATOMIC_INSTANTIATE(signed char)
+FM_ATOMIC_INSTANTIATE(unsigned char)
+FM_ATOMIC_INSTANTIATE(short)
+FM_ATOMIC_INSTANTIATE(unsigned short)
+FM_ATOMIC_INSTANTIATE(int)
+FM_ATOMIC_INSTANTIATE(unsigned)
+FM_ATOMIC_INSTANTIATE(long)
+FM_ATOMIC_INSTANTIATE(unsigned long)
+FM_ATOMIC_INSTANTIATE(long long)
+FM_ATOMIC_INSTANTIATE(unsigned long long)
 
 #undef FM_ATOMIC_INSTANTIATE
 

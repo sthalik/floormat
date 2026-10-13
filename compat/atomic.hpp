@@ -15,11 +15,14 @@ enum class memory_order : int {
 enum class memory_order : int { relaxed = 0, acquire = 2, release = 3, acq_rel = 4, seq_cst = 5, };
 #endif
 
+// The fixed-width aliases miss some types: on macOS, uintptr_t and size_t are unsigned long
+// and uint64_t is unsigned long long.
 template<typename T>
-concept atomic_type = std::same_as<T, int8_t>  || std::same_as<T, uint8_t>  ||
-                      std::same_as<T, int16_t> || std::same_as<T, uint16_t> ||
-                      std::same_as<T, int32_t> || std::same_as<T, uint32_t> ||
-                      std::same_as<T, int64_t> || std::same_as<T, uint64_t>;
+concept atomic_type = std::same_as<T, signed char> || std::same_as<T, unsigned char>      ||
+                      std::same_as<T, short>       || std::same_as<T, unsigned short>     ||
+                      std::same_as<T, int>         || std::same_as<T, unsigned>           ||
+                      std::same_as<T, long>        || std::same_as<T, unsigned long>      ||
+                      std::same_as<T, long long>   || std::same_as<T, unsigned long long>;
 
 // 64-bit values must be 8-byte aligned. i386 SysV only aligns them to 4 by default.
 // Definitions live in atomic.cpp and are explicitly instantiated for each atomic_type.
