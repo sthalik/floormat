@@ -42,7 +42,15 @@ constexpr basic_intra_coord<TYPE> basic_intra_coord<TYPE>::from_center_shifted(V
 }
 
 template<intra_coord_base::Type TYPE>
-constexpr local_coords basic_intra_coord<TYPE>::local() const { return local_coords{_v / tile_size_xy}; }
+constexpr local_coords basic_intra_coord<TYPE>::local() const
+{
+    if constexpr (TYPE == Checking)
+    {
+        const int x = _v.x(), y = _v.y();
+        [[assume(x >= 0 && x < chunk_size<int> && y >= 0 && y < chunk_size<int>)]];
+    }
+    return local_coords{_v / tile_size_xy};
+}
 
 template<intra_coord_base::Type TYPE>
 constexpr Vector2b basic_intra_coord<TYPE>::offset() const { return Vector2b(_v % tile_size_xy - half_tile<Vector2i>); }
