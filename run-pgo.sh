@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Instrumented PGO for the clang build: compile instrumented, run the trainers, merge what
-# they wrote, rebuild with -fprofile-use. Run with --help for the verbs and the env knobs.
+# they wrote, rebuild with -fprofile-use. Run with --help for the verbs, options and env knobs.
 
 set -o pipefail
 set -eu
@@ -32,13 +32,19 @@ bench_reps=${FM_BENCH_REPS:-3}
 bench_min_time=${FM_BENCH_MIN_TIME:-0.05s}
 test_repeat=${FM_TEST_REPEAT:-10}
 
+# No colon: an empty FM_TIME_SCENES skips the timing instead of falling back to the default.
+time_scenes=${FM_TIME_SCENES-profile}
+time_repeat=${FM_TIME_REPEAT:-3}
+
+pgo_driver=yes
+
 gen_dir=build/clang-pgo-gen
 use_dir=build/clang-pgo-use
 prof=pgo
 
 usage_text() {
     cat <<EOF
-usage: ${self} <all|generate|use|link>... [exe...]
+usage: ${self} [options] <all|generate|use|link>... [exe...]
        ${self} --help
 
 Each verb implies the ones before it, so 'link' on its own runs generate and use first.
@@ -47,8 +53,15 @@ Each verb implies the ones before it, so 'link' on its own runs generate and use
             what they wrote into a fresh profile
   use       generate, then the context-sensitive rounds, each folded into the
             same profile
-  link      the above, then the final -fprofile-use build in ${use_dir}
+  link      the above, then the final -fprofile-use build in ${use_dir},
+            then the timed scenes in its editor
   all       same as link
+
+options:
+  --with-pgo-driver[=yes|no]  keep the scene driver in ${use_dir}  (${pgo_driver})
+  --without-pgo-driver        build ${use_dir} with FLOORMAT_NO_PGO_DRIVER
+                              and skip the timed scenes; the trainers keep it
+  -h, --help                  show this help
 
 Trainers default to: ${default_exes}
 A name without the floormat- prefix gets one. They run one at a time, in the order
@@ -63,6 +76,8 @@ env:
   FM_BENCH_REPS      benchmark repetitions per case  (${bench_reps})
   FM_BENCH_MIN_TIME  benchmark time per case  (${bench_min_time})
   FM_TEST_REPEAT     floormat-test passes  (${test_repeat})
+  FM_TIME_SCENES     --scenes timed after 'link'; empty skips  (${time_scenes})
+  FM_TIME_REPEAT     passes over the timed scenes  (${time_repeat})
 
 FLOORMAT_PGO is implemented in the Clang userconfig, and llvm-profdata is taken from
 beside the compiler named in the cache. On Windows run this under the toolchain
@@ -79,10 +94,6 @@ usage() {
     exit "${1:-64}"
 }
 
-if test -z "${1:-}"; then
-    usage
-fi
-
 generate=0
 use=0
 link=0
@@ -90,7 +101,7 @@ exes=
 
 is_command() {
     case "$1" in
-        all|generate|use|link|help|-h|--help) return 0 ;;
+        all|generate|use|link|help) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -110,11 +121,13 @@ exe_tag() {
     echo "${_x#floormat-}"
 }
 
+editor_args="--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver-no-swapbuffers --minimized"
+
 # Each binary rejects the others' options, so these are per-exe.
 # --scenes=all: =profile skips the coverage scenes, and their code paths then go untrained.
 exe_args() {
     case "$(exe_tag "$1")" in
-        editor) echo "--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --scenes=all --driver-no-swapbuffers --minimized --driver-repeat $driver_repeat" ;;
+        editor) echo "$editor_args --scenes=all --driver-repeat $driver_repeat" ;;
         # Instrumented, the benchmark's default 0.5s per case turns one training run into
         # minutes, and PGO reads the counts relative to each other, not their magnitude.
         # Repetitions rather than a longer min_time, because a repetition re-runs the fixture
@@ -177,10 +190,10 @@ find_profdata_tool() {
 # when unset, so a stale cache value would be used in silence, and the guard
 # below would still pass.
 configure_tree() {
-    # The driver only trains the profile. A use build never runs it.
-    # Passed on every stage so a reused tree can't keep a stale value.
+    # The trainers need the driver. The use build keeps it for the scene timing after 'link'
+    # unless --without-pgo-driver. Passed on every stage so a reused tree can't keep a stale value.
     local no_driver=OFF
-    if test "$2" = use; then
+    if test "$2" = use && test "$pgo_driver" = no; then
         no_driver=ON
     fi
     echo "==> cmake $1 (FLOORMAT_PGO=$2)"
@@ -301,9 +314,46 @@ merge_pool() {
         | grep -E '^(Total functions|Maximum function count|Maximum internal block count)'
 }
 
+# BSD getopt(1) has no long options and would misparse these without an error.
+# util-linux getopt -T exits 4.
+rc=0
+getopt -T >/dev/null 2>&1 || rc=$?
+if test "$rc" -ne 4; then
+    echo "error: ${self} needs util-linux getopt(1)" >&2
+    exit 65
+fi
+
+opts="$(getopt -o h -l help,with-pgo-driver::,without-pgo-driver -n "$self" -- "$@")" || usage
+eval set -- "$opts"
+
+while :; do
+    case "$1" in
+        -h|--help) usage 0 ;;
+        # getopt passes an omitted optional argument as ''
+        --with-pgo-driver)
+            case "$2" in
+                ''|yes) pgo_driver=yes ;;
+                no) pgo_driver=no ;;
+                *) echo "error: --with-pgo-driver takes yes or no, not '$2'" >&2; usage ;;
+            esac
+            shift 2 ;;
+        --without-pgo-driver) pgo_driver=no; shift ;;
+        --) shift; break ;;
+    esac
+done
+
+if test $# -eq 0; then
+    usage
+fi
+
+# The editor rejects --scenes when the driver is compiled out.
+if test "$pgo_driver" = no; then
+    time_scenes=
+fi
+
 while test $# -gt 0; do
     case "$1" in
-        help|-h|--help) usage 0 ;;
+        help) usage 0 ;;
         all) generate=1; use=1; link=1 ;;
         generate) generate=1 ;;
         use) generate=1; use=1 ;;
@@ -369,6 +419,26 @@ if test $link -gt 0; then
         exit 65
     fi
     cmake --build "$use_dir" --target install
+
+    if test -n "$time_scenes"; then
+        editor=
+        for i in ./"${use_dir}"/install/bin/floormat-editor.exe \
+                 ./"${use_dir}"/install/bin/floormat-editor; do
+            if test -x "$i"; then
+                editor="$i"
+                break
+            fi
+        done
+        if test -z "$editor"; then
+            echo "error: no floormat-editor executable in ${use_dir}" >&2
+            exit 65
+        fi
+        echo "==> ${editor} --scenes=${time_scenes}"
+        if ! "$editor" $editor_args --scenes="$time_scenes" --driver-repeat "$time_repeat"; then
+            echo "error: ${editor} failed" >&2
+            exit 1
+        fi
+    fi
 fi
 
 exit 0
