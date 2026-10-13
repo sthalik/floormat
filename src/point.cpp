@@ -31,7 +31,9 @@ point operator-(Vector2i delta, point pt) { return point::normalize_coords(pt, -
 point point::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_off)
 {
     const auto [tiles, r] = floor_divmod<tile_size_xy>(Vector2i(cur) + new_off + half_tile<Vector2i>);
-    return { coord + tiles, Vector2b(r - half_tile<Vector2i>) };
+    const auto c = coord + tiles;
+    // r is in [0, tile_size_xy), so the offset is in range
+    return { c.chunk3(), c.local(), Vector2b(r - half_tile<Vector2i>), unchecked_t{} };
 }
 
 point point::normalize_coords(point pt, Vector2i delta)

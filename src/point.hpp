@@ -41,6 +41,9 @@ struct point
     friend point operator-(Vector2i delta, point pt);
 
 private:
+    struct unchecked_t {};
+    constexpr point(chunk_coords_ coord, local_coords tile, Vector2b offset, unchecked_t);
+
     int16_t cx = 0, cy = 0;
     int8_t cz = 0;
     local_coords tile;
@@ -50,10 +53,13 @@ private:
 constexpr point::point() = default;
 constexpr point::point(global_coords coord, Vector2b offset) : point{coord.chunk3(), coord.local(), offset} {}
 constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) :
-    cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
+    point{coord, tile, offset, unchecked_t{}}
 {
     fm_assert(offset >= -half_tile<Vector2b> && offset < half_tile<Vector2b>);
 }
+constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset, unchecked_t) :
+    cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
+{}
 
 constexpr bool point::operator==(const point&) const noexcept = default;
 
