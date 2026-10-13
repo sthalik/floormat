@@ -15,7 +15,7 @@ FM_SERIALIZE_MAKE_INTEGER(uint8_t);
 FM_SERIALIZE_MAKE_INTEGER(uint16_t);
 FM_SERIALIZE_MAKE_INTEGER(uint32_t);
 FM_SERIALIZE_MAKE_INTEGER(uint64_t);
-#undef FN_SERIALIZE_MAKE_INTEGER
+#undef FM_SERIALIZE_MAKE_INTEGER
 
 template<typename T>
 concept integer = requires(T x) {
