@@ -177,6 +177,29 @@ void Cover_Build(benchmark::State& state)
 
 BENCHMARK(Cover_Build)->Arg(16)->Arg(8)->Unit(benchmark::kMillisecond);
 
+// The eight octants that sweep the pass bitmap. Only cells on the far edge cast a ray.
+void Cover_Aligned(benchmark::State& state)
+{
+    auto w = world();
+    auto& c = w[{0, 0, 0}];
+    make_cover_chunk(w, c);
+    rebuild(c);
+
+    Cover::Pool pool{Cover::Params{(uint32_t)state.range(0)}};
+    pool.maybe_mark_stale_all(w.frame_no());
+    Cover::Grid g = pool[c];
+
+    for (auto _ : state)
+    {
+        g.mark_stale();
+        g.build_if_stale();
+        for (auto k = 4u; k < Cover::octant_count; k += 4)
+            (void)g.ensure_octant(k);
+    }
+}
+
+BENCHMARK(Cover_Aligned)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
+
 } // namespace
 
 } // namespace floormat
