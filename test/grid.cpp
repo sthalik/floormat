@@ -1201,6 +1201,12 @@ constexpr exact_config exact_configs[] = {
     { 16, 16, { 0,  0},  5,  8, { 11,  -9}, 10 },
     {  4,  8, { 1,  0},  0,  6, {-32,   3},  8 },  // reaches back from the east neighbor
     {  2,  4, { 0, -1},  7, 15, {  5,  31},  8 },  // reaches back from the north neighbor
+    {  8,  8, { 0,  0},  7,  3, { 31,   0},  8 },  // span straddles cells 63..64, crossing a word
+    {  1,  4, { 0,  0},  3,  5, {  0,   0},200 },  // span covers words 1..5, middle words zeroed
+    { 32, 32, { 0,  0},  5,  6, {  3,  -2}, 10 },  // two rows per word
+    { 64, 64, { 0,  0},  9,  4, { -5,   7}, 12 },  // four rows per word
+    {128,128, { 0,  0}, 10, 11, {  2,   3}, 16 },  // the whole grid is one word
+    {256,256, { 0,  0},  6,  9, {  0,   0},  8 },  // 16-bit grid, allocation rounded up to a word
 };
 
 // Brute-force the bit against Search::is_passable_ at every position the cell holds — the same
