@@ -150,7 +150,7 @@ task app::scene_npcs()
         rng = rng*6364136223846793005u + 1442695040888963407u;
         return Rad{(float)(rng >> 40) * (2*Math::Constants<float>::pi() / (float)(1u << 24))};
     };
-    const auto max_dist = [](point a, point b) { return point::distance(a, b)*2 + chunk_size_xy; };
+    const auto max_dist = [](point a, point b) { return point::distance(a, b)*2; };
 
     uint32_t frames = 0, moving = 0, walks = 0, collisions = 0, searches = 0, critter_searches = 0;
     uint32_t not_found = 0, blockers_placed = 0;
