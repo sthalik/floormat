@@ -115,4 +115,16 @@ template depths depth_quad<0, 1, 0, 1>(point, point, int32_t);
 template depths depth_quad<1, 0, 1, 0>(point, point, int32_t);
 template depths depth_quad<0, 0, 1, 1>(point, point, int32_t);
 
+vertexes make_vertexes(const quad& q, const texcoords& tc, const depths& d, Vector3 center)
+{
+    return map([&](uint8_t j) -> vertex { return { q[j] + center, tc[j], d[j] }; },
+               iota_array<uint8_t, vertexes_per_quad>);
+}
+
+vertexes make_vertexes(const quad& q, const texcoords& tc, float depth, Vector3 center)
+{
+    return map([&](uint8_t j) -> vertex { return { q[j] + center, tc[j], depth }; },
+               iota_array<uint8_t, vertexes_per_quad>);
+}
+
 } // namespace floormat::Quads
