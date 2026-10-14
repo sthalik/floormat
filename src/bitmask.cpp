@@ -1,14 +1,16 @@
 #include "compat/exception.hpp"
 #include "anim-atlas.hpp"
+#include <array>
+#include <bit>
 #include <cstring>
 #include <cr/BitArray.h>
 #include <cr/StridedArrayView.h>
 #include <mg/ImageView.h>
-// MSVC never defines __SSE2__.
-#if defined __SSE2__ || defined _M_X64 || (defined _M_IX86_FP && _M_IX86_FP >= 2)
-#define FM_BITMASK_SSE2
-#include <emmintrin.h>
+
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Wused-but-marked-unused"
 #endif
+#include <hwy/highway.h>
 
 namespace floormat {
 
@@ -19,43 +21,61 @@ namespace {
 
 constexpr uint8_t amin = 32;
 
-#ifdef FM_BITMASK_SSE2
-
 void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 {
+    namespace hn = hwy::HWY_NAMESPACE;
+    // A block's N bits and up to 7 carried ones fit in acc.
+    constexpr hn::CappedTag<u8, 32> d8;
+    constexpr hn::Repartition<int8_t, decltype(d8)> di8;
+    constexpr hn::Repartition<int16_t, decltype(d8)> di16;
+    constexpr hn::Repartition<int32_t, decltype(d8)> di32;
+    constexpr auto N = (u32)hn::MaxLanes(d8);
     static_assert(amin >= 1 && amin <= 128);
-    // Added to the alpha byte only. Bit 31 of each pixel becomes alpha >= amin.
-    const auto bias = _mm_set1_epi32((int)((128u - amin) << 24));
+    // Added to the alpha byte only. Its bit 7 becomes alpha >= amin.
+    const auto bias = hn::BitCast(d8, hn::Set(di32, std::bit_cast<int32_t>(std::array<u8, 4>{0, 0, 0, 128 - amin})));
+    // Alpha is the high byte of a 32-bit pixel on little-endian, the low one on big-endian.
+    constexpr auto alpha_high = [](auto v) {
+        if constexpr (std::endian::native == std::endian::big)
+            return hn::ShiftLeft<24>(v);
+        else
+            return v;
+    };
 
     for (auto j = 0u; j < H; j++)
     {
         const auto* row = src + (size_t)j * S;
         const auto bitʹ = (H - j - 1)*W;
         auto* p = dest + (bitʹ >> 3);
-        u32 acc = 0, have = bitʹ & 7, i = 0;
+        uint64_t acc = 0;
+        u32 have = bitʹ & 7, i = 0;
 
-        for (; i + 16 <= W; i += 16)
-        {
-            // MSVC has no __m128i_u, and -Wcast-align rejects a direct cast from u8*.
-            const auto* q = (const __m128i*)(const void*)(row + (size_t)i*4);
-            auto v0 = _mm_adds_epu8(_mm_loadu_si128(q + 0), bias);
-            auto v1 = _mm_adds_epu8(_mm_loadu_si128(q + 1), bias);
-            auto v2 = _mm_adds_epu8(_mm_loadu_si128(q + 2), bias);
-            auto v3 = _mm_adds_epu8(_mm_loadu_si128(q + 3), bias);
-            // Signed saturation keeps each lane's sign through both packs.
-            auto m = (u32)_mm_movemask_epi8(_mm_packs_epi16(_mm_packs_epi32(v0, v1), _mm_packs_epi32(v2, v3)));
-            acc |= m << have;
-            // have is in [0,7] before every block, so each block fills exactly two bytes.
-            uint16_t w;
-            std::memcpy(&w, p, sizeof w);
-            w |= (uint16_t)acc;
-            std::memcpy(p, &w, sizeof w);
-            p += 2;
-            acc >>= 16;
-        }
+        if constexpr (N % 8 == 0)
+            for (; i + N <= W; i += N)
+            {
+                const auto* q = row + (size_t)i*4;
+                const auto v0 = alpha_high(hn::BitCast(di32, hn::SaturatedAdd(hn::LoadU(d8, q + 0*N), bias)));
+                const auto v1 = alpha_high(hn::BitCast(di32, hn::SaturatedAdd(hn::LoadU(d8, q + 1*N), bias)));
+                const auto v2 = alpha_high(hn::BitCast(di32, hn::SaturatedAdd(hn::LoadU(d8, q + 2*N), bias)));
+                const auto v3 = alpha_high(hn::BitCast(di32, hn::SaturatedAdd(hn::LoadU(d8, q + 3*N), bias)));
+                // Signed saturation keeps each lane's sign through both demotions.
+                const auto v = hn::OrderedDemote2To(di8, hn::OrderedDemote2To(di16, v0, v1),
+                                                         hn::OrderedDemote2To(di16, v2, v3));
+                acc |= hn::BitsFromMask(di8, hn::Lt(v, hn::Zero(di8))) << have;
+                // have is in [0,7] before every block, so each block fills exactly N/8 bytes.
+                uint64_t w;
+                std::memcpy(&w, p, N/8);
+                // Byte k in memory takes bits 8k..8k+7 of acc.
+                if constexpr (std::endian::native == std::endian::big)
+                    w |= std::byteswap(acc);
+                else
+                    w |= acc;
+                std::memcpy(p, &w, N/8);
+                p += N/8;
+                acc >>= N;
+            }
         for (; i < W; i++)
         {
-            acc |= (u32)(row[(size_t)i*4 + 3] >= amin) << have;
+            acc |= (uint64_t)(row[(size_t)i*4 + 3] >= amin) << have;
             if (++have >= 8)
             {
                 *p++ |= (u8)acc;
@@ -67,47 +87,6 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
             *p |= (u8)acc;
     }
 }
-
-#else
-
-template<u32 Count>
-CORRADE_ALWAYS_INLINE
-void bm_loop(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S, u32 i, u32 j)
-{
-    auto bitʹ = (H - j - 1)*W + i;
-    for (auto k = 0u; k < Count; k++)
-    {
-        bool value = src[(j * S + (i + k) * 4) + 3] >= amin;
-        auto bit = bitʹ + k;
-        auto& byte = dest[bit >> 3];
-        byte |= u8{ value } << (bit & 7);
-    }
-}
-
-void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
-{
-    const u32 head = W & ~7u;
-    for (auto j = 0u; j < H; j++)
-    {
-        auto i = 0u;
-        for (; i < head; i += 8)
-            bm_loop<8>(src, dest, W, H, S, i, j);
-        switch (W & 7)
-        {
-        case 7: bm_loop<1>(src, dest, W, H, S, i + 6, j); [[fallthrough]];
-        case 6: bm_loop<1>(src, dest, W, H, S, i + 5, j); [[fallthrough]];
-        case 5: bm_loop<1>(src, dest, W, H, S, i + 4, j); [[fallthrough]];
-        case 4: bm_loop<1>(src, dest, W, H, S, i + 3, j); [[fallthrough]];
-        case 3: bm_loop<1>(src, dest, W, H, S, i + 2, j); [[fallthrough]];
-        case 2: bm_loop<1>(src, dest, W, H, S, i + 1, j); [[fallthrough]];
-        case 1: bm_loop<1>(src, dest, W, H, S, i + 0, j); [[fallthrough]];
-        case 0: break;
-        default: std::unreachable();
-        }
-    }
-}
-
-#endif
 
 } // namespace
 
