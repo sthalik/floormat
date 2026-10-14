@@ -10,6 +10,7 @@
 #include "compat/function2.hpp"
 #include <bit>
 #include <array>
+#include <cstring>
 #include <cr/BitArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -106,6 +107,92 @@ constexpr auto calc_div_size(uint32_t div_sizeʹ, uint32_t bbox_size)
     return div_size;
 }
 
+// Bit n of the grid is bit (n & 7) of byte (n >> 3), as BitArray stores it. Read as
+// little-endian 64-bit words, that's bit (n & 63) of word (n >> 6) on any host.
+uint64_t load_word(const uint8_t* bits, uint32_t word)
+{
+    uint64_t w;
+    std::memcpy(&w, bits + word * sizeof w, sizeof w);
+    if constexpr (std::endian::native == std::endian::big)
+        w = std::byteswap(w);
+    return w;
+}
+
+void store_word(uint8_t* bits, uint32_t word, uint64_t w)
+{
+    if constexpr (std::endian::native == std::endian::big)
+        w = std::byteswap(w);
+    std::memcpy(bits + word * sizeof w, &w, sizeof w);
+}
+
+void clear_word_bits(uint8_t* bits, uint32_t word, uint64_t mask)
+{
+    store_word(bits, word, load_word(bits, word) & ~mask);
+}
+
+// The clear_rect_*() functions clear columns [i_lo, i_hi] of rows [j_lo, j_hi], where bit
+// (i, j) is j*div_count + i. build_impl() picks one per build from div_count alone.
+
+// Every row's span sits inside one word: rows pack whole into words (64 % div_count == 0),
+// or rows are whole words and the span doesn't cross a multiple of 64.
+void clear_rect_in_word(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi)
+{
+    fm_debug_assert(64 % div_count == 0 || (div_count % 64 == 0 && i_lo >> 6 == i_hi >> 6));
+    const uint64_t span = ~uint64_t{0} >> (63 - (i_hi - i_lo));
+    for (auto bit = j_lo * div_count + i_lo, end = j_hi * div_count + i_lo; bit <= end; bit += div_count)
+        clear_word_bits(bits, bit >> 6, span << (bit & 63));
+}
+
+// Rows are whole words (div_count % 64 == 0). Whether the span crosses a word boundary
+// depends on the obstacle, so it's tested once here rather than per row.
+void clear_rect_whole_rows(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi)
+{
+    fm_debug_assert(div_count % 64 == 0);
+    const auto w0 = i_lo >> 6, w1 = i_hi >> 6;
+    if (w0 == w1)
+        return clear_rect_in_word(bits, div_count, i_lo, i_hi, j_lo, j_hi);
+
+    const uint64_t m_lo = ~uint64_t{0} << (i_lo & 63);
+    const uint64_t m_hi = ~uint64_t{0} >> (63 - (i_hi & 63));
+    const auto words_per_row = div_count >> 6;
+    for (auto row = j_lo * words_per_row, end = j_hi * words_per_row; row <= end; row += words_per_row)
+    {
+        clear_word_bits(bits, row + w0, m_lo);
+        for (auto k = w0 + 1; k < w1; k++)
+            store_word(bits, row + k, 0);
+        clear_word_bits(bits, row + w1, m_hi);
+    }
+}
+
+// Any div_count. Rows can start mid-word when chunk_size_xy isn't a power of two, so each
+// row works out its own words.
+void clear_rect_any(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi)
+{
+    for (auto lo = j_lo * div_count + i_lo, end = j_hi * div_count + i_lo; lo <= end; lo += div_count)
+    {
+        const auto hi = lo + (i_hi - i_lo);
+        const auto w0 = lo >> 6, w1 = hi >> 6;
+        const uint64_t m_lo = ~uint64_t{0} << (lo & 63);
+        const uint64_t m_hi = ~uint64_t{0} >> (63 - (hi & 63));
+        if (w0 == w1)
+            clear_word_bits(bits, w0, m_lo & m_hi);
+        else
+        {
+            clear_word_bits(bits, w0, m_lo);
+            for (auto k = w0 + 1; k < w1; k++)
+                store_word(bits, k, 0);
+            clear_word_bits(bits, w1, m_hi);
+        }
+    }
+}
+
+// Whole 64-bit words, so the clear_rect_*() functions never read past the end of a small grid.
+constexpr uint32_t bitmask_size(uint32_t div_size)
+{
+    const auto div_count = chunk_size_xy / div_size;
+    return (div_count * div_count + 63) & ~63u;
+}
+
 #ifdef FLOORMAT_GRID_PASS_DEBUG
 unsigned grid_total_count = 0;
 unsigned grid_alive_count = 0;
@@ -193,53 +280,64 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     const auto min_pass = (uint64_t)params.min_pass;
     all_empty = true;
 
-    for (auto n = 0u; n < 9; n++)
-    {
-        auto* c = chunks[n];
-        if (!c)
-            continue;
-        const auto off = nb_offsets[n];
-        const float pmin[2] = { pmin_self[0] - off.x(), pmin_self[1] - off.y() };
-        const float pmax[2] = { pmax_self[0] - off.x(), pmax_self[1] - off.y() };
-        c->rtree()->Search(pmin, pmax, [&](object_id data, const auto& r) {
-            const auto x = std::bit_cast<collision_data>(data);
-            fm_debug3_assert(x.type != (uint64_t)collision_type::none);
-            if (x.pass >= min_pass)
+    // Instantiated once per clear_rect, so the choice below is made once per build.
+    auto clear_obstacles = [&](const auto& clear_rect) {
+        for (auto n = 0u; n < 9; n++)
+        {
+            auto* c = chunks[n];
+            if (!c)
+                continue;
+            const auto off = nb_offsets[n];
+            const float pmin[2] = { pmin_self[0] - off.x(), pmin_self[1] - off.y() };
+            const float pmax[2] = { pmax_self[0] - off.x(), pmax_self[1] - off.y() };
+            c->rtree()->Search(pmin, pmax, [&](object_id data, const auto& r) {
+                const auto x = std::bit_cast<collision_data>(data);
+                fm_debug3_assert(x.type != (uint64_t)collision_type::none);
+                if (x.pass >= min_pass)
+                    return true;
+                auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+                if (predicate(*c, x, range) == path_search_continue::pass)
+                    return true;
+                all_empty = false;
+
+                // interval overlap, so the cell's low end meets the obstacle's high end and vice versa
+                const float bx0 = r.m_min[0] + off.x() - half_bbox - reach_above;
+                const float by0 = r.m_min[1] + off.y() - half_bbox - reach_above;
+                const float bx1 = r.m_max[0] + off.x() + half_bbox + reach_below;
+                const float by1 = r.m_max[1] + off.y() + half_bbox + reach_below;
+
+                // open interval (rect_intersects is strict): include j iff bx0 < j*div_size + hdmht < bx1
+                int i_lo = (int)Math::floor((bx0 - half_div_minus_half_tile) * inv_div) + 1;
+                int i_hi = (int)Math::ceil ((bx1 - half_div_minus_half_tile) * inv_div) - 1;
+                int j_lo = (int)Math::floor((by0 - half_div_minus_half_tile) * inv_div) + 1;
+                int j_hi = (int)Math::ceil ((by1 - half_div_minus_half_tile) * inv_div) - 1;
+
+                if (i_lo < 0) i_lo = 0;
+                if (j_lo < 0) j_lo = 0;
+                if (i_hi >= idiv_count) i_hi = idiv_count - 1;
+                if (j_hi >= idiv_count) j_hi = idiv_count - 1;
+                if (i_lo > i_hi || j_lo > j_hi)
+                    return true;
+
+                clear_rect((uint32_t)i_lo, (uint32_t)i_hi, (uint32_t)j_lo, (uint32_t)j_hi);
                 return true;
-            auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-            if (predicate(*c, x, range) == path_search_continue::pass)
-                return true;
-            all_empty = false;
+            });
+        }
+    };
 
-            // interval overlap, so the cell's low end meets the obstacle's high end and vice versa
-            const float bx0 = r.m_min[0] + off.x() - half_bbox - reach_above;
-            const float by0 = r.m_min[1] + off.y() - half_bbox - reach_above;
-            const float bx1 = r.m_max[0] + off.x() + half_bbox + reach_below;
-            const float by1 = r.m_max[1] + off.y() + half_bbox + reach_below;
-
-            // open interval (rect_intersects is strict): include j iff bx0 < j*div_size + hdmht < bx1
-            int i_lo = (int)Math::floor((bx0 - half_div_minus_half_tile) * inv_div) + 1;
-            int i_hi = (int)Math::ceil ((bx1 - half_div_minus_half_tile) * inv_div) - 1;
-            int j_lo = (int)Math::floor((by0 - half_div_minus_half_tile) * inv_div) + 1;
-            int j_hi = (int)Math::ceil ((by1 - half_div_minus_half_tile) * inv_div) - 1;
-
-            if (i_lo < 0) i_lo = 0;
-            if (j_lo < 0) j_lo = 0;
-            if (i_hi >= idiv_count) i_hi = idiv_count - 1;
-            if (j_hi >= idiv_count) j_hi = idiv_count - 1;
-
-            for (int j = j_lo; j <= j_hi; j++)
-            {
-                const uint32_t by = (uint32_t)j * div_countʹ;
-                for (int i = i_lo; i <= i_hi; i++)
-                {
-                    const uint32_t bit = by + (uint32_t)i;
-                    bits[bit >> 3] = uint8_t(bits[bit >> 3] & ~(1u << (bit & 7)));
-                }
-            }
-            return true;
+    // chunk_size_xy = 1024 never reaches clear_rect_any(): every div_count is a power of two.
+    if (64 % div_countʹ == 0)
+        clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
+            clear_rect_in_word(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
         });
-    }
+    else if (div_countʹ % 64 == 0)
+        clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
+            clear_rect_whole_rows(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
+        });
+    else
+        clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
+            clear_rect_any(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
+        });
 
     for (auto i = 0u; i < 8; i++)
         versions[i] = neighbors[i] ? neighbors[i]->pass_gen() : (uint64_t)-1;
@@ -249,7 +347,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
 PassGrid::PassGrid(chunk& c, Params params):
     GridBase{c},
     params{params},
-    bitmask{ValueInit, (chunk_size_xy / params.div_size) * (chunk_size_xy / params.div_size)}
+    bitmask{ValueInit, bitmask_size(params.div_size)}
 {
 #ifdef FLOORMAT_GRID_PASS_DEBUG
     ++grid_total_count;
@@ -270,8 +368,7 @@ void PassGrid::reset_for_reuse(chunk& ch, Params new_params)
 {
     reset_base_for_reuse(ch);
     params = new_params;
-    const auto div_count = chunk_size_xy / params.div_size;
-    const auto bits = div_count * div_count;
+    const auto bits = bitmask_size(params.div_size);
     if (bitmask.size() < bits) [[unlikely]]
         bitmask = BitArray{ValueInit, bits};
     else
