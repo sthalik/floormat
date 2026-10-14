@@ -198,7 +198,7 @@ void Cover_Aligned(benchmark::State& state)
     }
 }
 
-BENCHMARK(Cover_Aligned)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
+BENCHMARK(Cover_Aligned)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
 
 } // namespace
 
