@@ -6,12 +6,14 @@
 #include "world.hpp"
 #include "raycast.hpp"
 #include "point.inl"
+#include "compat/assume-aligned.hpp"
 #include "compat/function2.hpp"
 #include <bit>
 #include <cfloat>
 #include <cstring>
 #include <array>
 #include <cr/Array.h>
+#include <cr/Memory.h>
 #include <mg/Functions.h>
 #include <mg/Timeline.h>
 
@@ -86,9 +88,9 @@ bool pass_bit(const uint8_t* bits, uint32_t n)
 // One row of a vertical or diagonal octant: a blocked cell is 0, and a passable one is a step
 // further than the previous row's cell at x + sx. Blocks go against sx, so a block reads
 // prev[x + sx] before the block next to it overwrites it. prev[-1] and prev[dc] must be
-// readable; the caller redoes the edge cell that reads one of them. Returns false when the row
-// doesn't split into whole vectors, and touches nothing. DivSize is div_size when it's known at
-// compile time, else 0.
+// readable; the caller redoes the edge cell that reads one of them. prev starts on 64 bytes, and
+// out is a row of a plane that does. Returns false when the row doesn't split into whole vectors,
+// and touches nothing. DivSize is div_size when it's known at compile time, else 0.
 template<uint32_t DivSize>
 bool sweep_row_vectorized(uint16_t* prev, uint16_t* out, const uint8_t* row_bits, int32_t sx,
                           uint32_t step, uint32_t runtime_div_size)
@@ -101,8 +103,14 @@ bool sweep_row_vectorized(uint16_t* prev, uint16_t* out, const uint8_t* row_bits
     if (!std::has_single_bit(uint32_t{chunk_size_xy}) || N % 8 != 0 || dc % N != 0)
         return false;
 
+    // Rows are dc cells apart, and dc is a multiple of N, so of 8.
+    constexpr uint32_t row_bytes = (DivSize ? chunk_size_xy / DivSize : 8) * sizeof *out;
+    constexpr uint32_t out_align = row_bytes < 64 ? row_bytes : 64;
+    prev = assume_aligned<64>(prev);
+    out = assume_aligned<out_align>(out);
+
     // LoadMaskBits() may read 8 bytes, which runs past the end of the grid on its last row
-    uint8_t bits[chunk_size_xy / 8 + 8];
+    alignas(64) uint8_t bits[chunk_size_xy / 8 + 8];
     std::memcpy(bits, row_bits, dc / 8);
 
     const auto vstep = hn::Set(d, (uint16_t)step);
@@ -137,6 +145,18 @@ bool sweep_row(uint16_t* prev, uint16_t* out, const uint8_t* row_bits, int32_t s
     }
 }
 
+constexpr uint32_t line_cells = 64 / sizeof(uint16_t);
+
+uint32_t round_up_to_line(uint32_t cells)
+{
+    return (cells + line_cells - 1) / line_cells * line_cells;
+}
+
+uint32_t row_size(uint32_t dc)
+{
+    return round_up_to_line(dc) + 2*line_cells;
+}
+
 } // namespace
 
 struct CoverGrid : GridBase
@@ -145,10 +165,13 @@ struct CoverGrid : GridBase
 
     Params params;
     uint32_t cell_count;
-    // Units of params.div_size. Octant k of cell i is at k*cell_count + i, so a fill writes one
+    // cell_count rounded up, so every plane starts on 64 bytes
+    uint32_t plane_stride;
+    // Units of params.div_size. Octant k of cell i is at k*plane_stride + i, so a fill writes one
     // contiguous plane. Planes not in built_octants hold stale data.
     Array<uint16_t> distances;
-    // fill_aligned()'s previous row in pixels, from row[1], with a spare cell either side
+    // fill_aligned()'s previous row in pixels. It starts at row[line_cells], on 64 bytes, with spare
+    // cells either side.
     Array<uint16_t> row;
     uint32_t built_octants = 0;
 
@@ -233,7 +256,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
     }
     else
     {
-        uint16_t* const plane = distances.data() + k*cell_count;
+        uint16_t* const plane = distances.data() + k*plane_stride;
         for (uint32_t cy = 0; cy < dc; ++cy)
             for (uint32_t cx = 0; cx < dc; ++cx)
                 plane[get_cell_index(cx, cy, dc)] = raycast_one(self, cx, cy, div_size, k, pass_pool);
@@ -264,7 +287,7 @@ void CoverGrid::fill_aligned(uint32_t k, chunk& self, int32_t sx, int32_t sy, ui
     // pass bit and cell (x, y) are both y*dc + x, as pack_bit_index() lays them out
     fm_debug_assert(get_cell_index(1, 1, dc) == dc + 1);
     const uint8_t* const bits = pass_grid.bits().data;
-    uint16_t* const plane = distances.data() + k*cell_count;
+    uint16_t* const plane = distances.data() + k*plane_stride;
 
     const auto ray_px = [&](uint32_t x, uint32_t y) {
         return (uint32_t)raycast_one(self, x, y, div_size, k, pass_pool) * div_size;
@@ -299,7 +322,7 @@ void CoverGrid::fill_aligned(uint32_t k, chunk& self, int32_t sx, int32_t sy, ui
 
     // Each row needs the one before it in sweep order. Walking x against sx reads row[x + sx]
     // before this row overwrites it.
-    uint16_t* const prev = row.data() + 1;
+    uint16_t* const prev = row.data() + line_cells;
     const auto scalar_cell = [&](uint32_t n, uint32_t x, uint32_t y) {
         const auto i = y*dc + x;
         // wraps past dc at x = 0 when sx < 0
@@ -338,8 +361,9 @@ CoverGrid::CoverGrid(chunk& c, Params params):
     GridBase{c},
     params{params},
     cell_count{(chunk_size_xy / params.div_size) * (chunk_size_xy / params.div_size)},
-    distances{NoInit, octant_count * cell_count},
-    row{ValueInit, chunk_size_xy / params.div_size + 2}
+    plane_stride{round_up_to_line(cell_count)},
+    distances{Utility::allocateAligned<uint16_t, 64>(NoInit, octant_count * plane_stride)},
+    row{Utility::allocateAligned<uint16_t, 64>(ValueInit, row_size(chunk_size_xy / params.div_size))}
 {
 }
 
@@ -350,10 +374,11 @@ void CoverGrid::reset_for_reuse(chunk& ch, Params new_params)
     built_octants = 0;
     const auto dc = chunk_size_xy / params.div_size;
     cell_count = dc * dc;
-    if (distances.size() < octant_count * cell_count) [[unlikely]]
-        distances = Array<uint16_t>{NoInit, octant_count * cell_count};
-    if (row.size() < dc + 2) [[unlikely]]
-        row = Array<uint16_t>{ValueInit, dc + 2};
+    plane_stride = round_up_to_line(cell_count);
+    if (distances.size() < octant_count * plane_stride) [[unlikely]]
+        distances = Utility::allocateAligned<uint16_t, 64>(NoInit, octant_count * plane_stride);
+    if (row.size() < row_size(dc)) [[unlikely]]
+        row = Utility::allocateAligned<uint16_t, 64>(ValueInit, row_size(dc));
 }
 
 template struct Pool<CoverGrid>;
@@ -398,7 +423,7 @@ uint16_t Grid::distance(uint32_t index, uint32_t octant) const
     // an octant that isn't built yet reads as 0
     if (!(grid->built_octants & 1u << octant))
         return 0;
-    return grid->distances[octant*grid->cell_count + index];
+    return grid->distances[octant*grid->plane_stride + index];
 }
 
 uint32_t Grid::div_count() const { return chunk_size_xy / grid->params.div_size; }

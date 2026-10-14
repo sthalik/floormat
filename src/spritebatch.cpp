@@ -8,11 +8,13 @@
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include "src/sprite-atlas.hpp"
+#include "compat/assume-aligned.hpp"
 #include "compat/setenv.hpp"
 #include "src/hwy.hpp"
 #include <bit>
 #include <cfloat>
 #include <cr/GrowableArray.h>
+#include <cr/Memory.h>
 #include <mg/Mesh.h>
 #include <mg/Buffer.h>
 
@@ -86,10 +88,18 @@ template<typename T> void reserve(Array<T>& A, uint32_t size) // todo reuse this
     arrayResize(A, NoInit, size);
 }
 
+// arrayReserve() would reallocate it without the alignment.
+void reserve_aligned(Array<uint64_t>& A, uint32_t size)
+{
+    if (A.size() < size)
+        A = Utility::allocateAligned<uint64_t, 64>(NoInit, ((uint32_t)((float)size * 1.5f) + 7) & ~7u);
+}
+
 // Sorts depths[0, n) ascending and sets indexes[i] = base + the position depths[i] came from.
-// Equal depths keep their order. scratch needs n elements.
+// Equal depths keep their order. scratch needs n elements, starting on 64 bytes.
 void sort_depths(float* depths, uint32_t* indexes, uint32_t base, uint32_t n, uint64_t* scratch)
 {
+    scratch = assume_aligned<64>(scratch);
     // Flipping the sign bit of a non-negative float and every bit of a negative one orders floats
     // as unsigned integers. The index in the low half makes equal depths sort by position.
     for (auto i = 0u; i < n; i++)
@@ -247,7 +257,7 @@ void SpriteBatch::end_chunk()
     {
         const auto n = last - first;
         reserve(S, last);
-        reserve(impl.sort_keys, n);
+        reserve_aligned(impl.sort_keys, n);
         sort_depths(impl.depths.data() + first, S.data() + first, first, n, impl.sort_keys.data());
         impl.sort_indexes_in_orig_order = false;
     }
@@ -315,7 +325,7 @@ void SpriteBatch::sort_by_depth(SpriteList& list)
         return;
 
     reserve(impl.perm, n);
-    reserve(impl.sort_keys, n);
+    reserve_aligned(impl.sort_keys, n);
     sort_depths(list.Depths.data(), impl.perm.data(), 0, n, impl.sort_keys.data());
 
     auto* const V = list.Vertexes.data();
