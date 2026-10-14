@@ -37,6 +37,8 @@ time_scenes=${FM_TIME_SCENES-profile}
 time_repeat=${FM_TIME_REPEAT:-3}
 
 pgo_driver=yes
+reconf=no
+reconf_done=
 
 gen_dir=build/clang-pgo-gen
 use_dir=build/clang-pgo-use
@@ -61,6 +63,8 @@ options:
   --with-pgo-driver[=yes|no]  keep the scene driver in ${use_dir}  (${pgo_driver})
   --without-pgo-driver        build ${use_dir} with FLOORMAT_NO_PGO_DRIVER
                               and skip the timed scenes; the trainers keep it
+  -r, --reconf                cmake --fresh on each tree's first configure,
+                              after a compiler upgrade
   -h, --help                  show this help
 
 Trainers default to: ${default_exes}
@@ -192,12 +196,20 @@ find_profdata_tool() {
 configure_tree() {
     # The trainers need the driver. The use build keeps it for the scene timing after 'link'
     # unless --without-pgo-driver. Passed on every stage so a reused tree can't keep a stale value.
-    local no_driver=OFF
+    local no_driver=OFF fresh=
     if test "$2" = use && test "$pgo_driver" = no; then
         no_driver=ON
     fi
-    echo "==> cmake $1 (FLOORMAT_PGO=$2)"
-    cmake -S . -B "$1" -DFLOORMAT_PGO="$2" -DCMAKE_BUILD_TYPE=Release \
+    # The cache holds the compiler by absolute path, so one in a new directory is never
+    # picked up without --fresh. Once per tree: the cs rounds reuse what generate detected.
+    if test "$reconf" = yes; then
+        case " $reconf_done " in
+            *" $1 "*) ;;
+            *) fresh=--fresh; reconf_done="$reconf_done $1" ;;
+        esac
+    fi
+    echo "==> cmake $1 (FLOORMAT_PGO=$2)${fresh:+ $fresh}"
+    cmake $fresh -S . -B "$1" -DFLOORMAT_PGO="$2" -DCMAKE_BUILD_TYPE=Release \
           -DFLOORMAT_NO_PGO_DRIVER="$no_driver" \
           -DFLOORMAT_PGO_PROFDATA="$(native "$profdata")"
 }
@@ -323,7 +335,7 @@ if test "$rc" -ne 4; then
     exit 65
 fi
 
-opts="$(getopt -o h -l help,with-pgo-driver::,without-pgo-driver -n "$self" -- "$@")" || usage
+opts="$(getopt -o hr -l help,reconf,with-pgo-driver::,without-pgo-driver -n "$self" -- "$@")" || usage
 eval set -- "$opts"
 
 while :; do
@@ -338,6 +350,7 @@ while :; do
             esac
             shift 2 ;;
         --without-pgo-driver) pgo_driver=no; shift ;;
+        -r|--reconf) reconf=yes; shift ;;
         --) shift; break ;;
     esac
 done
