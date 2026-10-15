@@ -67,6 +67,16 @@ static_assert(point::distance_l1(
     point{{ 2,  3, 0}, {4, 5}, {31, 31}}
 ) == (uint32_t)Math::abs((Vector2i(1, 1)*Ch + Vector2i{1, 1} * iTILE_SIZE2 + Vector2i{1, 1}).sum()));
 
+static_assert(point::distance_squared(
+    point{{ 1,  2, 0}, {3, 4}, {30, 30}},
+    point{{ 0,  0, 0}, {0, 0}, {31, 27}}
+) == (uint64_t)(Vector2i(1, 2)*Ch + Vector2i{3, 4} * iTILE_SIZE2 + Vector2i{-1, 3}).dot());
+
+static_assert(point::distance_squared(
+    point{{chunk_xy_min, chunk_xy_min, 0}, {}, {}},
+    point{{chunk_xy_max, chunk_xy_max, 0}, {}, {}}
+) == 2 * (uint64_t)(chunk_xy_max - chunk_xy_min) * Ch.x() * (uint64_t)(chunk_xy_max - chunk_xy_min) * Ch.x());
+
 constexpr auto T = iTILE_SIZE2;
 using V2 = Vector2i;
 using P = point;

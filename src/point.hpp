@@ -29,6 +29,7 @@ struct point
     friend Debug& operator<<(Debug& dbg, const point& pt);
 
     static constexpr uint32_t distance(point a, point b);
+    static constexpr uint64_t distance_squared(point a, point b);
     static constexpr uint32_t distance_l1(point a, point b);
 
     static point normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);

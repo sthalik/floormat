@@ -287,6 +287,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     fm_debug3_assert(own_size_ < chunk_size<Vector2ui>);
     const auto own_size = Math::max(own_size_, min_size);
     constexpr auto goal_thres_lin = (uint32_t)(div_size.length() + 1.5f);
+    // ceil(sqrt(d²)) < goal_thres_lin, as point::distance() rounds
+    constexpr auto goal_thres_sq = (uint64_t)(goal_thres_lin - 1) * (goal_thres_lin - 1);
 
     const auto params = pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
@@ -341,7 +343,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         }
     }
 
-    auto closest_h = (uint32_t)-1;
+    auto closest_dist_sq = (uint64_t)-1;
     uint32_t closest_idx = (uint32_t)-1;
     auto goal_idx = (uint32_t)-1;
     auto to_idx = (uint32_t)-1;
@@ -364,24 +366,24 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             break;
         }
 
-        const uint32_t goal_dist = point::distance(cur_pt, to);
+        const auto goal_dist_sq = point::distance_squared(cur_pt, to);
 
-        if (goal_dist < closest_h)
+        if (goal_dist_sq < closest_dist_sq)
         {
-            closest_h = goal_dist;
+            closest_dist_sq = goal_dist_sq;
             closest_idx = cur_idx;
 
             if constexpr (Debug >= 2)
                 DBG_nospace << "closest node"
-                            << " px:" << closest_h << " path:" << cur_dist
+                            << " px:" << point::distance(cur_pt, to) << " path:" << cur_dist
                             << " pos:" << cur_pt;
         }
 
-        if (goal_dist < goal_thres_lin) [[unlikely]]
+        if (goal_dist_sq <= goal_thres_sq) [[unlikely]]
         {
             if (is_passable_swept(w, cache, pool, cur_pt, to, p))
             {
-                const auto new_dist = cur_dist + goal_dist;
+                const auto new_dist = cur_dist + point::distance(cur_pt, to);
                 if (to_idx == (uint32_t)-1)
                 {
                     to_idx = (uint32_t)nodes.size();
@@ -418,7 +420,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     else if (closest_idx != (uint32_t)-1)
     {
         result.set_found(false);
-        result.set_distance(closest_h);
+        result.set_distance(point::distance(nodes[closest_idx].pt, to));
         set_result_from_idx(result, temp_nodes, nodes, from, to, closest_idx);
     }
 
@@ -449,7 +451,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             fm_assert(closest.dist != (uint32_t)-1);
             len = snformat(buf, "Dijkstra: no path found in {:.2f} ms "
                                 "closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
-                           time, closest_h, closest.dist, d0,
+                           time, result.distance(), closest.dist, d0,
                            d0 > 0 ? (float)closest.dist/(float)d0 : 1);
         }
         if (len)

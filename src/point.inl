@@ -36,6 +36,12 @@ constexpr uint32_t point::distance(point a, point b)
     return (uint32_t)Math::ceil(Math::sqrt(Vector2(dist).dot()));
 }
 
+constexpr uint64_t point::distance_squared(point a, point b)
+{
+    Vector2i dist = a - b;
+    return (uint64_t)((int64_t)dist.x()*dist.x() + (int64_t)dist.y()*dist.y());
+}
+
 constexpr uint32_t point::distance_l1(point a, point b)
 {
     Vector2i dist = a - b;
