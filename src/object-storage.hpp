@@ -140,7 +140,7 @@ public:
     uint32_t size() const noexcept;
     bool empty() const noexcept;
     size_t index_of(const object& e) const;
-    const bptr<object>& ptr(const object& e, size_t i) const;
+    const bptr<object>& ptr(const object& e, size_t i);
 
     iterator begin() noexcept;
     iterator end() noexcept;
