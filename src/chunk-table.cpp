@@ -3,6 +3,8 @@
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "compat/assert.hpp"
+#include "compat/non-const.hpp"
+#include <utility>
 
 namespace floormat::detail {
 
@@ -41,13 +43,13 @@ namespace floormat::detail {
 
 chunk* chunk_table::chunk_at(chunk_coords_ ch) noexcept
 {
-    const auto* s = _table.find(ch);
-    return s ? *s : nullptr;
+    return non_const(std::as_const(*this).chunk_at(ch));
 }
 
 const chunk* chunk_table::chunk_at(chunk_coords_ ch) const noexcept
 {
-    return const_cast<chunk_table*>(this)->chunk_at(ch);
+    const auto* s = _table.find(ch);
+    return s ? *s : nullptr;
 }
 
 void chunk_table::update_slot(chunk_coords_ ch, chunk* p) noexcept

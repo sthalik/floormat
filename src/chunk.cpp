@@ -47,26 +47,26 @@ chunk_coords_ chunk::coord() const noexcept { return _coord; }
 
 Optional<tile_ref> chunk::at_offset(local_coords pos, Vector2i off)
 {
-    const auto coord = global_coords{_coord, pos};
-    const auto coord2 = coord + off;
-    if (coord.chunk() == coord2.chunk()) [[likely]]
-        return operator[](coord2.local());
-    else
-    {
-        if (auto* ch = _world->at(coord2.chunk3()))
-            return (*ch)[coord2.local()];
-        else
-            return NullOpt;
-    }
+    if (auto r = std::as_const(*this).at_offset(pos, off))
+        return tile_ref{non_const(r->chunk()), uint8_t(r->index())};
+    return NullOpt;
 }
 
 Optional<tile_ref> chunk::at_offset(tile_ref r, Vector2i off) { return at_offset(local_coords{r.index()}, off); }
 
 Optional<const_tile_ref> chunk::at_offset(local_coords pos, Vector2i off) const
 {
-    if (auto r = non_const(*this).at_offset(pos, off))
-        return const_tile_ref{r->chunk(), uint8_t(r->index())};
-    return NullOpt;
+    const auto coord = global_coords{_coord, pos};
+    const auto coord2 = coord + off;
+    if (coord.chunk() == coord2.chunk()) [[likely]]
+        return operator[](coord2.local());
+    else
+    {
+        if (const auto* ch = world().at(coord2.chunk3()))
+            return (*ch)[coord2.local()];
+        else
+            return NullOpt;
+    }
 }
 
 Optional<const_tile_ref> chunk::at_offset(const_tile_ref r, Vector2i off) const { return at_offset(local_coords{r.index()}, off); }

@@ -186,7 +186,7 @@ object_storage::const_iterator object_storage::begin() const noexcept
 
 object_storage::const_iterator object_storage::end() const noexcept { return {}; }
 
-const bptr<object>& object_storage::operator[](uint32_t i) noexcept
+const bptr<object>& object_storage::item_at(uint32_t i) const noexcept
 {
     const bptr<object>* ret = nullptr;
     for_each_list<object>([&](const object_list_base& l) {
@@ -201,6 +201,7 @@ const bptr<object>& object_storage::operator[](uint32_t i) noexcept
     return *ret;
 }
 
-const object& object_storage::operator[](uint32_t i) const noexcept { return *non_const(*this)[i]; }
+const bptr<object>& object_storage::operator[](uint32_t i) noexcept { return item_at(i); }
+const object& object_storage::operator[](uint32_t i) const noexcept { return *item_at(i); }
 
 } // namespace floormat
