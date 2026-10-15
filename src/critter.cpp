@@ -498,6 +498,8 @@ critter::operator critter_proto() const
     critter_proto ret;
     static_cast<object_proto&>(ret) = object::operator object_proto();
     ret.name = name;
+    ret.speed = speed;
+    ret.anim_speed = anim_speed;
     ret.playable = playable;
     return ret;
 }
