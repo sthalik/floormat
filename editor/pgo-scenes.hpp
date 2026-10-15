@@ -1,5 +1,6 @@
 #pragma once
 #include "compat/array-size.hpp"
+#include "compat/assert.hpp"
 #include "editor/app.hpp"
 #include "src/grid.hpp"
 #include "src/global-coords.hpp"
@@ -10,9 +11,31 @@ namespace floormat { enum class driver_mode : uint8_t { coverage, profile, }; }
 
 namespace floormat::pgo {
 
+struct scene_name
+{
+    char str[15];
+    uint8_t size;
+
+    template<size_t N>
+    constexpr scene_name(const char (&id)[N]): scene_name{id, N} {}
+
+    constexpr explicit scene_name(const char* id, size_t N): str{}
+    {
+        constexpr auto prefix = "scene_"_s;
+        fm_assert(N-1 > prefix.size() && N-1 - prefix.size() < sizeof str);
+        size = (uint8_t)(N-1 - prefix.size());
+        for (auto i = 0u; i < prefix.size(); i++)
+            fm_assert(id[i] == prefix[i]);
+        for (auto i = 0u; i < size; i++)
+            str[i] = id[prefix.size() + i] == '_' ? '-' : id[prefix.size() + i];
+    }
+
+    constexpr operator StringView() const { return { str, size, StringViewFlag::NullTerminated }; }
+};
+
 struct scene
 {
-    StringView name;
+    scene_name name;
     task (app::*fn)();
     // --scenes=coverage and =profile each select the scenes with that mode. =all selects both. An
     // editor-only scene marked profile would train the PGO profile on code a shipped build never
