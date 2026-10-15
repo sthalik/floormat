@@ -477,7 +477,7 @@ struct writer final : visitor_<writer, true, true>
     template<typename F> void visit(StringView name, F&& f) { visit(intern_string(name), f); }
 
     template<typename F> void visit(qual<bptr<anim_atlas>>& a, atlas_type type, F&& f)
-    { atlasid id = intern_atlas(a, type); visit(id, f); }
+    { atlasid id = intern_atlas(a.get(), type); visit(id, f); }
 
     template<typename F> void write_scenery_proto(const scenery& obj, F&& f)
     {
@@ -569,9 +569,8 @@ ok:     void();
         visit(intern_string(name), f);
     }
 
-    template<typename T> [[nodiscard]] atlasid intern_atlas(const bptr<T>& atlas_, atlas_type type)
+    [[nodiscard]] atlasid intern_atlas(const void* atlas, atlas_type type)
     {
-        const void* atlas = atlas_.get();
         atlas_array.reserve(vector_initial_size);
         fm_assert(atlas != nullptr);
         auto [kv, fresh] = atlas_map.try_emplace(atlas, (uint32_t)-1);
@@ -598,7 +597,7 @@ ok:     void();
         }
     }
 
-    template<typename T> atlasid maybe_intern_atlas(const bptr<T>& atlas, atlas_type type)
+    atlasid maybe_intern_atlas(const void* atlas, atlas_type type)
     {
         if (!atlas)
             return null<atlasid>;

@@ -242,12 +242,13 @@ void world::erase_object(object_id id, const object* self)
         (void)_objects.erase(id);
 }
 
-bptr<object> world::find_object_(object_id id)
+const bptr<object>* world::find_object_(object_id id) const
 {
     const auto* s = _objects.find(id);
-    bptr<object> ret = s ? *s : nullptr;
-    fm_debug_assert(!ret || &ret->c->world() == this);
-    return ret;
+    if (!s || !*s)
+        return nullptr;
+    fm_debug_assert(&(*s)->world() == this);
+    return s;
 }
 
 void world::set_object_counter(object_id value)
@@ -433,20 +434,28 @@ template<typename T>
 bptr<T> world::find_object(object_id id)
 {
     static_assert(std::is_base_of_v<object, T>);
-    if (bptr<object> ptr = find_object_(id); !ptr)
+    if (const bptr<object>* s = find_object_(id); !s)
         return {};
     else if constexpr(std::is_same_v<T, object>)
-        return ptr;
-    else if (ptr->type() != object_type_<T>::value) [[unlikely]]
-        throw_on_wrong_object_type(id, ptr->type(), object_type_<T>::value);
+        return *s;
+    else if ((*s)->type() != object_type_<T>::value) [[unlikely]]
+        throw_on_wrong_object_type(id, (*s)->type(), object_type_<T>::value);
     else
-        return static_pointer_cast<T>(move(ptr));
+        return static_pointer_cast<T>(*s);
 }
 
 template<typename T>
-bptr<const T> world::find_object(object_id id) const
+const T* world::find_object(object_id id) const
 {
-    return non_const(*this).find_object<T>(id);
+    static_assert(std::is_base_of_v<object, T>);
+    if (const bptr<object>* s = find_object_(id); !s)
+        return nullptr;
+    else if constexpr(std::is_same_v<T, object>)
+        return &**s;
+    else if ((*s)->type() != object_type_<T>::value) [[unlikely]]
+        throw_on_wrong_object_type(id, (*s)->type(), object_type_<T>::value);
+    else
+        return static_cast<const T*>(&**s);
 }
 
 template<typename T>
@@ -463,9 +472,14 @@ bptr<T> world::find_object(object_id id)
 
 template<typename T>
 requires is_strict_base_of<scenery, T>
-bptr<const T> world::find_object(object_id id) const
+const T* world::find_object(object_id id) const
 {
-    return non_const(*this).find_object<T>(id);
+    if (const scenery* ptr = find_object<scenery>(id); !ptr)
+        return nullptr;
+    else if (ptr->scenery_type() != scenery_type_<T>::value) [[unlikely]]
+        throw_on_wrong_scenery_type(id, ptr->scenery_type(), scenery_type_<T>::value);
+    else
+        return static_cast<const T*>(ptr);
 }
 
 template bptr<object>  world::find_object<object>(object_id id);
@@ -476,13 +490,13 @@ template bptr<hole>   world::find_object<hole>(object_id id);
 template bptr<generic_scenery> world::find_object<generic_scenery>(object_id id);
 template bptr<door_scenery> world::find_object<door_scenery>(object_id id);
 
-template bptr<const object>  world::find_object<object>(object_id id) const;
-template bptr<const critter> world::find_object<critter>(object_id id) const;
-template bptr<const scenery> world::find_object<scenery>(object_id id) const;
-template bptr<const light>   world::find_object<light>(object_id id) const;
-template bptr<const hole>   world::find_object<hole>(object_id id) const;
-template bptr<const generic_scenery> world::find_object<generic_scenery>(object_id id) const;
-template bptr<const door_scenery> world::find_object<door_scenery>(object_id id) const;
+template const object*  world::find_object<object>(object_id id) const;
+template const critter* world::find_object<critter>(object_id id) const;
+template const scenery* world::find_object<scenery>(object_id id) const;
+template const light*   world::find_object<light>(object_id id) const;
+template const hole*   world::find_object<hole>(object_id id) const;
+template const generic_scenery* world::find_object<generic_scenery>(object_id id) const;
+template const door_scenery* world::find_object<door_scenery>(object_id id) const;
 
 template<bool sorted>
 bptr<scenery> world::make_scenery(object_id id, global_coords pos, scenery_proto&& proto)
