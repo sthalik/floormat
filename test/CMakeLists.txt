@@ -13,7 +13,9 @@ target_link_libraries(${self}_o PUBLIC
 )
 # test_fpclassify checks infinity(). test_vqsort makes NaN keys and orders them with isnan().
 fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE float.cpp vqsort.cpp)
-set_source_files_properties(multi-level-table.cpp PROPERTIES
+set_source_files_properties(
+    multi-level-table.cpp multi-level-table-bits.cpp multi-level-table-plane.cpp multi-level-table-space.cpp
+    PROPERTIES
     COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU>:-Wno-larger-than>")
 
 add_executable(${self} dummy.cc)
