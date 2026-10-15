@@ -27,6 +27,9 @@ template<typename T> struct rtree_pool final
     };
 
 private:
+    static void poison(node_u* n) noexcept;
+    static void unpoison(node_u* n) noexcept;
+
     node_u* free_list = nullptr;
     size_t live_count = 0;
 };
