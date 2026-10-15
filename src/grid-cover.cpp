@@ -229,7 +229,7 @@ uint32_t CoverGrid::get_cell_index(uint32_t x, uint32_t y, uint32_t div_count)
 uint32_t CoverGrid::get_cell_index_from_coord(intra_coord pos) const
 {
     const auto dc = chunk_size_xy / params.div_size;
-    return GridBase::pack_bit_index_from_coord(pos, params.div_size, dc);
+    return GridBase::pack_bit_index_from_coord(pos, dc);
 }
 
 void CoverGrid::build_impl(chunk* self)
@@ -251,7 +251,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
 
     const uint32_t div_size = params.div_size;
     auto& pass_pool = static_cast<CoverPool*>(pool)->pass_pool;
-    fm_assert(pass_pool.params().div_size == div_size);
+    fm_assert(pass_pool.params().div_size() == div_size);
     pass_pool.maybe_mark_stale_all(self.world().frame_no());
     Timeline timeline;
     timeline.start();

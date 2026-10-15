@@ -22,29 +22,6 @@ namespace floormat {
 
 namespace floormat::detail::grid {
 namespace {
-constexpr auto get_divisor_count()
-{
-    auto count = 0u;
-    for (auto i = 1u; i <= chunk_size_xy; i++)
-        if (chunk_size_xy % i == 0)
-            count++;
-    return count;
-}
-
-constexpr auto make_divisor_table()
-{
-    constexpr auto count = get_divisor_count();
-    std::array<uint32_t, count> array;
-    uint32_t divisor = 1;
-    for (auto i = 0u; i < array_size(array); i++)
-    {
-        while (chunk_size_xy % divisor)
-            divisor++;
-        array[i] = divisor++;
-    }
-    return array;
-}
-
 constexpr auto make_inverse_divisor_table()
 {
     constexpr auto divisors = make_divisor_table();
@@ -77,34 +54,6 @@ constexpr auto get_divisor_index(uint32_t div_size)
     if (i == (decltype(i))-1) [[unlikely]]
         fm_abort("get_divisor_index: wrong div_size %u", (unsigned)div_size);
     return (uint32_t)i;
-}
-
-constexpr auto calc_div_size(uint32_t div_sizeʹ, uint32_t bbox_size)
-{
-    constexpr auto div_sizes = make_divisor_table();
-    uint32_t div_size = div_sizeʹ;
-
-    if (!div_sizeʹ || div_sizeʹ > bbox_size) [[unlikely]]
-    {
-        // caller wants cells coarser than the bbox; grid requires div_size <= bbox_size
-        div_size = div_sizes[0];  // smallest divisor as floor
-        for (auto i : div_sizes)
-            if (i <= bbox_size)
-                div_size = i;
-            else
-                break; // largest ≤ upper
-    }
-    else if (chunk_size_xy % div_sizeʹ) [[unlikely]]
-    {
-        // valid magnitude but it doesn't divide the chunk evenly; snap down so cells tile the chunk
-        div_size = div_sizes[0];
-        for (auto i : div_sizes)
-            if (i <= div_sizeʹ)
-                div_size = i;
-            else
-                break;
-    }
-    return div_size;
 }
 
 // Bit n of the grid is bit (n & 7) of byte (n >> 3), as BitArray stores it. Read as
@@ -187,9 +136,8 @@ void clear_rect_any(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32_t i
 }
 
 // Whole 64-bit words, so the clear_rect_*() functions never read past the end of a small grid.
-constexpr uint32_t bitmask_size(uint32_t div_size)
+constexpr uint32_t bitmask_size(uint32_t div_count)
 {
-    const auto div_count = chunk_size_xy / div_size;
     return (div_count * div_count + 63) & ~63u;
 }
 
@@ -233,13 +181,12 @@ uint32_t PassGrid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
 
 uint32_t PassGrid::get_bitmask_index_from_coord(intra_coord pos) const
 {
-    const auto div_count = chunk_size_xy / params.div_size;
-    return GridBase::pack_bit_index_from_coord(pos, params.div_size, div_count);
+    return GridBase::pack_bit_index_from_coord(pos, params.div_count);
 }
 
 Range2D PassGrid::get_coord_from_div(uint32_t x, uint32_t y) const
 {
-    return GridBase::coord_range_from_div(x, y, params.div_size, params.bbox_size);
+    return GridBase::coord_range_from_div(x, y, params.div_size(), params.bbox_size);
 }
 
 void PassGrid::build_impl(chunk* self, const pred& predicate)
@@ -248,8 +195,8 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     fm_debug_assert(bitmask.offset() == 0);
     uint8_t* const bits{reinterpret_cast<uint8_t*>(bitmask.data())};
 
-    const auto div_countʹ = chunk_size_xy / params.div_size;
-    const auto div_size  = params.div_size;
+    const auto div_countʹ = params.div_count;
+    const auto div_size  = params.div_size();
     fm_assert(div_countʹ*div_countʹ <= bitmask.size());
 
     const auto half_div = (float)(div_size / 2);
@@ -347,7 +294,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
 PassGrid::PassGrid(chunk& c, Params params):
     GridBase{c},
     params{params},
-    bitmask{ValueInit, bitmask_size(params.div_size)}
+    bitmask{ValueInit, bitmask_size(params.div_count)}
 {
 #ifdef FLOORMAT_GRID_PASS_DEBUG
     ++grid_total_count;
@@ -368,7 +315,7 @@ void PassGrid::reset_for_reuse(chunk& ch, Params new_params)
 {
     reset_base_for_reuse(ch);
     params = new_params;
-    const auto bits = bitmask_size(params.div_size);
+    const auto bits = bitmask_size(params.div_count);
     if (bitmask.size() < bits) [[unlikely]]
         bitmask = BitArray{ValueInit, bits};
     else
@@ -456,17 +403,12 @@ namespace floormat::Grid::Pass {
 
 Params Params::validate() const
 {
-    using detail::grid::calc_div_size;
-
-    auto bbox_sizeʹ = Math::max(Grid::min_bbox_size, bbox_size);
-    auto div_sizeʹ  = calc_div_size(div_size, bbox_sizeʹ);
-    Params p{ div_sizeʹ, bbox_sizeʹ, min_pass, };
-    fm_assert(p.min_pass > pass_mode::blocked && p.min_pass < pass_mode::COUNT);
-    fm_assert(p.div_size > 0);
-    fm_assert(chunk_size_xy % p.div_size == 0);
-    fm_assert(p.bbox_size >= p.div_size);
-    fm_assert(p.bbox_size <= chunk_size_xy);
-    return p;
+    fm_assert(min_pass > pass_mode::blocked && min_pass < pass_mode::COUNT);
+    fm_assert(div_count > 0);
+    fm_assert(chunk_size_xy % div_count == 0);
+    fm_assert(bbox_size >= div_size());
+    fm_assert(bbox_size <= chunk_size_xy);
+    return *this;
 }
 
 bool Params::operator==(const Params&) const noexcept = default;
@@ -515,7 +457,7 @@ BitView Grid::bits() const
 
 uint32_t Grid::div_count() const
 {
-    return chunk_size_xy / grid->params.div_size;
+    return grid->params.div_count;
 }
 
 uint64_t Grid::build_no() const
