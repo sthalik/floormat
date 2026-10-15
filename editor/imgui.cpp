@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "pgo-scenes.hpp"
+#include "mazes.hpp"
 #include "src/tile-constants.hpp"
 #include "compat/format.hpp"
 #include "editor.hpp"
@@ -165,10 +166,16 @@ float app::draw_main_menu()
                 scene([this] { populate_scene_slide(true); });
             if (ImGui::MenuItem("Scene slide (bare)"))
                 scene([this] { populate_scene_slide(false); });
-            if (ImGui::MenuItem("Scene maze"))
-                scene([this] { populate_scene_maze(); });
+            if (ImGui::MenuItem("Scene maze 1"))
+                scene([this] { populate_scene_maze1(); });
             if (ImGui::MenuItem("Scene maze 2 (braided)"))
                 scene([this] { populate_scene_maze2(); });
+            if (ImGui::MenuItem("Scene maze 3 (rooms)"))
+                scene([this] { populate_scene_maze3(mazes::kind::rooms); });
+            if (ImGui::MenuItem("Scene maze 3 (braid)"))
+                scene([this] { populate_scene_maze3(mazes::kind::braid); });
+            if (ImGui::MenuItem("Scene maze 3 (Prim)"))
+                scene([this] { populate_scene_maze3(mazes::kind::prim); });
             if (ImGui::MenuItem("Scene grids"))
                 scene([this] { populate_scene_grids(256); });
             if (ImGui::MenuItem("Scene raycast pins"))
