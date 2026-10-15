@@ -1,12 +1,30 @@
 #pragma once
 #include "rtree-pool.hpp"
 #include "compat/assert.hpp"
+#include "compat/defs.hpp"
 #include <cr/Debug.h>
 #include <new>
+#if fm_ASAN
+#include <sanitizer/asan_interface.h>
+#endif
 
 namespace floormat::detail {
 
 template<typename T> rtree_pool<T>::rtree_pool() noexcept = default;
+
+template<typename T> void rtree_pool<T>::poison([[maybe_unused]] node_u* n) noexcept
+{
+#if fm_ASAN
+    __asan_poison_memory_region(n, sizeof(node_u));
+#endif
+}
+
+template<typename T> void rtree_pool<T>::unpoison([[maybe_unused]] node_u* n) noexcept
+{
+#if fm_ASAN
+    __asan_unpoison_memory_region(n, sizeof(node_u));
+#endif
+}
 
 template<typename T> size_t rtree_pool<T>::alive_count() const { return live_count; }
 
@@ -22,7 +40,8 @@ template<typename T> rtree_pool<T>::~rtree_pool() noexcept
         ++dtor_counter;
 #endif
         auto* p = free_list;
-        free_list = free_list->next;
+        unpoison(p);
+        free_list = p->next;
         delete p;
     }
 #ifdef RTREE_POOL_DEBUG
@@ -46,6 +65,7 @@ noexcept(noexcept(T{std::declval<Xs>()...}))
             auto* n = new node_u;
             n->next = free_list;
             free_list = n;
+            poison(n);
         }
 
 #ifdef RTREE_POOL_DEBUG
@@ -69,7 +89,8 @@ noexcept(noexcept(T{std::declval<Xs>()...}))
         Debug{} << "rtree-pool: reused"_s << ++reuse_counter; std::fflush(stdout);
 #endif
         auto* n = free_list;
-        free_list = free_list->next;
+        unpoison(n);
+        free_list = n->next;
         if constexpr(noexcept(T{std::declval<Xs>()...}))
             ret = new (&n->data) T{forward<Xs>(args)...};
         else
@@ -78,6 +99,7 @@ noexcept(noexcept(T{std::declval<Xs>()...}))
             } catch (...) {
                 n->next = free_list;
                 free_list = n;
+                poison(n);
                 throw;
             }
     }
@@ -105,6 +127,7 @@ noexcept(std::is_nothrow_destructible_v<T>)
         }
     n->next = free_list;
     free_list = n;
+    poison(n);
 }
 
 } // namespace floormat::detail

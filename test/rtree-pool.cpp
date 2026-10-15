@@ -2,6 +2,9 @@
 #include "compat/defs.hpp"
 #include "src/rtree-pool.inl"
 #include <cr/Debug.h>
+#if fm_ASAN
+#include <sanitizer/asan_interface.h>
+#endif
 
 namespace floormat::Test {
 
@@ -35,6 +38,16 @@ struct Tester
     Liveness live{};
 };
 
+bool is_dead(const Tester* t, size_t old_value)
+{
+#if fm_ASAN
+    (void)old_value;
+    return __asan_address_is_poisoned(t);
+#else
+    return !t->live && t->value != old_value;
+#endif
+}
+
 void test1()
 {
     int count = 0;
@@ -61,14 +74,14 @@ void test1()
         fm_assert_equal(2u, p.alive_count());
 
         fm_assert( t1->live); fm_assert(t1->value == 42);
-        fm_assert(!t2->live); fm_assert(t2->value != 37);
+        fm_assert(is_dead(t2, 37));
         fm_assert( t3->live); fm_assert(t3->value == 69);
 
         p.free(t1);
         fm_assert_equal(2, count);
         fm_assert_equal(1u, p.alive_count());
-        fm_assert(!t1->live); fm_assert(t1->value != 42);
-        fm_assert(!t2->live); fm_assert(t2->value != 37);
+        fm_assert(is_dead(t1, 42));
+        fm_assert(is_dead(t2, 37));
         fm_assert( t3->live); fm_assert(t3->value == 69);
 
         auto* const t4 = p.construct();
@@ -76,7 +89,7 @@ void test1()
         fm_assert_equal(2u, p.alive_count());
         fm_assert(t4 == t1);
         fm_assert( t1->live); fm_assert(t1->value != 42);
-        fm_assert(!t2->live); fm_assert(t2->value != 37);
+        fm_assert(is_dead(t2, 37));
         fm_assert( t3->live); fm_assert(t3->value == 69);
 
         t4->counter.p = &count;
@@ -89,16 +102,16 @@ void test1()
         p.free(t3);
         fm_assert_equal(3, count);
         fm_assert_equal(1u, p.alive_count());
-        fm_assert(!t2->live); fm_assert(t2->value != 37);
-        fm_assert(!t3->live); fm_assert(t3->value != 69);
-        fm_assert( t4->live); fm_assert(t3->value != 667);
+        fm_assert(is_dead(t2, 37));
+        fm_assert(is_dead(t3, 69));
+        fm_assert( t4->live); fm_assert(t4->value == 667);
 
         p.free(t4);
         fm_assert_equal(4, count);
         fm_assert_equal(0u, p.alive_count());
-        fm_assert(!t2->live); fm_assert(t2->value != 37);
-        fm_assert(!t3->live); fm_assert(t3->value != 69);
-        fm_assert(!t4->live); fm_assert(t3->value != 667);
+        fm_assert(is_dead(t2, 37));
+        fm_assert(is_dead(t3, 69));
+        fm_assert(is_dead(t4, 667));
     }
     fm_assert_equal(4, count);
 }
