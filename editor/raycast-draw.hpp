@@ -8,7 +8,8 @@ struct app;
 
 // raycast_test draws one ray, scene_raycast a wheel of 32, and both want the same picture.
 // dot_size scales the endpoint marker; 32 dots at the test's size cover the field they sit on.
-void draw_raycast_line(app& a, const rc::raycast_result_s& r, float dot_size = 1);
+// radius > 0 leaves the line to draw_raycast_projectile().
+void draw_raycast_line(app& a, const rc::raycast_result_s& r, float dot_size = 1, float radius = 0);
 
 // diag must come from the raycast_with_diag() call that returned r.
 void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::raycast_diag_s& diag);
