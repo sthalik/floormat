@@ -3,11 +3,13 @@
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/non-const.hpp"
 #include "loader/loader.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
 #include <mg/ImageView.h>
 #include <mg/PixelStorage.h>
+#include <utility>
 
 namespace floormat {
 
@@ -181,12 +183,12 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
     resolve_wall_rotations(_dir_array, _direction_map);
 }
 
-auto wall_atlas::get_Direction(Direction_ num) const -> Direction*
+auto wall_atlas::get_Direction(Direction_ num) const -> const Direction*
 {
     fm_debug_assert(num < Direction_::COUNT);
 
     if (auto DAI = _direction_map[(uint8_t)num])
-        return const_cast<Direction*>(&_dir_array[DAI.val]);
+        return &_dir_array[DAI.val];
     else [[unlikely]]
         return {};
 }
@@ -284,11 +286,11 @@ Vector2ui wall_atlas::image_size() const
 
 namespace floormat::Wall {
 
-const Group& Direction::group(Group_ i) const { return const_cast<Direction&>(*this).group((size_t)i); }
-const Group& Direction::group(size_t i) const { return const_cast<Direction&>(*this).group(i); }
+const Group& Direction::group(Group_ i) const { return group((size_t)i); }
 Group& Direction::group(Group_ i) { return group((size_t)i); }
+Group& Direction::group(size_t i) { return non_const(std::as_const(*this).group(i)); }
 
-Group& Direction::group(size_t i)
+const Group& Direction::group(size_t i) const
 {
     fm_assert(i < Group_COUNT);
     auto ptr = groups[i].member;
