@@ -4,6 +4,7 @@
 #include <vector>
 #include <random>
 #include <algorithm>
+#include <map>
 #include <cr/ArrayView.h>
 #include <benchmark/benchmark.h>
 
@@ -164,9 +165,9 @@ const fixture& get_fixture(uint32_t k, layout l)
 // m is quads per chunk. Keep it small: end_chunk<true>'s only production caller closes a run of
 // one chunk's dynamic objects, and below libc++'s __limit of 24 the per-run sort is an insertion
 // sort rather than introsort.
-std::vector<std::vector<float>> make_chunks(uint32_t k, uint32_t m)
+std::vector<std::vector<float>> make_chunks(uint32_t k, uint32_t m, uint32_t seed)
 {
-    auto rng = std::mt19937{0x9e3779b9};
+    auto rng = std::mt19937{seed};
     auto dist = std::uniform_real_distribution<float>{0, (float)(k*m)};
     auto runs = std::vector<std::vector<float>>(k, std::vector<float>(m));
     for (auto& run : runs)
@@ -175,22 +176,15 @@ std::vector<std::vector<float>> make_chunks(uint32_t k, uint32_t m)
     return runs;
 }
 
-struct chunk_fixture
+// Random interleaving alternates between argument sets, so all of them stay cached.
+const std::vector<std::vector<std::vector<float>>>& get_chunk_fixtures(benchmark::State& state)
 {
-    std::vector<std::vector<float>> runs;
-    uint32_t k, m;
-};
-
-const chunk_fixture& get_chunk_fixture(uint32_t k, uint32_t m)
-{
-    static chunk_fixture f{{}, 0, 0};
-    if (f.k != k || f.m != m)
-    {
-        f.runs = make_chunks(k, m);
-        f.k = k;
-        f.m = m;
-    }
-    return f;
+    static std::map<std::pair<uint32_t, uint32_t>, std::vector<std::vector<std::vector<float>>>> cache;
+    const auto k = (uint32_t)state.range(0), m = (uint32_t)state.range(1), count = (uint32_t)state.range(2);
+    const auto key = std::pair{k, m};
+    for (auto i = (uint32_t)cache[key].size(); i < count; i++)
+        cache[key].push_back(make_chunks(k, m, 0x9e3779b9u + i));
+    return cache[key];
 }
 
 void fill_chunks(SpriteBatch& sb, const std::vector<std::vector<float>>& runs, bool do_sort, bool merge)
@@ -210,27 +204,37 @@ void fill_chunks(SpriteBatch& sb, const std::vector<std::vector<float>>& runs, b
 // clear() keeps the array capacity, so the pass before the loop pays for growth.
 void run_chunks(benchmark::State& state, bool do_sort, bool merge)
 {
-    const auto& f = get_chunk_fixture((uint32_t)state.range(0), (uint32_t)state.range(1));
+    const auto& fs = get_chunk_fixtures(state);
+    const auto nf = (uint32_t)state.range(2);
     auto sb = SpriteBatch{};
 
-    fill_chunks(sb, f.runs, do_sort, merge);
-    if (merge && !check_order(state, sb, flatten(f.runs)))
-        return;
+    for (auto i = 0u; i < nf; i++)
+    {
+        fill_chunks(sb, fs[i], do_sort, merge);
+        if (merge && !check_order(state, sb, flatten(fs[i])))
+            return;
+    }
 
+    auto i = 0u;
     for (auto _ : state)
     {
-        fill_chunks(sb, f.runs, do_sort, merge);
+        fill_chunks(sb, fs[i], do_sort, merge);
         benchmark::DoNotOptimize(sb.merged_order().data());
+        i = i + 1 == nf ? 0 : i + 1;
     }
 }
 
+// f inputs are taken in turn. With f=1 the branch predictor can learn the one input.
 void chunk_args(benchmark::Benchmark* b)
 {
-    b->ArgNames({"k", "m"});
-    for (auto k : {4, 16, 64})
-        b->Args({k, 8});
-    b->Args({64, 32});
-    b->Args({64, 512});
+    b->ArgNames({"k", "m", "f"});
+    for (auto f : {1, 16})
+    {
+        for (auto k : {4, 16, 64})
+            b->Args({k, 8, f});
+        b->Args({64, 32, f});
+        b->Args({64, 512, f});
+    }
     b->Unit(benchmark::kNanosecond);
 }
 
