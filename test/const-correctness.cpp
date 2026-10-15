@@ -55,5 +55,10 @@ template<typename S> concept has_ptr = requires(S& s, const object& e) { s.ptr(e
 static_assert(has_ptr<object_storage>);
 static_assert(!has_ptr<const object_storage>);
 
+template<typename C> concept has_static_mesh = requires(C& c) { c.scenery_static_mesh; };
+
+static_assert(!has_static_mesh<chunk>);
+static_assert(!has_static_mesh<const chunk>);
+
 } // namespace
 } // namespace floormat
