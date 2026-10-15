@@ -1024,7 +1024,7 @@ ok:
         fm_throw("invalid object_type {}"_cf, (int)type);
 ok:
         fm_assert(obj);
-        fm_debug_assert(obj->c == ch);
+        fm_debug_assert(&obj->chunk() == ch);
         //non_const(obj->id) = id;
         //non_const(obj->c) = ch;
         non_const(obj->coord) = {ch->coord(), tile};
