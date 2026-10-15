@@ -178,7 +178,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
         auto& w = *c->_world;
         c->remove_object(*this, i);
         auto& c2 = w[coord_.chunk3()];
-        non_const(c) = &c2;
+        c = &c2;
         non_const(coord) = coord_;
         non_const(r) = new_r;
         set_bbox_(offset_, bb_offset, bb_size, pass);

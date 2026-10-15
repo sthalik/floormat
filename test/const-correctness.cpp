@@ -34,5 +34,17 @@ static_assert(!has_subscript<Pass::Pool, const chunk>);
 static_assert(has_subscript<Cover::Pool, chunk>);
 static_assert(!has_subscript<Cover::Pool, const chunk>);
 
+template<typename O> concept has_c = requires(O& o) { o.c; };
+
+static_assert(same<decltype(std::declval<const object&>().chunk()), const chunk&>);
+static_assert(same<decltype(std::declval<const object&>().world()), const world&>);
+static_assert(!has_c<object>);
+static_assert(!has_c<const object>);
+
+static_assert(same<decltype(std::declval<const propagate_const<chunk*>&>().get()), const chunk*>);
+static_assert(same<decltype(std::declval<propagate_const<chunk*>&>().get()), chunk*>);
+static_assert(!std::is_copy_constructible_v<propagate_const<chunk*>>);
+static_assert(!std::is_copy_assignable_v<propagate_const<chunk*>>);
+
 } // namespace
 } // namespace floormat

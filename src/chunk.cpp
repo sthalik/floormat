@@ -145,7 +145,7 @@ void chunk::sort_objects()
 
 void chunk::add_object_pre(const bptr<object>& e)
 {
-    fm_assert(&*e->c == this);
+    fm_assert(&e->chunk() == this);
     const bool dyn = e->is_dynamic();
     const bool upd_passability = e->updates_passability();
     const bool upd_walls = e->updates_walls();
@@ -193,7 +193,7 @@ bool chunk::is_teardown() const { return _teardown || _world->is_teardown(); }
 void chunk::remove_object(const object& e, size_t i)
 {
     const auto eʹ = _objects.ptr(e, i);
-    fm_assert(e.c == this);
+    fm_assert(&e.chunk() == this);
 
     const bool dyn = e.is_dynamic();
     const bool upd_passability = e.updates_passability();
