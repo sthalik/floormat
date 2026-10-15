@@ -114,7 +114,7 @@ struct raycast_test final : base_test
         if (!result.has_result)
             return;
 
-        draw_raycast_line(a, result);
+        draw_raycast_line(a, result, 1, diag.radius);
         draw_raycast_projectile(a, result, diag);
         draw_raycast_diag(a, diag);
     }
