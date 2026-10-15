@@ -3,6 +3,7 @@
 #include "search-constants.hpp"
 #include "search-pred.hpp"
 #include "object-id.hpp"
+#include <array>
 #include <cr/Array.h>
 
 namespace floormat::Search { struct cache; }
@@ -19,6 +20,7 @@ class astar
 public:
     struct visited;
     struct frontier;
+    struct bucket_queue;
 
     using pred = Search::pred;
     using heuristic = Search::heuristic;
@@ -32,6 +34,7 @@ public:
     Grid::Pass::PoolRegistry& pass_pool_registry();
 
     // todo add simple bresenham short-circuit
+    // `h` must be consistent: bucket_queue needs every live f within bucket_count of the lowest.
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, point from, point to,
                                 uint32_t max_dist, Vector2ui own_size,
@@ -46,11 +49,13 @@ public:
 
 private:
     static constexpr auto initial_capacity = TILE_COUNT * 32 * Search::div_factor*Search::div_factor;
+    // The seeds' f can spread by about 134, more than a step adds.
+    static constexpr uint32_t bucket_count = 256;
 
     safe_ptr<struct Search::cache> _cache;
     safe_ptr<Grid::Pass::PoolRegistry> _pass_registry;
     Array<visited> nodes;
-    Array<frontier> Q;
+    std::array<Array<frontier>, bucket_count> buckets;
     Array<point> temp_nodes;
     Array<const uint8_t*> chunk_bits;
 };
