@@ -13,10 +13,11 @@ endif()
 set(self floormat)
 file(GLOB sources CONFIGURE_DEPENDS *.cpp ../shaders/*.cpp ../compat/*.cpp ../entity/*.cpp)
 add_library(${self} OBJECT "${sources}")
+# Executables link floormat-shader-res. Linked here, every TU would wait for its
+# corrade-rc step, which waits for the Corrade and Magnum DLLs to link.
 target_link_libraries(
     ${self} PUBLIC
     floormat-common
-    floormat-shader-res
     Magnum::GL
     Magnum::Magnum
     Magnum::Shaders
