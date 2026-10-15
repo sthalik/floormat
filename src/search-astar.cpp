@@ -251,17 +251,17 @@ void astar::clear()
 Search::cache* astar::cache() { return &*_cache; }
 Grid::Pass::PoolRegistry& astar::pass_pool_registry() { return *_pass_registry; }
 
-template<int Debug>
+template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    uint32_t max_dist, Vector2ui own_size,
                                    const pred& p, const heuristic& h)
 {
     const auto size = Math::max(own_size, min_size);
     auto& pool = _pass_registry->pool_for(Math::max(size.x(), size.y()));
-    return Dijkstra<Debug>(w, pool, from, to, max_dist, own_size, p, h);
+    return Dijkstra<Debug, FindClosestOnFailure>(w, pool, from, to, max_dist, own_size, p, h);
 }
 
-template<int Debug>
+template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point from, const point to,
                                    uint32_t max_dist, Vector2ui own_size_,
                                    const pred& p, const heuristic& h)
@@ -308,6 +308,12 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     if (auto R = Range2D::fromCenter(Vector2(intra_coord{to}.center_shifted()), own_half);
         !Search::is_passable_(w.at(to.chunk3()), w.neighbors(to.chunk3()), R.min(), R.max(), p))
         return {};
+
+    // the goal hop's is_passable_swept() needs this cell, so without it the search
+    // only ends after visiting everything within max_dist
+    if constexpr (!FindClosestOnFailure)
+        if (!cache.is_passable_for_bbox(w, pool, to, p))
+            return {};
 
     constexpr Vector2i seed_offsets[9] = {
         {  0,             0            },
@@ -368,15 +374,18 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
 
         const auto goal_dist_sq = point::distance_squared(cur_pt, to);
 
-        if (goal_dist_sq < closest_dist_sq)
+        if constexpr (FindClosestOnFailure)
         {
-            closest_dist_sq = goal_dist_sq;
-            closest_idx = cur_idx;
+            if (goal_dist_sq < closest_dist_sq)
+            {
+                closest_dist_sq = goal_dist_sq;
+                closest_idx = cur_idx;
 
-            if constexpr (Debug >= 2)
-                DBG_nospace << "closest node"
-                            << " px:" << point::distance(cur_pt, to) << " path:" << cur_dist
-                            << " pos:" << cur_pt;
+                if constexpr (Debug >= 2)
+                    DBG_nospace << "closest node"
+                                << " px:" << point::distance(cur_pt, to) << " path:" << cur_dist
+                                << " pos:" << cur_pt;
+            }
         }
 
         if (goal_dist_sq <= goal_thres_sq) [[unlikely]]
@@ -467,13 +476,21 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     return result;
 }
 
-template path_search_result astar::Dijkstra<0>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
-template path_search_result astar::Dijkstra<1>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
-template path_search_result astar::Dijkstra<2>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
-template path_search_result astar::Dijkstra<3>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
-template path_search_result astar::Dijkstra<0>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
-template path_search_result astar::Dijkstra<1>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
-template path_search_result astar::Dijkstra<2>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
-template path_search_result astar::Dijkstra<3>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<0, true>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<1, true>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<2, true>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<3, true>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<0, true>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<1, true>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<2, true>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<3, true>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<0, false>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<1, false>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<2, false>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<3, false>(world&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<0, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<1, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<2, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+template path_search_result astar::Dijkstra<3, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
 
 } // namespace floormat
