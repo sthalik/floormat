@@ -174,7 +174,7 @@ void grid_test::extract(app& a, chunk_coords_ coord)
     result = {
         .bits = Utility::move(bits),
         .div_count = dc,
-        .div_size = pool.params().div_size,
+        .div_size = pool.params().div_size(),
         .c = coord,
         .exists = true,
     };

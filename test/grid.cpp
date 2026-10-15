@@ -752,7 +752,7 @@ void test_params_preserved_through_pool(uint32_t div_size)
 {
     Pass::Pool pool{Pass::Params{div_size, tile_size_xy, pass_mode::pass}};
     const auto p = pool.params();
-    fm_assert(p.div_size == div_size);
+    fm_assert(p.div_size() == div_size);
     fm_assert(p.bbox_size == tile_size_xy);
 }
 
@@ -1077,7 +1077,7 @@ void test_bit_matches_every_position()
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
-    fm_assert(pool.params().div_size == div_size);
+    fm_assert(pool.params().div_size() == div_size);
     fm_assert(pool.params().bbox_size == bbox_size);
 
     const auto& pred = Search::without_critters();
@@ -1161,7 +1161,7 @@ void test_div_anchor_matches_cell_span(uint32_t div_size, uint32_t bbox_size)
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
-    fm_assert(pool.params().div_size == div_size);
+    fm_assert(pool.params().div_size() == div_size);
     fm_assert(pool.params().bbox_size == bbox_size);
 
     const int dc = (int)g.div_count(), d = (int)div_size;
@@ -1238,7 +1238,7 @@ void test_bit_exact(const exact_config& cfg)
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale(Search::without_critters());
-    fm_assert(pool.params().div_size == cfg.div_size);
+    fm_assert(pool.params().div_size() == cfg.div_size);
     fm_assert(pool.params().bbox_size == cfg.bbox_size);
 
     const auto nbs = w.neighbors(COORD);

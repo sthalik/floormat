@@ -172,10 +172,10 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     fm_assert(radius >= 0);
     fm_assert(min_pool_bbox_size(radius) <= params.bbox_size);
     const auto grow = fuzz2 + radius;
-    const auto div_size_i = (int32_t)params.div_size;
+    const auto div_size_i = (int32_t)params.div_size();
     const auto min_pass = (uint64_t)params.min_pass;
     const auto div_size_f = (float)div_size_i;
-    const auto cells_per_chunk = chunk_size<int> / div_size_i;
+    const auto cells_per_chunk = (int32_t)params.div_count;
 
     const auto from_ic = intra_coord{from};
     const auto from_shifted = Vector2(from_ic);
