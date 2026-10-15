@@ -30,9 +30,21 @@ struct image_ref_ final
     explicit operator bool() const noexcept;
 };
 
+template<typename Atlas>
+struct const_image_ref_ final
+{
+    const Atlas* atlas = nullptr;
+    variant_t variant = 0;
+
+    bool operator==(const const_image_ref_&) const noexcept = default;
+    explicit operator bool() const noexcept { return atlas != nullptr; }
+};
+
 using tile_image_proto = image_proto_<ground_atlas>;
 using tile_image_ref = image_ref_<ground_atlas, tile_image_proto>;
 using wall_image_proto = image_proto_<wall_atlas>;
 using wall_image_ref = image_ref_<wall_atlas, wall_image_proto>;
+using const_tile_image_ref = const_image_ref_<ground_atlas>;
+using const_wall_image_ref = const_image_ref_<wall_atlas>;
 
 } // namespace floormat

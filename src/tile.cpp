@@ -4,6 +4,19 @@
 
 namespace floormat {
 
+namespace {
+
+template<typename Ptr, typename Atlas>
+Ptr atlas_as(const bptr<Atlas>& a) noexcept
+{
+    if constexpr(std::is_pointer_v<Ptr>)
+        return a.get();
+    else
+        return a;
+}
+
+} // namespace
+
 static_assert(iTILE_SIZE2 == Vector2i{tile_size_xy});
 static_assert(iTILE_SIZE == Vector3i{tile_size_xy, tile_size_xy, tile_size_z});
 static_assert(iTILE_SIZE2.x() == iTILE_SIZE2.y()); // no avoiding it with rotations
@@ -48,45 +61,51 @@ wall_image_ref tile_ref_<Chunk>::wall_west() noexcept requires(!std::is_const_v<
 }
 
 template<typename Chunk>
-tile_image_proto tile_ref_<Chunk>::ground() const noexcept
+auto tile_ref_<Chunk>::ground() const noexcept -> ground_image
 {
     if (!_chunk->_ground) [[unlikely]]
         return {};
-    return { _chunk->_ground->atlases[i], _chunk->_ground->variants[i] };
+    return { atlas_as<atlas_ptr<class ground_atlas>>(_chunk->_ground->atlases[i]), _chunk->_ground->variants[i] };
 }
 
 template<typename Chunk>
-wall_image_proto tile_ref_<Chunk>::wall_north() const noexcept
+auto tile_ref_<Chunk>::wall_north() const noexcept -> wall_image
 {
     if (!_chunk->_walls) [[unlikely]]
         return {};
-    return { _chunk->_walls->atlases[i*2+0], _chunk->_walls->variants[i*2+0] };
+    return { atlas_as<atlas_ptr<class wall_atlas>>(_chunk->_walls->atlases[i*2+0]), _chunk->_walls->variants[i*2+0] };
 }
 
 template<typename Chunk>
-wall_image_proto tile_ref_<Chunk>::wall_west() const noexcept
+auto tile_ref_<Chunk>::wall_west() const noexcept -> wall_image
 {
     if (!_chunk->_walls) [[unlikely]]
         return {};
-    return { _chunk->_walls->atlases[i*2+1], _chunk->_walls->variants[i*2+1] };
+    return { atlas_as<atlas_ptr<class wall_atlas>>(_chunk->_walls->atlases[i*2+1]), _chunk->_walls->variants[i*2+1] };
 }
 
 template<typename Chunk>
-bptr<class ground_atlas> tile_ref_<Chunk>::ground_atlas() const noexcept
+auto tile_ref_<Chunk>::ground_atlas() const noexcept -> atlas_ptr<class ground_atlas>
 {
-    return _chunk->_ground ? _chunk->_ground->atlases[i] : nullptr;
+    if (!_chunk->_ground)
+        return nullptr;
+    return atlas_as<atlas_ptr<class ground_atlas>>(_chunk->_ground->atlases[i]);
 }
 
 template<typename Chunk>
-bptr<class wall_atlas> tile_ref_<Chunk>::wall_north_atlas() const noexcept
+auto tile_ref_<Chunk>::wall_north_atlas() const noexcept -> atlas_ptr<class wall_atlas>
 {
-    return _chunk->_walls ? _chunk->_walls->atlases[i*2+0] : nullptr;
+    if (!_chunk->_walls)
+        return nullptr;
+    return atlas_as<atlas_ptr<class wall_atlas>>(_chunk->_walls->atlases[i*2+0]);
 }
 
 template<typename Chunk>
-bptr<class wall_atlas> tile_ref_<Chunk>::wall_west_atlas() const noexcept
+auto tile_ref_<Chunk>::wall_west_atlas() const noexcept -> atlas_ptr<class wall_atlas>
 {
-    return _chunk->_walls ? _chunk->_walls->atlases[i*2+1] : nullptr;
+    if (!_chunk->_walls)
+        return nullptr;
+    return atlas_as<atlas_ptr<class wall_atlas>>(_chunk->_walls->atlases[i*2+1]);
 }
 
 template<typename Chunk>
