@@ -91,7 +91,7 @@ struct PoolBase
     ~PoolBase() noexcept;
     fm_DISABLE_MOVE_COPY(PoolBase);
 
-    GridBase* find(const chunk& c) const noexcept;
+    GridBase* find(chunk& c) const noexcept;
     void attach(chunk& c, GridBase* g);
     void release(GridBase* g) noexcept;
     void detach_all() noexcept;
