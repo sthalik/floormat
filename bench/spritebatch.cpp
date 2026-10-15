@@ -17,6 +17,44 @@ const Quads::vertexes dummy_quad{};
 
 enum class layout : uint8_t { blocked, interleaved, shuffled };
 
+std::vector<float> flatten(const std::vector<std::vector<float>>& runs)
+{
+    auto ret = std::vector<float>{};
+    for (const auto& run : runs)
+        ret.insert(ret.end(), run.begin(), run.end());
+    return ret;
+}
+
+// merged_order() must be a permutation of emission indexes whose depths never decrease. The
+// merge orders equal depths by tree position, so only depths are compared.
+bool check_order(benchmark::State& state, const SpriteBatch& sb, const std::vector<float>& depths)
+{
+    const auto order = sb.merged_order();
+    const auto n = (uint32_t)depths.size();
+    if (order.size() != n)
+    {
+        state.SkipWithError("merged_order() has the wrong size");
+        return false;
+    }
+    auto seen = std::vector<bool>(n);
+    for (auto i = 0u; i < n; i++)
+    {
+        const auto j = order[i];
+        if (j >= n || seen[j])
+        {
+            state.SkipWithError("merged_order() is not a permutation");
+            return false;
+        }
+        seen[j] = true;
+        if (i > 0 && depths[order[i-1]] > depths[j])
+        {
+            state.SkipWithError("merged_order() is not sorted by depth");
+            return false;
+        }
+    }
+    return true;
+}
+
 // Every layout produces k ascending runs of the same length, so the merge does the same
 // number of extractions either way. What differs is how often the winning run changes,
 // which is the only input to the loser tree's branches.
@@ -155,24 +193,33 @@ const chunk_fixture& get_chunk_fixture(uint32_t k, uint32_t m)
     return f;
 }
 
-// clear() keeps the array capacity, so only the first iteration pays for growth.
+void fill_chunks(SpriteBatch& sb, const std::vector<std::vector<float>>& runs, bool do_sort, bool merge)
+{
+    sb.clear();
+    for (const auto& run : runs)
+    {
+        sb.begin_chunk((uint32_t)run.size());
+        for (float d : run)
+            sb.emit(dummy_quad, d);
+        do_sort ? sb.end_chunk<true>() : sb.end_chunk<false>();
+    }
+    if (merge)
+        sb.sort_vertex_buffer(true);
+}
+
+// clear() keeps the array capacity, so the pass before the loop pays for growth.
 void run_chunks(benchmark::State& state, bool do_sort, bool merge)
 {
     const auto& f = get_chunk_fixture((uint32_t)state.range(0), (uint32_t)state.range(1));
     auto sb = SpriteBatch{};
 
+    fill_chunks(sb, f.runs, do_sort, merge);
+    if (merge && !check_order(state, sb, flatten(f.runs)))
+        return;
+
     for (auto _ : state)
     {
-        sb.clear();
-        for (const auto& run : f.runs)
-        {
-            sb.begin_chunk((uint32_t)run.size());
-            for (float d : run)
-                sb.emit(dummy_quad, d);
-            do_sort ? sb.end_chunk<true>() : sb.end_chunk<false>();
-        }
-        if (merge)
-            sb.sort_vertex_buffer(true);
+        fill_chunks(sb, f.runs, do_sort, merge);
         benchmark::DoNotOptimize(sb.merged_order().data());
     }
 }
@@ -238,6 +285,11 @@ void run(benchmark::State& state, layout l, bool do_sort)
 
     // sort_vertex_buffer leaves verts, depths and starts alone, so undoing its swap restores
     // every input it reads.
+    sb.sort_vertex_buffer(do_sort);
+    if (do_sort && !check_order(state, sb, flatten(f.runs)))
+        return;
+    sb.unsort_vertex_buffer();
+
     for (auto _ : state)
     {
         sb.sort_vertex_buffer(do_sort);
