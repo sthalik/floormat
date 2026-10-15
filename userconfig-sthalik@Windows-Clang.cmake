@@ -92,13 +92,18 @@ else()
     if(NOT "${FLOORMAT_PGO_COLD_INLINE}" STREQUAL "")
         add_compile_options("SHELL:-mllvm -inline-cold-callsite-threshold=${FLOORMAT_PGO_COLD_INLINE}")
     endif()
+    # compiler-rt tracks at most 24 values per site (INSTR_PROF_DEFAULT_NUM_VAL_PER_SITE),
+    # so a static pool this large cannot run out.
+    set(fm_vp_per_site 24)
     if(FLOORMAT_PGO STREQUAL "generate") # IR instrumentation
-        add_compile_options(-fprofile-generate)
+        add_compile_options(-fprofile-generate "SHELL:-mllvm -vp-counters-per-site=${fm_vp_per_site}")
         add_link_options(-fprofile-generate)
     elseif(FLOORMAT_PGO STREQUAL "cs") # IR instrumentation again, after inlining
         if(EXISTS "${FLOORMAT_PGO_PROFDATA}")
             add_compile_options(-fprofile-use=${FLOORMAT_PGO_PROFDATA} -fcs-profile-generate)
             add_link_options(-fprofile-use=${FLOORMAT_PGO_PROFDATA} -fcs-profile-generate)
+            # The cs pass is lowered post-link.
+            add_link_options(-Wl,-mllvm,-vp-counters-per-site=${fm_vp_per_site})
             add_link_options(-Wl,--whole-archive,-lclang_rt.profile-x86_64,--no-whole-archive)
         else()
             message(FATAL_ERROR "FLOORMAT_PGO=cs needs a profile at '${FLOORMAT_PGO_PROFDATA}'; "
