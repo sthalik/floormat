@@ -146,7 +146,7 @@ frontier pop_from_heap(Array<frontier>& Q)
 bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
                        point a, point b, const astar::pred& p)
 {
-    const int div = (int)pool.params().div_size;
+    const int div = (int)pool.params().div_size();
 
     const Vector2i a_pix = Vector2i(intra_coord{a});
     const Vector2i b_pix = a_pix + (b - a);
@@ -293,7 +293,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     const auto params = pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert(params.min_pass == pass_mode::pass);
-    fm_assert(params.div_size <= (uint32_t)div_size.x());
+    fm_assert(params.div_size() <= (uint32_t)div_size.x());
     pool.maybe_mark_stale_all(w.frame_no());
 
     auto* const from_chunk = w.at(from.chunk3());

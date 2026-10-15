@@ -80,7 +80,7 @@ auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
     constexpr float fuzz = TILE_SIZE2.x();
     auto diag = rc::raycast_diag_s{};
     auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue());
-    const auto div = (int)pool.params().div_size;
+    const auto div = (int)pool.params().div_size();
     for (const auto& q : diag.queries)
         fm_assert(Vector2i(intra_coord{q.center}) % div == Vector2i{div / 2});
     if (res.success != b)
