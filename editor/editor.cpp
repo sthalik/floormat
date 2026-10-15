@@ -71,7 +71,8 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
     {
         if (_last_pos && _last_pos->btn != button::none)
         {
-            auto& last = *_last_pos;
+            // on_click_() can reset _last_pos.
+            const auto last = *_last_pos;
             const Vector2i offset = pos - last.coord;
             const snap_mode snap = get_snap_value(last.snap, mods);
             const global_coords draw_coord = apply_snap(last.draw_coord + offset, last.draw_coord, snap);
