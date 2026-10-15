@@ -5,20 +5,18 @@
 
 namespace floormat::Serialize {
 
-void anim_atlas_row::add_entry(const anim_atlas_entry& x)
+void anim_atlas_row::add_entry(anim_frame& frame, const cv::Mat4b& mat)
 {
-    auto& frame = *x.frame;
-    const auto& mat = x.mat;
     frame.offset = { xpos, ypos };
     frame.size = { (unsigned)mat.cols, (unsigned)mat.rows };
 
     fm_assert(mat.rows > 0 && mat.cols > 0);
-    data.push_back(x);
+    data.push_back({ mat, frame.offset, frame.size });
     xpos += (unsigned)mat.cols;
     max_height = std::max((unsigned)mat.rows, max_height);
 }
 
-void anim_atlas_::add_entry(const anim_atlas_entry& x) { rows.back().add_entry(x); }
+void anim_atlas_::add_entry(anim_frame& frame, const cv::Mat4b& mat) { rows.back().add_entry(frame, mat); }
 
 void anim_atlas_::advance_row()
 {
@@ -55,9 +53,7 @@ bool anim_atlas_::dump(StringView filename) const
     for (const anim_atlas_row& row : rows)
         for (const anim_atlas_entry& x : row.data)
         {
-            auto offset = x.frame->offset;
-            auto size = x.frame->size;
-            cv::Rect roi = { (int)offset[0], (int)offset[1], (int)size[0], (int)size[1] };
+            cv::Rect roi = { (int)x.offset[0], (int)x.offset[1], (int)x.size[0], (int)x.size[1] };
             x.mat.copyTo(mat(roi));
         }
 
