@@ -18,7 +18,7 @@ void chunk::add_clickables(const tile_shader& shader, Vector2i win_size, Array<c
 {
     for (const auto& obj : _objects)
         if (draw_vobjs || !obj->is_virtual())
-            SpriteBatch::add_clickable(&*obj, shader, win_size, array);
+            SpriteBatch::add_clickable(*obj, shader, win_size, array);
 }
 
 void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)

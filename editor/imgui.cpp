@@ -333,11 +333,13 @@ void app::draw_light_info()
     const auto bg_col = ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1});
     const float font_size = ImGui::GetCurrentContext()->FontSize;
 
+    const auto& w = M->world();
     for (const auto& x : M->clickable_scenery())
     {
-        if (x.e->type() != object_type::light)
+        const auto* obj = w.find_object(x.id);
+        if (!obj || obj->type() != object_type::light)
             continue;
-        const auto& e = static_cast<const light&>(*x.e);
+        const auto& e = static_cast<const light&>(*obj);
         const auto dest = Math::Range2D<float>(x.dest);
 
         StringView falloff;
