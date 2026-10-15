@@ -19,6 +19,8 @@ namespace floormat::imgui { class text_painter_pool; }
 
 namespace floormat::pgo { struct task; struct state; struct scene; }
 
+namespace floormat::mazes { enum class kind : uint8_t; }
+
 namespace floormat {
 
 struct fm_settings;
@@ -107,8 +109,9 @@ private:
     void populate_scene_benchmark_walkable(uint8_t width);
     void populate_scene_diagonal(uint8_t half_width);
     void populate_scene_slide(bool dense);
-    void populate_scene_maze();
+    void populate_scene_maze1();
     void populate_scene_maze2();
+    void populate_scene_maze3(mazes::kind k);
     void populate_scene_grids(uint32_t num_pins = 0);
     void add_grid_pin(uint32_t n);
     void populate_scene_raycast_pins();
@@ -229,10 +232,11 @@ private:
     pgo::task scene_walk();
     pgo::task scene_slide();
     pgo::task scene_npcs();
-    pgo::task scene_maze();
+    pgo::task scene_maze1();
     pgo::task scene_raycast();
     pgo::task scene_object_ids();
     pgo::task scene_maze2();
+    pgo::task scene_maze3();
     pgo::task scene_grids();
     pgo::task scene_lightmap();
     pgo::task scene_cover();
