@@ -2,8 +2,8 @@ sets(BOOL FLOORMAT_SUBMODULE-SDL2 OFF)
 set(CMAKE_INSTALL_MESSAGE NEVER)
 sets(STRING
      CMAKE_BUILD_TYPE RELEASE
-     CMAKE_C_FLAGS_RELEASE "-O0 -DNDEBUG -g -ggdb"
-     CMAKE_CXX_FLAGS_RELEASE "-O0 -DNDEBUG -g -ggdb")
+     CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -g -ggdb"
+     CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -g -ggdb")
 
 add_definitions(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2)
 add_compile_options(-fsanitize=address,undefined)
@@ -27,6 +27,8 @@ function(fm-userconfig-src)
         -Wno-subobject-linkage
         -Wno-old-style-cast
         -Wno-padded
+        -Wdangling-reference
+        -Wreturn-local-addr
     )
     add_compile_options(
         #-Werror
@@ -43,4 +45,8 @@ function(fm-userconfig-src)
         -Wno-error=subobject-linkage
         -Wno-error=array-bounds
     )
+endfunction()
+
+function(fm-userconfig-post)
+    target_compile_options(floormat-hwy PRIVATE -O0)
 endfunction()
