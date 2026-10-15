@@ -123,7 +123,7 @@ struct object_header_s
 {
     object_id& id;
     object_type& type;
-    chunk* const& ch;
+    const chunk* ch;
     local_coords& tile;
 };
 
@@ -239,9 +239,9 @@ struct visitor_ : visitor_base<IsNewest>
         fm_debug_assert(obj.atlas);
 
         self.visit(s.tile, f);
-        visit(non_const_(obj.offset), f);
-        visit(non_const_(obj.bbox_offset), f);
-        visit(non_const_(obj.bbox_size), f);
+        visit(obj.offset, f);
+        visit(obj.bbox_offset, f);
+        visit(obj.bbox_size, f);
         if (self.PROTO >= 23) [[likely]]
             visit(obj.delta, f);
         else
@@ -456,7 +456,7 @@ struct writer final : visitor_<writer, true, true>
     struct serialized_chunk
     {
         buffer buf{};
-        chunk* c;
+        const chunk* c;
     };
 
     const world& w;
@@ -494,7 +494,7 @@ struct writer final : visitor_<writer, true, true>
         }
     }
 
-    template<typename F> void write_object(o_object& obj, chunk* c, F&& f)
+    template<typename F> void write_object(o_object& obj, const chunk* c, F&& f)
     {
         if (PROTO >= 28) [[unlikely]]
             if (obj.bbox_size != fix_stupid_bbox(obj.bbox_size))
@@ -617,25 +617,24 @@ ok:     void();
         return pair->second;
     }
 
-    template<typename F> void serialize_objects_(chunk& c, F&& f)
+    template<typename F> void serialize_objects_(const chunk& c, F&& f)
     {
         uint32_t count = 0;
-        for (const bptr<object>& obj : c.objects())
+        for (const object& obj : c.objects())
         {
-            if (obj->ephemeral)
+            if (obj.ephemeral)
                 continue;
             count++;
         }
         visit(count, f);
 
-        for (const bptr<object>& obj : c.objects())
+        for (const object& obj : c.objects())
         {
-            fm_assert(obj != nullptr);
-            if (obj->ephemeral)
+            if (obj.ephemeral)
                 continue;
             auto magic = object_magic;
             visit(magic, f);
-            write_object(*obj, &obj->chunk(), f);
+            write_object(obj, &obj.chunk(), f);
         }
     }
 
@@ -667,9 +666,9 @@ ok:     void();
         fm_debug_assert(i <= TILE_COUNT);
     }
 
-    void serialize_chunk_(chunk& c, buffer& buf)
+    void serialize_chunk_(const chunk& c, buffer& buf)
     {
-        const auto fn = [this](chunk& ch, auto&& f)
+        const auto fn = [this](const chunk& ch, auto&& f)
         {
             static_assert(null<uint8_t> == 127 && highbit<uint8_t> == 128);
             static_assert(null<uint32_t> == 0x7fffffff && highbit<uint32_t> == 0x80000000);
@@ -756,7 +755,7 @@ ok:     void();
         fm_assert(atlas_array.empty());
         fm_assert(chunk_array.empty());
 
-        for (auto& c : non_const(w).chunks())
+        for (const chunk& c : w.chunks())
             chunk_array.push_back({.c = &c });
 
         std::sort(chunk_array.begin(), chunk_array.end(), [](const auto& c1, const auto& c2) {
