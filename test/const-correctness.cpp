@@ -50,5 +50,10 @@ template<typename O> concept has_parent = requires(O& o) { o.parent; };
 
 static_assert(!has_parent<object>);
 
+template<typename S> concept has_ptr = requires(S& s, const object& e) { s.ptr(e, 0uz); };
+
+static_assert(has_ptr<object_storage>);
+static_assert(!has_ptr<const object_storage>);
+
 } // namespace
 } // namespace floormat
