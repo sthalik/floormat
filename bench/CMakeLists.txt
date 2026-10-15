@@ -12,6 +12,7 @@ target_link_libraries(${self}_o PUBLIC
     Magnum::Trade
     nlohmann_json::nlohmann_json
     floormat-common
+    floormat-hwy
 )
 
 if(TARGET benchmark::benchmark)
