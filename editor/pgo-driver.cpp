@@ -77,8 +77,7 @@ namespace floormat {
 
 ArrayView<const pgo::scene> app::scenes() noexcept
 {
-    constexpr auto SV_flags = StringViewFlag::Global|StringViewFlag::NullTerminated;
-#define FM_SCENE(name, mode_) { ( StringView{#name, array_size(#name)-1, SV_flags} ), ( &app::name ), driver_mode::mode_, }
+#define FM_SCENE(name, mode_) { #name, &app::name, driver_mode::mode_, }
     static constexpr pgo::scene Scenes[] = {
         FM_SCENE(scene_modes, coverage),
         FM_SCENE(scene_input_events, coverage),
@@ -1627,7 +1626,7 @@ void app::driver_tick(Ns dt)
         {
             name = name.trimmed();
             uint32_t i = 0;
-            while (i < Scenes.size() && Scenes[i].name.exceptPrefix("scene_"_s) != name)
+            while (i < Scenes.size() && StringView{Scenes[i].name} != name)
                 i++;
             fm_assert(i < Scenes.size()); // name not found
             D.scene_mask |= 1u << i;
@@ -1641,7 +1640,7 @@ void app::driver_tick(Ns dt)
     {
         if (D.scene_index > 0)
         {
-            const auto name = Scenes[D.scene_index-1].name.exceptPrefix("scene_"_s);
+            const StringView name = Scenes[D.scene_index-1].name;
             // Held input across a co_yield is normal -- that is how dragging works. Held input
             // across a scene boundary is a bug.
             if (D.held_buttons != mouse_button_none || D.mods != 0 || keys_->any() ||
@@ -1678,7 +1677,7 @@ void app::driver_tick(Ns dt)
             }
             D.scene_index = 0;
         }
-        DBG << ">>> scene:" << Scenes[D.scene_index].name;
+        DBG << ">>> scene:" << StringView{Scenes[D.scene_index].name};
         reset_world();
         maybe_initialize_chunk_({}, M->world()[{}]);
         D.scene_task = (this->*Scenes[D.scene_index].fn)();
@@ -1693,7 +1692,7 @@ void app::driver_tick(Ns dt)
     // populate_scene_*() runs inside the coroutine, on this first tick -- saving any earlier
     // would serialize an empty world instead of this scene's content.
     if (just_started && M->settings().driver_save_world)
-        driver_save_world(D.scene_index, Scenes[D.scene_index-1].name.exceptPrefix("scene_"_s), false);
+        driver_save_world(D.scene_index, Scenes[D.scene_index-1].name, false);
 }
 
 } // namespace floormat
