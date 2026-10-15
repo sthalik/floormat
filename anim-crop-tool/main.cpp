@@ -145,7 +145,7 @@ bool load_file(anim_group& group, options& opts, anim_atlas_& atlas, StringView 
     const Vector2ui dest_size_ = { (unsigned)dest_size.width, (unsigned)dest_size.height };
 
     arrayAppend(group.frames, {ground, atlas.offset(), dest_size_});
-    atlas.add_entry({&group.frames.back(), move(resized)});
+    atlas.add_entry(group.frames.back(), resized);
     return true;
 }
 
@@ -189,8 +189,6 @@ bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
 
     arrayReserve(group.frames, (size_t)max-1);
     arrayResize(group.frames, 0);
-    // atlas stores its entries through a pointer.
-    // arrayReserve() is necessary to avoid use-after-free.
     for (unsigned i = 1; i < max; i++)
     {
         char filename[9];
