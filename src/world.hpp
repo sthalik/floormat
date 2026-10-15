@@ -44,7 +44,7 @@ private:
 
     void do_make_object(const bptr<object>& e, global_coords pos, bool sorted); // todo replace 2nd arg with chunk&
     void erase_object(object_id id, const object* self);
-    bptr<object> find_object_(object_id id);
+    const bptr<object>* find_object_(object_id id) const;
 
     void register_chunk(chunk* c) noexcept;
     void unregister_chunk(chunk* c) noexcept;
@@ -122,8 +122,8 @@ public:
 
     template<typename T = object> bptr<T> find_object(object_id id);
     template<typename T> requires is_strict_base_of<scenery, T> bptr<T> find_object(object_id id);
-    template<typename T = object> bptr<const T> find_object(object_id id) const;
-    template<typename T> requires is_strict_base_of<scenery, T> bptr<const T> find_object(object_id id) const;
+    template<typename T = object> const T* find_object(object_id id) const;
+    template<typename T> requires is_strict_base_of<scenery, T> const T* find_object(object_id id) const;
 
     bptr<critter> ensure_player_character(object_id& id, critter_proto p);
     bptr<critter> ensure_player_character(object_id& id);

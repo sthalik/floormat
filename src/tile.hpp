@@ -25,19 +25,24 @@ struct tile_proto final
 template<typename Chunk>
 struct tile_ref_ final
 {
+    static constexpr bool is_const = std::is_const_v<Chunk>;
+    template<typename Atlas> using atlas_ptr = std::conditional_t<is_const, const Atlas*, bptr<Atlas>>;
+    using ground_image = std::conditional_t<is_const, const_tile_image_ref, tile_image_proto>;
+    using wall_image = std::conditional_t<is_const, const_wall_image_ref, wall_image_proto>;
+
     tile_ref_(Chunk& c, uint8_t i) noexcept;
 
     tile_image_ref ground() noexcept requires(!std::is_const_v<Chunk>);
     wall_image_ref wall_north() noexcept requires(!std::is_const_v<Chunk>);
     wall_image_ref wall_west() noexcept requires(!std::is_const_v<Chunk>);
 
-    tile_image_proto ground() const noexcept;
-    wall_image_proto wall_north() const noexcept;
-    wall_image_proto wall_west() const noexcept;
+    ground_image ground() const noexcept;
+    wall_image wall_north() const noexcept;
+    wall_image wall_west() const noexcept;
 
-    bptr<class ground_atlas> ground_atlas() const noexcept;
-    bptr<class wall_atlas> wall_north_atlas() const noexcept;
-    bptr<class wall_atlas> wall_west_atlas() const noexcept;
+    atlas_ptr<class ground_atlas> ground_atlas() const noexcept;
+    atlas_ptr<class wall_atlas> wall_north_atlas() const noexcept;
+    atlas_ptr<class wall_atlas> wall_west_atlas() const noexcept;
 
     explicit operator tile_proto() const noexcept;
 
