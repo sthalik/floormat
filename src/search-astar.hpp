@@ -52,6 +52,7 @@ private:
     Array<visited> nodes;
     Array<frontier> Q;
     Array<point> temp_nodes;
+    Array<const uint8_t*> chunk_bits;
 };
 
 } // namespace floormat
