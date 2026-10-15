@@ -49,10 +49,10 @@ struct object : bptr_base
     uint64_t last_frame_no = 0;
 protected:
     propagate_const<class chunk*> c;
+    const bptr<object> parent;
 public:
     const bptr<anim_atlas> atlas;
     const global_coords coord;
-    const bptr<object> parent;
     const Vector2b offset, bbox_offset;
     const Vector2ub bbox_size;
     uint16_t frame = 0;
