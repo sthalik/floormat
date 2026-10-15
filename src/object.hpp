@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "compat/borrowed-ptr.hpp"
+#include "compat/propagate-const.hpp"
 #include "src/global-coords.hpp"
 #include "src/rotation.hpp"
 #include "src/pass-mode.hpp"
@@ -46,7 +47,9 @@ struct object : bptr_base
 
     const object_id id = 0;
     uint64_t last_frame_no = 0;
-    class chunk* const c;
+protected:
+    propagate_const<class chunk*> c;
+public:
     const bptr<anim_atlas> atlas;
     const global_coords coord;
     const bptr<object> parent;

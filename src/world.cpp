@@ -215,17 +215,16 @@ void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted
     fm_debug_assert(e);
     fm_debug_assert(e->id != 0);
     fm_assert(!(e->id >> object_table::key_bits));
-    fm_debug_assert(e->c);
-    fm_debug_assert(pos.chunk3() == e->c->coord());
-    fm_debug_assert(_unique_id && e->c->world()._unique_id == _unique_id);
+    fm_debug_assert(pos.chunk3() == e->chunk().coord());
+    fm_debug_assert(_unique_id && e->world()._unique_id == _unique_id);
     fm_assert(e->type() != object_type::none);
     const_cast<global_coords&>(e->coord) = pos;
     if (!_objects.insert(e->id, e)) [[unlikely]]
         fm_throw("object already initialized id:{}"_cf, e->id);
     if (sorted)
-        e->c->add_object(e);
+        e->chunk().add_object(e);
     else
-        e->c->add_object_unsorted(e);
+        e->chunk().add_object_unsorted(e);
     // objects made before init_scripts() are covered by its sweep instead
     if (_script_initialized && !_script_finalized) [[unlikely]]
         e->init_script(e);
@@ -299,7 +298,7 @@ void world::chunk_table_prepare_frame()
         {
             const auto* s = _objects.find(e.id);
             fm_assert(s && *s && &**s == &e);
-            fm_assert(e.c == &c);
+            fm_assert(&e.chunk() == &c);
             count++;
         }
     fm_assert(count == _objects.size());
