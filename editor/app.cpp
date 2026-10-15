@@ -190,7 +190,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
             if (name == "help"_s || name == "list"_s)
             {
                 for (const auto& s : scenes)
-                    std::printf("%-16s%s\n", s.name.exceptPrefix("scene_"_s).data(),
+                    std::printf("%-16s%s\n", s.name.str,
                                 s.mode == driver_mode::coverage ? "coverage" : "profile");
                 std::fflush(stdout);
                 // Not std::exit(): a world is live by this point, and skipping its teardown trips
@@ -202,18 +202,18 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
             else if (name == "all"_s)
             {
                 for (const auto& s : scenes)
-                    pushnew(s.name.exceptPrefix("scene_"_s));
+                    pushnew(s.name);
             }
             else if (name == "coverage"_s || name == "profile"_s)
             {
                 const auto mode = name == "coverage"_s ? driver_mode::coverage : driver_mode::profile;
                 for (const auto& s : scenes)
                     if (s.mode == mode)
-                        pushnew(s.name.exceptPrefix("scene_"_s));
+                        pushnew(s.name);
             }
             else
             {
-                if (ranges::contains(scenes, name, [&](auto&& s) { return s.name.exceptPrefix("scene_"_s); }))
+                if (ranges::contains(scenes, name, [&](auto&& s) { return StringView{s.name}; }))
                     pushnew(name);
                 else
                 {
@@ -222,7 +222,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
                         auto err = ERR_nospace;
                         err << "invalid --scenes name '" << name << "', known scenes:";
                         for (const auto& s : scenes)
-                            err << " " << s.name.exceptPrefix("scene_"_s);
+                            err << " " << StringView{s.name};
                     }
                     std::exit(EX_USAGE);
                 }
