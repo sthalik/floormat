@@ -136,7 +136,7 @@ size_t object_storage::index_of(const object& e) const
     return (size_t)(it - es.cbegin());
 }
 
-const bptr<object>& object_storage::ptr(const object& e, size_t i) const
+const bptr<object>& object_storage::ptr(const object& e, size_t i)
 {
     const auto& es = list_for(e.type(), scenery_type_of(e))._items;
     fm_assert(i < es.size());
