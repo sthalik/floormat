@@ -51,18 +51,18 @@ void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
             if (button == mouse_button_left)
             {
                 if (auto* cl = find_clickable_scenery(*cursor.pixel))
-                {
-                    auto& e = *cl->e;
-                    const auto i = e.index();
-                    return e.can_activate(i) ? (void)e.activate(i) : void();
-                }
+                    if (auto e = w.find_object(cl->id))
+                    {
+                        const auto i = e->index();
+                        return e->can_activate(i) ? (void)e->activate(i) : void();
+                    }
             }
             // TODO it should open on mouseup if still on the same item as on mousedown
             else if (button == mouse_button_right)
                 if (auto* cl = find_clickable_scenery(*cursor.pixel))
                 {
                     _pending_popup = true;
-                    _popup_target = { .id = cl->e->id, .target = popup_target_type::scenery, };
+                    _popup_target = { .id = cl->id, .target = popup_target_type::scenery, };
                 }
             break;
         case editor_mode::floor:
@@ -107,11 +107,13 @@ void app::do_rotate(bool backward)
             backward ? ed->prev_rotation() : ed->next_rotation();
         else if (auto* cl = find_clickable_scenery(cursor.pixel))
         {
-            auto& e = *cl->e;
-            auto i = e.index();
-            auto r = backward ? e.atlas->prev_rotation_from(e.r) : e.atlas->next_rotation_from(e.r);
-            if (e.can_rotate(r))
-                e.rotate(i, r);
+            if (auto e = M->world().find_object(cl->id))
+            {
+                auto i = e->index();
+                auto r = backward ? e->atlas->prev_rotation_from(e->r) : e->atlas->next_rotation_from(e->r);
+                if (e->can_rotate(r))
+                    e->rotate(i, r);
+            }
         }
     }
 }

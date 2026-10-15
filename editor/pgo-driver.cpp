@@ -246,11 +246,11 @@ uint32_t frame_stride(uint32_t num_frames)
 Vector2i sprite_center_pixel(app& A, const object& e)
 {
     for (const auto& cl : A.main().clickable_scenery())
-        if (cl.e == &e)
+        if (cl.id == e.id)
         {
             const auto pixel = cl.dest.center();
             const auto* hit = A.find_clickable_scenery(pixel);
-            fm_assert(hit && hit->e == &e);
+            fm_assert(hit && hit->id == e.id);
             return pixel;
         }
     fm_abort("no clickable for object %zu", (size_t)e.id);
