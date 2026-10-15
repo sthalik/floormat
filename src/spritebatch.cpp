@@ -3,6 +3,7 @@
 #include "src/object.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/point.inl"
+#include "src/depth.hpp"
 #include "src/sprite-list.hpp"
 #include "main/clickable.hpp"
 #include "shaders/shader.hpp"
@@ -600,9 +601,8 @@ void SpriteBatch::emit_quick(tile_shader& shader, const anim_atlas& atlas, rotat
     shader.draw(loader.atlas().texture(), quick._mesh);
 }
 
-void SpriteBatch::add_clickable(object* obj, const tile_shader& shader, Vector2i win_size, Array<clickable>& array)
+void SpriteBatch::add_clickable(const object& s, const tile_shader& shader, Vector2i win_size, Array<clickable>& array)
 {
-    const auto& s = *obj;
     const auto& a = *s.atlas;
     const auto& g = a.group(s.r);
     const auto& f = a.frame(s.r, s.frame);
@@ -616,7 +616,8 @@ void SpriteBatch::add_clickable(object* obj, const tile_shader& shader, Vector2i
                 .src = {f.offset, f.offset + f.size},
                 .dest = {offset, offset + Vector2i(f.size)},
                 .bitmask = a.bitmask(),
-                .e = obj,
+                .id = s.id,
+                .depth = Depth::value_atʹ(s.position()),
                 .stride = a.info().pixel_size[0],
                 .mirrored = !g.mirror_from.isEmpty(),
             };

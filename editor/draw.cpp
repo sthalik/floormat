@@ -18,7 +18,6 @@
 #include "src/RTree-search.hpp"
 #include "src/spritebatch.hpp"
 #include "compat/limits.hpp"
-#include "src/depth.hpp"
 #include "src/point.inl"
 #include <bit>
 #include <mg/Color.h>
@@ -234,7 +233,7 @@ clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
 
     for (clickable& c : array)
     {
-        const uint32_t d = Depth::value_atʹ(c.e->position());
+        const uint32_t d = c.depth;
         if (d > depth && c.dest.contains(p))
         {
             // mirror inside the frame, before adding the frame's atlas offset

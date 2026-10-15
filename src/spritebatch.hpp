@@ -34,7 +34,7 @@ public:
     ArrayView<const uint32_t> merged_order() const;
     void unsort_vertex_buffer();
 
-    static void add_clickable(object* obj, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
+    static void add_clickable(const object& s, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
     void emit(const Quads::vertexes& vertexes, float depth);
     void emit(SpriteList& list, bool render_vobjs);
     void sort_by_depth(SpriteList& list);
