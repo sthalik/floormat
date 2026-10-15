@@ -82,22 +82,21 @@ void main_impl::resize_window(Vector2i size)
     app.on_viewport_event(_framebuffer_size);
 }
 
-auto main_impl::make_window_flags(const fm_settings& s) -> Configuration::WindowFlags
+auto main_impl::make_window_flags(const fm_settings& s) -> WindowFlags
 {
-    using flag = Configuration::WindowFlag;
-    Configuration::WindowFlags flags{};
+    WindowFlags flags{};
     if (s.resizable)
-        flags |= flag::Resizable;
+        flags |= WindowFlag::Resizable;
     if (s.fullscreen)
-        flags |= flag::Fullscreen;
+        flags |= WindowFlag::Fullscreen;
     if (s.fullscreen_desktop)
-        flags |= flag::FullscreenDesktop;
+        flags |= WindowFlag::FullscreenDesktop;
     if (s.borderless)
-        flags |= flag::Borderless;
+        flags |= WindowFlag::Borderless;
     if (s.maximized)
-        flags |= flag::Maximized;
+        flags |= WindowFlag::Maximized;
     if (s.minimized)
-        flags |= flag::Minimized;
+        flags |= WindowFlag::Minimized;
     return flags;
 }
 
