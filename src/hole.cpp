@@ -49,6 +49,8 @@ hole_proto::hole_proto()
     type = object_type::hole;
 }
 
+hole_proto::hole_proto(object_proto base) : object_proto{move(base)} {}
+
 hole::hole(object_id id, floormat::chunk& c, const hole_proto& proto):
     object{id, c, proto}, height{proto.height}, z_offset{proto.z_offset}, flags{proto.flags}
 {
@@ -64,8 +66,7 @@ void hole::update(const bptr<object>&, size_t&, const Ns&) {}
 
 hole::operator hole_proto() const
 {
-    hole_proto ret;
-    static_cast<object_proto&>(ret) = object_proto(*this);
+    hole_proto ret{object_proto(*this)};
     ret.height = height;
     ret.z_offset = z_offset;
     ret.flags = flags;

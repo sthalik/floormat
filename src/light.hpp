@@ -9,6 +9,7 @@ struct light_proto : object_proto
 {
     ~light_proto() noexcept override;
     light_proto();
+    explicit light_proto(object_proto base);
     light_proto(const light_proto&);
     light_proto& operator=(const light_proto&);
     light_proto(light_proto&&) noexcept;
