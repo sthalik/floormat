@@ -20,6 +20,7 @@ struct critter_proto : object_proto
     bool playable = false;
 
     critter_proto();
+    explicit critter_proto(object_proto base);
     critter_proto(const critter_proto&);
     ~critter_proto() noexcept override;
     critter_proto& operator=(const critter_proto&);
