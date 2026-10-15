@@ -8,6 +8,7 @@ struct hole_proto final : object_proto
 {
     ~hole_proto() noexcept override;
     hole_proto();
+    explicit hole_proto(object_proto base);
     hole_proto(const hole_proto&);
     hole_proto& operator=(const hole_proto&);
     hole_proto(hole_proto&&) noexcept;

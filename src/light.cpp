@@ -17,6 +17,8 @@ light_proto::light_proto()
     type = object_type::light;
 }
 
+light_proto::light_proto(object_proto base) : object_proto{move(base)} {}
+
 light_proto::~light_proto() noexcept = default;
 light_proto::light_proto(const light_proto&) = default;
 light_proto& light_proto::operator=(const light_proto&) = default;
@@ -57,8 +59,7 @@ int32_t light::depth_offset() const
 
 light::operator light_proto() const
 {
-    light_proto ret;
-    static_cast<object_proto&>(ret) = object_proto(*this);
+    light_proto ret{object_proto(*this)};
     ret.max_distance = max_distance;
     ret.radius = radius;
     ret.color = color;

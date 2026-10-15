@@ -311,6 +311,8 @@ critter_proto::critter_proto()
     atlas = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
 }
 
+critter_proto::critter_proto(object_proto base) : object_proto{move(base)} {}
+
 bool critter_proto::operator==(const object_proto& e0) const
 {
     if (type != e0.type)
@@ -495,8 +497,7 @@ object_type critter::type() const noexcept { return object_type::critter; }
 
 critter::operator critter_proto() const
 {
-    critter_proto ret;
-    static_cast<object_proto&>(ret) = object::operator object_proto();
+    critter_proto ret{object::operator object_proto()};
     ret.name = name;
     ret.speed = speed;
     ret.anim_speed = anim_speed;
