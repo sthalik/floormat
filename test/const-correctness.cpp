@@ -46,5 +46,9 @@ static_assert(same<decltype(std::declval<propagate_const<chunk*>&>().get()), chu
 static_assert(!std::is_copy_constructible_v<propagate_const<chunk*>>);
 static_assert(!std::is_copy_assignable_v<propagate_const<chunk*>>);
 
+template<typename O> concept has_parent = requires(O& o) { o.parent; };
+
+static_assert(!has_parent<object>);
+
 } // namespace
 } // namespace floormat
