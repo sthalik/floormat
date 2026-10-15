@@ -609,10 +609,10 @@ ok:     void();
     {
         string_array.reserve(vector_initial_size);
         fm_assert(!str.find('\0'));
+        Hash::set_separate_chaining_load_factor(string_map, string_map.size()+1);
         auto [pair, fresh] = string_map.try_emplace(str, (uint32_t)string_array.size());
         if (fresh)
             string_array.emplace_back(str);
-        Hash::set_separate_chaining_load_factor(string_map);
         return pair->second;
     }
 
