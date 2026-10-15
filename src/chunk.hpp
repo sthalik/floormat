@@ -75,11 +75,6 @@ public:
     void ensure_ground_mesh(SpriteBatch& sb);
     ground_atlas* ground_atlas_at(size_t i) const noexcept;
     void ensure_wall_mesh(SpriteBatch& sb);
-
-    SpriteList scenery_static_mesh;
-    SpriteList wall_static_mesh;
-    SpriteList ground_static_mesh;
-
     void ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs);
     void add_clickables(const tile_shader& shader, Vector2i win_size, Array<clickable>& array, bool draw_vobjs);
 
@@ -123,6 +118,9 @@ public:
     };
 
 private:
+    SpriteList scenery_static_mesh;
+    SpriteList wall_static_mesh;
+    SpriteList ground_static_mesh;
     Pointer<ground_stuff> _ground;
     Pointer<wall_stuff> _walls;
     object_storage _objects;
