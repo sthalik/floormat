@@ -35,8 +35,55 @@ struct astar::frontier
     uint32_t g_score = (uint32_t)-1;
 };
 
+// One bucket per f modulo bucket_count, LIFO within a bucket. Pops in f order only while
+// every live f lies less than bucket_count above the lowest.
+struct astar::bucket_queue
+{
+    static constexpr uint32_t mask = bucket_count - 1;
+    // B[i].size() is the capacity. arrayRemoveSuffix() doesn't inline, so pop() would be a call.
+    std::array<Array<frontier>, bucket_count>& B;
+    std::array<uint32_t, bucket_count> sizes{};
+    uint32_t cur = 0, hi = 0, count = 0;
+
+    bool empty() const { return count == 0; }
+
+    static CORRADE_NEVER_INLINE void grow(Array<frontier>& b)
+    {
+        arrayResize(b, NoInit, Math::max(b.size()*2, 64uz));
+    }
+
+    CORRADE_ALWAYS_INLINE void push(uint32_t id, uint32_t f, uint32_t g)
+    {
+        if (count == 0)
+            cur = hi = f;
+        else if (f < cur) // a seed below the earlier ones, or the goal hop: octile h exceeds point::distance() by up to 1
+            cur = f;
+        else if (f > hi)
+            hi = f;
+        fm_debug3_assert(hi - cur < bucket_count);
+        auto& b = B[f & mask];
+        auto& n = sizes[f & mask];
+        if (n == b.size()) [[unlikely]]
+            grow(b);
+        b.data()[n++] = frontier{ .node = id, .f_score = f, .g_score = g, };
+        count++;
+    }
+
+    CORRADE_ALWAYS_INLINE frontier pop()
+    {
+        while (sizes[cur & mask] == 0)
+            cur++;
+        const auto i = cur & mask;
+        const auto n = B[i].data()[--sizes[i]];
+        count--;
+        fm_debug3_assert(n.f_score == cur);
+        return n;
+    }
+};
+
 using visited = astar::visited;
 using frontier = astar::frontier;
+using bucket_queue = astar::bucket_queue;
 using Search::div_size;
 using Search::div_factor;
 using Search::min_size;
@@ -93,16 +140,6 @@ constexpr auto directions = []() constexpr
     return array;
 }();
 
-struct heap_comparator
-{
-    static bool operator()(frontier a, frontier b)
-    {
-        const auto ka = (uint64_t{a.f_score} << 32) | uint64_t{~a.g_score};
-        const auto kb = (uint64_t{b.f_score} << 32) | uint64_t{~b.g_score};
-        return ka > kb;
-    }
-};
-
 void set_result_from_idx(path_search_result& result,
                          Array<point>& temp_nodes, const Array<visited>& nodes,
                          point from, point to, const uint32_t idx)
@@ -128,20 +165,6 @@ void set_result_from_idx(path_search_result& result,
     std::reverse(temp_nodes.begin(), temp_nodes.end());
     simplify_path(temp_nodes, result.raw_path());
     arrayClear(temp_nodes);
-}
-
-void add_to_heap(Array<frontier>& Q, uint32_t id, uint32_t f_score, uint32_t g_score)
-{
-    arrayAppend(Q, frontier { .node = id, .f_score = f_score, .g_score = g_score, });
-    std::push_heap(Q.begin(), Q.end(), heap_comparator{});
-}
-
-frontier pop_from_heap(Array<frontier>& Q)
-{
-    std::pop_heap(Q.begin(), Q.end(), heap_comparator{});
-    const auto n = Q.back();
-    arrayRemoveSuffix(Q);
-    return n;
 }
 
 // One bitmap pointer per chunk of the cache rectangle. Nothing marks a grid stale
@@ -227,7 +250,7 @@ bool is_passable_swept(chunk_bitmaps& bm, point a, point b)
 template<bool IsDiagonal, int Debug>
 CORRADE_ALWAYS_INLINE
 void do_dir(chunk_bitmaps& bm, Search::cache& cache,
-            Array<visited>& nodes, Array<frontier>& Q,
+            Array<visited>& nodes, bucket_queue& Q,
             const astar::heuristic& h,
             dir_step dirs,
             point to, point cur_pt,
@@ -278,7 +301,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
         << " pos:" << Vector3i(new_pt.coord())
         << ";" << new_pt.offset();
 
-    add_to_heap(Q, new_idx, f_score, dist);
+    Q.push(new_idx, f_score, dist);
 };
 
 } // namespace
@@ -294,13 +317,11 @@ astar::~astar() noexcept = default;
 void astar::reserve(size_t capacity)
 {
     arrayReserve(nodes, capacity);
-    arrayReserve(Q, capacity);
 }
 
 void astar::clear()
 {
     arrayResize(nodes, 0);
-    arrayResize(Q, 0);
 }
 
 Search::cache* astar::cache() { return &*_cache; }
@@ -328,6 +349,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         timeline.start();
 
     clear();
+    auto Q = bucket_queue{buckets};
 
     if (from.coord().z() != to.coord().z()) [[unlikely]]
         return {};
@@ -400,7 +422,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             arrayAppend(nodes, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
             uint32_t f_score = dist + h(pt, to);
             if (dist < max_dist && f_score < max_dist)
-                add_to_heap(Q, idx, f_score, dist);
+                Q.push(idx, f_score, dist);
         }
     }
 
@@ -423,9 +445,9 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     auto goal_idx = (uint32_t)-1;
     auto to_idx = (uint32_t)-1;
 
-    while (!Q.isEmpty())
+    while (!Q.empty())
     {
-        const auto front = pop_from_heap(Q);
+        const auto front = Q.pop();
         const auto cur_idx = front.node;
         point cur_pt;
         uint32_t cur_dist;
@@ -466,14 +488,14 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
                 {
                     to_idx = (uint32_t)nodes.size();
                     arrayAppend(nodes, visited{ .dist = new_dist, .prev = cur_idx, .pt = to, });
-                    add_to_heap(Q, to_idx, new_dist, new_dist);
+                    Q.push(to_idx, new_dist, new_dist);
                 }
                 else if (new_dist < nodes[to_idx].dist)
                 {
                     auto& tn = nodes[to_idx];
                     tn.dist = new_dist;
                     tn.prev = cur_idx;
-                    add_to_heap(Q, to_idx, new_dist, new_dist);
+                    Q.push(to_idx, new_dist, new_dist);
                 }
             }
         }
@@ -539,8 +561,6 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             std::fflush(stdout);
         }
     }
-
-    arrayResize(Q, 0);
 
     return result;
 }
