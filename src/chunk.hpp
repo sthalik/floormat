@@ -48,7 +48,8 @@ public:
     Optional<const_tile_ref> at_offset(local_coords pos, Vector2i off) const;
     Optional<const_tile_ref> at_offset(const_tile_ref r, Vector2i off) const;
 
-    bool empty(bool force = false) const noexcept;
+    bool empty() const noexcept;
+    bool empty(bool force) noexcept;
 
     explicit chunk(class world& w, chunk_coords_ ch) noexcept;
     ~chunk() noexcept;
@@ -133,12 +134,12 @@ private:
     chunk_coords_ _coord;
     uint64_t _pass_gen;
 
-    mutable bool _maybe_empty      : 1 = true,
-                 _ground_modified  : 1 = true,
-                 _walls_modified   : 1 = true,
-                 _scenery_modified : 1 = true,
-                 _pass_modified    : 1 = true,
-                 _teardown         : 1 = false;
+    bool _maybe_empty      : 1 = true,
+         _ground_modified  : 1 = true,
+         _walls_modified   : 1 = true,
+         _scenery_modified : 1 = true,
+         _pass_modified    : 1 = true,
+         _teardown         : 1 = false;
 
     void add_object(const bptr<object>& e);
     void add_object_pre(const bptr<object>& e);

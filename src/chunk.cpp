@@ -7,6 +7,7 @@
 #include "compat/non-const.hpp"
 #include "ground-atlas.hpp"
 #include <cr/Optional.h>
+#include <utility>
 
 namespace floormat {
 
@@ -16,17 +17,23 @@ size_t _reload_no_ = 0; // NOLINT
 
 } // namespace
 
-bool chunk::empty(bool force) const noexcept
+bool chunk::empty() const noexcept
 {
-    if (!force && !_maybe_empty) [[likely]]
-        return false;
     if (!_objects.empty())
-        return _maybe_empty = false;
+        return false;
     for (auto i = 0uz; i < TILE_COUNT; i++)
         if (_ground && _ground->atlases[i] ||
             _walls && (_walls->atlases[i*2+0] || _walls->atlases[i*2+1]))
-            return _maybe_empty = false;
+            return false;
     return true;
+}
+
+bool chunk::empty(bool force) noexcept
+{
+    if (!force && !_maybe_empty) [[likely]]
+        return false;
+    _maybe_empty = std::as_const(*this).empty();
+    return _maybe_empty;
 }
 
 ground_atlas* chunk::ground_atlas_at(size_t i) const noexcept { return _ground ? _ground->atlases[i].get() : nullptr; }
@@ -69,6 +76,7 @@ void chunk::mark_ground_modified() noexcept
     if (!_ground_modified && is_log_verbose()) [[unlikely]]
         fm_debug("ground reload %zu", ++_reload_no_);
     _ground_modified = true;
+    _maybe_empty = true;
     mark_passability_modified();
 }
 
@@ -77,6 +85,7 @@ void chunk::mark_walls_modified() noexcept
     if (!_walls_modified && is_log_verbose()) [[unlikely]]
         fm_debug("wall reload %zu", ++_reload_no_);
     _walls_modified = true;
+    _maybe_empty = true;
     mark_passability_modified();
 }
 
@@ -191,6 +200,7 @@ void chunk::remove_object(const object& e, size_t i)
     const bool upd_walls = e.updates_walls();
     if (!dyn)
         mark_scenery_modified();
+    _maybe_empty = true;
 
     if (e.type() == object_type::light)
     {
