@@ -6,6 +6,7 @@
 #include "wall-editor.hpp"
 #include "keys.hpp"
 #include "tests-private.hpp"
+#include "mazes.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
 #include "loader/wall-cell.hpp"
@@ -89,8 +90,9 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_walk, profile),
         FM_SCENE(scene_slide, profile),
         FM_SCENE(scene_npcs, profile),
-        FM_SCENE(scene_maze, profile),
+        FM_SCENE(scene_maze1, profile),
         FM_SCENE(scene_maze2, profile),
+        FM_SCENE(scene_maze3, profile),
         FM_SCENE(scene_raycast, profile),
         FM_SCENE(scene_object_ids, profile),
         FM_SCENE(scene_grids, profile),
@@ -956,14 +958,14 @@ task app::scene_slide()
 // The maze's own check, kept apart from the ray sweep because it never had anything to do with
 // it. Dijkstra<1> prints len/len0/ratio: a ratio near 1 would mean the carve left a straight shot
 // open and the dead ends cost A* nothing.
-task app::scene_maze()
+task app::scene_maze1()
 {
     // A tour of the four corner cells rather than one diagonal. Each leg is a search in its own
     // right, and the two that run along an edge have the shortest straight line against the same
     // snake corridor, so octile_distance tells A* the least about those.
     constexpr uint32_t num_legs = 4;
 
-    populate_scene_maze();
+    populate_scene_maze1();
     auto& w = M->world();
     auto C = ensure_player_character(w);
     center_camera_on(C->position());
@@ -979,9 +981,9 @@ task app::scene_maze()
         // Same partial-route trap as scene_walk.
         if (!res.is_found())
         {
-            ERR_nospace << "driver: maze has no path " << from << " -> " << to
+            ERR_nospace << "driver: maze1 has no path " << from << " -> " << to
                         << ", closest " << res.distance() << " px over " << res.size() << " waypoints";
-            fm_abort("%s", "maze: unroutable");
+            fm_abort("%s", "maze1: unroutable");
         }
 
         // The search is the whole scene, so without this it renders two frames several seconds
@@ -1203,6 +1205,42 @@ task app::scene_maze2()
     // and the window reads as hung. Panning the route also runs the draw path across the world
     // that was just searched, which one centered frame never does.
     co_await pan_along_path(res.path());
+}
+
+// The maps of floormat-benchmark's Dijkstra_Rooms/Braid/Prim, side by side. Each is searched
+// between its endpoints with a max_dist that prunes nothing.
+task app::scene_maze3()
+{
+    using mazes::kind;
+    constexpr auto n = (uint32_t)kind::COUNT;
+    auto& w = M->world();
+    auto& pool = M->astar().pass_pool_registry().pool_for(mazes::bbox_size);
+    mazes::route routes[n];
+    for (auto k = 0u; k < n; k++)
+    {
+        const auto x = (int16_t)(k*(uint32_t)(mazes::map_chunks + 1));
+        routes[k] = mazes::build(w, kind(k), chunk_coords_{x, 0, 0}, pool);
+    }
+    auto C = ensure_player_character(w);
+
+    for (auto k = 0u; k < n; k++)
+    {
+        const auto& r = routes[k];
+        auto index = C->index();
+        C->teleport_to(index, r.from.coord(), r.from.offset(), rotation_COUNT);
+        center_camera_on(r.from);
+        co_yield {};
+
+        auto res = M->astar().Dijkstra<1>(w, r.from, r.to, r.max_dist, Vector2ui{mazes::bbox_size},
+                                          Search::without_critters());
+        if (!res.is_found())
+        {
+            ERR_nospace << "driver: maze3 " << mazes::name(kind(k)) << " has no path "
+                        << r.from << " -> " << r.to << ", closest " << res.distance() << " px";
+            fm_abort("%s", "maze3: unroutable");
+        }
+        co_await pan_along_path(res.path());
+    }
 }
 
 // Nothing else in the driver runs the lightmap. do_lightmap_test() keys off tested_light_chunk

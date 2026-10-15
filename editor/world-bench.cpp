@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "pgo-scenes.hpp"
+#include "mazes.hpp"
 #include "src/world.hpp"
 #include "src/object-storage.inl"
 #include "src/hole.hpp"
@@ -11,6 +12,8 @@
 #include "src/ground-atlas.hpp"
 #include "src/tile-image.hpp"
 #include "src/grid.hpp"
+#include "src/grid-pass-pool.hpp"
+#include "src/search-astar.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "src/timer.hpp"
@@ -1128,7 +1131,7 @@ void app::populate_scene_diagonal(uint8_t half_width)
     M->reset_fps();
 }
 
-// The four corner cells in cycle order, so leg k of scene_maze's tour runs corner k to corner
+// The four corner cells in cycle order, so leg k of scene_maze1's tour runs corner k to corner
 // k+1 and the last one closes back onto the first.
 point app::maze_corner(uint32_t k)
 {
@@ -1162,6 +1165,17 @@ void app::populate_scene_maze2()
     // the critter only has to sit where the camera does.
     C->teleport_to(index, maze2_cell_point(maze2_dim/2 * (maze2_dim + 1)).coord(),
                    Vector2b{}, rotation_COUNT);
+    M->reset_fps();
+}
+
+void app::populate_scene_maze3(mazes::kind k)
+{
+    auto& w = M->world();
+    auto& pool = M->astar().pass_pool_registry().pool_for(mazes::bbox_size);
+    const auto r = mazes::build(w, k, {}, pool);
+    auto C = ensure_player_character(w);
+    auto index = C->index();
+    C->teleport_to(index, r.from.coord(), r.from.offset(), rotation_COUNT);
     M->reset_fps();
 }
 
@@ -1210,14 +1224,14 @@ void app::add_grid_pin(uint32_t n)
     w.make_scenery(w.make_id(), pt.coord(), move(p));
 }
 
-void app::populate_scene_maze()
+void app::populate_scene_maze1()
 {
     auto& w = M->world();
     generate_scene(w, 0, 0, false);
     build_maze(w, generate_maze(maze_dim, maze_seed), maze_dim, bench_chunk_min, bench_chunk_max);
     auto C = ensure_player_character(w);
     auto index = C->index();
-    // The middle cell. scene_maze's tour passes maze_corner(k) to Dijkstra itself, so the critter
+    // The middle cell. scene_maze1's tour passes maze_corner(k) to Dijkstra itself, so the critter
     // only has to sit where the camera does.
     C->teleport_to(index, maze_cell_point(maze_dim/2, maze_dim/2).coord(),
                    Vector2b{}, rotation_COUNT);
