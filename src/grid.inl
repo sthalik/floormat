@@ -17,7 +17,7 @@ struct Pool : PoolBase
     T* take(chunk& ch) requires BitGrid<T>;
 };
 
-inline GridBase* PoolBase::find(const chunk& c) const noexcept
+inline GridBase* PoolBase::find(chunk& c) const noexcept
 {
     if (!c._grid_slots)
         return nullptr;
