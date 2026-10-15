@@ -13,6 +13,7 @@
 #include "compat/function2.hpp"
 #include <cstdio>
 #include <algorithm>
+#include <bit>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -143,10 +144,64 @@ frontier pop_from_heap(Array<frontier>& Q)
     return n;
 }
 
-bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
-                       point a, point b, const astar::pred& p)
+// One bitmap pointer per chunk of the cache rectangle. Nothing marks a grid stale
+// during a search, so a pointer stays valid until it ends. Null: not resolved, or no chunk.
+struct chunk_bitmaps
 {
-    const int div = (int)pool.params().div_size();
+    world& w;
+    Grid::Pass::Pool& pool;
+    Search::cache& cache;
+    const astar::pred& p;
+    const uint8_t** bits;
+    uint32_t div_size, div_shift, div_count;
+
+    CORRADE_ALWAYS_INLINE bool test_bit(const uint8_t* b, point pt) const
+    {
+        Vector2ui pos{NoInit}; (void)pos;
+        if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
+            pos = Vector2ui(Vector2i(intra_coord{pt})) >> div_shift;
+        else
+            pos = Vector2ui(Vector2i(intra_coord{pt})) / div_size;
+        const auto i = pos.y() * div_count + pos.x();
+        return b[i >> 3] & (1u << (i & 7));
+    }
+
+    CORRADE_NEVER_INLINE bool is_passable_slow(point pt, size_t chunk_idx)
+    {
+        if (auto* c = w.at(pt.chunk3()))
+        {
+            auto grid = pool[*c];
+            grid.build_if_stale(p);
+            const auto* b = grid.bits().data;
+            bits[chunk_idx] = b;
+            return test_bit(b, pt);
+        }
+        return cache.is_passable_for_bbox(w, pool, pt, p);
+    }
+
+    CORRADE_ALWAYS_INLINE bool is_passable(point pt, size_t chunk_idx)
+    {
+        if (const auto* b = bits[chunk_idx]) [[likely]]
+            return test_bit(b, pt);
+        return is_passable_slow(pt, chunk_idx);
+    }
+
+    CORRADE_ALWAYS_INLINE bool is_passable(point pt)
+    {
+        return is_passable(pt, cache.get_chunk_index(Vector2i(pt.chunk())));
+    }
+
+    CORRADE_ALWAYS_INLINE bool is_passable_diag(point a, point b, Vector2i vec, size_t b_chunk_idx)
+    {
+        return is_passable(b, b_chunk_idx)
+            && is_passable(a + Vector2i{vec.x(), 0})
+            && is_passable(a + Vector2i{0, vec.y()});
+    }
+};
+
+bool is_passable_swept(chunk_bitmaps& bm, point a, point b)
+{
+    const int div = (int)bm.div_size;
 
     const Vector2i a_pix = Vector2i(intra_coord{a});
     const Vector2i b_pix = a_pix + (b - a);
@@ -163,7 +218,7 @@ bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
         {
             const Vector2i cell_pix = Vector2i{ix, iy}*div + Vector2i{div/2};
             const auto pt_in_cell = point::normalize_coords(a, cell_pix - a_pix);
-            if (!cache.is_passable_for_bbox(w, pool, pt_in_cell, p))
+            if (!bm.is_passable(pt_in_cell))
                 return false;
         }
     return true;
@@ -171,9 +226,9 @@ bool is_passable_swept(world& w, Search::cache& cache, Grid::Pass::Pool& pool,
 
 template<bool IsDiagonal, int Debug>
 CORRADE_ALWAYS_INLINE
-void do_dir(world& w, Grid::Pass::Pool& pool, Search::cache& cache,
+void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             Array<visited>& nodes, Array<frontier>& Q,
-            const astar::pred& p, const astar::heuristic& h,
+            const astar::heuristic& h,
             dir_step dirs,
             point to, point cur_pt,
             uint32_t cur_idx, uint32_t cur_dist,
@@ -195,8 +250,8 @@ void do_dir(world& w, Grid::Pass::Pool& pool, Search::cache& cache,
         if (nodes[new_idx].dist <= dist)
             return;
 
-    if (IsDiagonal ? !cache.is_passable_between_diag(w, pool, cur_pt, new_pt, p)
-                   : !cache.is_passable_for_bbox(w, pool, new_pt, p))
+    if (IsDiagonal ? !bm.is_passable_diag(cur_pt, new_pt, vec, chunk_idx)
+                   : !bm.is_passable(new_pt, chunk_idx))
         return;
 
     if (new_idx == (uint32_t)-1)
@@ -349,6 +404,20 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         }
     }
 
+    const auto nchunks = (size_t)cache.size.product();
+    if (chunk_bits.size() < nchunks)
+        chunk_bits = Array<const uint8_t*>{ValueInit, nchunks};
+    else
+        std::fill_n(chunk_bits.data(), nchunks, nullptr);
+
+    auto bm = chunk_bitmaps{
+        .w = w, .pool = pool, .cache = cache, .p = p,
+        .bits = chunk_bits.data(),
+        .div_size = params.div_size(),
+        .div_shift = (uint32_t)std::countr_zero(params.div_size()),
+        .div_count = params.div_count,
+    };
+
     auto closest_dist_sq = (uint64_t)-1;
     uint32_t closest_idx = (uint32_t)-1;
     auto goal_idx = (uint32_t)-1;
@@ -390,7 +459,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
 
         if (goal_dist_sq <= goal_thres_sq) [[unlikely]]
         {
-            if (is_passable_swept(w, cache, pool, cur_pt, to, p))
+            if (is_passable_swept(bm, cur_pt, to))
             {
                 const auto new_dist = cur_dist + point::distance(cur_pt, to);
                 if (to_idx == (uint32_t)-1)
@@ -413,8 +482,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         {
             const auto d1 = directions.data()[i + 0],
                        d2 = directions.data()[i + 1];
-            do_dir<1, Debug>(w, pool, cache, nodes, Q, p, h, d1, to, cur_pt, cur_idx, cur_dist, max_dist);
-            do_dir<0, Debug>(w, pool, cache, nodes, Q, p, h, d2, to, cur_pt, cur_idx, cur_dist, max_dist);
+            do_dir<1, Debug>(bm, cache, nodes, Q, h, d1, to, cur_pt, cur_idx, cur_dist, max_dist);
+            do_dir<0, Debug>(bm, cache, nodes, Q, h, d2, to, cur_pt, cur_idx, cur_dist, max_dist);
         }
     }
 
