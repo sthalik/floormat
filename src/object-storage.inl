@@ -2,6 +2,7 @@
 #include "object-storage.hpp"
 #include "compat/assert.hpp"
 #include "compat/non-const.hpp"
+#include <utility>
 
 namespace floormat {
 
@@ -102,6 +103,12 @@ void object_storage::for_each_list(this Self& self, F&& fn)
 template<typename C>
 object_list<C>& object_storage::list() noexcept
 {
+    return non_const(std::as_const(*this).template list<C>());
+}
+
+template<typename C>
+const object_list<C>& object_storage::list() const noexcept
+{
     if constexpr (std::is_same_v<C, generic_scenery>)
         return _generic;
     else if constexpr (std::is_same_v<C, door_scenery>)
@@ -115,12 +122,6 @@ object_list<C>& object_storage::list() noexcept
         static_assert(std::is_same_v<C, hole>, "not a final object class");
         return _hole;
     }
-}
-
-template<typename C>
-const object_list<C>& object_storage::list() const noexcept
-{
-    return non_const(*this).list<C>();
 }
 
 template<typename T, typename... Ts, object_visitor<T, Ts...> F>

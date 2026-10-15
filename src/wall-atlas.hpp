@@ -115,7 +115,7 @@ class wall_atlas final : public bptr_base
     String _path;
     std::array<DirArrayIndex, Wall::Direction_COUNT> _direction_map;
 
-    Direction* get_Direction(Direction_ num) const;
+    const Direction* get_Direction(Direction_ num) const;
 
 public:
     fm_DEFAULT_MOVE_(wall_atlas);

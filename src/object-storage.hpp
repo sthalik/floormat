@@ -114,6 +114,7 @@ class object_storage final
     object_list_base& list_for(object_type type, scenery_type sc_type) noexcept;
     const object_list_base& list_for(object_type type, scenery_type sc_type) const noexcept;
     const object_list_base* list_at(uint32_t k) const noexcept;
+    const bptr<object>& item_at(uint32_t i) const noexcept;
 
     [[nodiscard]] size_t insert(const bptr<object>& e);
     void append(const bptr<object>& e);
