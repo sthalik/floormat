@@ -5,6 +5,8 @@
 #include <random>
 #include <algorithm>
 #include <map>
+#include <memory>
+#include <tuple>
 #include <cr/ArrayView.h>
 #include <benchmark/benchmark.h>
 
@@ -238,6 +240,142 @@ void chunk_args(benchmark::Benchmark* b)
     b->Unit(benchmark::kNanosecond);
 }
 
+// Models chunk::ensure_scenery_mesh. Each chunk closes two runs: its dynamic objects, sorted by
+// end_chunk<true>, then scenery_static_mesh, already sorted. Chunk (cx, cy) spans depths
+// [(cx+cy)*W, (cx+cy+2)*W), so chunks on one anti-diagonal overlap fully and adjacent
+// anti-diagonals by half. Even runs are dynamic, odd ones static.
+std::vector<std::vector<float>> make_mixed(uint32_t g, uint32_t s, uint32_t d, uint32_t seed)
+{
+    constexpr float W = 1024;
+    auto rng = std::mt19937{seed};
+    auto dist = std::uniform_real_distribution<float>{0, W};
+    auto runs = std::vector<std::vector<float>>{};
+    for (auto cy = 0u; cy < g; cy++)
+        for (auto cx = 0u; cx < g; cx++)
+        {
+            const auto base = (float)(cx + cy) * W;
+            auto& dyn = runs.emplace_back(d);
+            for (auto& x : dyn)
+                x = base + dist(rng) + dist(rng);
+            auto& stat = runs.emplace_back(s);
+            for (auto& x : stat)
+                x = base + dist(rng) + dist(rng);
+            std::ranges::sort(stat);
+        }
+    return runs;
+}
+
+struct mixed_fixture
+{
+    std::vector<std::vector<float>> runs;
+    std::vector<float> flat;
+    double streak;
+};
+
+mixed_fixture make_mixed_fixture(uint32_t g, uint32_t s, uint32_t d, uint32_t seed)
+{
+    auto f = mixed_fixture{make_mixed(g, s, d, seed), {}, 0};
+    f.flat = flatten(f.runs);
+    // The merge reads the dynamic runs after end_chunk<true> has sorted them.
+    auto sorted = f.runs;
+    for (auto i = 0u; i < sorted.size(); i += 2)
+        std::ranges::sort(sorted[i]);
+    f.streak = streak_rate(sorted);
+    return f;
+}
+
+const std::vector<mixed_fixture>& get_mixed_fixtures(benchmark::State& state)
+{
+    static std::map<std::tuple<uint32_t, uint32_t, uint32_t>, std::vector<mixed_fixture>> cache;
+    const auto g = (uint32_t)state.range(0), s = (uint32_t)state.range(1), d = (uint32_t)state.range(2);
+    const auto count = (uint32_t)state.range(3);
+    const auto key = std::tuple{g, s, d};
+    for (auto i = (uint32_t)cache[key].size(); i < count; i++)
+        cache[key].push_back(make_mixed_fixture(g, s, d, 0x9e3779b9u + i));
+    return cache[key];
+}
+
+void fill_mixed(SpriteBatch& sb, const std::vector<std::vector<float>>& runs, bool merge)
+{
+    sb.clear();
+    for (auto i = 0u; i < runs.size(); i++)
+    {
+        const auto& run = runs[i];
+        sb.begin_chunk((uint32_t)run.size());
+        for (float d : run)
+            sb.emit(dummy_quad, d);
+        if (i % 2 == 0)
+            sb.end_chunk<true>();
+        else
+            sb.end_chunk<false>();
+    }
+    if (merge)
+        sb.sort_vertex_buffer(true);
+}
+
+void run_mixed(benchmark::State& state, bool merge)
+{
+    const auto& fs = get_mixed_fixtures(state);
+    const auto nf = (uint32_t)state.range(3);
+    auto sb = SpriteBatch{};
+
+    for (auto i = 0u; i < nf; i++)
+    {
+        fill_mixed(sb, fs[i].runs, merge);
+        if (merge && !check_order(state, sb, fs[i].flat))
+            return;
+    }
+
+    auto i = 0u;
+    for (auto _ : state)
+    {
+        fill_mixed(sb, fs[i].runs, merge);
+        benchmark::DoNotOptimize(sb.merged_order().data());
+        i = i + 1 == nf ? 0 : i + 1;
+    }
+    state.counters["quads"] = (double)fs[0].flat.size();
+    state.counters["streak"] = fs[0].streak;
+}
+
+// One batch per input, so taking inputs in turn needs no refill inside the timed loop.
+void run_mixed_merge(benchmark::State& state)
+{
+    const auto& fs = get_mixed_fixtures(state);
+    const auto nf = (uint32_t)state.range(3);
+    auto sbs = std::make_unique<SpriteBatch[]>(nf);
+
+    for (auto i = 0u; i < nf; i++)
+    {
+        fill_mixed(sbs[i], fs[i].runs, true);
+        if (!check_order(state, sbs[i], fs[i].flat))
+            return;
+        sbs[i].unsort_vertex_buffer();
+    }
+
+    auto i = 0u;
+    for (auto _ : state)
+    {
+        sbs[i].sort_vertex_buffer(true);
+        benchmark::DoNotOptimize(sbs[i].merged_order().data());
+        sbs[i].unsort_vertex_buffer();
+        i = i + 1 == nf ? 0 : i + 1;
+    }
+    state.counters["quads"] = (double)fs[0].flat.size();
+    state.counters["streak"] = fs[0].streak;
+}
+
+void mixed_args(benchmark::Benchmark* b)
+{
+    b->ArgNames({"g", "s", "d", "f"});
+    for (auto f : {1, 16})
+        for (auto g : {5, 8})
+        {
+            b->Args({g, 64, 8, f});
+            b->Args({g, 256, 32, f});
+        }
+    b->Unit(benchmark::kMicrosecond);
+}
+
 // The fixtures above reach SpriteBatch through the per-quad emit. emit(SpriteList&) is what
 // ground, walls and scenery actually call every frame, and nothing else covers it.
 SpriteList& get_list_fixture(uint32_t m)
@@ -341,6 +479,21 @@ void SpriteBatch_Frame(benchmark::State& state)
     run_chunks(state, true, true);
 }
 
+void SpriteBatch_Mixed(benchmark::State& state)
+{
+    run_mixed(state, true);
+}
+
+void SpriteBatch_Mixed_SortOnly(benchmark::State& state)
+{
+    run_mixed(state, false);
+}
+
+void SpriteBatch_MixedMerge(benchmark::State& state)
+{
+    run_mixed_merge(state);
+}
+
 // What ground and walls do: every Objects entry is null, so the filter never reaches is_virtual().
 void SpriteBatch_Emit_List(benchmark::State& state)
 {
@@ -360,6 +513,10 @@ BENCHMARK(SpriteBatch_Merge_Skipped)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::
 BENCHMARK(SpriteBatch_Chunk_Sorted)->Apply(chunk_args);
 BENCHMARK(SpriteBatch_Chunk_Unsorted)->Apply(chunk_args);
 BENCHMARK(SpriteBatch_Frame)->Apply(chunk_args);
+
+BENCHMARK(SpriteBatch_Mixed)->Apply(mixed_args);
+BENCHMARK(SpriteBatch_Mixed_SortOnly)->Apply(mixed_args);
+BENCHMARK(SpriteBatch_MixedMerge)->Apply(mixed_args);
 
 BENCHMARK(SpriteBatch_Emit_List)->Apply(list_args);
 BENCHMARK(SpriteBatch_Emit_List_Vobjs)->Apply(list_args);
