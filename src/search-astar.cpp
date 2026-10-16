@@ -185,15 +185,20 @@ struct chunk_bitmaps
     const uint8_t** bits;
     uint32_t div_size, div_shift, div_count;
 
-    CORRADE_ALWAYS_INLINE bool test_bit(const uint8_t* b, point pt) const
+    CORRADE_ALWAYS_INLINE bool test_bit(const uint8_t* b, Vector2ui pix) const
     {
         Vector2ui pos{NoInit}; (void)pos;
         if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
-            pos = Vector2ui(Vector2i(intra_coord{pt})) >> div_shift;
+            pos = pix >> div_shift;
         else
-            pos = Vector2ui(Vector2i(intra_coord{pt})) / div_size;
+            pos = pix / div_size;
         const auto i = pos.y() * div_count + pos.x();
         return b[i >> 3] & (1u << (i & 7));
+    }
+
+    CORRADE_ALWAYS_INLINE bool test_bit(const uint8_t* b, point pt) const
+    {
+        return test_bit(b, Vector2ui(Vector2i(intra_coord{pt})));
     }
 
     CORRADE_NEVER_INLINE const uint8_t* resolve(point pt, size_t chunk_idx)
@@ -213,16 +218,43 @@ struct chunk_bitmaps
         return cache.is_passable_for_bbox(w, pool, pt, p);
     }
 
-    // Bit (dy+1)*3 + dx+1 is the cell (dx, dy) cells away from pt's. 0 on the chunk edge,
-    // where a neighbour can lie in another chunk. Needs div_size == Search::div_size.
+    // Next to the chunk edge, the neighbours lie in up to three other chunks. 0 while one of
+    // their bitmaps is unresolved: resolving it here could build a grid that no move reads.
+    CORRADE_NEVER_INLINE uint32_t window_edge(point pt, Vector2i pix)
+    {
+        constexpr int cs = (int)chunk_size_xy, step = Search::div_size.x();
+        const auto ch = Vector2i(pt.chunk());
+        Vector2i chunk[3];
+        Vector2ui pos[3];
+        for (int k = 0; k < 3; k++)
+        {
+            const auto q = pix + Vector2i{(k - 1)*step};
+            const auto off = Vector2i{floor_div(q.x(), cs), floor_div(q.y(), cs)};
+            chunk[k] = ch + off;
+            pos[k] = Vector2ui(q - off*cs);
+        }
+        uint32_t win = 0;
+        for (int r = 0; r < 3; r++)
+            for (int c = 0; c < 3; c++)
+            {
+                const auto* b = bits[cache.get_chunk_index({chunk[c].x(), chunk[r].y()})];
+                if (!b)
+                    return 0;
+                win |= (uint32_t)test_bit(b, Vector2ui{pos[c].x(), pos[r].y()}) << (r*3 + c);
+            }
+        return win;
+    }
+
+    // Bit (dy+1)*3 + dx+1 is the cell (dx, dy) cells away from pt's. Needs div_size == Search::div_size.
     CORRADE_ALWAYS_INLINE uint32_t window(point pt)
     {
         constexpr auto dc = chunk_size_xy / (uint32_t)Search::div_size.x();
         static_assert(dc == 64, "a row is one uint64_t");
         fm_debug3_assert(div_count == dc);
-        const auto cell = Vector2ui(Vector2i(intra_coord{pt})) / (uint32_t)Search::div_size.x();
-        if (cell.x() - 1 >= dc - 2 || cell.y() - 1 >= dc - 2)
-            return 0;
+        const auto pix = Vector2i(intra_coord{pt});
+        const auto cell = Vector2ui(pix) / (uint32_t)Search::div_size.x();
+        if (cell.x() - 1 >= dc - 2 || cell.y() - 1 >= dc - 2) [[unlikely]]
+            return window_edge(pt, pix);
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
         const auto* b = bits[chunk_idx];
         if (!b) [[unlikely]]
