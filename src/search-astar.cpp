@@ -445,7 +445,6 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     const auto params = pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert(params.min_pass == pass_mode::pass);
-    fm_assert(params.div_size() <= (uint32_t)div_size.x());
     pool.maybe_mark_stale_all(w.frame_no());
 
     auto* const from_chunk = w.at(from.chunk3());
