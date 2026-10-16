@@ -12,6 +12,7 @@
 #include "compat/format.hpp"
 #include "compat/function2.hpp"
 #include <cstdio>
+#include <cstring>
 #include <algorithm>
 #include <bit>
 #include <cr/GrowableArray.h>
@@ -116,23 +117,29 @@ void simplify_path(ArrayView<const point> src, Array<point>& dest)
         arrayAppend(dest, src.back());
 }
 
-struct dir_step { Vector2i dir; uint32_t len; };
+struct dir_step { Vector2i dir; uint32_t len, window_mask; };
+
+constexpr uint32_t window_mask(int dx, int dy)
+{
+    const auto bit = [](int x, int y) { return 1u << ((y + 1)*3 + x + 1); };
+    return bit(dx, dy) | (dx && dy ? bit(dx, 0) | bit(0, dy) : 0u);
+}
 
 constexpr auto directions = []() constexpr
 {
     constexpr auto len1 = div_size;
     constexpr auto len2 = (uint32_t)(len1.length() + 1.f); // NOLINT
     std::array<dir_step, 8> array = {{
-        { { -1, -1 }, len2 },
-        { {  0, -1 }, len1.y() },
-        { {  1, -1 }, len2 },
-        { { -1,  0 }, len1.x() },
-        { {  1,  1 }, len2 },
-        { {  1,  0 }, len1.x() },
-        { { -1,  1 }, len2 },
-        { {  0,  1 }, len1.y() },
+        { { -1, -1 }, len2,     window_mask(-1, -1) },
+        { {  0, -1 }, len1.y(), window_mask( 0, -1) },
+        { {  1, -1 }, len2,     window_mask( 1, -1) },
+        { { -1,  0 }, len1.x(), window_mask(-1,  0) },
+        { {  1,  1 }, len2,     window_mask( 1,  1) },
+        { {  1,  0 }, len1.x(), window_mask( 1,  0) },
+        { { -1,  1 }, len2,     window_mask(-1,  1) },
+        { {  0,  1 }, len1.y(), window_mask( 0,  1) },
     }};
-    for (auto& [vec, len] : array)
+    for (auto& [vec, len, mask] : array)
         vec *= div_size;
     for (auto i = 0uz; i < array.size(); i++)
         for (auto j = 0uz; j < i; j++)
@@ -189,17 +196,48 @@ struct chunk_bitmaps
         return b[i >> 3] & (1u << (i & 7));
     }
 
+    CORRADE_NEVER_INLINE const uint8_t* resolve(point pt, size_t chunk_idx)
+    {
+        auto* c = w.at(pt.chunk3());
+        if (!c)
+            return nullptr;
+        auto grid = pool[*c];
+        grid.build_if_stale(p);
+        return bits[chunk_idx] = grid.bits().data;
+    }
+
     CORRADE_NEVER_INLINE bool is_passable_slow(point pt, size_t chunk_idx)
     {
-        if (auto* c = w.at(pt.chunk3()))
-        {
-            auto grid = pool[*c];
-            grid.build_if_stale(p);
-            const auto* b = grid.bits().data;
-            bits[chunk_idx] = b;
+        if (const auto* b = resolve(pt, chunk_idx))
             return test_bit(b, pt);
-        }
         return cache.is_passable_for_bbox(w, pool, pt, p);
+    }
+
+    // Bit (dy+1)*3 + dx+1 is the cell (dx, dy) cells away from pt's. 0 on the chunk edge,
+    // where a neighbour can lie in another chunk. Needs div_size == Search::div_size.
+    CORRADE_ALWAYS_INLINE uint32_t window(point pt)
+    {
+        constexpr auto dc = chunk_size_xy / (uint32_t)Search::div_size.x();
+        static_assert(dc == 64, "a row is one uint64_t");
+        fm_debug3_assert(div_count == dc);
+        const auto cell = Vector2ui(Vector2i(intra_coord{pt})) / (uint32_t)Search::div_size.x();
+        if (cell.x() - 1 >= dc - 2 || cell.y() - 1 >= dc - 2)
+            return 0;
+        const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
+        const auto* b = bits[chunk_idx];
+        if (!b) [[unlikely]]
+            if (!(b = resolve(pt, chunk_idx)))
+                return 0;
+        uint32_t win = 0;
+        for (uint32_t r = 0; r < 3; r++)
+        {
+            uint64_t row;
+            std::memcpy(&row, b + (cell.y() - 1 + r)*(dc/8), sizeof row);
+            if constexpr (std::endian::native == std::endian::big)
+                row = std::byteswap(row);
+            win |= (uint32_t)((row >> (cell.x() - 1)) & 7) << r*3;
+        }
+        return win;
     }
 
     CORRADE_ALWAYS_INLINE bool is_passable(point pt, size_t chunk_idx)
@@ -255,9 +293,9 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             dir_step dirs,
             point to, point cur_pt,
             uint32_t cur_idx, uint32_t cur_dist,
-            uint32_t max_dist)
+            uint32_t max_dist, uint32_t window)
 {
-    const auto [vec, len] = dirs;
+    const auto [vec, len, mask] = dirs;
 
     const auto dist = cur_dist + len;
     const auto new_pt = point::normalize_coords(cur_pt, vec);
@@ -273,8 +311,15 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
         if (nodes[new_idx].dist <= dist)
             return;
 
-    if (IsDiagonal ? !bm.is_passable_diag(cur_pt, new_pt, vec, chunk_idx)
-                   : !bm.is_passable(new_pt, chunk_idx))
+    // A window of 0 can also mean nine blocked cells, which the per-cell tests find too.
+    bool passable;
+    if (window)
+        passable = (window & mask) == mask;
+    else if (IsDiagonal)
+        passable = bm.is_passable_diag(cur_pt, new_pt, vec, chunk_idx);
+    else
+        passable = bm.is_passable(new_pt, chunk_idx);
+    if (!passable)
         return;
 
     if (new_idx == (uint32_t)-1)
@@ -439,6 +484,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         .div_shift = (uint32_t)std::countr_zero(params.div_size()),
         .div_count = params.div_count,
     };
+    const bool use_window = params.div_size() == (uint32_t)div_size.x();
 
     auto closest_dist_sq = (uint64_t)-1;
     uint32_t closest_idx = (uint32_t)-1;
@@ -500,12 +546,14 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             }
         }
 
+        const auto window = use_window ? bm.window(cur_pt) : 0u;
+
         for (auto i = 0u; i < 8; i += 2)
         {
             const auto d1 = directions.data()[i + 0],
                        d2 = directions.data()[i + 1];
-            do_dir<1, Debug>(bm, cache, nodes, Q, h, d1, to, cur_pt, cur_idx, cur_dist, max_dist);
-            do_dir<0, Debug>(bm, cache, nodes, Q, h, d2, to, cur_pt, cur_idx, cur_dist, max_dist);
+            do_dir<1, Debug>(bm, cache, nodes, Q, h, d1, to, cur_pt, cur_idx, cur_dist, max_dist, window);
+            do_dir<0, Debug>(bm, cache, nodes, Q, h, d2, to, cur_pt, cur_idx, cur_dist, max_dist, window);
         }
     }
 
