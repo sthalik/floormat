@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "src/search-result.hpp"
 #include "src/search-node.hpp"
+#include <cr/GrowableArray.h>
 
 namespace floormat {
 
@@ -55,11 +56,15 @@ void Test::test_astar_pool()
     fm_assert(psrpa::pool_size() == 1);
     fm_assert(pool.get() == first);
 
+    arrayAppend(a.smoothings(), path_search_result::waypoint{ {}, 0 });
+    a = {};
+
     a = path_search_result{};
     (void)a.raw_path();
     fm_assert(psrpa::get_node(a));
     fm_assert(psrpa::get_node(a).get() == first);
     fm_assert(psrpa::pool_size() == 0);
+    fm_assert(a.smoothings().isEmpty());
 
     auto b = path_search_result{};
     (void)b.raw_path();

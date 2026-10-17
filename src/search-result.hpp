@@ -1,9 +1,9 @@
 #pragma once
+#include "point.hpp"
 #include <cr/Pointer.h>
 
 namespace floormat {
 
-struct point;
 template<typename T> struct path_search_result_pool_access;
 
 struct path_search_result final
@@ -11,6 +11,14 @@ struct path_search_result final
     template<typename T> friend struct path_search_result_pool_access;
 
     struct node;
+
+    struct waypoint
+    {
+        point pt;
+        // The raw_path() segment whose step string pulling was at when it added the waypoint.
+        // 0 for the first waypoint, raw_path().size() - 1 for the last.
+        uint32_t raw_index;
+    };
 
     size_t size() const;
     bool empty() const;
@@ -25,6 +33,9 @@ struct path_search_result final
 
     Array<point>& raw_path();
     ArrayView<const point> path() const;
+    // Empty when the path wasn't smoothed. Otherwise from the path's first point to its last.
+    Array<waypoint>& smoothings();
+    ArrayView<const waypoint> smoothings() const;
     explicit operator bool() const;
 
     path_search_result();
