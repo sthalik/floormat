@@ -234,13 +234,17 @@ endif()
 set(fm-quiet-message 0)
 
 function(message m)
-    list(REMOVE_AT ARGV 0)
-    if(fm-quiet-message)
-        if(m STREQUAL FATAL_ERROR OR m STREQUAL SEND_ERROR OR m STREQUAL WARNING OR m STREQUAL AUTHOR_WARNING)
-            _message("${m}" "${ARGV}")
+    if(NOT fm-quiet-message OR m MATCHES "^(FATAL_ERROR|SEND_ERROR|WARNING|AUTHOR_WARNING)$")
+        # Join ARGV# as message() does. Expanding a list would drop ";" inside
+        # arguments, and add ";" between arguments inside "[...]".
+        set(text "")
+        if(ARGC GREATER 1)
+            math(EXPR last "${ARGC} - 1")
+            foreach(i RANGE 1 ${last})
+                string(APPEND text "${ARGV${i}}")
+            endforeach()
         endif()
-    else()
-        _message("${m}" "${ARGV}")
+        _message("${m}" "${text}")
     endif()
 endfunction()
 
