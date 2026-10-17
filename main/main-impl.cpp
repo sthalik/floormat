@@ -40,12 +40,6 @@ void main_impl::set_cursor(uint32_t cursor) noexcept
     }
 }
 
-uint32_t main_impl::cursor() const noexcept
-{
-    using App = Platform::Sdl2Application;
-    return (uint32_t)static_cast<App*>(const_cast<main_impl*>(this))->cursor();
-}
-
 void main_impl::maybe_enable_clipcontrol_zero_to_one()
 {
     bool status = GL::Context::current().isExtensionSupported<GL::Extensions::ARB::clip_control>();

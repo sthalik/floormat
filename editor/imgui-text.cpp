@@ -191,7 +191,7 @@ Math::Range2D<float> text_painter::bounds_of(slot s) const noexcept
     };
 }
 
-Math::Range2D<float> text_painter::render(ImDrawList& draw, Vector2 anchor) const
+Math::Range2D<float> text_painter::render(ImDrawList& draw, Vector2 anchor)
 {
     _->last_anchor = anchor;
     const auto& s = *_;

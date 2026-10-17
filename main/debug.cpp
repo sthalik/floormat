@@ -17,8 +17,7 @@ auto Now()
 
 } // namespace
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str) const
+void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str)
 {
     static const auto t0 = [] { return Now(); }();
 #if 1
@@ -67,15 +66,15 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
 }
 
 static void _debug_callback(GL::DebugOutput::Source src, GL::DebugOutput::Type type, UnsignedInt id,
-                            GL::DebugOutput::Severity severity, StringView str, const void* self)
+                            GL::DebugOutput::Severity severity, StringView str, const void*)
 {
-    static_cast<const main_impl*>(self)->debug_callback((unsigned)src, (unsigned)type, (unsigned)id, (unsigned)severity, str);
+    main_impl::debug_callback((unsigned)src, (unsigned)type, (unsigned)id, (unsigned)severity, str);
 }
 
 void main_impl::register_debug_callback()
 {
     GL::DebugOutput::setEnabled(GL::DebugOutput::Source::Api, GL::DebugOutput::Type::Other, {131185}, false); // nvidia krap
-    GL::DebugOutput::setCallback(_debug_callback, this);
+    GL::DebugOutput::setCallback(_debug_callback, nullptr);
 }
 
 } // namespace floormat
