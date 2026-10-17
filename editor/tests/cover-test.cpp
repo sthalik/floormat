@@ -208,9 +208,10 @@ void cover_test::draw_overlay(app& a)
     const auto ds = (int)pool->params().div_size;
     const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 0.6f});
 
+    const auto built = cg.built_octants();
     for (uint32_t k = 0; k < Cover::octant_count; k++)
     {
-        if (k == sk)
+        if (k == sk || !(built & 1u << k))
             continue;
         const auto theta = Rad{2.f * pi * float(k) / float(Cover::octant_count)};
         const Vector2 dir{Math::cos(theta), Math::sin(theta)};
@@ -220,6 +221,7 @@ void cover_test::draw_overlay(app& a)
         draw.AddLine({pos.x(), pos.y()}, {end_px.x(), end_px.y()}, line_color);
     }
 
+    if (built & 1u << sk)
     {
         const auto theta = Rad{2.f * pi * float(sk) / float(Cover::octant_count)};
         const Vector2 dir{Math::cos(theta), Math::sin(theta)};
