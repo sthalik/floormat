@@ -27,6 +27,8 @@ struct pf_test final : base_test
     void draw_ui(app& a, float menu_bar_height) override;
     void update_pre(app& a, const Ns& dt) override;
     void update_post(app&, const Ns&) override {}
+
+    bool smoothing = true;
 };
 
 bool pf_test::handle_key(app& a, const key_event& e, bool is_down)
@@ -61,6 +63,8 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
                                               Search::without_critters());
                 if (!res.empty())
                 {
+                    if (smoothing)
+                        (void)m.astar().string_pull(m.world(), res, bb, Search::without_critters());
                     auto S = critter_script::make_walk_script(move(res));
                     C->script.do_reassign(move(S), move(C));
                 }
@@ -89,9 +93,9 @@ void pf_test::draw_overlay(app& a)
     (void)a;
 }
 
-void pf_test::draw_ui(app& a, float)
+void pf_test::draw_ui(app&, float)
 {
-    (void)a;
+    ImGui::Checkbox("smoothing", &smoothing);
 }
 
 void pf_test::update_pre(app& a, const Ns& dt)

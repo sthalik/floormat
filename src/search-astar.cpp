@@ -732,13 +732,14 @@ template path_search_result astar::Dijkstra<1, false>(world&, Grid::Pass::Pool&,
 template path_search_result astar::Dijkstra<2, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
 template path_search_result astar::Dijkstra<3, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
 
-bool astar::string_pull(world& w, path_search_result& result, Vector2ui own_size_, const pred& p)
+auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size_, const pred& p) -> string_pull_result
 {
+    uint32_t corners_added = 0, los_checks = 0;
     auto& sp = result.smoothings();
     arrayClear(sp);
     const auto& raw = result.raw_path();
     if (raw.isEmpty())
-        return false;
+        return {};
 
     auto& P = temp_nodes;
     arrayClear(P);
@@ -766,6 +767,7 @@ bool astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
         const auto o = from - origin;
         const auto line = rc::bresenham_line{o, to - origin};
         los_result res = {};
+        los_checks++;
         find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, &pool, [&](const swept_collider_result& r) {
             res.blocked = true;
             const auto x0 = (int32_t)Math::floor(r.rect.min().x() - half.x()), x1 = (int32_t)Math::ceil(r.rect.max().x() + half.x());
@@ -789,7 +791,7 @@ bool astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
     const auto give_up = [&] {
         arrayClear(sp);
         arrayClear(P);
-        return false;
+        return string_pull_result{ .corners_added = corners_added, .los_checks = los_checks, .smoothed = false };
     };
 
     arrayAppend(sp, path_search_result::waypoint{ P[0], 0 });
@@ -829,6 +831,7 @@ bool astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
             }
             const auto u = O + pick.vec;
             arrayAppend(sp, path_search_result::waypoint{ u, seg });
+            corners_added++;
             turn = calc_turn(O, u, P[i]);
         }
         else if (sp.size() > 1 && calc_turn(sp[sp.size()-2].pt, O, P[i]) != turn)
@@ -847,7 +850,7 @@ bool astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
     else
         sp.back().raw_index = last;
     arrayClear(P);
-    return true;
+    return { .corners_added = corners_added, .los_checks = los_checks, .smoothed = true };
 }
 
 } // namespace floormat
