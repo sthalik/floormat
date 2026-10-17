@@ -19,7 +19,7 @@ FM_SAME_LAYOUT(K32V32, value, key);
 namespace {
 
 // SupportedTargets() re-runs CPUID detection on every call.
-int8_t vectorized = -1, avx2 = -1;
+int8_t vectorized = -1, avx2 = -1; // todo thread safety
 
 // EMU128 and HWY_SCALAR are slower than std::sort at n >= 512; route around them.
 bool is_vectorized()

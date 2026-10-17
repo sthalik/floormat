@@ -211,8 +211,8 @@ public:
     Node* m_node;                                 ///< Node
   };
 
-  static inline floormat::detail::rtree_pool<Node> node_pool;
-  static inline floormat::detail::rtree_pool<ListNode> list_node_pool;
+  static inline floormat::detail::rtree_pool<Node> node_pool; // todo thread safety
+  static inline floormat::detail::rtree_pool<ListNode> list_node_pool; // todo thread safety
 
 protected:
   /// Variables for finding a split partition

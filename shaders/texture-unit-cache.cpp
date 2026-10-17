@@ -144,7 +144,7 @@ void texture_unit_cache::output_stats()
 
 size_t texture_unit_cache::get_unit_count()
 {
-    static auto ret = [] {
+    static const auto ret = [] {
         GLint value = 0;
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &value);
         //Debug{} << "texture-binding: got" << value << "texture image units";

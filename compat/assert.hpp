@@ -76,7 +76,7 @@ namespace floormat {
 #endif
 
 #define fm_warn_once(...) do {                                          \
-        static bool _fm_once_flag = false;                              \
+        static bool _fm_once_flag = false; /* todo thread safety */     \
         if (!_fm_once_flag) [[unlikely]] {                              \
             _fm_once_flag = true;                                       \
             fm_warn(__VA_ARGS__);                                       \

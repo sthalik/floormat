@@ -72,7 +72,7 @@ static void system_init_()
 
 void loader_impl::system_init()
 {
-    static bool once = false;
+    static bool once = false; // todo thread safety
     if (once)
         return;
     once = true;

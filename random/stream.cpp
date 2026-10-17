@@ -13,7 +13,7 @@ using namespace floormat;
 namespace {
 
 constexpr uint32_t buffer_size = 3 << 15;
-unsigned char buffer[buffer_size];
+unsigned char buffer[buffer_size]; // todo thread safety
 
 // Packs the low Bytes of each output back to back, so a 48-bit generator has no constant byte.
 template<uint32_t Bytes, typename Next>

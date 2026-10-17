@@ -13,7 +13,7 @@ namespace floormat {
 
 namespace {
 
-size_t _reload_no_ = 0; // NOLINT
+size_t _reload_no_ = 0; // NOLINT todo thread safety
 
 } // namespace
 
