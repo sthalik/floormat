@@ -47,6 +47,11 @@ public:
                                 const pred& p,
                                 const heuristic& h = Search::octile_distance());
 
+    // Han, Uras, Koenig, "Toward a String-Pulling Approach to Path Smoothing on Grid Graphs",
+    // SoCS 2020, Algorithm 1, over the Search::div_size steps of the raw path. False when it gives
+    // up, with smoothings() left empty.
+    bool string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p);
+
 private:
     static constexpr auto initial_capacity = TILE_COUNT * 32 * Search::div_factor*Search::div_factor;
     // The seeds' f can spread by about 134, more than a step adds.

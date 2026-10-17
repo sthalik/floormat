@@ -15,6 +15,7 @@ path_search_result::~path_search_result() noexcept
     if (_node && arrayCapacity(_node->vec) > 0)
     {
         arrayClear(_node->vec);
+        arrayClear(_node->smoothings);
         _node->_next = move(_pool);
         _pool = move(_node);
     }
@@ -30,6 +31,7 @@ path_search_result& path_search_result::operator=(path_search_result&& other) no
     if (_node)
     {
         arrayClear(_node->vec);
+        arrayClear(_node->smoothings);
         _node->_next = move(_pool);
         _pool = move(_node);
     }
@@ -52,6 +54,7 @@ void path_search_result::allocate_node()
     {
         auto ptr = move(_pool);
         fm_debug_assert(ptr->vec.isEmpty());
+        fm_debug_assert(ptr->smoothings.isEmpty());
         auto next = move(ptr->_next);
         _node = move(ptr);
         _pool = move(next);
@@ -60,6 +63,7 @@ void path_search_result::allocate_node()
     {
         _node = Pointer<node>{InPlaceInit};
         arrayReserve(_node->vec, min_length);
+        arrayReserve(_node->smoothings, min_length);
     }
 }
 
@@ -75,6 +79,20 @@ Array<point>& path_search_result::raw_path()
     if (!_node)
         allocate_node();
     return _node->vec;
+}
+
+auto path_search_result::smoothings() -> Array<waypoint>&
+{
+    if (!_node)
+        allocate_node();
+    return _node->smoothings;
+}
+
+auto path_search_result::smoothings() const -> ArrayView<const waypoint>
+{
+    if (!_node)
+        return {};
+    return { _node->smoothings.data(), _node->smoothings.size() };
 }
 
 size_t path_search_result::size() const

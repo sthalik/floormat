@@ -7,6 +7,14 @@
 #include "src/scenery-proto.hpp"
 #include "src/search-constants.hpp"
 #include "src/search.hpp"
+#include "src/search-astar.hpp"
+#include "src/search-result.hpp"
+#include "src/sweep-aabb.hpp"
+#include "src/raycast-line.hpp"
+#include "src/chunk.hpp"
+#include "src/point.inl"
+#include "loader/scenery-cell.hpp"
+#include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -341,11 +349,201 @@ void test_bbox()
 #endif
 }
 
+constexpr auto pull_ch = chunk_coords_{0, 0, 0};
+constexpr auto pull_bbox = Vector2ui{32};
+constexpr uint32_t pull_max_dist = 4096;
+
+world make_pull_world()
+{
+    auto w = world();
+    for (int16_t j = -1; j <= 1; j++)
+        for (int16_t i = -1; i <= 1; i++)
+            (void)w[chunk_coords_{i, j, 0}];
+    return w;
+}
+
+void add_pillar(world& w, local_coords tile, Vector2ub size, Vector2b offset = {})
+{
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_size   = size;
+    p.bbox_offset = offset;
+    p.pass        = pass_mode::blocked;
+    w.make_scenery(w.make_id(), {pull_ch, tile}, move(p));
+}
+
+bool is_segment_clear(world& w, point a, point b, Vector2ui size)
+{
+    const auto ch = a.chunk3();
+    const auto origin = point{ch, {}, {}};
+    const auto line = rc::bresenham_line{a - origin, b - origin};
+    return !find_swept_collider(w, ch, line, 0, line.steps(), size, never_continue()).has_collider;
+}
+
+// Every segment is swept without a pool, so against the R-tree everywhere.
+void check_pulled(world& w, const path_search_result& res, Vector2ui size)
+{
+    const auto raw = res.path();
+    const auto sp = res.smoothings();
+    fm_assert(sp.size() >= 2);
+    fm_assert(sp.front().pt == raw.front() && sp.front().raw_index == 0);
+    fm_assert(sp.back().pt == raw.back() && sp.back().raw_index == raw.size() - 1);
+    float raw_len = 0, sp_len = 0;
+    for (auto i = 0uz; i + 1 < raw.size(); i++)
+        raw_len += Vector2(raw[i+1] - raw[i]).length();
+    for (auto i = 0uz; i + 1 < sp.size(); i++)
+    {
+        fm_assert(sp[i].raw_index <= sp[i+1].raw_index);
+        fm_assert(is_segment_clear(w, sp[i].pt, sp[i+1].pt, size));
+        sp_len += Vector2(sp[i+1].pt - sp[i].pt).length();
+    }
+    fm_assert(sp_len <= raw_len + 1e-3f);
+}
+
+path_search_result pull(astar& A, world& w, point from, point to)
+{
+    auto res = A.Dijkstra(w, from, to, pull_max_dist, pull_bbox, without_critters());
+    fm_assert(res.is_found());
+    fm_assert(A.string_pull(w, res, pull_bbox, without_critters()));
+    check_pulled(w, res, pull_bbox);
+    return res;
+}
+
+void test_string_pull_open()
+{
+    auto A = astar{};
+    auto w = make_pull_world();
+    const auto res = pull(A, w, point{pull_ch, {2, 2}, {3, -5}}, point{pull_ch, {9, 5}, {7, 2}});
+    fm_assert(res.smoothings().size() == 2);
+}
+
+void test_string_pull_pillar()
+{
+    auto A = astar{};
+    auto w = make_pull_world();
+    constexpr auto tile = local_coords{7, 6};
+    constexpr auto size = Vector2ub{40, 40};
+    add_pillar(w, tile, size);
+    w[pull_ch].mark_modified();
+
+    const auto res = pull(A, w, point{pull_ch, {2, 6}, {}}, point{pull_ch, {12, 6}, {}});
+    const auto sp = res.smoothings();
+    fm_assert(sp.size() == 4);
+    const auto origin = point{pull_ch, {}, {}};
+    const auto center = Vector2i(tile) * iTILE_SIZE2;
+    const auto lo = center - Vector2i(Vector2ui(size)/2u + pull_bbox/2u), hi = center + Vector2i(Vector2ui(size)/2u + pull_bbox/2u);
+    const auto c1 = sp[1].pt - origin, c2 = sp[2].pt - origin;
+    fm_assert(c1.y() == c2.y() && (c1.y() == lo.y() || c1.y() == hi.y()));
+    fm_assert(c1.x() == lo.x() && c2.x() == hi.x());
+}
+
+// Walls are one rect per tile. Starting 2 px off the face, the first line that misses the end
+// corner crosses all of them, and a corner from the nearest one would be a seam.
+void test_string_pull_wall()
+{
+    auto A = astar{};
+    auto w = make_pull_world();
+    const auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, 0};
+    for (uint8_t x = 4; x <= 9; x++)
+        w[pull_ch][{x, 6}].wall_north() = wall;
+    w[pull_ch].mark_modified();
+
+    const auto origin = point{pull_ch, {}, {}};
+    const auto end = Vector2i{9, 6} * iTILE_SIZE2 + Vector2i{half_tile<int>, -half_tile<int>} + Vector2i(pull_bbox/2u);
+    const auto res = pull(A, w, origin + Vector2i{230, end.y() + 2}, origin + Vector2i{660, 300});
+    const auto sp = res.smoothings();
+    fm_assert(sp.size() == 3);
+    fm_assert(sp[1].pt - origin == end);
+}
+
+// A raw segment that isn't a run of steps is one step, so the triangle Han takes as clear can
+// hold a small rect. It doesn't block the line to the goal, only the one to r1's corner.
+void test_string_pull_hidden_corner()
+{
+    auto w = make_pull_world();
+    constexpr auto size = Vector2ui{16};
+    constexpr auto r1 = Vector2i{400, 400}, r2 = Vector2i{320, 462};
+    constexpr auto r1_size = Vector2ub{40, 40}, r2_size = Vector2ub{8, 8};
+    add_pillar(w, {6, 6}, r1_size, Vector2b(r1 - Vector2i{6, 6} * iTILE_SIZE2));
+    add_pillar(w, {5, 7}, r2_size, Vector2b(r2 - Vector2i{5, 7} * iTILE_SIZE2));
+    w[pull_ch].mark_modified();
+
+    const auto origin = point{pull_ch, {}, {}};
+    path_search_result res;
+    for (auto px : { Vector2i{200, 500}, Vector2i{600, 500}, Vector2i{600, 300} })
+        arrayAppend(res.raw_path(), origin + px);
+    auto A = astar{};
+    fm_assert(A.string_pull(w, res, size, without_critters()));
+    check_pulled(w, res, size);
+
+    const auto& sp = res.smoothings();
+    fm_assert(sp.size() == 4);
+    fm_assert(sp[1].pt - origin == r2 + Vector2i(Vector2ui(r2_size)/2u + size/2u));
+    fm_assert(sp[2].pt - origin == r1 + Vector2i(Vector2ui(r1_size)/2u + size/2u));
+}
+
+// The path dips past the pillar's corner, so the line to the next step clips it and the corner is
+// added. The goal's line passes 3 px above it, so the turn there flips and the corner goes again.
+void test_string_pull_truncate()
+{
+    auto w = make_pull_world();
+    constexpr auto size = Vector2ui{16};
+    add_pillar(w, {7, 9}, {84, 84}, {14, -14});
+    w[pull_ch].mark_modified();
+
+    const auto origin = point{pull_ch, {}, {}};
+    path_search_result res;
+    for (auto px : { Vector2i{416, 492}, Vector2i{512, 492}, Vector2i{544, 524}, Vector2i{812, 562} })
+        arrayAppend(res.raw_path(), origin + px);
+    auto A = astar{};
+    fm_assert(A.string_pull(w, res, size, without_critters()));
+    check_pulled(w, res, size);
+    fm_assert(res.smoothings().size() == 2);
+}
+
+void test_string_pull_random()
+{
+    uint64_t state = 0x9e3779b97f4a7c15;
+    const auto rnd = [&](uint32_t n) {
+        state ^= state << 13; state ^= state >> 7; state ^= state << 17;
+        return (uint32_t)(state % n);
+    };
+    auto A = astar{};
+    uint32_t found = 0;
+    for (auto k = 0u; k < 32; k++)
+    {
+        // odd, so corners are rounded outward
+        const auto size = Vector2ui{k % 2 ? 27u : pull_bbox.x()};
+        auto w = make_pull_world();
+        for (auto i = 0u; i < 14; i++)
+            add_pillar(w, {(uint8_t)(2 + rnd(12)), (uint8_t)rnd(16)},
+                       {(uint8_t)(2 + 2*rnd(40)), (uint8_t)(2 + 2*rnd(40))},
+                       {(int8_t)((int)rnd(41) - 20), (int8_t)((int)rnd(41) - 20)});
+        w[pull_ch].mark_modified();
+        const auto from = point{pull_ch, {1, (uint8_t)rnd(16)}, {(int8_t)((int)rnd(41) - 20), (int8_t)((int)rnd(41) - 20)}};
+        const auto to = point{pull_ch, {14, (uint8_t)rnd(16)}, {(int8_t)((int)rnd(41) - 20), (int8_t)((int)rnd(41) - 20)}};
+        auto res = A.Dijkstra(w, from, to, pull_max_dist, size, without_critters());
+        if (!res.is_found())
+            continue;
+        found++;
+        fm_assert(A.string_pull(w, res, size, without_critters()));
+        check_pulled(w, res, size);
+    }
+    fm_assert(found >= 16);
+}
+
 } // namespace
 
 void Test::test_astar()
 {
     test_bbox();
+    test_string_pull_open();
+    test_string_pull_pillar();
+    test_string_pull_wall();
+    test_string_pull_hidden_corner();
+    test_string_pull_truncate();
+    test_string_pull_random();
 }
 
 } // namespace floormat
