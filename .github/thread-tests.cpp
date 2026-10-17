@@ -50,4 +50,5 @@ int main()
     run("atomic", floormat::Test::test_atomic);
     run("atomic_wait", floormat::Test::test_atomic_wait);
     run("chase_lev_deque", floormat::Test::test_chase_lev_deque);
+    run("event_count", floormat::Test::test_event_count);
 }
