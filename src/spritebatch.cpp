@@ -175,8 +175,8 @@ struct SpriteBatch::Impl
     Array<Quads::indexes> index_buffer, index_permuted;
 
     Array<Quads::vertexes> verts;
-    // Emission order until end_chunk, run-sorted order after, so the merge reads a key without
-    // going through sort_indexes first. Nothing reads it by value once end_chunk has run.
+    // depths[i] is the depth of quad sort_indexes[i]. Below AVX2, end_chunk<true> sorts both in
+    // place, so the merge reads a key without going through sort_indexes first.
     Array<float> depths;
     Array<uint32_t> starts, sort_indexes, merge_output, perm;
     Array<uint64_t> sort_keys;
@@ -190,7 +190,7 @@ struct SpriteBatch::Impl
     uint32_t emit_pos = 0;
     bool in_chunk = false;
     // True only while sort_indexes[i] == i for all i. Cleared by both things that permute
-    // sort_indexes: end_chunk<true> and the merge. Only clear() sets it back.
+    // sort_indexes: end_chunk<true> below AVX2 and sort_vertex_buffer(). Only clear() sets it back.
     bool sort_indexes_in_orig_order = true;
 };
 
@@ -294,26 +294,28 @@ void SpriteBatch::end_chunk()
 
     fm_debug2_assert(S.size() == first);
 
+    reserve(S, last);
+    arrayAppend(impl.starts, last);
+    impl.last_start = last;
+
     // The sort uses xmm6-xmm14, which Win64 makes callee-saved. With a runtime do_sort,
     // unsorted calls saved them too.
     if constexpr(do_sort)
     {
-        const auto n = last - first;
-        reserve(S, last);
-        reserve_aligned(impl.sort_keys, n);
-        sort_depths(impl.depths.data() + first, S.data() + first, first, n, impl.sort_keys.data());
-        impl.sort_indexes_in_orig_order = false;
-    }
-    else
-    {
-        reserve(S, last);
-        auto* const Sp = S.data();
-        for (auto i = first; i < last; i++)
-            Sp[i] = i;
+        // From AVX2 up, sort_vertex_buffer() vqsorts every quad at once. Only the merge needs sorted runs.
+        if (!vqsort_avx2_or_better())
+        {
+            const auto n = last - first;
+            reserve_aligned(impl.sort_keys, n);
+            sort_depths(impl.depths.data() + first, S.data() + first, first, n, impl.sort_keys.data());
+            impl.sort_indexes_in_orig_order = false;
+            return;
+        }
     }
 
-    arrayAppend(impl.starts, last);
-    impl.last_start = last;
+    auto* const Sp = S.data();
+    for (auto i = first; i < last; i++)
+        Sp[i] = i;
 }
 
 template void SpriteBatch::end_chunk<false>();
@@ -420,20 +422,21 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     const auto* const S = impl.sort_indexes.data();
     const auto* const Starts = impl.starts.data();
     auto* const V = pv ? impl.vertex_buffer.data() : nullptr;
+    const bool vq = vqsort_avx2_or_better();
 
 #ifndef FM_NO_DEBUG3
     // end_chunk<false> trusts the caller to have sorted the run. The only such caller feeding
     // a sorted batch is chunk::scenery_static_mesh, sorted under `if (modify_static)`.
-    if (do_sort)
+    if (do_sort && !vq)
         for (auto r = 0u; r < k; r++)
             for (auto i = Starts[r] + 1; i < Starts[r + 1]; i++)
                 fm_assert(D[i-1] <= D[i]);
 #endif
 
-    if (!do_sort || k <= 1)
+    if (!do_sort || k == 0 || (k == 1 && !vq))
     {
-        // sort skipped (depth-buffered opaque pass), single chunk, or empty —
-        // sort_indexes already holds the order draw() needs.
+        // sort skipped (depth-buffered opaque pass), empty, or one run already sorted by
+        // end_chunk — sort_indexes already holds the order draw() needs.
         if (pv)
             for (auto i = 0u; i < size; i++)
                 V[i] = Vin[S[i]];
@@ -443,7 +446,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     reserve(impl.merge_output, size);
     auto* const M = impl.merge_output.data();
 
-    if (vqsort_avx2_or_better())
+    if (vq)
     {
         reserve_aligned(impl.sort_keys, size);
         auto* const K = assume_aligned<64>(impl.sort_keys.data());
