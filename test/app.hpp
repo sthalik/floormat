@@ -14,6 +14,7 @@ class world;
 namespace floormat::Test {
 
 chunk& make_test_chunk(world& w, chunk_coords_ ch);
+bool has_gl_context();
 
 void test_astar();
 void test_astar_pool();
