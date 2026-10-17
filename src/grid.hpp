@@ -43,6 +43,7 @@ struct GridBase
     bool is_stale() const;
     void mark_stale();
     void reset_base_for_reuse(chunk& ch);
+    bool versions_match() const;
     void maybe_mark_stale();
 
     static uint32_t pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count);
@@ -84,7 +85,6 @@ struct PoolBase
 {
     free_list freelist;
     Array<GridBase*> live;
-    uint64_t frame_no = (uint64_t)-1;
     const uint32_t slot_index;
 
     PoolBase();

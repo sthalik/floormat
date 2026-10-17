@@ -121,7 +121,7 @@ void test_window(pass_mode hole_pass)
     Pass::Pool shoot{Pass::Params{8, 8, pass_mode::shoot_through}};
     Pass::Pool walk{Pass::Params{8, 8, pass_mode::pass}};
     const auto open_at = [&](Pass::Pool& pool, int8_t x) {
-        pool.maybe_mark_stale_all(w.frame_no());
+        pool.maybe_mark_stale_all(w);
         auto g = pool[c];
         g.build_if_stale(Search::never_continue());
         return g.bit(g.get_bitmask_index_from_coord(intra_coord{pos.local(), {x, mid_y}}));
@@ -138,6 +138,25 @@ void test_window(pass_mode hole_pass)
     fm_assert(ray_passes(shoot, 0) == shoots);
     fm_assert(!ray_passes(walk, 0));
     fm_assert(!ray_passes(shoot, -24));
+}
+
+void test_edit_in_same_frame()
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    auto w = world();
+    auto& c = w[ch];
+    Pass::Pool pool{Pass::Params{8, 8, pass_mode::pass}};
+    const auto frame = w.frame_no();
+    const auto ray_passes = [&] {
+        return raycast(w, point{ch, {2, 8}, {}}, point{ch, {14, 8}, {}}, 0,
+                       pool, Search::never_continue()).success;
+    };
+
+    fm_assert(ray_passes());
+    c[{8, 8}].wall_west() = wall_image_proto{loader.invalid_wall_atlas().atlas, (variant_t)-1};
+    c.mark_passability_modified();
+    fm_assert(w.frame_no() == frame);
+    fm_assert(!ray_passes());
 }
 
 void test_rays(const Pass::Params& params, world& w)
@@ -343,6 +362,7 @@ void Test::test_raycast()
 {
     test_window(pass_mode::see_through);
     test_window(pass_mode::shoot_through);
+    test_edit_in_same_frame();
 
     constexpr uint32_t sizes[][2] = {
         {4, 4}, {4, 16}, {8, 8}, {8, 13}, {16, 16}, {16, 64}, {32, 32}, {64, 64},

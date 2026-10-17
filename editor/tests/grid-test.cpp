@@ -161,7 +161,7 @@ void grid_test::extract(app& a, chunk_coords_ coord)
     if (!c)
         return;
 
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     pool.build_if_stale_all(Search::without_critters());
     Pass::Grid g = pool[*c];
     g.build_if_stale(Search::without_critters());

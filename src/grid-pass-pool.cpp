@@ -19,10 +19,7 @@ Pool& PoolRegistry::pool_for(uint32_t bbox_size)
         const auto idx = (bbox - 2u) / 2u;
         auto& slot = direct_[idx];
         if (!slot)
-        {
             slot.emplace(Params{div_size_, bbox, pass_mode::pass});
-            slot->maybe_mark_stale_all(last_frame_no_);
-        }
         return *slot;
     }
 
@@ -30,18 +27,16 @@ Pool& PoolRegistry::pool_for(uint32_t bbox_size)
         if (p->params().bbox_size == bbox)
             return *p;
     arrayAppend(fallback_, InPlaceInit, InPlaceInit, Params{div_size_, bbox, pass_mode::pass});
-    fallback_.back()->maybe_mark_stale_all(last_frame_no_);
     return *fallback_.back();
 }
 
-void PoolRegistry::maybe_mark_stale_all(uint64_t frame_no)
+void PoolRegistry::maybe_mark_stale_all(const world& w)
 {
-    last_frame_no_ = frame_no;
     for (auto& p : direct_)
         if (p)
-            p->maybe_mark_stale_all(frame_no);
+            p->maybe_mark_stale_all(w);
     for (auto& p : fallback_)
-        p->maybe_mark_stale_all(frame_no);
+        p->maybe_mark_stale_all(w);
 }
 
 uint32_t PoolRegistry::live_pool_count() const
