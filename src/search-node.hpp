@@ -19,6 +19,7 @@ struct path_search_result::node
     fm_DEFAULT_MOVE_(node);
 
     Array<point> vec;
+    Array<waypoint> smoothings;
     Pointer<node> _next;
 };
 

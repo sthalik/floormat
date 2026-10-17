@@ -5,12 +5,15 @@
 #include "search-result.hpp"
 #include "search.hpp"
 #include "world.hpp"
+#include "sweep-aabb.hpp"
+#include "raycast-line.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "compat/array-size.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/format.hpp"
 #include "compat/function2.hpp"
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
@@ -116,6 +119,59 @@ void simplify_path(ArrayView<const point> src, Array<point>& dest)
     if (dest.back() != src.back())
         arrayAppend(dest, src.back());
 }
+
+struct segment_steps { Vector2i step; uint32_t count; };
+
+// A run of Search::div_size steps. The seed and the goal hop are a step of their own.
+segment_steps steps_of_segment(point a, point b)
+{
+    constexpr auto s = div_size.x();
+    const auto d = b - a;
+    const auto ad = Math::abs(d);
+    const auto len = Math::max(ad.x(), ad.y());
+    if (len == 0)
+        return { {}, 0 };
+    if (d.x() % s == 0 && d.y() % s == 0 && (ad.x() == 0 || ad.y() == 0 || ad.x() == ad.y()))
+        return { d / (len / s), (uint32_t)(len / s) };
+    return { d, 1 };
+}
+
+int8_t calc_turn(point a, point b, point c)
+{
+    const auto u = b - a, v = c - b;
+    const auto x = (int64_t)u.x() * v.y() - (int64_t)u.y() * v.x();
+    return (int8_t)((x > 0) - (x < 0));
+}
+
+bool same_ray(Vector2i a, Vector2i b)
+{
+    return (int64_t)a.x() * b.y() == (int64_t)a.y() * b.x()
+           && (int64_t)a.x() * b.x() + (int64_t)a.y() * b.y() > 0;
+}
+
+// Han's order: the smaller angle from ref, and on the same ray, the farther one.
+struct corner_pick
+{
+    Vector2i vec;
+    double angle = 0;
+    bool found = false;
+
+    static double angle_of(Vector2i ref, Vector2i v)
+    {
+        const auto cross = (double)((int64_t)ref.x() * v.y() - (int64_t)ref.y() * v.x());
+        const auto dot = (double)((int64_t)ref.x() * v.x() + (int64_t)ref.y() * v.y());
+        return std::atan2(std::abs(cross), dot);
+    }
+
+    bool improved_by(Vector2i v, double a) const
+    {
+        if (!found)
+            return true;
+        if (same_ray(v, vec))
+            return (int64_t)v.x() * v.x() + (int64_t)v.y() * v.y() > (int64_t)vec.x() * vec.x() + (int64_t)vec.y() * vec.y();
+        return a < angle;
+    }
+};
 
 struct dir_step { Vector2i dir; uint32_t len, window_mask; };
 
@@ -675,5 +731,123 @@ template path_search_result astar::Dijkstra<0, false>(world&, Grid::Pass::Pool&,
 template path_search_result astar::Dijkstra<1, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
 template path_search_result astar::Dijkstra<2, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
 template path_search_result astar::Dijkstra<3, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&, const heuristic&);
+
+bool astar::string_pull(world& w, path_search_result& result, Vector2ui own_size_, const pred& p)
+{
+    auto& sp = result.smoothings();
+    arrayClear(sp);
+    const auto& raw = result.raw_path();
+    if (raw.isEmpty())
+        return false;
+
+    auto& P = temp_nodes;
+    arrayClear(P);
+    arrayAppend(P, raw[0]);
+    for (auto j = 0uz; j + 1 < raw.size(); j++)
+    {
+        const auto [step, count] = steps_of_segment(raw[j], raw[j+1]);
+        for (auto t = 1u; t <= count; t++)
+            arrayAppend(P, raw[j] + step * (int)t);
+    }
+    const auto n = (uint32_t)P.size();
+
+    const auto own_size = Math::max(own_size_, min_size);
+    const auto half = Vector2(own_size) * .5f;
+    auto& pool = _pass_registry->pool_for(Math::max(own_size.x(), own_size.y()));
+    pool.maybe_mark_stale_all(w);
+
+    struct los_result { corner_pick best; bool blocked; };
+
+    // The best corner of the rects blocking from -> to, grown by half the bbox and rounded outward.
+    // With limit, only corners at a smaller angle.
+    const auto los = [&](point from, point to, Vector2i ref, const corner_pick* limit) {
+        const auto ch = from.chunk3();
+        const auto origin = point{ch, {}, {}};
+        const auto o = from - origin;
+        const auto line = rc::bresenham_line{o, to - origin};
+        los_result res = {};
+        find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, &pool, [&](const swept_collider_result& r) {
+            res.blocked = true;
+            const auto x0 = (int32_t)Math::floor(r.rect.min().x() - half.x()), x1 = (int32_t)Math::ceil(r.rect.max().x() + half.x());
+            const auto y0 = (int32_t)Math::floor(r.rect.min().y() - half.y()), y1 = (int32_t)Math::ceil(r.rect.max().y() + half.y());
+            for (const auto c : { Vector2i{x0, y0}, Vector2i{x1, y0}, Vector2i{x0, y1}, Vector2i{x1, y1} })
+            {
+                const auto v = c - o;
+                if (v.isZero())
+                    continue;
+                const auto a = corner_pick::angle_of(ref, v);
+                if (limit && (a >= limit->angle || same_ray(v, limit->vec)))
+                    continue;
+                if (res.best.improved_by(v, a))
+                    res.best = { .vec = v, .angle = a, .found = true };
+            }
+            return true;
+        });
+        return res;
+    };
+
+    const auto give_up = [&] {
+        arrayClear(sp);
+        arrayClear(P);
+        return false;
+    };
+
+    arrayAppend(sp, path_search_result::waypoint{ P[0], 0 });
+    int8_t turn = 0;
+    // Algorithm 1 was written for grid cells. The bound keeps a cycle on rects from hanging.
+    auto budget = 8*n + 64;
+    uint32_t seg = 0, seg_last = n > 2 ? steps_of_segment(raw[0], raw[1]).count : 0;
+
+    for (uint32_t i = 2; i < n; )
+    {
+        if (!budget--)
+            return give_up();
+        while (i > seg_last)
+        {
+            seg++;
+            fm_debug_assert(seg + 1 < raw.size());
+            seg_last += steps_of_segment(raw[seg], raw[seg+1]).count;
+        }
+
+        const auto O = sp.back().pt;
+        const auto ref = P[i-1] - O;
+        const auto res = los(O, P[i], ref, nullptr);
+        if (res.blocked)
+        {
+            if (!res.best.found || ref.isZero())
+                return give_up();
+            // A rect smaller than a step can lie between two lines Han takes as clear.
+            auto pick = res.best;
+            for (auto k = 0u; ; k++)
+            {
+                const auto check = los(O, O + pick.vec, ref, &pick);
+                if (!check.blocked)
+                    break;
+                if (!check.best.found || k == 16)
+                    return give_up();
+                pick = check.best;
+            }
+            const auto u = O + pick.vec;
+            arrayAppend(sp, path_search_result::waypoint{ u, seg });
+            turn = calc_turn(O, u, P[i]);
+        }
+        else if (sp.size() > 1 && calc_turn(sp[sp.size()-2].pt, O, P[i]) != turn)
+        {
+            arrayRemoveSuffix(sp, 1);
+            if (sp.size() > 1)
+                turn = calc_turn(sp[sp.size()-2].pt, sp.back().pt, P[i]);
+        }
+        else
+            i++;
+    }
+
+    const auto last = (uint32_t)raw.size() - 1;
+    if (sp.back().pt != P[n-1])
+        arrayAppend(sp, path_search_result::waypoint{ P[n-1], last });
+    else
+        sp.back().raw_index = last;
+    arrayClear(P);
+    return true;
+}
 
 } // namespace floormat
