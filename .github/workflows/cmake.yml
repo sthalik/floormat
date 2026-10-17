@@ -24,8 +24,10 @@ jobs:
           cmake: /usr/bin/env CC="$(brew --prefix llvm)/bin/clang" CXX="$(brew --prefix llvm)/bin/clang++" cmake
         - os: windows-2025-vs2026
           cmake: .\.github\workflows\build-windows.bat cmake
+          configure: --toolchain cmake/msvc.cmake
         - os: windows-11-vs2026-arm
           cmake: .\.github\workflows\build-windows.bat cmake
+          configure: --toolchain cmake/msvc.cmake
 
     steps:
     - uses: actions/checkout@v3
@@ -53,7 +55,7 @@ jobs:
       if: runner.os == 'macOS'
 
     - name: Configure
-      run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} ${{matrix.configure}}
 
     - name: Build
       run: ${{matrix.cmake}} --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install

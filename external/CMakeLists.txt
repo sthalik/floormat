@@ -261,6 +261,12 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
             unset(CMAKE_C_VISIBILITY_PRESET)
             unset(CMAKE_VISIBILITY_INLINES_HIDDEN)
             set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
+            if(MSVC AND NOT SDL_LIBC)
+                # SDL strips only /RTC. Without its libc the DLL links -NODEFAULTLIB, so the CRT helpers of -RTC and -guard:cf are missing.
+                foreach(flag_var CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+                    string(REGEX REPLACE "-RTC[1csu]+|-guard:cf" "" ${flag_var} "${${flag_var}}")
+                endforeach()
+            endif()
             add_subdirectory(sdl2 ${system})
             # Debug configs build SDL2 shared and SDL2-static doesn't exist there.
             foreach(tgt SDL2 SDL2-static)

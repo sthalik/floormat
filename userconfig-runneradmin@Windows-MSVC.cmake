@@ -1,8 +1,8 @@
 set(CMAKE_INSTALL_MESSAGE NEVER)
 sets(STRING
      CMAKE_BUILD_TYPE DEBUG
-     CMAKE_C_FLAGS_DEBUG "-O0 -MD -W4"
-     CMAKE_CXX_FLAGS_DEBUG "-O0 -MD -W4"
-     CMAKE_EXE_LINKER_FLAGS_DEBUG "-DEBUG:NONE"
-     CMAKE_SHARED_LINKER_FLAGS_DEBUG "-DEBUG:NONE"
+     CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL
 )
+function(fm-userconfig-src)
+    add_compile_options(-W4)
+endfunction()
