@@ -48,8 +48,7 @@ void verify(kind k, uint32_t cell)
     const auto opt = search(s, Search::heuristic{zero});
     fm_assert(res.is_found());
     fm_assert(opt.is_found());
-    // octile h can exceed the goal hop's cost by 1, so A* may end 1 above the optimum
-    fm_assert(res.cost() >= opt.cost() && res.cost() <= opt.cost() + 1);
+    fm_assert(res.cost() == opt.cost());
 
     auto& pool = s.pool;
     constexpr auto nch = mazes::map_chunks - 1;
