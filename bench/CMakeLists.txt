@@ -2,6 +2,7 @@ set(self floormat-benchmark)
 
 file(GLOB sources CONFIGURE_DEPENDS "*.cpp")
 
+find_package(Threads QUIET REQUIRED)
 add_library(${self}_o OBJECT "${sources}")
 target_sources(${self}_o PRIVATE "../editor/mazes.cpp")
 add_executable(${self} dummy.cc)
@@ -13,6 +14,7 @@ target_link_libraries(${self}_o PUBLIC
     nlohmann_json::nlohmann_json
     floormat-common
     floormat-hwy
+    Threads::Threads
 )
 
 if(TARGET benchmark::benchmark)
