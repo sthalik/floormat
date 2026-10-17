@@ -164,8 +164,7 @@ const fixture& get_fixture(uint32_t k, layout l)
 }
 
 // m is quads per chunk. Keep it small: end_chunk<true>'s only production caller closes a run of
-// one chunk's dynamic objects, and below libc++'s __limit of 24 the per-run sort is an insertion
-// sort rather than introsort.
+// one chunk's dynamic objects.
 std::vector<std::vector<float>> make_chunks(uint32_t k, uint32_t m, uint32_t seed)
 {
     auto rng = std::mt19937{seed};
@@ -239,7 +238,7 @@ void chunk_args(benchmark::Benchmark* b)
     b->Unit(benchmark::kNanosecond);
 }
 
-// Models chunk::ensure_scenery_mesh. Each chunk closes two runs: its dynamic objects, sorted by
+// Models chunk::ensure_scenery_mesh. Each chunk closes two runs: its dynamic objects, closed by
 // end_chunk<true>, then scenery_static_mesh, already sorted. Chunk (cx, cy) spans depths
 // [(cx+cy)*W, (cx+cy+2)*W), so chunks on one anti-diagonal overlap fully and adjacent
 // anti-diagonals by half. Even runs are dynamic, odd ones static.
@@ -275,7 +274,7 @@ mixed_fixture make_mixed_fixture(uint32_t g, uint32_t s, uint32_t d, uint32_t se
 {
     auto f = mixed_fixture{make_mixed(g, s, d, seed), {}, 0};
     f.flat = flatten(f.runs);
-    // The merge reads the dynamic runs after end_chunk<true> has sorted them.
+    // Below AVX2 the merge reads the dynamic runs after end_chunk<true> has sorted them.
     auto sorted = f.runs;
     for (auto i = 0u; i < sorted.size(); i += 2)
         std::ranges::sort(sorted[i]);
