@@ -70,6 +70,7 @@ jobs:
         set -e
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
+      timeout-minutes: 60
       if: runner.os == 'Linux'
 
     - name: Test without a GL context
@@ -78,6 +79,7 @@ jobs:
         export MAGNUM_LOG=default
         export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
         env -u DISPLAY -u WAYLAND_DISPLAY gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --no-gl
+      timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Linux' }}
 
     - name: Test without a GL context
@@ -86,6 +88,7 @@ jobs:
         export MAGNUM_LOG=default
         lldb --batch -o "command script import ../../.github/lldbscript.py" -- bin/floormat-test --no-gl
       shell: bash
+      timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'macOS' }}
 
     # liblldb.dll imports python3.dll.
@@ -127,6 +130,7 @@ jobs:
         # lldb returns 0 whatever the program's exit code is.
         test "$(sed -n 's/^Process [0-9]* exited with status = \(-\?[0-9]*\) .*/\1/p' ../lldb.log | tail -n 1)" = 0
       shell: bash
+      timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Windows' }}
 
     # floormat-test --no-gl runs these tests in the default build. These are the builds it never gets: sanitizers on macOS, and the mutex/condvar fallback of atomic_wait.
@@ -136,17 +140,20 @@ jobs:
         sh .github/thread-tests.sh c++ -O1 -fsanitize=thread
         sh .github/thread-tests.sh c++ -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT
         sh .github/thread-tests.sh c++ -O2 -mmacosx-version-min=14.0
+      timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'macOS' }}
 
     - name: Test the mutex/condvar fallback of atomic_wait
       run: |
         sh .github/thread-tests.sh g++-15 -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT
         sh .github/thread-tests.sh g++-15 -O1 -fsanitize=thread -DFM_NO_PLATFORM_ATOMIC_WAIT
+      timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Linux' }}
 
     - name: Test the mutex/condvar fallback of atomic_wait with MSVC
       run: |
         .\.github\workflows\build-windows.bat call .github\thread-tests.bat -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT && build\thread-tests\thread-tests.exe
+      timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Windows' && runner.arch == 'ARM64' }}
 
     - name: Test pgo-driver scenes
@@ -160,6 +167,7 @@ jobs:
         set -e
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args \
             bin/floormat-editor --scenes=all --driver-no-swapbuffers
+      timeout-minutes: 60
       if: runner.os == 'Linux'
 
 #    - name: Upload build
