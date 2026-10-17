@@ -186,6 +186,7 @@ int App::exec()
         FM_TEST(test_atomic),
         FM_TEST(test_atomic_wait),
         FM_TEST(test_chase_lev_deque),
+        FM_TEST(test_inplace_function),
         FM_TEST_GL(test_sprite_atlas),
         FM_TEST(test_spritebatch),
         FM_TEST_GL(test_critter),
