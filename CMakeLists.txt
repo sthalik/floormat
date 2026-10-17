@@ -242,6 +242,8 @@ include_directories(SYSTEM
     "${_fm-json-include-dirs}"
 )
 
+add_compile_definitions("$<$<NOT:$<CONFIG:Debug,DEBUG>>:FM_NO_DEBUG3>")
+
 fm_run_hook(fm-userconfig-src)
 
 if(NOT MSVC)

@@ -7,7 +7,7 @@ on:
     branches: [ master, wip ]
 
 env:
-  BUILD_TYPE: RELEASE
+  BUILD_TYPE: DEBUG
   LLDB_VERSION: 23.1.3
 
 jobs:

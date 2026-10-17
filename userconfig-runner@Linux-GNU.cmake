@@ -1,9 +1,9 @@
 sets(BOOL FLOORMAT_SUBMODULE-SDL2 OFF)
 set(CMAKE_INSTALL_MESSAGE NEVER)
 sets(STRING
-     CMAKE_BUILD_TYPE RELEASE
-     CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG -g -ggdb"
-     CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -g -ggdb")
+     CMAKE_BUILD_TYPE DEBUG
+     CMAKE_C_FLAGS_DEBUG "-O3 -DNDEBUG -g -ggdb"
+     CMAKE_CXX_FLAGS_DEBUG "-O3 -DNDEBUG -g -ggdb")
 
 add_definitions(-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2)
 add_compile_options(-fsanitize=address,undefined)

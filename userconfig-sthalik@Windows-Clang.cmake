@@ -308,7 +308,6 @@ function(fm-userconfig-src)
     endif()
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:SHELL:-Xclang -flifetime-safety-inference>")
     #add_link_options(-Wl,-mllvm,-pass-remarks=wholeprogramdevirt)
-    add_compile_definitions("$<$<NOT:$<CONFIG:Debug,DEBUG>>:-DFM_NO_DEBUG3>")
 
     if(FLOORMAT_COVERAGE)
         sets(BOOL
