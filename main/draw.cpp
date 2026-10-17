@@ -18,7 +18,7 @@ namespace floormat {
 
 namespace {
 
-size_t bad_frame_counter = 0; // NOLINT
+size_t bad_frame_counter = 0; // NOLINT todo thread safety
 constexpr auto clear_color = 0x222222ff_rgbaf;
 constexpr auto cornflower_blue = 0x6495edff_rgbaf;
 
