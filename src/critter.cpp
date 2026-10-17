@@ -6,6 +6,7 @@
 #include "src/world.hpp"
 #include "src/object.hpp"
 #include "src/sweep-aabb.hpp"
+#include "src/raycast-line.hpp"
 #include "src/nanosecond.inl"
 #include "shaders/shader.hpp"
 #include "compat/limits.hpp"
@@ -164,10 +165,12 @@ pixel_step_s pixel_step(Frac offset_frac, Vector2 vec, uint32_t nsteps)
     return { off_i, offset_ - Vector2(off_i) };
 }
 
-Frac offset_frac_from(Vector2 rem)
+Frac offset_frac_from(float len)
 {
-    return Frac(Math::clamp(rem.length() * frac, 0.f, float(limits<Frac>::max)));
+    return Frac(Math::clamp(len * frac, 0.f, float(limits<Frac>::max)));
 }
+
+Frac offset_frac_from(Vector2 rem) { return offset_frac_from(rem.length()); }
 
 // offset_frac: scalar magnitude of pending sub-pixel motion.
 // update_movement clears on stuck so alternatives()' alt-direction isZero writes don't leak.
@@ -290,6 +293,28 @@ constexpr step_s next_step(point from, point to)
     // xor is 1 iff exactly one ge holds (single-axis dominant); 0 if both (x==y diagonal)
     const uint32_t count = max_xy - min_xy * uint32_t(x_ge_y ^ y_ge_x);
     return { count, step };
+}
+
+// Diagonal when minor/major > tan 22.5° = √2 - 1, that is (minor + major)² > 2·major².
+// Integers never tie.
+rotation nearest_rotation(Vector2i vec)
+{
+    fm_debug_assert(!vec.isZero());
+    const auto a = Vector2ui(Math::abs(vec));
+    const uint64_t major = Math::max(a.x(), a.y()), minor = Math::min(a.x(), a.y());
+    const bool diagonal = (minor + major) * (minor + major) > 2 * major * major;
+    const bool x_major = a.x() >= a.y();
+    const auto step = Vector2b{(signed char)(x_major || diagonal), (signed char)(!x_major || diagonal)};
+    return dir_from_step({1, step * Vector2b(Math::sign(vec))});
+}
+
+// The step whose pixel is px, or -1u. Along the major axis one step has px's coordinate, along
+// the minor axis a range of them.
+uint32_t step_at(const rc::bresenham_line& line, Vector2i px)
+{
+    const auto x = line.steps_within(0, px.x(), px.x()), y = line.steps_within(1, px.y(), px.y());
+    const auto k = Math::max(x.first, y.first);
+    return k <= Math::min(x.last, y.last) ? k : -1u;
 }
 
 Ns return_unspent_dt(uint32_t nframes, float speed, Ns frame_duration)
@@ -491,6 +516,99 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
     }
 
     return { .blocked = false, .moved = moved };
+}
+
+auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point& dest) -> move_result
+{
+    fm_assert(is_dynamic());
+    fm_assert(bbox_size.x() && bbox_size.y());
+    fm_assert(from.chunk3().z == dest.chunk3().z);
+
+    const auto ch = from.chunk3();
+    const auto origin = point{ch, {}, {}};
+    const auto line = rc::bresenham_line{from - origin, dest - origin};
+    const auto steps = line.steps();
+    const auto pos = position();
+    const auto k = pos.chunk3().z == ch.z ? step_at(line, pos - origin) : -1u;
+
+    const auto stop = [&] {
+        set_keys(false, false, false, false);
+        delta = {};
+        offset_frac = {};
+    };
+
+    if (k == -1u) [[unlikely]]
+    {
+        stop();
+        return { .blocked = true, .moved = false, .displaced = true };
+    }
+    if (k == steps)
+    {
+        offset_frac = {};
+        return { .blocked = false, .moved = false };
+    }
+    if (speed == 0) [[unlikely]]
+    {
+        dt = Ns{};
+        return { .blocked = true, .moved = false };
+    }
+
+    const auto new_r = nearest_rotation(dest - from);
+    if (r != new_r)
+    {
+        if (!can_rotate(new_r))
+        {
+            stop();
+            return { .blocked = true, .moved = false };
+        }
+        rotate(index, new_r);
+    }
+
+    const auto& info = atlas->info();
+    const auto frame_duration = Second / info.fps;
+    const auto nframes = alloc_frame_time(dt, delta, info.fps, speed);
+    dt = Ns{};
+    const auto step_len = Vector2(dest - from).length() / float(steps);
+    const auto budget = float(nframes) + float(offset_frac) / frac;
+    const auto n = Math::min(steps - k, uint32_t(budget / step_len));
+    if (n == 0)
+    {
+        offset_frac = offset_frac_from(budget);
+        return { .blocked = false, .moved = false };
+    }
+
+    // after rotate(), so the box is the one for new_r
+    const auto bb_off = Vector2i(bbox_offset);
+    const auto box_line = rc::bresenham_line{from - origin + bb_off, dest - origin + bb_off};
+    const auto self_id = id;
+    const auto pred = [self_id](class chunk&, collision_data x, Range2D) {
+        return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
+    };
+    const auto res = find_swept_collider(world(), ch, box_line, k, k + n, Vector2ui(bbox_size), pred);
+
+    const auto reached = res.step > k ? res.step - 1 : k;
+    const auto rem = Math::max(0.f, budget - float(reached - k) * step_len);
+    const bool done = res.has_collider || reached == steps;
+    const auto unspent = done ? Math::min(nframes, uint32_t(rem)) : 0u;
+    if (reached > k)
+    {
+        teleport_to(index, origin + line.pixel_at(reached), new_r);
+        advance_anim_frames(*this, nframes - unspent, anim_speed, info.nframes);
+    }
+
+    if (!done)
+    {
+        offset_frac = offset_frac_from(rem);
+        return { .blocked = false, .moved = true };
+    }
+    dt = return_unspent_dt(unspent, speed, frame_duration);
+    if (res.has_collider)
+    {
+        stop();
+        return { .blocked = true, .moved = reached > k };
+    }
+    offset_frac = {};
+    return { .blocked = false, .moved = true };
 }
 
 object_type critter::type() const noexcept { return object_type::critter; }

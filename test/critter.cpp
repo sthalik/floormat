@@ -7,6 +7,10 @@
 #include "src/anim-atlas.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/tile-image.hpp"
+#include "src/raycast-line.hpp"
+#include "src/sweep-aabb.hpp"
+#include "src/chunk.hpp"
+#include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
 #include "loader/loader.hpp"
@@ -181,6 +185,133 @@ void test_offset_frac_diag_to_cardinal()
     fm_assert_equal(Vector2i{1, 0}, npc.position() - p1);
 }
 
+struct line_walker
+{
+    world w;
+    critter* npc;
+    size_t idx;
+    Ns frame;
+
+    line_walker() : w{world()}
+    {
+        object_id id = 0;
+        npc = &*w.ensure_player_character(id, make_proto(1.f));
+        idx = npc->index();
+        frame = Second / npc->atlas->info().fps;
+    }
+
+    void place(point pt)
+    {
+        npc->teleport_to(idx, pt, rotation_COUNT);
+        npc->offset_frac = {};
+        npc->delta = {};
+    }
+
+    critter::move_result step(point from, point dest, uint32_t nframes = 1)
+    {
+        dt = frame * nframes;
+        return npc->move_toward(idx, dt, from, dest);
+    }
+
+    Ns dt;
+};
+
+void test_move_toward_line()
+{
+    line_walker L;
+    struct segment { Vector2i vec; rotation r; };
+    // 57/137 is just over tan 22.5°, 56/137 just under. Both cross into chunk (1, 0).
+    for (auto [vec, r] : { segment{{137, 57}, rotation::SE}, segment{{137, 56}, rotation::E},
+                           segment{{-23, -71}, rotation::N}, segment{{-50, 61}, rotation::SW} })
+    {
+        const auto from = point{{0, 0, 0}, {14, 14}, {3, -5}}, dest = from + vec;
+        const auto line = rc::bresenham_line{{}, vec};
+        L.place(from);
+        uint32_t frames = 0, k = 0;
+        while (L.npc->position() != dest)
+        {
+            fm_assert(frames++ < 1000);
+            const auto res = L.step(from, dest);
+            fm_assert(!res.blocked);
+            const auto px = L.npc->position() - from;
+            const auto k2 = line.step_of(px);
+            fm_assert_equal(line.pixel_at(k2), px);
+            fm_assert(k2 >= k);
+            k = k2;
+        }
+        fm_assert(L.npc->r == r);
+        const auto len = Vector2(vec).length();
+        fm_assert(Math::abs(float(frames) - Math::ceil(len)) <= 1);
+        fm_assert(!L.step(from, dest).moved);
+
+        L.place(from);
+        const auto res = L.step(from, dest, (uint32_t)Math::ceil(len) + 50);
+        fm_assert(res.moved && !res.blocked && L.npc->position() == dest);
+        fm_assert(L.dt == L.frame * 50u);
+    }
+}
+
+void test_move_toward_line_blocked()
+{
+    line_walker L;
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_offset = {};
+    p.bbox_size   = Vector2ub{20, 20};
+    p.pass        = pass_mode::blocked;
+    L.w.make_scenery(L.w.make_id(), {ch, {5, 3}}, move(p));
+    L.w[ch].mark_modified();
+
+    const auto from = point{ch, {2, 2}, {}}, dest = from + Vector2i{300, 130};
+    const auto origin = point{ch, {}, {}};
+    const auto self_id = L.npc->id;
+    const auto pred = [self_id](chunk&, collision_data x, Range2D) {
+        return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
+    };
+    const auto line = rc::bresenham_line{from - origin, dest - origin};
+    const auto expected = find_swept_collider(L.w, ch, line, 0, line.steps(),
+                                              Vector2ui(L.npc->bbox_size), pred);
+    fm_assert(expected.has_collider && expected.step > 1);
+
+    L.place(from);
+    critter::move_result res{};
+    for (auto i = 0u; i < 1000 && !res.blocked; i++)
+        res = L.step(from, dest);
+    fm_assert(res.blocked && !res.displaced);
+    fm_assert_equal(line.pixel_at(expected.step - 1), L.npc->position() - origin);
+    const auto stopped = L.npc->position();
+    bool blocked = false;
+    for (auto i = 0; i < 2; i++)
+    {
+        const auto again = L.step(from, dest);
+        fm_assert(!again.moved);
+        blocked |= again.blocked;
+    }
+    fm_assert(blocked && L.npc->position() == stopped);
+
+    L.place(from);
+    res = L.step(from, dest, 400);
+    fm_assert(res.blocked && res.moved);
+    fm_assert(L.npc->position() == stopped);
+}
+
+void test_move_toward_line_displaced()
+{
+    line_walker L;
+    const auto from = point{{0, 0, 0}, {4, 4}, {}}, dest = from + Vector2i{137, 57};
+    L.place(from);
+    for (auto i = 0; i < 10; i++)
+        (void)L.step(from, dest);
+    // same x as a line pixel, one row below it
+    const auto off = L.npc->position() + Vector2i{0, 1};
+    L.npc->teleport_to(L.idx, off, rotation_COUNT);
+    const auto res = L.step(from, dest);
+    fm_assert(res.displaced && res.blocked && !res.moved);
+    fm_assert(L.npc->position() == off);
+}
+
 void test_player_character_id_lowest()
 {
     auto w = world();
@@ -252,6 +383,9 @@ void Test::test_critter()
 
     test_dt_invariance();
     test_offset_frac_diag_to_cardinal();
+    test_move_toward_line();
+    test_move_toward_line_blocked();
+    test_move_toward_line_displaced();
     test_player_character_id_lowest();
 
     if (is_noisy)
