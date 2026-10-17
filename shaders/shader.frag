@@ -1,12 +1,15 @@
 precision highp float;
+#ifdef GL_ES
+precision highp sampler2DArray;
+#endif
 
 uniform vec4 tint;
 uniform bool enable_lightmap;
 uniform sampler2DArray sampler;
 uniform sampler2D lightmap_sampler;
 
-noperspective in vec3 frag_texcoords;
-noperspective in vec2 frag_light_coord;
+in vec3 frag_texcoords;
+in vec2 frag_light_coord;
 out vec4 color;
 //layout (depth_greater) out float gl_FragDepth;
 

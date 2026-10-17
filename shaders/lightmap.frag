@@ -1,4 +1,5 @@
 precision highp float;
+precision highp int;
 
 uniform sampler2D sampler0;
 uniform uint mode;
