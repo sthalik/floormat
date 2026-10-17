@@ -108,6 +108,21 @@ void test_open_ground_has_no_cover()
     fm_assert_equal(0u, r.candidates);
 }
 
+void test_narrow_pillar_rejected()
+{
+    auto w = world();
+    add_ground(w);
+    // The pass grid clears each 8 px cell the pillar touches, so the cover grid sees it 32 px wide.
+    // Cell-centred bodies fit that shadow, but a corner sticks out past the real 18 px.
+    add_blocker(w, {7, 8}, {16, 18});
+    rebuild(w);
+
+    const auto r = find(w, point{ch, {6, 8}, {}}, point{ch, {14, 8}, {}}, 48, 8);
+    fm_assert(!r.found);
+    fm_assert(r.candidates > 0);
+    fm_assert_equal(r.candidates, r.rejected);
+}
+
 void test_wall_out_of_radius()
 {
     auto w = world();
@@ -129,6 +144,7 @@ void Test::test_cover_point()
     // 28 px pillar's span only after a sideways shift.
     test_hides_behind_wall({6, 8}, {14, 8}, {7, 8}, {16, 28}, {1, 0}, 48);
     test_open_ground_has_no_cover();
+    test_narrow_pillar_rejected();
     test_wall_out_of_radius();
 }
 
