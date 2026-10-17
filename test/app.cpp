@@ -163,6 +163,7 @@ int App::exec()
         FM_TEST(test_spinlock),
         FM_TEST(test_atomic),
         FM_TEST(test_atomic_wait),
+        FM_TEST(test_chase_lev_deque),
         FM_TEST(test_sprite_atlas),
         FM_TEST(test_spritebatch),
         FM_TEST(test_critter),
