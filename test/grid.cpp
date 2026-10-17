@@ -1645,6 +1645,148 @@ void test_cover_diagonal_tracks_ray(uint32_t div_size)
     fm_assert(hits >= dc / 4);
 }
 
+void add_blocker(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bbox_size)
+{
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_offset = bbox_offset;
+    p.bbox_size   = bbox_size;
+    p.pass        = pass_mode::blocked;
+    w.make_scenery(w.make_id(), pos, move(p));
+}
+
+// A cardinal ray from an integer center reports the face exactly, so each cell is
+// (face - center)/div_size rounded half up.
+void test_cover_east_rounds(uint32_t div_size)
+{
+    auto w = world();
+    for (auto ch : { COORD, COORD_E })
+        add_ground_all(w[ch]);
+    constexpr struct { uint8_t j; int8_t bbox_offset_x; } blockers[] = {
+        { 2, -13 }, { 5, -12 }, { 8, -11 }, { 11, -3 },
+    };
+    constexpr auto bbox_size = Vector2ub{16, 32};
+    for (auto [j, bx] : blockers)
+        add_blocker(w, {COORD_E, local_coords{0, j}}, {bx, 0}, bbox_size);
+    for (auto ch : { COORD, COORD_E })
+        rebuild_passability(w[ch]);
+
+    Cover::Pool pool{Cover::Params{div_size}};
+    pool.maybe_mark_stale_all(w.frame_no());
+    Cover::Grid g = pool[w[COORD]];
+    g.build_if_stale();
+
+    const auto dc = g.div_count();
+    const auto center = [div_size](uint32_t i) { return (int)(i*div_size + div_size/2) - half_tile<int>; };
+    for (auto [j, bx] : blockers)
+    {
+        const auto face = (int)chunk_size_xy + bx - bbox_size.x()/2;
+        const auto y0 = tile_size_xy*j - bbox_size.y()/2, y1 = y0 + bbox_size.y();
+        uint32_t rows = 0;
+        for (auto y = 0u; y < dc; y++)
+        {
+            // rows through the rect's edge depend on raycast's fuzz
+            if (center(y) <= y0 || center(y) >= y1)
+                continue;
+            rows++;
+            for (auto x = 0u; x < dc; x++)
+            {
+                const auto px = (uint32_t)(face - center(x));
+                const auto expected = Math::min(dc, (2*px + div_size) / (2*div_size));
+                const auto d = (uint32_t)g.distance(Cover::Grid::get_cell_index(x, y, dc), 0);
+                if (d != expected)
+                {
+                    Error{standard_error()} << "!!! fatal: div_size" << div_size << "cell" << x << y
+                                            << "distance" << d << "but expected" << expected;
+                    fm_assert(false);
+                }
+            }
+        }
+        fm_assert(rows > 0);
+    }
+}
+
+void test_cover_blocked_cells(uint32_t div_size)
+{
+    auto w = world();
+    auto& c = w[COORD];
+    add_ground_all(c);
+    add_blocker(w, {COORD, local_coords{5, 5}}, {3, -5}, {40, 24});
+    rebuild_passability(c);
+
+    Cover::Pool pool{Cover::Params{div_size}};
+    pool.maybe_mark_stale_all(w.frame_no());
+    Cover::Grid g = pool[c];
+    g.build_if_stale();
+
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+    tick(w, pass_pool);
+    Pass::Grid pg = pass_pool[c];
+    pg.build_if_stale(Search::without_critters());
+
+    const auto dc = g.div_count();
+    for (auto k : { 0u, 4u, 5u })
+    {
+        (void)g.ensure_octant(k);
+        uint32_t blocked = 0;
+        for (auto y = 0u; y < dc; y++)
+            for (auto x = 0u; x < dc; x++)
+            {
+                const auto d = g.distance(Cover::Grid::get_cell_index(x, y, dc), k);
+                const bool passable = pg.bit(Pass::Grid::get_bitmask_index(x, y, dc));
+                fm_assert(passable == (d != Cover::blocked));
+                fm_assert(!passable || (d >= 1 && d <= dc));
+                blocked += !passable;
+            }
+        fm_assert(blocked > 0);
+    }
+}
+
+// The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
+// ray rounded. Seeds rounded to whole units would be off by up to one more half unit.
+void test_cover_diagonal_matches_ray(uint32_t div_size)
+{
+    auto w = world();
+    const auto chunks = { COORD, COORD_E, COORD_Eʹ, chunk_coords_{1, 1, 0} };
+    for (auto ch : chunks)
+        add_ground_all(w[ch]);
+    // faces at y 1083 in COORD's frame, off the cell grid
+    for (auto ch : { COORD_Eʹ, chunk_coords_{1, 1, 0} })
+        for (uint8_t i = 0; i < TILE_MAX_DIM; i++)
+            add_blocker(w, {ch, local_coords{i, 1}}, {0, 3}, {64, 16});
+    for (auto ch : chunks)
+        rebuild_passability(w[ch]);
+
+    auto& c = w[COORD];
+    Cover::Pool pool{Cover::Params{div_size}};
+    pool.maybe_mark_stale_all(w.frame_no());
+    Cover::Grid g = pool[c];
+    g.build_if_stale();
+    constexpr uint32_t k = 4;
+    (void)g.ensure_octant(k);
+
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+    tick(w, pass_pool);
+    const auto dc = g.div_count();
+    uint32_t hits = 0;
+    for (const auto off : { 0u, dc / 8 })
+        for (auto y = 0u; y + off < dc; y++)
+        {
+            const auto x = y + off;
+            const auto ray = cover_ray_px(c, x, y, div_size, cover_direction(k), pass_pool);
+            const auto d = g.distance(Cover::Grid::get_cell_index(x, y, dc), k);
+            if (Math::abs((float)d - ray / (float)div_size) > .5f + 1.f/16)
+            {
+                Error{standard_error()} << "!!! fatal: div_size" << div_size << "cell" << x << y
+                                        << "distance" << d << "but the ray" << ray << "px";
+                fm_assert(false);
+            }
+            hits += ray < (float)chunk_size_xy;
+        }
+    fm_assert(hits >= dc / 4);
+}
+
 } // namespace
 
 void test_grid()
@@ -1713,7 +1855,13 @@ void test_grid()
     for (const auto ds : { 1u, 2u, 8u })
         test_cover_east_distance(ds);
     for (const auto ds : { 1u, 2u, 4u, 8u, 16u })
+    {
         test_cover_diagonal_tracks_ray(ds);
+        test_cover_east_rounds(ds);
+        test_cover_diagonal_matches_ray(ds);
+    }
+    for (const auto ds : { 8u, 16u })
+        test_cover_blocked_cells(ds);
     // 128 and 256 leave rows narrower than a vector, or exactly one wide
     const auto aligned_octants = { 0u, 4u, 8u, 12u, 16u, 20u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan
