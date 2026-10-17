@@ -1,3 +1,4 @@
+#include "app.hpp"
 #include "multi-level-table-common.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "src/chunk-table.hpp"
@@ -382,8 +383,11 @@ void mlt_test::test_space_tables()
     check_chunk_table();
     check_chunk_table_layout();
     check_chunk_table_random();
-    check_world_ids();
-    check_world_random_ids();
+    if (Test::has_gl_context())
+    {
+        check_world_ids();
+        check_world_random_ids();
+    }
 }
 
 } // namespace floormat
