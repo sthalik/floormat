@@ -59,7 +59,6 @@ void main_impl::debug_callback(unsigned src, unsigned type, unsigned id, unsigne
         break;
     case Severity::High:
         //std::abort();
-        //debug_break();
         gl_debug_put_breakpoint_here();
         break;
     }
