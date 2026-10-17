@@ -129,7 +129,7 @@ BENCHMARK(Grid_Build)->Arg(16)->Arg(8)->Unit(benchmark::kMillisecond);
 
 void make_cover_chunk(world& w, chunk& c)
 {
-    const auto floor = tile_image_proto{ loader.ground_atlas("texel"), 0 };
+    const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
     const auto wall = wall_image_proto{ loader.wall_atlas("empty"), 0 };
     const auto ch = c.coord();
 
