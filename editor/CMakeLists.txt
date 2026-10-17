@@ -22,6 +22,12 @@ if(NOT SDL2_INCLUDE_DIRS)
     endif()
 endif()
 set_property(SOURCE "events.cpp" "tests.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIRS}")
+if(TARGET SDL2::SDL2)
+    get_target_property(sdl2-target SDL2::SDL2 ALIASED_TARGET)
+    if(sdl2-target)
+        add_dependencies(${self}_o ${sdl2-target})
+    endif()
+endif()
 
 add_executable(${self} dummy.cc)
 target_link_libraries(${self} PRIVATE ${self}_o
