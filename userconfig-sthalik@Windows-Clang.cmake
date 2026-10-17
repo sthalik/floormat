@@ -202,7 +202,7 @@ sets(STRING
 
 add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
 
-if(NOT CMAKE_CXX_COMPILER_VERSION LESS "18.0")
+if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 18)
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fassume-nothrow-exception-dtor>)
 endif()
 
