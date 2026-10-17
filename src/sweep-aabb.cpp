@@ -103,13 +103,18 @@ sweep_result find_swept_collider(chunk& c, Range2D start, Vector2 displacement, 
     return res;
 }
 
-swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
-                                          uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,
-                                          const Search::pred& p, Grid::Pass::Pool* pool)
+namespace {
+
+// on_blocker(step, collider, rect) returns the new bound: rects blocking only at or past it are
+// skipped, and the walk ends once a cell's steps reach it.
+template<typename F>
+void sweep_line(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,
+                const Search::pred& p, Grid::Pass::Pool* pool, F&& on_blocker)
 {
     fm_assert(!pool || pool->params().bbox_size >= Math::max(bbox_size.x(), bbox_size.y()));
     const auto half = Vector2(bbox_size) * .5f;
-    swept_collider_result res = { .step = last_step + 1, .collider = {}, .rect = {}, .has_collider = false };
+    auto bound = (int64_t)last_step + 1;
 
     const auto meet = [](int64_t a0, int64_t a1, int64_t b0, int64_t b1, int64_t c0, int64_t c1) {
         const auto lo = Math::max(Math::max(a0, b0), c0), hi = Math::min(Math::min(a1, b1), c1);
@@ -153,22 +158,45 @@ swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::
                         return true;
                     const auto rect = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
                     const auto step = first_blocked(Range2D{rect.min() + shift, rect.max() + shift}, k0, k1);
-                    if (step >= (int64_t)res.step)
+                    if (step >= bound)
                         return true;
                     // last, since without_critters looks up the object
                     if (p(*c, x, rect) == path_search_continue::pass)
                         return true;
-                    res = { .step = (uint32_t)step, .collider = x,
-                            .rect = Range2D{rect.min() + shift, rect.max() + shift}, .has_collider = true };
+                    bound = on_blocker(step, x, Range2D{rect.min() + shift, rect.max() + shift});
                     return true;
                 });
             }
         // later cells hold steps after k1 only
-        return res.step > k1 + 1;
+        return bound > (int64_t)k1 + 1;
     };
 
     rc::detail::traverse_line_cells(w, ch, line, first_step, last_step, true, pool, p, visit);
+}
+
+} // namespace
+
+swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                                          uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,
+                                          const Search::pred& p, Grid::Pass::Pool* pool)
+{
+    swept_collider_result res = { .step = last_step + 1, .collider = {}, .rect = {}, .has_collider = false };
+    sweep_line(w, ch, line, first_step, last_step, bbox_size, p, pool, [&](int64_t step, collision_data x, Range2D rect) {
+        res = { .step = (uint32_t)step, .collider = x, .rect = rect, .has_collider = true };
+        return step;
+    });
     return res;
+}
+
+void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                         uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,
+                         const Search::pred& p, Grid::Pass::Pool* pool,
+                         fu2::function_view<bool(const swept_collider_result&) const> f)
+{
+    sweep_line(w, ch, line, first_step, last_step, bbox_size, p, pool, [&](int64_t step, collision_data x, Range2D rect) {
+        const bool more = f(swept_collider_result{ .step = (uint32_t)step, .collider = x, .rect = rect, .has_collider = true });
+        return more ? (int64_t)last_step + 1 : 0;
+    });
 }
 
 } // namespace floormat
