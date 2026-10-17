@@ -11,7 +11,6 @@ struct field_repr_ final {
     field_repr_(const field_repr_<T, Enum, As>& other) noexcept = default;
     field_repr_& operator=(T x) noexcept { value = move(x); return *this; }
     field_repr_& operator=(const field_repr_<T, Enum, As>& x) noexcept = default;
-    field_repr_& operator*() const noexcept { return value; }
     operator T() const noexcept { return value; }
 
     using Type = T;

@@ -122,7 +122,7 @@ void app::do_emit_timestamp()
 {
     constexpr const char* prefix = " -- MARK -- ";
 
-    static unsigned counter;
+    static unsigned counter; // todo thread safety
     const auto now = Time::now();
     auto time = (double)Time::to_milliseconds(now - Time{_timestamp});
     if (counter == 0)

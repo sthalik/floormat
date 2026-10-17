@@ -107,9 +107,9 @@ struct floormat_main
 protected:
     Vector2 _virtual_scale{ 1, 1 };
     Vector2i _framebuffer_size;
-    bool _do_render_vobjs : 1 = true;
-    bool _first_frame : 1 = true;
-    bool _events_ignored : 1 = false;
+    bool _do_render_vobjs : 1 = true; // todo thread safety
+    bool _first_frame : 1 = true; // todo thread safety
+    bool _events_ignored : 1 = false; // todo thread safety
     bool _is_clipcontroL_zero_to_one_enabled = false;
 };
 
