@@ -8,12 +8,115 @@
 #include "src/point.hpp"
 #include "src/intra-coord.inl"
 #include "src/world.hpp"
+#include "src/chunk.hpp"
+#include "src/scenery-proto.hpp"
+#include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 #include "loader/wall-cell.hpp"
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
 namespace floormat {
+
+namespace {
+
+constexpr auto flush_ch = chunk_coords_{0, 0, 0};
+constexpr auto flush_bbox = Vector2ui{32};
+constexpr auto flush_tile = local_coords{8, 8};
+
+bool flush_box_free(world& w, point pt)
+{
+    const auto R = Range2D::fromCenter(Vector2(intra_coord{pt}.center_shifted()), Vector2(flush_bbox/2u));
+    return Search::is_passable(w, flush_ch, R, Search::without_critters());
+}
+
+void add_block(world& w, local_coords tile, Vector2ub bbox_size, Vector2b bbox_offset = {})
+{
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_size   = bbox_size;
+    p.bbox_offset = bbox_offset;
+    p.pass        = pass_mode::blocked;
+    w.make_scenery(w.make_id(), {flush_ch, tile}, move(p));
+}
+
+// The goal's bbox touches a collider. Whether the touching coordinate falls on a pass-grid cell
+// boundary must not decide whether it's found.
+template<typename F>
+void check_flush_goal(const char* name, F&& setup, Vector2b goal_offset, Vector2i toward, bool reachable = true)
+{
+    auto w = world();
+    setup(w);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    const auto goal = point{global_coords{flush_ch, flush_tile}, goal_offset};
+    fm_assert(flush_box_free(w, goal));
+    fm_assert(!flush_box_free(w, point::normalize_coords(goal, toward)));
+
+    constexpr uint32_t max_dist = 1024;
+    const auto from = point{global_coords{flush_ch, {8, 12}}, {}};
+    const auto& pred = Search::without_critters();
+    auto A = astar{};
+    auto& pool16 = A.pass_pool_registry().pool_for(flush_bbox.x());
+    auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, flush_bbox.x(), pass_mode::pass}};
+
+    for (auto* pool : { &pool16, &pool8 })
+    {
+        const auto div = pool->params().div_size();
+        auto r1 = A.Dijkstra<0, true>(w, *pool, from, goal, max_dist, flush_bbox, pred);
+        auto r2 = A.Dijkstra<0, false>(w, *pool, from, goal, max_dist, flush_bbox, pred);
+        if (r1.is_found() != reachable || r2.is_found() != reachable)
+            fm_abort("flush goal '%s' at div %u: found %d, without closest %d",
+                     name, div, (int)r1.is_found(), (int)r2.is_found());
+        if (reachable)
+        {
+            fm_assert(r1.path().back() == goal);
+            fm_assert(r2.cost() == r1.cost());
+        }
+        else
+        {
+            fm_assert(!r1.path().isEmpty());
+            fm_assert(r2.path().isEmpty());
+        }
+    }
+}
+
+void test_flush_goals()
+{
+    const auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, 0};
+    const auto depth = (int)wall.atlas->info().depth;
+    constexpr auto h = (int)flush_bbox.x()/2;
+    const auto far = (int8_t)(half_tile<int> - depth - h);
+
+    check_flush_goal("wall north", [&](world& w) { w[flush_ch][flush_tile].wall_north() = wall; },
+                     {0, (int8_t)(h - half_tile<int>)}, {0, -1});
+    check_flush_goal("wall west", [&](world& w) { w[flush_ch][flush_tile].wall_west() = wall; },
+                     {(int8_t)(h - half_tile<int>), 0}, {-1, 0});
+    check_flush_goal("wall south", [&](world& w) { w[flush_ch][{8, 9}].wall_north() = wall; },
+                     {0, far}, {0, 1});
+    check_flush_goal("wall east", [&](world& w) { w[flush_ch][{9, 8}].wall_west() = wall; },
+                     {far, 0}, {1, 0});
+
+    // bbox sizes must be even, so the odd offset is what puts the south edge at an odd coordinate
+    constexpr auto size = Vector2ub{tile_size_xy, 60};
+    constexpr auto odd = Vector2b{0, 1};
+    check_flush_goal("odd scenery north", [&](world& w) { add_block(w, {8, 7}, size, odd); },
+                     {0, (int8_t)(odd.y() + size.y()/2 + h - tile_size_xy)}, {0, -1});
+
+    // A gap as wide as the bbox and two tiles long. No cell in it has its bit set, and the free
+    // nodes past its ends are too far from the middle to hop to it.
+    constexpr auto gap_side = Vector2ub{(uint8_t)(2*tile_size_xy - flush_bbox.x()), 2*tile_size_xy};
+    check_flush_goal("box-wide gap", [&](world& w) {
+        add_block(w, {7, 8}, gap_side);
+        add_block(w, {9, 8}, gap_side);
+    }, {}, {1, 0}, false);
+}
+
+} // namespace
 
 void Test::test_dijkstra()
 {
@@ -121,13 +224,15 @@ void Test::test_dijkstra()
         }();
 
         auto result = run.operator()<debug>(blocked_cell_goal);
-        fm_assert(!result.is_found());
-        fm_assert(!result.path().isEmpty());
+        fm_assert(result.is_found());
+        fm_assert(result.path().back() == blocked_cell_goal);
 
         auto result2 = run.operator()<debug, false>(blocked_cell_goal);
-        fm_assert(!result2.is_found());
-        fm_assert(result2.path().isEmpty());
+        fm_assert(result2.is_found());
+        fm_assert(result2.cost() == result.cost());
     }
+
+    test_flush_goals();
 }
 
 } // namespace floormat
