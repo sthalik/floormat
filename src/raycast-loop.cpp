@@ -1,5 +1,7 @@
 #include "raycast-loop.hpp"
+#include "raycast-line.hpp"
 #include "raycast-diag.hpp"
+#include "compat/floor-divmod.hpp"
 #include "tile-constants.hpp"
 #include "intra-coord.inl"
 #include "point.inl"
@@ -103,6 +105,109 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
     if (discr < 0)
         return { 0, false };
     return { Math::max(0.f, -b - Math::sqrt(discr)), true };
+}
+
+void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
+                         uint32_t first_step, uint32_t last_step, bool both_off_axis,
+                         Grid::Pass::Pool* pool, const Search::pred& pred,
+                         fu2::function_view<bool(const line_cell&) const> visit)
+{
+    fm_assert(first_step <= last_step && last_step <= line.steps());
+    if (pool)
+        pool->maybe_mark_stale_all(w);
+
+    constexpr auto csize = chunk_size<int32_t>;
+    const auto div = pool ? (int32_t)pool->params().div_size() : csize;
+    const auto div_count = (uint32_t)(csize / div);
+    const auto origin = Vector2i{half_tile<int32_t>};
+    const auto cell_of = [&](Vector2i p) {
+        return Vector2i{floor_div(p.x() + origin.x(), div), floor_div(p.y() + origin.y(), div)};
+    };
+
+    line_cell cell = {};
+    Vector2i loaded{INT32_MAX, INT32_MAX};
+    Pass::Grid grid{nullptr, nullptr};
+    bool has_grid = false, chunk_empty = false;
+
+    const auto load = [&](Vector2i off) {
+        if (off == loaded)
+            return;
+        loaded = off;
+        cell.chunk_offset = off;
+        for (int j = 0; j < 3; j++)
+            for (int i = 0; i < 3; i++)
+                cell.chunks[(size_t)(j*3 + i)] = w.at(chunk_coords_{
+                    (int16_t)(ch.x + off.x() + i - 1), (int16_t)(ch.y + off.y() + j - 1), ch.z });
+        auto* c = cell.chunks[4];
+        has_grid = pool && c;
+        if (has_grid)
+        {
+            grid = (*pool)[*c];
+            grid.build_if_stale(pred);
+            chunk_empty = grid.is_all_empty();
+        }
+        else if (!c)
+        {
+            // colliders overhang from loaded neighbors into a missing chunk
+            chunk_empty = true;
+            for (auto* nb : cell.chunks)
+                chunk_empty &= !nb;
+        }
+        else
+            chunk_empty = false;
+    };
+
+    for (auto k = first_step; ; )
+    {
+        const auto [off, local] = floor_divmod<csize>(line.pixel_at(k) + origin);
+        load(off);
+        Vector2i lo, hi;
+        bool skip = chunk_empty;
+        if (chunk_empty)
+        {
+            lo = off * csize - origin;
+            hi = lo + Vector2i{csize - 1};
+        }
+        else
+        {
+            const auto c = local / div;
+            lo = off * csize + c * div - origin;
+            hi = lo + Vector2i{div - 1};
+            skip = has_grid && grid.bit(Pass::Grid::get_bitmask_index((uint32_t)c.x(), (uint32_t)c.y(), div_count));
+        }
+        const auto sx = line.steps_within(0, lo.x(), hi.x()), sy = line.steps_within(1, lo.y(), hi.y());
+        fm_debug_assert(sx.first <= k && sy.first <= k);
+        const auto last = Math::min(Math::min(sx.last, sy.last), last_step);
+        if (!skip)
+        {
+            cell.first_step = k;
+            cell.last_step = last;
+            if (!visit(cell))
+                return;
+        }
+        if (last == last_step)
+            return;
+
+        // A diagonal step through the corner of four cells puts its off-axis pixels in two cells
+        // neither of its pixels is in. Visited without a bit lookup, since it's rare.
+        if (const auto o = line.off_axis_at(last); o.diagonal)
+        {
+            const auto c0 = cell_of(line.pixel_at(last)), c1 = cell_of(line.pixel_at(last + 1));
+            for (auto i = 0u; i < 2; i++)
+            {
+                if (!both_off_axis && !o.crossed[i])
+                    continue;
+                const auto c = cell_of(o.pixels[i]);
+                if (c == c0 || c == c1)
+                    continue;
+                load(floor_divmod<csize>(o.pixels[i] + origin).first());
+                cell.first_step = cell.last_step = last + 1;
+                if (!visit(cell))
+                    return;
+            }
+        }
+        k = last + 1;
+    }
 }
 
 template<bool EnableDiagnostics>
