@@ -57,7 +57,7 @@ struct astar::bucket_queue
     {
         if (count == 0)
             cur = hi = f;
-        else if (f < cur) // a seed below the earlier ones, or the goal hop: octile h exceeds point::distance() by up to 1
+        else if (f < cur) // a seed below the earlier ones, or the goal hop when h exceeds the octile hop cost
             cur = f;
         else if (f > hi)
             hi = f;
@@ -300,31 +300,6 @@ struct chunk_bitmaps
     }
 };
 
-bool is_passable_swept(chunk_bitmaps& bm, point a, point b)
-{
-    const int div = (int)bm.div_size;
-
-    const Vector2i a_pix = Vector2i(intra_coord{a});
-    const Vector2i b_pix = a_pix + (b - a);
-    const Vector2i lo_pix = Math::min(a_pix, b_pix);
-    const Vector2i hi_pix = Math::max(a_pix, b_pix);
-
-    const int idx_x_lo = floor_div(lo_pix.x(), div);
-    const int idx_x_hi = floor_div(hi_pix.x(), div);
-    const int idx_y_lo = floor_div(lo_pix.y(), div);
-    const int idx_y_hi = floor_div(hi_pix.y(), div);
-
-    for (int iy = idx_y_lo; iy <= idx_y_hi; iy++)
-        for (int ix = idx_x_lo; ix <= idx_x_hi; ix++)
-        {
-            const Vector2i cell_pix = Vector2i{ix, iy}*div + Vector2i{div/2};
-            const auto pt_in_cell = point::normalize_coords(a, cell_pix - a_pix);
-            if (!bm.is_passable(pt_in_cell))
-                return false;
-        }
-    return true;
-}
-
 template<bool IsDiagonal, int Debug>
 CORRADE_ALWAYS_INLINE
 void do_dir(chunk_bitmaps& bm, Search::cache& cache,
@@ -448,33 +423,64 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
 
     fm_debug3_assert(own_size_ < chunk_size<Vector2ui>);
     const auto own_size = Math::max(own_size_, min_size);
-    constexpr auto goal_thres_lin = (uint32_t)(div_size.length() + 1.5f);
-    // ceil(sqrt(d²)) < goal_thres_lin, as point::distance() rounds
-    constexpr auto goal_thres_sq = (uint64_t)(goal_thres_lin - 1) * (goal_thres_lin - 1);
 
     const auto params = pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert(params.min_pass == pass_mode::pass);
     pool.maybe_mark_stale_all(w.frame_no());
 
+    // A goal touching a collider on its high side has a free node up to a cell plus a step
+    // less 2 px away on that axis, as a cell's bit needs every position in the cell free.
+    constexpr auto step = (int)div_size.x();
+    const auto hop_axis = (int)params.div_size() + step - 2;
+    const auto goal_thres_sq = 2 * (uint64_t)hop_axis * (uint64_t)hop_axis;
+
     auto* const from_chunk = w.at(from.chunk3());
     const auto from_neighbors = w.neighbors(from.chunk3());
     const auto from_center = Vector2(intra_coord{from}.center_shifted());
     const auto own_half = Vector2(own_size/2);
 
+    auto* const to_chunk = w.at(to.chunk3());
+    const auto to_neighbors = w.neighbors(to.chunk3());
+    const auto to_center = Vector2(intra_coord{to}.center_shifted());
+
+    const auto& octile = Search::octile_distance();
+    // exact, so a goal whose cell bit is clear stays reachable
+    // `to` by value: a reference makes it address-taken, so the main loop reloads it after every call
+    const auto is_hop_passable = [&, to](point pt) {
+        const auto center = to_center + Vector2(pt - to);
+        return Search::is_passable_(to_chunk, to_neighbors,
+                                    Math::min(center, to_center) - own_half,
+                                    Math::max(center, to_center) + own_half, p);
+    };
+
     if (auto R = Range2D::fromCenter(from_center, own_half);
         !Search::is_passable_(from_chunk, from_neighbors, R.min(), R.max(), p))
         return {};
 
-    if (auto R = Range2D::fromCenter(Vector2(intra_coord{to}.center_shifted()), own_half);
-        !Search::is_passable_(w.at(to.chunk3()), w.neighbors(to.chunk3()), R.min(), R.max(), p))
+    if (auto R = Range2D::fromCenter(to_center, own_half);
+        !Search::is_passable_(to_chunk, to_neighbors, R.min(), R.max(), p))
         return {};
 
-    // the goal hop's is_passable_swept() needs this cell, so without it the search
-    // only ends after visiting everything within max_dist
+    // without a node that can hop to the goal, the search only ends after visiting everything
+    // within max_dist
     if constexpr (!FindClosestOnFailure)
-        if (!cache.is_passable_for_bbox(w, pool, to, p))
+    {
+        const auto off = Vector2i(to.offset());
+        const auto lo = Vector2i{floor_div(off.x(), step), floor_div(off.y(), step)} * step;
+        const auto n = hop_axis / step + 2;
+        bool can_hop = false;
+        for (int j = -n; j <= n && !can_hop; j++)
+            for (int i = -n; i <= n && !can_hop; i++)
+            {
+                const auto pt = point::normalize_coords({to.coord(), {}}, lo + Vector2i{i, j} * step);
+                can_hop = point::distance_squared(pt, to) <= goal_thres_sq
+                          && cache.is_passable_for_bbox(w, pool, pt, p)
+                          && is_hop_passable(pt);
+            }
+        if (!can_hop)
             return {};
+    }
 
     constexpr Vector2i seed_offsets[9] = {
         {  0,             0            },
@@ -493,7 +499,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         auto pt = point::normalize_coords({from.coord(), {}}, off);
         auto dist = h(from, pt);
         // the cell bit only covers the seed itself, so sweep the bbox over the
-        // from -> seed motion, like the goal hop does with is_passable_swept()
+        // from -> seed motion, like the goal hop does
         const auto seed_center = TILE_SIZE2 * Vector2(from.local()) + Vector2(off);
 
         if (cache.is_passable_for_bbox(w, pool, pt, p)
@@ -565,9 +571,11 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
 
         if (goal_dist_sq <= goal_thres_sq) [[unlikely]]
         {
-            if (is_passable_swept(bm, cur_pt, to))
+            if (is_hop_passable(cur_pt))
             {
-                const auto new_dist = cur_dist + point::distance(cur_pt, to);
+                // Octile like the steps, so the default h never exceeds a hop's cost. h itself
+                // can be 0 at the goal.
+                const auto new_dist = cur_dist + octile(cur_pt, to);
                 if (to_idx == (uint32_t)-1)
                 {
                     to_idx = (uint32_t)nodes.size();
