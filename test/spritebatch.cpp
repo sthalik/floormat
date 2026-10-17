@@ -27,7 +27,7 @@ struct fixture
     uint32_t nruns = 0;
     bool ranks_defined = true;      // false once some run has a repeated depth
 
-    // Emitted in descending depth, so end_chunk<true> has real work to do.
+    // Emitted in descending depth, so the sort has real work to do.
     void add_run(std::vector<float> run)
     {
         std::ranges::sort(run, std::greater<>{});
@@ -240,7 +240,8 @@ void run_cases()
         for (auto kind : { layout::interleaved, layout::blocked, layout::one_dominant, layout::reverse_blocked })
             test_layout(kind, k);
 
-    {   // k == 1 skips the merge; k == 0 means every chunk was empty.
+    {   // k == 1 skips the merge, but from AVX2 up its run is unsorted; k == 0 means every
+        // chunk was empty.
         fixture f;
         f.add_run({3, 1, 2});
         f.check();
@@ -296,8 +297,8 @@ void run_cases()
         f.check();
     }
 
-    {   // The mixed scenery pass: dynamic runs sorted by end_chunk, static runs pre-sorted
-        // and passed through. Both kinds feed the same merge.
+    {   // The mixed scenery pass: dynamic runs closed by end_chunk<true>, static runs
+        // pre-sorted and passed through. Both kinds feed the same sort.
         fixture f;
         f.add_run({9, 3, 6});
         f.add_presorted_run({1, 4, 7});
@@ -313,8 +314,8 @@ void run_cases()
         f.add_presorted_run({3, 4});
         f.check_identity();
 
-        // Same, but a sorted run in the middle permutes sort_indexes, so the direct path
-        // must not be taken. Only sortedness is meaningless here, not the permutation.
+        // Same, but below AVX2 a sorted run in the middle permutes sort_indexes, so the direct
+        // path must not be taken. Only sortedness is meaningless here, not the permutation.
         f.add_presorted_run({1, 2});
         f.add_run({9, 8});
         f.check(false);
