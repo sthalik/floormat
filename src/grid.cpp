@@ -66,18 +66,10 @@ void GridBase::reset_base_for_reuse(chunk& ch)
     versions.fill((uint64_t)-1);
 }
 
-void GridBase::maybe_mark_stale()
+bool GridBase::versions_match() const
 {
-    fm_debug3_assert(c && c->world().at(coord) == c);
-
-    if (is_stale())
-        return;
-
     if (versions[8] != c->pass_gen())
-    {
-        mark_stale();
-        return;
-    }
+        return false;
 
     auto& w = c->world();
     for (auto i = 0u; i < 8; i++)
@@ -85,11 +77,17 @@ void GridBase::maybe_mark_stale()
         auto* nb = w.at(coord + world::neighbor_offsets[i]);
         auto nb_ver = nb ? nb->pass_gen() : (uint64_t)-1;
         if (nb_ver != versions[i])
-        {
-            mark_stale();
-            return;
-        }
+            return false;
     }
+    return true;
+}
+
+void GridBase::maybe_mark_stale()
+{
+    fm_debug3_assert(c && c->world().at(coord) == c);
+
+    if (!is_stale() && !versions_match())
+        mark_stale();
 }
 
 uint32_t GridBase::pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count)

@@ -425,7 +425,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     const auto params = pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert(params.min_pass == pass_mode::pass);
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
 
     // A goal touching a collider on its high side has a free node up to a cell plus a step
     // less 2 px away on that axis, as a cell's bit needs every position in the cell free.

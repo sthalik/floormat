@@ -151,12 +151,11 @@ public:
     [[nodiscard]] Grid operator[](chunk& c);
     [[nodiscard]] Grid wrap(detail::grid::PassGrid* g) const noexcept;
 
-    void maybe_mark_stale_all(uint64_t frame_no);
+    void maybe_mark_stale_all(const world& w);
 
     void build_if_stale_all(const pred& predicate);
 
     const Params& params() const;
-    uint64_t frame_no() const;
     uint32_t pooled_count() const;
 };
 

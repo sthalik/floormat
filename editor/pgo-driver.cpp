@@ -1439,7 +1439,7 @@ task app::scene_grids()
     // handle has to be taken after it: a pooled grid can be recycled by that call.
     const auto rebuild = [&](Pass::Pool& pool)
     {
-        pool.maybe_mark_stale_all(w.frame_no());
+        pool.maybe_mark_stale_all(w);
         pool[c].build_if_stale(Search::never_continue());
     };
 
@@ -1502,7 +1502,7 @@ task app::scene_grids()
 
     // The pins are 8 px in a 1024-px chunk, so a bitmap that came back empty would mean the
     // objects never reached the RTree at all.
-    pass_raycast.maybe_mark_stale_all(w.frame_no());
+    pass_raycast.maybe_mark_stale_all(w);
     fm_assert(!pass_raycast[c].is_all_empty());
 
     tests().switch_to(floormat::tests::Test::cover);

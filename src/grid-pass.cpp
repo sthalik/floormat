@@ -433,13 +433,13 @@ uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
 
 uint32_t Grid::get_bitmask_index_from_coord(intra_coord pos) const
 {
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     return grid->get_bitmask_index_from_coord(pos);
 }
 
 Range2D Grid::get_coord_from_div(uint32_t x, uint32_t y) const
 {
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     return grid->get_coord_from_div(x, y);
 }
 
@@ -450,7 +450,7 @@ bool Grid::bit(uint32_t index) const
 
 BitView Grid::bits() const
 {
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     fm_debug_assert(grid->bitmask.offset() == 0);
     return { reinterpret_cast<uint8_t*>(grid->bitmask.data()) };
 }
@@ -462,13 +462,13 @@ uint32_t Grid::div_count() const
 
 uint64_t Grid::build_no() const
 {
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     return grid->build_no;
 }
 
 bool Grid::is_all_empty() const
 {
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     return grid->is_all_empty();
 }
 
@@ -496,14 +496,11 @@ void Grid::maybe_mark_stale()
 detail::grid::PassGrid* Grid::raw() const noexcept { return grid; }
 void Grid::build_if_stale(const pred& predicate) { grid->build_if_stale(predicate); }
 
-void Pool::maybe_mark_stale_all(uint64_t frame_no)
+void Pool::maybe_mark_stale_all(const world& w)
 {
-    pool->frame_no = frame_no;
-    if (pool->live.isEmpty())
-        return;
     // Every stamp in versions[] came from world::next_pass_gen(), and so did every change that
     // dirtied a chunk. While the counter hasn't moved, the walk would find nothing.
-    const auto gen = pool->live[0]->c->world().pass_gen();
+    const auto gen = w.pass_gen();
     if (gen == checked_pass_gen)
         return;
     checked_pass_gen = gen;
@@ -527,7 +524,6 @@ void Pool::build_if_stale_all(const pred& predicate)
 Pool::Pool(Params params): pool{new detail::grid::Pool<detail::grid::PassGrid>{params}} { }
 Pool::~Pool() noexcept { delete pool; }
 const Params& Pool::params() const { return pool->params; }
-uint64_t Pool::frame_no() const { return pool->frame_no; }
 uint32_t Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Pass

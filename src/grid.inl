@@ -76,15 +76,14 @@ T* Pool<T>::take(chunk& ch) requires BitGrid<T>
 }
 
 template <typename T>
-void check_frame_sync([[maybe_unused]] Pool<T>* pool, [[maybe_unused]] T* grid)
+void check_versions([[maybe_unused]] T* grid)
 {
-    fm_debug3_assert(pool->frame_no == grid->c->world().frame_no());
+    fm_debug3_assert(grid->is_stale() || grid->versions_match());
 }
 
 template <typename T>
 T* pool_subscript(Pool<T>* p, chunk& c)
 {
-    fm_debug3_assert(p->frame_no == c.world().frame_no());
     if (auto* g = p->find(c))
         return static_cast<T*>(g);
     T* t = p->take(c);
@@ -96,7 +95,7 @@ template <typename T>
 bool grid_bit_at(Pool<T>* pool, T* grid, uint32_t index)
 {
     (void)pool;
-    //check_frame_sync(pool, grid);
+    //check_versions(grid);
     //fm_assert(index < grid->bitmask.size());
     return grid->bitmask[index];
 }
