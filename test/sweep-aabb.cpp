@@ -14,6 +14,11 @@
 #include "src/global-coords.hpp"
 #include "src/nanosecond.inl"
 #include "src/point.inl"
+#include "src/sweep-aabb.hpp"
+#include "src/raycast-line.hpp"
+#include "src/grid-pass.hpp"
+#include "src/search.hpp"
+#include "src/rect-intersects.hpp"
 #include "test/run.hpp"
 
 namespace floormat {
@@ -86,11 +91,119 @@ void test_critter_slit_ne()
     w.finish_scripts();
 }
 
+uint32_t first_blocked_step(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                            uint32_t first, uint32_t last, Vector2ui size)
+{
+    const auto half = Vector2(size) * .5f;
+    const auto free = [&](Vector2i c) {
+        return Search::is_passable(w, ch, Range2D{Vector2(c) - half, Vector2(c) + half});
+    };
+    if (!free(line.pixel_at(first)))
+        return first;
+    for (auto t = first; t < last; t++)
+    {
+        if (!free(line.pixel_at(t + 1)))
+            return t + 1;
+        const auto o = line.off_axis_at(t);
+        if (o.diagonal && (!free(o.pixels[0]) || !free(o.pixels[1])))
+            return t + 1;
+    }
+    return last + 1;
+}
+
+void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, uint32_t first, uint32_t last,
+                      Vector2ui size, Pass::Pool* pool)
+{
+    const auto line = rc::bresenham_line{from, to};
+    const auto expected = first_blocked_step(w, ch, line, first, last, size);
+    const auto res = find_swept_collider(w, ch, line, first, last, size, Search::never_continue(), pool);
+    if (res.step != expected || res.has_collider != (expected <= last))
+        fm_abort("line (%d %d)-(%d %d) steps %u-%u size %ux%u pool %d: step %u, expected %u",
+                 from.x(), from.y(), to.x(), to.y(), first, last, size.x(), size.y(),
+                 pool ? (int)pool->params().div_size() : 0, res.step, expected);
+    if (!res.has_collider)
+        return;
+    const auto half = Vector2(size) * .5f;
+    const auto overlaps = [&](Vector2i c) {
+        return rect_intersects(Vector2(c) - half, Vector2(c) + half, res.rect.min(), res.rect.max());
+    };
+    bool any = overlaps(line.pixel_at(res.step));
+    if (res.step > first)
+        if (const auto o = line.off_axis_at(res.step - 1); o.diagonal)
+            any |= overlaps(o.pixels[0]) || overlaps(o.pixels[1]);
+    fm_assert(any);
+}
+
+// The step (15, 15) -> (16, 16) crosses the corner of four 4 px cells. Only its off-axis pixel
+// (16, 15) is blocked, so the cells of both its pixels have their bits set.
+void test_swept_collider_cell_corner()
+{
+    auto w = world();
+    constexpr chunk_coords_ ch{0, 0, 0};
+    fill_ground(w[ch]);
+    place_pillar(w, ch, {0, 0}, Vector2b{18, 12}, Vector2ub{2, 4});
+    w[ch].mark_modified();
+    Pass::Pool pool{Pass::Params{4, 4, pass_mode::pass}};
+    check_swept_line(w, ch, {8, 8}, {24, 24}, 0, 16, Vector2ui{4}, &pool);
+    const auto res = find_swept_collider(w, ch, rc::bresenham_line{{8, 8}, {24, 24}}, 0, 16, Vector2ui{4},
+                                         Search::never_continue(), &pool);
+    fm_assert(res.has_collider && res.step == 8);
+}
+
+void test_swept_collider_line()
+{
+    auto w = world();
+    constexpr chunk_coords_ ch{0, 0, 0}, ch2{1, 0, 0}, ch3{1, 1, 0};
+    for (auto c : { ch, ch2, ch3 })
+        fill_ground(w[c]);
+    place_pillar(w, ch, {3, 4}, Vector2b{0, 0}, Vector2ub{20, 12});
+    place_pillar(w, ch, {8, 9}, Vector2b{-5, 7}, Vector2ub{10, 30});
+    // across the edge with ch2
+    place_pillar(w, ch, {15, 6}, Vector2b{20, 0}, Vector2ub{30, 8});
+    place_pillar(w, ch2, {1, 10}, Vector2b{-3, 11}, Vector2ub{14, 6});
+    // at the corner of ch, ch2 and ch3
+    place_pillar(w, ch2, {0, 15}, Vector2b{-28, 20}, Vector2ub{6, 8});
+    place_pillar(w, ch3, {2, 1}, Vector2b{0, 0}, Vector2ub{18, 24});
+    for (auto c : { ch, ch2, ch3 })
+        w[c].mark_modified();
+
+    // through the corner of four chunks, where the off-axis pixels are in neither pixel's chunk
+    for (auto size : { 1u, 4u, 7u })
+    {
+        check_swept_line(w, ch, {950, 950}, {1040, 1040}, 0, 90, Vector2ui{size}, nullptr);
+        check_swept_line(w, ch, {1040, 950}, {950, 1040}, 0, 90, Vector2ui{size}, nullptr);
+    }
+
+    uint32_t seed = 0x2545f491;
+    const auto next = [&](uint32_t n) {
+        seed = seed * 1664525u + 1013904223u;
+        return (seed >> 8) % n;
+    };
+    for (auto size : { Vector2ui{1}, Vector2ui{3}, Vector2ui{4, 9}, Vector2ui{8}, Vector2ui{13, 6}, Vector2ui{24} })
+    {
+        const auto pool_bbox = (Math::max(size.x(), size.y()) + 1) & ~1u;
+        Pass::Pool pool8{Pass::Params{8, pool_bbox, pass_mode::pass}};
+        Pass::Pool pool16{Pass::Params{16, pool_bbox, pass_mode::pass}};
+        for (auto i = 0u; i < 24; i++)
+        {
+            const auto from = Vector2i{(int32_t)next(1900) - 32, (int32_t)next(1900) - 32};
+            const auto to = from + Vector2i{(int32_t)next(601) - 300, (int32_t)next(601) - 300};
+            const auto steps = rc::bresenham_line{from, to}.steps();
+            const auto first = next(steps + 1), last = first + next(steps - first + 1);
+            check_swept_line(w, ch, from, to, first, last, size, nullptr);
+            check_swept_line(w, ch, from, to, first, last, size, &pool8);
+            check_swept_line(w, ch, from, to, first, last, size, &pool16);
+        }
+    }
+}
+
 } // namespace
 
 void Test::test_sweep_aabb()
 {
     test_critter_slit_ne();
+    test_swept_collider_cell_corner();
+    test_swept_collider_line();
 }
 
 } // namespace floormat
