@@ -138,6 +138,64 @@ void test_steal_while_growing()
     }
 }
 
+enum class pause_at : uint8_t { before_hazard, after_hazard };
+
+template<pause_at at>
+struct pause_steal
+{
+    static inline volatile uint8_t paused = 0, resume = 0;
+
+    static void pause() noexcept
+    {
+        atomic_store(&paused, uint8_t{1}, memory_order::release);
+        while (!atomic_load(&resume, memory_order::acquire))
+            std::this_thread::yield();
+    }
+
+    static void before_hazard() noexcept
+    {
+        if constexpr (at == pause_at::before_hazard)
+            pause();
+    }
+
+    static void after_hazard() noexcept
+    {
+        if constexpr (at == pause_at::after_hazard)
+            pause();
+    }
+};
+
+// Without ASan, a thief reading the freed array goes unnoticed, the MSVC debug heap included.
+template<pause_at at>
+void test_grow_during_steal()
+{
+    using Hooks = pause_steal<at>;
+    int items[3]{};
+    ChaseLevDeque<int, Hooks> q{1, 1};
+    q.push(&items[0]);
+    int* x = nullptr;
+
+    run_threads<2>([&](uint32_t i) {
+        if (i == 0)
+        {
+            while (!atomic_load(&Hooks::paused, memory_order::acquire))
+                std::this_thread::yield();
+            // The second push grows the array. reclaim() frees the old one unless
+            // a hazard names it.
+            q.push(&items[1]);
+            q.push(&items[2]);
+            atomic_store(&Hooks::resume, uint8_t{1}, memory_order::release);
+        }
+        else
+            x = q.steal(0);
+    });
+
+    fm_assert(x == &items[0]);
+    fm_assert(q.take() == &items[2]);
+    fm_assert(q.take() == &items[1]);
+    fm_assert(!q.take());
+}
+
 void test_last_element()
 {
     constexpr uint32_t rounds = 20'000, max_delay = 128;
@@ -193,6 +251,8 @@ void Test::test_chase_lev_deque()
     test_steal_while_growing<3, 40>();
     // More thieves than any CI runner has cores.
     test_steal_while_growing<128, 2>();
+    test_grow_during_steal<pause_at::before_hazard>();
+    test_grow_during_steal<pause_at::after_hazard>();
     test_last_element();
 }
 

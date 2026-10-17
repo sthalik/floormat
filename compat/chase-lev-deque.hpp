@@ -6,10 +6,18 @@
 
 namespace floormat {
 
+// steal() calls these around publishing its hazard. Tests pause a thief there so that grow()
+// and reclaim() run inside that window.
+struct chase_lev_no_hooks
+{
+    static void before_hazard() noexcept {}
+    static void after_hazard() noexcept {}
+};
+
 // One owner calls push() and take(), thief i calls steal(i). Both return nullptr when empty
 // or on a lost race. Only the owner may push. Any other thread that makes jobs needs its own
 // deque or a separate multi-producer queue.
-template<typename T>
+template<typename T, typename Hooks = chase_lev_no_hooks>
 class ChaseLevDeque final
 {
     struct alignas(64) buffer
@@ -176,6 +184,7 @@ public:
 
         volatile uintptr_t* h = &_hazards[thief].value;
         uintptr_t a = atomic_load(&_array, memory_order::acquire);
+        Hooks::before_hazard();
         for (;;)
         {
             atomic_exchange(h, a, memory_order::seq_cst);
@@ -184,6 +193,7 @@ public:
                 break;
             a = a2;
         }
+        Hooks::after_hazard();
         // Read before the CAS: once top moves past t, push() may reuse the slot.
         auto* x = (T*)atomic_load(&(*(buffer*)a)[t], memory_order::relaxed);
         bool won = atomic_compare_exchange(&_top, t, t + 1, memory_order::seq_cst);
