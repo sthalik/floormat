@@ -170,6 +170,23 @@ jobs:
       timeout-minutes: 60
       if: runner.os == 'Linux'
 
+    # No gdb: LeakSanitizer stops the threads with ptrace, which fails while gdb traces them.
+    - name: Test for leaks
+      run: |
+        cd ${{github.workspace}}/build/install
+        export MAGNUM_LOG=default
+        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=1"
+        # Otherwise SDL leaks what libdbus allocated.
+        export SDL_SHUTDOWN_DBUS_ON_QUIT=1
+        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
+        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
+        set -e
+        xvfb-run bin/floormat-test
+        env -u DISPLAY -u WAYLAND_DISPLAY bin/floormat-test --no-gl
+        xvfb-run bin/floormat-editor --scenes=drag-paint --driver-no-swapbuffers
+      timeout-minutes: 60
+      if: ${{ !cancelled() && runner.os == 'Linux' }}
+
 #    - name: Upload build
 #      uses: actions/upload-artifact@v2.2.4
 #      with:
