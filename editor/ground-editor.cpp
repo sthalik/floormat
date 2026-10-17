@@ -83,19 +83,19 @@ void ground_editor::select_tile_permutation(const bptr<ground_atlas>& atlas)
     *_permutation = { atlas, {} };
 }
 
-bool ground_editor::is_tile_selected(const bptr<const ground_atlas>& atlas, size_t variant) const
+bool ground_editor::is_tile_selected(const bptr<ground_atlas>& atlas, size_t variant) const
 {
     return atlas && _selection_mode == sel_tile && _selected_tile &&
            atlas == _selected_tile.atlas && variant == _selected_tile.variant;
 }
 
-bool ground_editor::is_permutation_selected(const bptr<const ground_atlas>& atlas) const
+bool ground_editor::is_permutation_selected(const bptr<ground_atlas>& atlas) const
 {
     const auto& [perm, _] = *_permutation;
     return atlas && _selection_mode == sel_perm && perm == atlas;
 }
 
-bool ground_editor::is_atlas_selected(const bptr<const ground_atlas>& atlas) const
+bool ground_editor::is_atlas_selected(const bptr<ground_atlas>& atlas) const
 {
     switch (_selection_mode)
     {

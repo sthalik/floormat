@@ -54,7 +54,7 @@ public:
     Vector2 total_size() const noexcept;
     Math::Range2D<float> bounds() const noexcept;
     Math::Range2D<float> bounds_of(slot s) const noexcept;
-    Math::Range2D<float> render(ImDrawList& draw, Vector2 anchor) const;
+    Math::Range2D<float> render(ImDrawList& draw, Vector2 anchor);
 };
 
 class text_painter_pool

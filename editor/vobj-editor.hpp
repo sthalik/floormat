@@ -25,7 +25,7 @@ struct vobj_factory
 
     StringView name() const;
     StringView descr() const;
-    bptr<anim_atlas> atlas() const;
+    bptr<anim_atlas> atlas() const; // todo not thread-safe, copies a non-atomic bptr
 };
 
 class vobj_editor final

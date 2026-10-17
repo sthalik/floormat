@@ -37,9 +37,9 @@ public:
     void clear_selection();
     void select_tile(const bptr<ground_atlas>& atlas, size_t variant);
     void select_tile_permutation(const bptr<ground_atlas>& atlas);
-    bool is_tile_selected(const bptr<const ground_atlas>& atlas, size_t variant) const;
-    bool is_permutation_selected(const bptr<const ground_atlas>& atlas) const;
-    bool is_atlas_selected(const bptr<const ground_atlas>& atlas) const;
+    bool is_tile_selected(const bptr<ground_atlas>& atlas, size_t variant) const;
+    bool is_permutation_selected(const bptr<ground_atlas>& atlas) const;
+    bool is_atlas_selected(const bptr<ground_atlas>& atlas) const;
     bool is_anything_selected() const;
     tile_image_proto get_selected();
     void place_tile(world& world, global_coords pos, const tile_image_proto& img);

@@ -103,10 +103,9 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     void start_text_input() noexcept override;
     void stop_text_input() noexcept override;
 
-    void debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str) const;
+    static void debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str);
 
     void set_cursor(uint32_t cursor) noexcept override;
-    uint32_t cursor() const noexcept override;
 
     struct texture_unit_cache& texture_unit_cache() override;
     class astar& astar() override;
