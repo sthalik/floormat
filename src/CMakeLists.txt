@@ -24,6 +24,9 @@ target_link_libraries(
     #Magnum::DebugTools
 )
 target_link_libraries(${self} PRIVATE floormat-hwy)
+if(WIN32)
+    target_link_libraries(${self} PUBLIC synchronization)
+endif()
 # The vqsort fallback calls std::isnan(), which finite math folds to false.
 fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE hwy.cpp)
 # 1 / dir is ±inf for an axis-aligned ray, and the slab test relies on it.

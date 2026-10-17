@@ -46,4 +46,32 @@ template<atomic_type T> T atomic_fetch_xor(volatile T* p, std::type_identity_t<T
 void atomic_thread_fence(memory_order o = memory_order::seq_cst) noexcept;
 void cpu_relax() noexcept;
 
+#if defined __linux__ && !defined FM_NO_PLATFORM_ATOMIC_WAIT
+constexpr inline uint32_t atomic_wait_sizes[] = { 4 };
+#elif defined __FreeBSD__ && !defined FM_NO_PLATFORM_ATOMIC_WAIT && defined __LP64__
+constexpr inline uint32_t atomic_wait_sizes[] = { 4, 8 };
+#elif defined __FreeBSD__ && !defined FM_NO_PLATFORM_ATOMIC_WAIT
+constexpr inline uint32_t atomic_wait_sizes[] = { 4 };
+#elif defined __APPLE__ && !defined FM_NO_PLATFORM_ATOMIC_WAIT && defined __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 140400
+constexpr inline uint32_t atomic_wait_sizes[] = { 4, 8 };
+#else
+constexpr inline uint32_t atomic_wait_sizes[] = { 1, 2, 4, 8 };
+#endif
+
+consteval bool atomic_wait_size_supported(size_t size)
+{
+    for (auto x : atomic_wait_sizes)
+        if (x == size)
+            return true;
+    return false;
+}
+
+template<typename T>
+concept atomic_wait_type = atomic_type<T> && atomic_wait_size_supported(sizeof(T));
+
+// The pool's notify_one wakes every waiter in the bucket.
+template<atomic_wait_type T> void atomic_wait(const volatile T* p, std::type_identity_t<T> old, memory_order o = memory_order::seq_cst) noexcept;
+template<atomic_wait_type T> void atomic_notify_one(const volatile T* p) noexcept;
+template<atomic_wait_type T> void atomic_notify_all(const volatile T* p) noexcept;
+
 } // namespace floormat
