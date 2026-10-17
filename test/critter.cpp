@@ -4,6 +4,9 @@
 #include "src/point.inl"
 #include "src/world.hpp"
 #include "src/critter.hpp"
+#include "src/critter-script.hpp"
+#include "src/search-astar.hpp"
+#include "src/search-result.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/tile-image.hpp"
@@ -15,6 +18,7 @@
 #include "compat/function2.hpp"
 #include "loader/loader.hpp"
 #include "compat/constantly.hpp"
+#include <cr/GrowableArray.h>
 #include <cinttypes>
 #include <cstdio>
 
@@ -312,6 +316,188 @@ void test_move_toward_line_displaced()
     fm_assert(L.npc->position() == off);
 }
 
+struct script_walker
+{
+    astar A;
+    world w;
+    bptr<critter> npc;
+    Ns frame;
+
+    script_walker() : w{world()}
+    {
+        for (int16_t j = -1; j <= 1; j++)
+            for (int16_t i = -1; i <= 1; i++)
+                (void)w[chunk_coords_{i, j, 0}];
+        object_id id = 0;
+        npc = w.ensure_player_character(id, make_proto(1.f));
+        frame = Second / npc->atlas->info().fps;
+        w.init_scripts();
+    }
+
+    ~script_walker() { w.finish_scripts(); }
+
+    void place(point pt)
+    {
+        auto i = npc->index();
+        npc->teleport_to(i, pt, rotation_COUNT);
+        npc->offset_frac = {};
+        npc->delta = {};
+    }
+
+    path_search_result find_path(point from, point to, bool smooth)
+    {
+        const auto size = Vector2ui(npc->bbox_size);
+        auto res = A.Dijkstra(w, from, to, 4096, size, Search::without_critters());
+        fm_assert(res.is_found());
+        if (smooth)
+            fm_assert(A.string_pull(w, res, size, Search::without_critters()));
+        return res;
+    }
+
+    void walk(path_search_result res) { npc->script.do_reassign(critter_script::make_walk_script(move(res)), npc); }
+    void update(uint32_t nframes = 1) { auto i = npc->index(); npc->update(npc, i, frame * nframes); }
+
+    uint32_t walk_to_end()
+    {
+        uint32_t frames = 0;
+        while (npc->last_walk == critter::walk_result::none)
+        {
+            fm_assert(frames++ < 2000);
+            update();
+        }
+        return frames;
+    }
+};
+
+bool on_segment(point a, point b, point p)
+{
+    const auto origin = point{a.chunk3(), {}, {}};
+    const auto line = rc::bresenham_line{a - origin, b - origin};
+    for (auto k = 0u; k <= line.steps(); k++)
+        if (line.pixel_at(k) == p - origin)
+            return true;
+    return false;
+}
+
+void test_walk_smoothed()
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    script_walker W;
+    scenery_proto p;
+    p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype   = generic_scenery_proto{};
+    p.bbox_size = Vector2ub{40, 40};
+    p.pass      = pass_mode::blocked;
+    W.w.make_scenery(W.w.make_id(), {ch, {7, 6}}, move(p));
+    W.w[ch].mark_modified();
+
+    const auto from = point{ch, {2, 6}, {}}, to = point{ch, {12, 6}, {}};
+    W.place(from);
+    auto res = W.find_path(from, to, true);
+    Array<point> sp;
+    for (const auto& x : std::as_const(res).smoothings())
+        arrayAppend(sp, x.pt);
+    fm_assert(sp.size() == 4);
+    float len = 0;
+    for (auto j = 0uz; j + 1 < sp.size(); j++)
+        len += Vector2(sp[j+1] - sp[j]).length();
+
+    W.walk(move(res));
+    uint32_t frames = 0, seg = 0;
+    while (W.npc->last_walk == critter::walk_result::none)
+    {
+        fm_assert(frames++ < 2000);
+        W.update();
+        while (!on_segment(sp[seg], sp[seg+1], W.npc->position()))
+        {
+            seg++;
+            fm_assert(seg + 1 < sp.size());
+        }
+    }
+    fm_assert(W.npc->last_walk == critter::walk_result::arrived);
+    fm_assert(W.npc->position() == to && !W.npc->moves.AUTO);
+    fm_assert(float(frames) >= len - 1 && float(frames) <= Math::ceil(len) + float(sp.size()));
+
+    W.place(from);
+    W.walk(W.find_path(from, to, false));
+    const auto raw_frames = W.walk_to_end();
+    fm_assert(W.npc->last_walk == critter::walk_result::arrived && W.npc->position() == to);
+    fm_assert(frames < raw_frames);
+
+    W.place(from);
+    W.walk(W.find_path(from, to, true));
+    W.update(frames + 50);
+    fm_assert(W.npc->last_walk == critter::walk_result::arrived && W.npc->position() == to);
+}
+
+// The path is found without critters, so one standing on the segment stops the walk.
+void test_walk_smoothed_blocked()
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    script_walker W;
+    const auto from = point{ch, {2, 3}, {}}, to = point{ch, {13, 8}, {5, -3}};
+    W.place(from);
+    auto res = W.find_path(from, to, true);
+    fm_assert(std::as_const(res).smoothings().size() == 2);
+
+    const auto mid = from + (to - from) / 2;
+    auto proto = make_proto(1.f);
+    proto.playable = false;
+    proto.offset = mid.offset();
+    const auto other = W.w.make_object<critter>(W.w.make_id(), mid.coord(), move(proto));
+
+    const auto origin = point{ch, {}, {}};
+    const auto line = rc::bresenham_line{from - origin, to - origin};
+    const auto self_id = W.npc->id;
+    const auto pred = [self_id](chunk&, collision_data x, Range2D) {
+        return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
+    };
+    const auto expected = find_swept_collider(W.w, ch, line, 0, line.steps(), Vector2ui(W.npc->bbox_size), pred);
+    fm_assert(expected.has_collider && expected.collider.id == other->id && expected.step > 1);
+
+    W.walk(move(res));
+    (void)W.walk_to_end();
+    fm_assert(W.npc->last_walk == critter::walk_result::blocked && !W.npc->moves.AUTO);
+    fm_assert_equal(line.pixel_at(expected.step - 1), W.npc->position() - origin);
+}
+
+void test_walk_smoothed_displaced()
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    script_walker W;
+    const auto from = point{ch, {2, 3}, {}}, to = point{ch, {13, 8}, {5, -3}};
+    W.place(from);
+    auto res = W.find_path(from, to, true);
+    fm_assert(std::as_const(res).smoothings().size() == 2);
+    W.walk(move(res));
+    for (auto i = 0; i < 10; i++)
+        W.update();
+    fm_assert(W.npc->last_walk == critter::walk_result::none);
+
+    // the line is x-major, so one row below its pixel is off it
+    const auto off = W.npc->position() + Vector2i{0, 1};
+    W.place(off);
+    W.update();
+    fm_assert(W.npc->last_walk == critter::walk_result::displaced && !W.npc->moves.AUTO);
+    fm_assert(W.npc->position() == off);
+}
+
+void test_walk_interrupted()
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    script_walker W;
+    const auto from = point{ch, {2, 3}, {}}, to = point{ch, {13, 8}, {5, -3}};
+    W.place(from);
+    W.npc->last_walk = critter::walk_result::blocked;
+    W.walk(W.find_path(from, to, true));
+    fm_assert(W.npc->last_walk == critter::walk_result::none);
+    for (auto i = 0; i < 10; i++)
+        W.update();
+    W.npc->set_keys(true, false, false, false);
+    W.update();
+    fm_assert(!W.npc->moves.AUTO && W.npc->last_walk == critter::walk_result::none);
+}
+
 void test_player_character_id_lowest()
 {
     auto w = world();
@@ -386,6 +572,10 @@ void Test::test_critter()
     test_move_toward_line();
     test_move_toward_line_blocked();
     test_move_toward_line_displaced();
+    test_walk_smoothed();
+    test_walk_smoothed_blocked();
+    test_walk_smoothed_displaced();
+    test_walk_interrupted();
     test_player_character_id_lowest();
 
     if (is_noisy)

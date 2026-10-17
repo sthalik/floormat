@@ -19,7 +19,8 @@ using psr = path_search_result;
 
 struct walk_script final : critter_script
 {
-    enum class walk_mode : uint8_t { none, line, path, };
+    enum class walk_mode : uint8_t { none, line, path, smoothed, };
+    using walk_result = critter::walk_result;
 
     StringView name() const override;
     const void* id() const override;
@@ -31,8 +32,9 @@ struct walk_script final : critter_script
     explicit walk_script(point dest);
     explicit walk_script(psr path);
 
-    bool walk_line(const bptr<critter>& c, size_t& i, const Ns& dt);
-    bool walk_path(const bptr<critter>& c, size_t& i, const Ns& dt);
+    walk_result walk_line(const bptr<critter>& c, size_t& i, const Ns& dt);
+    walk_result walk_path(const bptr<critter>& c, size_t& i, const Ns& dt);
+    walk_result walk_smoothed(const bptr<critter>& c, size_t& i, const Ns& dt);
 
 private:
     point dest;
@@ -50,12 +52,14 @@ void walk_script::on_init(const bptr<critter>& c)
 {
     //Debug{} << "| start walking from" << c->position() << "to" << dest;
     c->moves.AUTO = true;
+    c->last_walk = walk_result::none;
 
     switch (mode)
     {
     case walk_mode::line:
         break;
     case walk_mode::path:
+    case walk_mode::smoothed:
         fm_assert(!path.empty());
         dest = path.path().back();
         break;
@@ -66,6 +70,7 @@ void walk_script::on_init(const bptr<critter>& c)
 
 void walk_script::on_update(const bptr<critter>& c, size_t& i, const Ns& dt)
 {
+    auto ret = walk_result::none;
     if (c->maybe_stop_auto_movement())
         goto done;
 
@@ -73,21 +78,24 @@ void walk_script::on_update(const bptr<critter>& c, size_t& i, const Ns& dt)
     {
     case walk_mode::line:
         fm_assert(!path);
-        if (walk_line(c, i, dt))
-            goto done;
-        return;
-    case walk_mode::path:
-        if (walk_path(c, i, dt))
-            goto done;
-        return;
-    case walk_mode::none:
+        ret = walk_line(c, i, dt);
         break;
+    case walk_mode::path:
+        ret = walk_path(c, i, dt);
+        break;
+    case walk_mode::smoothed:
+        ret = walk_smoothed(c, i, dt);
+        break;
+    case walk_mode::none:
+        fm_assert(false);
     }
-    fm_assert(false);
+    if (ret == walk_result::none)
+        return;
 
 done:
     //path = {};
     //Debug{} << "  finished walking";
+    c->last_walk = ret;
     c->clear_auto_movement();
     c->script.do_clear(c);
 }
@@ -101,16 +109,23 @@ walk_script::walk_script(psr pathʹ) :
     mode{walk_mode::path}
 {
     fm_assert(!path.empty());
+    if (std::as_const(path).smoothings().size() >= 2)
+    {
+        mode = walk_mode::smoothed;
+        path_index = 1;
+    }
 }
 
-bool walk_script::walk_line(const bptr<critter>& c, size_t& i, const Ns& dtʹ)
+auto walk_script::walk_line(const bptr<critter>& c, size_t& i, const Ns& dtʹ) -> walk_result
 {
     auto dt = dtʹ;
     auto res = c->move_toward(i, dt, dest);
-    return res.blocked || c->position() == dest;
+    if (res.blocked)
+        return walk_result::blocked;
+    return c->position() == dest ? walk_result::arrived : walk_result::none;
 }
 
-bool walk_script::walk_path(const bptr<critter>& c, size_t& i, const Ns& dtʹ)
+auto walk_script::walk_path(const bptr<critter>& c, size_t& i, const Ns& dtʹ) -> walk_result
 {
     auto dt = dtʹ;
     while (dt != Ns{})
@@ -118,13 +133,36 @@ bool walk_script::walk_path(const bptr<critter>& c, size_t& i, const Ns& dtʹ)
         while (path_index < path.size() && c->position() == path.path()[path_index])
             path_index++;
         if (path_index == path.size())
-            return true;
+            return walk_result::arrived;
         point cur = path.path()[path_index];
         auto ret = c->move_toward(i, dt, cur);
-        if (ret.blocked || !ret.moved)
-            return ret.blocked;
+        if (ret.blocked)
+            return walk_result::blocked;
+        if (!ret.moved)
+            return walk_result::none;
     }
-    return false;
+    return walk_result::none;
+}
+
+auto walk_script::walk_smoothed(const bptr<critter>& c, size_t& i, const Ns& dtʹ) -> walk_result
+{
+    auto dt = dtʹ;
+    const auto sp = std::as_const(path).smoothings();
+    for (;;)
+    {
+        const auto to = sp[path_index].pt;
+        const auto ret = c->move_toward(i, dt, sp[path_index-1].pt, to);
+        if (ret.displaced)
+            return walk_result::displaced;
+        if (ret.blocked)
+            return walk_result::blocked;
+        if (c->position() != to)
+            return walk_result::none;
+        if (++path_index == sp.size())
+            return walk_result::arrived;
+        if (dt == Ns{})
+            return walk_result::none;
+    }
 }
 
 } // namespace

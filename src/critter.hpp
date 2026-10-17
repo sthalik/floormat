@@ -43,6 +43,8 @@ struct critter final : object
         bool displaced = false;
     };
 
+    enum class walk_result : uint8_t { none, arrived, blocked, displaced, };
+
     /// Walks to dest in up to two legs, along an axis until the rest is diagonal, then
     /// diagonally (next_step()). For direct walks without A*.
     /// - Facing follows each leg.
@@ -78,6 +80,8 @@ struct critter final : object
     float anim_speed = 1;
     uint32_t anim_progress = 0;
     uint16_t offset_frac = 0;
+    /// Written when the walk script ends. none while it runs, or when it was interrupted.
+    walk_result last_walk = walk_result::none;
 
     bool playable : 1 = false;
 
