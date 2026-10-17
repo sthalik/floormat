@@ -71,7 +71,23 @@ jobs:
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
       if: runner.os == 'Linux'
 
-    # floormat-test needs a GL context. These tests don't, and arm64 is where a missing fence shows.
+    - name: Test without a GL context
+      run: |
+        cd ${{github.workspace}}/build/install
+        export MAGNUM_LOG=default
+        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
+        env -u DISPLAY -u WAYLAND_DISPLAY gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --no-gl
+      if: ${{ !cancelled() && runner.os == 'Linux' }}
+
+    - name: Test without a GL context
+      run: |
+        cd build/install
+        export MAGNUM_LOG=default
+        bin/floormat-test --no-gl
+      shell: bash
+      if: ${{ !cancelled() && runner.os != 'Linux' }}
+
+    # floormat-test needs a GL context for most of its tests. These tests don't, and arm64 is where a missing fence shows.
     - name: Test atomics and the work-stealing deque
       run: |
         sh .github/thread-tests.sh c++ -O2
