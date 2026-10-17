@@ -460,9 +460,7 @@ uint16_t Grid::distance(uint32_t index, uint32_t octant) const
     detail::grid::check_frame_sync(pool, grid);
     fm_debug_assert(octant < octant_count);
     fm_debug_assert(index < grid->cell_count);
-    // an octant that isn't built yet reads as 0
-    if (!(grid->built_octants & 1u << octant))
-        return 0;
+    fm_assert(grid->built_octants & 1u << octant);
     if (grid->narrow)
         return grid->octant_plane<uint8_t>(octant)[index];
     else

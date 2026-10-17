@@ -1540,10 +1540,6 @@ void test_cover_matches_reference(uint32_t div_size, std::initializer_list<uint3
     pool.maybe_mark_stale_all(w.frame_no());
     g.build_if_stale();
     fm_assert(g.built_octants() == 1u);
-    // the previous build's octants don't leak into this one
-    for (auto k : octants)
-        for (auto i = 0u; k != 0 && i < g.div_count() * g.div_count(); i++)
-            fm_assert(g.distance(i, k) == 0);
     check_cover_octants(w, g, div_size, octants);
 }
 
