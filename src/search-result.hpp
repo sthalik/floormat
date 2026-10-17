@@ -40,7 +40,7 @@ private:
     uint32_t _cost = 0, _distance = (uint32_t)-1;
     bool _found : 1 = false;
 
-    static Pointer<node> _pool; // NOLINT(*-avoid-non-const-global-variables)
+    static Pointer<node> _pool; // NOLINT(*-avoid-non-const-global-variables) todo thread safety
 };
 
 } // namespace floormat

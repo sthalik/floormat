@@ -43,7 +43,7 @@ StringView loader_impl::startup_directory() noexcept
 
 void loader_impl::set_application_working_directory()
 {
-    static bool once = false;
+    static bool once = false; // todo thread safety
     if (once)
         return;
     once = true;

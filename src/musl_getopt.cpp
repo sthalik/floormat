@@ -64,8 +64,8 @@ int getopt_long_only(int, char *const *, const char *, const struct option *, in
 
 // ---- src/misc/getopt.c -----------------------------------------------
 
-char *optarg;
-int optind=1, opterr=1, optopt, optpos, optreset=0;
+char *optarg; // todo thread safety
+int optind=1, opterr=1, optopt, optpos, optreset=0; // todo thread safety
 
 static void __getopt_msg(const char *a, const char *b, const char *c, size_t l)
 {

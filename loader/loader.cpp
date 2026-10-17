@@ -6,7 +6,7 @@ using loader_detail::loader_impl;
 
 loader_& loader_::default_loader() noexcept
 {
-    static loader_impl loader_singleton{};
+    static loader_impl loader_singleton{}; // todo thread safety
     return loader_singleton;
 }
 
