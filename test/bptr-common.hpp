@@ -119,6 +119,12 @@ struct thread_counted_refcount : thread_checked_refcount
 inline size_t allocated_bytes()
 {
 #if fm_ASAN && __has_include(<sanitizer/allocator_interface.h>)
+    // libcxxrt allocates a thread's exception state on its first throw and frees it at thread exit.
+    thread_local const bool thrown = [] {
+        try { throw 0; } catch (int) {}
+        return true;
+    }();
+    (void)thrown;
     return __sanitizer_get_current_allocated_bytes();
 #else
     return 0;
