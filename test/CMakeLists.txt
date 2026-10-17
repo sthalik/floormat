@@ -3,6 +3,7 @@ file(GLOB sources CONFIGURE_DEPENDS "*.cpp")
 
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 
+find_package(Threads QUIET REQUIRED)
 add_library(${self}_o OBJECT "${sources}")
 target_link_libraries(${self}_o PUBLIC
     ${floormat_headless-library}
@@ -10,6 +11,7 @@ target_link_libraries(${self}_o PUBLIC
     nlohmann_json::nlohmann_json
     floormat-common
     floormat-hwy
+    Threads::Threads
 )
 # test_fpclassify checks infinity(). test_vqsort makes NaN keys and orders them with isnan().
 fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE float.cpp vqsort.cpp)
