@@ -66,8 +66,7 @@ void rebuild_passability(chunk& c)
 
 void tick(world& w, Pass::Pool& pool)
 {
-    const auto frame = w.frame_no();
-    pool.maybe_mark_stale_all(frame);
+    pool.maybe_mark_stale_all(w);
     pool.build_if_stale_all(Search::without_critters());
 }
 
@@ -804,7 +803,7 @@ void test_pool_reuse_after_collect(uint32_t div_size)
     w.collect(true, true);
     fm_assert(w.at(C11) == nullptr);
 
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     fm_assert(pool.pooled_count() == before + 1);
 }
 
@@ -832,7 +831,7 @@ void test_pool_reuse_neighbors_collected(uint32_t div_size)
     fm_assert(w.at(A) == nullptr);
     fm_assert(w.at(B) == nullptr);
 
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     fm_assert(pool.pooled_count() == before + 2);
 }
 
@@ -1340,7 +1339,7 @@ void test_cover_east_distance(uint32_t div_size)
     rebuild_passability(c);
 
     Cover::Pool pool{Cover::Params{div_size}};
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
     g.build_if_stale();
     fm_assert(g.built_octants() & 1u);
@@ -1587,7 +1586,7 @@ void test_cover_matches_reference(uint32_t div_size, std::initializer_list<uint3
     make_cover_scene(w);
 
     Cover::Pool pool{Cover::Params{div_size}};
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[w[COORD]];
     g.build_if_stale();
     check_cover_octants(w, g, div_size, octants);
@@ -1596,7 +1595,7 @@ void test_cover_matches_reference(uint32_t div_size, std::initializer_list<uint3
     for (uint8_t i = 1; i < 15; i++)
         c[{i, 12}].wall_north() = wall_proto();
     rebuild_passability(c);
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     g.build_if_stale();
     fm_assert(g.built_octants() == 1u);
     check_cover_octants(w, g, div_size, octants);
@@ -1618,7 +1617,7 @@ void test_cover_diagonal_tracks_ray(uint32_t div_size)
 
     auto& c = w[COORD];
     Cover::Pool pool{Cover::Params{div_size}};
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
     g.build_if_stale();
     constexpr uint32_t k = 4;
@@ -1673,7 +1672,7 @@ void test_cover_east_rounds(uint32_t div_size)
         rebuild_passability(w[ch]);
 
     Cover::Pool pool{Cover::Params{div_size}};
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[w[COORD]];
     g.build_if_stale();
 
@@ -1716,7 +1715,7 @@ void test_cover_blocked_cells(uint32_t div_size)
     rebuild_passability(c);
 
     Cover::Pool pool{Cover::Params{div_size}};
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
     g.build_if_stale();
 
@@ -1760,7 +1759,7 @@ void test_cover_diagonal_matches_ray(uint32_t div_size)
 
     auto& c = w[COORD];
     Cover::Pool pool{Cover::Params{div_size}};
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
     g.build_if_stale();
     constexpr uint32_t k = 4;

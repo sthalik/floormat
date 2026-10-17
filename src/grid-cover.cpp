@@ -256,7 +256,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
     const uint32_t div_size = params.div_size;
     auto& pass_pool = static_cast<CoverPool*>(pool)->pass_pool;
     fm_assert(pass_pool.params().div_size() == div_size);
-    pass_pool.maybe_mark_stale_all(self.world().frame_no());
+    pass_pool.maybe_mark_stale_all(self.world());
     Timeline timeline;
     timeline.start();
 
@@ -446,10 +446,7 @@ Grid::~Grid() noexcept = default;
 Grid::Grid(const Grid&) noexcept = default;
 Grid& Grid::operator=(const Grid&) & noexcept = default;
 
-Grid::Grid(detail::grid::CoverGrid* grid_, detail::grid::Pool<detail::grid::CoverGrid>* pool_):
-    grid{grid_}, pool{pool_}
-{
-}
+Grid::Grid(detail::grid::CoverGrid* grid_): grid{grid_} {}
 
 uint32_t Grid::get_cell_index(uint32_t x, uint32_t y, uint32_t div_count)
 {
@@ -458,13 +455,13 @@ uint32_t Grid::get_cell_index(uint32_t x, uint32_t y, uint32_t div_count)
 
 uint32_t Grid::get_cell_index_from_coord(intra_coord pos) const
 {
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     return grid->get_cell_index_from_coord(pos);
 }
 
 uint16_t Grid::distance(uint32_t index, uint32_t octant) const
 {
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     fm_debug_assert(octant < octant_count);
     fm_debug_assert(index < grid->cell_count);
     fm_assert(grid->built_octants & 1u << octant);
@@ -488,37 +485,36 @@ void Grid::build_if_stale()
 bool Grid::ensure_octant(uint32_t k)
 {
     fm_debug_assert(k < octant_count);
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     grid->build_if_stale();
     return grid->fill_octant(k, *grid->c);
 }
 
 bool Grid::fill_next_unfilled()
 {
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     grid->build_if_stale();
     return grid->fill_next_unfilled(*grid->c);
 }
 
 uint32_t Grid::built_octants() const
 {
-    detail::grid::check_frame_sync(pool, grid);
+    detail::grid::check_versions(grid);
     return grid->built_octants;
 }
 
 Grid Pool::operator[](chunk& c)
 {
-    return Grid{detail::grid::pool_subscript(pool, c), pool};
+    return Grid{detail::grid::pool_subscript(pool, c)};
 }
 
 Grid Pool::wrap(detail::grid::CoverGrid* g) const noexcept
 {
-    return Grid{g, pool};
+    return Grid{g};
 }
 
-void Pool::maybe_mark_stale_all(uint64_t frame_no)
+void Pool::maybe_mark_stale_all(const world&)
 {
-    pool->frame_no = frame_no;
     for (auto* g : pool->live)
         g->maybe_mark_stale();
 }
@@ -532,7 +528,6 @@ void Pool::build_if_stale_all()
 Pool::Pool(Params params): pool{new detail::grid::CoverPool{params}} { }
 Pool::~Pool() noexcept { delete pool; }
 Params Pool::params() const { return pool->params; }
-uint64_t Pool::frame_no() const { return pool->frame_no; }
 uint32_t Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Cover

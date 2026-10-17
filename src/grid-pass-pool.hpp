@@ -17,7 +17,7 @@ public:
 
     Pool& pool_for(uint32_t bbox_size);
 
-    void maybe_mark_stale_all(uint64_t frame_no);
+    void maybe_mark_stale_all(const world& w);
 
     uint32_t live_pool_count() const;
 
@@ -25,7 +25,6 @@ public:
     static constexpr uint32_t direct_max_bbox = 254;
 
 private:
-    uint64_t last_frame_no_ = (uint64_t)-1;
     std::array<Pointer<Pool>, direct_count> direct_;
     Array<Pointer<Pool>> fallback_;
     uint32_t div_size_;

@@ -314,7 +314,7 @@ wall_map make_map(kind k, rng& r)
 // reaches the strip. Dijkstra's goal check reads that cell.
 point open_point(world& w, Grid::Pass::Pool& pool, point centre)
 {
-    pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
     constexpr Vector2i offsets[] = { {0, 0}, {-8, -8}, {-8, 0}, {0, -8}, {-16, -16}, {8, 8}, };
     for (auto off : offsets)
     {

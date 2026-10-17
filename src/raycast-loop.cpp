@@ -165,8 +165,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         .success = false,
     };
 
-    if (pool.frame_no() != w.frame_no())
-        pool.maybe_mark_stale_all(w.frame_no());
+    pool.maybe_mark_stale_all(w);
 
     const auto params = pool.params();
     fm_assert(radius >= 0);
