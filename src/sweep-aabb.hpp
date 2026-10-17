@@ -35,5 +35,11 @@ sweep_result find_swept_collider(chunk& c, Range2D start, Vector2 displacement, 
 swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                                           uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,
                                           const Search::pred& p, Grid::Pass::Pool* pool = nullptr);
+// Calls f for every collider blocking a step, in no particular order, until it returns false. A
+// collider found in several cells comes once per cell, with a step it blocks there.
+void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                         uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,
+                         const Search::pred& p, Grid::Pass::Pool* pool,
+                         fu2::function_view<bool(const swept_collider_result&) const> f);
 
 } // namespace floormat
