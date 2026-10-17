@@ -129,10 +129,9 @@ jobs:
       shell: bash
       if: ${{ !cancelled() && runner.os == 'Windows' }}
 
-    # floormat-test needs a GL context for most of its tests. These tests don't, and arm64 is where a missing fence shows.
+    # floormat-test --no-gl runs these tests in the default build. These are the builds it never gets: sanitizers on macOS, and the mutex/condvar fallback of atomic_wait.
     - name: Test atomics and the work-stealing deque
       run: |
-        sh .github/thread-tests.sh c++ -O2
         sh .github/thread-tests.sh c++ -O1 -fsanitize=address,undefined -fno-sanitize-recover=all
         sh .github/thread-tests.sh c++ -O1 -fsanitize=thread
         sh .github/thread-tests.sh c++ -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT
@@ -145,10 +144,8 @@ jobs:
         sh .github/thread-tests.sh g++-15 -O1 -fsanitize=thread -DFM_NO_PLATFORM_ATOMIC_WAIT
       if: ${{ !cancelled() && runner.os == 'Linux' }}
 
-    - name: Test atomics and the work-stealing deque with MSVC
+    - name: Test the mutex/condvar fallback of atomic_wait with MSVC
       run: |
-        .\.github\workflows\build-windows.bat call .github\thread-tests.bat -O2 && build\thread-tests\thread-tests.exe
-        if ($LASTEXITCODE) { exit $LASTEXITCODE }
         .\.github\workflows\build-windows.bat call .github\thread-tests.bat -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT && build\thread-tests\thread-tests.exe
       if: ${{ !cancelled() && runner.os == 'Windows' && runner.arch == 'ARM64' }}
 
