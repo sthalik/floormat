@@ -15,19 +15,31 @@ namespace floormat::Test {
 
 namespace {
 
+bool gl_context = false;
+
 bool is_log_quiet() // copy-pasted from src/chunk.cpp
 {
+    if (!gl_context)
+        return false;
     using GLCCF = GL::Implementation::ContextConfigurationFlag;
     auto flags = GL::Context::current().configurationFlags();
     return !!(flags & GLCCF::QuietLog);
 }
 
+struct options
+{
+    uint32_t repeat;
+    bool no_gl;
+};
+
 } // namespace
+
+bool has_gl_context() { return gl_context; }
 
 struct App final : private FM_APPLICATION
 {
     using Application = FM_APPLICATION;
-    explicit App(const Arguments& arguments, uint32_t repeat);
+    explicit App(const Arguments& arguments, const options& opts);
     ~App();
 
     int exec() override;
@@ -36,13 +48,15 @@ private:
     uint32_t repeat;
 };
 
-App::App(const Arguments& arguments, uint32_t repeat):
-      Application {
-          arguments,
-          Configuration{}
-      },
-      repeat{repeat}
+App::App(const Arguments& arguments, const options& opts):
+      Application{arguments, NoCreate},
+      repeat{opts.repeat}
 {
+    if (!opts.no_gl)
+    {
+        createContext();
+        gl_context = true;
+    }
 }
 
 App::~App()
@@ -56,6 +70,7 @@ struct test_entry
 {
     StringView name;
     void(*function)();
+    bool needs_gl;
 };
 
 void run_tests(ArrayView<const test_entry> list, bool quiet)
@@ -64,8 +79,9 @@ void run_tests(ArrayView<const test_entry> list, bool quiet)
 
     if (quiet)
     {
-        for (const auto [_, fun] : list)
-            (*fun)();
+        for (const auto [_, fun, needs_gl] : list)
+            if (!needs_gl || has_gl_context())
+                (*fun)();
         return;
     }
 
@@ -83,15 +99,15 @@ void run_tests(ArrayView<const test_entry> list, bool quiet)
     };
 
     size_t max_tabs = 1;
-    for (const auto [name, _] : list)
-        max_tabs = Math::max(max_tabs, get_tabs(name));
+    for (const auto& e : list)
+        max_tabs = Math::max(max_tabs, get_tabs(e.name));
     max_tabs++;
     if (max_tabs > tab_limit)
         max_tabs = 1;
 
     std::fflush(s);
 
-    for (auto [name, fun] : list)
+    for (auto [name, fun, needs_gl] : list)
     {
         name = name.exceptPrefix(name_prefix);
         std::fwrite(name.data(), name.size(), 1, s);
@@ -100,11 +116,15 @@ void run_tests(ArrayView<const test_entry> list, bool quiet)
         auto num_tabs = max_tabs - get_tabs(name) - 1;
         std::fputc('\t', s);
         std::fflush(stdout);
-        auto ms = get_time(fun);
+        const bool skip = needs_gl && !has_gl_context();
+        auto ms = skip ? 0.f : get_time(fun);
         fm_assert(num_tabs <= tab_limit);
         for (auto i = 0uz; i < num_tabs; i++)
             std::fputc('\t', s);
-        std::fprintf(s, "%12.3f ms\n", (double)ms);
+        if (skip)
+            std::fprintf(s, "%12s\n", "skipped");
+        else
+            std::fprintf(s, "%12.3f ms\n", (double)ms);
         std::fflush(s);
     }
 }
@@ -115,7 +135,9 @@ int App::exec()
 {
     constexpr auto SV_flags = StringViewFlag::Global|StringViewFlag::NullTerminated;
 
-#define FM_TEST(name) { ( StringView{#name, array_size(#name)-1, SV_flags} ), ( &(name) ), }
+#define FM_TEST_(name, gl) { ( StringView{#name, array_size(#name)-1, SV_flags} ), ( &(name) ), (gl), }
+#define FM_TEST(name) FM_TEST_(name, false)
+#define FM_TEST_GL(name) FM_TEST_(name, true)
 
     constexpr test_entry list[] = {
         FM_TEST(test_local),
@@ -132,53 +154,55 @@ int App::exec()
         FM_TEST(test_random),
         FM_TEST(test_bptr),
         FM_TEST(test_bptr_intrusive),
-        FM_TEST(test_chunk_iter),
+        FM_TEST_GL(test_chunk_iter),
         FM_TEST(test_entity),
         FM_TEST(test_float),
         FM_TEST(test_format),
         FM_TEST(test_fps),
         FM_TEST(test_texcoords),
-        FM_TEST(test_shader),
+        FM_TEST_GL(test_shader),
         FM_TEST(test_vqsort),
         // normal
 
         FM_TEST(test_bitmask),
         FM_TEST(test_json),
-        FM_TEST(test_json2),
-        FM_TEST(test_json3),
-        FM_TEST(test_loader),
-        FM_TEST(test_scenery),
-        FM_TEST(test_emit_quick),
-        FM_TEST(test_raycast),
-        FM_TEST(test_passability_bbox),
+        FM_TEST_GL(test_json2),
+        FM_TEST_GL(test_json3),
+        FM_TEST_GL(test_loader),
+        FM_TEST_GL(test_scenery),
+        FM_TEST_GL(test_emit_quick),
+        FM_TEST_GL(test_raycast),
+        FM_TEST_GL(test_passability_bbox),
         FM_TEST(test_hash),
         FM_TEST(test_wall_atlas),
-        FM_TEST(test_wall_atlas2),
+        FM_TEST_GL(test_wall_atlas2),
         // the rest are slow
-        FM_TEST(test_grid),
-        FM_TEST(test_rtree),
-        FM_TEST(test_astar),
-        FM_TEST(test_hole),
-        FM_TEST(test_save),
+        FM_TEST_GL(test_grid),
+        FM_TEST_GL(test_rtree),
+        FM_TEST_GL(test_astar),
+        FM_TEST_GL(test_hole),
+        FM_TEST_GL(test_save),
         FM_TEST(test_spinlock),
         FM_TEST(test_atomic),
         FM_TEST(test_atomic_wait),
         FM_TEST(test_chase_lev_deque),
-        FM_TEST(test_sprite_atlas),
+        FM_TEST_GL(test_sprite_atlas),
         FM_TEST(test_spritebatch),
-        FM_TEST(test_critter),
-        FM_TEST(test_sweep_aabb),
-        FM_TEST(test_slide),
-        FM_TEST(test_corridor),
-        FM_TEST(test_dijkstra),
-        FM_TEST(test_loader2),
-        FM_TEST(test_loader3),
-        FM_TEST(test_saves),
-        FM_TEST(test_sprites),
+        FM_TEST_GL(test_critter),
+        FM_TEST_GL(test_sweep_aabb),
+        FM_TEST_GL(test_slide),
+        FM_TEST_GL(test_corridor),
+        FM_TEST_GL(test_dijkstra),
+        FM_TEST_GL(test_loader2),
+        FM_TEST_GL(test_loader3),
+        FM_TEST_GL(test_saves),
+        FM_TEST_GL(test_sprites),
         FM_TEST(test_multi_level_table),
     };
 
+#undef FM_TEST_GL
 #undef FM_TEST
+#undef FM_TEST_
 
     const bool quiet = is_log_quiet();
 
@@ -197,11 +221,12 @@ int App::exec()
 
 namespace {
 
-uint32_t parse_cmdline(int argc, char** argv)
+options parse_cmdline(int argc, char** argv)
 {
     Corrade::Utility::Arguments args{};
     args.addSkippedPrefix("magnum")
         .addOption("repeat", "1").setHelp("repeat", "run the whole test suite N times", "N")
+        .addBooleanOption("no-gl").setHelp("no-gl", "don't create a GL context, skip the tests that need one")
         .parse(argc, argv);
     const auto str = args.value<StringView>("repeat");
     uint32_t value = 0;
@@ -213,7 +238,7 @@ uint32_t parse_cmdline(int argc, char** argv)
         ERR_nospace << "invalid --repeat argument '" << str << "': should be a positive number";
         std::exit(EX_USAGE);
     }
-    return value;
+    return { value, args.isSet("no-gl") };
 }
 
 } // namespace
@@ -230,7 +255,7 @@ int main(int argc, char** argv)
         ::setenv("MAGNUM_LOG", "default", 0);
 #endif
     }
-    const auto repeat = floormat::Test::parse_cmdline(argc, argv);
-    auto app = floormat::Test::App{{argc, argv}, repeat};
+    const auto opts = floormat::Test::parse_cmdline(argc, argv);
+    auto app = floormat::Test::App{{argc, argv}, opts};
     return app.exec();
 }
