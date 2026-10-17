@@ -171,6 +171,7 @@ int App::exec()
         FM_TEST_GL(test_loader),
         FM_TEST_GL(test_scenery),
         FM_TEST_GL(test_emit_quick),
+        FM_TEST(test_raycast_line),
         FM_TEST_GL(test_raycast),
         FM_TEST_GL(test_passability_bbox),
         FM_TEST(test_hash),
