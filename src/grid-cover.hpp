@@ -15,6 +15,7 @@ struct CoverPool;
 namespace floormat::Grid::Cover {
 
 inline constexpr uint32_t octant_count = 32;
+inline constexpr uint16_t blocked = (uint16_t)-1;
 
 struct Params
 {
@@ -40,6 +41,8 @@ public:
     static uint32_t get_cell_index(uint32_t x, uint32_t y, uint32_t div_count);
     uint32_t get_cell_index_from_coord(intra_coord pos) const;
 
+    // From the cell's center in div_size units, rounded. div_count() means no hit within
+    // chunk_size_xy - div_size/2 px. A cell whose shoot_through pass bit is clear holds `blocked`.
     uint16_t distance(uint32_t index, uint32_t octant) const;
 
     uint32_t div_count() const;
