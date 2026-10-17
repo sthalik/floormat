@@ -382,11 +382,12 @@ bool is_segment_clear(world& w, point a, point b, Vector2ui size)
 }
 
 // Every segment is swept without a pool, so against the R-tree everywhere.
-void check_pulled(world& w, const path_search_result& res, Vector2ui size)
+void check_pulled(world& w, const path_search_result& res, Vector2ui size, astar::string_pull_result st)
 {
     const auto raw = res.path();
     const auto sp = res.smoothings();
-    fm_assert(sp.size() >= 2);
+    fm_assert(st && sp.size() >= 2);
+    fm_assert(st.corners_added + 2 >= sp.size() && st.los_checks >= st.corners_added);
     fm_assert(sp.front().pt == raw.front() && sp.front().raw_index == 0);
     fm_assert(sp.back().pt == raw.back() && sp.back().raw_index == raw.size() - 1);
     float raw_len = 0, sp_len = 0;
@@ -405,8 +406,7 @@ path_search_result pull(astar& A, world& w, point from, point to)
 {
     auto res = A.Dijkstra(w, from, to, pull_max_dist, pull_bbox, without_critters());
     fm_assert(res.is_found());
-    fm_assert(A.string_pull(w, res, pull_bbox, without_critters()));
-    check_pulled(w, res, pull_bbox);
+    check_pulled(w, res, pull_bbox, A.string_pull(w, res, pull_bbox, without_critters()));
     return res;
 }
 
@@ -474,8 +474,7 @@ void test_string_pull_hidden_corner()
     for (auto px : { Vector2i{200, 500}, Vector2i{600, 500}, Vector2i{600, 300} })
         arrayAppend(res.raw_path(), origin + px);
     auto A = astar{};
-    fm_assert(A.string_pull(w, res, size, without_critters()));
-    check_pulled(w, res, size);
+    check_pulled(w, res, size, A.string_pull(w, res, size, without_critters()));
 
     const auto& sp = res.smoothings();
     fm_assert(sp.size() == 4);
@@ -497,9 +496,9 @@ void test_string_pull_truncate()
     for (auto px : { Vector2i{416, 492}, Vector2i{512, 492}, Vector2i{544, 524}, Vector2i{812, 562} })
         arrayAppend(res.raw_path(), origin + px);
     auto A = astar{};
-    fm_assert(A.string_pull(w, res, size, without_critters()));
-    check_pulled(w, res, size);
-    fm_assert(res.smoothings().size() == 2);
+    const auto st = A.string_pull(w, res, size, without_critters());
+    check_pulled(w, res, size, st);
+    fm_assert(res.smoothings().size() == 2 && st.corners_added >= 1);
 }
 
 void test_string_pull_random()
@@ -527,8 +526,7 @@ void test_string_pull_random()
         if (!res.is_found())
             continue;
         found++;
-        fm_assert(A.string_pull(w, res, size, without_critters()));
-        check_pulled(w, res, size);
+        check_pulled(w, res, size, A.string_pull(w, res, size, without_critters()));
     }
     fm_assert(found >= 16);
 }
