@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <utility>
 #if fm_ASAN
+#include <cstring>
 #include <sanitizer/asan_interface.h>
 #endif
 
@@ -519,7 +520,13 @@ void check_heap_array(const U* p, uint32_t n)
 {
     const size_t bytes = size_t{n} * sizeof(U);
     fm_assert(!__asan_region_is_poisoned(const_cast<U*>(p), bytes));
-    fm_assert(__asan_address_is_poisoned(reinterpret_cast<const char*>(p) + bytes));
+    // p + bytes can be the next chunk's first byte, which ASan doesn't always poison.
+    // new[] puts an array cookie before p when U has a non-trivial destructor.
+    void* begin = nullptr;
+    size_t size = 0;
+    const char* kind = __asan_locate_address(const_cast<U*>(p), nullptr, 0, &begin, &size);
+    fm_assert(kind && !std::strcmp(kind, "heap"));
+    fm_assert(static_cast<const char*>(begin) + size == reinterpret_cast<const char*>(p) + bytes);
 }
 
 template<typename T, mlt_params P>
