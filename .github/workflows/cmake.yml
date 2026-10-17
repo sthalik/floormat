@@ -15,13 +15,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-2025-vs2026, macos-26]
+        os: [ubuntu-latest, windows-2025-vs2026, windows-11-vs2026-arm, macos-26]
         include:
         - os: ubuntu-latest
           cmake: /usr/bin/env CC=gcc-15 CXX=g++-15 cmake
         - os: macos-26
           cmake: /usr/bin/env CC="$(brew --prefix llvm)/bin/clang" CXX="$(brew --prefix llvm)/bin/clang++" cmake
         - os: windows-2025-vs2026
+          cmake: .\.github\workflows\build-windows.bat cmake
+        - os: windows-11-vs2026-arm
           cmake: .\.github\workflows\build-windows.bat cmake
 
     steps:
@@ -32,7 +34,7 @@ jobs:
     - uses: abdes/gha-setup-ninja@master
       with:
         version: 1.11.1
-      if: matrix.os != 'ubuntu-latest'
+      if: runner.os != 'Linux'
 
     - name: Install Linux dependencies
       run: |
@@ -42,12 +44,12 @@ jobs:
         sudo apt -q install g++-15 gdb ninja-build
         sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb libopencv-dev
         sudo apt -q install libsdl2-dev
-      if: matrix.os == 'ubuntu-latest'
+      if: runner.os == 'Linux'
 
     - name: Install OSX dependencies
       run: |
         brew install SDL2 google-benchmark llvm
-      if: matrix.os == 'macos-26'
+      if: runner.os == 'macOS'
 
     - name: Configure
       run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
@@ -67,7 +69,30 @@ jobs:
         set -e
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
-      if: matrix.os == 'ubuntu-latest'
+      if: runner.os == 'Linux'
+
+    # floormat-test needs a GL context. These tests don't, and arm64 is where a missing fence shows.
+    - name: Test atomics and the work-stealing deque
+      run: |
+        sh .github/thread-tests.sh c++ -O2
+        sh .github/thread-tests.sh c++ -O1 -fsanitize=address,undefined -fno-sanitize-recover=all
+        sh .github/thread-tests.sh c++ -O1 -fsanitize=thread
+        sh .github/thread-tests.sh c++ -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT
+        sh .github/thread-tests.sh c++ -O2 -mmacosx-version-min=14.0
+      if: ${{ !cancelled() && runner.os == 'macOS' }}
+
+    - name: Test the mutex/condvar fallback of atomic_wait
+      run: |
+        sh .github/thread-tests.sh g++-15 -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT
+        sh .github/thread-tests.sh g++-15 -O1 -fsanitize=thread -DFM_NO_PLATFORM_ATOMIC_WAIT
+      if: ${{ !cancelled() && runner.os == 'Linux' }}
+
+    - name: Test atomics and the work-stealing deque with MSVC
+      run: |
+        .\.github\workflows\build-windows.bat call .github\thread-tests.bat -O2 && build\thread-tests\thread-tests.exe
+        if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        .\.github\workflows\build-windows.bat call .github\thread-tests.bat -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT && build\thread-tests\thread-tests.exe
+      if: ${{ !cancelled() && runner.os == 'Windows' && runner.arch == 'ARM64' }}
 
     - name: Test pgo-driver scenes
       run: |
@@ -80,7 +105,7 @@ jobs:
         set -e
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args \
             bin/floormat-editor --scenes=all --driver-no-swapbuffers
-      if: matrix.os == 'ubuntu-latest'
+      if: runner.os == 'Linux'
 
 #    - name: Upload build
 #      uses: actions/upload-artifact@v2.2.4
