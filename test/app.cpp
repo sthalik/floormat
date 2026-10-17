@@ -194,6 +194,7 @@ int App::exec()
         FM_TEST_GL(test_slide),
         FM_TEST_GL(test_corridor),
         FM_TEST_GL(test_dijkstra),
+        FM_TEST_GL(test_dijkstra_reference),
         FM_TEST_GL(test_cover_point),
         FM_TEST_GL(test_loader2),
         FM_TEST_GL(test_loader3),

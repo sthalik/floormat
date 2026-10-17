@@ -32,6 +32,7 @@ void test_cover_point();
 void test_crc64();
 void test_critter();
 void test_dijkstra();
+void test_dijkstra_reference();
 void test_emit_quick();
 void test_entity();
 void test_float();
