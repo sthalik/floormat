@@ -175,3 +175,73 @@ jobs:
 #      with:
 #        name: buildoutput
 #        path: ${{github.workspace}}/build/
+
+  freebsd:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Start FreeBSD
+      uses: vmactions/freebsd-vm@v1
+      with:
+        release: "15.1"
+        mem: 12288
+        copyback: false
+        prepare: pkg install -y cmake ninja gdb sdl2 mesa-libs mesa-dri libglvnd xorg-vfbserver xauth
+
+    - name: Configure
+      shell: freebsd {0}
+      run: |
+        # FreeBSD has no xvfb-run. Xvfb is up by the time the build finishes.
+        daemon -f -p /var/run/xvfb99.pid Xvfb :99 -screen 0 1280x1024x24 -nolisten tcp
+        cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      shell: freebsd {0}
+      run: cmake --build build --config ${{env.BUILD_TYPE}} --target install
+
+    - name: Test
+      shell: freebsd {0}
+      run: |
+        cd build/install
+        export MAGNUM_LOG=default DISPLAY=:99
+        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
+        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
+        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
+        set -e
+        gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test
+        gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
+      timeout-minutes: 60
+
+    - name: Test without a GL context
+      shell: freebsd {0}
+      run: |
+        cd build/install
+        export MAGNUM_LOG=default
+        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
+        gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --no-gl
+      timeout-minutes: 60
+      if: ${{ !cancelled() }}
+
+    - name: Test atomics and the work-stealing deque with TSan
+      shell: freebsd {0}
+      run: sh .github/thread-tests.sh c++ -O1 -fsanitize=thread
+      timeout-minutes: 60
+      if: ${{ !cancelled() }}
+
+    - name: Test pgo-driver scenes
+      shell: freebsd {0}
+      run: |
+        cd build/install
+        export MAGNUM_LOG=default DISPLAY=:99
+        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
+        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
+        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
+        export LP_NUM_THREADS=$(sysctl -n hw.ncpu)
+        set -e
+        gdb -q -batch -x ../../.github/gdbscript.py --args \
+            bin/floormat-editor --scenes=all --driver-no-swapbuffers
+      timeout-minutes: 60
