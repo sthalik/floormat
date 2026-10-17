@@ -102,7 +102,6 @@ struct floormat_main
     virtual class astar& astar() = 0;
 
     [[nodiscard]] static floormat_main* create(floormat_app& app, fm_settings&& options);
-    [[maybe_unused]] static void debug_break();
 
 protected:
     Vector2 _virtual_scale{ 1, 1 };
