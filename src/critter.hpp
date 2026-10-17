@@ -36,8 +36,30 @@ struct critter final : object
     void update(const bptr<object>& ptr, size_t& i, const Ns& dt) override;
     void update_movement(size_t& i, const Ns& dt, rotation r);
 
-    struct move_result { bool blocked, moved; };
+    struct move_result
+    {
+        bool blocked, moved;
+        /// Only from the overload taking `from`, with blocked: the critter wasn't on the line.
+        bool displaced = false;
+    };
+
+    /// Walks to dest in up to two legs, along an axis until the rest is diagonal, then
+    /// diagonally (next_step()). For direct walks without A*.
+    /// - Facing follows each leg.
+    /// - Each run of up to a tile is one continuous AABB sweep. A blocked run moves nothing.
+    /// - offset_frac holds the sub-pixel remainder along the facing.
+    /// - Starts from any position.
     [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& dest);
+
+    /// Walks the Bresenham pixels of the segment from `from` to dest, which stay within half a
+    /// pixel of it at any angle. For segments of a smoothed path.
+    /// - Facing is the nearest of the 8 directions, fixed for the segment.
+    /// - A frame's steps are one find_swept_collider() over the line, off-axis pixels of
+    ///   diagonal steps included. The critter stops at the last step its box reaches.
+    /// - offset_frac holds the length walked past the current step.
+    /// - The critter must stand on one of the line's pixels. Otherwise it neither moves nor
+    ///   turns, and the result has displaced and blocked set.
+    [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& from, const point& dest);
 
     int32_t depth_offset() const override;
 
