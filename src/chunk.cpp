@@ -129,6 +129,9 @@ chunk::chunk(class world& w, chunk_coords_ ch) noexcept :
 chunk::~chunk() noexcept
 {
     _world->unregister_chunk(this);
+    // Neighbours' pass grids store this chunk's pass_gen. Moving the counter makes their pools
+    // compare them again.
+    _world->next_pass_gen();
     _teardown = true;
     _objects.clear();
     _rtree->RemoveAll();

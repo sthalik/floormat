@@ -141,6 +141,7 @@ constexpr Params::Params(uint32_t div_size, uint32_t bbox_size, pass_mode min_pa
 class Pool final
 {
     detail::grid::Pool<detail::grid::PassGrid>* pool;
+    uint64_t checked_pass_gen = (uint64_t)-1;
 
 public:
     explicit Pool(Params params);

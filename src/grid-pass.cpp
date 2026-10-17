@@ -499,6 +499,14 @@ void Grid::build_if_stale(const pred& predicate) { grid->build_if_stale(predicat
 void Pool::maybe_mark_stale_all(uint64_t frame_no)
 {
     pool->frame_no = frame_no;
+    if (pool->live.isEmpty())
+        return;
+    // Every stamp in versions[] came from world::next_pass_gen(), and so did every change that
+    // dirtied a chunk. While the counter hasn't moved, the walk would find nothing.
+    const auto gen = pool->live[0]->c->world().pass_gen();
+    if (gen == checked_pass_gen)
+        return;
+    checked_pass_gen = gen;
     for (auto* base : pool->live)
     {
         auto* g = static_cast<detail::grid::PassGrid*>(base);

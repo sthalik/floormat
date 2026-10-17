@@ -105,6 +105,7 @@ public:
                                 loader_policy asset_policy) noexcept(false);
     uint64_t frame_no() const;
     uint64_t increment_frame_no();
+    uint64_t pass_gen() const noexcept;
 
     template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c, Xs&&... xs) {
