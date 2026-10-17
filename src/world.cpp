@@ -383,6 +383,7 @@ bptr<critter> world::ensure_player_character(object_id& id)
 uint64_t world::frame_no() const { return _current_frame; }
 uint64_t world::increment_frame_no() { return _current_frame++; }
 uint64_t world::next_pass_gen() noexcept { return ++_pass_gen; }
+uint64_t world::pass_gen() const noexcept { return _pass_gen; }
 
 bptr<critter> world::ensure_player_character(object_id& id_, critter_proto p)
 {
