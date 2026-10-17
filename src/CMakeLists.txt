@@ -20,7 +20,6 @@ target_link_libraries(
     floormat-common
     Magnum::GL
     Magnum::Magnum
-    Magnum::Shaders
     #Magnum::DebugTools
 )
 target_link_libraries(${self} PRIVATE floormat-hwy)
