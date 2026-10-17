@@ -61,8 +61,31 @@ bucket& bucket_for(const volatile void* p) noexcept
 static_assert(bucket_count == 1 << (64 - 58));
 #endif
 
+#if 0
+// Lets wake() skip the system call when nothing sleeps on an address in p's slot, as libc++ does.
+// Off: EventCount::notify() already skips it, and this adds a fence to every notify and every sleep.
+struct alignas(64) waiter_count
+{
+    volatile uint32_t value = 0;
+};
+
+waiter_count waiter_counts[64];
+
+volatile uint32_t* waiters_for(const volatile void* p) noexcept
+{
+    return &waiter_counts[(uint64_t)((uintptr_t)p >> 4) * 0x9e3779b97f4a7c15u >> 58].value;
+}
+#endif
+
 template<typename T> void wake(const volatile T* p, int count) noexcept
 {
+#if 0
+    // Pairs with the fence in atomic_wait(): either the waiter's load sees the caller's store,
+    // or this load sees the waiter.
+    atomic_thread_fence(memory_order::seq_cst);
+    if (!atomic_load(waiters_for(p), memory_order::relaxed))
+        return;
+#endif
 #if defined FM_WAIT_WIN32
     if (count == 1)
         WakeByAddressSingle(addr(p));
@@ -96,6 +119,13 @@ template<typename T> void wake(const volatile T* p, int count) noexcept
 
 template<atomic_wait_type T> void atomic_wait(const volatile T* p, std::type_identity_t<T> old, memory_order o) noexcept
 {
+#if 0
+    if (atomic_load(p, o) != old)
+        return;
+    volatile uint32_t* waiters = waiters_for(p);
+    atomic_fetch_add(waiters, 1u, memory_order::relaxed);
+    atomic_thread_fence(memory_order::seq_cst);
+#endif
     while (atomic_load(p, o) == old)
     {
 #if defined FM_WAIT_WIN32
@@ -127,6 +157,9 @@ template<atomic_wait_type T> void atomic_wait(const volatile T* p, std::type_ide
             b.cond.wait(lk);
 #endif
     }
+#if 0
+    atomic_fetch_sub(waiters, 1u, memory_order::release);
+#endif
 }
 
 template<atomic_wait_type T> void atomic_notify_one(const volatile T* p) noexcept { wake(p, 1); }
