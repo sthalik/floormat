@@ -160,13 +160,14 @@ void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
         }
         return ImGui::ColorConvertFloat4ToU32({r, g, b, 0.45f});
     };
+    const auto blocked_color = ImGui::ColorConvertFloat4ToU32({0.5f, 0.5f, 0.5f, 0.45f});
 
     for (uint32_t cy = 0; cy < dc; cy++)
         for (uint32_t cx = 0; cx < dc; cx++)
         {
             const uint32_t idx = Cover::Grid::get_cell_index(cx, cy, dc);
             const uint16_t d = cg.distance(idx, sk);
-            const auto color = rgb(d, max_d);
+            const auto color = d == Cover::blocked ? blocked_color : rgb(d, max_d);
             const Vector2 base = p00 + dx * float(cx) + dy * float(cy);
             const Vector2 q1 = base + dx;
             const Vector2 q2 = base + dx + dy;
@@ -211,7 +212,7 @@ void cover_test::draw_overlay(app& a)
     const auto built = cg.built_octants();
     for (uint32_t k = 0; k < Cover::octant_count; k++)
     {
-        if (k == sk || !(built & 1u << k))
+        if (k == sk || !(built & 1u << k) || cg.distance(result.cell_idx, k) == Cover::blocked)
             continue;
         const auto theta = Rad{2.f * pi * float(k) / float(Cover::octant_count)};
         const Vector2 dir{Math::cos(theta), Math::sin(theta)};
@@ -221,7 +222,7 @@ void cover_test::draw_overlay(app& a)
         draw.AddLine({pos.x(), pos.y()}, {end_px.x(), end_px.y()}, line_color);
     }
 
-    if (built & 1u << sk)
+    if (built & 1u << sk && cg.distance(result.cell_idx, sk) != Cover::blocked)
     {
         const auto theta = Rad{2.f * pi * float(sk) / float(Cover::octant_count)};
         const Vector2 dir{Math::cos(theta), Math::sin(theta)};
