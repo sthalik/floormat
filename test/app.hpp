@@ -40,6 +40,7 @@ void test_fps();
 void test_grid();
 void test_hash();
 void test_hole();
+void test_inplace_function();
 void test_json();
 void test_json2();
 void test_json3();
