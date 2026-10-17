@@ -48,5 +48,6 @@ void vqselect(K32V32* keys, uint32_t n, uint32_t k, sort_order order = sort_orde
 
 // Call after hwy::SetSupportedTargetsForTest(); the target check is cached.
 void vqsort_refresh_targets();
+bool vqsort_avx2_or_better();
 
 } // namespace floormat

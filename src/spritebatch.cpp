@@ -13,7 +13,6 @@
 #include "compat/setenv.hpp"
 #include "src/hwy.hpp"
 #include <bit>
-#include <cfloat>
 #include <cr/GrowableArray.h>
 #include <cr/Memory.h>
 #include <mg/Mesh.h>
@@ -45,12 +44,9 @@ uint32_t ensure_buffer_size(GL::Buffer& buf, uint32_t capacity, uint32_t count)
 struct merge_state
 {
     struct run { uint32_t pos, end; };
-    // The loser's key rides with its index: one load per replay level. Correct because a run's
-    // head changes only while it is tree[0], never while it sits as a loser.
-    struct node { uint32_t run; float d; };
     Array<run> runs;
-    Array<node> tree;
-    Array<float> head; // FLT_MAX once the run is exhausted
+    // Depth key in the high half, run in the low half: one load and one compare per replay level.
+    Array<uint64_t> tree;
 };
 
 struct quick_draw
@@ -96,25 +92,72 @@ void reserve_aligned(Array<uint64_t>& A, uint32_t size)
         A = Utility::allocateAligned<uint64_t, 64>(NoInit, ((uint32_t)((float)size * 1.5f) + 7) & ~7u);
 }
 
+// Flipping the sign bit of a non-negative float and every bit of a negative one orders floats
+// as unsigned integers.
+uint32_t depth_key(float d)
+{
+    const auto u = std::bit_cast<uint32_t>(d);
+    return u ^ ((uint32_t)((int32_t)u >> 31) | 0x80000000u);
+}
+
 // Sorts depths[0, n) ascending and sets indexes[i] = base + the position depths[i] came from.
 // Equal depths keep their order. scratch needs n elements, starting on 64 bytes.
 void sort_depths(float* depths, uint32_t* indexes, uint32_t base, uint32_t n, uint64_t* scratch)
 {
     scratch = assume_aligned<64>(scratch);
-    // Flipping the sign bit of a non-negative float and every bit of a negative one orders floats
-    // as unsigned integers. The index in the low half makes equal depths sort by position.
+    // The index in the low half makes equal depths sort by position.
     for (auto i = 0u; i < n; i++)
-    {
-        const auto u = std::bit_cast<uint32_t>(depths[i]);
-        const auto key = u ^ ((uint32_t)((int32_t)u >> 31) | 0x80000000u);
-        scratch[i] = (uint64_t)key << 32 | (base + i);
-    }
+        scratch[i] = (uint64_t)depth_key(depths[i]) << 32 | (base + i);
     vqsort(scratch, n);
     for (auto i = 0u; i < n; i++)
     {
         const auto key = (uint32_t)(scratch[i] >> 32);
         depths[i] = std::bit_cast<float>(key ^ ((uint32_t)((int32_t)~key >> 31) | 0x80000000u));
         indexes[i] = (uint32_t)scratch[i];
+    }
+}
+
+// k-way merge through a loser tree. Keys are unique, so equal depths leave in run order, which is
+// emission order: the same order as sorting (depth, emission index).
+void merge_runs(const float* D, const uint32_t* S, const uint32_t* Starts, uint32_t k, uint32_t size,
+                merge_state::run* runs, uint64_t* T, uint32_t* M)
+{
+    // Above the key of every depth except NaN.
+    constexpr auto exhausted = (uint64_t)UINT32_MAX << 32;
+
+    // Sentinel nodes have key 0 and run k. The build pushes every one of them out of T.
+    for (auto i = 0u; i < k; i++)
+    {
+        runs[i] = {Starts[i], Starts[i + 1]};
+        T[i] = k;
+    }
+    for (auto i = k - 1; i != (uint32_t)-1; i--)
+    {
+        auto cur = (uint64_t)depth_key(D[Starts[i]]) << 32 | i;
+        for (uint32_t p = (k + i) / 2; p > 0; p /= 2)
+            if (cur > T[p])
+                std::swap(cur, T[p]);
+        T[0] = cur;
+    }
+
+    for (auto i = 0u; i < size; i++)
+    {
+        const auto w = (uint32_t)T[0];
+        auto& rw = runs[w];
+        M[i] = S[rw.pos];
+        rw.pos++;
+        auto cur = rw.pos < rw.end ? (uint64_t)depth_key(D[rw.pos]) << 32 | w : exhausted | w;
+
+        // Selects, so the compiler emits cmov. A branch here mispredicts: the outcome depends on the depths.
+        for (uint32_t p = (k + w) / 2; p > 0; p /= 2)
+        {
+            const auto t = T[p];
+            const bool lt = t < cur;
+            const auto loser = lt ? cur : t;
+            cur = lt ? t : cur;
+            T[p] = loser;
+        }
+        T[0] = cur;
     }
 }
 
@@ -195,7 +238,6 @@ void SpriteBatch::clear()
     arrayClear(impl.merge_output);
     arrayClear(impl.m.runs);
     arrayClear(impl.m.tree);
-    arrayClear(impl.m.head);
     //arrayClear(impl.index_buffer);
     impl.last_start = 0;
     impl.emit_pos = 0;
@@ -367,7 +409,6 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     fm_debug_assert(impl.merge_output.isEmpty());
     fm_debug_assert(impl.m.runs.isEmpty());
     fm_debug_assert(impl.m.tree.isEmpty());
-    fm_debug_assert(impl.m.head.isEmpty());
     const bool pv = permute_vertexes();
     if (pv)
         reserve(impl.vertex_buffer, size);
@@ -400,70 +441,24 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     }
 
     reserve(impl.merge_output, size);
-    reserve(impl.m.runs, k);
-    reserve(impl.m.tree, k);
-    reserve(impl.m.head, k + 1);
-
     auto* const M = impl.merge_output.data();
-    auto* const runs = impl.m.runs.data();
-    auto* const tree = impl.m.tree.data();
-    auto* const head = impl.m.head.data();
 
-    // --- k-way merge via loser tree ---
-
-    // Runs are never empty: end_chunk() returns before appending to starts when first == last.
-    for (auto i = 0u; i < k; i++)
+    if (vqsort_avx2_or_better())
     {
-        runs[i] = {Starts[i], Starts[i + 1]};
-        head[i] = D[Starts[i]];
+        reserve_aligned(impl.sort_keys, size);
+        auto* const K = assume_aligned<64>(impl.sort_keys.data());
+        for (auto i = 0u; i < size; i++)
+            K[i] = (uint64_t)depth_key(D[i]) << 32 | S[i];
+        vqsort(K, size);
+        for (auto i = 0u; i < size; i++)
+            M[i] = (uint32_t)K[i];
     }
-
-    const uint32_t sentinel = k;
-    head[sentinel] = -FLT_MAX; // wins every comparison, so the build displaces it out of tree[]
-
-    // build tree: insert runs back to front
-    for (auto i = 0u; i < k; i++)
-        tree[i] = {sentinel, -FLT_MAX};
-    for (auto i = k - 1; i != (uint32_t)-1; i--)
+    else
     {
-        merge_state::node cur{i, head[i]};
-        for (uint32_t p = (k + i) / 2; p > 0; p /= 2)
-            if (cur.d > tree[p].d)
-                std::swap(cur, tree[p]);
-        tree[0] = cur;
-    }
-
-    // Runner-up key. Valid only while tree[0] is unchanged, so a replay that moves the
-    // winner resets it. The seed forces a full replay on iteration 0.
-    float second = -FLT_MAX;
-
-    // extract in sorted order
-    for (auto i = 0u; i < size; i++)
-    {
-        const auto w = tree[0].run;
-        auto& rw = runs[w];
-        M[i] = S[rw.pos];
-        rw.pos++;
-        head[w] = rw.pos < rw.end ? D[rw.pos] : FLT_MAX;
-
-        // Still the winner, so the tree, tree[0] and `second` are all unchanged.
-        if (head[w] <= second)
-            continue;
-
-        // replay from leaf w
-        merge_state::node cur{w, head[w]};
-        float lo = FLT_MAX;
-        for (uint32_t p = (k + w) / 2; p > 0; p /= 2)
-        {
-            if (cur.d > tree[p].d)
-                std::swap(cur, tree[p]);
-            else if (tree[p].d < lo)
-                lo = tree[p].d;
-        }
-        tree[0] = cur;
-        // With no swap the else branch ran at every level, so lo is the min over all path
-        // losers. Once swapped it is a partial min over the wrong path.
-        second = cur.run == w ? lo : -FLT_MAX;
+        // Runs are never empty: end_chunk() returns before appending to starts when first == last.
+        reserve(impl.m.runs, k);
+        reserve(impl.m.tree, k);
+        merge_runs(D, S, Starts, k, size, impl.m.runs.data(), impl.m.tree.data(), M);
     }
 
     if (pv)
@@ -488,7 +483,6 @@ void SpriteBatch::unsort_vertex_buffer()
     }
     arrayClear(impl.m.runs);
     arrayClear(impl.m.tree);
-    arrayClear(impl.m.head);
 }
 
 void SpriteBatch::draw(tile_shader& shader, bool do_sort)

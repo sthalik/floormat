@@ -1,9 +1,11 @@
 #include "app.hpp"
 #include "src/spritebatch.hpp"
 #include "src/quads.hpp"
+#include "src/hwy.hpp"
 #include <vector>
 #include <bit>
 #include <cfloat>
+#include <hwy/targets.h>
 #include <utility>
 #include <algorithm>
 #include <cr/ArrayView.h>
@@ -92,7 +94,12 @@ struct fixture
             seen[j] = true;
 
             if (do_sort && i > 0)
+            {
                 fm_assert(depths[order[i-1]] <= depths[j]);
+                // Ties draw in emission order, across runs too.
+                if (depths[order[i-1]] == depths[j])
+                    fm_assert(order[i-1] < j);
+            }
 
             if (do_sort && ranks_defined)
             {
@@ -191,8 +198,7 @@ void test_exhaustive(uint32_t k, uint32_t alphabet, uint32_t max_len)
 // Distinct primes, so no two runs exhaust on the same iteration.
 constexpr inline uint32_t run_lengths[] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 };
 
-// Both extremes of the streak fast path have to run: interleaved never takes it, blocked
-// takes it for all but k of the pops.
+// Interleaved changes the winning run on every pop, blocked on k of them.
 enum class layout : uint8_t { interleaved, blocked, one_dominant, reverse_blocked };
 
 std::vector<float> make_run(layout kind, uint32_t run, uint32_t len)
@@ -221,9 +227,7 @@ void test_layout(layout kind, uint32_t k)
     f.check();
 }
 
-} // namespace
-
-void test_spritebatch()
+void run_cases()
 {
     // Every cross-run tie pattern for small k. 14 distinct runs at k <= 4, 6 at k = 5.
     for (auto k : { 2u, 3u, 4u })
@@ -257,8 +261,8 @@ void test_spritebatch()
         f.check();
     }
 
-    {   // A run of length 1 exhausts on its first pop, which is where head[] must go to
-        // FLT_MAX rather than reading past the run.
+    {   // A run of length 1 exhausts on its first pop, which is where the merge must replay
+        // the exhausted key rather than read past the run.
         fixture f;
         f.add_run({5});
         f.add_run({1, 2, 3});
@@ -274,9 +278,8 @@ void test_spritebatch()
         f.check();
     }
 
-    {   // Every element equal. The fast path fires on ties, so a wrong `second` emits past
-        // the end of a run here. Within-run ranks are undefined, so only permutation and
-        // sortedness are checked.
+    {   // Every element equal, so only the emission index orders them. Within-run ranks are
+        // undefined.
         fixture f;
         for (auto i = 0u; i < 6; i++)
             f.add_run(std::vector<float>(7, 42));
@@ -317,14 +320,31 @@ void test_spritebatch()
         f.check(false);
     }
 
-    {   // Negative and denormal depths — the sentinels are ±FLT_MAX, so nothing here may
-        // collide with them.
+    {   // Negative, denormal and extreme depths: the key's sign flip has to order them all.
         fixture f;
         f.add_run({-1e30f, -1, 0});
         f.add_run({-1e-30f, 1e-30f, 1e30f});
-        f.add_run({-FLT_MAX/2, FLT_MAX/2});
+        f.add_run({-FLT_MAX, FLT_MAX});
         f.check();
     }
+}
+
+} // namespace
+
+void test_spritebatch()
+{
+    // Forcing SSE4 takes the loser-tree merge. The native target takes vqsort from AVX2 up.
+    const int64_t native = hwy::SupportedTargets();
+    for (const int64_t forced : { 0LL, HWY_SSE4 })
+    {
+        if (forced && (forced & native) == 0)
+            continue;
+        hwy::SetSupportedTargetsForTest(forced);
+        vqsort_refresh_targets();
+        run_cases();
+    }
+    hwy::SetSupportedTargetsForTest(0);
+    vqsort_refresh_targets();
 }
 
 } // namespace floormat::Test

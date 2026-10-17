@@ -28,8 +28,7 @@ std::vector<float> flatten(const std::vector<std::vector<float>>& runs)
     return ret;
 }
 
-// merged_order() must be a permutation of emission indexes whose depths never decrease. The
-// merge orders equal depths by tree position, so only depths are compared.
+// merged_order() must be a permutation of emission indexes whose depths never decrease.
 bool check_order(benchmark::State& state, const SpriteBatch& sb, const std::vector<float>& depths)
 {
     const auto order = sb.merged_order();
