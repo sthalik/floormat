@@ -31,7 +31,7 @@ public:
     void set_rotation(enum rotation r);
     void toggle_rotation();
 
-    bptr<wall_atlas> get_selected() const;
+    bptr<wall_atlas> get_selected() const; // todo not thread-safe, copies a non-atomic bptr
     void select_atlas(const bptr<wall_atlas>& atlas);
     void clear_selection();
     bool is_atlas_selected(const bptr<wall_atlas>& atlas) const;
