@@ -245,15 +245,12 @@ struct chunk_bitmaps
         return win;
     }
 
-    // Bit (dy+1)*3 + dx+1 is the cell (dx, dy) cells away from pt's. Needs div_size == Search::div_size.
+    // Bit (dy+1)*3 + dx+1 is the cell holding pt + (dx, dy)*Search::div_size, at any cell size.
     CORRADE_ALWAYS_INLINE uint32_t window(point pt)
     {
-        constexpr auto dc = chunk_size_xy / (uint32_t)Search::div_size.x();
-        static_assert(dc == 64, "a row is one uint64_t");
-        fm_debug3_assert(div_count == dc);
+        constexpr int cs = (int)chunk_size_xy, step = Search::div_size.x();
         const auto pix = Vector2i(intra_coord{pt});
-        const auto cell = Vector2ui(pix) / (uint32_t)Search::div_size.x();
-        if (cell.x() - 1 >= dc - 2 || cell.y() - 1 >= dc - 2) [[unlikely]]
+        if ((uint32_t)(pix.x() - step) >= (uint32_t)(cs - 2*step) || (uint32_t)(pix.y() - step) >= (uint32_t)(cs - 2*step)) [[unlikely]]
             return window_edge(pt, pix);
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
         const auto* b = bits[chunk_idx];
@@ -261,14 +258,23 @@ struct chunk_bitmaps
             if (!(b = resolve(pt, chunk_idx)))
                 return 0;
         uint32_t win = 0;
-        for (uint32_t r = 0; r < 3; r++)
+        if (div_count == (uint32_t)(cs/step)) [[likely]]
         {
-            uint64_t row;
-            std::memcpy(&row, b + (cell.y() - 1 + r)*(dc/8), sizeof row);
-            if constexpr (std::endian::native == std::endian::big)
-                row = std::byteswap(row);
-            win |= (uint32_t)((row >> (cell.x() - 1)) & 7) << r*3;
+            static_assert(cs/step == 64, "a row is one uint64_t");
+            const auto cell = Vector2ui(pix) / (uint32_t)step;
+            for (uint32_t r = 0; r < 3; r++)
+            {
+                uint64_t row;
+                std::memcpy(&row, b + (cell.y() - 1 + r)*(cs/step/8), sizeof row);
+                if constexpr (std::endian::native == std::endian::big)
+                    row = std::byteswap(row);
+                win |= (uint32_t)((row >> (cell.x() - 1)) & 7) << r*3;
+            }
         }
+        else
+            for (int r = 0; r < 3; r++)
+                for (int c = 0; c < 3; c++)
+                    win |= (uint32_t)test_bit(b, Vector2ui(pix + Vector2i{c - 1, r - 1}*step)) << (r*3 + c);
         return win;
     }
 
@@ -515,7 +521,6 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         .div_shift = (uint32_t)std::countr_zero(params.div_size()),
         .div_count = params.div_count,
     };
-    const bool use_window = params.div_size() == (uint32_t)div_size.x();
 
     auto closest_dist_sq = (uint64_t)-1;
     uint32_t closest_idx = (uint32_t)-1;
@@ -577,7 +582,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             }
         }
 
-        const auto window = use_window ? bm.window(cur_pt) : 0u;
+        const auto window = bm.window(cur_pt);
 
         for (auto i = 0u; i < 8; i += 2)
         {
