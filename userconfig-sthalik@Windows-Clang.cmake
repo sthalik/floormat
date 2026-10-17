@@ -1,6 +1,5 @@
-if(CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     if(FLOORMAT_COVERAGE)
-        set(CMAKE_BUILD_TYPE DEBUG CACHE STRING "" FORCE)
         add_definitions(
             -fprofile-instr-generate
             -fcoverage-mapping
@@ -154,7 +153,7 @@ endif()
 
 if(FLOORMAT_ASAN AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-asan/.")
     sets(PATH OpenCV_DIR "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-asan")
-elseif(CMAKE_BUILD_TYPE STREQUAL "DEBUG" AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-debug/.")
+elseif(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$" AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-debug/.")
     sets(PATH OpenCV_DIR "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-debug")
 elseif(EXISTS "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-release/.")
     sets(PATH OpenCV_DIR "${CMAKE_CURRENT_LIST_DIR}/build/external/opencv/clang-release")
@@ -214,7 +213,7 @@ function(fm-userconfig-external)
         -Wno-unused-but-set-variable
         -Wno-error=return-type
     )
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    if(NOT CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
         sets(BOOL
              FLOORMAT_SUBMODULE-SDL2                            ON
              SDL_SHARED                                         OFF
@@ -303,7 +302,7 @@ function(fm-userconfig-src)
         #-Wexit-time-destructors
         -Wno-exit-time-destructors
     )
-    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
         add_compile_options(-ftime-trace)
     endif()
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:SHELL:-Xclang -flifetime-safety-inference>")

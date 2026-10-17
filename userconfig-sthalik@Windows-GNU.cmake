@@ -26,7 +26,7 @@ add_compile_definitions($<$<CONFIG:Debug,DEBUG>:_FORTIFY_SOURCE=3>)
 # -Og defines no __NO_INLINE__, so xxhash keeps always_inline on functions it calls through pointers (gcc PR 107931)
 add_compile_definitions($<$<CONFIG:Debug,DEBUG>:XXH_NO_INLINE_HINTS=1>)
 
-if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     set(OpenCV_DIR "f:/build/opencv/build-gcc-debug-floormat/install" CACHE PATH "" FORCE)
 else()
     set(BUILD_SHARED_LIBS OFF)
@@ -43,7 +43,7 @@ function(fm-userconfig-external)
         -Wno-uninitialized
         $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-literal-operator>
     )
-    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
         sets(BOOL
              CORRADE_BUILD_TESTS                                    ON
              MAGNUM_BUILD_TESTS                                     ON
