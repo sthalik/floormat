@@ -29,7 +29,7 @@ else()
     add_link_options(-static-libstdc++) # see https://gcc.gnu.org/pipermail/gcc-bugs/2022-May/787588.html
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
     add_definitions(-D_GLIBCXX_USE_DEPRECATED=0 -D_GLIBCXX_USE_CXX11_ABI)
     add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC)
@@ -50,7 +50,7 @@ function(fm-userconfig-external)
         -Wno-restrict
         -Wno-uninitialized
     )
-    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
         sets(BOOL
              CORRADE_BUILD_TESTS                                    ON
              MAGNUM_BUILD_TESTS                                     ON

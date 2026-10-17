@@ -2,13 +2,10 @@ set(CMAKE_C_COMPILER_INIT cl.exe)
 set(CMAKE_CXX_COMPILER_INIT cl.exe)
 set(CMAKE_ASM_NASM_COMPILER nasm.exe)
 
-string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
-set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING "" FORCE)
-
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/cmake/msvc.cmake" CACHE FILEPATH "" FORCE)
 
 if(NOT DEFINED OpenCV_DIR)
-    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
         #set(OpenCV_DIR "F:/dev/opentrack-depends/opencv/build-msvc64-debug/install" CACHE PATH "" FORCE)
         sets(PATH OpenCV_DIR "")
     else()
@@ -16,7 +13,7 @@ if(NOT DEFINED OpenCV_DIR)
     endif()
 endif()
 
-if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+if(NOT CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     set(BUILD_SHARED_LIBS OFF)
 else()
     add_definitions(-D_MSVC_STL_HARDENING=1)
@@ -36,7 +33,7 @@ if(FLOORMAT_ASAN)
 endif()
 
 function(fm-userconfig-external)
-    if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+    if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
         sets(BOOL
              CORRADE_BUILD_TESTS                                ON
              MAGNUM_BUILD_TESTS                                 ON
