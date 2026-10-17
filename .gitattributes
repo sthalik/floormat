@@ -13,7 +13,7 @@
 *.conf text eol=lf
 *.txt text eol=lf
 *.yml text eol=lf
-*.bat text eol=crlf
+*.bat text eol=lf
 .git?* text eol=lf
 
 *.tga -text
