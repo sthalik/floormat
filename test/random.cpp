@@ -1,8 +1,8 @@
 #include "app.hpp"
+#include "compat/limits.hpp"
 #include "random/random.hpp"
 #include <bit>
 #include <cmath>
-#include <limits>
 #include <random>
 
 namespace floormat::Test {
@@ -173,7 +173,7 @@ void test_gaussian(uint64_t expected_hash)
 {
     const auto cdf = [](double z) { return 0.5 * std::erfc(-z * 0.70710678118654752); };
     // Rounding z to T moves cdf(z) by at most a relative (z^2 + 1) half_ulp, from the Mills ratio.
-    constexpr double half_ulp = std::numeric_limits<T>::epsilon() / 2;
+    constexpr double half_ulp = (double)(limits<T>::epsilon / 2);
     const auto tolerance = [](double z) { return 1e-13 + (z*z + 1) * half_ulp; };
     uint64_t hash = 0;
 
@@ -183,7 +183,7 @@ void test_gaussian(uint64_t expected_hash)
         const uint64_t x = uint64_t{1} << k;
         for (uint64_t u : { x - 1, x, x + x/3 })
         {
-            const double z = Random::gaussian<T>(u), p = ((double)u + 0.5) * 0x1p-64;
+            const auto z = (double)Random::gaussian<T>(u), p = ((double)u + 0.5) * 0x1p-64;
             fm_assert(std::fabs(cdf(z) - p) <= tolerance(z) * p);
             fm_assert((double)Random::gaussian<T>(~u) == -z);
             hash = Random::mix(hash ^ std::bit_cast<uint64_t>(z));
@@ -194,7 +194,7 @@ void test_gaussian(uint64_t expected_hash)
     for (uint32_t k = 0; k < 1 << 16; k++)
     {
         const uint64_t u = 0x0123456789ab + (uint64_t{k} << 48);
-        const double z = Random::gaussian<T>(u), p = ((double)u + 0.5) * 0x1p-64;
+        const auto z = (double)Random::gaussian<T>(u), p = ((double)u + 0.5) * 0x1p-64;
         fm_assert(z > last);
         if (p < 0.5)
             fm_assert(std::fabs(cdf(z) - p) <= tolerance(z) * p);
@@ -211,7 +211,7 @@ void test_gaussian(uint64_t expected_hash)
     last = -1;
     for (uint64_t u = (uint64_t{1} << 63) - 1000; u != (uint64_t{1} << 63) + 1000; u++)
     {
-        const double z = Random::gaussian<T>(u);
+        const auto z = (double)Random::gaussian<T>(u);
         fm_assert(z > last);
         fm_assert((z < 0) == (u < (uint64_t{1} << 63)));
         last = z;
@@ -223,7 +223,7 @@ void test_gaussian(uint64_t expected_hash)
     Random::seed(g, 1);
     for (uint32_t i = 0; i < N; i++)
     {
-        const double z = Random::gaussian<T>(Random::next(g));
+        const auto z = (double)Random::gaussian<T>(Random::next(g));
         sum[0] += z;
         sum[1] += z*z;
         sum[2] += z*z*z;
