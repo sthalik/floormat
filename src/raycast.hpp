@@ -21,8 +21,8 @@ struct raycast_diag_s;
 struct raycast_result_s
 {
     point from, to;
-    // On the collider, nearest the projectile's center at contact. That center is
-    // from + dir * tmin; return tmin if a caller needs it.
+    // On the collider. Radius 0: the first pixel of the line's supercover inside it. Otherwise the
+    // point nearest the projectile's center at contact, from + dir * tmin; return tmin if a caller needs it.
     point collision;
     collision_data collider;
     float time = 0;
