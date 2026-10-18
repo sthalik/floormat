@@ -230,6 +230,15 @@ void set_result_from_idx(path_search_result& result,
     arrayClear(temp_nodes);
 }
 
+// A pop's 3x3 window. When all 8 neighbours lie in the pop's chunk, chunk_idx is that chunk's
+// index and tile_idx the pop's cell in the cache, else chunk_idx is (size_t)-1.
+struct neighbourhood
+{
+    uint32_t window;
+    size_t chunk_idx, tile_idx;
+    Vector2i pix;
+};
+
 // One bitmap pointer per chunk of the cache rectangle. Nothing marks a grid stale
 // during a search, so a pointer stays valid until it ends. Null: not resolved, or no chunk.
 struct chunk_bitmaps
@@ -303,17 +312,18 @@ struct chunk_bitmaps
     }
 
     // Bit (dy+1)*3 + dx+1 is the cell holding pt + (dx, dy)*Search::div_size, at any cell size.
-    CORRADE_ALWAYS_INLINE uint32_t window(point pt)
+    CORRADE_ALWAYS_INLINE neighbourhood window(point pt)
     {
         constexpr int cs = (int)chunk_size_xy, step = Search::div_size.x();
         const auto pix = Vector2i(intra_coord{pt});
         if ((uint32_t)(pix.x() - step) >= (uint32_t)(cs - 2*step) || (uint32_t)(pix.y() - step) >= (uint32_t)(cs - 2*step)) [[unlikely]]
-            return window_edge(pt, pix);
+            return { window_edge(pt, pix), (size_t)-1, 0, pix };
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
+        const auto tile_idx = cache.get_tile_index(intra_coord{pt});
         const auto* b = bits[chunk_idx];
         if (!b) [[unlikely]]
             if (!(b = resolve(pt, chunk_idx)))
-                return 0;
+                return { 0, chunk_idx, tile_idx, pix };
         uint32_t win = 0;
         if (div_count == (uint32_t)(cs/step)) [[likely]]
         {
@@ -333,7 +343,7 @@ struct chunk_bitmaps
             for (int r = 0; r < 3; r++)
                 for (int c = 0; c < 3; c++)
                     win |= (uint32_t)test_bit(b, Vector2ui(pix + Vector2i{c - 1, r - 1}*step)) << (r*3 + c);
-        return win;
+        return { win, chunk_idx, tile_idx, pix };
     }
 
     CORRADE_ALWAYS_INLINE bool is_passable(point pt, size_t chunk_idx)
@@ -364,21 +374,35 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             dir_step dirs,
             point to, point cur_pt,
             uint32_t cur_idx, uint32_t cur_dist,
-            uint32_t max_dist, uint32_t window)
+            uint32_t max_dist, const neighbourhood& cells)
 {
     const auto [vec, len, mask] = dirs;
+    const auto window = cells.window;
 
     if (window && (window & mask) != mask)
         return;
 
+    const bool same_chunk = cells.chunk_idx != (size_t)-1;
     const auto dist = cur_dist + len;
-    const auto new_pt = point::normalize_coords(cur_pt, vec);
+    const auto new_pt = same_chunk ? point{cur_pt.chunk3(), intra_coord{cells.pix + vec}}
+                                   : point::normalize_coords(cur_pt, vec);
     uint32_t f_score = dist + h(new_pt, to);
     if (f_score >= max_dist) [[unlikely]]
         return;
 
-    auto chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
-    auto tile_idx = cache.get_tile_index(intra_coord{new_pt});
+    size_t chunk_idx, tile_idx;
+    if (same_chunk) [[likely]]
+    {
+        // The cache's cells are one step wide.
+        const auto d = vec / div_size;
+        chunk_idx = cells.chunk_idx;
+        tile_idx = (size_t)((ptrdiff_t)cells.tile_idx + (ptrdiff_t)d.y() * cache.div_count_ + d.x());
+    }
+    else
+    {
+        chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
+        tile_idx = cache.get_tile_index(intra_coord{new_pt});
+    }
     auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
 
     if (new_idx != (uint32_t)-1)
@@ -480,6 +504,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
 
     auto& cache = *_cache;
     cache.allocate(from, max_dist);
+    fm_debug3_assert(cache.div_size_ == (uint32_t)div_size.x());
 
     fm_debug3_assert(own_size_ < chunk_size<Vector2ui>);
     const auto own_size = Math::max(own_size_, min_size);
@@ -652,14 +677,14 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             }
         }
 
-        const auto window = bm.window(cur_pt);
+        const auto cells = bm.window(cur_pt);
 
         for (auto i = 0u; i < 8; i += 2)
         {
             const auto d1 = directions.data()[i + 0],
                        d2 = directions.data()[i + 1];
-            do_dir<1, Debug>(bm, cache, nodes, Q, h, d1, to, cur_pt, cur_idx, cur_dist, max_dist, window);
-            do_dir<0, Debug>(bm, cache, nodes, Q, h, d2, to, cur_pt, cur_idx, cur_dist, max_dist, window);
+            do_dir<1, Debug>(bm, cache, nodes, Q, h, d1, to, cur_pt, cur_idx, cur_dist, max_dist, cells);
+            do_dir<0, Debug>(bm, cache, nodes, Q, h, d2, to, cur_pt, cur_idx, cur_dist, max_dist, cells);
         }
     }
 
