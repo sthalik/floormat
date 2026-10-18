@@ -3,6 +3,9 @@
 #include "src/tile-constants.hpp"
 #include "src/raycast-diag.hpp"
 #include "src/raycast-loop.hpp"
+#include "src/raycast-line.hpp"
+#include "src/scenery-proto.hpp"
+#include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "src/grid-pass.hpp"
 #include "src/world.hpp"
@@ -11,6 +14,8 @@
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
+#include "loader/scenery-cell.hpp"
+#include <cfloat>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 
@@ -352,6 +357,185 @@ void test_rays(const Pass::Params& params, world& w)
     }
 }
 
+struct pillar
+{
+    object_id id;
+    Vector2i min, max;
+    Vector2i shift;
+};
+
+// Its rect in origin's frame, as scenery_tile() computes it.
+pillar place_pillar(world& w, chunk_coords_ ch, chunk_coords_ origin, local_coords tile, Vector2b bb_off, Vector2ub bb_size)
+{
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_offset = bb_off;
+    p.bbox_size   = bb_size;
+    p.pass        = pass_mode::blocked;
+    const auto id = w.make_id();
+    w.make_scenery(id, {ch, tile}, move(p));
+    const auto min = (point{ch, tile, {}} - point{origin, {}, {}}) + Vector2i(bb_off) - Vector2i(bb_size)/2;
+    return { id, min, min + Vector2i(bb_size), point{ch, {}, {}} - point{origin, {}, {}} };
+}
+
+bool contains(const pillar& p, Vector2i px)
+{
+    return (px >= p.min).all() && (px <= p.max).all();
+}
+
+struct supercover_hit
+{
+    Vector2i pixels[2];
+    uint32_t count;
+    bool off_axis;
+};
+
+// The first supercover pixels inside a pillar, walked pixel by pixel. Two when both off-axis
+// pixels at a corner are.
+supercover_hit first_supercover_hit(ArrayView<const pillar> pillars, const rc::bresenham_line& line)
+{
+    const auto blocked = [&](Vector2i px) {
+        for (const auto& p : pillars)
+            if (contains(p, px))
+                return true;
+        return false;
+    };
+    for (auto k = 0u; k <= line.steps(); k++)
+    {
+        if (blocked(line.pixel_at(k)))
+            return { { line.pixel_at(k), {} }, 1, false };
+        if (k == line.steps())
+            break;
+        supercover_hit ret = {};
+        if (const auto o = line.off_axis_at(k); o.diagonal)
+            for (auto i = 0u; i < 2; i++)
+                if (o.crossed[i] && blocked(o.pixels[i]))
+                    ret.pixels[ret.count++] = o.pixels[i];
+        ret.off_axis = ret.count > 0;
+        if (ret.count)
+            return ret;
+    }
+    return {};
+}
+
+// In each pillar's chunk frame with raycast()'s float operations, since near tangency the corner
+// test loses more than 1e-3 px to the frame's magnitude.
+float nearest_rounded_hit(ArrayView<const pillar> pillars, Vector2i from, Vector2 V, float radius)
+{
+    using namespace rc::detail;
+    const auto len = V.length();
+    const auto dir = V * (1.f/len), inv = dir_inverse(dir);
+    float best = FLT_MAX;
+    for (const auto& p : pillars)
+    {
+        const auto o = Vector2(from) - Vector2(p.shift);
+        const auto r = ray_rounded_rect_intersection(o, dir, inv, {{Vector2(p.min - p.shift) - Vector2{.5f},
+                                                                    Vector2(p.max - p.shift) + Vector2{.5f}}},
+                                                     radius, ray_aabb_signs(inv));
+        if (r.result && r.tmin <= len)
+            best = Math::min(best, r.tmin);
+    }
+    return best;
+}
+
+void test_supercover_hits()
+{
+    auto w = world{};
+    constexpr chunk_coords_ ch{0, 0, 0}, ch2{1, 0, 0}, ch3{1, 1, 0};
+    const pillar pillars[] = {
+        place_pillar(w, ch,  ch, {3, 4},  Vector2b{0, 0},    Vector2ub{20, 12}),
+        place_pillar(w, ch,  ch, {8, 9},  Vector2b{-5, 7},   Vector2ub{10, 30}),
+        place_pillar(w, ch,  ch, {15, 6}, Vector2b{20, 0},   Vector2ub{30, 8}),
+        place_pillar(w, ch2, ch, {1, 10}, Vector2b{-3, 11},  Vector2ub{14, 6}),
+        place_pillar(w, ch2, ch, {0, 15}, Vector2b{-28, 20}, Vector2ub{6, 8}),
+        place_pillar(w, ch3, ch, {2, 1},  Vector2b{0, 0},    Vector2ub{18, 24}),
+        place_pillar(w, ch,  ch, {5, 12}, Vector2b{0, 0},    Vector2ub{2, 10}),
+        place_pillar(w, ch,  ch, {11, 2}, Vector2b{3, -4},   Vector2ub{8, 2}),
+        // the line (100, 100)-(300, 300) touches it only at the corner (150.5, 150.5)
+        place_pillar(w, ch,  ch, {2, 2},  Vector2b{24, 21},  Vector2ub{2, 2}),
+        // (0, 0)-(400, 1) has its pixels at y = 0 up to x = 199 while the segment rises toward
+        // y = 0.5, so at radius 2.25 this is hit 2.75 to 3.25 px from the pixels
+        place_pillar(w, ch,  ch, {2, 0},  Vector2b{55, 7},   Vector2ub{6, 8}),
+        // at radius 2.25 and div 16, (0, 0)-(640, 66) finds the wide one in cell x 48-63 and hits it at
+        // x 70.3, after the small one at x 65.3, which only the next cell finds
+        place_pillar(w, ch,  ch, {2, 0},  Vector2b{43, 45},  Vector2ub{254, 70}),
+        place_pillar(w, ch,  ch, {1, 0},  Vector2b{5, 7},    Vector2ub{2, 2}),
+    };
+    for (auto c : { ch, ch2, ch3 })
+        w[c].mark_modified();
+
+    Pass::Pool pools[] = {
+        Pass::Pool{Pass::Params{4, 16, pass_mode::pass}},
+        Pass::Pool{Pass::Params{8, 16, pass_mode::pass}},
+        Pass::Pool{Pass::Params{16, 16, pass_mode::pass}},
+    };
+    const auto origin = point{ch, {}, {}};
+    uint32_t hits = 0, off_axis_hits = 0;
+
+    const auto check = [&](Vector2i from, Vector2i to) {
+        const auto line = rc::bresenham_line{from, to};
+        const auto ref = first_supercover_hit(pillars, line);
+        hits += ref.count > 0;
+        off_axis_hits += ref.off_axis;
+        auto diag = rc::raycast_diag_s{};
+        for (auto& pool : pools)
+        {
+            const auto res = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool, Search::never_continue());
+            const auto px = res.collision - origin;
+            bool ok = res.success == !ref.count;
+            if (ok && ref.count)
+            {
+                ok = px == ref.pixels[0] || (ref.count == 2 && px == ref.pixels[1]);
+                bool in_collider = false;
+                for (const auto& p : pillars)
+                    in_collider |= p.id == (object_id)res.collider.id && contains(p, px);
+                ok &= in_collider;
+            }
+            if (!ok)
+                fm_abort("ray (%d %d)-(%d %d) div %u: success %d at (%d %d), expected %u pixels from (%d %d)",
+                         from.x(), from.y(), to.x(), to.y(), pool.params().div_size(), (int)res.success,
+                         px.x(), px.y(), ref.count, ref.pixels[0].x(), ref.pixels[0].y());
+
+            for (auto radius : { .5f, 2.25f, 6.5f })
+            {
+                const auto expected = nearest_rounded_hit(pillars, from, Vector2(to - from), radius);
+                const auto r = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool, Search::never_continue(), radius);
+                if (r.success != (expected == FLT_MAX) || (!r.success && Math::abs(diag.tmin - expected) > 1e-3f))
+                    fm_abort("ray (%d %d)-(%d %d) div %u radius %g: success %d tmin %g, expected %g",
+                             from.x(), from.y(), to.x(), to.y(), pool.params().div_size(), (double)radius,
+                             (int)r.success, (double)diag.tmin, (double)expected);
+            }
+        }
+    };
+
+    check({100, 100}, {300, 300});
+    check({0, 0}, {400, 1});
+    check({0, 0}, {640, 66});
+    fm_assert(!raycast(w, origin + Vector2i{100, 100}, origin + Vector2i{300, 300}, 0, pools[0], Search::never_continue()).success);
+    // through the corner of four chunks
+    check({950, 950}, {1040, 1040});
+    check({1040, 950}, {950, 1040});
+
+    uint32_t seed = 0x6c8e9cf5;
+    const auto next = [&](uint32_t n) {
+        seed = seed * 1664525u + 1013904223u;
+        return (int32_t)((seed >> 8) % n);
+    };
+    for (auto i = 0u; i < 144; i++)
+    {
+        const auto from = Vector2i{next(1300) - 32, next(1300) - 32};
+        const auto& p = pillars[next((uint32_t)array_size(pillars))];
+        const auto size = p.max - p.min;
+        const auto corner = Vector2i{next(2), next(2)} * size;
+        const auto aim = i % 3 == 1 ? p.min + Vector2i{next((uint32_t)size.x() + 7), next((uint32_t)size.y() + 7)} - Vector2i{3}
+                                    : p.min + corner + Vector2i{next(5), next(5)} - Vector2i{2};
+        const auto to = i % 3 ? aim + (aim - from) / 4 : from + Vector2i{next(601) - 300, next(601) - 300};
+        check(from, to);
+    }
+    fm_assert(hits >= 64 && off_axis_hits >= 16);
+}
+
 static_assert(rc::min_pool_bbox_size(6) == 15);
 static_assert(rc::min_pool_bbox_size(6.25f) == 16);
 static_assert(rc::min_pool_bbox_size(6.5f) == 16);
@@ -363,6 +547,7 @@ void Test::test_raycast()
     test_window(pass_mode::see_through);
     test_window(pass_mode::shoot_through);
     test_edit_in_same_frame();
+    test_supercover_hits();
 
     constexpr uint32_t sizes[][2] = {
         {4, 4}, {4, 16}, {8, 8}, {8, 13}, {16, 16}, {16, 64}, {32, 32}, {64, 64},
