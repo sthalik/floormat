@@ -101,7 +101,10 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
     const float c = Math::dot(m, m) - radius*radius;
     if (c > 0 && b > 0)
         return { 0, false };
-    const float discr = b*b - c;
+    // b*b - c loses most digits far from the corner, the squared distance to the line doesn't. Haines,
+    // Günther, Akenine-Möller, "Precision Improvements for Ray/Sphere Intersection", Ray Tracing Gems, 2019.
+    const auto perp = m - ray_dir * b;
+    const float discr = radius*radius - Math::dot(perp, perp);
     if (discr < 0)
         return { 0, false };
     return { Math::max(0.f, -b - Math::sqrt(discr)), true };
