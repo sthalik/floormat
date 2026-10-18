@@ -368,6 +368,9 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
 {
     const auto [vec, len, mask] = dirs;
 
+    if (window && (window & mask) != mask)
+        return;
+
     const auto dist = cur_dist + len;
     const auto new_pt = point::normalize_coords(cur_pt, vec);
     uint32_t f_score = dist + h(new_pt, to);
@@ -383,15 +386,16 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             return;
 
     // A window of 0 can also mean nine blocked cells, which the per-cell tests find too.
-    bool passable;
-    if (window)
-        passable = (window & mask) == mask;
-    else if (IsDiagonal)
-        passable = bm.is_passable_diag(cur_pt, new_pt, vec, chunk_idx);
-    else
-        passable = bm.is_passable(new_pt, chunk_idx);
-    if (!passable)
-        return;
+    if (!window)
+    {
+        bool passable;
+        if (IsDiagonal)
+            passable = bm.is_passable_diag(cur_pt, new_pt, vec, chunk_idx);
+        else
+            passable = bm.is_passable(new_pt, chunk_idx);
+        if (!passable)
+            return;
+    }
 
     if (new_idx == (uint32_t)-1)
     {
