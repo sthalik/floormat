@@ -213,6 +213,39 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     }
 }
 
+namespace {
+
+struct line_pixel
+{
+    // 2k for the pixel of step k, 2k + 1 for an off-axis pixel of the step from k to k + 1
+    int64_t key;
+    Vector2i pixel;
+};
+
+// The first pixel of the line's supercover in the closed rect [lo, hi], or bound if its key isn't below it.
+line_pixel first_pixel_within(const bresenham_line& line, Vector2i lo, Vector2i hi, int64_t bound)
+{
+    const auto x = line.steps_within(0, lo.x(), hi.x()), y = line.steps_within(1, lo.y(), hi.y());
+    const int64_t x0 = x.first, x1 = x.last, y0 = y.first, y1 = y.last;
+    line_pixel ret = { bound, {} };
+    if (const auto k = Math::max(x0, y0); k <= Math::min(x1, y1) && 2*k < bound)
+        ret = { 2*k, line.pixel_at((uint32_t)k) };
+    // The steps putting off-axis pixel i in the rect form a range. If its first step's pixel isn't
+    // crossed, a main pixel in the rect comes before every later one.
+    for (auto i = 0u; i < 2; i++)
+    {
+        const auto t  = i == 0 ? Math::max(x0 - 1, y0) : Math::max(x0, y0 - 1);
+        const auto t1 = i == 0 ? Math::min(x1 - 1, y1) : Math::min(x1, y1 - 1);
+        if (t > Math::min(t1, (int64_t)line.steps() - 1) || 2*t + 1 >= ret.key)
+            continue;
+        if (const auto o = line.off_axis_at((uint32_t)t); o.diagonal && o.crossed[i])
+            ret = { 2*t + 1, o.pixels[i] };
+    }
+    return ret;
+}
+
+} // namespace
+
 template<bool EnableDiagnostics>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
                                world& w, point from, point to, object_id self,
@@ -287,6 +320,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     const auto from_ic = intra_coord{from};
     const auto from_shifted = Vector2(from_ic);
     const auto from_center = Vector2(from_ic.center_shifted());
+    const auto from_px = from - point{from.chunk3(), {}, {}};
+    const auto line = bresenham_line{from_px, from_px + (to - from)};
+    const auto step_len = ray_len / (float)line.steps();
 
     int32_t cell_x = from_ic.x() / div_size_i, cell_y = from_ic.y() / div_size_i;
     int32_t chunk_off_x = 0, local_cell_x = cell_x;
@@ -331,6 +367,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     bool last_chunk_empty = true;
 
     float min_tmin = FLT_MAX;
+    int64_t best_key = INT64_MAX;
+    Vector2i best_px;
     bool b = true;
     float t_entry = 0;
 
@@ -446,26 +484,40 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         fm_debug3_assert(x.type != (uint64_t)collision_type::none);
                         if (x.id == self || x.pass >= min_pass)
                             return true;
-                        auto ret = ray_rounded_rect_intersection(origin, dir, dir_inv_norm,
-                                                                 {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},
-                                                                   {r.m_max[0]+fuzz2, r.m_max[1]+fuzz2}}},
-                                                                 radius, signs);
-                        if (!ret.result)
-                            return true;
-                        if (ret.tmin > ray_len) [[unlikely]]
-                            return true;
-                        if (ret.tmin < min_tmin) [[likely]]
+                        const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+                        if (radius == 0)
                         {
+                            const auto shift = Vector2i{nb_off_x, nb_off_y} * chunk_size<int32_t>;
+                            const auto hit = first_pixel_within(line, Vector2i(Math::ceil(range.min())) + shift,
+                                                                Vector2i(Math::floor(range.max())) + shift, best_key);
+                            if (hit.key >= best_key) [[likely]]
+                                return true;
                             // last, since without_critters looks up the object
-                            auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+                            if (pred(*nb, x, range) == path_search_continue::pass)
+                                return true;
+                            best_key = hit.key;
+                            best_px = hit.pixel;
+                            // The ray crosses the square of a pixel with a lower key by step key/2, in a cell
+                            // whose query finds its rect. One more step covers t_entry's rounding.
+                            min_tmin = (float)(hit.key/2 + 1) * step_len;
+                            result.collision = point::normalize_coords(from, hit.pixel - from_px);
+                        }
+                        else
+                        {
+                            const auto ret = ray_rounded_rect_intersection(origin, dir, dir_inv_norm,
+                                                                           {{range.min() - Vector2{fuzz2},
+                                                                             range.max() + Vector2{fuzz2}}},
+                                                                           radius, signs);
+                            if (!ret.result || ret.tmin > ray_len || ret.tmin >= min_tmin)
+                                return true;
                             if (pred(*nb, x, range) == path_search_continue::pass)
                                 return true;
                             min_tmin = ret.tmin;
                             const auto contact = Math::clamp(origin + dir * min_tmin, range.min(), range.max());
                             result.collision = point::normalize_coords(from, Vector2i(contact - origin));
-                            result.collider = x;
-                            b = false;
                         }
+                        result.collider = x;
+                        b = false;
                         return true;
                     });
                 }
@@ -544,7 +596,10 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     }
 
     if constexpr(EnableDiagnostics)
-        diag.tmin = b ? 0 : min_tmin;
+        diag.tmin = b ? 0 : radius > 0 ? min_tmin
+                  : ray_aabb_intersection(Vector2(from_px), dir_inv_norm,
+                                          {{Vector2(best_px) - Vector2{fuzz2}, Vector2(best_px) + Vector2{fuzz2}}},
+                                          signs).tmin;
     result.success = b;
     return result;
 }
