@@ -146,7 +146,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "vertical sync", "true|false")
         .addOption('g', "geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
         .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "windowed|fullscreen|borderless")
-        .addOption("fixed-framerate", "0").setHelp("fixed-framerate", "feed update() a constant dt", "HZ")
+        .addOption("fixed-framerate", "").setHelp("fixed-framerate", "feed update() a constant dt, 0 for the measured frame time; 60 with --scenes, else 0", "HZ")
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
         .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns to FILE, one per line", "FILE")
 #ifndef FLOORMAT_NO_PGO_DRIVER
@@ -161,14 +161,6 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         opts.load_game = resolve_load_game_path(s);
     opts.log_frame_times = String{args.value<StringView>("log-frame-times")};
     opts.vsync = parse_bool("vsync", args);
-    opts.fixed_framerate = parse_uint("fixed-framerate", args);
-    // main_impl::do_update() clamps dt to 100 ms after substituting the fixed step, so
-    // anything slower than 10 Hz would quietly run at 10.
-    if (opts.fixed_framerate && opts.fixed_framerate < 10)
-    {
-        ERR_nospace << "--fixed-framerate must be at least 10";
-        std::exit(EX_USAGE);
-    }
 #ifndef FLOORMAT_NO_PGO_DRIVER
     if (const auto arg = args.value<StringView>("scenes"); arg != "off"_s)
     {
@@ -256,6 +248,18 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         std::exit(EX_USAGE);
     }
 #endif
+    // Scenes advance by dt, so with a measured one no two driver runs play the same frames.
+    if (args.value<StringView>("fixed-framerate"))
+        opts.fixed_framerate = parse_uint("fixed-framerate", args);
+    else
+        opts.fixed_framerate = opts.driver ? 60 : 0;
+    // main_impl::do_update() clamps dt to 100 ms after substituting the fixed step, so
+    // anything slower than 10 Hz would quietly run at 10.
+    if (opts.fixed_framerate && opts.fixed_framerate < 10)
+    {
+        ERR_nospace << "--fixed-framerate must be at least 10";
+        std::exit(EX_USAGE);
+    }
     if (auto str = args.value<StringView>("geometry"))
     {
         Vector2us size;
