@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/array-size.hpp"
-#include "src/grid-pass-pool.hpp"
+#include "src/grid-pool-registry.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include <bit>

@@ -14,7 +14,7 @@
 #include "src/search-pred.hpp"
 #include "src/search-result.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pass-pool.hpp"
+#include "src/grid-pool-registry.hpp"
 #include "src/point.inl"
 #include "src/nanosecond.inl"
 #include "compat/assert.hpp"
