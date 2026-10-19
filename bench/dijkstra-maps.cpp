@@ -4,6 +4,8 @@
 #include "src/search-cache.hpp"
 #include "src/search-pred.hpp"
 #include "src/grid-pass.hpp"
+#include "src/raycast-line.hpp"
+#include "src/sweep-aabb.hpp"
 #include "src/point.inl"
 #include "src/world.hpp"
 #include "compat/assert.hpp"
@@ -89,12 +91,56 @@ void bench_map(benchmark::State& state)
         search(s);
 }
 
+template<kind K>
+path_search_result pulled_path(map_world& s)
+{
+    auto res = search(s);
+    fm_assert(res.is_found());
+    fm_assert(s.A.string_pull(s.w, res, Vector2ui{mazes::bbox_size}, Search::without_critters()));
+    return res;
+}
+
+template<kind K>
+void bench_pull(benchmark::State& state)
+{
+    map_world s{K, (uint32_t)Search::div_size.x()};
+    auto res = pulled_path<K>(s);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(s.A.string_pull(s.w, res, Vector2ui{mazes::bbox_size}, Search::without_critters()));
+}
+
+// Without a pool, as move_toward sweeps each frame's steps.
+template<kind K>
+void bench_sweep(benchmark::State& state)
+{
+    map_world s{K, (uint32_t)Search::div_size.x()};
+    const auto res = pulled_path<K>(s);
+    const auto wp = res.smoothings();
+    const auto sweep = [&](size_t i) {
+        const auto ch = wp[i].pt.chunk3();
+        const auto origin = point{ch, {}, {}};
+        const auto line = rc::bresenham_line{wp[i].pt - origin, wp[i+1].pt - origin};
+        return find_swept_collider(s.w, ch, line, 0, line.steps(), Vector2ui{mazes::bbox_size}, Search::without_critters());
+    };
+    for (auto i = 0uz; i + 1 < wp.size(); i++)
+        fm_assert(!sweep(i).has_collider);
+    for (auto _ : state)
+        for (auto i = 0uz; i + 1 < wp.size(); i++)
+            benchmark::DoNotOptimize(sweep(i));
+}
+
 void Dijkstra_Rooms(benchmark::State& state) { bench_map<kind::rooms>(state); }
 void Dijkstra_Braid(benchmark::State& state) { bench_map<kind::braid>(state); }
 void Dijkstra_Prim(benchmark::State& state) { bench_map<kind::prim>(state); }
 void Dijkstra_Braid_Cell4(benchmark::State& state) { bench_map<kind::braid, 4>(state); }
 void Dijkstra_Braid_Cell8(benchmark::State& state) { bench_map<kind::braid, 8>(state); }
 void Dijkstra_Braid_Cell32(benchmark::State& state) { bench_map<kind::braid, 32>(state); }
+void String_Pull_Rooms(benchmark::State& state) { bench_pull<kind::rooms>(state); }
+void String_Pull_Braid(benchmark::State& state) { bench_pull<kind::braid>(state); }
+void String_Pull_Prim(benchmark::State& state) { bench_pull<kind::prim>(state); }
+void Swept_Collider_Rooms(benchmark::State& state) { bench_sweep<kind::rooms>(state); }
+void Swept_Collider_Braid(benchmark::State& state) { bench_sweep<kind::braid>(state); }
+void Swept_Collider_Prim(benchmark::State& state) { bench_sweep<kind::prim>(state); }
 
 } // namespace
 
@@ -104,5 +150,11 @@ BENCHMARK(Dijkstra_Prim)->Unit(benchmark::kMillisecond);
 BENCHMARK(Dijkstra_Braid_Cell4)->Unit(benchmark::kMillisecond);
 BENCHMARK(Dijkstra_Braid_Cell8)->Unit(benchmark::kMillisecond);
 BENCHMARK(Dijkstra_Braid_Cell32)->Unit(benchmark::kMillisecond);
+BENCHMARK(String_Pull_Rooms)->Unit(benchmark::kMicrosecond);
+BENCHMARK(String_Pull_Braid)->Unit(benchmark::kMicrosecond);
+BENCHMARK(String_Pull_Prim)->Unit(benchmark::kMicrosecond);
+BENCHMARK(Swept_Collider_Rooms)->Unit(benchmark::kMicrosecond);
+BENCHMARK(Swept_Collider_Braid)->Unit(benchmark::kMicrosecond);
+BENCHMARK(Swept_Collider_Prim)->Unit(benchmark::kMicrosecond);
 
 } // namespace floormat
