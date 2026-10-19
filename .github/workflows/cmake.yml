@@ -190,14 +190,14 @@ jobs:
         release: "15.1"
         mem: 12288
         copyback: false
-        prepare: pkg install -y cmake ninja gdb sdl2 mesa-libs mesa-dri libglvnd xorg-vfbserver xauth
+        prepare: pkg install -y llvm23 cmake ninja gdb sdl2 mesa-libs mesa-dri libglvnd xorg-vfbserver xauth
 
     - name: Configure
       shell: freebsd {0}
       run: |
         # FreeBSD has no xvfb-run. Xvfb is up by the time the build finishes.
         daemon -f -p /var/run/xvfb99.pid Xvfb :99 -screen 0 1280x1024x24 -nolisten tcp
-        cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        env CC=clang23 CXX=clang++23 cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       shell: freebsd {0}
@@ -228,7 +228,7 @@ jobs:
 
     - name: Test atomics and the work-stealing deque with TSan
       shell: freebsd {0}
-      run: sh .github/thread-tests.sh c++ -O1 -fsanitize=thread
+      run: sh .github/thread-tests.sh clang++23 -O1 -fsanitize=thread
       timeout-minutes: 60
       if: ${{ !cancelled() }}
 
