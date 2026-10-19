@@ -49,21 +49,21 @@ void rebuild(world& w)
     c.ensure_passability();
 }
 
-bool passable(world& w, point pt)
+bool passable(world& w, point pt, Vector2ui size)
 {
-    const auto local = Vector2(pt.intra().center_shifted());
-    const auto half = Vector2(body) * .5f;
-    return Search::is_passable(w, pt.chunk3(), Range2D{local - half, local + half}, Search::without_critters());
+    const auto min = Vector2(pt.intra().center_shifted() - Vector2i(size/2u));
+    return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(size)}, Search::without_critters());
 }
 
-cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size)
+cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size, Vector2ui size = body)
 {
     Grid::PoolRegistry pools{div_size};
-    return find_cover_point(w, pools, Cover::Params{div_size}, {npc, body, threat, radius});
+    return find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius});
 }
 
 void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, local_coords wall_tile,
-                            Vector2ub wall_size, Vector2i axis, uint32_t radius = 3*tile_size_xy)
+                            Vector2ub wall_size, Vector2i axis, uint32_t radius = 3*tile_size_xy,
+                            Vector2ui size = body)
 {
     auto w = world();
     add_ground(w);
@@ -71,28 +71,28 @@ void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, loc
     rebuild(w);
 
     const point npc{ch, npc_tile, {}}, threat{ch, threat_tile, {}};
-    const auto r = find(w, npc, threat, radius, 8);
+    const auto r = find(w, npc, threat, radius, 8, size);
     fm_assert(r.found);
     fm_assert(r.axis == axis);
-    fm_assert(passable(w, r.pos));
-    fm_assert(!passable(w, r.pos + r.axis));
+    fm_assert(passable(w, r.pos, size));
+    fm_assert(!passable(w, r.pos + r.axis, size));
 
     const auto wall_min = Vector2i(wall_tile)*tile_size_xy - Vector2i(wall_size/2), wall_max = wall_min + Vector2i(wall_size);
     const auto px = Vector3i(r.pos).xy();
-    const auto half = Vector2i(body/2u);
-    const auto gap = axis.x() > 0 ? wall_min.x() - (px.x() + half.x())
-                   : axis.x() < 0 ? px.x() - half.x() - wall_max.x()
-                   : axis.y() > 0 ? wall_min.y() - (px.y() + half.y())
-                   :                px.y() - half.y() - wall_max.y();
+    const auto lo = Vector2i(size/2u), hi = Vector2i(size) - lo;
+    const auto gap = axis.x() > 0 ? wall_min.x() - (px.x() + hi.x())
+                   : axis.x() < 0 ? px.x() - lo.x() - wall_max.x()
+                   : axis.y() > 0 ? wall_min.y() - (px.y() + hi.y())
+                   :                px.y() - lo.y() - wall_max.y();
     fm_assert_equal(0, gap);
     const auto across = axis.x() != 0 ? 1u : 0u;
     // raycast() grows colliders by half a pixel, so the body may stick out by one
     constexpr int fuzz = 1;
-    fm_assert(px[across] - half[across] >= wall_min[across] - fuzz && px[across] + half[across] <= wall_max[across] + fuzz);
+    fm_assert(px[across] - lo[across] >= wall_min[across] - fuzz && px[across] + hi[across] <= wall_max[across] + fuzz);
     fm_assert(point::distance(npc, r.pos) <= radius + tile_size_xy);
 
     auto A = astar{};
-    const auto path = A.Dijkstra<0, false>(w, npc, r.pos, chunk_size_xy, body, Search::without_critters());
+    const auto path = A.Dijkstra<0, false>(w, npc, r.pos, chunk_size_xy, size, Search::without_critters());
     fm_assert(path.is_found());
     fm_assert(path.path().back() == r.pos);
 }
@@ -143,6 +143,9 @@ void Test::test_cover_point()
     // Cell-centred candidates sit 4 px off the pillar's centre line, so the 24 px body fits the
     // 28 px pillar's span only after a sideways shift.
     test_hides_behind_wall({6, 8}, {14, 8}, {7, 8}, {16, 28}, {1, 0}, 48);
+    // An odd body's extra pixel is on +x/+y, so its -x and -y sides are the short ones.
+    test_hides_behind_wall({10, 8}, {2, 8}, {7, 8}, {16, 96}, {-1, 0}, 3*tile_size_xy, {23, 25});
+    test_hides_behind_wall({8, 12}, {8, 4}, {8, 9}, {96, 16}, {0, -1}, 3*tile_size_xy, {23, 25});
     test_open_ground_has_no_cover();
     test_narrow_pillar_rejected();
     test_wall_out_of_radius();
