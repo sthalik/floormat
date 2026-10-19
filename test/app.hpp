@@ -54,6 +54,7 @@ void test_magnum_math();
 void test_math();
 void test_multi_level_table();
 void test_passability_bbox();
+void test_pool_registry();
 void test_random();
 void test_raycast();
 void test_raycast_line();

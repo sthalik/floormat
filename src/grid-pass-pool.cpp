@@ -7,27 +7,28 @@ namespace floormat::Grid::Pass {
 PoolRegistry::PoolRegistry(uint32_t div_size) : div_size_{div_size} {}
 PoolRegistry::~PoolRegistry() noexcept = default;
 
-Pool& PoolRegistry::pool_for(uint32_t bbox_size)
+Pool& PoolRegistry::pass_pool(const Params& p)
 {
-    fm_assert(bbox_size > 0);
-    auto bbox = round_to_even(bbox_size, bbox_size);
-    if (bbox < Grid::min_bbox_size)
-        bbox = Grid::min_bbox_size;
-
-    if (bbox <= direct_max_bbox)
+    // the table holds only pool_for()'s params, so equal params always find the same pool
+    if (p.bbox_size % 2 == 0 && p.bbox_size <= direct_max_bbox && p == Params{div_size_, p.bbox_size, pass_mode::pass})
     {
-        const auto idx = (bbox - 2u) / 2u;
-        auto& slot = direct_[idx];
+        auto& slot = direct_[(p.bbox_size - 2u) / 2u];
         if (!slot)
-            slot.emplace(Params{div_size_, bbox, pass_mode::pass}, Search::without_critters());
+            slot.emplace(p, Search::without_critters());
         return *slot;
     }
 
-    for (auto& p : fallback_)
-        if (p->params().bbox_size == bbox)
-            return *p;
-    arrayAppend(fallback_, InPlaceInit, InPlaceInit, Params{div_size_, bbox, pass_mode::pass}, Search::without_critters());
+    for (auto& pool : fallback_)
+        if (pool->params() == p)
+            return *pool;
+    arrayAppend(fallback_, InPlaceInit, InPlaceInit, p, Search::without_critters());
     return *fallback_.back();
+}
+
+Pool& PoolRegistry::pool_for(uint32_t bbox_size)
+{
+    fm_assert(bbox_size > 0);
+    return pass_pool(Params{div_size_, round_to_even(bbox_size, bbox_size), pass_mode::pass});
 }
 
 } // namespace floormat::Grid::Pass
