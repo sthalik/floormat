@@ -122,6 +122,7 @@ private:
     static point maze2_start();
     static point maze2_goal();
     void populate_scene_benchmark_all_z();
+    void populate_scene_clickables();
 
     void draw() override;
 
@@ -240,6 +241,7 @@ private:
     pgo::task scene_grids();
     pgo::task scene_lightmap();
     pgo::task scene_cover();
+    pgo::task scene_clickables();
     pgo::task scene_torture_flat();
     pgo::task scene_torture_all_z();
 

@@ -97,6 +97,7 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_grids, profile),
         FM_SCENE(scene_lightmap, profile),
         FM_SCENE(scene_cover, profile),
+        FM_SCENE(scene_clickables, profile),
         FM_SCENE(scene_torture_flat, profile),
         FM_SCENE(scene_torture_all_z, profile),
     };
@@ -817,6 +818,32 @@ task app::scene_benchmark()
         fm_assert(M->shader().camera_offsetʹ() != off0);
         co_yield {};
     }
+}
+
+task app::scene_clickables()
+{
+#ifdef FM_NO_DEBUG3
+    constexpr auto hold_dt = Second*5;
+#else
+    // The hold counts fixed 60 Hz ticks, and Debug draws this scene at a few frames a second.
+    constexpr auto hold_dt = Second/2;
+#endif
+    auto& w = M->world();
+    center_camera_on(ensure_player_character(w)->position());
+    populate_scene_clickables();
+
+    uint32_t calls = 0, chunks = 0;
+    for (const auto ch : M->get_draw_bounds(_chunk_bounds_array, {}))
+        if (const auto* c = w.at(ch))
+        {
+            calls += (uint32_t)c->objects().size();
+            chunks++;
+        }
+    fm_debug("clickables: %u add_clickable calls a frame over %u chunks", calls, chunks);
+
+    do
+        co_yield {};
+    while (_driver->scene_dt < hold_dt);
 }
 
 // scene_dt restarts at zero on the tick populate runs, so the hold counts from a built world.
