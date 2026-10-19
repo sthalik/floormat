@@ -31,6 +31,11 @@ public:
     bresenham_line(Vector2i from, Vector2i to);
 
     uint32_t steps() const;
+    Vector2i from() const;
+    uint32_t major_axis() const;
+    uint32_t minor_len() const;
+    // -1 or 1
+    int32_t sign(uint32_t axis) const;
     Vector2i pixel_at(uint32_t step) const;
     off_axis_pixels off_axis_at(uint32_t step) const;
     // pixel must be one of pixel_at's.

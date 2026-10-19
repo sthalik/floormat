@@ -17,6 +17,10 @@ bresenham_line::bresenham_line(Vector2i from, Vector2i to) : _from{from}
 }
 
 uint32_t bresenham_line::steps() const { return _major_len; }
+Vector2i bresenham_line::from() const { return _from; }
+uint32_t bresenham_line::major_axis() const { return _y_major; }
+uint32_t bresenham_line::minor_len() const { return _minor_len; }
+int32_t bresenham_line::sign(uint32_t axis) const { return (axis == 1) == _y_major ? _major_sign : _minor_sign; }
 
 Vector2i bresenham_line::pixel_at(uint32_t step) const
 {
