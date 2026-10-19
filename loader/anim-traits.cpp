@@ -9,6 +9,7 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
 #include "compat/exception.hpp"
+#include "compat/array-size.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
 #include <cr/Optional.h>
@@ -46,11 +47,15 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
         .offset = {},
         .size = size,
     };
-    auto groups = Array<anim_group>{ValueInit, 1};
-    groups[0] = anim_group {
-        .name = "n"_s,
-        .frames = array({ frame }),
-    };
+    // Every rotation, so an object loaded with it keeps its facing.
+    constexpr StringView rotation_names[] = { "n"_s, "ne"_s, "e"_s, "se"_s, "s"_s, "sw"_s, "w"_s, "nw"_s, };
+    static_assert(array_size(rotation_names) == (size_t)rotation_COUNT);
+    auto groups = Array<anim_group>{ValueInit, array_size(rotation_names)};
+    for (auto i = 0uz; i < groups.size(); i++)
+        groups[i] = anim_group {
+            .name = rotation_names[i],
+            .frames = array({ frame }),
+        };
     auto def = anim_def {
         .object_name = loader.INVALID,
         .anim_name = loader.INVALID,
@@ -76,8 +81,11 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
                                {(Int)size.x(), (Int)size.y()},
                                ArrayView<const void>{src_base, (size_t)size.y() * row_stride}};
         auto sp = loader.atlas().add(view);
-        def.groups[0].sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, 1};
-        def.groups[0].sprites[0] = sp.raw();
+        for (auto& g : def.groups)
+        {
+            g.sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, 1};
+            g.sprites[0] = sp.raw();
+        }
     }
 
     auto atlas = bptr<class anim_atlas>{InPlace, loader.INVALID, err_tex, move(def)};

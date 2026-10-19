@@ -1,9 +1,14 @@
 #include "test/app.hpp"
 #include "compat/exception.hpp"
 #include "src/scenery-proto.hpp"
+#include "src/scenery.hpp"
+#include "src/world.hpp"
+#include "src/nanosecond.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "serialize/scenery.hpp"
 #include "serialize/magnum-vector.hpp"
 #include "loader/loader.hpp"
+#include "loader/anim-cell.hpp"
 #include <nlohmann/json.hpp>
 
 namespace floormat::Test {
@@ -51,6 +56,26 @@ void test_scenery_atlas_name_round_trip()
     }
 }
 
+// A door saved mid-swing whose atlas is missing loads active, on the stand-in with fps 0.
+void test_scenery_door_fps_zero()
+{
+    auto w = world();
+    auto proto = loader.scenery("door1");
+    proto.atlas = loader.invalid_anim_atlas().atlas;
+    proto.frame = 0;
+    const auto eʹ = w.make_scenery(w.make_id(), {{0, 0, 0}, {8, 8}}, move(proto));
+    fm_assert(eʹ->scenery_type() == scenery_type::door);
+    auto& e = static_cast<door_scenery&>(*eʹ);
+    e.active = true;
+    auto index = e.index();
+    e.update(eʹ, index, Second);
+    fm_assert(e.frame == 0 && e.active);
+
+    e.active = false;
+    fm_assert(e.activate(index));
+    fm_assert(e.frame == 0 && e.active);
+}
+
 } // namespace
 
 void test_scenery()
@@ -58,6 +83,7 @@ void test_scenery()
     test_scenery_bad_type();
     test_scenery_odd_bbox();
     test_scenery_atlas_name_round_trip();
+    test_scenery_door_fps_zero();
 }
 
 } // namespace floormat::Test

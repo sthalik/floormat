@@ -17,6 +17,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
 #include "loader/loader.hpp"
+#include "loader/anim-cell.hpp"
 #include "compat/constantly.hpp"
 #include <cr/GrowableArray.h>
 #include <cinttypes>
@@ -224,6 +225,33 @@ void test_speed_zero_stays()
     npc.update_movement(idx, frame, rotation::E);
     fm_assert_equal(walk_start, npc.position());
     fm_assert(npc.delta == 0);
+}
+
+// The stand-in for a missing anim atlas has fps 0. Its critter keeps the time but never takes a step
+// or turns, since turning a static object moves its offset.
+void test_fps_zero_stays()
+{
+    auto w = world();
+    object_id id = 0;
+    auto proto = make_proto(1.f);
+    proto.atlas = loader.invalid_anim_atlas().atlas;
+    auto& npc = *w.ensure_player_character(id, move(proto));
+    fm_assert(npc.atlas->info().fps == 0);
+    auto idx = npc.index();
+    npc.teleport_to(idx, walk_start, rotation::N);
+    const auto dest = point::normalize_coords(walk_start, Vector2i{100, 50});
+
+    npc.update_movement(idx, Second, rotation::E);
+    auto dt = Second;
+    const auto res1 = npc.move_toward(idx, dt, dest);
+    fm_assert(!res1.blocked && !res1.moved && dt == Ns{});
+    dt = Second;
+    const auto res2 = npc.move_toward(idx, dt, walk_start, dest);
+    fm_assert(!res2.blocked && !res2.moved && dt == Ns{});
+
+    fm_assert_equal(walk_start, npc.position());
+    fm_assert(npc.r == rotation::N);
+    fm_assert(npc.delta == object::ns_to_delta(Second * 3u));
 }
 
 // A diagonal step at fps 1 costs 1.41 s, so delta has to hold more than a second.
@@ -715,6 +743,7 @@ void Test::test_critter()
     test_diag_leftover_to_cardinal();
     test_unspent_dt_tiny_speed();
     test_speed_zero_stays();
+    test_fps_zero_stays();
     test_delta_range();
     test_move_toward_line();
     test_move_toward_line_blocked();

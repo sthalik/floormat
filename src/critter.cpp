@@ -103,7 +103,7 @@ struct step_costs
 {
     Ns costs[2];
 
-    explicit step_costs(uint32_t hz) : costs{Second / hz, (Second / hz) * std::numbers::sqrt2} {}
+    explicit step_costs(uint32_t hz) : costs{object::frame_duration(hz), object::frame_duration(hz, std::numbers::sqrt2)} {}
     Ns frame() const { return costs[0]; }
     Ns operator()(rotation r) const { return costs[is_diagonal(r)]; }
 };
@@ -474,7 +474,6 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
 
 auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_result
 {
-    fm_assert(is_dynamic());
     fm_assert(bbox_size.x() && bbox_size.y());
 
     if (speed == 0) [[unlikely]]
@@ -518,6 +517,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         auto nsteps = (uint32_t)Math::min({ticks / step_cost, uint64_t{step.count}, len_limit});
         if (nsteps == 0)
             break;
+        fm_assert(is_dynamic());
         if (single)
             nsteps = 1;
 
@@ -560,7 +560,6 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
 
 auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point& dest) -> move_result
 {
-    fm_assert(is_dynamic());
     fm_assert(bbox_size.x() && bbox_size.y());
     fm_assert(from.chunk3().z == dest.chunk3().z);
 
@@ -589,6 +588,20 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
         return { .blocked = true, .moved = false };
     }
 
+    const auto& info = atlas->info();
+    auto ticks = alloc_ticks(dt, delta, info.fps, speed);
+    const auto step_len = Vector2(dest - from).length() / float(steps);
+    const auto step_cost = frame_duration(info.fps, double(step_len));
+    const auto n = (uint32_t)Math::min(uint64_t{steps - k}, ticks / step_cost);
+    if (n == 0)
+    {
+        dt = Ns{};
+        delta = ns_to_delta(ticks);
+        return { .blocked = false, .moved = false };
+    }
+    fm_assert(is_dynamic());
+
+    // Before dt is taken, so a failed turn leaves it to the caller.
     const auto new_r = nearest_rotation(dest - from);
     if (r != new_r)
     {
@@ -599,18 +612,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
         }
         rotate(index, new_r);
     }
-
-    const auto& info = atlas->info();
-    auto ticks = alloc_ticks(dt, delta, info.fps, speed);
     dt = Ns{};
-    const auto step_len = Vector2(dest - from).length() / float(steps);
-    const auto step_cost = (Second / info.fps) * double(step_len);
-    const auto n = (uint32_t)Math::min(uint64_t{steps - k}, ticks / step_cost);
-    if (n == 0)
-    {
-        delta = ns_to_delta(ticks);
-        return { .blocked = false, .moved = false };
-    }
 
     // after rotate(), so the box is the one for new_r
     const auto bb_off = Vector2i(bbox_offset);

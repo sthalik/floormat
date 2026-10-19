@@ -101,6 +101,8 @@ public:
     /// delta holds ns. Stored time saturates at 2^32 - 1 ns, 4.29 s.
     static uint32_t alloc_frame_time(const Ns& dt, uint32_t& delta, uint32_t hz, float speed);
     static Ns alloc_ticks(const Ns& dt, uint32_t delta, uint32_t hz, float speed);
+    /// At hz 0 longer than any time alloc_ticks() returns, so an fps 0 atlas never advances.
+    static Ns frame_duration(uint32_t hz, double frames = 1);
     static uint32_t ns_to_delta(const Ns& time);
     /// Saves before proto 31 stored delta as a fraction of a second, (uint32_t)-1 being one second.
     static Ns fraction_to_ns(uint32_t fraction);

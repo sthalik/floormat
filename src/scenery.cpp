@@ -122,9 +122,11 @@ bool door_scenery::activate(size_t)
 {
     if (active)
         return false;
-    fm_assert(frame == 0 || frame == atlas->info().nframes-1);
+    const auto nframes = (int)atlas->info().nframes;
+    fm_assert(frame == 0 || frame == nframes-1);
     closing = frame == 0;
-    frame += closing ? 1 : -1;
+    // The missing-atlas stand-in has 1 frame.
+    frame = (uint16_t)Math::clamp(frame + (closing ? 1 : -1), 0, nframes-1);
     active = true;
     return true;
 }

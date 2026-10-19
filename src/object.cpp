@@ -209,16 +209,24 @@ Ns object::alloc_ticks(const Ns& dt, uint32_t delta, uint32_t hz, float speed)
     // At speed 0 stored time would still pay for a step.
     delta *= speed > 0 ? 1u : 0u;
     const auto ticks = from_dt + Ns{delta};
-    fm_assert(ticks / (Second / hz) < 1 << 12);
+    fm_assert(ticks / frame_duration(hz) < 1 << 12);
     return ticks;
+}
+
+Ns object::frame_duration(uint32_t hz, double frames)
+{
+    // Above alloc_ticks()'s 2^53 + 2^32 - 1 ns. Ns * double asserts 2^53, so the multiply is done here.
+    constexpr auto never = uint64_t{1} << 54;
+    const auto frame = hz ? Second.stamp / hz : never;
+    return Ns{(uint64_t)(double(frame) * frames)};
 }
 
 uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& delta, uint32_t hz, float speed)
 {
     const auto ticks = alloc_ticks(dt, delta, hz, speed);
-    const auto frame_duration = Second / hz;
-    const auto nframes = (uint32_t)(ticks / frame_duration);
-    delta = ns_to_delta(Ns{ticks % frame_duration});
+    const auto duration = frame_duration(hz);
+    const auto nframes = (uint32_t)(ticks / duration);
+    delta = ns_to_delta(Ns{ticks % duration});
     return nframes;
 }
 

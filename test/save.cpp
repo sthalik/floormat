@@ -445,11 +445,11 @@ void test_save_offset_frac()
     check_offset_frac("proto-30-offset-frac.dat"_s, 30, 24);
 }
 
-// A missing anim atlas loads as one with fps 0, which can't turn offset_frac into time. Only
-// critters facing N can load with it.
-void test_save_missing_atlas()
+// A missing anim atlas loads as a stand-in with one frame and fps 0, which can't turn offset_frac
+// into time.
+void check_missing_atlas(StringView name, uint32_t expected_count)
 {
-    const auto path = Path::join(loader.TEMP_PATH, "test/save/proto-30-offset-frac.dat"_s);
+    const auto path = Path::join(loader.TEMP_PATH, Path::join("test/save"_s, name));
     const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-atlas.dat"_s);
     const auto file = Path::read(path);
     fm_assert(file);
@@ -460,13 +460,26 @@ void test_save_missing_atlas()
     uint32_t count = 0;
     for (auto& c : w.chunks())
         c.objects().visit<critter>([&](critter& C) {
-            uint32_t offset_frac, delta;
-            fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
             fm_assert(C.atlas->info().fps == 0);
-            fm_assert(C.delta == object::ns_to_delta(object::fraction_to_ns(delta)));
+            fm_assert(C.frame == 0);
+            uint32_t offset_frac, delta;
+            // quicksave.dat's player was saved facing SE on frame 23.
+            if (C.playable)
+                fm_assert(C.r == rotation::SE);
+            else
+            {
+                fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
+                fm_assert(C.delta == object::ns_to_delta(object::fraction_to_ns(delta)));
+            }
             count++;
         });
-    fm_assert(count == 24);
+    fm_assert(count == expected_count);
+}
+
+void test_save_missing_atlas()
+{
+    check_missing_atlas("proto-29-offset-frac.dat"_s, 25);
+    check_missing_atlas("proto-30-offset-frac.dat"_s, 24);
 }
 
 } // namespace

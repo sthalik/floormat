@@ -24,6 +24,7 @@
 
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
+#include "loader/anim-cell.hpp"
 #include "atlas-type.hpp"
 
 #include <utility>
@@ -265,6 +266,10 @@ struct visitor_ : visitor_base<IsNewest>
             if (self.PROTO < 31) [[unlikely]]
                 obj.delta = object::ns_to_delta(object::fraction_to_ns(obj.delta));
         visit(obj.frame, f);
+        // The stand-in for a missing atlas has one frame.
+        if constexpr(!IsWriter)
+            if (obj.atlas == loader.invalid_anim_atlas().atlas) [[unlikely]]
+                obj.frame = 0;
         visit(obj.r, f);
         visit(obj.pass, f);
     }
