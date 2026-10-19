@@ -5,7 +5,7 @@ namespace floormat::Render {
 
 namespace {
 
-Spinlock spl;
+constinit Spinlock spl;
 bool clipcontrol_clipdepth_zero_one_status = false;
 
 } // namespace
