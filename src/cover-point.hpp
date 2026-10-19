@@ -2,8 +2,8 @@
 #include "point.hpp"
 
 namespace floormat { class world; }
-namespace floormat::Grid::Cover { class Pool; }
-namespace floormat::Grid::Pass { class Pool; }
+namespace floormat::Grid { class PoolRegistry; }
+namespace floormat::Grid::Cover { struct Params; }
 
 namespace floormat {
 
@@ -26,8 +26,7 @@ struct cover_point_result
     bool found = false;
 };
 
-// ray_pool's min_pass decides what blocks the checking rays.
-cover_point_result find_cover_point(world& w, Grid::Cover::Pool& cover_pool, Grid::Pass::Pool& ray_pool,
+cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Grid::Cover::Params params,
                                     const cover_query& q);
 
 } // namespace floormat

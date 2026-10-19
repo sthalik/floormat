@@ -1,6 +1,7 @@
 #include "cover-point.hpp"
 #include "grid-cover.hpp"
 #include "grid-pass.hpp"
+#include "grid-pass-pool.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "raycast.hpp"
@@ -53,9 +54,11 @@ struct placed
 
 } // namespace
 
-cover_point_result find_cover_point(world& w, Cover::Pool& cover_pool, Pass::Pool& ray_pool, const cover_query& q)
+cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::Params params, const cover_query& q)
 {
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
+    auto& cover_pool = pools.cover_pool(params);
+    auto& ray_pool = pools.pass_pool(Pass::Params{params.div_size, pass_mode::shoot_through});
     cover_pool.maybe_mark_stale_all(w);
 
     const auto ds = (int)cover_pool.params().div_size;
