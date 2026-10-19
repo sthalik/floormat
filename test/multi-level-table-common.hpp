@@ -1,11 +1,11 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "compat/multi-level-table.inl"
+#include "compat/limits.hpp"
 #include "random/random.hpp"
 #include <array>
 #include <cmath>
 #include <gtl/phmap.hpp>
-#include <limits>
 #include <type_traits>
 #include <utility>
 #if fm_ASAN
@@ -819,7 +819,10 @@ class random_run
     {
         const uint64_t v = ++serial;
         if constexpr (!is_tracked && sizeof(T) < sizeof(uint64_t))
-            fm_assert(v <= std::numeric_limits<T>::max());
+        {
+            fm_assert(v <= limits<T>::max);
+            static_assert(std::is_integral_v<T>);
+        }
         return v;
     }
 
