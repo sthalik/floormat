@@ -117,7 +117,7 @@ bool ground_editor::is_anything_selected() const
 template<std::random_access_iterator T>
 void fisher_yates(T begin, T end)
 {
-    static Random::ranlux48 g; // todo thread safety
+    static constinit Random::ranlux48 g; // todo thread safety
     const auto N = std::distance(begin, end);
     for (auto i = N-1; i >= 1; i--)
     {
