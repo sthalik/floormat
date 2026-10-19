@@ -69,6 +69,9 @@ static_assert(maze2_tile0 % (int)TILE_MAX_DIM == 0); // else the chunk range abo
 
 constexpr inline uint32_t grid_pin_seed = 0x9d1d5eedu;
 
+constexpr inline uint32_t clickables_per_tile = 32, clickables_seed = 0xc11c4b1eu;
+constexpr inline int16_t clickables_chunk_min = -1, clickables_chunk_max = 1;
+
 // Each pattern axis below uses a period from {2,3,4,5,7} on a different linear form of the
 // tile coordinate, so the combined pattern repeats no sooner than every 420 tiles.
 
@@ -1274,6 +1277,35 @@ void app::populate_scene_lightmap()
 void app::populate_scene_benchmark_all_z()
 {
     generate_scene(M->world(), chunk_z_min, chunk_z_max, true);
+    M->reset_fps();
+}
+
+void app::populate_scene_clickables()
+{
+    auto& w = M->world();
+    const scenery_proto protos[] = { loader.scenery("stool1"), loader.scenery("chair1"), };
+
+    for (int16_t cy = clickables_chunk_min; cy <= clickables_chunk_max; cy++)
+        for (int16_t cx = clickables_chunk_min; cx <= clickables_chunk_max; cx++)
+        {
+            const chunk_coords_ ch{cx, cy, 0};
+            auto& c = w[ch];
+            for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
+                for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+                {
+                    const auto tile = hash2((uint32_t)(int32_t(cx)*int32_t(TILE_MAX_DIM) + lx),
+                                            (uint32_t)(int32_t(cy)*int32_t(TILE_MAX_DIM) + ly));
+                    for (auto k = 0u; k < clickables_per_tile; k++)
+                    {
+                        const auto h = hash2(tile ^ clickables_seed, k);
+                        auto p = protos[h & 1];
+                        p.offset = { (int8_t)((h >> 1) % 64 - 32), (int8_t)((h >> 7) % 64 - 32), };
+                        w.make_scenery<false>(w.make_id(), {ch, local_coords{lx, ly}}, move(p));
+                    }
+                }
+            c.sort_objects();
+            c.mark_modified();
+        }
     M->reset_fps();
 }
 
