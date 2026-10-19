@@ -169,6 +169,27 @@ void test_side_wall_corner_seen()
     fm_assert(!r.found || hidden_from(w, threat, r.pos));
 }
 
+// The pillar is as tall as the body, and a wall along its south end stops the body sliding past it.
+void test_shift_to_only_spot(int8_t pillar_dy, bool split = false)
+{
+    auto w = world();
+    add_ground(w);
+    if (split)
+    {
+        add_blocker(w, {7, 8}, {16, 17}, {8, (int8_t)(pillar_dy - 4)});
+        add_blocker(w, {7, 8}, {16, 7}, {8, (int8_t)(pillar_dy + 8)});
+    }
+    else
+        add_blocker(w, {7, 8}, {16, 24}, {8, pillar_dy});
+    add_blocker(w, {5, 8}, {192, 16}, {32, (int8_t)(pillar_dy + 20)});
+    rebuild(w);
+
+    const point npc{ch, {6, 8}, {20, -4}}, threat{ch, {14, 8}, {}};
+    const auto r = find(w, npc, threat, 48, 8);
+    fm_assert(r.found);
+    fm_assert(hidden_from(w, threat, r.pos));
+}
+
 void test_wall_out_of_radius()
 {
     auto w = world();
@@ -196,6 +217,12 @@ void Test::test_cover_point()
     test_narrow_pillar_rejected();
     test_gap_between_pillars_rejected();
     test_side_wall_corner_seen();
+    // Row 516 runs into the wall, and row 508 needs a 6 px shift.
+    test_shift_to_only_spot(3);
+    // Rays to row 508 hit only the pillar's upper rect.
+    test_shift_to_only_spot(3, true);
+    // Row 508 needs 1 px, and 4 px runs into the wall.
+    test_shift_to_only_spot(-1);
     test_wall_out_of_radius();
 }
 

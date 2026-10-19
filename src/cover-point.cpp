@@ -8,8 +8,12 @@
 #include "search.hpp"
 #include "world.hpp"
 #include "chunk.hpp"
+#include "RTree-search.hpp"
 #include "compat/floor-divmod.hpp"
+#include "compat/function2.hpp"
 #include <algorithm>
+#include <bit>
+#include <cfloat>
 #include <cmath>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
@@ -56,6 +60,11 @@ struct ray_hit
 {
     Range2D rect;
     bool open;
+};
+
+struct slope_range
+{
+    float lo, hi;
 };
 
 } // namespace
@@ -154,16 +163,44 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
     const auto min_size = (int)Math::min(q.body_size.x(), q.body_size.y());
     const auto step_px = Math::max(1, min_size/2);
     const auto max_push = (int)Math::ceil(against * Math::sqrt(2.f)) + min_size;
+    const auto ext = Math::max(half_i - Vector2i{1}, Vector2i{0});
+    const auto min_pass = (uint64_t)ray_pool.params().min_pass;
+
+    Array<Range2D> rects;
+    Array<slope_range> runs;
 
     const auto cast = [&](Vector2i px) -> ray_hit {
         const auto r = raycast(w, q.threat, to_point(px), 0, ray_pool, Search::without_critters());
         return { r.rect, !r.has_result || r.success };
     };
 
+    // The rects a ray skips are left out the same way.
+    const auto collect_rects = [&](Vector2i lo, Vector2i hi) {
+        arrayClear(rects);
+        const auto z = q.pos.chunk3().z;
+        const auto chunk_of = [](int px) { return floor_div(px + half_tile<int>, chunk_size<int>); };
+        // a rect overhangs into the next chunk at most
+        for (auto cy = chunk_of(lo.y()) - 1; cy <= chunk_of(hi.y()) + 1; cy++)
+            for (auto cx = chunk_of(lo.x()) - 1; cx <= chunk_of(hi.x()) + 1; cx++)
+            {
+                auto* c = w.at(chunk_coords_{(int16_t)cx, (int16_t)cy, z});
+                if (!c)
+                    continue;
+                const auto origin = Vector2(Vector2i{cx, cy}*chunk_size<int>);
+                const auto qlo = Vector2(lo) - origin, qhi = Vector2(hi) - origin;
+                c->rtree()->Search(qlo.data(), qhi.data(), [&](uint64_t data, const auto& r) {
+                    const auto x = std::bit_cast<collision_data>(data);
+                    const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+                    if (x.pass < min_pass && Search::without_critters()(*c, x, range) != path_search_continue::pass)
+                        arrayAppend(rects, Range2D{range.min() + origin, range.max() + origin});
+                    return true;
+                });
+            }
+    };
+
     // Targets lie 1 px inside the body, since one on a collider's face reads blocked. Along the faces
     // the threat sees, a convex rect blocking the rays to both ends of a stretch blocks every ray between.
     const auto exposure_at = [&](Vector2i pos, Vector2i axis, Vector2i across) -> exposure {
-        const auto ext = Math::max(half_i - Vector2i{1}, Vector2i{0});
         const auto ea = Math::dot(across, ext), ex = Math::dot(Math::abs(axis), ext);
         const auto mid = pos + axis*ex;
         const auto at_mid = cast(mid);
@@ -216,6 +253,76 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
         return placed{pos, exposure_at(pos, axis, across)};
     };
 
+    // From the threat, a point's slope is its offset across over its distance along the axis. Shifting
+    // the body by t adds t/d to a corner's slope, so the shifts keeping all four corners in one merged
+    // run of rect slopes form a range.
+    const auto shift_to_cover = [&](Vector2i pos, Vector2i axis, Vector2i across, int prefer) -> Optional<int> {
+        const auto range = 2*ds;
+        const auto spread = across*(Math::dot(across, ext) + range) + Math::abs(axis)*ext;
+        collect_rects(Math::min(T, pos - spread), Math::max(T, pos + spread));
+
+        const auto Tf = Vector2(T), ax = Vector2(axis), ac = Vector2(across);
+        const auto body_far = Math::dot(Tf - Vector2(pos), ax) + (float)Math::dot(Math::abs(axis), ext);
+        arrayClear(runs);
+        for (const auto& r : rects)
+        {
+            // the squares of the pixels a ray counts, [min, max)
+            const auto lo = Math::ceil(r.min()) - Vector2{.5f}, hi = Math::ceil(r.max()) - Vector2{.5f};
+            const auto da = Math::dot(Tf - lo, ax), db = Math::dot(Tf - hi, ax);
+            const auto d0 = Math::max(Math::min(da, db), 1.f), d1 = Math::max(da, db);
+            if (d1 < d0 || d0 >= body_far)
+                continue;
+            const auto s0 = Math::dot(lo - Tf, ac), s1 = Math::dot(hi - Tf, ac);
+            arrayAppend(runs, slope_range{ s0 / (s0 >= 0 ? d1 : d0), s1 / (s1 >= 0 ? d0 : d1) });
+        }
+        if (runs.isEmpty())
+            return {};
+        std::sort(runs.begin(), runs.end(), [](const slope_range& a, const slope_range& b) { return a.lo < b.lo; });
+
+        Optional<int> best;
+        const auto consider = [&](slope_range s) {
+            auto t_lo = -FLT_MAX, t_hi = FLT_MAX;
+            for (const auto corner : { Vector2i{-1, -1}, Vector2i{1, -1}, Vector2i{-1, 1}, Vector2i{1, 1} })
+            {
+                const auto c = Vector2(pos + corner*ext);
+                const auto d = Math::dot(Tf - c, ax), a = Math::dot(c - Tf, ac);
+                t_lo = Math::max(t_lo, s.lo*d - a);
+                t_hi = Math::min(t_hi, s.hi*d - a);
+            }
+            const auto lo = (int)Math::ceil(Math::max(t_lo, -(float)range)),
+                       hi = (int)Math::floor(Math::min(t_hi, (float)range));
+            if (lo > hi)
+                return;
+            // 0 already read exposed
+            int t;
+            if (lo > 0)
+                t = lo;
+            else if (hi < 0)
+                t = hi;
+            else if (lo <= prefer && prefer <= hi)
+                t = prefer;
+            else if (lo <= -prefer && -prefer <= hi)
+                t = -prefer;
+            else
+                return;
+            if (!best || Math::abs(t) < Math::abs(*best))
+                best = t;
+        };
+        auto cur = runs[0];
+        for (const auto& s : arrayView(runs).exceptPrefix(1))
+        {
+            if (s.lo <= cur.hi)
+                cur.hi = Math::max(cur.hi, s.hi);
+            else
+            {
+                consider(cur);
+                cur = s;
+            }
+        }
+        consider(cur);
+        return best;
+    };
+
     for (const auto& cand : cands)
     {
         const auto v = T - cand.center;
@@ -225,31 +332,13 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
         auto p = place(cand.center, axis, across);
         if (!p)
             continue;
-        if (p->e.minus != p->e.plus)
+        if (p->e.minus || p->e.plus)
         {
-            // Candidates sit on cell centres, so cover only a little wider than the body needs a
-            // shift away from the exposed side. Half a cell reaches the next candidate's range.
-            const bool plus = p->e.plus;
-            const auto dir = plus ? -across : across;
-            const auto side_hidden = [plus](const Optional<placed>& x) {
-                return x && !(plus ? x->e.plus : x->e.minus);
-            };
-            int lo_t = 0, hi_t = ds/2;
-            if (auto x = place(cand.center + dir*hi_t, axis, across); side_hidden(x))
-            {
-                p = x;
-                while (hi_t - lo_t > 1)
-                {
-                    const auto mid = (lo_t + hi_t) / 2;
-                    if (auto y = place(cand.center + dir*mid, axis, across); side_hidden(y))
-                    {
-                        hi_t = mid;
-                        p = y;
-                    }
-                    else
-                        lo_t = mid;
-                }
-            }
+            // The candidate nearest a spot may be filtered out, so a shift reaches two cells.
+            const auto prefer = p->e.plus && !p->e.minus ? -1 : 1;
+            if (const auto t = shift_to_cover(p->pos, axis, across, prefer))
+                if (auto x = place(cand.center + across * *t, axis, across))
+                    p = x;
         }
         if (p->e.minus || p->e.plus)
         {
