@@ -47,7 +47,7 @@ void test_round_to_even_self()
 
 void test_pool_for_promotes_and_snaps()
 {
-    Grid::Pass::PoolRegistry reg{(uint32_t)tile_size_xy / 4};
+    Grid::PoolRegistry reg{(uint32_t)tile_size_xy / 4};
 
     auto& p2 = reg.pool_for(2);
     fm_assert(p2.params().bbox_size == Grid::Pass::Grid::min_bbox_size);

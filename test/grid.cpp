@@ -1338,7 +1338,8 @@ void test_cover_east_distance(uint32_t div_size)
     add_wall_north(c, {8, 8});
     rebuild_passability(c);
 
-    Cover::Pool pool{Cover::Params{div_size}};
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
     g.build_if_stale();
@@ -1585,7 +1586,8 @@ void test_cover_matches_reference(uint32_t div_size, std::initializer_list<uint3
     auto w = world();
     make_cover_scene(w);
 
-    Cover::Pool pool{Cover::Params{div_size}};
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[w[COORD]];
     g.build_if_stale();
@@ -1616,7 +1618,8 @@ void test_cover_diagonal_tracks_ray(uint32_t div_size)
         rebuild_passability(w[ch]);
 
     auto& c = w[COORD];
-    Cover::Pool pool{Cover::Params{div_size}};
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
     g.build_if_stale();
@@ -1671,7 +1674,8 @@ void test_cover_east_rounds(uint32_t div_size)
     for (auto ch : { COORD, COORD_E })
         rebuild_passability(w[ch]);
 
-    Cover::Pool pool{Cover::Params{div_size}};
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[w[COORD]];
     g.build_if_stale();
@@ -1714,7 +1718,8 @@ void test_cover_blocked_cells(uint32_t div_size)
     add_blocker(w, {COORD, local_coords{5, 5}}, {3, -5}, {40, 24});
     rebuild_passability(c);
 
-    Cover::Pool pool{Cover::Params{div_size}};
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
     g.build_if_stale();
@@ -1751,7 +1756,8 @@ void test_cover_rebuilds_on_neighbor_change(uint32_t div_size)
     add_ground_all(c);
     rebuild_passability(c);
 
-    Cover::Pool pool{Cover::Params{div_size}};
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
     const auto walk = [&] {
         pool.maybe_mark_stale_all(w);
         Cover::Grid g = pool[c];
@@ -1793,7 +1799,8 @@ void test_cover_diagonal_matches_ray(uint32_t div_size)
         rebuild_passability(w[ch]);
 
     auto& c = w[COORD];
-    Cover::Pool pool{Cover::Params{div_size}};
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
     g.build_if_stale();

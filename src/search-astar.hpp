@@ -7,7 +7,8 @@
 #include <cr/Array.h>
 
 namespace floormat::Search { struct cache; }
-namespace floormat::Grid::Pass { class Pool; class PoolRegistry; }
+namespace floormat::Grid { class PoolRegistry; }
+namespace floormat::Grid::Pass { class Pool; }
 
 namespace floormat {
 
@@ -29,7 +30,7 @@ public:
     void reserve(size_t capacity);
 
     struct Search::cache* cache();
-    Grid::Pass::PoolRegistry& pass_pool_registry();
+    Grid::PoolRegistry& pool_registry();
 
     // todo add simple bresenham short-circuit
     template<int Debug = 0, bool FindClosestOnFailure = true>
@@ -61,7 +62,7 @@ private:
     static constexpr uint32_t bucket_count = 256;
 
     safe_ptr<struct Search::cache> _cache;
-    safe_ptr<Grid::Pass::PoolRegistry> _pass_registry;
+    safe_ptr<Grid::PoolRegistry> _pool_registry;
     Array<visited> nodes;
     std::array<Array<frontier>, bucket_count> buckets;
     Array<point> temp_nodes;

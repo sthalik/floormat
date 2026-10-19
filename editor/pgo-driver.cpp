@@ -1240,7 +1240,7 @@ task app::scene_maze3()
     using mazes::kind;
     constexpr auto n = (uint32_t)kind::COUNT;
     auto& w = M->world();
-    auto& pool = M->astar().pass_pool_registry().pool_for(mazes::bbox_size);
+    auto& pool = M->astar().pool_registry().pool_for(mazes::bbox_size);
     mazes::route routes[n];
     for (auto k = 0u; k < n; k++)
     {
@@ -1459,7 +1459,7 @@ task app::scene_grids()
 
     Pass::Pool pass_raycast{raycast_params, Search::never_continue()};
     Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
-    Pass::Pool pass_critter{M->astar().pass_pool_registry().pool_for(C->bbox_size.max()).params(), Search::never_continue()};
+    Pass::Pool pass_critter{M->astar().pool_registry().pool_for(C->bbox_size.max()).params(), Search::never_continue()};
 
     // maybe_mark_stale_all() is where the version compare and the eager ensure_passability() of
     // the chunk and its neighbours live, so it does the whole per-frame discipline for us. The

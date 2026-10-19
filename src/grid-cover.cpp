@@ -232,15 +232,16 @@ struct CoverGrid : GridBase
 
 struct CoverPool : Pool<CoverGrid>
 {
-    Pass::Pool pass_pool;
+    Pass::Pool& pass_pool;
 
-    explicit CoverPool(Params p);
+    CoverPool(Params p, Pass::Pool& pass_pool);
 };
 
-CoverPool::CoverPool(Params p):
+CoverPool::CoverPool(Params p, Pass::Pool& pass_pool):
     Pool<CoverGrid>{p},
-    pass_pool{Pass::Params{params.div_size, pass_mode::shoot_through}, Search::without_critters()}
+    pass_pool{pass_pool}
 {
+    fm_assert(pass_pool.params() == Pass::Params{params.div_size, pass_mode::shoot_through});
 }
 
 uint32_t CoverGrid::get_cell_index(uint32_t x, uint32_t y, uint32_t div_count)
@@ -564,7 +565,7 @@ void Pool::build_if_stale_all()
         static_cast<detail::grid::CoverGrid*>(g)->build_if_stale();
 }
 
-Pool::Pool(Params params): pool{new detail::grid::CoverPool{params}} { }
+Pool::Pool(Params params, Pass::Pool& pass_pool): pool{new detail::grid::CoverPool{params, pass_pool}} { }
 Pool::~Pool() noexcept { delete pool; }
 Params Pool::params() const { return pool->params; }
 uint32_t Pool::pooled_count() const { return pool->freelist.size(); }
