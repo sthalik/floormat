@@ -1,7 +1,6 @@
 #include "raycast-loop.hpp"
 #include "raycast-line.hpp"
 #include "raycast-diag.hpp"
-#include "compat/floor-divmod.hpp"
 #include "tile-constants.hpp"
 #include "intra-coord.inl"
 #include "point.inl"
@@ -14,7 +13,6 @@
 #include "compat/function2.hpp"
 #include <cfloat>
 #include <bit>
-#include <cr/StructuredBindings.h>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -121,10 +119,49 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
 
     constexpr auto csize = chunk_size<int32_t>;
     const auto div = pool ? (int32_t)pool->params().div_size() : csize;
+    fm_debug_assert(std::has_single_bit((uint32_t)div));
     const auto div_count = (uint32_t)(csize / div);
+    const auto div_shift = std::countr_zero((uint32_t)div);
     const auto origin = Vector2i{half_tile<int32_t>};
     const auto cell_of = [&](Vector2i p) {
-        return Vector2i{floor_div(p.x() + origin.x(), div), floor_div(p.y() + origin.y(), div)};
+        return Vector2i{(p.x() + origin.x()) >> div_shift, (p.y() + origin.y()) >> div_shift};
+    };
+
+    const auto major = line.major_axis(), minor = 1 - major;
+    const auto from = line.from();
+    const uint64_t len = line.steps(), minor_len = line.minor_len();
+    // The steps with minor offset at most b end before t = ceil((2b + 1)*len / (2*minor_len)). Keeping
+    // t_rem = t*2*minor_len - (2b + 1)*len lets the next cell's b + div skip the division.
+    int64_t t_b = INT32_MIN;
+    uint64_t t = 0, t_rem = 0, t_step = 0, t_step_rem = 0;
+    if (minor_len)
+    {
+        t_step = 2*(uint64_t)div*len / (2*minor_len);
+        t_step_rem = 2*(uint64_t)div*len % (2*minor_len);
+    }
+    const auto last_within_minor = [&](int64_t b) -> uint32_t {
+        if (b >= (int64_t)minor_len)
+            return (uint32_t)len;
+        const auto d = 2*minor_len;
+        if (b == t_b + div)
+        {
+            t += t_step;
+            if (t_rem < t_step_rem)
+            {
+                t_rem += d - t_step_rem;
+                t++;
+            }
+            else
+                t_rem -= t_step_rem;
+        }
+        else if (b != t_b)
+        {
+            const auto a = (2*(uint64_t)b + 1)*len;
+            t = (a + d - 1)/d;
+            t_rem = t*d - a;
+        }
+        t_b = b;
+        return (uint32_t)(t - 1);
     };
 
     line_cell cell = {};
@@ -132,9 +169,8 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     Pass::Grid grid{nullptr, nullptr};
     bool has_grid = false, chunk_empty = false;
 
+    // Callers compare with loaded first, so a cell in the loaded chunk makes no call.
     const auto load = [&](Vector2i off) {
-        if (off == loaded)
-            return;
         loaded = off;
         cell.chunk_offset = off;
         for (int j = 0; j < 3; j++)
@@ -160,27 +196,46 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             chunk_empty = false;
     };
 
+    // v[axis] with a run-time axis goes through the stack.
+    const auto on = [](Vector2i v, uint32_t axis) { return axis ? v.y() : v.x(); };
+    const auto axis_step = [&](uint32_t axis) {
+        const auto s = line.sign(axis);
+        return axis ? Vector2i{0, s} : Vector2i{s, 0};
+    };
+    const auto major_step = axis_step(major), minor_step = axis_step(minor);
+    const auto count_shift = std::countr_zero(div_count);
+    const auto count_mask = (int32_t)div_count - 1;
+    const auto chunk_of = [&](Vector2i c) { return Vector2i{c.x() >> count_shift, c.y() >> count_shift}; };
+
+    // Cells count from the line's chunk, so a cell's chunk and its cell within it are a shift and a mask
+    // away. While stepped, step k's cell comes from the previous cell's exit.
+    Vector2i global_cell;
+    bool stepped = false;
     for (auto k = first_step; ; )
     {
-        const auto [off, local] = floor_divmod<csize>(line.pixel_at(k) + origin);
-        load(off);
+        if (!stepped)
+            global_cell = cell_of(line.pixel_at(k));
+        const auto chunk_off = chunk_of(global_cell);
+        const auto local_cell = Vector2i{global_cell.x() & count_mask, global_cell.y() & count_mask};
+        if (chunk_off != loaded)
+            load(chunk_off);
         Vector2i lo, hi;
         bool skip = chunk_empty;
         if (chunk_empty)
         {
-            lo = off * csize - origin;
+            lo = chunk_off * csize - origin;
             hi = lo + Vector2i{csize - 1};
         }
         else
         {
-            const auto c = local / div;
-            lo = off * csize + c * div - origin;
+            lo = chunk_off * csize + local_cell * div - origin;
             hi = lo + Vector2i{div - 1};
-            skip = has_grid && grid.bit(Pass::Grid::get_bitmask_index((uint32_t)c.x(), (uint32_t)c.y(), div_count));
+            skip = has_grid && grid.bit(Pass::Grid::get_bitmask_index((uint32_t)local_cell.x(), (uint32_t)local_cell.y(), div_count));
         }
-        const auto sx = line.steps_within(0, lo.x(), hi.x()), sy = line.steps_within(1, lo.y(), hi.y());
-        fm_debug_assert(sx.first <= k && sy.first <= k);
-        const auto last = Math::min(Math::min(sx.last, sy.last), last_step);
+        fm_debug3_assert((line.pixel_at(k) >= lo).all() && (line.pixel_at(k) <= hi).all());
+        const auto b = line.sign(minor) > 0 ? (int64_t)on(hi, minor) - on(from, minor) : (int64_t)on(from, minor) - on(lo, minor);
+        const auto last_major = line.steps_within(major, on(lo, major), on(hi, major)).last, last_minor = last_within_minor(b);
+        const auto last = Math::min(Math::min(last_major, last_minor), last_step);
         if (!skip)
         {
             cell.first_step = k;
@@ -191,8 +246,37 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         if (last == last_step)
             return;
 
+        if (!chunk_empty)
+        {
+            const bool exit_major = last == last_major, exit_minor = last == last_minor;
+            const auto next = global_cell + (exit_major ? major_step : Vector2i{}) + (exit_minor ? minor_step : Vector2i{});
+            // Only a step leaving through both sides at once has off-axis pixels outside this cell and the next.
+            // Pixel i moves along axis i first, and the minor offset at last is b, as in off_axis_at().
+            if (exit_major && exit_minor)
+            {
+                const auto e = (int64_t)((2*(uint64_t)last + 1)*minor_len) - (int64_t)((2*(uint64_t)b + 1)*len);
+                for (auto i = 0u; i < 2; i++)
+                {
+                    if (!both_off_axis && !(i == major ? e <= 0 : e >= 0))
+                        continue;
+                    const auto corner = i == 0 ? Vector2i{next.x(), global_cell.y()} : Vector2i{global_cell.x(), next.y()};
+                    const auto corner_off = chunk_of(corner);
+                    if (corner_off != loaded)
+                        load(corner_off);
+                    cell.first_step = cell.last_step = last + 1;
+                    if (!visit(cell))
+                        return;
+                }
+            }
+            global_cell = next;
+            stepped = true;
+            k = last + 1;
+            continue;
+        }
+
         // A diagonal step through the corner of four cells puts its off-axis pixels in two cells
         // neither of its pixels is in. Visited without a bit lookup, since it's rare.
+        stepped = false;
         if (const auto o = line.off_axis_at(last); o.diagonal)
         {
             const auto c0 = cell_of(line.pixel_at(last)), c1 = cell_of(line.pixel_at(last + 1));
@@ -203,7 +287,8 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                 const auto c = cell_of(o.pixels[i]);
                 if (c == c0 || c == c1)
                     continue;
-                load(floor_divmod<csize>(o.pixels[i] + origin).first());
+                if (chunk_of(c) != loaded)
+                    load(chunk_of(c));
                 cell.first_step = cell.last_step = last + 1;
                 if (!visit(cell))
                     return;
