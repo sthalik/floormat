@@ -186,6 +186,8 @@ void app::draw_collision_boxes()
                         if (x.id < TILE_COUNT*3+1)
                             return true;
                 Vector2 start{rect.m_min}, end{rect.m_max};
+                if (!(t0 >= start && t0 < end))
+                    return true;
                 auto size = end - start;
                 auto center = Vector3(start + size*.5f, 0.f);
                 wireframe::draw_quad(shader, center, size, 3);
