@@ -101,7 +101,7 @@ task app::scene_npcs()
     const int lo = origin + margin, hi = origin + room_chunks*chunk_size<int> - tile_size_xy - depth - margin;
     const int step = (hi - lo)/(int)(lattice_side - 1);
     fm_assert(step > critter_size);
-    const auto at = [](Vector2i px) { return point{Vector3i{px.x(), px.y(), 0}}; };
+    const auto at = [](Vector2i px) { return point{Vector3i{px, 0}}; };
 
     // reset_world_post() spawned the player at (0,0), inside the room.
     auto player = ensure_player_character(w);
