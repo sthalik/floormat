@@ -30,13 +30,4 @@ Pool& PoolRegistry::pool_for(uint32_t bbox_size)
     return *fallback_.back();
 }
 
-void PoolRegistry::maybe_mark_stale_all(const world& w)
-{
-    for (auto& p : direct_)
-        if (p)
-            p->maybe_mark_stale_all(w);
-    for (auto& p : fallback_)
-        p->maybe_mark_stale_all(w);
-}
-
 } // namespace floormat::Grid::Pass
