@@ -5,6 +5,7 @@
 #include "src/point.hpp"
 #include "src/intra-coord.inl"
 #include "src/grid-cover.hpp"
+#include "src/grid-pass.hpp"
 #include "src/world.hpp"
 #include "floormat/main.hpp"
 #include <mg/Color.h>
@@ -36,6 +37,7 @@ constexpr Color4 color_selected{1, 0.843f, 0, 0.8f};
 
 struct cover_test final : base_test
 {
+    Pointer<Pass::Pool> pass_pool;
     Pointer<Cover::Pool> pool;
     uint32_t chunk_span = 1;
 
@@ -70,7 +72,10 @@ struct cover_test final : base_test
     bool has_result : 1 = false, has_pending : 1 = false;
 };
 
-cover_test::cover_test(): pool{InPlaceInit, Cover::Params{default_div_size}} {}
+cover_test::cover_test():
+    pass_pool{InPlaceInit, Pass::Params{default_div_size, pass_mode::shoot_through}, Search::without_critters()},
+    pool{InPlaceInit, Cover::Params{default_div_size}, *pass_pool}
+{}
 
 bool cover_test::handle_key(app& a, const key_event& e, bool is_down)
 {
@@ -313,7 +318,9 @@ void cover_test::set_div_size(app& a, uint32_t div_size)
 {
     if (div_size == pool->params().div_size)
         return;
-    pool.emplace(Cover::Params{div_size});
+    pool = nullptr;
+    pass_pool.emplace(Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters());
+    pool.emplace(Cover::Params{div_size}, *pass_pool);
     if (has_result)
     {
         has_result = false;
