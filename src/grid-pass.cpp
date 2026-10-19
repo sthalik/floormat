@@ -501,9 +501,9 @@ void Pool::maybe_mark_stale_all(const world& w)
     // Every stamp in versions[] came from world::next_pass_gen(), and so did every change that
     // dirtied a chunk. While the counter hasn't moved, the walk would find nothing.
     const auto gen = w.pass_gen();
-    if (gen == checked_pass_gen)
+    if (gen == pool->checked_pass_gen)
         return;
-    checked_pass_gen = gen;
+    pool->checked_pass_gen = gen;
     for (auto* base : pool->live)
     {
         auto* g = static_cast<detail::grid::PassGrid*>(base);
