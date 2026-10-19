@@ -15,6 +15,7 @@ public:
     ~PoolRegistry() noexcept;
     fm_DISABLE_MOVE_COPY(PoolRegistry);
 
+    Pool& pass_pool(const Params& p);
     Pool& pool_for(uint32_t bbox_size);
 
     static constexpr uint32_t direct_count = 127;
