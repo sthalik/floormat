@@ -568,12 +568,14 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         fm_debug3_assert(x.type != (uint64_t)collision_type::none);
                         if (x.id == self || x.pass >= min_pass)
                             return true;
+                        // a rect owns the pixels in [min, max), as walking does
                         const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
                         if (radius == 0)
                         {
                             const auto shift = Vector2i{nb_off_x, nb_off_y} * chunk_size<int32_t>;
                             const auto hit = first_pixel_within(line, Vector2i(Math::ceil(range.min())) + shift,
-                                                                Vector2i(Math::floor(range.max())) + shift, best_key);
+                                                                Vector2i(Math::ceil(range.max())) - Vector2i{1} + shift,
+                                                                best_key);
                             if (hit.key >= best_key) [[likely]]
                                 return true;
                             // last, since without_critters looks up the object
@@ -590,14 +592,14 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         {
                             const auto ret = ray_rounded_rect_intersection(origin, dir, dir_inv_norm,
                                                                            {{range.min() - Vector2{fuzz2},
-                                                                             range.max() + Vector2{fuzz2}}},
+                                                                             range.max() - Vector2{fuzz2}}},
                                                                            radius, signs);
                             if (!ret.result || ret.tmin > ray_len || ret.tmin >= min_tmin)
                                 return true;
                             if (pred(*nb, x, range) == path_search_continue::pass)
                                 return true;
                             min_tmin = ret.tmin;
-                            const auto contact = Math::clamp(origin + dir * min_tmin, range.min(), range.max());
+                            const auto contact = Math::clamp(origin + dir * min_tmin, range.min(), range.max() - Vector2{1});
                             result.collision = point::normalize_coords(from, Vector2i(contact - origin));
                         }
                         result.collider = x;
