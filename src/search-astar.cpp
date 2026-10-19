@@ -648,7 +648,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         }
 
         const auto goal_delta = cur_pt - to;
-        const auto goal_dist_sq = point::distance_squared(cur_pt, to);
+        const auto goal_dist_sq = point::distance_squared(goal_delta);
 
         if constexpr (FindClosestOnFailure)
         {
