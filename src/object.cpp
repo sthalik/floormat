@@ -14,6 +14,7 @@
 #include "nanosecond.inl"
 #include <cr/GrowableArray.h>
 #include <cr/Pair.h>
+#include <cr/StructuredBindings.h>
 
 namespace floormat {
 
@@ -75,8 +76,8 @@ bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
     if (bbox_offset.isZero() && bbox_size[0] == bbox_size[1])
         return true;
     // rotate() only rotates the sub-tile offset for non-dynamic objects; mirror that
-    const auto offset_ = !is_dynamic() ? rotate_offset(offset, old_r, new_r) : offset;
-    const auto bbox_offset_ = rotate_point(bbox_offset, old_r, new_r);
+    const auto [offset_, bbox_offset_] = !is_dynamic() ? rotate_offset(offset, bbox_offset, old_r, new_r)
+                                                       : Pair<Vector2b, Vector2b>{offset, rotate_point(bbox_offset, old_r, new_r)};
     const auto bbox_size_ = rotate_size(bbox_size, old_r, new_r);
     return can_move_to({}, coord, offset_, bbox_offset_, bbox_size_);
 }
@@ -92,8 +93,8 @@ bool object::can_rotate(rotation new_r)
 void object::rotate(size_t, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
-    auto offset_ = !is_dynamic() ? rotate_offset(offset, r, new_r) : offset;
-    auto bbox_offset_ = rotate_point(bbox_offset, r, new_r);
+    const auto [offset_, bbox_offset_] = !is_dynamic() ? rotate_offset(offset, bbox_offset, r, new_r)
+                                                       : Pair<Vector2b, Vector2b>{offset, rotate_point(bbox_offset, r, new_r)};
     auto bbox_size_ = rotate_size(bbox_size, r, new_r);
     set_bbox(offset_, bbox_offset_, bbox_size_, pass);
     if (r != new_r && !is_dynamic())
