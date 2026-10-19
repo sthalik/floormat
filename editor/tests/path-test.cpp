@@ -111,9 +111,13 @@ void path_test::draw_overlay(app& a)
     fm_assert(result.res);
     const auto& res = *result.res;
 
+    const bool smoothed = !res.smoothings().isEmpty();
+    const float raw_alpha = smoothed ? .35f : 1;
     const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 0, 1, 1});
     const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
-    constexpr float line_thickness = 3, dot_radius = 5;
+    const auto raw_line_color = ImGui::ColorConvertFloat4ToU32({0, 0, 1, raw_alpha});
+    const auto raw_dot_color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, raw_alpha});
+    constexpr float line_thickness = 3, raw_line_thickness = 5, dot_radius = 5;
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
     auto last = a.point_to_pixel(result.from);
@@ -124,20 +128,19 @@ void path_test::draw_overlay(app& a)
     for (auto pt : res.path())
     {
         auto pos = a.point_to_pixel(pt);
-        draw.AddLine({pos.x(), pos.y()}, {last.x(), last.y()}, line_color, line_thickness);
-        draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, dot_color);
+        draw.AddLine({pos.x(), pos.y()}, {last.x(), last.y()}, raw_line_color, raw_line_thickness);
+        draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, raw_dot_color);
         last = pos;
     }
 
     if (const auto sp = res.smoothings(); !sp.isEmpty())
     {
-        const auto sp_line_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1});
         const auto sp_dot_color = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1});
         auto prev = a.point_to_pixel(sp[0].pt);
         for (const auto& x : sp)
         {
             auto pos = a.point_to_pixel(x.pt);
-            draw.AddLine({pos.x(), pos.y()}, {prev.x(), prev.y()}, sp_line_color, line_thickness);
+            draw.AddLine({pos.x(), pos.y()}, {prev.x(), prev.y()}, line_color, line_thickness);
             draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, sp_dot_color);
             prev = pos;
         }
