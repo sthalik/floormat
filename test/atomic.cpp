@@ -2,9 +2,9 @@
 #include "compat/atomic.hpp"
 #include "compat/atomic-wrapper.hpp"
 #include "compat/atomic-flag-wrapper.hpp"
+#include "compat/limits.hpp"
 #include <array>
 #include <latch>
-#include <limits>
 #include <thread>
 
 namespace floormat {
@@ -32,7 +32,7 @@ void run_threads(int count, F&& fn)
 template<typename T>
 void test_semantics()
 {
-    using limits = std::numeric_limits<T>;
+    using limits = limits<T>;
     volatile T x = 0;
 
     atomic_store(&x, 42);
@@ -64,11 +64,11 @@ void test_semantics()
     fm_assert(atomic_fetch_sub(&x, 2) == 12);
     fm_assert(atomic_load(&x) == 10);
 
-    atomic_store(&x, limits::max());
-    fm_assert(atomic_fetch_add(&x, 1) == limits::max());
-    fm_assert(atomic_load(&x) == limits::min());
-    fm_assert(atomic_fetch_sub(&x, 1) == limits::min());
-    fm_assert(atomic_load(&x) == limits::max());
+    atomic_store(&x, limits::max);
+    fm_assert(atomic_fetch_add(&x, 1) == limits::max);
+    fm_assert(atomic_load(&x) == limits::min);
+    fm_assert(atomic_fetch_sub(&x, 1) == limits::min);
+    fm_assert(atomic_load(&x) == limits::max);
 
     atomic_store(&x, 0b1100);
     fm_assert(atomic_fetch_and(&x, 0b1010) == 0b1100);
