@@ -5,6 +5,7 @@
 #include "src/cover-point.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-pass.hpp"
+#include "src/grid-pass-pool.hpp"
 #include "src/intra-coord.inl"
 #include "src/point.inl"
 #include "src/search.hpp"
@@ -57,9 +58,8 @@ bool passable(world& w, point pt)
 
 cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size)
 {
-    Pass::Pool rays{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool cover{Cover::Params{div_size}, rays};
-    return find_cover_point(w, cover, rays, {npc, body, threat, radius});
+    Grid::PoolRegistry pools{div_size};
+    return find_cover_point(w, pools, Cover::Params{div_size}, {npc, body, threat, radius});
 }
 
 void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, local_coords wall_tile,
