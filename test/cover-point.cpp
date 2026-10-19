@@ -8,6 +8,7 @@
 #include "src/grid-pool-registry.hpp"
 #include "src/intra-coord.inl"
 #include "src/point.inl"
+#include "src/raycast.hpp"
 #include "src/search.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
@@ -32,13 +33,14 @@ void add_ground(world& w)
             c[{i, j}].ground() = floor;
 }
 
-void add_blocker(world& w, local_coords tile, Vector2ub bbox_size)
+void add_blocker(world& w, local_coords tile, Vector2ub bbox_size, Vector2b bbox_offset = {})
 {
     scenery_proto p;
-    p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
-    p.subtype   = generic_scenery_proto{};
-    p.bbox_size = bbox_size;
-    p.pass      = pass_mode::blocked;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_size   = bbox_size;
+    p.bbox_offset = bbox_offset;
+    p.pass        = pass_mode::blocked;
     w.make_scenery(w.make_id(), {ch, tile}, move(p));
 }
 
@@ -59,6 +61,19 @@ cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint
 {
     Grid::PoolRegistry pools{div_size};
     return find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius});
+}
+
+bool hidden_from(world& w, point threat, point pos)
+{
+    Grid::PoolRegistry pools{8};
+    auto& pool = pools.pass_pool(Pass::Params{8, pass_mode::shoot_through});
+    const auto ext = Vector2i(body/2u) - Vector2i{1};
+    for (auto y = -ext.y(); y <= ext.y(); y++)
+        for (auto x = -ext.x(); x <= ext.x(); x++)
+            if (Math::abs(x) == ext.x() || Math::abs(y) == ext.y())
+                if (raycast(w, threat, pos + Vector2i{x, y}, 0, pool, Search::without_critters()).success)
+                    return false;
+    return true;
 }
 
 void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, local_coords wall_tile,
@@ -86,8 +101,8 @@ void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, loc
                    :                px.y() - lo.y() - wall_max.y();
     fm_assert_equal(0, gap);
     const auto across = axis.x() != 0 ? 1u : 0u;
-    // raycast() grows colliders by half a pixel, so the body may stick out by one
-    constexpr int fuzz = 1;
+    // Rays aim 1 px inside the body and raycast() grows colliders by half a pixel, so the body may stick out by two
+    constexpr int fuzz = 2;
     fm_assert(px[across] - lo[across] >= wall_min[across] - fuzz && px[across] + hi[across] <= wall_max[across] + fuzz);
     fm_assert(point::distance(npc, r.pos) <= radius + tile_size_xy);
 
@@ -123,6 +138,37 @@ void test_narrow_pillar_rejected()
     fm_assert_equal(r.candidates, r.rejected);
 }
 
+void test_gap_between_pillars_rejected()
+{
+    auto w = world();
+    add_ground(w);
+    // 6 px apart: the pass grid closes the gap. Neither pillar hides the body alone.
+    add_blocker(w, {7, 8}, {16, 16}, {0, -11});
+    add_blocker(w, {7, 8}, {16, 16}, {0, 11});
+    rebuild(w);
+
+    const auto r = find(w, point{ch, {6, 8}, {}}, point{ch, {14, 8}, {}}, 48, 8);
+    fm_assert(r.candidates > 0);
+    fm_assert(!r.found);
+    fm_assert_equal(r.candidates, r.rejected);
+}
+
+void test_side_wall_corner_seen()
+{
+    auto w = world();
+    add_ground(w);
+    // The wall's north face is the body's south face and reaches 4 px past its east face. The pillar
+    // ahead ends 6 px north of the wall, and the threat sees the body between them.
+    add_blocker(w, {6, 8}, {100, 16}, {18, 32});
+    add_blocker(w, {7, 8}, {16, 64}, {8, -14});
+    rebuild(w);
+
+    const point npc{ch, {7, 8}, {-12, 12}}, threat{ch, {12, 10}, {-20, -24}};
+    const auto r = find(w, npc, threat, 48, 8);
+    fm_assert(r.candidates > 0);
+    fm_assert(!r.found || hidden_from(w, threat, r.pos));
+}
+
 void test_wall_out_of_radius()
 {
     auto w = world();
@@ -141,13 +187,15 @@ void Test::test_cover_point()
     test_hides_behind_wall({4, 8}, {12, 8}, {7, 8}, {16, 96}, {1, 0});
     test_hides_behind_wall({8, 12}, {8, 4}, {8, 9}, {96, 16}, {0, -1});
     // Cell-centred candidates sit 4 px off the pillar's centre line, so the 24 px body fits the
-    // 28 px pillar's span only after a sideways shift.
-    test_hides_behind_wall({6, 8}, {14, 8}, {7, 8}, {16, 28}, {1, 0}, 48);
+    // 26 px pillar's span only after a sideways shift.
+    test_hides_behind_wall({6, 8}, {14, 8}, {7, 8}, {16, 26}, {1, 0}, 48);
     // An odd body's extra pixel is on +x/+y, so its -x and -y sides are the short ones.
     test_hides_behind_wall({10, 8}, {2, 8}, {7, 8}, {16, 96}, {-1, 0}, 3*tile_size_xy, {23, 25});
     test_hides_behind_wall({8, 12}, {8, 4}, {8, 9}, {96, 16}, {0, -1}, 3*tile_size_xy, {23, 25});
     test_open_ground_has_no_cover();
     test_narrow_pillar_rejected();
+    test_gap_between_pillars_rejected();
+    test_side_wall_corner_seen();
     test_wall_out_of_radius();
 }
 

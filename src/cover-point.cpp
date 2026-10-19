@@ -52,6 +52,12 @@ struct placed
     exposure e;
 };
 
+struct ray_hit
+{
+    Range2D rect;
+    bool open;
+};
+
 } // namespace
 
 cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::Params params, const cover_query& q)
@@ -108,7 +114,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
         return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(q.body_size)}, Search::without_critters());
     };
 
-    // A body flush against a blocker covers cells the blocker clears. The corner rays check those.
+    // A body flush against a blocker covers cells the blocker clears. exposure_at checks those.
     const auto body_hidden = [&](Vector2i center) {
         const auto a = cell_of(center - Vector2i{Math::floor(half)});
         const auto b = cell_of(center + Vector2i{Math::ceil(half)} - Vector2i{1});
@@ -149,15 +155,35 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
     const auto step_px = Math::max(1, min_size/2);
     const auto max_push = (int)Math::ceil(against * Math::sqrt(2.f)) + min_size;
 
-    const auto exposure_at = [&](Vector2i pos, Vector2i across) {
+    const auto cast = [&](Vector2i px) -> ray_hit {
+        const auto r = raycast(w, q.threat, to_point(px), 0, ray_pool, Search::without_critters());
+        return { r.rect, !r.has_result || r.success };
+    };
+
+    // Targets lie 1 px inside the body, since one on a collider's face reads blocked. Along the faces
+    // the threat sees, a convex rect blocking the rays to both ends of a stretch blocks every ray between.
+    const auto exposure_at = [&](Vector2i pos, Vector2i axis, Vector2i across) -> exposure {
+        const auto ext = Math::max(half_i - Vector2i{1}, Vector2i{0});
+        const auto ea = Math::dot(across, ext), ex = Math::dot(Math::abs(axis), ext);
+        const auto mid = pos + axis*ex;
+        const auto at_mid = cast(mid);
+        if (at_mid.open)
+            return { true, true };
         exposure e{false, false};
-        for (const auto corner : { Vector2i{-1, -1}, Vector2i{1, -1}, Vector2i{-1, 1}, Vector2i{1, 1} })
+        for (const auto sign : { -1, 1 })
         {
-            auto& side = Math::dot(corner, across) < 0 ? e.minus : e.plus;
-            if (side)
-                continue;
-            const auto r = raycast(w, q.threat, to_point(pos + corner*half_i), 0, ray_pool, Search::without_critters());
-            side = !r.has_result || r.success;
+            const auto dir = across*sign, corner = mid + dir*ea;
+            const auto len = ea + (Math::dot(T - pos, dir) > ea ? 2*ex : 0);
+            const auto at = [&](int s) { return s <= ea ? mid + dir*s : corner - axis*(s - ea); };
+            const auto hidden = [&](this const auto& self, int a, int b, const ray_hit& ra, const ray_hit& rb) -> bool {
+                if (ra.rect == rb.rect || b - a <= 1)
+                    return true;
+                const auto m = (a + b)/2;
+                const auto rm = cast(at(m));
+                return !rm.open && self(a, m, ra, rm) && self(m, b, rm, rb);
+            };
+            const auto end = cast(at(len));
+            (sign < 0 ? e.minus : e.plus) = end.open || !hidden(0, len, at_mid, end);
         }
         return e;
     };
@@ -187,7 +213,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
                 hi_px = mid;
         }
         const auto pos = start + axis*lo_px;
-        return placed{pos, exposure_at(pos, across)};
+        return placed{pos, exposure_at(pos, axis, across)};
     };
 
     for (const auto& cand : cands)
