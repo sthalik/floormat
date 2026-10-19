@@ -3,9 +3,9 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/limits.hpp"
 #include "tile-image.hpp"
 #include "loader/loader.hpp"
-#include <limits>
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
 #include <mg/ImageView.h>
@@ -20,7 +20,7 @@ ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
     _def{move(info)}, _path{make_path(_def.name)}
 {
     //Debug{} << "make ground_atlas" << _def.name;
-    constexpr auto variant_max = std::numeric_limits<variant_t>::max();
+    constexpr auto variant_max = limits<variant_t>::max;
     fm_soft_assert(num_tiles() <= variant_max);
     fm_soft_assert(_def.size.x() > 0 && _def.size.y() > 0);
 

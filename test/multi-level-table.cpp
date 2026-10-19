@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "multi-level-table-common.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/limits.hpp"
 #include "src/object-table.hpp"
 
 namespace floormat {
@@ -73,12 +74,12 @@ template<typename T, mlt_params P>
 void check_ints(size_t top_size_bytes, ArrayView<const uint64_t> keys)
 {
     using Table = multi_level_table<T, P>;
-    using L = std::numeric_limits<T>;
+    using L = limits<T>;
     constexpr auto values = [] {
         if constexpr (std::is_signed_v<T>)
-            return std::array<T, 4>{L::min(), L::max(), T(-1), T(1)};
+            return std::array<T, 4>{L::min, L::max, T(-1), T(1)};
         else
-            return std::array<T, 2>{L::max(), T(1)};
+            return std::array<T, 2>{L::max, T(1)};
     }();
 
     Table t;
