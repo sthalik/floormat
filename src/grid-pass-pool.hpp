@@ -17,8 +17,6 @@ public:
 
     Pool& pool_for(uint32_t bbox_size);
 
-    void maybe_mark_stale_all(const world& w);
-
     static constexpr uint32_t direct_count = 127;
     static constexpr uint32_t direct_max_bbox = 254;
 
