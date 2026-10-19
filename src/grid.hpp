@@ -86,6 +86,7 @@ struct PoolBase
     free_list freelist;
     Array<GridBase*> live;
     const uint32_t slot_index;
+    uint64_t checked_pass_gen = (uint64_t)-1;
 
     PoolBase();
     ~PoolBase() noexcept;
