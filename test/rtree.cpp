@@ -154,6 +154,46 @@ void test_pass_phases()
     fm_assert(s->can_rotate(rotation::E));
 }
 
+// A 63 px box is the 64 px one without its leftmost pixel.
+void test_odd_bbox_size()
+{
+    auto w = world();
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    auto& c = w[ch];
+    const auto proto = [](Vector2b offset, Vector2ub size) {
+        scenery_proto p;
+        p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
+        p.subtype   = generic_scenery_proto{};
+        p.offset    = offset;
+        p.bbox_size = size;
+        p.pass      = pass_mode::blocked;
+        return p;
+    };
+
+    auto s = w.make_scenery(w.make_id(), {ch, {8, 8}}, proto({}, Vector2ub{63}));
+    c.ensure_passability();
+    uint32_t n = 0;
+    const auto lo = Vector2{0}, hi = Vector2{(float)chunk_size_xy};
+    c.rtree()->Search(lo.data(), hi.data(), [&](object_id, const chunk::RTree::Rect& r) {
+        fm_assert(Vector2(r.m_min[0], r.m_min[1]) == Vector2{8*64 - 31});
+        fm_assert(Vector2(r.m_max[0], r.m_max[1]) == Vector2{8*64 + 32});
+        n++;
+        return true;
+    });
+    fm_assert(n == 1);
+    fm_assert(s->can_move_to({}));
+
+    for (const auto size : { Vector2ub{63}, Vector2ub{64} })
+    {
+        fm_assert(c.can_place_object(proto({1, 0}, size), {7, 8}));
+        fm_assert(!c.can_place_object(proto({2, 0}, size), {7, 8}));
+    }
+    fm_assert(c.can_place_object(proto({-1, 0}, Vector2ub{63}), {9, 8}));
+    fm_assert(!c.can_place_object(proto({-2, 0}, Vector2ub{63}), {9, 8}));
+    fm_assert(c.can_place_object(proto({0, 0}, Vector2ub{64}), {9, 8}));
+    fm_assert(!c.can_place_object(proto({-1, 0}, Vector2ub{64}), {9, 8}));
+}
+
 void test_corner_touch()
 {
     const auto start = Range2D{{0, 0}, {10, 10}};
@@ -423,6 +463,7 @@ void Test::test_rtree()
     test2();
     test3();
     test_pass_phases();
+    test_odd_bbox_size();
     test_corner_touch();
     test_bbox_offset_min();
     test_light_tree();

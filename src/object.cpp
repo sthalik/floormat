@@ -48,7 +48,6 @@ object::object(object_id id, class chunk& c, const object_proto& proto) :
     fm_assert(atlas);
     fm_soft_assert(atlas->check_rotation(r));
     fm_soft_assert(frame < atlas->info().nframes);
-    fm_assert(proto.bbox_size % Vector2ub{2} == Vector2ub{0});
     fm_assert(offset >= -half_tile<Vector2b> && offset < half_tile<Vector2b>);
 }
 
@@ -116,8 +115,7 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
     auto& cʹ = coord_.chunk() == coord.chunk() ? *c : w[coord_.chunk3()];
 
     const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(pt.offset()) + Vector2(bbox_offset),
-               half_bbox = Vector2(bbox_size)*.5f,
-               min = center - half_bbox, max = min + Vector2(bbox_size);
+               min = center - Vector2(bbox_size/2), max = min + Vector2(bbox_size);
     if (min == max)
         return true;
     const auto self_id = id;
@@ -261,8 +259,6 @@ object::operator object_proto() const
 
 void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
 {
-    fm_assert(bb_size_ % Vector2ub{2} == Vector2ub{0});
-
     const bool pass_changed = pass_ != pass;
 
     if (offset_ == offset && bb_offset_ == bbox_offset && bb_size_ == bbox_size && !pass_changed)

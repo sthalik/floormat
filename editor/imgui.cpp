@@ -294,8 +294,9 @@ void app::draw_clickables()
             const float denom = bb_half.x() + bb_half.y();
             const float slope = denom > 0.f ? f * (bb_half.x() - bb_half.y()) / denom : 0.f;
 
-            // bbox center screen offset from sprite's ground anchor
-            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset), 0.f) - Vector3(g.offset));
+            // bbox center screen offset from sprite's ground anchor, odd sizes as in chunk-scenery.cpp
+            const auto lo = Vector2i(e.bbox_size/2), hi = Vector2i(e.bbox_size) - lo;
+            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset) + Vector2(hi - lo)*.5f, 0.f) - Vector3(g.offset));
 
             // sprite screen extent (pixel offsets from ground anchor)
             const float left_x   = float(-frame.ground.x());
