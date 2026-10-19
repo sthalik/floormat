@@ -1082,7 +1082,7 @@ void test_bit_matches_every_position()
     const auto& pred = Search::without_critters();
     const auto dc = g.div_count();
     constexpr int d = (int)div_size;
-    constexpr auto hb = (float)bbox_size * .5f;
+    constexpr auto bb_lo = (float)(bbox_size / 2), bb_hi = (float)bbox_size - bb_lo;
     // scenery_tile(): center - bbox_size/2, then + bbox_size.
     constexpr int m = tile_size_xy*at_x + obstacle_offset.x() - obstacle_size/2,
                   M = m + obstacle_size;
@@ -1096,8 +1096,8 @@ void test_bit_matches_every_position()
             bool passable = true;
             for (int py = j*d - half_tile<int>; py < (j+1)*d - half_tile<int> && passable; py++)
                 for (int px = i*d - half_tile<int>; px < (i+1)*d - half_tile<int> && passable; px++)
-                    passable = Search::is_passable_1(c, Vector2{(float)px - hb, (float)py - hb},
-                                                        Vector2{(float)px + hb, (float)py + hb}, pred);
+                    passable = Search::is_passable_1(c, Vector2{(float)px - bb_lo, (float)py - bb_lo},
+                                                        Vector2{(float)px + bb_hi, (float)py + bb_hi}, pred);
             const auto idx = Pass::Grid::get_bitmask_index((uint32_t)i, (uint32_t)j, dc);
             if (g.bit(idx) != passable)
             {
@@ -1165,14 +1165,14 @@ void test_div_anchor_matches_cell_span(uint32_t div_size, uint32_t bbox_size)
 
     const int dc = (int)g.div_count(), d = (int)div_size;
     const int below = d/2, above = d - 1 - d/2;
-    const auto hb = (float)bbox_size * .5f;
+    const auto bb_lo = (int)(bbox_size / 2), bb_hi = (int)bbox_size - bb_lo;
 
     for (int i = 0; i < dc; i++)
     {
         const int a = i*d + d/2 - half_tile<int>;
         const auto r = g.get_coord_from_div((uint32_t)i, (uint32_t)i);
-        fm_assert(r.min().x() == (float)a - hb && r.max().x() == (float)a + hb);
-        fm_assert(r.min().y() == (float)a - hb && r.max().y() == (float)a + hb);
+        fm_assert(r.min().x() == (float)(a - bb_lo) && r.max().x() == (float)(a + bb_hi));
+        fm_assert(r.min().y() == (float)(a - bb_lo) && r.max().y() == (float)(a + bb_hi));
         fm_assert(cell_x_of(g, a) == (uint32_t)i);
         fm_assert(cell_x_of(g, a - below) == (uint32_t)i);
         fm_assert(cell_x_of(g, a + above) == (uint32_t)i);
@@ -1198,7 +1198,9 @@ constexpr exact_config exact_configs[] = {
     {  4,  4, { 0,  0},  7,  2, { -3,   5},  6 },
     {  4,  8, { 0,  0},  2,  9, {  5,  -7},  2 },
     {  8,  8, { 0,  0},  9,  3, { -1,   6},  8 },
-    {  2,  5, { 0,  0},  6,  6, {  3,  -2},  4 },  // odd bbox_size, so half_bbox lands on .5
+    {  2,  5, { 0,  0},  6,  6, {  3,  -2},  4 },  // odd bbox_size reaches a pixel further above its center
+    {  2,  5, { 0,  0},  6,  6, {  3,  -2},  5 },  // odd obstacle too
+    {  4,  7, { 1,  0},  0,  6, {-32,   3},  9 },  // both odd, reaching back from the east neighbor
     { 16, 16, { 0,  0},  5,  8, { 11,  -9}, 10 },
     {  4,  8, { 1,  0},  0,  6, {-32,   3},  8 },  // reaches back from the east neighbor
     {  2,  4, { 0, -1},  7, 15, {  5,  31},  8 },  // reaches back from the north neighbor
@@ -1243,7 +1245,7 @@ void test_bit_exact(const exact_config& cfg)
     const auto nbs = w.neighbors(COORD);
     const auto& pred = Search::without_critters();
     const int dc = (int)g.div_count(), d = (int)cfg.div_size;
-    const auto hb = (float)cfg.bbox_size * .5f;
+    const auto bb_lo = (float)(cfg.bbox_size / 2), bb_hi = (float)cfg.bbox_size - bb_lo;
 
     // scenery_tile(): center - bbox_size/2, then + bbox_size
     const int mx = cfg.chunk_delta.x()*chunk_size<int> + cfg.at_x*tile_size_xy
@@ -1264,8 +1266,8 @@ void test_bit_exact(const exact_config& cfg)
             bool passable = true;
             for (int py = j*d - half_tile<int>; py < (j+1)*d - half_tile<int> && passable; py++)
                 for (int px = i*d - half_tile<int>; px < (i+1)*d - half_tile<int> && passable; px++)
-                    passable = Search::is_passable_(&c, nbs, Vector2{(float)px - hb, (float)py - hb},
-                                                             Vector2{(float)px + hb, (float)py + hb}, pred);
+                    passable = Search::is_passable_(&c, nbs, Vector2{(float)px - bb_lo, (float)py - bb_lo},
+                                                             Vector2{(float)px + bb_hi, (float)py + bb_hi}, pred);
             cleared += !passable;
             const auto idx = Pass::Grid::get_bitmask_index((uint32_t)i, (uint32_t)j, (uint32_t)dc);
             if (g.bit(idx) != passable)
@@ -1884,6 +1886,7 @@ void test_grid()
         test_cell_spans_match_forward_map(ds);
         test_div_anchor_matches_cell_span(ds, Math::max(4u, ds));
     }
+    test_div_anchor_matches_cell_span(4, 7);
     for (const auto& cfg : exact_configs)
         test_bit_exact(cfg);
     for (const auto ds : { 4u, 16u })

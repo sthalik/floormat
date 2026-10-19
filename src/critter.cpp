@@ -125,8 +125,8 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
 Range2D critter_bbox_local(const critter& C)
 {
     const auto center = Vector2(C.coord.local())*TILE_SIZE2 + Vector2(C.offset) + Vector2(C.bbox_offset);
-    const auto half_bbox = Vector2(C.bbox_size)*0.5f;
-    return Range2D{center - half_bbox, center + half_bbox};
+    const auto min = center - Vector2(C.bbox_size/2);
+    return Range2D{min, min + Vector2(C.bbox_size)};
 }
 
 sweep_result sweep_critter(critter& C, Vector2 displacement)

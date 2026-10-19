@@ -113,7 +113,8 @@ void sweep_line(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                 const Search::pred& p, Grid::Pass::Pool* pool, F&& on_blocker)
 {
     fm_assert(!pool || pool->params().bbox_size >= Math::max(bbox_size.x(), bbox_size.y()));
-    const auto half = Vector2(bbox_size) * .5f;
+    // a box spans [center - lo, center + hi), as scenery_tile()
+    const auto lo = Vector2(bbox_size/2u), hi = Vector2(bbox_size) - lo;
     auto bound = (int64_t)last_step + 1;
 
     const auto meet = [](int64_t a0, int64_t a1, int64_t b0, int64_t b1, int64_t c0, int64_t c1) {
@@ -125,10 +126,10 @@ void sweep_line(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
     // the off-axis pixels of the moves from k0 - 1 to k1.
     const auto first_blocked = [&](Range2D r, uint32_t k0, uint32_t k1) -> int64_t {
         // centers whose box overlaps r, strictly as rect_intersects
-        const auto x = line.steps_within(0, (int32_t)Math::floor(r.min().x() - half.x()) + 1,
-                                            (int32_t)Math::ceil(r.max().x() + half.x()) - 1);
-        const auto y = line.steps_within(1, (int32_t)Math::floor(r.min().y() - half.y()) + 1,
-                                            (int32_t)Math::ceil(r.max().y() + half.y()) - 1);
+        const auto x = line.steps_within(0, (int32_t)Math::floor(r.min().x() - hi.x()) + 1,
+                                            (int32_t)Math::ceil(r.max().x() + lo.x()) - 1);
+        const auto y = line.steps_within(1, (int32_t)Math::floor(r.min().y() - hi.y()) + 1,
+                                            (int32_t)Math::ceil(r.max().y() + lo.y()) - 1);
         const int64_t x0 = x.first, x1 = x.last, y0 = y.first, y1 = y.last;
         const int64_t m0 = Math::max((int64_t)k0 - 1, (int64_t)first_step), m1 = Math::min((int64_t)k1, (int64_t)last_step - 1);
         const auto pixel = meet(x0, x1, y0, y1, k0, k1);
@@ -141,7 +142,7 @@ void sweep_line(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
     const auto visit = [&](const rc::detail::line_cell& cell) {
         const auto k0 = cell.first_step, k1 = cell.last_step;
         const auto a = line.pixel_at(k0 > first_step ? k0 - 1 : k0), b = line.pixel_at(k1 < last_step ? k1 + 1 : k1);
-        const auto qmin = Vector2(Math::min(a, b)) - half, qmax = Vector2(Math::max(a, b)) + half;
+        const auto qmin = Vector2(Math::min(a, b)) - lo, qmax = Vector2(Math::max(a, b)) + hi;
         for (int j = 0; j < 3; j++)
             for (int i = 0; i < 3; i++)
             {

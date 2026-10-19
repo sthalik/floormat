@@ -155,7 +155,8 @@ using proto_t  = uint16_t;
 // 27: add light radius
 // 28: no longer tolerate bbox_size as an odd number
 // 29: add critter::anim_speed
-static constexpr proto_t proto_version = 29;
+// 30: allow bbox_size as an odd number
+static constexpr proto_t proto_version = 30;
 
 static constexpr size_t string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
@@ -496,14 +497,6 @@ struct writer final : visitor_<writer, true, true>
 
     template<typename F> void write_object(o_object& obj, const chunk* c, F&& f)
     {
-        if (PROTO >= 28) [[unlikely]]
-            if (obj.bbox_size != fix_stupid_bbox(obj.bbox_size))
-            {
-                ERR_nospace << "fatal: object '" << obj.atlas->name()
-                            << "' has invalid bounding box size " << obj.bbox_size;
-                fm_soft_assert(obj.bbox_size == fix_stupid_bbox(obj.bbox_size));
-                fm_assert(false);
-            }
         auto id = obj.id;
         auto type = obj.type();
         auto tile = obj.coord.local();
@@ -988,8 +981,6 @@ ok:
         fm_soft_assert(!(id >> object_table::key_bits));
         if (PROTO < 28) [[unlikely]]
             p.bbox_size = fix_stupid_bbox(p.bbox_size);
-        else
-            fm_soft_assert(p.bbox_size == fix_stupid_bbox(p.bbox_size));
 
         switch (type)
         {
