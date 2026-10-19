@@ -28,7 +28,6 @@ public:
     astar();
     ~astar() noexcept;
     void reserve(size_t capacity);
-    void clear();
 
     struct Search::cache* cache();
     Grid::Pass::PoolRegistry& pass_pool_registry();
