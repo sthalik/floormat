@@ -69,7 +69,7 @@ struct raycast_test final : base_test
     bool has_last_ray = false;
     float radius = 0;
     raycast_diag_s diag;
-    Pointer<Pass::Pool> pool{InPlaceInit, pool_params(radius)};
+    Pointer<Pass::Pool> pool{InPlaceInit, pool_params(radius), Search::never_continue()};
 
     ~raycast_test() noexcept override;
 
@@ -124,7 +124,7 @@ struct raycast_test final : base_test
         radius = r;
         auto params = pool_params(radius);
         if (pool->params().bbox_size != params.bbox_size)
-            pool = Pointer<Pass::Pool>{InPlaceInit, params};
+            pool = Pointer<Pass::Pool>{InPlaceInit, params, Search::never_continue()};
         if (has_last_ray && num_pending < max_pending_rays)
             pending[num_pending++] = last_ray;
     }

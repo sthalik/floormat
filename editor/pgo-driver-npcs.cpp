@@ -135,15 +135,15 @@ task app::scene_npcs()
     blocker_proto.pass = pass_mode::blocked;
     blocker blockers[num_blockers]{};
 
-    // Its own pool: grids built through this pred would put critters into every later search of
-    // the same size.
-    Pass::Pool crit_pool{M->astar().pass_pool_registry().pool_for(critter_size).params()};
     object_id searcher = 0;
     const auto except_searcher = [&searcher](chunk&, collision_data data, Range2D) {
         return data.type == (uint64_t)collision_type::scenery && data.id == searcher
                ? path_search_continue::pass : path_search_continue::blocked;
     };
     const Search::pred except_searcher_pred{except_searcher};
+
+    // Its own pool, since the registry's pools always build with without_critters().
+    Pass::Pool crit_pool{M->astar().pass_pool_registry().pool_for(critter_size).params(), except_searcher_pred};
 
     uint64_t rng = 0x9e3779b97f4a7c15u;
     const auto next_angle = [&rng] {

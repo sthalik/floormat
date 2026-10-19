@@ -86,9 +86,9 @@ void Grid_Build(benchmark::State& state)
     for (auto* cʹ : { &c1, &c2, &c3, &c4, &c5, &c6, &c7 })
         rebuild(*cʹ);
 
-    Pass::Pool pool{Pass::Params{(uint32_t)state.range(0), pass_mode::pass}};
+    Pass::Pool pool{Pass::Params{(uint32_t)state.range(0), pass_mode::pass}, Search::without_critters()};
     pool.maybe_mark_stale_all(w);
-    pool.build_if_stale_all(Search::without_critters());
+    pool.build_if_stale_all();
 
     Pass::Grid g1 = pool[c1];
     Pass::Grid g2 = pool[c2];
@@ -97,13 +97,13 @@ void Grid_Build(benchmark::State& state)
     Pass::Grid g5 = pool[c5];
     Pass::Grid g6 = pool[c6];
     Pass::Grid g7 = pool[c7];
-    g1.build_if_stale(Search::without_critters());
-    g2.build_if_stale(Search::without_critters());
-    g3.build_if_stale(Search::without_critters());
-    g4.build_if_stale(Search::without_critters());
-    g5.build_if_stale(Search::without_critters());
-    g6.build_if_stale(Search::without_critters());
-    g7.build_if_stale(Search::without_critters());
+    g1.build_if_stale();
+    g2.build_if_stale();
+    g3.build_if_stale();
+    g4.build_if_stale();
+    g5.build_if_stale();
+    g6.build_if_stale();
+    g7.build_if_stale();
 
     for (auto _ : state)
     {
@@ -115,13 +115,13 @@ void Grid_Build(benchmark::State& state)
         g6.mark_stale();
         g7.mark_stale();
 
-        g1.build_if_stale(Search::without_critters());
-        g2.build_if_stale(Search::without_critters());
-        g3.build_if_stale(Search::without_critters());
-        g4.build_if_stale(Search::without_critters());
-        g5.build_if_stale(Search::without_critters());
-        g6.build_if_stale(Search::without_critters());
-        g7.build_if_stale(Search::without_critters());
+        g1.build_if_stale();
+        g2.build_if_stale();
+        g3.build_if_stale();
+        g4.build_if_stale();
+        g5.build_if_stale();
+        g6.build_if_stale();
+        g7.build_if_stale();
     }
 }
 

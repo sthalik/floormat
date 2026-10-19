@@ -239,7 +239,7 @@ struct CoverPool : Pool<CoverGrid>
 
 CoverPool::CoverPool(Params p):
     Pool<CoverGrid>{p},
-    pass_pool{Pass::Params{params.div_size, pass_mode::shoot_through}}
+    pass_pool{Pass::Params{params.div_size, pass_mode::shoot_through}, Search::without_critters()}
 {
 }
 
@@ -281,7 +281,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
     const uint32_t dc = chunk_size_xy / div_size;
 
     auto pass_grid = pass_pool[self];
-    pass_grid.build_if_stale(Search::without_critters());
+    pass_grid.build_if_stale();
     // pass bit and cell (x, y) are both y*dc + x, as pack_bit_index() lays them out
     fm_debug_assert(get_cell_index(1, 1, dc) == dc + 1);
     const uint8_t* const bits = pass_grid.bits().data;

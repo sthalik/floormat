@@ -27,7 +27,7 @@ struct line_cell
 // pixels count when the segment crosses them, or always with both_off_axis.
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          uint32_t first_step, uint32_t last_step, bool both_off_axis,
-                         Grid::Pass::Pool* pool, const Search::pred& pred,
+                         Grid::Pass::Pool* pool,
                          fu2::function_view<bool(const line_cell&) const> visit);
 
 struct aabb_result

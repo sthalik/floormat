@@ -321,7 +321,7 @@ point open_point(world& w, Grid::Pass::Pool& pool, point centre)
     {
         const auto pt = point::normalize_coords(centre, off);
         auto g = pool[w[pt.chunk3()]];
-        g.build_if_stale(Search::without_critters());
+        g.build_if_stale();
         if (g.bit(g.get_bitmask_index_from_coord(intra_coord{pt})))
             return pt;
     }
