@@ -25,6 +25,25 @@ constexpr auto flush_ch = chunk_coords_{0, 0, 0};
 constexpr auto flush_bbox = Vector2ui{32};
 constexpr auto flush_tile = local_coords{8, 8};
 
+// Floor every chunk a search from `from` can test: its nodes lie within max_dist of `from`,
+// and the cells tested around them one step further.
+void add_floors(world& w, point from, uint32_t max_dist)
+{
+    const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
+    const auto reach = Vector2i{(int)max_dist + Search::div_size.x()};
+    const auto lo = (from - reach).chunk(), hi = (from + reach).chunk();
+    for (auto j = lo.y; j <= hi.y; j++)
+        for (auto i = lo.x; i <= hi.x; i++)
+        {
+            auto& c = w[{i, j, from.chunk3().z}];
+            for (auto y = 0u; y < TILE_MAX_DIM; y++)
+                for (auto x = 0u; x < TILE_MAX_DIM; x++)
+                    c[{x, y}].ground() = floor;
+            c.mark_passability_modified();
+            c.ensure_passability();
+        }
+}
+
 bool flush_box_free(world& w, point pt)
 {
     const auto R = Range2D::fromCenter(Vector2(intra_coord{pt}.center_shifted()), Vector2(flush_bbox/2u));
@@ -47,7 +66,10 @@ void add_block(world& w, local_coords tile, Vector2ub bbox_size, Vector2b bbox_o
 template<typename F>
 void check_flush_goal(const char* name, F&& setup, Vector2b goal_offset, Vector2i toward, bool reachable = true)
 {
+    constexpr uint32_t max_dist = 1024;
+    const auto from = point{global_coords{flush_ch, {8, 12}}, {}};
     auto w = world();
+    add_floors(w, from, max_dist);
     setup(w);
     auto& c = w[flush_ch];
     c.mark_passability_modified();
@@ -57,8 +79,6 @@ void check_flush_goal(const char* name, F&& setup, Vector2b goal_offset, Vector2
     fm_assert(flush_box_free(w, goal));
     fm_assert(!flush_box_free(w, point::normalize_coords(goal, toward)));
 
-    constexpr uint32_t max_dist = 1024;
-    const auto from = point{global_coords{flush_ch, {8, 12}}, {}};
     const auto& pred = Search::without_critters();
     auto A = astar{};
     auto& pool16 = A.pass_pool_registry().pool_for(flush_bbox.x());
@@ -130,7 +150,9 @@ void Test::test_dijkstra()
     constexpr auto wch = chunk_coords_{wcx, wcy, 0};
     constexpr auto wt = local_coords{wtx, wty};
     constexpr auto wpos = global_coords{wch, wt};
+    const auto from = point{{0, 0, 0}, {11, 9}};
 
+    add_floors(w, from, max_dist);
     auto& ch = w[wch];
     auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, 0};
 
@@ -166,7 +188,7 @@ void Test::test_dijkstra()
     const auto run = [&]<bool debug, bool closest = true>(point to) {
             return A.Dijkstra<debug ? 1 : 0, closest>(
                 w,
-                {{0, 0, 0}, {11, 9}}, // from
+                from,
                 to,
                 max_dist, own_size,
                 pred);

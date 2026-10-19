@@ -23,6 +23,22 @@ void Dijkstra(benchmark::State& state)
     constexpr auto wch = chunk_coords_{wcx, wcy, 0};
     constexpr auto wt = local_coords{wtx, wty};
     constexpr auto wpos = global_coords{wch, wt};
+    const auto from = point{{0, 0, 0}, {11, 9}};
+
+    // Same floors as add_floors() in test/dijkstra.cpp.
+    const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
+    const auto reach = Vector2i{(int)max_dist + Search::div_size.x()};
+    const auto lo = (from - reach).chunk(), hi = (from + reach).chunk();
+    for (auto j = lo.y; j <= hi.y; j++)
+        for (auto i = lo.x; i <= hi.x; i++)
+        {
+            auto& c = w[{i, j, 0}];
+            for (auto y = 0u; y < TILE_MAX_DIM; y++)
+                for (auto x = 0u; x < TILE_MAX_DIM; x++)
+                    c[{x, y}].ground() = floor;
+            c.mark_passability_modified();
+            c.ensure_passability();
+        }
 
     auto& ch = w[wch];
     auto metal2 = wall_image_proto{loader.wall_atlas("empty", loader_policy::warn), 0};
@@ -52,7 +68,7 @@ void Dijkstra(benchmark::State& state)
         }
 
     auto run = [&]<int Debug> {
-        return A.Dijkstra<Debug>(w, {{0,0,0}, {11,9}}, // from
+        return A.Dijkstra<Debug>(w, from,
                                  {wpos, {wox, woy}},   // to
                                  max_dist, {16, 16},   // size
                                  Search::without_critters());
