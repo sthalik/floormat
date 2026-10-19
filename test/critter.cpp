@@ -130,18 +130,20 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
     fm_assert(!ret); // tiemout 300s reached
 }
 
-point walk_for(Ns dt_per_step, Ns total)
+constexpr auto walk_start = point{{0, 0, 0}, {8, 8}, {0, 0}};
+
+point walk_for(rotation r, Ns dt_per_step, Ns total)
 {
     auto w = world();
     object_id id = 0;
     auto npc_ = w.ensure_player_character(id, make_proto(1.f));
     auto& npc = *npc_;
     auto idx = npc.index();
-    npc.teleport_to(idx, {{0, 0, 0}, {8, 8}, {0, 0}}, rotation_COUNT);
+    npc.teleport_to(idx, walk_start, rotation_COUNT);
     Ns elapsed{0};
     while (elapsed < total)
     {
-        npc.update_movement(idx, dt_per_step, rotation::N);
+        npc.update_movement(idx, dt_per_step, r);
         elapsed = elapsed + dt_per_step;
     }
     return npc.position();
@@ -150,18 +152,23 @@ point walk_for(Ns dt_per_step, Ns total)
 void test_dt_invariance()
 {
     constexpr Ns total = Second;
-    const auto p_1ms   = walk_for(Millisecond * 1.0,    total);
-    const auto p_60fps = walk_for(Millisecond * 16.667, total);
-    const auto p_30fps = walk_for(Millisecond * 33.334, total);
-    const auto p_10fps = walk_for(Millisecond * 100.0,  total);
+    // 60 frames: 60 cardinal steps, 60/√2 diagonal ones
+    for (auto [r, expected] : { std::pair{rotation::N, Vector2i{0, -60}}, std::pair{rotation::SE, Vector2i{42, 42}} })
+    {
+        const auto p_1ms   = walk_for(r, Millisecond * 1.0,    total);
+        const auto p_60fps = walk_for(r, Millisecond * 16.667, total);
+        const auto p_30fps = walk_for(r, Millisecond * 33.334, total);
+        const auto p_10fps = walk_for(r, Millisecond * 100.0,  total);
 
-    constexpr uint32_t tol = 2;
-    fm_assert(point::distance_l1(p_1ms,   p_60fps) <= tol);
-    fm_assert(point::distance_l1(p_30fps, p_60fps) <= tol);
-    fm_assert(point::distance_l1(p_10fps, p_60fps) <= tol);
+        constexpr uint32_t tol = 2;
+        fm_assert_equal(expected, p_60fps - walk_start);
+        fm_assert(point::distance_l1(p_1ms,   p_60fps) <= tol);
+        fm_assert(point::distance_l1(p_30fps, p_60fps) <= tol);
+        fm_assert(point::distance_l1(p_10fps, p_60fps) <= tol);
+    }
 }
 
-void test_offset_frac_diag_to_cardinal()
+void test_diag_leftover_to_cardinal()
 {
     auto w = world();
     object_id id = 0;
@@ -170,23 +177,62 @@ void test_offset_frac_diag_to_cardinal()
     auto idx = npc.index();
     const auto frame = Second / npc.atlas->info().fps;
 
-    // leaves a leftover over 1 px, which a cardinal step must not spend in one frame
+    // 4 frames buy 2 diagonal steps of √2 frames and leave 1.17 frames
     const auto walk_diagonal = [&] {
-        npc.teleport_to(idx, {{0, 0, 0}, {8, 8}, {0, 0}}, rotation_COUNT);
-        npc.offset_frac = {};
+        npc.teleport_to(idx, walk_start, rotation_COUNT);
+        npc.delta = {};
         for (auto i = 0u; i < 4; i++)
             npc.update_movement(idx, frame, rotation::SE);
+        fm_assert_equal(Vector2i{2, 2}, npc.position() - walk_start);
         return npc.position();
     };
 
     const auto p0 = walk_diagonal();
     npc.update_movement(idx, frame, rotation::E);
-    fm_assert_equal(Vector2i{1, 0}, npc.position() - p0);
+    fm_assert_equal(Vector2i{2, 0}, npc.position() - p0);
 
     const auto p1 = walk_diagonal();
     auto dt = frame;
     (void)npc.move_toward(idx, dt, point::normalize_coords(p1, Vector2i{10, 0}));
-    fm_assert_equal(Vector2i{1, 0}, npc.position() - p1);
+    fm_assert_equal(Vector2i{2, 0}, npc.position() - p1);
+}
+
+void test_unspent_dt_tiny_speed()
+{
+    auto w = world();
+    object_id id = 0;
+    auto& npc = *w.ensure_player_character(id, make_proto(1e-13f));
+    auto idx = npc.index();
+    npc.teleport_to(idx, walk_start, rotation_COUNT);
+    npc.delta = object::ns_to_delta(Second / npc.atlas->info().fps);
+    auto dt = Ns{};
+    (void)npc.move_toward(idx, dt, walk_start);
+    fm_assert(dt <= Ns{uint64_t{1} << 53});
+}
+
+// Stored time is already speed-scaled, so without a check it would move a critter of speed 0.
+void test_speed_zero_stays()
+{
+    auto w = world();
+    object_id id = 0;
+    auto& npc = *w.ensure_player_character(id, make_proto(1.f));
+    auto idx = npc.index();
+    const auto frame = Second / npc.atlas->info().fps;
+    npc.teleport_to(idx, walk_start, rotation_COUNT);
+    npc.delta = object::ns_to_delta(frame * 1.2);
+    npc.speed = 0;
+    npc.update_movement(idx, frame, rotation::E);
+    fm_assert_equal(walk_start, npc.position());
+    fm_assert(npc.delta == 0);
+}
+
+// A diagonal step at fps 1 costs 1.41 s, so delta has to hold more than a second.
+void test_delta_range()
+{
+    const auto t = Second * 1.5;
+    fm_assert(object::ns_to_delta(t) == t.stamp);
+    fm_assert(object::ns_to_delta(Second * 5u) == uint32_t(-1));
+    fm_assert(object::fraction_to_ns(uint32_t(-1)) == Second);
 }
 
 struct line_walker
@@ -207,7 +253,6 @@ struct line_walker
     void place(point pt)
     {
         npc->teleport_to(idx, pt, rotation_COUNT);
-        npc->offset_frac = {};
         npc->delta = {};
     }
 
@@ -251,7 +296,7 @@ void test_move_toward_line()
         L.place(from);
         const auto res = L.step(from, dest, (uint32_t)Math::ceil(len) + 50);
         fm_assert(res.moved && !res.blocked && L.npc->position() == dest);
-        fm_assert(L.dt == L.frame * 50u);
+        fm_assert(L.dt >= L.frame * 50u && L.dt < L.frame * 51u);
     }
 }
 
@@ -340,7 +385,6 @@ struct script_walker
     {
         auto i = npc->index();
         npc->teleport_to(i, pt, rotation_COUNT);
-        npc->offset_frac = {};
         npc->delta = {};
     }
 
@@ -568,7 +612,10 @@ void Test::test_critter()
     test3("dt=16.667 accel=50 r=NE no-unroll=true",  constantly(Millisecond * 16.667), 50, NE, true);
 
     test_dt_invariance();
-    test_offset_frac_diag_to_cardinal();
+    test_diag_leftover_to_cardinal();
+    test_unspent_dt_tiny_speed();
+    test_speed_zero_stays();
+    test_delta_range();
     test_move_toward_line();
     test_move_toward_line_blocked();
     test_move_toward_line_displaced();

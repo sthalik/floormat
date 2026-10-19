@@ -1,5 +1,7 @@
 #include "app.hpp"
 #include "src/world.hpp"
+#include "src/chunk.hpp"
+#include "src/object-storage.inl"
 #include "src/scenery.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/critter.hpp"
@@ -15,9 +17,11 @@
 #include "compat/exception.hpp"
 #include "serialize/binary-serializer.hpp"
 #include <bit>
+#include <cstdio>
 #include <cstring>
 #include <cr/Path.h>
 #include <mg/Color.h>
+#include <mg/Functions.h>
 
 namespace floormat {
 
@@ -155,15 +159,16 @@ void assert_chunks_equal(const chunk* a, const chunk* b)
     return world::deserialize(tmp, loader_policy::error);
 }
 
-// The writer runs the reader's checks, so a NaN has to be put into the file directly.
-void write_patched(StringView path, ArrayView<const char> save, float from, uint32_t to)
+// The writer runs the reader's checks, so bad data has to be put into the file directly.
+void write_patched(StringView path, ArrayView<const char> save, ArrayView<const char> from, ArrayView<const char> to)
 {
     constexpr auto crc_size = (uint32_t)sizeof(uint64_t);
     fm_assert(save.size() > crc_size);
+    fm_assert(from.size() == to.size());
     const auto body = (uint32_t)save.size() - crc_size;
     auto pos = (uint32_t)-1, hits = 0u;
-    for (auto i = 0u; i + sizeof from <= body; i++)
-        if (std::memcmp(&save[i], &from, sizeof from) == 0)
+    for (auto i = 0u; i + from.size() <= body; i++)
+        if (std::memcmp(&save[i], from.data(), from.size()) == 0)
         {
             pos = i;
             hits++;
@@ -172,10 +177,15 @@ void write_patched(StringView path, ArrayView<const char> save, float from, uint
 
     auto buf = Array<char>{NoInit, save.size()};
     std::memcpy(buf.data(), save.data(), save.size());
-    std::memcpy(&buf[pos], &to, sizeof to);
+    std::memcpy(&buf[pos], to.data(), to.size());
     const auto crc = Serialize::maybe_byteswap(Hash::crc64_update(Hash::CRC64_INITIALIZER, buf.data(), body));
     std::memcpy(&buf[body], &crc, sizeof crc);
     fm_assert(Path::write(path, buf));
+}
+
+void write_patched(StringView path, ArrayView<const char> save, float from, uint32_t to)
+{
+    write_patched(path, save, {(const char*)&from, sizeof from}, {(const char*)&to, sizeof to});
 }
 
 template<typename T>
@@ -299,12 +309,12 @@ void test_save_objs()
 
         constexpr auto ch = chunk_coords_{512, -768, 0};
         constexpr auto coord = global_coords{ch, {1, 15}};
-        constexpr auto offset_frac = uint16_t{44'432};
+        constexpr auto anim_progress = uint32_t{44'432};
 
         const auto objʹ = w.make_object<critter>(w.make_id(), coord, p);
         fm_assert(objʹ);
         const auto& obj = *objʹ;
-        const_cast<uint16_t&>(obj.offset_frac) = offset_frac;
+        const_cast<uint32_t&>(obj.anim_progress) = anim_progress;
         auto w2 = reload_from_save(tmp, w);
         const auto& obj2ʹ = w2.find_object<critter>(obj.id);
         fm_assert(obj2ʹ);
@@ -312,7 +322,7 @@ void test_save_objs()
         fm_assert(p.name == obj2.name);
         fm_assert(p.frame == obj2.frame);
         fm_assert(p.speed == obj2.speed);
-        fm_assert(obj.offset_frac == obj2.offset_frac);
+        fm_assert(obj2.anim_progress == anim_progress);
 
         assert_chunks_equal(w.at(ch), w2.at(ch));
     }
@@ -398,6 +408,67 @@ void test_save_nan()
     check_nan_rejected(patched, *save, lid, &light::radius, lp.radius);
 }
 
+// Each critter is named after the offset_frac and delta it was saved with.
+void check_offset_frac(StringView name, uint16_t expected_proto, uint32_t expected_count)
+{
+    constexpr auto magic = ".floormat.save"_s;
+    const auto path = Path::join(loader.TEMP_PATH, Path::join("test/save"_s, name));
+    const auto file = Path::read(path);
+    fm_assert(file && file->size() > magic.size() + sizeof(uint16_t));
+    uint16_t proto;
+    std::memcpy(&proto, file->data() + magic.size(), sizeof proto);
+    fm_assert(Serialize::maybe_byteswap(proto) == expected_proto);
+
+    auto w = world::deserialize(path, loader_policy::ignore);
+    uint32_t count = 0;
+    double max_err = 0;
+    for (auto& c : w.chunks())
+        c.objects().visit<critter>([&](critter& C) {
+            uint32_t offset_frac, delta;
+            fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
+            // delta counted (uint32_t)-1 per second. offset_frac is path length × 32768, and a
+            // pixel of path cost a frame.
+            const auto expected = delta * 1e9 / double(uint32_t(-1))
+                                + offset_frac * 1e9 / (32768 * double(C.atlas->info().fps));
+            const auto got = double(C.delta);
+            max_err = Math::max(max_err, Math::abs(got - expected));
+            count++;
+        });
+    fm_assert(count == expected_count);
+    fm_assert(max_err < 5);
+}
+
+// The proto 29 save is quicksave.dat plus 24 critters, the proto 30 one 24 critters facing N.
+void test_save_offset_frac()
+{
+    check_offset_frac("proto-29-offset-frac.dat"_s, 29, 25);
+    check_offset_frac("proto-30-offset-frac.dat"_s, 30, 24);
+}
+
+// A missing anim atlas loads as one with fps 0, which can't turn offset_frac into time. Only
+// critters facing N can load with it.
+void test_save_missing_atlas()
+{
+    const auto path = Path::join(loader.TEMP_PATH, "test/save/proto-30-offset-frac.dat"_s);
+    const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-atlas.dat"_s);
+    const auto file = Path::read(path);
+    fm_assert(file);
+    constexpr auto from = "npc-walk"_s, to = "npc-gone"_s;
+    write_patched(patched, *file, {from.data(), from.size()}, {to.data(), to.size()});
+
+    auto w = world::deserialize(patched, loader_policy::ignore);
+    uint32_t count = 0;
+    for (auto& c : w.chunks())
+        c.objects().visit<critter>([&](critter& C) {
+            uint32_t offset_frac, delta;
+            fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
+            fm_assert(C.atlas->info().fps == 0);
+            fm_assert(C.delta == object::ns_to_delta(object::fraction_to_ns(delta)));
+            count++;
+        });
+    fm_assert(count == 24);
+}
+
 } // namespace
 
 void Test::test_save()
@@ -412,6 +483,8 @@ void Test::test_saves()
     test_save_2();
     test_save_objs();
     test_save_nan();
+    test_save_offset_frac();
+    test_save_missing_atlas();
 }
 
 } // namespace floormat

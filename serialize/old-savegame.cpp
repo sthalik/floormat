@@ -11,6 +11,7 @@
 #include "src/pass-mode.hpp"
 #include "src/rotation.hpp"
 #include "src/object-type.hpp"
+#include "src/nanosecond.hpp"
 #include "compat/limits.hpp"
 #include "compat/strerror.hpp"
 #include "compat/borrowed-ptr.inl"
@@ -86,6 +87,8 @@ Vector2ub fix_stupid_bbox(Vector2ub bbox_size)
     }
     return bbox_size;
 }
+
+uint32_t delta_ns(uint32_t fraction) { return object::ns_to_delta(object::fraction_to_ns(fraction)); }
 
 // Some saves hold offsets past the tile edge, which the object ctor rejects.
 global_coords normalize_offset(global_coords coord, object_proto& proto)
@@ -432,11 +435,8 @@ void reader_state::read_chunks(reader_t& s)
                     proto.frame = s.read<uint8_t>();
                 else
                     proto.frame << s;
-                Vector2us offset_frac;
-                offset_frac[0] << s;
-                offset_frac[1] << s;
-                if (PROTO < 17) [[unlikely]]
-                    offset_frac = {};
+                (void)s.read<uint16_t>();
+                (void)s.read<uint16_t>();
                 const bool exact = id & meta_short_scenery_bit_;
                 SET_CHUNK_SIZE();
 
@@ -464,7 +464,6 @@ void reader_state::read_chunks(reader_t& s)
                 }
                 SET_CHUNK_SIZE();
                 auto e = _world->make_object<critter, false>(oid, place(proto), proto);
-                e->offset_frac = (uint16_t)((Vector2(offset_frac)*(1.f/65535)).length()*32768);
                 (void)e;
                 break;
             }
@@ -508,7 +507,7 @@ void reader_state::read_chunks(reader_t& s)
                         {
                             uint16_t delta_;
                             delta_ << s;
-                            sc.delta = uint32_t(delta_) * 65536u;
+                            sc.delta = delta_ns(uint32_t(delta_) * 65536u);
                         }
                     }
                     else if (const auto* val = swl::get_if<door_scenery_proto>(&sc.subtype))
@@ -517,7 +516,7 @@ void reader_state::read_chunks(reader_t& s)
                         {
                             uint16_t delta_;
                             delta_ << s;
-                            sc.delta = uint32_t(delta_) * 65536u;
+                            sc.delta = delta_ns(uint32_t(delta_) * 65536u);
                         }
                     }
                     else
@@ -630,13 +629,13 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
                 {
                     uint16_t delta_;
                     delta_ << s;
-                    sc.delta = uint32_t(delta_) * 65536u;
+                    sc.delta = delta_ns(uint32_t(delta_) * 65536u);
                 }
                 else
                 {
                     auto x = (double)s.read<float>();
                     fm_soft_assert(x >= 0 && x <= 1);
-                    sc.delta = (uint32_t)(x * (uint32_t)-1);
+                    sc.delta = delta_ns((uint32_t)(x * (uint32_t)-1));
                 }
             }
         }
@@ -648,13 +647,13 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
                 {
                     uint16_t delta_;
                     delta_ << s;
-                    sc.delta = uint32_t(delta_) * 65536u;
+                    sc.delta = delta_ns(uint32_t(delta_) * 65536u);
                 }
                 else
                 {
                     auto x = (double)s.read<float>();
                     fm_soft_assert(x >= 0 && x <= 1);
-                    sc.delta = (uint32_t)(x * (uint32_t)-1);
+                    sc.delta = delta_ns((uint32_t)(x * (uint32_t)-1));
                 }
             }
         }

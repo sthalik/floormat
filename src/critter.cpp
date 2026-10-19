@@ -9,7 +9,6 @@
 #include "src/raycast-line.hpp"
 #include "src/nanosecond.inl"
 #include "shaders/shader.hpp"
-#include "compat/limits.hpp"
 #include "compat/map.hpp"
 #include "compat/iota.hpp"
 #include "compat/exception.hpp"
@@ -17,6 +16,7 @@
 #include "compat/function2.hpp"
 #include <utility>
 #include <array>
+#include <numbers>
 #include <mg/Functions.h>
 #include <mg/BatchFunctions.h>
 
@@ -79,25 +79,34 @@ static_assert(arrows_to_dir(true, true, true, true) == rotation_COUNT);
 static_assert(arrows_to_dir(true, true, false, false) == rotation_COUNT);
 #endif
 
-constexpr Vector2 rotation_to_vec(rotation r)
+constexpr Vector2i rotation_to_vec(rotation r)
 {
-    constexpr double c = 1.0;
-    constexpr double d = c / Vector2d{1,  1}.length();
-
-    constexpr Vector2 array[8] = {
-        Vector2(Vector2d{ 0, -1} * c),
-        Vector2(Vector2d{ 1, -1} * d),
-        Vector2(Vector2d{ 1,  0} * c),
-        Vector2(Vector2d{ 1,  1} * d),
-        Vector2(Vector2d{ 0,  1} * c),
-        Vector2(Vector2d{-1,  1} * d),
-        Vector2(Vector2d{-1,  0} * c),
-        Vector2(Vector2d{-1, -1} * d),
+    constexpr Vector2i array[8] = {
+        Vector2i{ 0, -1}, Vector2i{ 1, -1}, Vector2i{ 1,  0}, Vector2i{ 1,  1},
+        Vector2i{ 0,  1}, Vector2i{-1,  1}, Vector2i{-1,  0}, Vector2i{-1, -1},
     };
 
     CORRADE_ASSUME(r < rotation_COUNT);
     return array[(uint8_t)r];
 }
+
+// Diagonals are the odd rotations. Indexing by the low bit keeps these lookups branchless.
+constexpr uint8_t is_diagonal(rotation r) { return (uint8_t)r & 1; }
+
+constexpr float step_length(rotation r)
+{
+    constexpr float lengths[2] = { 1, std::numbers::sqrt2_v<float> };
+    return lengths[is_diagonal(r)];
+}
+
+struct step_costs
+{
+    Ns costs[2];
+
+    explicit step_costs(uint32_t hz) : costs{Second / hz, (Second / hz) * std::numbers::sqrt2} {}
+    Ns frame() const { return costs[0]; }
+    Ns operator()(rotation r) const { return costs[is_diagonal(r)]; }
+};
 
 constexpr std::array<rotation, 3> rotation_to_similar_(rotation r)
 {
@@ -138,92 +147,126 @@ sweep_result sweep_critter(critter& C, Vector2 displacement)
     return find_swept_collider(C.chunk(), critter_bbox_local(C), displacement, pred);
 }
 
-enum class step_result : uint8_t { blocked, moved, accumulated };
+uint32_t free_steps(critter& C, rotation r, uint32_t nsteps)
+{
+    const auto ch = C.coord.chunk3();
+    const auto from = C.position() - point{ch, {}, {}} + Vector2i(C.bbox_offset);
+    const auto line = rc::bresenham_line{from, from + rotation_to_vec(r) * int(nsteps)};
+    const auto self_id = C.id;
+    const auto pred = [self_id](class chunk&, collision_data x, Range2D) {
+        return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
+    };
+    const auto res = find_swept_collider(C.world(), ch, line, 0, nsteps, Vector2ui(C.bbox_size), pred);
+    return res.step > 0 ? res.step - 1 : 0;
+}
 
-void advance_anim_frames(critter& C, uint32_t nsteps, float anim_speed, uint32_t nframes_atlas)
+void warn_line_sweep_mismatch(const critter& C, rotation r)
+{
+    static bool once = false;
+    if (once)
+        return;
+    once = true;
+    WARN_nospace << "warning: line sweep blocked critter " << C.id << " at " << C.position()
+                 << " moving " << (int)r << ", but the step is free. Walking in single steps.";
+}
+
+void advance_anim_frames(critter& C, float length, float anim_speed, uint32_t nframes_atlas)
 {
     fm_debug_assert(anim_speed >= 0 && anim_speed <= 64);
-    const auto adv = uint64_t(float(nsteps) * anim_speed * float(anim_speed_unit));
+    const auto adv = uint64_t(length * anim_speed * float(anim_speed_unit));
     const auto total = uint64_t(C.anim_progress) + adv;
     const auto whole = uint32_t(total / anim_speed_unit);
     C.anim_progress = uint32_t(total % anim_speed_unit);
     C.frame = uint16_t((uint32_t(C.frame) + whole) % nframes_atlas);
 }
 
-using Frac = decltype(critter::offset_frac);
-constexpr auto frac = (float{limits<Frac>::max}+1)/2;
-
-struct pixel_step_s { Vector2i off_i; Vector2 rem; };
-
-// offset_frac keeps only the leftover's length, re-applied along the next direction.
-// A diagonal leftover can exceed 1 px, so clamp to nsteps per axis.
-pixel_step_s pixel_step(Frac offset_frac, Vector2 vec, uint32_t nsteps)
+bool move_steps(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
 {
-    constexpr auto inv_frac = 1 / frac;
-    const auto offset_ = vec * float(nsteps) + (float)offset_frac * inv_frac * vec;
-    const Vector2i off_i = Math::clamp(Vector2i(offset_), -int(nsteps), int(nsteps));
-    return { off_i, offset_ - Vector2(off_i) };
-}
-
-Frac offset_frac_from(float len)
-{
-    return Frac(Math::clamp(len * frac, 0.f, float(limits<Frac>::max)));
-}
-
-Frac offset_frac_from(Vector2 rem) { return offset_frac_from(rem.length()); }
-
-// offset_frac: scalar magnitude of pending sub-pixel motion.
-// update_movement clears on stuck so alternatives()' alt-direction isZero writes don't leak.
-step_result update_movement_body(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
-{
-    const auto [off_i, rem] = pixel_step(C.offset_frac, rotation_to_vec(new_r), nsteps);
-
-    if (off_i.isZero())
-    {
-        C.offset_frac = offset_frac_from(rem);
-        return step_result::accumulated;
-    }
-
-    // blocked: leave offset_frac untouched so the caller can try an alternative direction
-    if (sweep_critter(C, Vector2(off_i)).has_collider)
-        return step_result::blocked;
-
     // move_to() can refuse the implied rotation (non-square bbox against an obstacle)
-    if (!C.move_to(i, off_i, visible_r)) [[unlikely]]
-        return step_result::blocked;
+    if (!C.move_to(i, rotation_to_vec(new_r) * int(nsteps), visible_r)) [[unlikely]]
+        return false;
 
-    C.offset_frac = offset_frac_from(rem);
-    advance_anim_frames(C, nsteps, C.anim_speed, info.nframes);
-    return step_result::moved;
+    advance_anim_frames(C, float(nsteps) * step_length(new_r), C.anim_speed, info.nframes);
+    return true;
 }
 
-// Only `moved` counts: accepting `accumulated` would let a cardinal critter stuck
-// at a wall drift diagonally via offset_frac reinterpreted into the alt direction.
-bool update_movement_alternatives(size_t& i, critter& C, const anim_def& info, rotation new_r)
+bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
+{
+    if (sweep_critter(C, Vector2(rotation_to_vec(new_r) * int(nsteps))).has_collider)
+        return false;
+    return move_steps(i, C, info, nsteps, new_r, visible_r);
+}
+
+bool update_movement_alternatives(size_t& i, critter& C, const anim_def& info, Ns& ticks, const step_costs& cost, rotation new_r)
 {
     // rotations[0] == new_r; the caller just tried that, skip it
     const auto rotations = rotation_to_similar(new_r);
-    if (update_movement_body(i, C, info, 1, rotations.data()[1], new_r) == step_result::moved)
-        return true;
-    if (update_movement_body(i, C, info, 1, rotations.data()[2], new_r) == step_result::moved)
-        return true;
+    // both are diagonal for a cardinal new_r, both cardinal for a diagonal one
+    const auto alt_cost = cost(rotations.data()[1]);
+    // Only a cardinal new_r has dearer alternatives. A diagonal step can't get past a collider the
+    // straight one hit, so the time isn't kept for them.
+    if (ticks < alt_cost)
+        return false;
+    for (auto k : { 1u, 2u })
+    {
+        if (update_movement_body(i, C, info, 1, rotations.data()[k], new_r))
+        {
+            ticks -= alt_cost;
+            return true;
+        }
+    }
     return false;
 }
 
-bool update_movement_1(critter& C, size_t& i, const anim_def& info, uint32_t nframes, rotation new_r)
+bool update_movement_1(critter& C, size_t& i, const anim_def& info, Ns& ticks, const step_costs& cost, rotation new_r)
 {
-    while (nframes > 0)
+    constexpr uint64_t max_run = chunk_size_xy / 2;
+    const auto step = cost(new_r);
+    uint64_t max = max_run;
+    bool slid = false, check = false;
+    while (ticks >= step)
     {
-        constexpr uint32_t max = chunk_size_xy / 2;
-        auto cur = Math::min(max, nframes);
-        if (update_movement_body(i, C, info, cur, new_r, new_r) != step_result::blocked)
+        const auto n = (uint32_t)Math::min(max, ticks / step);
+        if (n > 1)
         {
-            nframes -= cur;
+            const auto k = free_steps(C, new_r, n);
+            if (k > 0 && !move_steps(i, C, info, k, new_r, new_r)) [[unlikely]]
+            {
+                max = 1;
+                continue;
+            }
+            ticks -= step * k;
+            if (k > 0 && slid)
+            {
+                max = max_run;
+                slid = false;
+            }
+            if (k < n)
+            {
+                // Step k + 1 is blocked. The single step below sweeps it again, so a wrong line
+                // sweep costs one warning and single steps for the rest of the update.
+                max = 1;
+                check = true;
+            }
             continue;
         }
-        if (!update_movement_alternatives(i, C, info, new_r))
+        if (update_movement_body(i, C, info, 1, new_r, new_r))
+        {
+            if (check) [[unlikely]]
+                warn_line_sweep_mismatch(C, new_r);
+            check = false;
+            ticks -= step;
+            if (slid)
+            {
+                max = max_run;
+                slid = false;
+            }
+            continue;
+        }
+        check = false;
+        if (!update_movement_alternatives(i, C, info, ticks, cost, new_r))
             return false;
-        nframes--;
+        slid = true;
     }
     return true;
 }
@@ -317,9 +360,11 @@ uint32_t step_at(const rc::bresenham_line& line, Vector2i px)
     return k <= Math::min(x.last, y.last) ? k : -1u;
 }
 
-Ns return_unspent_dt(uint32_t nframes, float speed, Ns frame_duration)
+Ns return_unspent_dt(const Ns& ticks, float speed)
 {
-    return Ns{(uint64_t)((double)(uint64_t)(nframes * frame_duration) / (double)speed)};
+    // A tiny speed would overflow the cast. 2^53 ns is the bound alloc_ticks() asserts on.
+    constexpr auto max_ns = double(uint64_t{1} << 53);
+    return Ns{(uint64_t)Math::min((double)ticks.stamp / (double)speed, max_ns)};
 }
 
 } // namespace
@@ -383,10 +428,7 @@ void critter::update(const bptr<object>& ptrʹ, size_t& i, const Ns& dt)
         {
             const auto new_r = arrows_to_dir(moves.L, moves.R, moves.U, moves.D);
             if (new_r == rotation_COUNT)
-            {
-                offset_frac = {};
                 delta = 0;
-            }
             else
                 update_movement(i, dt, new_r);
         }
@@ -396,9 +438,13 @@ void critter::update(const bptr<object>& ptrʹ, size_t& i, const Ns& dt)
 void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
 {
     const auto& info = atlas->info();
-    const auto nframes = alloc_frame_time(dt, delta, info.fps, speed);
-    if (nframes == 0)
+    const auto cost = step_costs{info.fps};
+    auto ticks = alloc_ticks(dt, delta, info.fps, speed);
+    if (ticks < cost.frame())
+    {
+        delta = ns_to_delta(ticks);
         return;
+    }
 
     fm_assert(new_r < rotation_COUNT);
     fm_assert(is_dynamic());
@@ -408,7 +454,6 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
         if (!can_rotate(new_r)) [[unlikely]]
         {
             delta = {};
-            offset_frac = {};
             return;
         }
         rotate(i, new_r);
@@ -416,13 +461,10 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
     c->ensure_passability();
 
     fm_debug2_assert(new_r < rotation_COUNT);
-    const bool ret = update_movement_1(*this, i, info, nframes, new_r);
-
-    if (!ret) [[unlikely]]
-    {
+    if (update_movement_1(*this, i, info, ticks, cost, new_r)) [[likely]]
+        delta = ns_to_delta(ticks);
+    else
         delta = {};
-        offset_frac = {};
-    }
 }
 
 auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_result
@@ -437,84 +479,56 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
     }
 
     const auto& info = atlas->info();
-    const auto hz = info.fps;
-    constexpr auto ns_in_sec = Ns((int)1e9);
-    const auto frame_duration = ns_in_sec / hz;
-    auto nframes = alloc_frame_time(dt, delta, hz, speed);
+    const auto cost = step_costs{info.fps};
+    auto ticks = alloc_ticks(dt, delta, info.fps, speed);
     dt = Ns{};
     bool moved = false;
 
-    if (nframes == 0)
-        return { .blocked = false, .moved = moved };
+    const auto blocked = [&] {
+        set_keys(false, false, false, false);
+        dt = return_unspent_dt(ticks, speed);
+        delta = {};
+        return move_result{ .blocked = true, .moved = moved };
+    };
 
-    bool ok = true;
-
-    while (nframes > 0)
+    for (;;)
     {
         chunk().ensure_passability();
 
         const auto from = position();
         if (from == dest)
         {
-            //Debug{} << "done!" << from;
-            //C.set_keys(false, false, false, false);
-            dt = return_unspent_dt(nframes, speed, frame_duration);
-            offset_frac = {};
+            // all of it goes back as dt, so delta mustn't count it again
+            dt = return_unspent_dt(ticks, speed);
+            delta = {};
             return { .blocked = false, .moved = moved, };
         }
         const auto step = next_step(from, dest);
         //Debug{} << "step" << step.direction << step.count << "|" << C.position();
         fm_assert(step.direction != Vector2b{} && step.count > 0);
         const auto new_r = dir_from_step(step);
+        const auto step_cost = cost(new_r);
         // Max steps for the operation to avoid overshooting
-        constexpr uint32_t len_limit = tile_size_xy;
-        const auto nsteps = (uint8_t)Math::min({nframes, step.count, len_limit});
-        fm_assert(nsteps > 0);
-        const auto [off_i, rem] = pixel_step(offset_frac, rotation_to_vec(new_r), nsteps);
-        offset_frac = offset_frac_from(rem);
+        constexpr uint64_t len_limit = tile_size_xy;
+        const auto nsteps = (uint32_t)Math::min({ticks / step_cost, uint64_t{step.count}, len_limit});
+        if (nsteps == 0)
+            break;
 
-        //DBG << "nsteps" << nsteps;
-        nframes -= nsteps;
-
-        if (!off_i.isZero())
+        if (r != new_r)
         {
-            if (r != new_r)
-            {
-                if (!can_rotate(new_r))
-                {
-                    ok = false;
-                    break;
-                }
-                rotate(index, new_r);
-            }
-            //Debug{} << "foo1" << C.offset_frac_;
-            if (!sweep_critter(*this, Vector2(off_i)).has_collider &&
-                move_to(index, off_i, new_r))
-            {
-                moved = true;
-                advance_anim_frames(*this, nsteps, anim_speed, info.nframes);
-            }
-            else
-            {
-                ok = false;
-                break;
-            }
+            if (!can_rotate(new_r))
+                return blocked();
+            rotate(index, new_r);
         }
+        const auto off_i = rotation_to_vec(new_r) * int(nsteps);
+        if (sweep_critter(*this, Vector2(off_i)).has_collider || !move_to(index, off_i, new_r))
+            return blocked();
+        ticks -= step_cost * nsteps;
+        moved = true;
+        advance_anim_frames(*this, float(nsteps) * step_length(new_r), anim_speed, info.nframes);
     }
 
-    dt = return_unspent_dt(nframes, speed, frame_duration);
-
-    // todo return unused movement frames into the offset_frac pool
-
-    if (!ok) [[unlikely]]
-    {
-        //Debug{} << "bad";
-        set_keys(false, false, false, false);
-        delta = {};
-        offset_frac = {};
-        return { .blocked = true, .moved = moved };
-    }
-
+    delta = ns_to_delta(ticks);
     return { .blocked = false, .moved = moved };
 }
 
@@ -534,7 +548,6 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
     const auto stop = [&] {
         set_keys(false, false, false, false);
         delta = {};
-        offset_frac = {};
     };
 
     if (k == -1u) [[unlikely]]
@@ -543,10 +556,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
         return { .blocked = true, .moved = false, .displaced = true };
     }
     if (k == steps)
-    {
-        offset_frac = {};
         return { .blocked = false, .moved = false };
-    }
     if (speed == 0) [[unlikely]]
     {
         dt = Ns{};
@@ -565,15 +575,14 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
     }
 
     const auto& info = atlas->info();
-    const auto frame_duration = Second / info.fps;
-    const auto nframes = alloc_frame_time(dt, delta, info.fps, speed);
+    auto ticks = alloc_ticks(dt, delta, info.fps, speed);
     dt = Ns{};
     const auto step_len = Vector2(dest - from).length() / float(steps);
-    const auto budget = float(nframes) + float(offset_frac) / frac;
-    const auto n = Math::min(steps - k, uint32_t(budget / step_len));
+    const auto step_cost = (Second / info.fps) * double(step_len);
+    const auto n = (uint32_t)Math::min(uint64_t{steps - k}, ticks / step_cost);
     if (n == 0)
     {
-        offset_frac = offset_frac_from(budget);
+        delta = ns_to_delta(ticks);
         return { .blocked = false, .moved = false };
     }
 
@@ -587,27 +596,26 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
     const auto res = find_swept_collider(world(), ch, box_line, k, k + n, Vector2ui(bbox_size), pred);
 
     const auto reached = res.step > k ? res.step - 1 : k;
-    const auto rem = Math::max(0.f, budget - float(reached - k) * step_len);
+    ticks -= step_cost * (reached - k);
     const bool done = res.has_collider || reached == steps;
-    const auto unspent = done ? Math::min(nframes, uint32_t(rem)) : 0u;
     if (reached > k)
     {
         teleport_to(index, origin + line.pixel_at(reached), new_r);
-        advance_anim_frames(*this, nframes - unspent, anim_speed, info.nframes);
+        advance_anim_frames(*this, float(reached - k) * step_len, anim_speed, info.nframes);
     }
 
     if (!done)
     {
-        offset_frac = offset_frac_from(rem);
+        delta = ns_to_delta(ticks);
         return { .blocked = false, .moved = true };
     }
-    dt = return_unspent_dt(unspent, speed, frame_duration);
+    dt = return_unspent_dt(ticks, speed);
+    delta = {};
     if (res.has_collider)
     {
         stop();
         return { .blocked = true, .moved = reached > k };
     }
-    offset_frac = {};
     return { .blocked = false, .moved = true };
 }
 

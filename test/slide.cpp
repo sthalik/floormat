@@ -30,6 +30,7 @@ constexpr critter::move_s key_W  {.L = true, .U = true};
 constexpr critter::move_s key_SW {.L = true};
 constexpr critter::move_s key_SE {.D = true};
 constexpr critter::move_s key_NW {.U = true};
+constexpr critter::move_s key_NE {.R = true};
 
 struct slide_case
 {
@@ -66,7 +67,6 @@ void place(const bptr<critter>& C, point pt)
     auto i = C->index();
     C->teleport_to(i, pt, rotation_COUNT);
     C->delta = 0;
-    C->offset_frac = 0;
 }
 
 // A blocked frame is dropped whole, so close the gap first: a critter still a few pixels short of
@@ -265,6 +265,81 @@ void test_slide_into_corner()
     w.finish_scripts();
 }
 
+// At speed 10 a frame buys more steps than the gap left to the wall. The critter must still stop
+// flush, not approach it through the diagonal alternatives and drift sideways.
+void test_head_on_fast()
+{
+    auto w = world();
+    wall_row(w, 9);
+    auto C = add_player(w, 1.f);
+    const auto start = point{ch, {8, 8}, {}};
+    const auto flush = settle(C, start, key_S);
+    C->speed = 10;
+    place(C, start);
+    press(C, key_S, walk_frames);
+    if (C->position() != flush)
+    {
+        Error{standard_error()} << "!!! fatal: fast head-on stopped at" << C->position() << "instead of" << flush;
+        fm_assert(false);
+    }
+    w.finish_scripts();
+}
+
+// Time for the straight step into a wall but not for its diagonal alternatives is dropped too:
+// they can't get past the wall either.
+void test_head_on_drops_time()
+{
+    auto w = world();
+    wall_row(w, 9);
+    auto C = add_player(w, 1.f);
+    const auto flush = settle(C, {ch, {8, 8}, {}}, key_S);
+    place(C, flush);
+    C->set_keys(key_S.L, key_S.R, key_S.U, key_S.D);
+    auto i = C->index();
+    C->update(C, i, dt_60hz * 1.2);
+    C->set_keys(false, false, false, false);
+    if (C->position() != flush || C->delta != 0)
+    {
+        Error{standard_error()} << "!!! fatal: head-on push kept delta" << C->delta << "at" << C->position();
+        fm_assert(false);
+    }
+    w.finish_scripts();
+}
+
+// One update holds the walk up to the wall, the slide along it and the NE walk past its east end.
+// It must end where the same walk in 60 Hz updates does.
+void test_slide_past_wall_end()
+{
+    constexpr uint32_t frames = 120;
+    auto w = world();
+    wall_row(w, 9);
+    auto C = add_player(w, 1.f);
+    const auto start = point{ch, {line_max, 9}, {}};
+
+    place(C, start);
+    const auto d = press(C, key_NE, frames);
+    const auto stepped = C->position();
+
+    place(C, start);
+    C->set_keys(key_NE.L, key_NE.R, key_NE.U, key_NE.D);
+    auto i = C->index();
+    C->update(C, i, dt_60hz * frames);
+    C->set_keys(false, false, false, false);
+
+    if (C->position() != stepped)
+    {
+        Error{standard_error()} << "!!! fatal: one update ended at" << C->position() << "instead of" << stepped;
+        fm_assert(false);
+    }
+    // The box top meets the wall at y = -npc_bbox/2, so further north means it got past the end.
+    if (d.x() <= -d.y() || d.y() >= -npc_bbox/2)
+    {
+        Error{standard_error()} << "!!! fatal: walk past the wall end moved by" << d;
+        fm_assert(false);
+    }
+    w.finish_scripts();
+}
+
 } // namespace
 
 void Test::test_slide()
@@ -273,6 +348,9 @@ void Test::test_slide()
     test_wall_west();
     test_scenery_row();
     test_slide_into_corner();
+    test_head_on_fast();
+    test_head_on_drops_time();
+    test_slide_past_wall_end();
 }
 
 } // namespace floormat
