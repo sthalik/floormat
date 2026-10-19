@@ -482,7 +482,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
     const auto cost = step_costs{info.fps};
     auto ticks = alloc_ticks(dt, delta, info.fps, speed);
     dt = Ns{};
-    bool moved = false;
+    bool moved = false, single = false;
 
     const auto blocked = [&] {
         set_keys(false, false, false, false);
@@ -510,9 +510,11 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         const auto step_cost = cost(new_r);
         // Max steps for the operation to avoid overshooting
         constexpr uint64_t len_limit = tile_size_xy;
-        const auto nsteps = (uint32_t)Math::min({ticks / step_cost, uint64_t{step.count}, len_limit});
+        auto nsteps = (uint32_t)Math::min({ticks / step_cost, uint64_t{step.count}, len_limit});
         if (nsteps == 0)
             break;
+        if (single)
+            nsteps = 1;
 
         if (r != new_r)
         {
@@ -520,12 +522,31 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
                 return blocked();
             rotate(index, new_r);
         }
-        const auto off_i = rotation_to_vec(new_r) * int(nsteps);
-        if (sweep_critter(*this, Vector2(off_i)).has_collider || !move_to(index, off_i, new_r))
-            return blocked();
-        ticks -= step_cost * nsteps;
-        moved = true;
-        advance_anim_frames(*this, float(nsteps) * step_length(new_r), anim_speed, info.nframes);
+        // after rotate(), so free_steps() sweeps the box for new_r
+        const auto k = nsteps > 1 ? free_steps(*this, new_r, nsteps) : 0;
+        if (k > 0)
+        {
+            if (!move_steps(index, *this, info, k, new_r, new_r))
+                return blocked();
+            ticks -= step_cost * k;
+            moved = true;
+        }
+        if (k < nsteps)
+        {
+            // Step k + 1 is blocked unless nsteps is 1. The single-step sweep checks it, so a wrong
+            // line sweep costs one warning and single steps for the rest of the call.
+            if (sweep_critter(*this, Vector2(rotation_to_vec(new_r))).has_collider)
+                return blocked();
+            if (!move_steps(index, *this, info, 1, new_r, new_r))
+                return blocked();
+            if (nsteps > 1) [[unlikely]]
+            {
+                warn_line_sweep_mismatch(*this, new_r);
+                single = true;
+            }
+            ticks -= step_cost;
+            moved = true;
+        }
     }
 
     delta = ns_to_delta(ticks);
