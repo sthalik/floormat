@@ -5,7 +5,7 @@
 #include "src/cover-point.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pass-pool.hpp"
+#include "src/grid-pool-registry.hpp"
 #include "src/intra-coord.inl"
 #include "src/point.inl"
 #include "src/search.hpp"

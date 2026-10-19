@@ -17,7 +17,7 @@
 #include "src/tile-defs.hpp"
 #include "src/grid.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pass-pool.hpp"
+#include "src/grid-pool-registry.hpp"
 #include "src/grid-cover.hpp"
 #include "src/tile.hpp"
 #include "src/world.hpp"

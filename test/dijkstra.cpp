@@ -4,7 +4,7 @@
 #include "src/search-cache.hpp"
 #include "src/search.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pass-pool.hpp"
+#include "src/grid-pool-registry.hpp"
 #include "src/point.hpp"
 #include "src/intra-coord.inl"
 #include "src/world.hpp"

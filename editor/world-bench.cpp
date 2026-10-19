@@ -12,7 +12,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/tile-image.hpp"
 #include "src/grid.hpp"
-#include "src/grid-pass-pool.hpp"
+#include "src/grid-pool-registry.hpp"
 #include "src/search-astar.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"

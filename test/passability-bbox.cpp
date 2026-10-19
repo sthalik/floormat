@@ -18,7 +18,7 @@
 #include "src/global-coords.hpp"
 #include "src/collision.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pass-pool.hpp"
+#include "src/grid-pool-registry.hpp"
 #include "src/search.hpp"
 #include "src/search-pred.hpp"
 #include <utility>
