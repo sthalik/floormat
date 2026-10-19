@@ -204,6 +204,17 @@ void PoolBase::detach_all() noexcept
     }
 }
 
+bool PoolBase::update_checked_pass_gen(const world& w) noexcept
+{
+    // Every stamp in versions[] came from world::next_pass_gen(), and so did every change that
+    // dirtied a chunk. While the counter hasn't moved, the walk would find nothing.
+    const auto gen = w.pass_gen();
+    if (gen == checked_pass_gen)
+        return false;
+    checked_pass_gen = gen;
+    return true;
+}
+
 void cascade_mark_neighbors_stale(
     chunk_coords_ coord,
     fu2::function_view<GridBase*(chunk_coords_)> find)
