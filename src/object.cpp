@@ -73,8 +73,6 @@ size_t object::index() const
 bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
                         Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
-    if (bbox_offset.isZero() && bbox_size[0] == bbox_size[1])
-        return true;
     // rotate() only rotates the sub-tile offset for non-dynamic objects; mirror that
     const auto [offset_, bbox_offset_] = !is_dynamic() ? rotate_offset(offset, bbox_offset, old_r, new_r)
                                                        : Pair<Vector2b, Vector2b>{offset, rotate_point(bbox_offset, old_r, new_r)};
