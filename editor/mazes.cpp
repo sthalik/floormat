@@ -4,6 +4,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/grid-pass.hpp"
 #include "src/search-pred.hpp"
+#include "src/search-octile.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "loader/loader.hpp"
@@ -376,8 +377,8 @@ route build(world& w, kind k, chunk_coords_ origin, Grid::Pass::Pool& pool)
     const auto from = open_point(w, pool, tile_point(origin, m, a.tile));
     const auto to = open_point(w, pool, tile_point(origin, m, b.tile));
 
-    const auto& h = Search::octile_distance();
-    const auto h_max = h(tile_point(origin, m, 0), tile_point(origin, m, m.size*m.size - 1)) + 2*tile_size_xy;
+    const auto h_max = Search::octile_distance(tile_point(origin, m, 0),
+                                               tile_point(origin, m, m.size*m.size - 1)) + 2*tile_size_xy;
     // If the walk through the BFS path's tile centres is passable, the optimum costs at most
     // b.dist*tile_size_xy. A pushed node's g is then at most that plus one step and its h at most
     // h_max, so this max_dist prunes nothing. A larger one only grows Search::cache's rectangle.
