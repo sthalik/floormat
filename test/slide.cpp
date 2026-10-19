@@ -306,6 +306,32 @@ void test_head_on_drops_time()
     w.finish_scripts();
 }
 
+// The time holds more steps than the gap to the wall, so a walk to a point past it has to stop
+// flush, as the key walk does.
+void test_walk_to_wall_fast()
+{
+    auto w = world();
+    wall_row(w, 9);
+    auto C = add_player(w, 1.f);
+    const auto start = point{ch, {8, 8}, {}};
+    const auto flush = settle(C, start, key_S);
+    for (auto speed = 10; speed <= 100; speed++)
+    {
+        C->speed = (float)speed;
+        place(C, start);
+        auto i = C->index();
+        auto dt = dt_60hz * 6;
+        const auto res = C->move_toward(i, dt, point{ch, {8, 12}, {}});
+        if (!res.blocked || C->position() != flush)
+        {
+            Error{standard_error()} << "!!! fatal: walk to a point past a wall at speed" << speed << "stopped at"
+                                    << C->position() << "instead of" << flush << "blocked" << res.blocked;
+            fm_assert(false);
+        }
+    }
+    w.finish_scripts();
+}
+
 // One update holds the walk up to the wall, the slide along it and the NE walk past its east end.
 // It must end where the same walk in 60 Hz updates does.
 void test_slide_past_wall_end()
@@ -350,6 +376,7 @@ void Test::test_slide()
     test_slide_into_corner();
     test_head_on_fast();
     test_head_on_drops_time();
+    test_walk_to_wall_fast();
     test_slide_past_wall_end();
 }
 
