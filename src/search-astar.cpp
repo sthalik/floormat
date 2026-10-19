@@ -390,7 +390,7 @@ CORRADE_ALWAYS_INLINE
 void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             Array<visited>& nodes, uint32_t& node_count, bucket_queue& Q,
             dir_step dirs,
-            point to, point cur_pt,
+            Vector2i goal_delta, point cur_pt,
             uint32_t cur_idx, uint32_t cur_dist,
             uint32_t max_dist, const neighbourhood& cells)
 {
@@ -400,13 +400,15 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     if (window && (window & mask) != mask)
         return;
 
-    const bool same_chunk = cells.chunk_idx != (size_t)-1;
     const auto dist = cur_dist + len;
-    const auto new_pt = same_chunk ? point{cur_pt.chunk3(), intra_coord{cells.pix + vec}}
-                                   : point::normalize_coords(cur_pt, vec);
-    uint32_t f_score = dist + Search::octile_distance(new_pt, to);
+    // Equals new_pt - to: both branches below put new_pt at cur_pt's pixel + vec.
+    uint32_t f_score = dist + Search::octile_distance(goal_delta + vec);
     if (f_score >= max_dist) [[unlikely]]
         return;
+
+    const bool same_chunk = cells.chunk_idx != (size_t)-1;
+    const auto new_pt = same_chunk ? point{cur_pt.chunk3(), intra_coord{cells.pix + vec}}
+                                   : point::normalize_coords(cur_pt, vec);
 
     size_t chunk_idx, tile_idx;
     if (same_chunk) [[likely]]
@@ -647,6 +649,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             break;
         }
 
+        const auto goal_delta = cur_pt - to;
         const auto goal_dist_sq = point::distance_squared(cur_pt, to);
 
         if constexpr (FindClosestOnFailure)
@@ -668,7 +671,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             if (is_hop_passable(cur_pt))
             {
                 // Octile like the steps, so h never exceeds a hop's cost. h is 0 at the goal.
-                const auto new_dist = cur_dist + Search::octile_distance(cur_pt, to);
+                const auto new_dist = cur_dist + Search::octile_distance(goal_delta);
                 if (to_idx == (uint32_t)-1)
                 {
                     to_idx = append_node(nodes, node_count, visited{ .dist = new_dist, .prev = cur_idx, .pt = to, });
@@ -690,8 +693,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         {
             const auto d1 = directions.data()[i + 0],
                        d2 = directions.data()[i + 1];
-            do_dir<1, Debug>(bm, cache, nodes, node_count, Q, d1, to, cur_pt, cur_idx, cur_dist, max_dist, cells);
-            do_dir<0, Debug>(bm, cache, nodes, node_count, Q, d2, to, cur_pt, cur_idx, cur_dist, max_dist, cells);
+            do_dir<1, Debug>(bm, cache, nodes, node_count, Q, d1, goal_delta, cur_pt, cur_idx, cur_dist, max_dist, cells);
+            do_dir<0, Debug>(bm, cache, nodes, node_count, Q, d2, goal_delta, cur_pt, cur_idx, cur_dist, max_dist, cells);
         }
     }
 
