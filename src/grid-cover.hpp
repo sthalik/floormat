@@ -62,6 +62,7 @@ public:
 class Pool final
 {
     detail::grid::CoverPool* pool;
+    uint64_t checked_pass_gen = (uint64_t)-1;
 
 public:
     explicit Pool(Params params);

@@ -1742,6 +1742,41 @@ void test_cover_blocked_cells(uint32_t div_size)
     }
 }
 
+// The pool skips its walk while world::pass_gen() stands still. Each neighbor change below moves
+// it through a different path: chunk creation, mark_passability_modified, chunk deletion.
+void test_cover_rebuilds_on_neighbor_change(uint32_t div_size)
+{
+    auto w = world();
+    auto& c = w[COORD];
+    add_ground_all(c);
+    rebuild_passability(c);
+
+    Cover::Pool pool{Cover::Params{div_size}};
+    const auto walk = [&] {
+        pool.maybe_mark_stale_all(w);
+        Cover::Grid g = pool[c];
+        g.build_if_stale();
+        return g.build_no();
+    };
+    auto n = walk();
+    fm_assert(walk() == n);
+
+    auto& e = w[COORD_E];
+    fm_assert(walk() != n);
+    n = walk();
+    fm_assert(walk() == n);
+
+    add_ground_all(e);
+    rebuild_passability(e);
+    fm_assert(walk() != n);
+
+    clear_ground_all(e);
+    n = walk();
+    w.collect(true, true);
+    fm_assert(w.at(COORD_E) == nullptr);
+    fm_assert(walk() != n);
+}
+
 // The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
 // ray rounded. Seeds rounded to whole units would be off by up to one more half unit.
 void test_cover_diagonal_matches_ray(uint32_t div_size)
@@ -1861,6 +1896,7 @@ void test_grid()
     }
     for (const auto ds : { 8u, 16u })
         test_cover_blocked_cells(ds);
+    test_cover_rebuilds_on_neighbor_change(16);
     // 128 and 256 leave rows narrower than a vector, or exactly one wide
     const auto aligned_octants = { 0u, 4u, 8u, 12u, 16u, 20u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan
