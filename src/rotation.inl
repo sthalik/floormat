@@ -3,6 +3,7 @@
 #include "compat/limits.hpp"
 #include "rotation.hpp"
 #include "tile-defs.hpp"
+#include <cr/Pair.h>
 #include <mg/Functions.h>
 #include <mg/Vector2.h>
 
@@ -41,9 +42,13 @@ constexpr Math::Vector2<T> rotate_point(Math::Vector2<T> rect, rotation r_old, r
 }
 
 // The mirror turns -half_tile into +half_tile, outside a sub-tile offset.
-constexpr Vector2b rotate_offset(Vector2b offset, rotation r_old, rotation r_new)
+// bbox_offset takes the pixel the clamp removes, so the box is still the exact mirror.
+constexpr Pair<Vector2b, Vector2b> rotate_offset(Vector2b offset, Vector2b bbox_offset, rotation r_old, rotation r_new)
 {
-    return Math::clamp(rotate_point(offset, r_old, r_new), -half_tile<Vector2b>, half_tile<Vector2b> - Vector2b{1});
+    const auto off = Vector2i(rotate_point(offset, r_old, r_new));
+    const auto offʹ = Math::clamp(off, -half_tile<Vector2i>, half_tile<Vector2i> - Vector2i{1});
+    const auto bb = Vector2i(rotate_point(bbox_offset, r_old, r_new)) + off - offʹ;
+    return { Vector2b(offʹ), Vector2b(Math::min(bb, Vector2i{limits<int8_t>::max})) };
 }
 
 constexpr Vector2ub rotate_size(Vector2ub size0, rotation r_old, rotation r_new)
