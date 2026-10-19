@@ -536,27 +536,25 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     auto* const from_chunk = w.at(from.chunk3());
     const auto from_neighbors = w.neighbors(from.chunk3());
     const auto from_center = Vector2(intra_coord{from}.center_shifted());
-    const auto own_half = Vector2(own_size/2);
+    const auto own_lo = Vector2(own_size/2u), own_hi = Vector2(own_size) - own_lo;
 
     auto* const to_chunk = w.at(to.chunk3());
     const auto to_neighbors = w.neighbors(to.chunk3());
     const auto to_center = Vector2(intra_coord{to}.center_shifted());
 
     // exact, so a goal whose cell bit is clear stays reachable
-    // `to` by value: a reference makes it address-taken, so the main loop reloads it after every call
-    const auto is_hop_passable = [&, to](point pt) {
+    // by value: a reference makes a capture address-taken, so the main loop reloads it after every call
+    const auto is_hop_passable = [&, to, own_lo, own_hi](point pt) {
         const auto center = to_center + Vector2(pt - to);
         return Search::is_passable_(to_chunk, to_neighbors,
-                                    Math::min(center, to_center) - own_half,
-                                    Math::max(center, to_center) + own_half, p);
+                                    Math::min(center, to_center) - own_lo,
+                                    Math::max(center, to_center) + own_hi, p);
     };
 
-    if (auto R = Range2D::fromCenter(from_center, own_half);
-        !Search::is_passable_(from_chunk, from_neighbors, R.min(), R.max(), p))
+    if (!Search::is_passable_(from_chunk, from_neighbors, from_center - own_lo, from_center + own_hi, p))
         return {};
 
-    if (auto R = Range2D::fromCenter(to_center, own_half);
-        !Search::is_passable_(to_chunk, to_neighbors, R.min(), R.max(), p))
+    if (!Search::is_passable_(to_chunk, to_neighbors, to_center - own_lo, to_center + own_hi, p))
         return {};
 
     // without a node that can hop to the goal, the search only ends after visiting everything
@@ -601,8 +599,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
 
         if (cache.is_passable_for_bbox(w, pool, pt, p)
             && Search::is_passable_(from_chunk, from_neighbors,
-                                    Math::min(from_center, seed_center) - own_half,
-                                    Math::max(from_center, seed_center) + own_half, p))
+                                    Math::min(from_center, seed_center) - own_lo,
+                                    Math::max(from_center, seed_center) + own_hi, p))
         {
             auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
             cache.add_index(pt, idx);
@@ -792,13 +790,13 @@ auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
     const auto n = (uint32_t)P.size();
 
     const auto own_size = Math::max(own_size_, min_size);
-    const auto half = Vector2(own_size) * .5f;
+    const auto own_lo = Vector2(own_size/2u), own_hi = Vector2(own_size) - own_lo;
     auto& pool = _pool_registry->pool_for(Math::max(own_size.x(), own_size.y()));
     pool.maybe_mark_stale_all(w);
 
     struct los_result { corner_pick best; bool blocked; };
 
-    // The best corner of the rects blocking from -> to, grown by half the bbox and rounded outward.
+    // The best corner of the rects blocking from -> to, grown by the bbox and rounded outward.
     // With limit, only corners at a smaller angle.
     const auto los = [&](point from, point to, Vector2i ref, const corner_pick* limit) {
         const auto ch = from.chunk3();
@@ -809,8 +807,8 @@ auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
         los_checks++;
         find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, &pool, [&](const swept_collider_result& r) {
             res.blocked = true;
-            const auto x0 = (int32_t)Math::floor(r.rect.min().x() - half.x()), x1 = (int32_t)Math::ceil(r.rect.max().x() + half.x());
-            const auto y0 = (int32_t)Math::floor(r.rect.min().y() - half.y()), y1 = (int32_t)Math::ceil(r.rect.max().y() + half.y());
+            const auto x0 = (int32_t)Math::floor(r.rect.min().x() - own_hi.x()), x1 = (int32_t)Math::ceil(r.rect.max().x() + own_lo.x());
+            const auto y0 = (int32_t)Math::floor(r.rect.min().y() - own_hi.y()), y1 = (int32_t)Math::ceil(r.rect.max().y() + own_lo.y());
             for (const auto c : { Vector2i{x0, y0}, Vector2i{x1, y0}, Vector2i{x0, y1}, Vector2i{x1, y1} })
             {
                 const auto v = c - o;

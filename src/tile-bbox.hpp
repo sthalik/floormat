@@ -14,6 +14,7 @@ constexpr VectorTypeFor<2, T> tile_start(size_t k)
     return Vec2(TILE_SIZE2) * Vec2(coord) - half_tile<Vec2>;
 }
 
+// An odd size puts its extra pixel on the +x/+y side. Every bbox around a center does the same.
 constexpr Pair<Vector2i, Vector2i> scenery_tile(local_coords local, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
     auto center = iTILE_SIZE2 * Vector2i(local) + Vector2i(offset) + Vector2i(bbox_offset);

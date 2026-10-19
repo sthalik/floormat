@@ -110,9 +110,8 @@ uint32_t GridBase::pack_bit_index_from_coord(intra_coord posʹ, uint32_t div_cou
 Range2D GridBase::coord_range_from_div(uint32_t x, uint32_t y, uint32_t div_size, uint32_t bbox_size)
 {
     const auto bbox = Vector2(bbox_size);
-    const auto half_bbox = bbox*.5f;
     const auto pos = intra_coord{Vector2i{(int32_t)x, (int32_t)y} * (int32_t)div_size + Vector2i{(int32_t)(div_size / 2)}};
-    auto min = Vector2(pos.center_shifted()) - half_bbox;
+    auto min = Vector2(pos.center_shifted()) - Vector2((float)(bbox_size / 2));
     auto max = min + bbox;
     return { min, max };
 }

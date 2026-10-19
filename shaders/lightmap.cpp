@@ -405,8 +405,7 @@ void lightmap_shader::add_objects(Vector2 neighbor_offset, chunk& c)
             continue;
         auto center = Vector2(e.offset) + Vector2(e.bbox_offset) +
                       Vector2(e.coord.local()) * TILE_SIZE2;
-        auto half = Vector2(e.bbox_size)*.5f;
-        auto min = center - half, max = center + half;
+        auto min = center - Vector2(e.bbox_size/2), max = min + Vector2(e.bbox_size);
 
         add_segment(neighbor_offset, {min.x(), max.y()}, {max.x(), max.y()}); // north
         add_segment(neighbor_offset, {max.x(), max.y()}, {max.x(), min.y()}); // east

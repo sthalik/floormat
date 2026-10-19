@@ -72,9 +72,12 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             const float hx = e.bbox_size.x() * 0.5f, hy = e.bbox_size.y() * 0.5f;
             const float denom = hx + hy;
             const float slope = denom > 0.f ? f * (hx - hy) / denom : 0.f;
+            // the box spans [center - lo, center + hi), so an odd size moves its middle half a pixel past center
+            const auto lo = Vector2i(e.bbox_size/2), hi = Vector2i(e.bbox_size) - lo;
+            const auto mid = Vector2(hi - lo)*.5f;
 
             // bbox center screen offset from sprite's ground anchor
-            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset), 0.f) - Vector3(group.offset));
+            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset) + mid, 0.f) - Vector3(group.offset));
 
             // sprite screen extent (pixel offsets from projected center)
             const float left_x   = float(-frame.ground.x());
@@ -83,10 +86,10 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             const float bottom_y = float(frame.size.y()) - float(frame.ground.y());
 
             //const auto depth_bias = int32_t((uint32_t)e.bbox_size.min());
-            const auto depth_bias = int32_t((Vector2ui(e.bbox_size)/2).sum());
+            const auto depth_bias = hi.sum();
             const auto front_depth      = Depth::value_at(depth_start, center, depth_offset + depth_bias);
-            const auto back_left_depth  = Depth::value_at(depth_start, center, depth_offset + int(hy) - int(hx));
-            const auto back_right_depth = Depth::value_at(depth_start, center, depth_offset + int(hx) - int(hy));
+            const auto back_left_depth  = Depth::value_at(depth_start, center, depth_offset + hi.y() - lo.x());
+            const auto back_right_depth = Depth::value_at(depth_start, center, depth_offset + hi.x() - lo.y());
 
             const float x_nw = Math::clamp(bbox_scr.x() + hy - hx, left_x, right_x);
             const float x_se = Math::clamp(bbox_scr.x() + hx - hy, left_x, right_x);
@@ -101,7 +104,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             // north and west wall faces so thin walls in front hide the whole sprite
             auto depth_at = [&](float x) {
                 const float u = Math::clamp(x - bbox_scr.x(), -hx - hy, hx + hy);
-                const auto off = (int32_t)Math::floor(Math::min(u + 2 * hy, 2 * hx - u));
+                const auto off = (int32_t)Math::floor(mid.sum() + Math::min(u + 2 * hy, 2 * hx - u));
                 return Depth::value_at(depth_start, center, depth_offset + off);
             };
             // quad[0]=BR, quad[1]=TR, quad[2]=BL, quad[3]=TL

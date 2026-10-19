@@ -94,9 +94,8 @@ void test_critter_slit_ne()
 uint32_t first_blocked_step(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                             uint32_t first, uint32_t last, Vector2ui size)
 {
-    const auto half = Vector2(size) * .5f;
     const auto free = [&](Vector2i c) {
-        return Search::is_passable(w, ch, Range2D{Vector2(c) - half, Vector2(c) + half});
+        return Search::is_passable(w, ch, Range2D::fromSize(Vector2(c) - Vector2(size/2u), Vector2(size)));
     };
     if (!free(line.pixel_at(first)))
         return first;
@@ -137,9 +136,9 @@ void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, ui
 
     if (!res.has_collider)
         return;
-    const auto half = Vector2(size) * .5f;
     const auto overlaps = [&](Vector2i c) {
-        return rect_intersects(Vector2(c) - half, Vector2(c) + half, res.rect.min(), res.rect.max());
+        const auto min = Vector2(c) - Vector2(size/2u);
+        return rect_intersects(min, min + Vector2(size), res.rect.min(), res.rect.max());
     };
     bool any = overlaps(line.pixel_at(res.step));
     if (res.step > first)

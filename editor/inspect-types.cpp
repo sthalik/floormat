@@ -1,6 +1,5 @@
 #include "entity/metadata.hpp"
 #include "compat/limits.hpp"
-#include "compat/round-to-even.hpp"
 #include "src/scenery.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-defs.hpp"
@@ -14,7 +13,6 @@
 #include <cr/ArrayViewStl.h>
 #include <mg/Color.h>
 #include <imgui.h>
-#include <imgui_internal.h>
 
 namespace floormat::entities {
 
@@ -103,19 +101,11 @@ struct entity_accessors<object, inspect_intent_t> {
             },
             E::type<Vector2ub>::field{"bbox-size"_s,
                 &object::bbox_size,
-                [](object& x, Vector2ub value)
-                {
-                    const bool editing = ImGui::GetInputTextState(ImGui::GetActiveID()) && !ImGui::IsItemDeactivatedAfterEdit();
-                    if (editing && value % Vector2ub{2} != Vector2ub{0})
-                        return;
-                    value.x() = round_to_even(value.x(), x.bbox_size.x());
-                    value.y() = round_to_even(value.y(), x.bbox_size.y());
-                    x.set_bbox(x.offset, x.bbox_offset, value, x.pass);
-                },
+                [](object& x, Vector2ub value) { x.set_bbox(x.offset, x.bbox_offset, value, x.pass); },
                 [](const object& x) { return enable_bbox_editing(x) ? st::enabled : st::readonly; },
                 [](const object& x) -> constraints::range<Vector2ub> {
                     if (x.type() == object_type::critter)
-                        return {{2,2}, {255, 255}};
+                        return {{1,1}, {255, 255}};
                     else
                         return {{0,0}, {255, 255}};
                 },

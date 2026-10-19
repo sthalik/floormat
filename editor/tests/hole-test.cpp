@@ -70,7 +70,7 @@ void hole_test::draw_ui(app&, float)
     ImGui::NewLine();
 
     const auto rect = Range2Di::fromCenter({}, Vector2i{tile_size_xy/2});
-    const auto s = Range2Di::fromCenter(st.pos, Vector2i{st.size/2});
+    const auto s = Range2Di::fromSize(st.pos - Vector2i{st.size/2}, Vector2i{st.size});
     const auto res = CutResult<Int>::cut(rect, s);
 
     ImGui::SetNextWindowSize({width, width});
@@ -86,8 +86,7 @@ void hole_test::draw_ui(app&, float)
 
         draw.AddRectFilled(to_imvec2(min), to_imvec2(maxʹ), bgcolor, 0, imdf); // black
         draw.AddRect(to_imvec2(center - TILE_SIZE2*.5f*mult), to_imvec2(center + TILE_SIZE2*.5f*mult), gray, 0); // standard tile
-        draw.AddRectFilled(to_imvec2(center + (Vector2(st.pos) - Vector2(st.size)/2)*mult),
-                           to_imvec2(center + (Vector2(st.pos) + Vector2(st.size)/2)*mult), red); // hole
+        draw.AddRectFilled(to_imvec2(center + Vector2(s.min())*mult), to_imvec2(center + Vector2(s.max())*mult), red); // hole
 
         for (auto i = 0u; i < res.size; i++)
         {
@@ -101,8 +100,7 @@ void hole_test::draw_ui(app&, float)
             draw.AddRect(to_imvec2(center + Vector2(r.min())*mult), to_imvec2(center + Vector2(r.max())*mult), blue, 0, 3); // rects
         }
 
-        draw.AddRect(to_imvec2(center + (Vector2(st.pos) - Vector2(st.size)*.5f)*mult),
-                     to_imvec2(center + (Vector2(st.pos) + Vector2(st.size)*.5f)* mult), red, 0, 1); // hole
+        draw.AddRect(to_imvec2(center + Vector2(s.min())*mult), to_imvec2(center + Vector2(s.max())*mult), red, 0, 1); // hole
     }
 
     const auto label_width = ImGui::CalcTextSize("MMMMMM").x;
