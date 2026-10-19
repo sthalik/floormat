@@ -366,10 +366,28 @@ struct chunk_bitmaps
     }
 };
 
+// Not arrayResize(): a growable array's header puts every fourth node across a cache line.
+CORRADE_NEVER_INLINE void grow_nodes(Array<visited>& nodes, uint32_t count)
+{
+    auto a = Array<visited>{NoInit, Math::max(nodes.size()*2, 64uz)};
+    std::copy_n(nodes.data(), count, a.data());
+    nodes = move(a);
+}
+
+// nodes.size() is the capacity and `count` the size. arrayAppend() would call arrayGrowBy()
+// out of line for every node.
+CORRADE_ALWAYS_INLINE uint32_t append_node(Array<visited>& nodes, uint32_t& count, const visited& node)
+{
+    if (count == nodes.size()) [[unlikely]]
+        grow_nodes(nodes, count);
+    nodes.data()[count] = node;
+    return count++;
+}
+
 template<bool IsDiagonal, int Debug>
 CORRADE_ALWAYS_INLINE
 void do_dir(chunk_bitmaps& bm, Search::cache& cache,
-            Array<visited>& nodes, bucket_queue& Q,
+            Array<visited>& nodes, uint32_t& node_count, bucket_queue& Q,
             const astar::heuristic& h,
             dir_step dirs,
             point to, point cur_pt,
@@ -423,15 +441,12 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
 
     if (new_idx == (uint32_t)-1)
     {
-        const auto sz = nodes.size();
-        new_idx = (uint32_t)sz;
-        cache.add_index(chunk_idx, tile_idx, new_idx);
-        auto new_node = visited{
+        new_idx = append_node(nodes, node_count, visited{
             .dist = dist,
             .prev = cur_idx,
             .pt = new_pt,
-        };
-        arrayAppend(nodes, new_node);
+        });
+        cache.add_index(chunk_idx, tile_idx, new_idx);
     }
     else
     {
@@ -460,12 +475,8 @@ astar::~astar() noexcept = default;
 
 void astar::reserve(size_t capacity)
 {
-    arrayReserve(nodes, capacity);
-}
-
-void astar::clear()
-{
-    arrayResize(nodes, 0);
+    if (nodes.size() < capacity)
+        nodes = Array<visited>{NoInit, capacity};
 }
 
 Search::cache* astar::cache() { return &*_cache; }
@@ -492,7 +503,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     if constexpr(Debug > 0)
         timeline.start();
 
-    clear();
+    uint32_t node_count = 0;
     auto Q = bucket_queue{buckets};
 
     if (from.coord().z() != to.coord().z()) [[unlikely]]
@@ -592,9 +603,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
                                     Math::min(from_center, seed_center) - own_half,
                                     Math::max(from_center, seed_center) + own_half, p))
         {
-            auto idx = (uint32_t)nodes.size();
+            auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
             cache.add_index(pt, idx);
-            arrayAppend(nodes, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
             uint32_t f_score = dist + h(pt, to);
             if (dist < max_dist && f_score < max_dist)
                 Q.push(idx, f_score, dist);
@@ -663,8 +673,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
                 const auto new_dist = cur_dist + octile(cur_pt, to);
                 if (to_idx == (uint32_t)-1)
                 {
-                    to_idx = (uint32_t)nodes.size();
-                    arrayAppend(nodes, visited{ .dist = new_dist, .prev = cur_idx, .pt = to, });
+                    to_idx = append_node(nodes, node_count, visited{ .dist = new_dist, .prev = cur_idx, .pt = to, });
                     Q.push(to_idx, new_dist, new_dist);
                 }
                 else if (new_dist < nodes[to_idx].dist)
@@ -683,8 +692,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         {
             const auto d1 = directions.data()[i + 0],
                        d2 = directions.data()[i + 1];
-            do_dir<1, Debug>(bm, cache, nodes, Q, h, d1, to, cur_pt, cur_idx, cur_dist, max_dist, cells);
-            do_dir<0, Debug>(bm, cache, nodes, Q, h, d2, to, cur_pt, cur_idx, cur_dist, max_dist, cells);
+            do_dir<1, Debug>(bm, cache, nodes, node_count, Q, h, d1, to, cur_pt, cur_idx, cur_dist, max_dist, cells);
+            do_dir<0, Debug>(bm, cache, nodes, node_count, Q, h, d2, to, cur_pt, cur_idx, cur_dist, max_dist, cells);
         }
     }
 
