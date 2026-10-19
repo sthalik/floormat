@@ -19,6 +19,7 @@
 #include "src/hole.hpp"
 #include "src/world.hpp"
 #include "src/object-storage.inl"
+#include "src/nanosecond.inl"
 
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
@@ -129,7 +130,6 @@ struct object_header_s
 
 struct critter_header_s
 {
-    uint16_t& offset_frac;
     uint32_t& anim_progress;
 };
 
@@ -156,7 +156,8 @@ using proto_t  = uint16_t;
 // 28: no longer tolerate bbox_size as an odd number
 // 29: add critter::anim_speed
 // 30: allow bbox_size as an odd number
-static constexpr proto_t proto_version = 30;
+// 31: drop critter::offset_frac, store object::delta in ns
+static constexpr proto_t proto_version = 31;
 
 static constexpr size_t string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
@@ -259,6 +260,9 @@ struct visitor_ : visitor_base<IsNewest>
                 fm_assert(false);
             }
         }
+        if constexpr(!IsWriter)
+            if (self.PROTO < 31) [[unlikely]]
+                obj.delta = object::ns_to_delta(object::fraction_to_ns(obj.delta));
         visit(obj.frame, f);
         visit(obj.r, f);
         visit(obj.pass, f);
@@ -381,13 +385,24 @@ struct visitor_ : visitor_base<IsNewest>
             s.anim_progress = 0;
         fm_soft_assert(s.anim_progress < anim_speed_unit);
 
-        if (self.PROTO >= 24) [[likely]]
-            visit(s.offset_frac, f);
-        else
+        if (self.PROTO < 31) [[unlikely]]
         {
-            Vector2us foo1;
-            visit(foo1, f);
-            s.offset_frac = 0;
+            if constexpr(IsWriter)
+                fm_assert(false);
+            else if (self.PROTO >= 24)
+            {
+                // path length × 32768, and a pixel of path cost a frame
+                uint16_t offset_frac;
+                visit(offset_frac, f);
+                // a 1-frame atlas can have fps 0, as does the one loaded for a missing atlas
+                if (const auto fps = obj.atlas->info().fps)
+                    obj.delta = object::ns_to_delta(Ns{obj.delta} + (Second / fps) * (double(offset_frac) / 32768));
+            }
+            else
+            {
+                Vector2us offset_frac;
+                visit(offset_frac, f);
+            }
         }
 
         using O = critter;
@@ -516,10 +531,8 @@ struct writer final : visitor_<writer, true, true>
         case object_type::critter:
         {
             const auto& C = static_cast<const critter&>(obj);
-            uint16_t offset_frac = C.offset_frac;
             uint32_t anim_progress = C.anim_progress;
             critter_header_s cr = {
-                .offset_frac = offset_frac,
                 .anim_progress = anim_progress,
             };
             visit_object_proto(C, move(cr), f);
@@ -988,15 +1001,12 @@ ok:
         case object_type::COUNT:
             break;
         case object_type::critter: {
-            uint16_t offset_frac = 0;
             uint32_t anim_progress = 0;
             critter_header_s h{
-                .offset_frac = offset_frac,
                 .anim_progress = anim_progress,
             };
             obj = make_object<critter, critter_proto, critter_header_s>(s, move(p), move(h), f);
             static_cast<critter&>(*obj).anim_progress = anim_progress;
-            static_cast<critter&>(*obj).offset_frac = offset_frac;
             goto ok;
         }
         case object_type::light:

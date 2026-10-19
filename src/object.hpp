@@ -98,9 +98,12 @@ public:
     void teleport_to(size_t& i, global_coords coord, Vector2b offset, rotation new_r);
     void teleport_to(size_t& i, point pt, rotation new_r);
 
-    template<typename T>
-    requires std::is_unsigned_v<T>
-    static uint32_t alloc_frame_time(const Ns& dt, T& accum, uint32_t hz, float speed);
+    /// delta holds ns. Stored time saturates at 2^32 - 1 ns, 4.29 s.
+    static uint32_t alloc_frame_time(const Ns& dt, uint32_t& delta, uint32_t hz, float speed);
+    static Ns alloc_ticks(const Ns& dt, uint32_t delta, uint32_t hz, float speed);
+    static uint32_t ns_to_delta(const Ns& time);
+    /// Saves before proto 31 stored delta as a fraction of a second, (uint32_t)-1 being one second.
+    static Ns fraction_to_ns(uint32_t fraction);
 
     virtual void init_script(const bptr<object>& ptr);
     virtual void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r);

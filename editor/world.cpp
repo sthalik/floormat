@@ -370,7 +370,6 @@ void app::populate_l_corridor()
     C->set_bbox({}, {}, Vector2ub{bbox_long, bbox_short}, C->pass);
     C->speed = 4;
     C->delta = 0;
-    C->offset_frac = 0;
 
     c.mark_modified();
 }
