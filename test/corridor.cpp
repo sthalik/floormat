@@ -69,7 +69,6 @@ void test_corridor_south()
         auto i = C->index();
         C->teleport_to(i, global_coords{ch, {free_x, start_y}}, Vector2b{}, rotation_COUNT);
         C->delta = 0;
-        C->offset_frac = 0;
     }
 
     const auto initial = C->position();

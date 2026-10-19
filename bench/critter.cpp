@@ -117,8 +117,7 @@ bool run_(critter& npc, const function_view<Ns() const>& make_dt,
                     << " time:" << time
                     << " dt:" << dt
                     << " dist:" << point::distance_l1(pos, start)
-                    << " delta:" << npc.delta
-                    << " frac:" << npc.offset_frac;
+                    << " delta:" << npc.delta;
     };
 
     auto fail = [b = grace.no_crash](const char* file, int line, const char* function) {

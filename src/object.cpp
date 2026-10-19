@@ -199,39 +199,37 @@ bool object::move_to(Magnum::Vector2i delta)
     return move_to(i, delta, r);
 }
 
-template<typename T> requires std::is_unsigned_v<T>
-uint32_t object::alloc_frame_time(const Ns& dt, T& accum, uint32_t hz, float speed)
+Ns object::fraction_to_ns(uint32_t fraction)
 {
-    constexpr auto ns_in_sec = Ns((int)1e9);
-    constexpr auto accum_max = uint64_t{limits<T>::max};
-    static_assert(Ns{accum_max} * ns_in_sec.stamp != Ns{}); // check for overflow on T
-
-    const auto from_accum = uint64_t{accum} * ns_in_sec / accum_max;
-    const auto from_dt = Ns(uint64_t(double(dt.stamp) * double(speed)));
-    fm_assert(from_dt <= Ns{uint64_t{1} << 53});
-    const auto ticks = from_dt + from_accum;
-    const auto frame_duration = ns_in_sec / hz;
-    const auto nframes = (uint32_t)(ticks / frame_duration);
-    const auto rem = ticks % frame_duration;
-    const auto new_accum_ = rem * accum_max / uint64_t{ns_in_sec};
-    const auto new_accum = (T)Math::clamp(new_accum_, uint64_t{0}, accum_max);
-    [[maybe_unused]] const auto old_accum = accum;
-    accum = new_accum;
-
-#if 0
-    DBG_nospace << "alloc-frame-time: "
-                << "dt:" << fraction(Time::to_milliseconds(dt)) << "ms"
-                << " ticks:" << ticks
-                << " frames:" << nframes
-                << " acc:" << new_accum_
-                << " rem:" << rem;
-#endif
-    fm_assert(nframes < 1 << 12);
-    return nframes;
+    constexpr auto max = uint64_t{limits<uint32_t>::max};
+    static_assert(Ns{max} * Second.stamp != Ns{}); // check for overflow
+    return uint64_t{fraction} * Second / max;
 }
 
-template uint32_t object::alloc_frame_time(const Ns& dt, uint16_t& accum, uint32_t hz, float speed);
-template uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& accum, uint32_t hz, float speed);
+uint32_t object::ns_to_delta(const Ns& time)
+{
+    return (uint32_t)Math::min(time.stamp, uint64_t{limits<uint32_t>::max});
+}
+
+Ns object::alloc_ticks(const Ns& dt, uint32_t delta, uint32_t hz, float speed)
+{
+    const auto from_dt = Ns(uint64_t(double(dt.stamp) * double(speed)));
+    fm_assert(from_dt <= Ns{uint64_t{1} << 53});
+    // At speed 0 stored time would still pay for a step.
+    delta *= speed > 0 ? 1u : 0u;
+    const auto ticks = from_dt + Ns{delta};
+    fm_assert(ticks / (Second / hz) < 1 << 12);
+    return ticks;
+}
+
+uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& delta, uint32_t hz, float speed)
+{
+    const auto ticks = alloc_ticks(dt, delta, hz, speed);
+    const auto frame_duration = Second / hz;
+    const auto nframes = (uint32_t)(ticks / frame_duration);
+    delta = ns_to_delta(Ns{ticks % frame_duration});
+    return nframes;
+}
 
 void object::set_bbox_(Vector2b offset_, Vector2b bb_offset, Vector2ub bb_size, pass_mode pass_)
 {

@@ -49,7 +49,8 @@ struct critter final : object
     /// diagonally (next_step()). For direct walks without A*.
     /// - Facing follows each leg.
     /// - Each run of up to a tile is one continuous AABB sweep. A blocked run moves nothing.
-    /// - offset_frac holds the sub-pixel remainder along the facing.
+    /// - A diagonal step costs √2 frames. Time below the next step's cost stays in delta.
+    /// - On arrival all unspent time goes back in dt.
     /// - Starts from any position.
     [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& dest);
 
@@ -58,7 +59,7 @@ struct critter final : object
     /// - Facing is the nearest of the 8 directions, fixed for the segment.
     /// - A frame's steps are one find_swept_collider() over the line, off-axis pixels of
     ///   diagonal steps included. The critter stops at the last step its box reaches.
-    /// - offset_frac holds the length walked past the current step.
+    /// - A step costs its length in frames. Time below one step stays in delta.
     /// - The critter must stand on one of the line's pixels. Otherwise it neither moves nor
     ///   turns, and the result has displaced and blocked set.
     [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& from, const point& dest);
@@ -79,7 +80,6 @@ struct critter final : object
     float speed = 1;
     float anim_speed = 1;
     uint32_t anim_progress = 0;
-    uint16_t offset_frac = 0;
     /// Written when the walk script ends. none while it runs, or when it was interrupted.
     walk_result last_walk = walk_result::none;
 
