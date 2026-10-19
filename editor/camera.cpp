@@ -93,7 +93,7 @@ object_id app::get_object_colliding_with_cursor(bool virtual_objects)
                 if (x.type == (uint64_t)collision_type::geometry)
                     return true;
                 Vector2 min{rect.m_min}, max{rect.m_max};
-                if (t0 >= min && t0 <= max)
+                if (t0 >= min && t0 < max)
                 {
                     if (auto e_ = world.find_object(x.id);
                         e_ && Vector2ui(e_->bbox_size).product() != 0)
