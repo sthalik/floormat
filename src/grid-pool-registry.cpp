@@ -1,4 +1,4 @@
-#include "grid-pass-pool.hpp"
+#include "grid-pool-registry.hpp"
 #include "compat/round-to-even.hpp"
 #include <cr/GrowableArray.h>
 

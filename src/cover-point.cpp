@@ -1,7 +1,7 @@
 #include "cover-point.hpp"
 #include "grid-cover.hpp"
 #include "grid-pass.hpp"
-#include "grid-pass-pool.hpp"
+#include "grid-pool-registry.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "raycast.hpp"

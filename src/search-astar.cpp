@@ -2,7 +2,7 @@
 #include "search-constants.hpp"
 #include "search-octile.hpp"
 #include "search-cache.hpp"
-#include "grid-pass-pool.hpp"
+#include "grid-pool-registry.hpp"
 #include "search-result.hpp"
 #include "search.hpp"
 #include "world.hpp"
