@@ -324,6 +324,13 @@ void PassGrid::reset_for_reuse(chunk& ch, Params new_params)
 
 template struct Pool<PassGrid>;
 
+struct PassPool final : Pool<PassGrid>
+{
+    Search::pred predicate;
+
+    PassPool(Grid::Pass::Params params, const Search::pred& p): Pool<PassGrid>{params}, predicate{p} {}
+};
+
 namespace {
 namespace Tests {
 
@@ -421,7 +428,7 @@ Grid Pool::operator[](chunk& c)
 Grid Pool::wrap(detail::grid::PassGrid* g) const noexcept { return Grid{g, pool}; }
 Grid::~Grid() noexcept = default;
 
-Grid::Grid(detail::grid::PassGrid* grid_, detail::grid::Pool<detail::grid::PassGrid>* pool_):
+Grid::Grid(detail::grid::PassGrid* grid_, detail::grid::PassPool* pool_):
     grid{grid_}, pool{pool_}
 {
 }
@@ -494,7 +501,7 @@ void Grid::maybe_mark_stale()
 }
 
 detail::grid::PassGrid* Grid::raw() const noexcept { return grid; }
-void Grid::build_if_stale(const pred& predicate) { grid->build_if_stale(predicate); }
+void Grid::build_if_stale() { grid->build_if_stale(pool->predicate); }
 
 void Pool::maybe_mark_stale_all(const world& w)
 {
@@ -511,13 +518,13 @@ void Pool::maybe_mark_stale_all(const world& w)
     }
 }
 
-void Pool::build_if_stale_all(const pred& predicate)
+void Pool::build_if_stale_all()
 {
     for (auto* g : pool->live)
-        static_cast<detail::grid::PassGrid*>(g)->build_if_stale(predicate);
+        static_cast<detail::grid::PassGrid*>(g)->build_if_stale(pool->predicate);
 }
 
-Pool::Pool(Params params): pool{new detail::grid::Pool<detail::grid::PassGrid>{params}} { }
+Pool::Pool(Params params, const pred& predicate): pool{new detail::grid::PassPool{params, predicate}} { }
 Pool::~Pool() noexcept { delete pool; }
 const Params& Pool::params() const { return pool->params; }
 uint32_t Pool::pooled_count() const { return pool->freelist.size(); }

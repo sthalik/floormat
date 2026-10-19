@@ -110,7 +110,7 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
 
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          uint32_t first_step, uint32_t last_step, bool both_off_axis,
-                         Grid::Pass::Pool* pool, const Search::pred& pred,
+                         Grid::Pass::Pool* pool,
                          fu2::function_view<bool(const line_cell&) const> visit)
 {
     fm_assert(first_step <= last_step && last_step <= line.steps());
@@ -182,7 +182,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         if (has_grid)
         {
             grid = (*pool)[*c];
-            grid.build_if_stale(pred);
+            grid.build_if_stale();
             chunk_empty = grid.is_all_empty();
         }
         else if (!c)
@@ -496,8 +496,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             if (!last_g_built)
             {
                 last_g = pool[*last_c];
-                // a pool holds bitmaps built for one predicate only (see grid-pass.hpp)
-                last_g.build_if_stale(pred);
+                last_g.build_if_stale();
                 last_chunk_empty = last_g.is_all_empty();
                 last_g_built = true;
             }

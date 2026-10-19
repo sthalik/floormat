@@ -58,7 +58,7 @@ bool passable(world& w, point pt)
 cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size)
 {
     Cover::Pool cover{Cover::Params{div_size}};
-    Pass::Pool rays{Pass::Params{div_size, pass_mode::shoot_through}};
+    Pass::Pool rays{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     return find_cover_point(w, cover, rays, {npc, body, threat, radius});
 }
 

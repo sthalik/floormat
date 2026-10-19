@@ -61,7 +61,7 @@ struct grid_test final : base_test
     void update_post(app& a, const Ns&) override;
 };
 
-grid_test::grid_test(): pool{Pass::Params{8u, 8u, pass_mode::pass}} {}
+grid_test::grid_test(): pool{Pass::Params{8u, 8u, pass_mode::pass}, Search::without_critters()} {}
 
 void grid_test::draw_overlay(app& a)
 {
@@ -162,9 +162,9 @@ void grid_test::extract(app& a, chunk_coords_ coord)
         return;
 
     pool.maybe_mark_stale_all(w);
-    pool.build_if_stale_all(Search::without_critters());
+    pool.build_if_stale_all();
     Pass::Grid g = pool[*c];
-    g.build_if_stale(Search::without_critters());
+    g.build_if_stale();
 
     const auto dc = g.div_count();
     BitArray bits{ValueInit, dc * dc};

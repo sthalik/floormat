@@ -28,7 +28,7 @@ struct map_world
     mazes::route r;
 
     map_world(kind k, uint32_t cell):
-        pool{Pass::Params{cell, mazes::bbox_size, pass_mode::pass}},
+        pool{Pass::Params{cell, mazes::bbox_size, pass_mode::pass}, Search::without_critters()},
         r{mazes::build(w, k, chunk_coords_{0, 0, 0}, pool)}
     {}
 };
@@ -56,7 +56,7 @@ void verify(kind k, uint32_t cell, uint32_t optimum)
         for (int16_t cx = 0; cx < nch; cx++)
         {
             auto g = pool[s.w[chunk_coords_{cx, cy, 0}]];
-            g.build_if_stale(Search::without_critters());
+            g.build_if_stale();
             for (auto j = 0u; j < div_count; j++)
                 for (auto i = 0u; i < div_count; i++)
                     open_cells += g.bit(Pass::Grid::get_bitmask_index(i, j, div_count));

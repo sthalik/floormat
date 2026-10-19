@@ -106,7 +106,7 @@ bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, con
     if (auto* c = w.at(pt.chunk3()))
     {
         auto grid = pool[*c];
-        grid.build_if_stale(p);
+        grid.build_if_stale();
         return grid.bit(grid.get_bitmask_index_from_coord(intra_coord{pt}));
     }
 

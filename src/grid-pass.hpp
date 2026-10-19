@@ -12,6 +12,7 @@ class chunk;
 
 namespace floormat::detail::grid {
 struct PassGrid;
+struct PassPool;
 
 constexpr auto get_divisor_count()
 {
@@ -97,11 +98,11 @@ struct Params
 class Grid
 {
     detail::grid::PassGrid* grid;
-    detail::grid::Pool<detail::grid::PassGrid>* pool;
+    detail::grid::PassPool* pool;
 
 public:
     ~Grid() noexcept;
-    explicit Grid(detail::grid::PassGrid* grid, detail::grid::Pool<detail::grid::PassGrid>* pool);
+    explicit Grid(detail::grid::PassGrid* grid, detail::grid::PassPool* pool);
     Grid(const Grid&) noexcept = default;
     Grid& operator=(const Grid&) & noexcept = default;
 
@@ -124,7 +125,7 @@ public:
 
     void maybe_mark_stale();
 
-    void build_if_stale(const pred& predicate);
+    void build_if_stale();
 
     static constexpr uint32_t min_bbox_size = 4;
 };
@@ -136,14 +137,13 @@ constexpr Params::Params(uint32_t div_size, uint32_t bbox_size, pass_mode min_pa
     div_count = chunk_size_xy / detail::grid::calc_div_size(div_size, this->bbox_size);
 }
 
-// The build predicate is not part of a grid's staleness key. Use each Pool
-// with a single predicate, or consumers read bitmaps built for another one.
+// The pool keeps a copy of the view, so the callable it refers to must outlive the pool.
 class Pool final
 {
-    detail::grid::Pool<detail::grid::PassGrid>* pool;
+    detail::grid::PassPool* pool;
 
 public:
-    explicit Pool(Params params);
+    explicit Pool(Params params, const pred& predicate);
     ~Pool() noexcept;
     fm_DISABLE_MOVE_COPY(Pool);
 
@@ -152,7 +152,7 @@ public:
 
     void maybe_mark_stale_all(const world& w);
 
-    void build_if_stale_all(const pred& predicate);
+    void build_if_stale_all();
 
     const Params& params() const;
     uint32_t pooled_count() const;
