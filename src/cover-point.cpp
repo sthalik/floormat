@@ -104,8 +104,8 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
 
     const auto passable = [&](Vector2i center) {
         const auto pt = to_point(center);
-        const auto local = Vector2(pt.intra().center_shifted());
-        return Search::is_passable(w, pt.chunk3(), Range2D{local - half, local + half}, Search::without_critters());
+        const auto min = Vector2(pt.intra().center_shifted() - Vector2i(q.body_size / 2u));
+        return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(q.body_size)}, Search::without_critters());
     };
 
     // A body flush against a blocker covers cells the blocker clears. The corner rays check those.
@@ -121,7 +121,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
 
     Array<candidate> cands;
     arrayReserve(cands, 16);
-    const auto against = Math::max(half.x(), half.y()) + (float)ds;
+    const auto against = Math::ceil(Math::max(half.x(), half.y())) + (float)ds;
     for (auto y = lo.y(); y < lo.y() + span.y(); y++)
         for (auto x = lo.x(); x < lo.x() + span.x(); x++)
         {
