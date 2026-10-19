@@ -267,17 +267,17 @@ void test_rays(const Pass::Params& params, world& w)
         auto back = ray_diag(diag, w2, point{ch, {13, 5}, {}}, point{ch, {2, 5}, {}}, 0);
         fm_assert(!back.success);
         fm_assert(back.collider.id == C->id);
-        fm_assert(Math::abs(diag.tmin - 298.5f) < 1);
+        fm_assert(Math::abs(diag.tmin - 299.5f) < 1);
 
         auto top = ray_diag(diag, w2, point{ch, {2, 5}, {0, -13}}, point{ch, {13, 5}, {0, -13}}, 0);
         fm_assert(top.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 362.5f) < 1);
 
-        auto bottom = ray_diag(diag, w2, point{ch, {2, 5}, {0, 13}}, point{ch, {13, 5}, {0, 13}}, 0);
+        auto bottom = ray_diag(diag, w2, point{ch, {2, 5}, {0, 12}}, point{ch, {13, 5}, {0, 12}}, 0);
         fm_assert(bottom.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 362.5f) < 1);
 
-        fm_assert(ray(w2, point{ch, {2, 5}, {0,  14}}, point{ch, {13, 5}, {0,  14}}, 0).success);
+        fm_assert(ray(w2, point{ch, {2, 5}, {0,  13}}, point{ch, {13, 5}, {0,  13}}, 0).success);
         fm_assert(ray(w2, point{ch, {2, 5}, {0, -14}}, point{ch, {13, 5}, {0, -14}}, 0).success);
     }
     {
@@ -298,20 +298,20 @@ void test_rays(const Pass::Params& params, world& w)
         auto back = ray_diag(diag, w2, point{ch, {5, 14}, {}}, point{ch, {5, 1}, {}}, 0);
         fm_assert(!back.success);
         fm_assert(back.collider.id == C->id);
-        fm_assert(Math::abs(diag.tmin - 366.5f) < 1);
+        fm_assert(Math::abs(diag.tmin - 367.5f) < 1);
 
         auto left = ray_diag(diag, w2, point{ch, {5, 1}, {-11, 0}}, point{ch, {5, 14}, {-11, 0}}, 0);
         fm_assert(left.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 430.5f) < 1);
 
-        auto right = ray_diag(diag, w2, point{ch, {5, 1}, {11, 0}}, point{ch, {5, 14}, {11, 0}}, 0);
+        auto right = ray_diag(diag, w2, point{ch, {5, 1}, {10, 0}}, point{ch, {5, 14}, {10, 0}}, 0);
         fm_assert(right.collider.id == C->id);
         fm_assert(Math::abs(diag.tmin - 430.5f) < 1);
 
-        fm_assert(ray(w2, point{ch, {5, 1}, { 12, 0}}, point{ch, {5, 14}, { 12, 0}}, 0).success);
+        fm_assert(ray(w2, point{ch, {5, 1}, { 11, 0}}, point{ch, {5, 14}, { 11, 0}}, 0).success);
         fm_assert(ray(w2, point{ch, {5, 1}, {-12, 0}}, point{ch, {5, 14}, {-12, 0}}, 0).success);
     }
-    {   // the 42x26 critter's fuzzed rect [-21.5, 21.5]x[-13.5, 13.5], grown by a circle
+    {   // the 42x26 critter's pixel squares [-21.5, 20.5]x[-13.5, 12.5], grown by a circle
         auto w2 = world{};
         constexpr auto ch = chunk_coords_{8, 16, 0};
 
@@ -320,12 +320,12 @@ void test_rays(const Pass::Params& params, world& w)
         auto C = w2.make_object<critter>(w2.make_id(), {ch, {8, 5}}, p);
         const auto P0 = point{ch, {8, 5}, {}};
 
-        // y = 20 is skipped at 6.5 px: the circle only grazes the rect there
-        constexpr struct { float radius; int last_hit_y, first_miss_y; } cases[] = {
-            {6, 19, 20}, {6.5f, 19, 21},
+        // y = -20 and 19 are skipped at 6.5 px: the circle only grazes the rect there
+        constexpr struct { float radius; int hit_lo, hit_hi, miss_lo, miss_hi; } cases[] = {
+            {6, -19, 18, -20, 19}, {6.5f, -19, 18, -21, 20},
         };
         auto diag = rc::raycast_diag_s{};
-        for (auto [radius, last_hit_y, first_miss_y] : cases)
+        for (auto [radius, hit_lo, hit_hi, miss_lo, miss_hi] : cases)
         {
             if (rc::min_pool_bbox_size(radius) > pool.params().bbox_size)
                 continue;
@@ -334,25 +334,25 @@ void test_rays(const Pass::Params& params, world& w)
                 return raycast_with_diag(diag, w2, P0 + from, P0 + to, 0, pool, Search::never_continue(), radius);
             };
 
-            for (int y = -last_hit_y; y <= last_hit_y; y++)
+            for (int y = hit_lo; y <= hit_hi; y++)
             {
                 auto res = ray_r({-384, y}, {320, y});
                 fm_assert(!res.success);
                 fm_assert(res.collider.id == C->id);
-                const float dy = Math::max(0.f, Math::abs((float)y) - 13.5f);
+                const float dy = Math::max(0.f, Math::max(-13.5f - (float)y, (float)y - 12.5f));
                 fm_assert(Math::abs(diag.tmin - (384 - 21.5f - Math::sqrt(radius*radius - dy*dy))) < 1e-3f);
-                fm_assert(res.collision == P0 + Vector2i{-21, Math::clamp(y, -13, 13)});
+                fm_assert(res.collision == P0 + Vector2i{-21, Math::clamp(y, -13, 12)});
             }
-            fm_assert(ray_r({-384,  first_miss_y}, {320,  first_miss_y}).success);
-            fm_assert(ray_r({-384, -first_miss_y}, {320, -first_miss_y}).success);
+            fm_assert(ray_r({-384, miss_lo}, {320, miss_lo}).success);
+            fm_assert(ray_r({-384, miss_hi}, {320, miss_hi}).success);
 
-            // past the corner (21.5, 13.5) diagonally: 5.66 px away hits, 7.07 px misses
+            // past the corner (20.5, 12.5) diagonally: 5.66 px away hits, 7.07 px misses
             // though it crosses the rect grown by the square
-            auto res = ray_r({-57, 100}, {100, -57});
+            auto res = ray_r({-59, 100}, {100, -59});
             fm_assert(!res.success);
             fm_assert(res.collider.id == C->id);
-            fm_assert(res.collision == P0 + Vector2i{21, 13});
-            fm_assert(ray_r({-55, 100}, {100, -55}).success);
+            fm_assert(res.collision == P0 + Vector2i{20, 12});
+            fm_assert(ray_r({-57, 100}, {100, -57}).success);
         }
     }
 }
@@ -381,7 +381,7 @@ pillar place_pillar(world& w, chunk_coords_ ch, chunk_coords_ origin, local_coor
 
 bool contains(const pillar& p, Vector2i px)
 {
-    return (px >= p.min).all() && (px <= p.max).all();
+    return (px >= p.min).all() && (px < p.max).all();
 }
 
 struct supercover_hit
@@ -431,7 +431,7 @@ float nearest_rounded_hit(ArrayView<const pillar> pillars, Vector2i from, Vector
     {
         const auto o = Vector2(from) - Vector2(p.shift);
         const auto r = ray_rounded_rect_intersection(o, dir, inv, {{Vector2(p.min - p.shift) - Vector2{.5f},
-                                                                    Vector2(p.max - p.shift) + Vector2{.5f}}},
+                                                                    Vector2(p.max - p.shift) - Vector2{.5f}}},
                                                      radius, ray_aabb_signs(inv));
         if (r.result && r.tmin <= len)
             best = Math::min(best, r.tmin);
@@ -453,7 +453,7 @@ void test_supercover_hits()
         place_pillar(w, ch,  ch, {5, 12}, Vector2b{0, 0},    Vector2ub{2, 10}),
         place_pillar(w, ch,  ch, {11, 2}, Vector2b{3, -4},   Vector2ub{8, 2}),
         // the line (100, 100)-(300, 300) touches it only at the corner (150.5, 150.5)
-        place_pillar(w, ch,  ch, {2, 2},  Vector2b{24, 21},  Vector2ub{2, 2}),
+        place_pillar(w, ch,  ch, {2, 2},  Vector2b{24, 22},  Vector2ub{2, 2}),
         // (0, 0)-(400, 1) has its pixels at y = 0 up to x = 199 while the segment rises toward
         // y = 0.5, so at radius 2.25 this is hit 2.75 to 3.25 px from the pixels
         place_pillar(w, ch,  ch, {2, 0},  Vector2b{55, 7},   Vector2ub{6, 8}),

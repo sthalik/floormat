@@ -31,7 +31,7 @@ struct raycast_result_s
 };
 
 // A set bit holds for integer positions, while the ray's center reaches up to 1 px past the
-// cell's last one, and rects grow by a 0.5 px fuzz on each side.
+// cell's last one, and a rect's pixel squares reach 0.5 px below its min.
 constexpr uint32_t min_pool_bbox_size(float radius)
 {
     const float size = 2*radius + 3;
