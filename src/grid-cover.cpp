@@ -552,11 +552,8 @@ Grid Pool::wrap(detail::grid::CoverGrid* g) const noexcept
 
 void Pool::maybe_mark_stale_all(const world& w)
 {
-    // same skip as Pass::Pool::maybe_mark_stale_all
-    const auto gen = w.pass_gen();
-    if (gen == pool->checked_pass_gen)
+    if (!pool->update_checked_pass_gen(w))
         return;
-    pool->checked_pass_gen = gen;
     for (auto* g : pool->live)
         g->maybe_mark_stale();
 }

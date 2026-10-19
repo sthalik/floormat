@@ -96,6 +96,7 @@ struct PoolBase
     void attach(chunk& c, GridBase* g);
     void release(GridBase* g) noexcept;
     void detach_all() noexcept;
+    bool update_checked_pass_gen(const world& w) noexcept;
 };
 
 void cascade_mark_neighbors_stale(chunk_coords_ coord, fu2::function_view<GridBase*(chunk_coords_)> find);
