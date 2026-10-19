@@ -3,6 +3,7 @@
 #include "src/collision.hpp"
 #include "src/point.hpp"
 #include "src/search-pred.hpp"
+#include <mg/Range.h>
 
 namespace floormat {
 
@@ -25,6 +26,8 @@ struct raycast_result_s
     // point nearest the projectile's center at contact, from + dir * tmin; return tmin if a caller needs it.
     point collision;
     collision_data collider;
+    // The collider's rect in from's chunk frame. A hole cut splits a wall into rects sharing its id.
+    Range2D rect;
     float time = 0;
     bool has_result : 1 = false,
          success    : 1 = false;

@@ -369,6 +369,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                 .pass = (uint64_t)pass_mode::pass,
                 .id   = ((uint64_t)1 << collision_data_BITS)-1,
             },
+            .rect = {},
             .has_result = true,
             .success = true,
         };
@@ -387,6 +388,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             .pass = (uint64_t)pass_mode::pass,
             .id   = ((uint64_t)1 << collision_data_BITS)-1,
         },
+        .rect = {},
         .has_result = true,
         .success = false,
     };
@@ -570,9 +572,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                             return true;
                         // a rect owns the pixels in [min, max), as walking does
                         const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+                        const auto shift = Vector2i{nb_off_x, nb_off_y} * chunk_size<int32_t>;
                         if (radius == 0)
                         {
-                            const auto shift = Vector2i{nb_off_x, nb_off_y} * chunk_size<int32_t>;
                             const auto hit = first_pixel_within(line, Vector2i(Math::ceil(range.min())) + shift,
                                                                 Vector2i(Math::ceil(range.max())) - Vector2i{1} + shift,
                                                                 best_key);
@@ -603,6 +605,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                             result.collision = point::normalize_coords(from, Vector2i(contact - origin));
                         }
                         result.collider = x;
+                        result.rect = Range2D{range.min() + Vector2(shift), range.max() + Vector2(shift)};
                         b = false;
                         return true;
                     });
