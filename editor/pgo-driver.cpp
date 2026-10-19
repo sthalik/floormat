@@ -1673,6 +1673,7 @@ void app::driver_tick(Ns dt)
                         (double)Time::to_milliseconds(D.scene_started.update()),
                         D.frames_run - D.scene_first_frame, D.pass_index + 1);
             std::fflush(stdout);
+            M->world().check_objects_in_sync();
             if (M->settings().driver_save_world)
                 driver_save_world(D.scene_index, name, true);
             // A leaked window size would silently change every later scene's fill rate, and the

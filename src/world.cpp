@@ -34,7 +34,8 @@ world::world(world&& w) noexcept :
     _pass_gen{w._pass_gen},
     _teardown{w._teardown},
     _script_initialized{w._script_initialized},
-    _script_finalized{w._script_finalized}
+    _script_finalized{w._script_finalized},
+    _check_objects_each_frame{w._check_objects_each_frame}
 {
     w._head = nullptr;
     w._tail = nullptr;
@@ -86,6 +87,7 @@ world& world::operator=(world&& w) noexcept
     w._object_counter = 0;
     _current_frame = w._current_frame;
     _pass_gen = Math::max(_pass_gen, w._pass_gen);
+    _check_objects_each_frame = w._check_objects_each_frame;
     return *this;
 }
 
@@ -291,6 +293,14 @@ void world::chunk_table_prepare_frame()
 {
 #ifndef FM_NO_DEBUG3
     _chunk_table.check_in_sync(*this);
+    if (_check_objects_each_frame)
+        check_objects_in_sync();
+#endif
+}
+
+void world::check_objects_in_sync() const
+{
+#ifndef FM_NO_DEBUG3
     // the count catches an object that chunk::remove_object() left in no chunk
     uint64_t count = 0;
     for (const auto& c : chunks())
@@ -304,6 +314,8 @@ void world::chunk_table_prepare_frame()
     fm_assert(count == _objects.size());
 #endif
 }
+
+void world::set_check_objects_each_frame(bool value) { _check_objects_each_frame = value; }
 
 void world::register_chunk(chunk* c) noexcept
 {
