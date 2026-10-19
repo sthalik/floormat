@@ -229,6 +229,7 @@ void test_rays(const Pass::Params& params, world& w)
         fm_assert(res.has_result);
         fm_assert(!res.success);
         fm_assert(res.collider.id == B->id);
+        fm_assert(res.rect == Range2D::fromCenter(Vector2{4*64 - 17, 2*64 + 18}, Vector2{11, 6}));
         fm_assert(Math::abs(diag.tmin - 101.5f) < 16);
     }
     {   // an entry rect reaches offset + bbox_offset + bbox_size/2 past the owner
@@ -248,6 +249,7 @@ void test_rays(const Pass::Params& params, world& w)
         fm_assert(res.has_result);
         fm_assert(!res.success);
         fm_assert(res.collider.id == C->id);
+        fm_assert(res.rect == Range2D::fromCenter(Vector2{15*64 + 31 + 127 - chunk_size<int>, 8*64}, Vector2{100, 30}));
     }
     {
         auto w2 = world{};
@@ -342,6 +344,7 @@ void test_rays(const Pass::Params& params, world& w)
                 const float dy = Math::max(0.f, Math::max(-13.5f - (float)y, (float)y - 12.5f));
                 fm_assert(Math::abs(diag.tmin - (384 - 21.5f - Math::sqrt(radius*radius - dy*dy))) < 1e-3f);
                 fm_assert(res.collision == P0 + Vector2i{-21, Math::clamp(y, -13, 12)});
+                fm_assert(res.rect == Range2D::fromCenter(Vector2{8*64, 5*64}, Vector2{21, 13}));
             }
             fm_assert(ray_r({-384, miss_lo}, {320, miss_lo}).success);
             fm_assert(ray_r({-384, miss_hi}, {320, miss_hi}).success);
