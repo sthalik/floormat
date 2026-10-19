@@ -111,6 +111,8 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
 
     if (coord_.z() != coord.z()) [[unlikely]]
         return false;
+    if (pass == pass_mode::pass)
+        return true;
 
     auto& w = *c->_world;
     auto& cʹ = coord_.chunk() == coord.chunk() ? *c : w[coord_.chunk3()];
