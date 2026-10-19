@@ -162,7 +162,9 @@ void Cover_Build(benchmark::State& state)
     make_cover_chunk(w, c);
     rebuild(c);
 
-    Cover::Pool pool{Cover::Params{(uint32_t)state.range(0)}};
+    const auto div_size = (uint32_t)state.range(0);
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, pass_pool};
     pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
 
@@ -185,7 +187,9 @@ void Cover_Aligned(benchmark::State& state)
     make_cover_chunk(w, c);
     rebuild(c);
 
-    Cover::Pool pool{Cover::Params{(uint32_t)state.range(0)}};
+    const auto div_size = (uint32_t)state.range(0);
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, pass_pool};
     pool.maybe_mark_stale_all(w);
     Cover::Grid g = pool[c];
 

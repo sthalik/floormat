@@ -143,7 +143,7 @@ task app::scene_npcs()
     const Search::pred except_searcher_pred{except_searcher};
 
     // Its own pool, since the registry's pools always build with without_critters().
-    Pass::Pool crit_pool{M->astar().pass_pool_registry().pool_for(critter_size).params(), except_searcher_pred};
+    Pass::Pool crit_pool{M->astar().pool_registry().pool_for(critter_size).params(), except_searcher_pred};
 
     uint64_t rng = 0x9e3779b97f4a7c15u;
     const auto next_angle = [&rng] {

@@ -467,7 +467,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
 
 astar::astar() :
     _cache{InPlaceInit, (uint32_t)Search::div_size.x()},
-    _pass_registry{InPlaceInit, (uint32_t)Search::div_size.x()}
+    _pool_registry{InPlaceInit, (uint32_t)Search::div_size.x()}
 {
 }
 
@@ -480,7 +480,7 @@ void astar::reserve(size_t capacity)
 }
 
 Search::cache* astar::cache() { return &*_cache; }
-Grid::Pass::PoolRegistry& astar::pass_pool_registry() { return *_pass_registry; }
+Grid::PoolRegistry& astar::pool_registry() { return *_pool_registry; }
 
 template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
@@ -488,7 +488,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    const pred& p)
 {
     const auto size = Math::max(own_size, min_size);
-    auto& pool = _pass_registry->pool_for(Math::max(size.x(), size.y()));
+    auto& pool = _pool_registry->pool_for(Math::max(size.x(), size.y()));
     return Dijkstra<Debug, FindClosestOnFailure>(w, pool, from, to, max_dist, own_size, p);
 }
 
@@ -790,7 +790,7 @@ auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
 
     const auto own_size = Math::max(own_size_, min_size);
     const auto half = Vector2(own_size) * .5f;
-    auto& pool = _pass_registry->pool_for(Math::max(own_size.x(), own_size.y()));
+    auto& pool = _pool_registry->pool_for(Math::max(own_size.x(), own_size.y()));
     pool.maybe_mark_stale_all(w);
 
     struct los_result { corner_pick best; bool blocked; };

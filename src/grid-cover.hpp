@@ -11,6 +11,7 @@ struct CoverGrid;
 struct CoverPool;
 } // namespace
 
+namespace floormat::Grid::Pass { class Pool; }
 
 namespace floormat::Grid::Cover {
 
@@ -64,7 +65,8 @@ class Pool final
     detail::grid::CoverPool* pool;
 
 public:
-    explicit Pool(Params params);
+    // pass_pool must outlive this pool and use Search::without_critters(), the cover rays' predicate
+    explicit Pool(Params params, Pass::Pool& pass_pool);
     ~Pool() noexcept;
     fm_DISABLE_MOVE_COPY(Pool);
 

@@ -81,7 +81,7 @@ void check_flush_goal(const char* name, F&& setup, Vector2b goal_offset, Vector2
 
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto& pool16 = A.pass_pool_registry().pool_for(flush_bbox.x());
+    auto& pool16 = A.pool_registry().pool_for(flush_bbox.x());
     auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, flush_bbox.x(), pass_mode::pass}, pred};
 
     for (auto* pool : { &pool16, &pool8 })
@@ -183,7 +183,7 @@ void Test::test_dijkstra()
     constexpr auto own_size = Vector2ui{16};
     const auto goal = point{wpos, {wox, woy}};
     const auto& pred = Search::without_critters();
-    auto& pool = A.pass_pool_registry().pool_for(own_size.x());
+    auto& pool = A.pool_registry().pool_for(own_size.x());
 
     const auto run = [&]<bool debug, bool closest = true>(point to) {
             return A.Dijkstra<debug ? 1 : 0, closest>(
