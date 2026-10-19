@@ -265,7 +265,7 @@ struct scene_assets
 {
     std::array<bptr<ground_atlas>, 2> ground;
     std::array<bptr<wall_atlas>, 3> walls;
-    std::array<scenery_proto, static_array_size<decltype(scenery_names)>> scenery;
+    std::array<scenery_proto, array_size(scenery_names)> scenery;
 };
 
 scene_assets load_assets()

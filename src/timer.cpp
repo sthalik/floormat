@@ -76,7 +76,7 @@ const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
 {
     constexpr const char* fmt = "%a, %d %b %Y %H:%M:%S.";
     constexpr size_t fmtsize = array_size("Thu 01 Mon 197000 00:00:00.");
-    static_assert(static_array_size<decltype(buf)> - fmtsize == 4);
+    static_assert(array_size(buf) - fmtsize == 4);
     const auto t    = SystemClock::now();
     const auto ms   = duration_cast<Millis>(t.time_since_epoch()) % 1000;
     const auto time = SystemClock::to_time_t(t);
