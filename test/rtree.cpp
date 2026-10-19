@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
+#include "src/scenery.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/light.hpp"
 #include "src/hole.hpp"
@@ -128,6 +129,29 @@ void test3()
     const auto result = C->move_toward(index, dt, point{pos, {11, 0}});
     fm_assert(C->can_move_to({}));
     fm_assert(result.blocked && !result.moved);
+}
+
+void test_pass_phases()
+{
+    auto w = world();
+    constexpr auto pos = global_coords{chunk_coords_{0, 0, 0}, {8, 8}};
+
+    scenery_proto p;
+    p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype   = generic_scenery_proto{};
+    p.bbox_size = {20, 20};
+    p.pass      = pass_mode::blocked;
+    w.make_scenery(w.make_id(), pos, move(p));
+
+    scenery_proto p2;
+    p2.atlas     = loader.invalid_scenery_atlas().proto->atlas;
+    p2.subtype   = generic_scenery_proto{};
+    p2.bbox_size = {10, 30};
+    p2.pass      = pass_mode::pass;
+    auto s = w.make_scenery(w.make_id(), pos, move(p2));
+
+    fm_assert(s->can_move_to({}));
+    fm_assert(s->can_rotate(rotation::E));
 }
 
 void test_corner_touch()
@@ -398,6 +422,7 @@ void Test::test_rtree()
     test1();
     test2();
     test3();
+    test_pass_phases();
     test_corner_touch();
     test_bbox_offset_min();
     test_light_tree();
