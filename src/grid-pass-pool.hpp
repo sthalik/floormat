@@ -19,8 +19,6 @@ public:
 
     void maybe_mark_stale_all(const world& w);
 
-    uint32_t live_pool_count() const;
-
     static constexpr uint32_t direct_count = 127;
     static constexpr uint32_t direct_max_bbox = 254;
 

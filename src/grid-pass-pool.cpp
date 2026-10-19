@@ -39,14 +39,4 @@ void PoolRegistry::maybe_mark_stale_all(const world& w)
         p->maybe_mark_stale_all(w);
 }
 
-uint32_t PoolRegistry::live_pool_count() const
-{
-    uint32_t n = 0;
-    for (const auto& p : direct_)
-        if (p)
-            ++n;
-    n += (uint32_t)fallback_.size();
-    return n;
-}
-
 } // namespace floormat::Grid::Pass
