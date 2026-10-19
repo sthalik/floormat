@@ -99,7 +99,7 @@ auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
 void Raycast(benchmark::State& state)
 {
     auto w = make_world();
-    Pass::Pool pool{pool_params};
+    Pass::Pool pool{pool_params, Search::never_continue()};
 
     const auto test = [&] {
       { constexpr auto from = point{{0, 0, 0}, {11,12}, {1,-32}};
@@ -203,7 +203,7 @@ bool run_dense(Pass::Pool& pool, point from, point to_orig, world& w)
 void Raycast_Dense(benchmark::State& state)
 {
     auto w = make_dense_world();
-    Pass::Pool pool{pool_params};
+    Pass::Pool pool{pool_params, Search::never_continue()};
 
     const auto test = [&] {
         fm_assert(run_dense(pool, point{{ 0,  0, 0}, { 0,  0}, {  0,   0}},

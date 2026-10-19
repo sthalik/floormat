@@ -19,14 +19,14 @@ Pool& PoolRegistry::pool_for(uint32_t bbox_size)
         const auto idx = (bbox - 2u) / 2u;
         auto& slot = direct_[idx];
         if (!slot)
-            slot.emplace(Params{div_size_, bbox, pass_mode::pass});
+            slot.emplace(Params{div_size_, bbox, pass_mode::pass}, Search::without_critters());
         return *slot;
     }
 
     for (auto& p : fallback_)
         if (p->params().bbox_size == bbox)
             return *p;
-    arrayAppend(fallback_, InPlaceInit, InPlaceInit, Params{div_size_, bbox, pass_mode::pass});
+    arrayAppend(fallback_, InPlaceInit, InPlaceInit, Params{div_size_, bbox, pass_mode::pass}, Search::without_critters());
     return *fallback_.back();
 }
 

@@ -1042,7 +1042,7 @@ task app::scene_raycast()
     auto C = ensure_player_character(w);
     const auto from = C->position();
     center_camera_on(from);
-    Pass::Pool pool{raycast_params};
+    Pass::Pool pool{raycast_params, Search::never_continue()};
 
     // The distinct integer endpoints on the circle, in angular order. Sampling 8*r evenly spaced
     // angles -- one per pixel of circumference -- both repeats and misses: a fifth of the samples
@@ -1457,9 +1457,9 @@ task app::scene_grids()
     const auto center = C->position();
     center_camera_on(center);
 
-    Pass::Pool pass_raycast{raycast_params};
-    Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}};
-    Pass::Pool pass_critter{M->astar().pass_pool_registry().pool_for(C->bbox_size.max()).params()};
+    Pass::Pool pass_raycast{raycast_params, Search::never_continue()};
+    Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
+    Pass::Pool pass_critter{M->astar().pass_pool_registry().pool_for(C->bbox_size.max()).params(), Search::never_continue()};
 
     // maybe_mark_stale_all() is where the version compare and the eager ensure_passability() of
     // the chunk and its neighbours live, so it does the whole per-frame discipline for us. The
@@ -1467,7 +1467,7 @@ task app::scene_grids()
     const auto rebuild = [&](Pass::Pool& pool)
     {
         pool.maybe_mark_stale_all(w);
-        pool[c].build_if_stale(Search::never_continue());
+        pool[c].build_if_stale();
     };
 
     const auto fill_ratio = [](Pass::Grid g)

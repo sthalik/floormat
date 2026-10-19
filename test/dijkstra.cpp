@@ -82,7 +82,7 @@ void check_flush_goal(const char* name, F&& setup, Vector2b goal_offset, Vector2
     const auto& pred = Search::without_critters();
     auto A = astar{};
     auto& pool16 = A.pass_pool_registry().pool_for(flush_bbox.x());
-    auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, flush_bbox.x(), pass_mode::pass}};
+    auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, flush_bbox.x(), pass_mode::pass}, pred};
 
     for (auto* pool : { &pool16, &pool8 })
     {

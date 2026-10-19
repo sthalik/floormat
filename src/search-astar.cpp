@@ -274,7 +274,7 @@ struct chunk_bitmaps
         if (!c)
             return nullptr;
         auto grid = pool[*c];
-        grid.build_if_stale(p);
+        grid.build_if_stale();
         return bits[chunk_idx] = grid.bits().data;
     }
 

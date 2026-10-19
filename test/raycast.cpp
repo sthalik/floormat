@@ -123,12 +123,12 @@ void test_window(pass_mode hole_pass)
     hp.pass = hole_pass;
     (void)w.make_object<hole>(w.make_id(), pos, hp);
 
-    Pass::Pool shoot{Pass::Params{8, 8, pass_mode::shoot_through}};
-    Pass::Pool walk{Pass::Params{8, 8, pass_mode::pass}};
+    Pass::Pool shoot{Pass::Params{8, 8, pass_mode::shoot_through}, Search::never_continue()};
+    Pass::Pool walk{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
     const auto open_at = [&](Pass::Pool& pool, int8_t x) {
         pool.maybe_mark_stale_all(w);
         auto g = pool[c];
-        g.build_if_stale(Search::never_continue());
+        g.build_if_stale();
         return g.bit(g.get_bitmask_index_from_coord(intra_coord{pos.local(), {x, mid_y}}));
     };
     const auto ray_passes = [&](Pass::Pool& pool, int8_t x) {
@@ -150,7 +150,7 @@ void test_edit_in_same_frame()
     constexpr auto ch = chunk_coords_{0, 0, 0};
     auto w = world();
     auto& c = w[ch];
-    Pass::Pool pool{Pass::Params{8, 8, pass_mode::pass}};
+    Pass::Pool pool{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
     const auto frame = w.frame_no();
     const auto ray_passes = [&] {
         return raycast(w, point{ch, {2, 8}, {}}, point{ch, {14, 8}, {}}, 0,
@@ -166,7 +166,7 @@ void test_edit_in_same_frame()
 
 void test_rays(const Pass::Params& params, world& w)
 {
-    Pass::Pool pool{params};
+    Pass::Pool pool{params, Search::never_continue()};
     const auto ray = [&](world& w, point from, point to, object_id self) {
         return raycast(w, from, to, self, pool, Search::never_continue());
     };
@@ -466,9 +466,9 @@ void test_supercover_hits()
         w[c].mark_modified();
 
     Pass::Pool pools[] = {
-        Pass::Pool{Pass::Params{4, 16, pass_mode::pass}},
-        Pass::Pool{Pass::Params{8, 16, pass_mode::pass}},
-        Pass::Pool{Pass::Params{16, 16, pass_mode::pass}},
+        Pass::Pool{Pass::Params{4, 16, pass_mode::pass}, Search::never_continue()},
+        Pass::Pool{Pass::Params{8, 16, pass_mode::pass}, Search::never_continue()},
+        Pass::Pool{Pass::Params{16, 16, pass_mode::pass}, Search::never_continue()},
     };
     const auto origin = point{ch, {}, {}};
     uint32_t hits = 0, off_axis_hits = 0;

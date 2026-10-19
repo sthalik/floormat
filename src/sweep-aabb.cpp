@@ -171,7 +171,7 @@ void sweep_line(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
         return bound > (int64_t)k1 + 1;
     };
 
-    rc::detail::traverse_line_cells(w, ch, line, first_step, last_step, true, pool, p, visit);
+    rc::detail::traverse_line_cells(w, ch, line, first_step, last_step, true, pool, visit);
 }
 
 } // namespace
