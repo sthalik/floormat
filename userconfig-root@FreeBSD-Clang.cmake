@@ -24,8 +24,6 @@ function(fm-userconfig-src)
         -Wno-switch-enum
         -Wno-covered-switch-default
         -Wno-old-style-cast
-        -Wno-global-constructors
-        -Wno-exit-time-destructors
         -Wno-implicit-int-float-conversion
         -Wno-shadow-field-in-constructor
         -Wno-shadow-field
@@ -41,5 +39,7 @@ function(fm-userconfig-src)
         -Wno-weak-vtables
         -Wno-c99-compat
         -Wno-switch-default
+        -Wno-lifetime-safety-cross-tu-suggestions
+        -Wno-lifetime-safety-intra-tu-suggestions
     )
 endfunction()
