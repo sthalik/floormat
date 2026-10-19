@@ -41,6 +41,7 @@ private:
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
     bool _script_finalized : 1 = false;
+    bool _check_objects_each_frame : 1 = true;
 
     void do_make_object(const bptr<object>& e, global_coords pos, bool sorted); // todo replace 2nd arg with chunk&
     void erase_object(object_id id, const object* self);
@@ -144,6 +145,8 @@ public:
     std::array<const chunk*, 8> neighbors(chunk_coords_ coord) const;
 
     void chunk_table_prepare_frame();
+    void check_objects_in_sync() const;
+    void set_check_objects_each_frame(bool value);
 
     static constexpr std::array<Vector2b, 8> neighbor_offsets = {{
         {-1, -1}, {-1,  0}, { 0, -1}, { 1,  1}, { 1,  0}, { 0,  1}, { 1, -1}, {-1,  1},
