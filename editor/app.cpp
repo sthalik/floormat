@@ -108,6 +108,7 @@ void app::reset_world_pre()
 void app::reset_world_post()
 {
     auto& w = M->world();
+    w.set_check_objects_each_frame(!M->settings().driver);
     w.collect(true);
     ensure_player_character(w);
     update_cursor_tile(cursor.pixel);
