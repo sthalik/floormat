@@ -4,6 +4,7 @@
 #include "src/search-cache.hpp"
 #include "src/search-constants.hpp"
 #include "src/search-pred.hpp"
+#include "src/search-octile.hpp"
 #include "src/grid-pass.hpp"
 #include "src/point.inl"
 #include "src/world.hpp"
@@ -158,7 +159,6 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
     constexpr uint32_t diagonal = 23;
     struct entry { uint32_t d, i; };
     constexpr auto later = [](entry a, entry b) { return a.d > b.d; };
-    const auto& octile = Search::octile_distance();
 
     std::fill_n(dist.data(), dist.size(), unreached);
     Array<entry> heap;
@@ -168,7 +168,7 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
         for (int i = -1; i <= 1; i++)
         {
             const auto s = from.tile*tile + Vector2i{i, j};
-            const auto d = octile(zone_point(from), lattice_point(s));
+            const auto d = Search::octile_distance(zone_point(from), lattice_point(s));
             dist[L.index(s)] = d;
             arrayAppend(heap, entry{d, L.index(s)});
             std::push_heap(heap.begin(), heap.end(), later);
@@ -207,7 +207,6 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
 // be cheaper than any route through the reach, so the reach decides the cost.
 uint32_t reference_cost(const Array<uint32_t>& dist, zone to, uint32_t cell)
 {
-    const auto& octile = Search::octile_distance();
     const auto hop_axis = (uint64_t)(cell + step - 2);
     auto best = unreached;
     for (int j = -clear_steps; j <= clear_steps; j++)
@@ -216,7 +215,7 @@ uint32_t reference_cost(const Array<uint32_t>& dist, zone to, uint32_t cell)
             const auto v = to.tile*tile + Vector2i{i, j};
             const auto d = dist[lattice::index(v)];
             if (d != unreached && point::distance_squared(lattice_point(v), zone_point(to)) <= 2*hop_axis*hop_axis)
-                best = Math::min(best, d + octile(lattice_point(v), zone_point(to)));
+                best = Math::min(best, d + Search::octile_distance(lattice_point(v), zone_point(to)));
         }
     return best;
 }

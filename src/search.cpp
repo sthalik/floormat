@@ -31,19 +31,6 @@ constexpr inline auto always_continueʹʹ = [](Chunk&, collision_data, Range2D) 
 template<typename Chunk>
 constexpr inline auto always_continueʹ = Pred<Chunk>{always_continueʹʹ<Chunk>};
 
-constexpr auto octile_distanceʹʹ = [](point cur, point goal) constexpr -> uint32_t {
-    const auto d = Vector2ui{Math::abs(cur - goal)};
-    const uint32_t dx = d.x();
-    const uint32_t dy = d.y();
-    const uint32_t mn = dx < dy ? dx : dy;
-    const uint32_t mx = dx > dy ? dx : dy;
-    // step costs must match search-astar.cpp directions[]
-    constexpr uint32_t axial = (uint32_t)div_size.x();
-    constexpr uint32_t diag  = (uint32_t)(div_size.length() + 1);
-    return mx + (diag - axial) * mn / axial;
-};
-constexpr inline const auto octile_distanceʹ = heuristic{octile_distanceʹʹ};
-
 template<typename Chunk>
 constexpr inline auto without_crittersʹʹ = [](Chunk& self, collision_data data, Range2D) -> path_search_continue {
     // 'scenery' covers all object types here, including critters
@@ -139,7 +126,6 @@ bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb, const Pred
 template<typename Chunk> const Pred<Chunk>& never_continue() noexcept { return detail::never_continueʹ<Chunk>; }
 template<typename Chunk> const Pred<Chunk>& always_continue() noexcept { return detail::always_continueʹ<Chunk>; }
 template<typename Chunk> const Pred<Chunk>& without_critters() noexcept { return detail::without_crittersʹ<Chunk>; }
-const heuristic& octile_distance() noexcept { return detail::octile_distanceʹ; }
 
 template const Pred<chunk>& never_continue() noexcept;
 template const Pred<const chunk>& never_continue() noexcept;

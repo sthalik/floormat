@@ -3,6 +3,7 @@
 #include "src/search-astar.hpp"
 #include "src/search-cache.hpp"
 #include "src/search-pred.hpp"
+#include "src/search-octile.hpp"
 #include "src/grid-pass.hpp"
 #include "src/raycast-line.hpp"
 #include "src/sweep-aabb.hpp"
@@ -32,25 +33,20 @@ struct map_world
     {}
 };
 
-path_search_result search(map_world& s, const Search::heuristic& h = Search::octile_distance())
+path_search_result search(map_world& s)
 {
     return s.A.Dijkstra<0, false>(s.w, s.pool, s.r.from, s.r.to, s.r.max_dist,
                                   Vector2ui{mazes::bbox_size},
-                                  Search::without_critters(), h);
+                                  Search::without_critters());
 }
 
-void verify(kind k, uint32_t cell)
+void verify(kind k, uint32_t cell, uint32_t optimum)
 {
     map_world s{k, cell};
-    const auto& h = Search::octile_distance();
 
     const auto res = search(s);
-    // Seeds get g = h(from, seed), so they keep the octile cost.
-    const auto zero = [&](point cur, point goal) -> uint32_t { return goal == s.r.to ? 0 : h(cur, goal); };
-    const auto opt = search(s, Search::heuristic{zero});
     fm_assert(res.is_found());
-    fm_assert(opt.is_found());
-    fm_assert(res.cost() == opt.cost());
+    fm_assert(res.cost() == optimum);
 
     auto& pool = s.pool;
     constexpr auto nch = mazes::map_chunks - 1;
@@ -67,12 +63,12 @@ void verify(kind k, uint32_t cell)
         }
 
     const auto rect = Search::cache::get_size_to_allocate(s.r.max_dist)*2u + Vector2ui{1};
-    const auto h0 = h(s.r.from, s.r.to);
+    const auto h0 = Search::octile_distance(s.r.from, s.r.to);
     DBG_nospace << "dijkstra-maps " << mazes::name(k) << " cell " << pool.params().div_size()
                 << ": open cells " << open_cells << "/" << side*side
                 << ", bfs tiles " << s.r.bfs_tiles
-                << ", cost " << res.cost() << ", optimum " << opt.cost()
-                << ", h " << h0 << ", cost/h " << (float)opt.cost()/(float)h0
+                << ", cost " << res.cost() << ", optimum " << optimum
+                << ", h " << h0 << ", cost/h " << (float)optimum/(float)h0
                 << ", max_dist " << s.r.max_dist
                 << ", cache chunks " << rect.product();
 }
@@ -80,9 +76,9 @@ void verify(kind k, uint32_t cell)
 // A world per call, as in Dijkstra<>. A static one is destroyed after bench_app's loader.destroy(),
 // and a leaked one trips the RTree pool destructor's assert that every tree came back.
 template<kind K, uint32_t Cell = (uint32_t)Search::div_size.x()>
-void bench_map(benchmark::State& state)
+void bench_map(benchmark::State& state, uint32_t optimum)
 {
-    static const bool verified = (verify(K, Cell), true);
+    static const bool verified = (verify(K, Cell, optimum), true);
     (void)verified;
     map_world s{K, Cell};
     for (int i = 0; i < 2; i++)
@@ -129,12 +125,13 @@ void bench_sweep(benchmark::State& state)
             benchmark::DoNotOptimize(sweep(i));
 }
 
-void Dijkstra_Rooms(benchmark::State& state) { bench_map<kind::rooms>(state); }
-void Dijkstra_Braid(benchmark::State& state) { bench_map<kind::braid>(state); }
-void Dijkstra_Prim(benchmark::State& state) { bench_map<kind::prim>(state); }
-void Dijkstra_Braid_Cell4(benchmark::State& state) { bench_map<kind::braid, 4>(state); }
-void Dijkstra_Braid_Cell8(benchmark::State& state) { bench_map<kind::braid, 8>(state); }
-void Dijkstra_Braid_Cell32(benchmark::State& state) { bench_map<kind::braid, 32>(state); }
+// Optimal costs at step costs 16/23.
+void Dijkstra_Rooms(benchmark::State& state) { bench_map<kind::rooms>(state, 14397); }
+void Dijkstra_Braid(benchmark::State& state) { bench_map<kind::braid>(state, 14451); }
+void Dijkstra_Prim(benchmark::State& state) { bench_map<kind::prim>(state, 24637); }
+void Dijkstra_Braid_Cell4(benchmark::State& state) { bench_map<kind::braid, 4>(state, 14355); }
+void Dijkstra_Braid_Cell8(benchmark::State& state) { bench_map<kind::braid, 8>(state, 14355); }
+void Dijkstra_Braid_Cell32(benchmark::State& state) { bench_map<kind::braid, 32>(state, 15488); }
 void String_Pull_Rooms(benchmark::State& state) { bench_pull<kind::rooms>(state); }
 void String_Pull_Braid(benchmark::State& state) { bench_pull<kind::braid>(state); }
 void String_Pull_Prim(benchmark::State& state) { bench_pull<kind::prim>(state); }

@@ -23,7 +23,6 @@ public:
     struct bucket_queue;
 
     using pred = Search::pred;
-    using heuristic = Search::heuristic;
 
     astar();
     ~astar() noexcept;
@@ -33,18 +32,15 @@ public:
     Grid::Pass::PoolRegistry& pass_pool_registry();
 
     // todo add simple bresenham short-circuit
-    // `h` must be consistent: bucket_queue needs every live f within bucket_count of the lowest.
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, point from, point to,
                                 uint32_t max_dist, Vector2ui own_size,
-                                const pred& p,
-                                const heuristic& h = Search::octile_distance());
+                                const pred& p);
 
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, Grid::Pass::Pool& pool, point from, point to,
                                 uint32_t max_dist, Vector2ui own_size,
-                                const pred& p,
-                                const heuristic& h = Search::octile_distance());
+                                const pred& p);
 
     struct string_pull_result
     {
