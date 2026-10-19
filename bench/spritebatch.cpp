@@ -16,7 +16,7 @@ namespace {
 
 constexpr inline uint32_t nquads = 1u << 16;
 
-const Quads::vertexes dummy_quad{};
+constexpr Quads::vertexes dummy_quad{};
 
 enum class layout : uint8_t { blocked, interleaved, shuffled };
 

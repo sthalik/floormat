@@ -10,11 +10,11 @@
 namespace floormat::detail::grid {
 
 namespace {
-Spinlock g_build_seq_lock;
+constinit Spinlock g_build_seq_lock;
 uint64_t g_build_seq = 0;
 
-Spinlock g_slot_lock;
-Array<uint32_t> g_free_slots;
+constinit Spinlock g_slot_lock;
+constinit Array<uint32_t> g_free_slots;
 uint32_t g_slot_count = 0;
 
 uint32_t take_slot_index()

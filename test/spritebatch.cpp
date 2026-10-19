@@ -14,7 +14,7 @@ namespace floormat::Test {
 
 namespace {
 
-const Quads::vertexes dummy_quad{};
+constexpr Quads::vertexes dummy_quad{};
 
 // Sortedness and permutation are both satisfied by garbage when depths tie, so the third
 // check is what pins the merge down: a run's elements must keep their relative order.

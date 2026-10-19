@@ -78,7 +78,7 @@ struct WallFragment
     Range3D world_coords;
 };
 
-Array<Range2D> wall_fragments, next_wall_fragments; // todo thread safety
+constinit Array<Range2D> wall_fragments, next_wall_fragments; // todo thread safety
 
 ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<const HoleData> holes,
                                       local_coords tile_pos, float depth, bool IsWest, HoleRegion region)
@@ -209,10 +209,10 @@ uint32_t variant_index(uint32_t frame_count, global_coords coord, variant_t vari
     return variant % frame_count;
 }
 
-Array<HoleData> hole_data; // todo thread safety
+constinit Array<HoleData> hole_data; // todo thread safety
 
-Array<WallFragment> fragdata; // todo thread safety
-Array<WallFragment> corner_fragdata; // todo thread safety
+constinit Array<WallFragment> fragdata; // todo thread safety
+constinit Array<WallFragment> corner_fragdata; // todo thread safety
 
 template<Group_ G, bool IsWest>
 void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
