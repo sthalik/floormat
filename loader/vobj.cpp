@@ -1,6 +1,5 @@
 #include "impl.hpp"
 #include "compat/exception.hpp"
-#include "compat/hash-table-load-factor.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/anim.hpp"
 #include "serialize/json-helper.hpp"
@@ -102,7 +101,7 @@ void loader_impl::get_vobj_list()
     auto vec = json_helper::from_json<std::vector<struct vobj>>(Path::join(VOBJ_PATH, "vobj.json"));
 
     arrayReserve(vobjs, vec.size());
-    Hash::set_separate_chaining_load_factor(vobj_atlas_map, vec.size());
+    vobj_atlas_map.set_load_factor(vec.size());
 
     for (const auto& [name, descr, img_name] : vec)
     {
@@ -110,7 +109,7 @@ void loader_impl::get_vobj_list()
         auto info = vobj_cell{name, descr, atlas};
         arrayAppend(vobjs, move(info));
         const auto& x = vobjs.back();
-        vobj_atlas_map[x.atlas->name()] = &x;
+        vobj_atlas_map[x.atlas->name()] = vobjs.size() - 1;
     }
 
     fm_assert(!vobjs.isEmpty());
@@ -128,10 +127,10 @@ const struct vobj_cell& loader_impl::vobj(StringView name)
 {
     if (vobjs.isEmpty())
         get_vobj_list();
-    auto it = vobj_atlas_map.find(name);
-    if (it == vobj_atlas_map.end())
+    const size_t* it = vobj_atlas_map.find(name);
+    if (!it)
         fm_throw("no such vobj '{}'"_cf, name);
-    return *it->second;
+    return vobjs[*it];
 }
 
 } // namespace floormat::loader_detail
