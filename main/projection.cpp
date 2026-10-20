@@ -7,7 +7,6 @@
 #include <cr/StructuredBindings.h>
 #include <mg/Range.h>
 #include <mg/Functions.h>
-#include <algorithm>
 #include <array>
 
 namespace floormat {
