@@ -1,10 +1,10 @@
 #pragma once
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
-#include "compat/hash-table-load-factor.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
 #include "loader/loader.hpp"
+#include <utility>
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>
 #include <cr/GrowableArray.h>
@@ -42,7 +42,7 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
         if (name.isSmall()) name = String{AllocatedInit, name};
     }
 
-    Hash::set_open_addressing_load_factor( s.name_map, s.name_map.size()+s.cell_array.size()+1);
+    s.name_map.set_load_factor(s.name_map.size()+s.cell_array.size()+1);
 
     for (auto i = 0uz; const auto& c : s.cell_array)
         s.name_map[t.name_of(c)] = i++;
@@ -53,13 +53,12 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
       s.name_map[loader.INVALID] = sz;
     }
 
-    for (const auto& [name, index] : s.name_map)
-        fm_assert(index < s.cell_array.size() || index == -1uz);
+    fm_assert(s.name_map.all_indices_below(s.cell_array.size()));
 
     fm_debug_assert(!s.name_map.empty());
     fm_debug_assert(!s.cell_array.isEmpty());
 
-    Hash::set_open_addressing_load_factor(s.name_map);
+    s.name_map.set_load_factor();
 
     return { s.cell_array.data(), s.cell_array.size() };
 }
@@ -89,9 +88,9 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
 
     fm_soft_assert(loader.check_atlas_name(name));
 
-    if (auto it = s.name_map.find(name); it != s.name_map.end()) [[likely]]
+    if (const size_t* it = s.name_map.find(name)) [[likely]]
     {
-        if (it->second == -1uz) [[unlikely]]
+        if (*it == -1uz) [[unlikely]]
         {
             switch (p)
             {
@@ -107,7 +106,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         }
         else
         {
-            Cell& c = s.cell_array[it->second];
+            Cell& c = s.cell_array[*it];
             fm_assert(t.name_of(c));
             AtlasPtr& atlas{t.atlas_of(c)};
             if (!atlas) [[unlikely]]
@@ -140,7 +139,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         arrayAppend(s.cell_array, move(*cʹ));
         Cell& c{s.cell_array.back()};
         s.name_map[t.name_of(c)] = index;
-        Hash::set_open_addressing_load_factor(s.name_map);
+        s.name_map.set_load_factor();
         return t.atlas_of(c);
     }
     else
@@ -202,16 +201,16 @@ template<typename ATLAS, typename TRAITS>
 bool atlas_loader<ATLAS, TRAITS>::cell_exists(Corrade::Containers::StringView name)
 {
     // -1uz marks a name looked up under warn/ignore that has no backing cell.
-    auto it = s.name_map.find(name);
-    return it != s.name_map.end() && it->second != -1uz;
+    const size_t* it = s.name_map.find(name);
+    return it && *it != -1uz;
 }
 
 template<typename ATLAS, typename TRAITS>
 auto atlas_loader<ATLAS, TRAITS>::get_cell(StringView name) -> const Cell&
 {
-    auto it = s.name_map.find(name);
-    fm_assert(it != s.name_map.end() && it->second != -1uz);
-    return s.cell_array[ it->second ];
+    const size_t* it = s.name_map.find(name);
+    fm_assert(it && *it != -1uz);
+    return s.cell_array[*it];
 }
 
 template<typename ATLAS, typename TRAITS>
