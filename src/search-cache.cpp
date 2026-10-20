@@ -4,7 +4,6 @@
 #include "point.inl"
 #include "intra-coord.inl"
 #include "world.hpp"
-#include "local-coords.hpp"
 #include "tile-defs.hpp"
 #include "compat/function2.hpp"
 #include <bit>

@@ -1,6 +1,4 @@
 #include "../tests-private.hpp"
-#include "compat/array-size.hpp"
-#include "src/tile-constants.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/grid-pass.hpp"

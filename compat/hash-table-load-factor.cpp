@@ -1,5 +1,4 @@
 #include "hash-table-load-factor.hpp"
-#include "debug.hpp"
 #include "array-size.hpp"
 #include <algorithm>
 

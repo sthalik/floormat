@@ -7,7 +7,6 @@
 #include "src/world.hpp"
 #include "src/raycast-diag.hpp"
 #include "src/grid-pass.hpp"
-#include "src/tile-defs.hpp"
 #include "../raycast-draw.hpp"
 #include <cinttypes>
 #include <cstdio>

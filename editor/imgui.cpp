@@ -2,7 +2,6 @@
 #include "pgo-scenes.hpp"
 #include "mazes.hpp"
 #include "src/tile-constants.hpp"
-#include "compat/format.hpp"
 #include "editor.hpp"
 #include "ground-editor.hpp"
 #include "wall-editor.hpp"

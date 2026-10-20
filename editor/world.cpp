@@ -2,7 +2,6 @@
 #include "src/world.hpp"
 #include "src/hole.hpp"
 #include "src/critter.hpp"
-#include "src/scenery.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/ground-atlas.hpp"

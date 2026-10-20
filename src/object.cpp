@@ -5,8 +5,6 @@
 #include "anim-atlas.hpp"
 #include "search.hpp"
 #include "compat/function2.hpp"
-#include "src/timer.hpp"
-#include "compat/debug.hpp"
 #include "compat/exception.hpp"
 #include "compat/limits.hpp"
 #include "compat/non-const.hpp"
