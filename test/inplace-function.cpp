@@ -3,6 +3,7 @@
 #include "compat/function2.hpp"
 #include <cr/Pointer.h>
 #include <functional>
+#include <memory>
 
 // Outside the anonymous namespace, where clang warns about their unused members.
 namespace floormat::inplace_function_test {
