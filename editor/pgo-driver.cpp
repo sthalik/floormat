@@ -54,6 +54,7 @@
 #include <mg/Functions.h>
 #include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
+#include <imgui_internal.h>
 
 #ifdef FLOORMAT_NO_PGO_DRIVER
 

@@ -3,7 +3,6 @@
 #include <cr/StringView.h>
 #include <mg/Magnum.h>
 #include <imgui.h>
-#include <imgui_internal.h>
 
 namespace floormat::imgui {
 
@@ -43,7 +42,7 @@ private:
 [[nodiscard]] raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value);
 [[nodiscard]] raii_wrapper push_id(StringView str);
 
-void text(StringView str, ImGuiTextFlags flags = ImGuiTextFlags_NoWidthForLargeClippedText);
+void text(StringView str);
 
 struct style_saver final
 {

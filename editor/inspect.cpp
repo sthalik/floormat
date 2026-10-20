@@ -10,6 +10,7 @@
 #include <mg/Functions.h>
 #include <mg/Vector3.h>
 #include <mg/Color.h>
+#include <imgui_internal.h>
 
 namespace floormat::entities {
 
