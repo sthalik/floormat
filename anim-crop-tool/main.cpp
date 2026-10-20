@@ -5,7 +5,6 @@
 #include "loader/loader.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
-#include <algorithm>
 #include <cr/GrowableArray.h>
 #include <cr/Pair.h>
 #include <cr/Arguments.h>
