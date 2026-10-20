@@ -7,7 +7,6 @@
 #include <array>
 #include <cr/BitArray.h>
 #include <cr/String.h>
-#include <mg/TextureArray.h>
 
 namespace floormat {
 
