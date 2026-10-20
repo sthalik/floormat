@@ -169,13 +169,13 @@ struct suite<P>::IWeakSelf : intrusive_bptr_base<P>
 template<typename P>
 struct suite<P>::IThrow : intrusive_bptr_base<P>
 {
-    [[noreturn]] IThrow() { fm_throw("intrusive bptr ctor throws {}"_cf, 1); }
+    [[noreturn]] IThrow() { fm_throw("intrusive bptr ctor throws {}", 1); }
 };
 
 template<typename P>
 struct suite<P>::IThrowLate : IFoo
 {
-    [[noreturn]] IThrowLate() : IFoo{2} { fm_throw("intrusive bptr ctor throws {}"_cf, 2); }
+    [[noreturn]] IThrowLate() : IFoo{2} { fm_throw("intrusive bptr ctor throws {}", 2); }
 };
 
 template<typename P>

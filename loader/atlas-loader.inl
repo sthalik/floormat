@@ -161,7 +161,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
     fm_assert(false);
 
 error:
-    fm_throw("no such atlas '{}'"_cf, name);
+    fm_throw("no such atlas '{}'", name);
 
 missing_warn:
     arrayAppend(s.missing_atlas_names, name);

@@ -55,7 +55,7 @@ bptr<ground_atlas> ground_editor::atlas(StringView str)
     if (auto ptr = maybe_atlas(str))
         return ptr;
     else
-        fm_throw("no such atlas: {}"_cf, str);
+        fm_throw("no such atlas: {}", str);
 }
 
 StringView ground_editor::name() const noexcept { return "ground"_s; }

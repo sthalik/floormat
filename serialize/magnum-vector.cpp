@@ -13,12 +13,12 @@ namespace {
 
 [[noreturn]] void throw_failed_to_parse_vector2(StringView str)
 {
-    fm_throw("failed to parse Vector2 '{}'"_cf, str);
+    fm_throw("failed to parse Vector2 '{}'", str);
 }
 
 [[noreturn]] void throw_vector2_overflow(StringView str)
 {
-    fm_throw("numeric overflow in Vector2 '{}'"_cf, str);
+    fm_throw("numeric overflow in Vector2 '{}'", str);
 }
 
 using nlohmann::json;

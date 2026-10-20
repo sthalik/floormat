@@ -133,12 +133,12 @@ namespace nlohmann {
 void adl_serializer<floormat::anim_scale>::to_json(json& j, const anim_scale val)
 {
     if (val.type >= anim_scale_type::COUNT) [[unlikely]]
-        fm_throw("invalid anim_scale_type '{}"_cf, (unsigned)val.type);
+        fm_throw("invalid anim_scale_type '{}", (unsigned)val.type);
     switch (val.type)
     {
     case anim_scale_type::COUNT: std::unreachable();
     case anim_scale_type::invalid:
-        fm_throw("anim_scale is invalid"_cf);
+        fm_throw("anim_scale is invalid");
     case anim_scale_type::fixed:
         j = std::tuple<StringView, unsigned>{val.f.is_width ? "width"_s : "height"_s, val.f.width_or_height};
         break;
@@ -169,7 +169,7 @@ void adl_serializer<anim_scale>::from_json(const json& j, anim_scale& val)
         val = anim_scale::fixed{(unsigned)v, is_width};
     }
     else
-        fm_throw("invalid anim_scale_type '{}'"_cf, type);
+        fm_throw("invalid anim_scale_type '{}'", type);
 }
 
 void adl_serializer<anim_frame>::to_json(json& j, const anim_frame& val) { using nlohmann::to_json; to_json(j, val); }

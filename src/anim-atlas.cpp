@@ -29,7 +29,7 @@ uint8_t anim_atlas::rotation_to_index(StringView name)
     for (uint8_t i = 0; i < rot_count; i++)
         if (name == StringView{name_array[i]})
             return i;
-    fm_throw("can't parse rotation name '{}'"_cf, name);
+    fm_throw("can't parse rotation name '{}'", name);
 }
 
 decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_def& a) noexcept

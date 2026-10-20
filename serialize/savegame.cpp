@@ -224,7 +224,7 @@ struct visitor_ : visitor_base<IsNewest>
 
         visit(s.type, f);
         if (s.type >= object_type::COUNT || s.type == object_type::none) [[unlikely]]
-            fm_throw("invalid object type {}"_cf, (int)s.type);
+            fm_throw("invalid object type {}", (int)s.type);
         switch (s.type)
         {
         case object_type::none:
@@ -918,7 +918,7 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
         case atlas_type::wall:
         case atlas_type::none:
         default:
-            fm_throw("invalid atlas type {}"_cf, (int)type);
+            fm_throw("invalid atlas type {}", (int)type);
         case atlas_type::anim:
             a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}, asset_policy);
             break;
@@ -956,7 +956,7 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
             goto ok;
         }
         }
-        fm_throw("invalid sc_type {}"_cf, (int)sc_type);
+        fm_throw("invalid sc_type {}", (int)sc_type);
 ok:
         ret = w.make_scenery(h.id, coord, move(sc));
     }
@@ -1022,7 +1022,7 @@ ok:
             goto ok;
         }
         }
-        fm_throw("invalid object_type {}"_cf, (int)type);
+        fm_throw("invalid object_type {}", (int)type);
 ok:
         fm_assert(obj);
         fm_debug_assert(&obj->chunk() == ch);
@@ -1111,7 +1111,7 @@ ok:
             void* atlas = nullptr;
             switch (type)
             {
-            default: fm_throw("invalid atlas_type {}"_cf, (size_t)type);
+            default: fm_throw("invalid atlas_type {}", (size_t)type);
             case atlas_type::none: break;
             case atlas_type::ground:
                 atlas = loader.ground_atlas(str, loader_policy::warn).get();
@@ -1249,21 +1249,21 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
         FILE_raii f{std::fopen(filename.data(), "rb")};
         char errbuf[128];
         if (!f)
-            fm_throw("fopen(\"{}\", \"r\"): {}"_cf, filename, get_error_string(errbuf));
+            fm_throw("fopen(\"{}\", \"r\"): {}", filename, get_error_string(errbuf));
         if (int ret = std::fseek(f, 0, SEEK_END); ret != 0)
-            fm_throw("fseek(SEEK_END): {}"_cf, get_error_string(errbuf));
+            fm_throw("fseek(SEEK_END): {}", get_error_string(errbuf));
         size_t len;
         if (auto len_ = std::ftell(f); len_ >= 0)
             len = (size_t)len_;
         else
-            fm_throw("ftell: {}"_cf, get_error_string(errbuf));
+            fm_throw("ftell: {}", get_error_string(errbuf));
         if (int ret = std::fseek(f, 0, SEEK_SET); ret != 0)
-            fm_throw("fseek(SEEK_SET): {}"_cf, get_error_string(errbuf));
+            fm_throw("fseek(SEEK_SET): {}", get_error_string(errbuf));
         auto buf_ = Array<char>(ValueInit, len+1);
         if (auto ret = std::fread(&buf_[0], 1, len+1, f); ret != len)
-            fm_throw("fread short read: {}"_cf, get_error_string(errbuf));
+            fm_throw("fread short read: {}", get_error_string(errbuf));
         if (len <= sizeof Hash::CRC64_INITIALIZER)
-            fm_throw("buffer too short, len {}"_cf, len);
+            fm_throw("buffer too short, len {}", len);
 
         buf.data = move(buf_);
         buf.size = len;
@@ -1285,7 +1285,7 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
                                             buf.data.data(), buf.size - sizeof old_state);
         if (old_state != new_state)
             fm_throw("CRC64-ECMA checksum for savegame doesn't match"
-                     ": 0x{:016x} vs 0x{:016x} for {}"_cf,
+                     ": 0x{:016x} vs 0x{:016x} for {}",
                      old_state, new_state, filename);
     }
 

@@ -102,7 +102,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
             const auto *begin = anim_info.groups.data(), *end = begin + anim_info.groups.size();
             const auto* it = std::find_if(begin, end, [&](const anim_group& x) { return x.name == group.mirror_from; });
             if (it == end)
-                fm_throw("can't find group '{}' to mirror from '{}'"_cf, group.mirror_from, group.name);
+                fm_throw("can't find group '{}' to mirror from '{}'", group.mirror_from, group.name);
             group.frames = array(ArrayView<const anim_frame>{it->frames.data(), it->frames.size()});
             for (anim_frame& f : group.frames)
                 f.ground = Vector2i((Int)f.size[0] - f.ground[0], f.ground[1]);

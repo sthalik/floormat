@@ -189,7 +189,7 @@ bool read_object_flags(binary_reader<T>& s, U& e)
     uint8_t flags; flags << s;
     e.pass = pass_mode(flags & pass_mask);
     if (e.type != tag)
-         fm_throw("invalid object type '{}'"_cf, (int)e.type);
+         fm_throw("invalid object type '{}'", (int)e.type);
     if constexpr(tag == object_type::scenery)
     {
         if (auto* val = swl::get_if<generic_scenery_proto>(&e.subtype))
@@ -222,7 +222,7 @@ void reader_state::read_sceneries(reader_t& s)
 {
     uint16_t magic; magic << s;
     if (magic != scenery_magic)
-        fm_throw("bad scenery magic"_cf);
+        fm_throw("bad scenery magic");
     atlasid sz; sz << s;
     fm_soft_assert(sz < scenery_id_max_);
     sceneries.resize(sz);
@@ -269,7 +269,7 @@ StringView reader_state::lookup_atlas(atlasid id)
     if (id < atlases.size())
         return atlases[id];
     else
-        fm_throw("no such atlas: '{}'"_cf, id);
+        fm_throw("no such atlas: '{}'", id);
 }
 
 const scenery_proto& reader_state::lookup_scenery(atlasid id)
@@ -277,7 +277,7 @@ const scenery_proto& reader_state::lookup_scenery(atlasid id)
     if (id < sceneries.size())
         return sceneries[id];
     else
-        fm_throw("no such scenery: '{}'"_cf, id);
+        fm_throw("no such scenery: '{}'", id);
 }
 
 StringView reader_state::lookup_string(uint32_t idx)
@@ -307,7 +307,7 @@ void reader_state::read_chunks(reader_t& s)
         std::decay_t<decltype(chunk_magic)> magic;
         magic << s;
         if (magic != chunk_magic)
-            fm_throw("bad chunk magic"_cf);
+            fm_throw("bad chunk magic");
         int16_t cx, cy;
         int8_t cz = 0;
         cx << s;
@@ -401,7 +401,7 @@ void reader_state::read_chunks(reader_t& s)
                 type = object_type(_id >> 61);
             }
             if (type >= object_type::COUNT || type == object_type::none) [[unlikely]]
-                fm_throw("invalid_object_type '{}'"_cf, (int)type);
+                fm_throw("invalid_object_type '{}'", (int)type);
 
             const auto local = local_coords{s.read<uint8_t>()};
 
@@ -425,7 +425,7 @@ void reader_state::read_chunks(reader_t& s)
             switch (type)
             {
             case object_type::hole:
-                fm_throw("hole objects not supported in old savegames (type {})"_cf, (int)type);
+                fm_throw("hole objects not supported in old savegames (type {})", (int)type);
             case object_type::critter: {
                 critter_proto proto;
                 proto.offset = offset;
@@ -669,7 +669,7 @@ void reader_state::deserialize_world(ArrayView<const char> buf, proto_t proto)
     fm_assert(_world != nullptr);
     auto s = binary_reader{buf};
     if (!(proto >= min_proto_version && proto <= proto_version))
-        fm_throw("bad proto version '{}' (should be between '{}' and '{}')"_cf,
+        fm_throw("bad proto version '{}' (should be between '{}' and '{}')",
                  (size_t)proto, (size_t)min_proto_version, (size_t)proto_version);
     PROTO = proto;
     fm_assert(PROTO > 0);
