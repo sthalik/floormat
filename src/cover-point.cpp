@@ -1,10 +1,9 @@
 #include "cover-point.hpp"
 #include "grid-cover.hpp"
-#include "grid-pass.hpp"
 #include "grid-pool-registry.hpp"
+#include "collision.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
-#include "raycast.hpp"
 #include "search.hpp"
 #include "world.hpp"
 #include "chunk.hpp"
@@ -13,7 +12,6 @@
 #include "compat/function2.hpp"
 #include <algorithm>
 #include <bit>
-#include <cfloat>
 #include <cmath>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
@@ -45,27 +43,31 @@ struct cell_info
     uint16_t distance;
 };
 
-struct exposure
+// a/d from the threat, d > 0
+struct slope
 {
-    bool minus, plus;
+    int64_t a, d;
 };
 
-struct placed
-{
-    Vector2i pos;
-    exposure e;
-};
-
-struct ray_hit
-{
-    Range2D rect;
-    bool open;
-};
+bool operator<(slope x, slope y) { return x.a*y.d < y.a*x.d; }
 
 struct slope_range
 {
-    float lo, hi;
+    slope lo, hi;
 };
+
+// Pixel squares in doubled coordinates from the threat, so their half-pixel edges are odd integers.
+struct square_box
+{
+    int64_t d0, d1, a0, a1;
+};
+
+int64_t floor_div(int64_t x, int64_t d)
+{
+    fm_debug_assert(d > 0);
+    const auto q = x / d;
+    return q - (x % d < 0);
+}
 
 } // namespace
 
@@ -73,7 +75,6 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
 {
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     auto& cover_pool = pools.cover_pool(params);
-    auto& ray_pool = pools.pass_pool(Pass::Params{params.div_size, pass_mode::shoot_through});
     cover_pool.maybe_mark_stale_all(w);
 
     const auto ds = (int)cover_pool.params().div_size;
@@ -123,7 +124,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
         return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(q.body_size)}, Search::without_critters());
     };
 
-    // A body flush against a blocker covers cells the blocker clears. exposure_at checks those.
+    // A body flush against a blocker covers cells the blocker clears. The slope check covers those.
     const auto body_hidden = [&](Vector2i center) {
         const auto a = cell_of(center - Vector2i{Math::floor(half)});
         const auto b = cell_of(center + Vector2i{Math::ceil(half)} - Vector2i{1});
@@ -158,74 +159,117 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
 
     cover_point_result ret;
     ret.candidates = (uint32_t)cands.size();
+    if (cands.isEmpty())
+        return ret;
 
     const auto half_i = Vector2i(q.body_size / 2u);
     const auto min_size = (int)Math::min(q.body_size.x(), q.body_size.y());
     const auto step_px = Math::max(1, min_size/2);
     const auto max_push = (int)Math::ceil(against * Math::sqrt(2.f)) + min_size;
-    const auto ext = Math::max(half_i - Vector2i{1}, Vector2i{0});
-    const auto min_pass = (uint64_t)ray_pool.params().min_pass;
-
-    Array<Range2D> rects;
-    Array<slope_range> runs;
-
-    const auto cast = [&](Vector2i px) -> ray_hit {
-        const auto r = raycast(w, q.threat, to_point(px), 0, ray_pool, Search::without_critters());
-        return { r.rect, !r.has_result || r.success };
+    const auto ext_lo = half_i, ext_hi = Vector2i(q.body_size) - half_i - Vector2i{1};
+    const auto reach = [&](Vector2i dir) {
+        return Math::dot(Math::max(dir, Vector2i{0}), ext_hi) + Math::dot(Math::max(-dir, Vector2i{0}), ext_lo);
     };
+    // The candidate nearest a spot may be filtered out, so a shift reaches two cells.
+    const auto range = 2*ds;
 
     // The rects a ray skips are left out the same way.
-    const auto collect_rects = [&](Vector2i lo, Vector2i hi) {
-        arrayClear(rects);
+    Array<Range2Di> rects;
+    {
+        // Every segment from the threat to a body stays in this box, so one search serves all candidates.
+        const auto spread = Vector2i{R + range + 1} + Math::max(ext_lo, ext_hi);
+        const auto qlo = Math::min(T, P - spread) - Vector2i{1}, qhi = Math::max(T, P + spread) + Vector2i{1};
         const auto z = q.pos.chunk3().z;
         const auto chunk_of = [](int px) { return floor_div(px + half_tile<int>, chunk_size<int>); };
+        constexpr auto min_pass = (uint64_t)pass_mode::shoot_through;
         // a rect overhangs into the next chunk at most
-        for (auto cy = chunk_of(lo.y()) - 1; cy <= chunk_of(hi.y()) + 1; cy++)
-            for (auto cx = chunk_of(lo.x()) - 1; cx <= chunk_of(hi.x()) + 1; cx++)
+        for (auto cy = chunk_of(qlo.y()) - 1; cy <= chunk_of(qhi.y()) + 1; cy++)
+            for (auto cx = chunk_of(qlo.x()) - 1; cx <= chunk_of(qhi.x()) + 1; cx++)
             {
                 auto* c = w.at(chunk_coords_{(int16_t)cx, (int16_t)cy, z});
                 if (!c)
                     continue;
-                const auto origin = Vector2(Vector2i{cx, cy}*chunk_size<int>);
-                const auto qlo = Vector2(lo) - origin, qhi = Vector2(hi) - origin;
-                c->rtree()->Search(qlo.data(), qhi.data(), [&](uint64_t data, const auto& r) {
+                const auto origin = Vector2i{cx, cy}*chunk_size<int>;
+                const auto clo = Vector2(qlo - origin), chi = Vector2(qhi - origin);
+                c->rtree()->Search(clo.data(), chi.data(), [&](uint64_t data, const auto& r) {
                     const auto x = std::bit_cast<collision_data>(data);
                     const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-                    if (x.pass < min_pass && Search::without_critters()(*c, x, range) != path_search_continue::pass)
-                        arrayAppend(rects, Range2D{range.min() + origin, range.max() + origin});
+                    const auto pmin = Vector2i(Math::ceil(range.min())), pmax = Vector2i(Math::ceil(range.max()));
+                    if (x.pass < min_pass && (pmin < pmax).all()
+                        && Search::without_critters()(*c, x, range) != path_search_continue::pass)
+                        arrayAppend(rects, Range2Di{(pmin + origin - T)*2 - Vector2i{1}, (pmax + origin - T)*2 - Vector2i{1}});
                     return true;
                 });
             }
+    }
+
+    const auto body_at = [&](Vector2i pos, Vector2i axis, Vector2i across) {
+        const auto e = Math::dot(T - pos, axis), c = Math::dot(pos - T, across);
+        return square_box{ 2*(e - reach(axis)) - 1, 2*(e + reach(-axis)) + 1,
+                           2*(c - reach(-across)) - 1, 2*(c + reach(across)) + 1 };
+    };
+    const auto slopes_of = [](const square_box& b) {
+        return slope_range{ { b.a0, b.a0 > 0 ? b.d1 : b.d0 }, { b.a1, b.a1 > 0 ? b.d0 : b.d1 } };
     };
 
-    // Targets lie 1 px inside the body, since one on a collider's face reads blocked. Along the faces
-    // the threat sees, a convex rect blocking the rays to both ends of a stretch blocks every ray between.
-    const auto exposure_at = [&](Vector2i pos, Vector2i axis, Vector2i across) -> exposure {
-        const auto ea = Math::dot(across, ext), ex = Math::dot(Math::abs(axis), ext);
-        const auto mid = pos + axis*ex;
-        const auto at_mid = cast(mid);
-        if (at_mid.open)
-            return { true, true };
-        exposure e{false, false};
-        for (const auto sign : { -1, 1 })
+    // A ray aimed anywhere hits a rect when it touches a closed pixel square (bresenham_line::off_axis_at).
+    // Only squares nearer than the body's near face surely come first. Open ranges let a grazing ray pass.
+    Array<slope_range> runs;
+    const auto build_runs = [&](const square_box& body, Vector2i axis, Vector2i across) {
+        arrayClear(runs);
+        for (const auto& r : rects)
         {
-            const auto dir = across*sign, corner = mid + dir*ea;
-            const auto len = ea + (Math::dot(T - pos, dir) > ea ? 2*ex : 0);
-            const auto at = [&](int s) { return s <= ea ? mid + dir*s : corner - axis*(s - ea); };
-            const auto hidden = [&](this const auto& self, int a, int b, const ray_hit& ra, const ray_hit& rb) -> bool {
-                if (ra.rect == rb.rect || b - a <= 1)
-                    return true;
-                const auto m = (a + b)/2;
-                const auto rm = cast(at(m));
-                return !rm.open && self(a, m, ra, rm) && self(m, b, rm, rb);
-            };
-            const auto end = cast(at(len));
-            (sign < 0 ? e.minus : e.plus) = end.open || !hidden(0, len, at_mid, end);
+            const auto da = (int64_t)Math::dot(-r.min(), axis), db = (int64_t)Math::dot(-r.max(), axis);
+            // 1 is half a pixel, where the threat's own pixel ends
+            const auto d0 = Math::max(Math::min(da, db), int64_t{1}), d1 = Math::min(Math::max(da, db), body.d0);
+            if (d0 >= d1)
+                continue;
+            arrayAppend(runs, slopes_of({ d0, d1, Math::dot(r.min(), across), Math::dot(r.max(), across) }));
         }
-        return e;
+        std::sort(runs.begin(), runs.end(), [](const slope_range& a, const slope_range& b) { return a.lo < b.lo; });
+        size_t n = 0;
+        for (const auto& s : runs)
+        {
+            if (n && s.lo < runs[n-1].hi)
+                runs[n-1].hi = runs[n-1].hi < s.hi ? s.hi : runs[n-1].hi;
+            else
+                runs[n++] = s;
+        }
+        arrayResize(runs, NoInit, n);
     };
 
-    const auto place = [&](Vector2i start, Vector2i axis, Vector2i across) -> Optional<placed> {
+    const auto hidden = [&](const square_box& body) {
+        if (body.d0 <= 1)
+            return false;
+        const auto s = slopes_of(body);
+        for (const auto& run : runs)
+            if (run.lo < s.lo && s.hi < run.hi)
+                return true;
+        return false;
+    };
+
+    const auto shift_to_cover = [&](const square_box& body) -> Optional<int> {
+        Optional<int> best;
+        for (const auto& run : runs)
+        {
+            auto t_lo = (int64_t)-range, t_hi = (int64_t)range;
+            for (const auto a : { body.a0, body.a1 })
+                for (const auto d : { body.d0, body.d1 })
+                {
+                    // run.lo < (a + 2t)/d < run.hi
+                    t_lo = Math::max(t_lo, floor_div(run.lo.a*d - a*run.lo.d, 2*run.lo.d) + 1);
+                    t_hi = Math::min(t_hi, -floor_div(a*run.hi.d - run.hi.a*d, 2*run.hi.d) - 1);
+                }
+            if (t_lo > t_hi)
+                continue;
+            const auto t = (int)(t_lo > 0 ? t_lo : t_hi < 0 ? t_hi : 0);
+            if (!best || Math::abs(t) < Math::abs(*best))
+                best = t;
+        }
+        return best;
+    };
+
+    const auto place = [&](Vector2i start, Vector2i axis) -> Optional<Vector2i> {
         if (!passable(start))
             return {};
         // A blocker stops the body over at least the body's size along the axis, so steps of half
@@ -249,78 +293,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
             else
                 hi_px = mid;
         }
-        const auto pos = start + axis*lo_px;
-        return placed{pos, exposure_at(pos, axis, across)};
-    };
-
-    // From the threat, a point's slope is its offset across over its distance along the axis. Shifting
-    // the body by t adds t/d to a corner's slope, so the shifts keeping all four corners in one merged
-    // run of rect slopes form a range.
-    const auto shift_to_cover = [&](Vector2i pos, Vector2i axis, Vector2i across, int prefer) -> Optional<int> {
-        const auto range = 2*ds;
-        const auto spread = across*(Math::dot(across, ext) + range) + Math::abs(axis)*ext;
-        collect_rects(Math::min(T, pos - spread), Math::max(T, pos + spread));
-
-        const auto Tf = Vector2(T), ax = Vector2(axis), ac = Vector2(across);
-        const auto body_far = Math::dot(Tf - Vector2(pos), ax) + (float)Math::dot(Math::abs(axis), ext);
-        arrayClear(runs);
-        for (const auto& r : rects)
-        {
-            // the squares of the pixels a ray counts, [min, max)
-            const auto lo = Math::ceil(r.min()) - Vector2{.5f}, hi = Math::ceil(r.max()) - Vector2{.5f};
-            const auto da = Math::dot(Tf - lo, ax), db = Math::dot(Tf - hi, ax);
-            const auto d0 = Math::max(Math::min(da, db), 1.f), d1 = Math::max(da, db);
-            if (d1 < d0 || d0 >= body_far)
-                continue;
-            const auto s0 = Math::dot(lo - Tf, ac), s1 = Math::dot(hi - Tf, ac);
-            arrayAppend(runs, slope_range{ s0 / (s0 >= 0 ? d1 : d0), s1 / (s1 >= 0 ? d0 : d1) });
-        }
-        if (runs.isEmpty())
-            return {};
-        std::sort(runs.begin(), runs.end(), [](const slope_range& a, const slope_range& b) { return a.lo < b.lo; });
-
-        Optional<int> best;
-        const auto consider = [&](slope_range s) {
-            auto t_lo = -FLT_MAX, t_hi = FLT_MAX;
-            for (const auto corner : { Vector2i{-1, -1}, Vector2i{1, -1}, Vector2i{-1, 1}, Vector2i{1, 1} })
-            {
-                const auto c = Vector2(pos + corner*ext);
-                const auto d = Math::dot(Tf - c, ax), a = Math::dot(c - Tf, ac);
-                t_lo = Math::max(t_lo, s.lo*d - a);
-                t_hi = Math::min(t_hi, s.hi*d - a);
-            }
-            const auto lo = (int)Math::ceil(Math::max(t_lo, -(float)range)),
-                       hi = (int)Math::floor(Math::min(t_hi, (float)range));
-            if (lo > hi)
-                return;
-            // 0 already read exposed
-            int t;
-            if (lo > 0)
-                t = lo;
-            else if (hi < 0)
-                t = hi;
-            else if (lo <= prefer && prefer <= hi)
-                t = prefer;
-            else if (lo <= -prefer && -prefer <= hi)
-                t = -prefer;
-            else
-                return;
-            if (!best || Math::abs(t) < Math::abs(*best))
-                best = t;
-        };
-        auto cur = runs[0];
-        for (const auto& s : arrayView(runs).exceptPrefix(1))
-        {
-            if (s.lo <= cur.hi)
-                cur.hi = Math::max(cur.hi, s.hi);
-            else
-            {
-                consider(cur);
-                cur = s;
-            }
-        }
-        consider(cur);
-        return best;
+        return start + axis*lo_px;
     };
 
     for (const auto& cand : cands)
@@ -329,23 +302,27 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
         const auto axis = Math::abs(v.x()) >= Math::abs(v.y()) ? Vector2i{v.x() > 0 ? 1 : -1, 0}
                                                                 : Vector2i{0, v.y() > 0 ? 1 : -1};
         const auto across = Math::abs(Vector2i{axis.y(), axis.x()});
-        auto p = place(cand.center, axis, across);
+        auto p = place(cand.center, axis);
         if (!p)
             continue;
-        if (p->e.minus || p->e.plus)
+        auto body = body_at(*p, axis, across);
+        build_runs(body, axis, across);
+        if (!hidden(body))
         {
-            // The candidate nearest a spot may be filtered out, so a shift reaches two cells.
-            const auto prefer = p->e.plus && !p->e.minus ? -1 : 1;
-            if (const auto t = shift_to_cover(p->pos, axis, across, prefer))
-                if (auto x = place(cand.center + across * *t, axis, across))
+            if (const auto t = shift_to_cover(body))
+                if (const auto x = place(cand.center + across * *t, axis))
+                {
                     p = x;
+                    body = body_at(*p, axis, across);
+                    build_runs(body, axis, across);
+                }
+            if (!hidden(body))
+            {
+                ret.rejected++;
+                continue;
+            }
         }
-        if (p->e.minus || p->e.plus)
-        {
-            ret.rejected++;
-            continue;
-        }
-        ret.pos = to_point(p->pos);
+        ret.pos = to_point(*p);
         ret.axis = axis;
         ret.found = true;
         break;
