@@ -18,7 +18,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
-#include <memory>
+#include "compat/fwd/allocator.hpp"
 #include <tuple>
 #include <type_traits>
 #include <utility>
