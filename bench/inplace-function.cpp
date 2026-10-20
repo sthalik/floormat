@@ -1,6 +1,5 @@
 #include "compat/function2.hpp"
 #include "compat/inplace-function.hpp"
-#include <memory>
 #include <utility>
 #include <benchmark/benchmark.h>
 

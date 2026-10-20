@@ -1,9 +1,9 @@
 #pragma once
+
+#include "compat/forward-stl-construct_at.hpp"
 #include "compat/inplace-function-fwd.hpp"
 #include "compat/assert.hpp"
 #include "compat/function2.fwd.hpp"
-#include <cstddef>
-#include <memory>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -359,7 +359,7 @@ class function final
 public:
     // gcc rejects a constexpr variable whose union has no active member.
     constexpr function() noexcept: _heap{nullptr} {}
-    constexpr function(std::nullptr_t) noexcept: _heap{nullptr} {}
+    constexpr function(decltype(nullptr)) noexcept: _heap{nullptr} {}
 
     template<typename F>
     requires fits<F, function, callable<std::decay_t<F>>, Copyable, Noexcept, R, Capacity, Alignment, Args...>
