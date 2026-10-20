@@ -920,7 +920,7 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
         default:
             fm_throw("invalid atlas type {}"_cf, (int)type);
         case atlas_type::anim:
-            a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}, loader_policy::warn);
+            a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}, asset_policy);
             break;
         case atlas_type::vobj:
             a = loader.vobj(get_atlas<atlas_type::vobj>(id)).atlas;
