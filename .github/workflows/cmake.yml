@@ -126,7 +126,8 @@ jobs:
         export LLDB_USE_LLDB_SERVER=0
         # A process started by a debugger otherwise gets the slow NT debug heap.
         export _NO_DEBUG_HEAP=1
-        ../lldb/lldb.exe --batch -o run -k "thread backtrace all" -k "quit 2" -- bin/floormat-test.exe --no-gl 2>&1 | tee ../lldb.log
+        ../lldb/lldb.exe --batch -o run -k "thread backtrace all" -k "quit 2" -- bin/floormat-test.exe --no-gl 2>&1 </dev/null | tee ../lldb.log | tr -d '\r'
+        echo
         # lldb returns 0 whatever the program's exit code is.
         test "$(sed -n 's/^Process [0-9]* exited with status = \(-\?[0-9]*\) .*/\1/p' ../lldb.log | tail -n 1)" = 0
       shell: bash
