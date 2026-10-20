@@ -4,7 +4,7 @@
 #include "compat/safe-ptr.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "atlas-loader-fwd.hpp"
-#include <gtl/phmap.hpp>
+#include "string-index-map.hpp"
 #include <cr/Optional.h>
 #include <cr/Array.h>
 #include <cr/StringStlHash.h>
@@ -80,7 +80,7 @@ struct loader_impl final : loader_
     struct scenery_proto get_scenery(StringView filename, const scenery_cell& c) noexcept(false) override;
 
     // >-----> vobjs >----->
-    gtl::flat_hash_map<StringView, const struct vobj_cell*> vobj_atlas_map;
+    string_index_map vobj_atlas_map;
     Array<struct vobj_cell> vobjs;
     bptr<class anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
     const struct vobj_cell& vobj(StringView name) override;

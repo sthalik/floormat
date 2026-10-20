@@ -1,6 +1,7 @@
 #include "impl.hpp"
 #include "compat/exception.hpp"
 #include "loader/loader.hpp"
+#include <cstring>
 
 namespace floormat {
 
