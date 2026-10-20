@@ -16,6 +16,7 @@
 #include "src/sprite-atlas.hpp"
 #include "floormat/main.hpp"
 #include <mg/Color.h>
+#include <imgui_internal.h>
 
 namespace floormat {
 

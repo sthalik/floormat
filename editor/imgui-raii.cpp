@@ -4,6 +4,7 @@
 #include <utility>
 #include <cr/StringView.h>
 #include <mg/Color.h>
+#include <imgui_internal.h>
 
 namespace floormat::imgui {
 
@@ -40,9 +41,9 @@ draw_list_font_saver::~draw_list_font_saver()
 style_saver::style_saver() : style{ImGui::GetStyle()} {}
 style_saver::~style_saver() { ImGui::GetStyle() = style; }
 
-void text(StringView str, ImGuiTextFlags flags)
+void text(StringView str)
 {
-    ImGui::TextEx(str.data(), str.data() + str.size(), flags);
+    ImGui::TextEx(str.data(), str.data() + str.size(), ImGuiTextFlags_NoWidthForLargeClippedText);
 }
 
 raii_wrapper::raii_wrapper(raii_wrapper::F fn) : dtor{fn}, truthy{fn != nullptr} {}

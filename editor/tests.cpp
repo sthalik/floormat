@@ -14,6 +14,7 @@
 
 #define HAVE_LIBC 1
 #include <SDL_keycode.h>
+#include <imgui_internal.h>
 
 #ifdef __GNUG__
 #pragma GCC diagnostic pop
