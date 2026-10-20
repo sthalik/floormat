@@ -53,7 +53,7 @@ auto foo_from_string(StringView str, const T(&map)[N], const char* desc)
     for (const auto& [value, str2] : map)
         if (str2 == str)
             return value;
-    fm_throw("wrong {} string '{}'"_cf, desc, str);
+    fm_throw("wrong {} string '{}'", desc, str);
 }
 
 template<size_t N, typename T>
@@ -62,7 +62,7 @@ StringView foo_to_string(auto type, const T(&map)[N], const char* desc)
     for (const auto& [type2, str] : map)
         if (type2 == type)
             return str;
-    fm_throw("wrong {} enum '{}'"_cf, desc, (size_t)type);
+    fm_throw("wrong {} enum '{}'", desc, (size_t)type);
 }
 
 } // namespace

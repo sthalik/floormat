@@ -448,7 +448,7 @@ void dump_atlas(Atlas& atlas, StringView out_path)
         auto dst = StringView{path_buf, (size_t)written,
                               StringViewFlag::NullTerminated};
         if (!conv->convertToFile(stitched, dst))
-            fm_throw("can't write atlas chunk {} to '{}'"_cf, c, dst);
+            fm_throw("can't write atlas chunk {} to '{}'", c, dst);
     }
 }
 
@@ -496,7 +496,7 @@ void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path)
     auto conv = mgr.loadAndInstantiate("AnyImageConverter");
     fm_assert(conv);
     if (!conv->convertToFile(view, out_path))
-        fm_throw("can't write sprite dump to '{}'"_cf, out_path);
+        fm_throw("can't write sprite dump to '{}'", out_path);
 }
 
 

@@ -10,12 +10,12 @@ Vector2 anim_scale::scale_to_(Vector2ui image_size) const
     fm_soft_assert(image_size.product() > 0);
     Vector2 ret;
     if (type >= anim_scale_type::COUNT) [[unlikely]]
-        fm_throw("invalid anim_scale_type '{}'"_cf, (unsigned)type);
+        fm_throw("invalid anim_scale_type '{}'", (unsigned)type);
     switch (type)
     {
     case anim_scale_type::COUNT: std::unreachable();
     case anim_scale_type::invalid:
-        fm_throw("anim_scale is invalid"_cf);
+        fm_throw("anim_scale is invalid");
     case anim_scale_type::fixed:
         fm_soft_assert(f.width_or_height > 0);
         if (auto x = (float)image_size.x(), y = (float)image_size.y(), wh = (float)f.width_or_height; f.is_width)

@@ -48,7 +48,7 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
     const auto path = Path::currentDirectory();
     buf[len] = '\0';
     char errbuf[128];
-    fm_throw("can't open image '{}' (cwd '{}'): {}"_cf, buf, path ? StringView{*path} : "(null)"_s, get_error_string(errbuf));
+    fm_throw("can't open image '{}' (cwd '{}'): {}", buf, path ? StringView{*path} : "(null)"_s, get_error_string(errbuf));
 }
 
 } // namespace floormat::loader_detail

@@ -220,7 +220,7 @@ void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted
     fm_assert(e->type() != object_type::none);
     const_cast<global_coords&>(e->coord) = pos;
     if (!_objects.insert(e->id, e)) [[unlikely]]
-        fm_throw("object already initialized id:{}"_cf, e->id);
+        fm_throw("object already initialized id:{}", e->id);
     if (sorted)
         e->chunk().add_object(e);
     else
@@ -258,12 +258,12 @@ void world::set_object_counter(object_id value)
 
 void world::throw_on_wrong_object_type(object_id id, object_type actual, object_type expected)
 {
-    fm_throw("object {} has wrong object type {}, should be {}"_cf, id, (size_t)actual, (size_t)expected);
+    fm_throw("object {} has wrong object type {}, should be {}", id, (size_t)actual, (size_t)expected);
 }
 
 void world::throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected)
 {
-    fm_throw("object {} has wrong scenery type {}, should be {}"_cf, id, (size_t)actual, (size_t)expected);
+    fm_throw("object {} has wrong scenery type {}, should be {}", id, (size_t)actual, (size_t)expected);
 }
 
 void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector2b offset)
@@ -273,7 +273,7 @@ void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector
                 << " pos:" << point{pos, offset};
     auto ch = Vector3i(pos.chunk3());
     auto t = Vector2i(pos.local());
-    fm_throw("scenery_proto subtype not set! id:{} chunk:{}x{}x{} tile:{}x{}"_cf,
+    fm_throw("scenery_proto subtype not set! id:{} chunk:{}x{}x{} tile:{}x{}",
              id, ch.x(), ch.y(), ch.z(), t.x(), t.y());
 }
 

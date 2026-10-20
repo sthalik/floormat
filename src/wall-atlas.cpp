@@ -28,7 +28,7 @@ uint8_t direction_index_from_name(StringView s) noexcept(false)
         else
             i++;
 
-    fm_throw("bad rotation name '{}'"_cf, s);
+    fm_throw("bad rotation name '{}'", s);
 }
 
 StringView direction_index_to_name(size_t i) noexcept(false)
@@ -54,12 +54,12 @@ void resolve_wall_rotations(Array<Wall::Direction>& array, const std::array<DirA
             {
                 const auto& DAI2 = map[G.from_rotation];
                 if (!DAI2)
-                    fm_throw("from_rotation for '{}/{}' points to nonexistent rotation {}"_cf,
+                    fm_throw("from_rotation for '{}/{}' points to nonexistent rotation {}",
                              dir_name, group_name, direction_index_to_name(G.from_rotation));
                 const auto& D2 = array[DAI2.val];
                 const auto& G2 = D2.*ptr;
                 if (!G2.is_defined || G2.from_rotation != (uint8_t)-1)
-                    fm_throw("from_rotation for '{}/{}' points to empty group '{}/{}'"_cf,
+                    fm_throw("from_rotation for '{}/{}' points to empty group '{}/{}'",
                              dir_name, group_name, direction_index_to_name(G.from_rotation), group_name);
                 G.from_rotation = DAI2.val;
             }
@@ -139,7 +139,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
             }
         }
         if (!found) [[unlikely]]
-            fm_throw("wall_atlas '{}' is empty!"_cf, _path);
+            fm_throw("wall_atlas '{}' is empty!", _path);
     }
 
     {
@@ -217,10 +217,10 @@ auto wall_atlas::frames(Direction_ dir, Group_ gr) const -> ArrayView<const Fram
 {
     const auto* D = get_Direction(dir);
     if (!D) [[unlikely]]
-        fm_throw("no such direction: {}"_cf, (int)dir);
+        fm_throw("no such direction: {}", (int)dir);
     const auto* G = group(*D, gr);
     if (!G) [[unlikely]]
-        fm_throw("no such group {} for direction {}"_cf, (int)gr, (int)dir);
+        fm_throw("no such group {} for direction {}", (int)gr, (int)dir);
     return { _frame_array.data() + G->index, G->count };
 }
 

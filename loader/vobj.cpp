@@ -129,7 +129,7 @@ const struct vobj_cell& loader_impl::vobj(StringView name)
         get_vobj_list();
     const size_t* it = vobj_atlas_map.find(name);
     if (!it)
-        fm_throw("no such vobj '{}'"_cf, name);
+        fm_throw("no such vobj '{}'", name);
     return vobjs[*it];
 }
 

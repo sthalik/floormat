@@ -9,10 +9,10 @@ Trade::ImageData2D loader_impl::image(StringView path) noexcept(false)
 {
     ensure_plugins();
     if (!image_importer->openFile(path))
-        fm_throw("can't open image '{}'"_cf, path);
+        fm_throw("can't open image '{}'", path);
     auto img = image_importer->image2D(0);
     if (!img)
-        fm_throw("can't decode image '{}'"_cf, path);
+        fm_throw("can't decode image '{}'", path);
     auto ret = move(*img);
     return ret;
 }

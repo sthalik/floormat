@@ -78,7 +78,7 @@ constexpr fixed_string<MAX> binary_reader<It>::read_asciiz_string() noexcept(fal
             return ret;
         }
     }
-    fm_throw("can't find string terminator"_cf);
+    fm_throw("can't find string terminator");
 }
 
 template<string_input_iterator It>
@@ -91,7 +91,7 @@ constexpr StringView binary_reader<It>::read_asciiz_string_() noexcept(false)
         if (*it++ == '\0')
             return StringView{&*start, (size_t)std::distance(start, it) - 1, StringViewFlag::NullTerminated};
     }
-    fm_throw("can't find string terminator"_cf);
+    fm_throw("can't find string terminator");
 }
 
 template<string_input_iterator It>
