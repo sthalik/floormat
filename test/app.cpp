@@ -75,8 +75,6 @@ struct test_entry
 
 void run_tests(ArrayView<const test_entry> list, bool quiet)
 {
-    constexpr auto name_prefix = "test_"_s;
-
     if (quiet)
     {
         for (const auto [_, fun, needs_gl] : list)
@@ -86,11 +84,6 @@ void run_tests(ArrayView<const test_entry> list, bool quiet)
     }
 
     FILE* const s = stdout;
-    static constexpr auto sep = ""_s;
-    constexpr auto get_tabs = [](StringView name) constexpr {
-        return (name.size()+sep.size()) / 8;
-    };
-    constexpr size_t tab_limit = 5;
     constexpr auto get_time = [](auto&& fn) {
         Timeline t;
         t.start();
@@ -98,33 +91,28 @@ void run_tests(ArrayView<const test_entry> list, bool quiet)
         return t.currentFrameTime() * 1e3f;
     };
 
-    size_t max_tabs = 1;
-    for (const auto& e : list)
-        max_tabs = Math::max(max_tabs, get_tabs(e.name));
-    max_tabs++;
-    if (max_tabs > tab_limit)
-        max_tabs = 1;
+    unsigned longest_name = 0;
+    for (auto e : list)
+        longest_name = Math::max(longest_name, (unsigned)e.name.size());
 
     std::fflush(s);
 
     for (auto [name, fun, needs_gl] : list)
     {
-        name = name.exceptPrefix(name_prefix);
+        name = name.exceptPrefix("test_"_s);
         std::fwrite(name.data(), name.size(), 1, s);
-        if constexpr(!sep.isEmpty())
-            std::fwrite(sep.data(), sep.size(), 1, s);
-        auto num_tabs = max_tabs - get_tabs(name) - 1;
-        std::fputc('\t', s);
-        std::fflush(stdout);
+
+        const auto padding = longest_name + 1 - (unsigned)name.size();
+        for (auto i = 0u; i < padding; i++)
+            std::fputc(' ', s);
+        std::fflush(s);
+
         const bool skip = needs_gl && !has_gl_context();
         auto ms = skip ? 0.f : get_time(fun);
-        fm_assert(num_tabs <= tab_limit);
-        for (auto i = 0uz; i < num_tabs; i++)
-            std::fputc('\t', s);
         if (skip)
-            std::fprintf(s, "%12s\n", "skipped");
+            std::fprintf(s, "%12s\n", "-");
         else
-            std::fprintf(s, "%12.3f ms\n", (double)ms);
+            std::fprintf(s, "%9.1f ms\n", (double)ms);
         std::fflush(s);
     }
 }
