@@ -3,12 +3,14 @@
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "src/cover-point.hpp"
+#include "src/critter.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-pool-registry.hpp"
 #include "src/intra-coord.inl"
 #include "src/point.inl"
 #include "src/raycast.hpp"
+#include "src/RTree-search.hpp"
 #include "src/search.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
@@ -16,6 +18,9 @@
 #include "src/chunk.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/tile-defs.hpp"
+#include <algorithm>
+#include <cr/GrowableArray.h>
+#include <mg/Functions.h>
 #include <mg/Range.h>
 
 namespace floormat {
@@ -63,16 +68,71 @@ cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint
     return find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius});
 }
 
-bool hidden_from(world& w, point threat, point pos)
+// Puts a critter at pos and shoots at its pixels. What a ray hits changes only at the slope of a pixel
+// square's corner, so rays at each corner's slope and between each adjacent pair cover every aim.
+bool cant_be_shot(world& w, point threat, point pos, Vector2ui size = body)
 {
-    Grid::PoolRegistry pools{8};
-    auto& pool = pools.pass_pool(Pass::Params{8, pass_mode::shoot_through});
-    const auto ext = Vector2i(body/2u) - Vector2i{1};
-    for (auto y = -ext.y(); y <= ext.y(); y++)
-        for (auto x = -ext.x(); x <= ext.x(); x++)
-            if (Math::abs(x) == ext.x() || Math::abs(y) == ext.y())
-                if (raycast(w, threat, pos + Vector2i{x, y}, 0, pool, Search::without_critters()).success)
-                    return false;
+    critter_proto p;
+    p.name = "npc"_s;
+    p.bbox_size = Vector2ub(size);
+    p.offset = pos.offset();
+    const auto id = w.make_object<critter>(w.make_id(), pos.coord(), move(p))->id;
+    // PoolRegistry's pools leave critters out of the grid, and raycast() skips the cells it marks empty.
+    Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::never_continue()};
+    const auto T = Vector3i(threat).xy();
+    const auto shot = [&](Vector2i to) {
+        const auto r = raycast(w, threat, threat + (to - T), 0, pool, Search::never_continue());
+        return !r.success && r.collider.id == id;
+    };
+    const auto lo = Vector3i(pos).xy() - Vector2i(size/2u), hi = lo + Vector2i(size) - Vector2i{1};
+    for (auto y = lo.y(); y <= hi.y(); y++)
+        for (auto x = lo.x(); x <= hi.x(); x++)
+            if (shot({x, y}))
+                return false;
+
+    const auto v = Vector3i(pos).xy() - T;
+    const auto m = Math::abs(v.x()) >= Math::abs(v.y()) ? 0u : 1u, n = 1 - m;
+    const auto sign = v[m] > 0 ? 1 : -1;
+    struct slope { int64_t a, d; };
+    const auto less = [](slope x, slope y) { return x.a*y.d < y.a*x.d; };
+    // Corners in doubled coordinates from the threat, so the half-pixel edges are odd integers.
+    Array<slope> slopes;
+    const auto add_box = [&](Vector2i pmin, Vector2i pmax) {
+        const auto c0 = (pmin - T)*2 - Vector2i{1}, c1 = (pmax - T)*2 - Vector2i{1};
+        for (const auto c : { c0, c1, Vector2i{c0.x(), c1.y()}, Vector2i{c1.x(), c0.y()} })
+            if (c[m]*sign > 0)
+                arrayAppend(slopes, slope{c[n], c[m]*sign});
+    };
+    add_box(lo, hi + Vector2i{1});
+    fm_assert(slopes.size() == 4);
+    const auto [bmin, bmax] = std::minmax_element(slopes.begin(), slopes.end(), less);
+    const auto smin = *bmin, smax = *bmax;
+    int64_t dmax = 0;
+    for (const auto& s : slopes)
+        dmax = Math::max(dmax, s.d);
+    // The test worlds hold one chunk, at the origin.
+    const auto qlo = Vector2{-(float)chunk_size_xy}, qhi = Vector2{2*(float)chunk_size_xy};
+    w[ch].rtree()->Search(qlo.data(), qhi.data(), [&](object_id, const chunk::RTree::Rect& r) {
+        add_box(Vector2i(Math::ceil(Vector2{r.m_min[0], r.m_min[1]})), Vector2i(Math::ceil(Vector2{r.m_max[0], r.m_max[1]})));
+        return true;
+    });
+    auto n_kept = 0u;
+    for (const auto& s : slopes)
+        if (!less(s, smin) && !less(smax, s))
+            slopes[n_kept++] = s;
+    arrayResize(slopes, NoInit, n_kept);
+    std::sort(slopes.begin(), slopes.end(), less);
+
+    const auto cast = [&](slope s) {
+        const auto k = dmax / s.d + 1;
+        Vector2i to;
+        to[m] = T[m] + (int)(sign*s.d*k);
+        to[n] = T[n] + (int)(s.a*k);
+        return shot(to);
+    };
+    for (auto i = 0u; i < slopes.size(); i++)
+        if (cast(slopes[i]) || i + 1 < slopes.size() && cast({slopes[i].a + slopes[i+1].a, slopes[i].d + slopes[i+1].d}))
+            return false;
     return true;
 }
 
@@ -101,8 +161,8 @@ void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, loc
                    :                px.y() - lo.y() - wall_max.y();
     fm_assert_equal(0, gap);
     const auto across = axis.x() != 0 ? 1u : 0u;
-    // Rays aim 1 px inside the body and raycast() grows colliders by half a pixel, so the body may stick out by two
-    constexpr int fuzz = 2;
+    // Parallax lets a hidden body stick out past the wall's ends, up to 2 px in these scenes.
+    constexpr auto fuzz = 2;
     fm_assert(px[across] - lo[across] >= wall_min[across] - fuzz && px[across] + hi[across] <= wall_max[across] + fuzz);
     fm_assert(point::distance(npc, r.pos) <= radius + tile_size_xy);
 
@@ -110,6 +170,7 @@ void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, loc
     const auto path = A.Dijkstra<0, false>(w, npc, r.pos, chunk_size_xy, size, Search::without_critters());
     fm_assert(path.is_found());
     fm_assert(path.path().back() == r.pos);
+    fm_assert(cant_be_shot(w, threat, r.pos, size));
 }
 
 void test_open_ground_has_no_cover()
@@ -166,7 +227,7 @@ void test_side_wall_corner_seen()
     const point npc{ch, {7, 8}, {-12, 12}}, threat{ch, {12, 10}, {-20, -24}};
     const auto r = find(w, npc, threat, 48, 8);
     fm_assert(r.candidates > 0);
-    fm_assert(!r.found || hidden_from(w, threat, r.pos));
+    fm_assert(!r.found || cant_be_shot(w, threat, r.pos));
 }
 
 // The pillar is as tall as the body, and a wall along its south end stops the body sliding past it.
@@ -187,7 +248,22 @@ void test_shift_to_only_spot(int8_t pillar_dy, bool split = false)
     const point npc{ch, {6, 8}, {20, -4}}, threat{ch, {14, 8}, {}};
     const auto r = find(w, npc, threat, 48, 8);
     fm_assert(r.found);
-    fm_assert(hidden_from(w, threat, r.pos));
+    fm_assert(cant_be_shot(w, threat, r.pos));
+}
+
+void test_pillar_pair(uint8_t far_x, uint8_t near_h, int8_t near_dy, uint8_t far_h, int8_t far_dy, bool must_find)
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, near_h}, {8, near_dy});
+    add_blocker(w, {far_x, 8}, {16, far_h}, {8, far_dy});
+    rebuild(w);
+
+    const point npc{ch, {6, 8}, {20, -4}}, threat{ch, {14, 8}, {}};
+    const auto r = find(w, npc, threat, 48, 8);
+    fm_assert(r.candidates > 0);
+    fm_assert(r.found || !must_find);
+    fm_assert(!r.found || cant_be_shot(w, threat, r.pos));
 }
 
 void test_wall_out_of_radius()
@@ -223,6 +299,11 @@ void Test::test_cover_point()
     test_shift_to_only_spot(3, true);
     // Row 508 needs 1 px, and 4 px runs into the wall.
     test_shift_to_only_spot(-1);
+    // At (436, 492), rays to 15 body pixels pass between the far pillar's bottom and the near pillar's top.
+    test_pillar_pair(8, 20, -12, 8, -24, false);
+    // At (436, 519) every ray to a body pixel hits a pillar. One aimed past the body clears the far
+    // pillar's top corner by 5e-5 in slope and grazes the top row. (436, 520) is hidden.
+    test_pillar_pair(8, 8, 0, 24, 8, true);
     test_wall_out_of_radius();
 }
 
