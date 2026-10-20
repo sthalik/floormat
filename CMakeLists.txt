@@ -237,6 +237,7 @@ include_directories(SYSTEM
 )
 
 add_compile_definitions("$<$<NOT:$<CONFIG:Debug,DEBUG>>:FM_NO_DEBUG3>")
+add_compile_definitions(JSON_HAS_FILESYSTEM=0 JSON_HAS_EXPERIMENTAL_FILESYSTEM=0 JSON_HAS_RANGES=0)
 
 fm_run_hook(fm-userconfig-src)
 
