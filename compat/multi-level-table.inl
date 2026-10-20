@@ -2,7 +2,7 @@
 #include "multi-level-table.hpp"
 #include "compat/assert.hpp"
 #include "entity/name-of.hpp"
-#include <memory>
+#include "compat/fwd/construct_at.hpp"
 #include <utility>
 #include <cr/GrowableArray.h>
 
@@ -53,7 +53,8 @@ multi_level_table<T, P>::multi_level_table() noexcept
         _top_alloc = superpage_alloc(sizeof(entry) * top_size);
         _top = static_cast<entry*>(_top_alloc.ptr);
         if constexpr (!std::is_trivially_default_constructible_v<entry>)
-            std::uninitialized_value_construct_n(_top, top_size);
+            for (auto i = 0uz; i < top_size; i++)
+                std::construct_at(_top + i);
     }
     else
         _top = new entry[top_size]{};
@@ -379,7 +380,8 @@ T* multi_level_table<T, P>::add_page(uint32_t top_index, uint32_t zero_index) no
             rec.page = static_cast<T*>(a.ptr);
             rec.large = a.used_large;
             if constexpr (!std::is_trivially_default_constructible_v<T>)
-                std::uninitialized_value_construct_n(rec.page, page_size);
+                for (auto i = 0uz; i < page_size; i++)
+                    std::construct_at(rec.page + i);
         }
         else
             rec.page = new T[page_size]{};
