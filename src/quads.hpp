@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/map.hpp"
-#include "compat/iota.hpp"
 #include <array>
 #include <mg/Vector3.h>
 

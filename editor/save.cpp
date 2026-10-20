@@ -8,7 +8,6 @@
 #include <cstdio>
 #include <ctime>
 #include <cr/String.h>
-#include <cr/StringView.h>
 #include <cr/Array.h>
 #include <cr/Optional.h>
 #include <cr/Path.h>

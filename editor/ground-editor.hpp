@@ -4,7 +4,6 @@
 #include "src/tile-image.hpp"
 #include "src/global-coords.hpp"
 #include <map>
-#include <cr/Array.h>
 #include <cr/String.h>
 
 namespace floormat {

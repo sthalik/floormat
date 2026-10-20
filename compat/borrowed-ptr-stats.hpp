@@ -1,5 +1,4 @@
 #pragma once
-#include "borrowed-ptr-policy.hpp"
 #include "atomic.hpp"
 
 namespace floormat::bptr_policy {

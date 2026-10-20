@@ -15,7 +15,6 @@
 #include "src/point.inl"
 #include "src/nanosecond.inl"
 #include "src/tile-defs.hpp"
-#include "src/grid.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-pool-registry.hpp"
 #include "src/grid-cover.hpp"

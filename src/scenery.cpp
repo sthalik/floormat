@@ -1,7 +1,6 @@
 #include "scenery.hpp"
 #include "scenery-proto.hpp"
 #include "compat/assert.hpp"
-#include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "tile-constants.hpp"
 #include "anim-atlas.hpp"

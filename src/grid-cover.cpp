@@ -12,7 +12,6 @@
 #include <cfloat>
 #include <cstring>
 #include <array>
-#include <cr/Array.h>
 #include <cr/Memory.h>
 #include <mg/Functions.h>
 #include <mg/Timeline.h>

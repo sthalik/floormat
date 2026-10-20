@@ -1,7 +1,6 @@
 #pragma once
 #include "compat/move.hpp"
 #include <cstddef>
-#include <type_traits>
 
 namespace floormat {
 
