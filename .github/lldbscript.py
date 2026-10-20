@@ -5,6 +5,7 @@ crash_reasons = (lldb.eStopReasonSignal, lldb.eStopReasonException)
 
 def __lldb_init_module(debugger, internal_dict):
     debugger.SetAsync(False)
+    debugger.HandleCommand("settings set use-color false")
     debugger.HandleCommand("settings set target.disable-aslr false")
     debugger.HandleCommand("run")
     process = debugger.GetSelectedTarget().GetProcess()
