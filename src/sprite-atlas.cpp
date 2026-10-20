@@ -1,6 +1,7 @@
 #include "sprite-atlas.hpp"
 #include "sprite-atlas-impl.hpp"
 #include "sprite-constants.hpp"
+#include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "src/quads.hpp"
 #include <cmath>

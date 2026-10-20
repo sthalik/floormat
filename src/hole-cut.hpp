@@ -1,6 +1,5 @@
 #pragma once
 #include <array>
-#include <mg/Vector2.h>
 #include <mg/Range.h>
 #include <mg/DimensionTraits.h>
 

@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/assert.hpp"
 #include <fmt/core.h>
 #include <fmt/compile.h>
 #include <cr/String.h>

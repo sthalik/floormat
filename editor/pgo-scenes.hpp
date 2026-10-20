@@ -1,8 +1,6 @@
 #pragma once
-#include "compat/array-size.hpp"
 #include "compat/assert.hpp"
 #include "editor/app.hpp"
-#include "src/grid.hpp"
 #include "src/global-coords.hpp"
 #include "src/tile-defs.hpp"
 #include <cr/StringView.h>

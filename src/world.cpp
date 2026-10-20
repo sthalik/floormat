@@ -8,11 +8,9 @@
 #include "scenery-proto.hpp"
 #include "light.hpp"
 #include "hole.hpp"
-#include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
-#include "compat/non-const.hpp"
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <array>

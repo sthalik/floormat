@@ -3,7 +3,6 @@
 #include "src/tile-image.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/grid-pass.hpp"
-#include "src/search-pred.hpp"
 #include "src/search-octile.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"
@@ -11,7 +10,6 @@
 #include "compat/assert.hpp"
 #include "compat/function2.hpp"
 #include <utility>
-#include <cr/Array.h>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 

@@ -15,7 +15,6 @@
 #include <cmath>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
-#include <mg/Functions.h>
 #include <mg/Range.h>
 
 namespace floormat {

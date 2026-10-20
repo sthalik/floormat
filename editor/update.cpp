@@ -13,7 +13,6 @@
 #include "floormat/main.hpp"
 #include "floormat/draw-bounds.hpp"
 #include "src/critter.hpp"
-#include "src/scenery.hpp"
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include "src/nanosecond.hpp"

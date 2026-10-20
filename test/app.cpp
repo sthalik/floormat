@@ -5,7 +5,6 @@
 #include "compat/sysexits.hpp"
 #include <stdlib.h> // NOLINT(*-deprecated-headers)
 #include <cstdio>
-#include <cr/StringView.h>
 #include <cr/Arguments.h>
 #include <mg/Functions.h>
 #include <mg/Timeline.h>

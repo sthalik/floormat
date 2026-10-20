@@ -3,7 +3,6 @@
 #include "compat/limits.hpp"
 #include "rotation.hpp"
 #include "tile-defs.hpp"
-#include <cr/Pair.h>
 #include <mg/Functions.h>
 #include <mg/Vector2.h>
 
