@@ -8,6 +8,7 @@
 #include "src/critter.hpp"
 #include <mg/Color.h>
 #include <mg/Range.h>
+#include <imgui_internal.h>
 
 namespace floormat::tests {
 namespace {

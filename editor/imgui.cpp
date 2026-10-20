@@ -21,6 +21,7 @@
 #include <mg/Renderer.h>
 #include <mg/ImGuiIntegration/Context.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 
 namespace floormat {
 

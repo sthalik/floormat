@@ -2,6 +2,7 @@
 #include "floormat/main.hpp"
 #include "imgui-raii.hpp"
 #include "compat/format.hpp"
+#include <imgui_internal.h>
 
 namespace floormat {
 using namespace floormat::imgui;
