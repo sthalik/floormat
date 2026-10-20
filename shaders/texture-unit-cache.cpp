@@ -2,7 +2,6 @@
 
 #include "compat/assert.hpp"
 #include <cstdio>
-#include <chrono>
 #include <cr/String.h>
 #include <mg/Texture.h>
 
