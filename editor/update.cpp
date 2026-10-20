@@ -91,7 +91,7 @@ void app::do_mouse_scroll(int offset)
     auto mods = get_key_modifiers();
     if (!(mods & (kmod_ctrl|kmod_shift)))
         return;
-    int min_z = mods & kmod_ctrl ? chunk_z_min : std::max(0, (int)chunk_z_min);
+    int min_z = mods & kmod_ctrl ? chunk_z_min : Math::max(0, (int)chunk_z_min);
     _z_level = (int8_t)Math::clamp(_z_level + offset, min_z, (int)chunk_z_max);
     update_cursor_tile(cursor.pixel);
 }
