@@ -75,13 +75,7 @@ namespace floormat {
 #define fm_debug3_assert(...) (void())
 #endif
 
-#define fm_warn_once(...) do {                                          \
-        static bool _fm_once_flag = false; /* todo thread safety */     \
-        if (!_fm_once_flag) [[unlikely]] {                              \
-            _fm_once_flag = true;                                       \
-            fm_warn(__VA_ARGS__);                                       \
-        }                                                               \
-    } while (false)
+#define fm_warn_once(...) [&] { [[maybe_unused]] static bool once = ([&] { fm_warn(__VA_ARGS__); }(), true); }()
 
 #define fm_assert_equal(...)                                            \
     ([](auto expected, auto actual) -> void                             \
