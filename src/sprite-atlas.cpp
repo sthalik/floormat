@@ -30,7 +30,7 @@ uint32_t quantize_height(uint32_t h)
 {
     constexpr uint32_t min_height_class = 4;
     fm_debug_assert(h > 0);
-    uint32_t bucket = std::max(min_height_class, std::bit_ceil(h) / size_class_divisor);
+    uint32_t bucket = Math::max(min_height_class, std::bit_ceil(h) / size_class_divisor);
     return (h + bucket - 1) / bucket * bucket;
 }
 
@@ -56,7 +56,7 @@ uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A)
         const uint32_t layer = A.layer_size * A.layer_size * 4;
         fm_assert(A.layer_size > 0);
         uint32_t num_layers = (initial_size + layer - 1) / layer;
-        num_layers = std::max<uint32_t>(num_layers, 1);
+        num_layers = Math::max<uint32_t>(num_layers, 1);
         num_layers = std::bit_ceil(num_layers);
         fm_assert((int)num_layers == (int)(uint16_t)num_layers);
         return (uint16_t)num_layers;
@@ -417,7 +417,7 @@ void dump_atlas(Atlas& atlas, StringView out_path)
     const auto ext = split.second();
     const auto ls = (Int)atlas.layer_size;
     const auto n = (Int)atlas.n_layers;
-    const Int layers_per_chunk = std::max<Int>(1,
+    const Int layers_per_chunk = Math::max<Int>(1,
         (Int)(pixels_per_chunk / (uint64_t(ls) * uint64_t(ls))));
 
     PluginManager::Manager<Trade::AbstractImageConverter> mgr;
@@ -428,7 +428,7 @@ void dump_atlas(Atlas& atlas, StringView out_path)
     for (Int c = 0; c < n_chunks; c++)
     {
         const Int first = c * layers_per_chunk;
-        const Int count = std::min<Int>(layers_per_chunk, n - first);
+        const Int count = Math::min<Int>(layers_per_chunk, n - first);
 
         auto chunk = atlas.texture.subImage(0,
             Range3Di{{0, 0, first}, {ls, ls, first + count}},
@@ -542,7 +542,7 @@ sprite sprite_atlas::add(const ImageView2D& pixels, bool allow_rotate)
     if (_atlas->layer_size == 0)
     {
         auto ls = SpriteAtlas::max_2d_texture_size();
-        ls = std::min<uint32_t>(ls, SpriteAtlas::max_layer_size);
+        ls = Math::min<uint32_t>(ls, SpriteAtlas::max_layer_size);
         fm_assert(ls > 0);
         _atlas->layer_size = (uint16_t)ls;
     }

@@ -33,6 +33,7 @@
 #include <cstdio>
 #include <vector>
 #include <algorithm>
+#include <cr/Algorithms.h>
 #include <cr/Path.h>
 #include <gtl/phmap.hpp>
 
@@ -1279,7 +1280,7 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
         struct crc_buf {
             char buf[sizeof(uint64_t)];
         } crc;
-        std::copy(cksum_pos, cksum_pos + sizeof(uint64_t), crc.buf);
+        Utility::copy(arrayView(cksum_pos, sizeof(uint64_t)), crc.buf);
         auto old_state = maybe_byteswap(std::bit_cast<uint64_t>(crc.buf));
         auto new_state = Hash::crc64_update(Hash::CRC64_INITIALIZER,
                                             buf.data.data(), buf.size - sizeof old_state);

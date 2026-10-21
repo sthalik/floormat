@@ -1,6 +1,6 @@
 #include "hash-table-load-factor.hpp"
 #include "array-size.hpp"
-#include <algorithm>
+#include <cr/Math.h>
 
 namespace floormat::Hash {
 
@@ -47,7 +47,7 @@ constexpr float get_value(size_t element_count, const auto& table)
         if (element_count <= table[i].max_capacity)
             break;
 #endif
-    i = std::min(i, array_size(table)-1);
+    i = Utility::min(i, array_size(table)-1);
     return table[i].load_factor;
 }
 

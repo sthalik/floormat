@@ -2,7 +2,6 @@
 #include "src/sprite-atlas.hpp"
 #include "src/sprite-atlas-impl.hpp"
 #include "src/sprite-constants.hpp"
-#include <algorithm>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 #include <mg/PixelFormat.h>
@@ -146,8 +145,8 @@ void texcoords_encode_expected_corners()
     for (const auto& c : coords)
     {
         fm_assert(c.z() == layer);
-        umin = std::min(umin, c.x()); umax = std::max(umax, c.x());
-        vmin = std::min(vmin, c.y()); vmax = std::max(vmax, c.y());
+        umin = Math::min(umin, c.x()); umax = Math::max(umax, c.x());
+        vmin = Math::min(vmin, c.y()); vmax = Math::max(vmax, c.y());
     }
     // tolerance, not ==: -Ofast's fast-math can reorder FP ops across TUs.
     constexpr float eps = 1e-6f;
