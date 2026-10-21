@@ -602,7 +602,7 @@ struct random_params
 {
     uint64_t seed = 0;
     uint32_t ops = 0;
-    size_t top_size_bytes = 0;
+    uint32_t top_size_bytes = 0;
     key_mode mode = key_mode::uniform;
     walk_type walk = walk_type::none;
     uint32_t walkers = 1;
@@ -1631,6 +1631,7 @@ public:
 template<typename Table>
 void check_random(const random_params& p)
 {
+    static_assert(top_bytes<Table> == (size_t)(uint32_t)top_bytes<Table>);
     random_run<Table>{p}.run();
 }
 
@@ -1649,7 +1650,7 @@ void check_retrace(uint64_t seed, uint32_t walkers)
                          .walk = walk_type::retrace, .walkers = walkers, .check_every = 500, .move_every = 1000});
 }
 
-constexpr random_params with(uint64_t seed, size_t top_size_bytes)
+constexpr random_params with(uint64_t seed, uint32_t top_size_bytes)
 {
     return { .seed = seed, .ops = 8000, .top_size_bytes = top_size_bytes, .hooks = true,
              .check_every = 512, .clear_every = 2000, .move_every = 1000 };
