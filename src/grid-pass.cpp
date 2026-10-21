@@ -86,7 +86,7 @@ void clear_word_bits(uint8_t* bits, uint32_t word, uint64_t mask)
 // or rows are whole words and the span doesn't cross a multiple of 64.
 void clear_rect_in_word(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi)
 {
-    fm_debug_assert(64 % div_count == 0 || (div_count % 64 == 0 && i_lo >> 6 == i_hi >> 6));
+    fm_debug3_assert(64 % div_count == 0 || (div_count % 64 == 0 && i_lo >> 6 == i_hi >> 6));
     const uint64_t span = ~uint64_t{0} >> (63 - (i_hi - i_lo));
     for (auto bit = j_lo * div_count + i_lo, end = j_hi * div_count + i_lo; bit <= end; bit += div_count)
         clear_word_bits(bits, bit >> 6, span << (bit & 63));
@@ -96,7 +96,7 @@ void clear_rect_in_word(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32
 // depends on the obstacle, so it's tested once here rather than per row.
 void clear_rect_whole_rows(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi)
 {
-    fm_debug_assert(div_count % 64 == 0);
+    fm_debug3_assert(div_count % 64 == 0);
     const auto w0 = i_lo >> 6, w1 = i_hi >> 6;
     if (w0 == w1)
         return clear_rect_in_word(bits, div_count, i_lo, i_hi, j_lo, j_hi);
@@ -274,7 +274,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     };
 
     // chunk_size_xy = 1024 never reaches clear_rect_any(): every div_count is a power of two.
-    if (64 % div_countʹ == 0)
+    if (64 % div_countʹ == 0) [[likely]]
         clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
             clear_rect_in_word(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
         });
