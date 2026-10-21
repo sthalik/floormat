@@ -1,5 +1,5 @@
 #include "exception.hpp"
-#include "compat/format.hpp"
+#include <fmt/format.h>
 
 namespace floormat {
 
