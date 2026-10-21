@@ -232,11 +232,11 @@ void set_result_from_idx(path_search_result& result,
 }
 
 // A pop's 3x3 window. When all 8 neighbours lie in the pop's chunk, chunk_idx is that chunk's
-// index and tile_idx the pop's cell in the cache, else chunk_idx is (size_t)-1.
+// index and tile_idx the pop's cell in the cache, else chunk_idx is (uint32_t)-1.
 struct neighbourhood
 {
     uint32_t window;
-    size_t chunk_idx, tile_idx;
+    uint32_t chunk_idx, tile_idx;
     Vector2i pix;
 };
 
@@ -318,7 +318,7 @@ struct chunk_bitmaps
         constexpr int cs = (int)chunk_size_xy, step = Search::div_size.x();
         const auto pix = Vector2i(intra_coord{pt});
         if ((uint32_t)(pix.x() - step) >= (uint32_t)(cs - 2*step) || (uint32_t)(pix.y() - step) >= (uint32_t)(cs - 2*step)) [[unlikely]]
-            return { window_edge(pt, pix), (size_t)-1, 0, pix };
+            return { window_edge(pt, pix), (uint32_t)-1, 0, pix };
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
         const auto tile_idx = cache.get_tile_index(intra_coord{pt});
         const auto* b = bits[chunk_idx];
@@ -406,17 +406,17 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     if (f_score >= max_dist) [[unlikely]]
         return;
 
-    const bool same_chunk = cells.chunk_idx != (size_t)-1;
+    const bool same_chunk = cells.chunk_idx != (uint32_t)-1;
     const auto new_pt = same_chunk ? point{cur_pt.chunk3(), intra_coord{cells.pix + vec}}
                                    : point::normalize_coords(cur_pt, vec);
 
-    size_t chunk_idx, tile_idx;
+    uint32_t chunk_idx, tile_idx;
     if (same_chunk) [[likely]]
     {
         // The cache's cells are one step wide.
         const auto d = vec / div_size;
         chunk_idx = cells.chunk_idx;
-        tile_idx = (size_t)((ptrdiff_t)cells.tile_idx + (ptrdiff_t)d.y() * cache.div_count_ + d.x());
+        tile_idx = (uint32_t)((ptrdiff_t)cells.tile_idx + (ptrdiff_t)d.y() * cache.div_count_ + d.x());
     }
     else
     {
