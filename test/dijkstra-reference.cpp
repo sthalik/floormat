@@ -15,6 +15,7 @@
 #include "loader/wall-cell.hpp"
 #include "random/random.hpp"
 #include "compat/floor-divmod.hpp"
+#include "compat/fill.hpp"
 #include "compat/function2.hpp"
 #include <cr/GrowableArray.h>
 #include <algorithm>
@@ -164,7 +165,7 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
     struct entry { uint32_t d, i; };
     constexpr auto later = [](entry a, entry b) { return a.d > b.d; };
 
-    std::fill_n(dist.data(), dist.size(), unreached);
+    fill(arrayView(dist), unreached);
     Array<entry> heap;
     arrayReserve(heap, 1024);
 

@@ -11,6 +11,7 @@
 #include "point.inl"
 #include "intra-coord.inl"
 #include "compat/array-size.hpp"
+#include "compat/fill.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/format.hpp"
 #include "compat/function2.hpp"
@@ -18,8 +19,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
-#include <algorithm>
 #include <bit>
+#include <cr/Algorithms.h>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -237,7 +238,7 @@ void set_result_from_idx(path_search_result& result,
         arrayAppend(temp_nodes, nodes[i].pt);
     arrayAppend(temp_nodes, from);
 
-    std::reverse(temp_nodes.begin(), temp_nodes.end());
+    Utility::flipInPlace<0>(stridedArrayView(temp_nodes));
     simplify_path(temp_nodes, result.raw_path());
     arrayClear(temp_nodes);
 }
@@ -420,7 +421,7 @@ namespace {
 CORRADE_NEVER_INLINE void grow_nodes(Array<visited>& nodes, uint32_t count)
 {
     auto a = Array<visited>{NoInit, Math::max(nodes.size()*2, 64uz)};
-    std::copy_n(nodes.data(), count, a.data());
+    Utility::copy(nodes.prefix(count), a.prefix(count));
     nodes = move(a);
 }
 
@@ -722,7 +723,7 @@ struct astar::seed_search
         fm_assert((uint64_t)size * oct.diag < 1u << (32 - g_shift));
         if (state.size() < size)
             state = Array<uint32_t>{NoInit, size};
-        std::fill_n(state.data(), size, free);
+        fill(state.prefix(size), free);
         // rect_intersects is strict: the box at d overlaps r when
         // r.min - own_hi < source.center + d < r.max + own_lo on both axes
         for (const auto& r : rects)
@@ -824,7 +825,7 @@ struct astar::seed_search
         auto* const seed_index = a.goal_seed_index.data();
         const auto n = a.goal_seed_n;
         const auto off = a.goal_seed_off;
-        std::fill_n(seed_index, n*n, (uint32_t)-1);
+        fill(a.goal_seed_index.prefix(n*n), (uint32_t)-1);
         arrayClear(seeds);
         arrayReserve(seeds, 16);
         arrayClear(seed_from);
@@ -886,7 +887,7 @@ auto astar::make_queue(uint32_t bucket_count) -> bucket_queue
     if (bucket_sizes.size() < bucket_count)
         bucket_sizes = Array<uint32_t>{ValueInit, bucket_count};
     else
-        std::fill_n(bucket_sizes.data(), bucket_count, 0u);
+        fill(bucket_sizes.prefix(bucket_count), 0u);
     return bucket_queue{ .B = buckets.data(), .sizes = bucket_sizes.data(), .mask = bucket_count - 1, };
 }
 
@@ -898,7 +899,7 @@ auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p) -> chu
     if (chunk_bits.size() < nchunks)
         chunk_bits = Array<const uint8_t*>{ValueInit, nchunks};
     else
-        std::fill_n(chunk_bits.data(), nchunks, nullptr);
+        fill(chunk_bits.prefix(nchunks), nullptr);
 
     return chunk_bitmaps{
         .w = w, .pool = pool, .cache = cache, .p = p,

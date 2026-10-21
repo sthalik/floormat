@@ -218,10 +218,10 @@ void impl_draw_editor_scenery_pane(editor& e, T& ed, Vector2 dpi)
             auto atlasʹ = get_atlas(scenery);
             auto& atlas = *atlasʹ;
             const auto size = Vector2(get_size(scenery, atlas));
-            const float c = std::min(thumbnail_width / size[0], row_height / size[1]);
+            const float c = Math::min(thumbnail_width / size[0], row_height / size[1]);
             const ImVec2 img_size = {size[0]*c, size[1]*c+style.CellPadding.y + 0.5f};
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(0.f, .5f*(thumbnail_width - img_size.x)));
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + .5f*std::max(0.f, row_height - img_size.y));
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + Math::max(0.f, .5f*(thumbnail_width - img_size.x)));
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + .5f*Math::max(0.f, row_height - img_size.y));
             palette_image(e, img_size, scenery, atlas);
             click_event();
         }

@@ -5,6 +5,7 @@
 #include <limits>
 #include <random>
 #include <type_traits>
+#include <cr/Algorithms.h>
 #include <cr/Array.h>
 #include <hwy/targets.h>
 
@@ -91,10 +92,10 @@ void check(uint32_t n)
         input[i] = make_key<T>(rng, i);
 
     Array<T> canonical{NoInit, n}, expected{NoInit, n}, a{NoInit, n}, b{NoInit, n};
-    std::copy_n(input.data(), n, canonical.data());
+    Utility::copy(input, canonical);
     std::sort(canonical.data(), canonical.data() + n, [](T x, T y) { return full_less(x, y); });
     const auto check_permutation = [&] {
-        std::copy_n(a.data(), n, b.data());
+        Utility::copy(a, b);
         std::sort(b.data(), b.data() + n, [](T x, T y) { return full_less(x, y); });
         for (auto i = 0u; i < n; i++)
             fm_assert(same(b[i], canonical[i]));
@@ -106,10 +107,10 @@ void check(uint32_t n)
     for (const auto order : { sort_order::ascending, sort_order::descending })
     {
         const auto before = [order](T x, T y) { return precedes(x, y, order); };
-        std::copy_n(input.data(), n, expected.data());
+        Utility::copy(input, expected);
         std::stable_sort(expected.data(), expected.data() + n, before);
 
-        std::copy_n(input.data(), n, a.data());
+        Utility::copy(input, a);
         vqsort(a.data(), n, order);
         for (auto i = 0u; i < n; i++)
             fm_assert(equiv(a[i], expected[i]));
@@ -119,14 +120,14 @@ void check(uint32_t n)
             continue;
 
         const auto k = n / 3 + 1;
-        std::copy_n(input.data(), n, a.data());
+        Utility::copy(input, a);
         vqsort_partial(a.data(), n, k, order);
         for (auto i = 0u; i < k; i++)
             fm_assert(equiv(a[i], expected[i]));
         check_permutation();
 
         const auto m = n / 2;
-        std::copy_n(input.data(), n, a.data());
+        Utility::copy(input, a);
         vqselect(a.data(), n, m, order);
         fm_assert(equiv(a[m], expected[m]));
         for (auto i = 0u; i < m; i++)
