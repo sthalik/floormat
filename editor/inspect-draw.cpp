@@ -10,6 +10,7 @@
 #include "src/light.hpp"
 #include "src/anim-atlas.hpp"
 #include "imgui-raii.hpp"
+#include <cstdio>
 
 namespace floormat {
 

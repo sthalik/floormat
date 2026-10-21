@@ -1,5 +1,4 @@
 #include "magnum-vector.hpp"
-#include "compat/format.hpp"
 #include "compat/exception.hpp"
 #include "corrade-string.hpp"
 #include <mg/Vector.h>
