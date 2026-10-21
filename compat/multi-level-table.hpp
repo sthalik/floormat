@@ -1,10 +1,89 @@
 #pragma once
 #include "multi-level-table-fwd.hpp"
 #include "superpage.hpp"
+#include "compat/assert.hpp"
 #include <type_traits>
 #include <cr/Array.h>
 
 namespace floormat {
+
+constexpr mlt_bits::mlt_bits(uint32_t x) noexcept : dim{x, 0, 0}, dims{1} {}
+constexpr mlt_bits::mlt_bits(uint32_t x, uint32_t y, uint32_t z) noexcept : dim{x, y, z}, dims{3} {}
+
+constexpr uint32_t mlt_bits::total() const noexcept { return dim[0] + dim[1] + dim[2]; }
+
+consteval uint32_t mlt_params::depth() const
+{
+    uint32_t n = 0;
+    while (n < max_depth && levels[n].bits.total())
+        n++;
+    return n;
+}
+
+consteval uint32_t mlt_params::dims() const { return levels[0].bits.dims; }
+
+consteval uint32_t mlt_params::dim_bits(uint32_t d) const
+{
+    uint32_t n = 0;
+    for (uint32_t i = 0; i < depth(); i++)
+        n += levels[i].bits.dim[d];
+    return n;
+}
+
+consteval uint32_t mlt_params::key_bits() const
+{
+    uint32_t n = 0;
+    for (uint32_t i = 0; i < depth(); i++)
+        n += levels[i].bits.total();
+    return n;
+}
+
+consteval bool mlt_params::has_pages() const { return depth() > 0 && levels[depth() - 1].dynamic; }
+consteval uint32_t mlt_params::page_bits() const { return has_pages() ? levels[depth() - 1].bits.total() : 0; }
+
+consteval uint32_t mlt_params::zero_bits() const
+{
+    for (uint32_t i = 0; i < depth(); i++)
+        if (levels[i].inline_zero)
+            return levels[i].bits.total();
+    return 0;
+}
+
+consteval uint32_t mlt_params::top_bits() const { return key_bits() - page_bits() - zero_bits(); }
+
+consteval mlt_params mlt_params::validate() const
+{
+    const uint32_t n = depth();
+    fm_assert(n > 0);
+    for (uint32_t i = n; i < max_depth; i++)
+        fm_assert(!levels[i].bits.total() && !levels[i].dynamic && !levels[i].inline_zero);
+    fm_assert(dims() == 1 || dims() == 3);
+    for (uint32_t i = 0; i < n; i++)
+    {
+        fm_assert(levels[i].bits.dims == dims());
+        for (uint32_t d = 0; d < 3; d++)
+            fm_assert(levels[i].bits.dim[d] <= 64);
+    }
+    fm_assert(key_bits() <= 64);
+    if (dims() > 1)
+        for (uint32_t d = 0; d < dims(); d++)
+            fm_assert(dim_bits(d) <= 32);
+    uint32_t num_inline_zero = 0;
+    for (uint32_t i = 0; i < n; i++)
+    {
+        fm_assert(!levels[i].dynamic || i + 1 == n);
+        if (levels[i].inline_zero)
+        {
+            fm_assert(i + 2 == n && has_pages());
+            num_inline_zero++;
+        }
+    }
+    fm_assert(num_inline_zero <= 1);
+    fm_assert(!free_empty || has_pages());
+    fm_assert(has_pages() || page_source == mlt_source::heap);
+    fm_assert(top_bits() < 32 && page_bits() < 32 && zero_bits() < 32);
+    return *this;
+}
 
 // A slot is occupied when x.has_block(), or bool(x) for a T without it. An unoccupied T
 // must own nothing: pages are freed without destroying such slots.
