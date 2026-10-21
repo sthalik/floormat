@@ -1,10 +1,10 @@
 #include "app.hpp"
 #include "compat/atomic.hpp"
+#include "compat/fwd/chrono.hpp"
+#include "compat/fwd/thread.hpp"
 #include <array>
-#include <chrono>
 #include <iterator>
 #include <latch>
-#include <thread>
 #include <type_traits>
 
 #ifdef _WIN32

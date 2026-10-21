@@ -1,6 +1,6 @@
 #include "random/random.hpp"
+#include "compat/fwd/chrono.hpp"
 #include <bit>
-#include <chrono>
 #include <cinttypes>
 #include <cstdio>
 

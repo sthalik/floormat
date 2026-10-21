@@ -5,10 +5,10 @@
 #include "compat/exception.hpp"
 #include "compat/defs.hpp"
 #include "random/random.hpp"
+#include "compat/fwd/thread.hpp"
 #include <array>
 #include <initializer_list>
 #include <latch>
-#include <thread>
 #include <cr/Debug.h>
 
 namespace floormat {

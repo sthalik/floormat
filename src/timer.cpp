@@ -2,9 +2,10 @@
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
 #include "nanosecond.hpp"
+#include "compat/fwd/chrono.hpp"
 #include <ctime>
 #include <compare>
-#include <chrono>
+#include <cstdio>
 #include <mg/Time.h>
 
 namespace floormat {

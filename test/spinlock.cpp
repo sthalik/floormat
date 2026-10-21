@@ -1,8 +1,8 @@
 #include "app.hpp"
 #include "compat/spinlock.hpp"
+#include "compat/fwd/thread.hpp"
 #include <array>
 #include <latch>
-#include <thread>
 
 namespace floormat {
 

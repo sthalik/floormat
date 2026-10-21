@@ -3,9 +3,9 @@
 #include "compat/atomic-wrapper.hpp"
 #include "compat/atomic-flag-wrapper.hpp"
 #include "compat/limits.hpp"
+#include "compat/fwd/thread.hpp"
 #include <array>
 #include <latch>
-#include <thread>
 
 namespace floormat {
 
