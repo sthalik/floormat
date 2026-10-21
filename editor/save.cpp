@@ -148,6 +148,8 @@ void app::draw_load_pane(float main_menu_height)
         for (const auto& dir_name : dirs)
         {
             auto dir = Path::join(loader.TEMP_PATH, dir_name);
+            if (!Path::exists(dir))
+                continue;
             auto files = Path::list(dir, LF::SkipDirectories|LF::SkipSpecial|LF::SkipDotAndDotDot|
                                          LF::SortAscending);
             ImGui::SeparatorText(dir_name.data());
