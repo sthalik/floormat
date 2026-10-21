@@ -1,11 +1,11 @@
 #include "app.hpp"
 #include "compat/atomic.hpp"
 #include "compat/chase-lev-deque.hpp"
+#include "compat/fwd/chrono.hpp"
+#include "compat/fwd/thread.hpp"
 #include <array>
 #include <bit>
-#include <chrono>
 #include <latch>
-#include <thread>
 
 namespace floormat {
 

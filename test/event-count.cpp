@@ -1,10 +1,10 @@
 #include "app.hpp"
 #include "compat/atomic.hpp"
 #include "compat/event-count.hpp"
+#include "compat/fwd/chrono.hpp"
+#include "compat/fwd/thread.hpp"
 #include <array>
-#include <chrono>
 #include <latch>
-#include <thread>
 
 namespace floormat {
 
