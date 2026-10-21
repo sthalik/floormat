@@ -1,6 +1,7 @@
 #pragma once
 #include "src/point.hpp"
 #include "src/tile-defs.hpp"
+#include "src/object-id.hpp"
 #include <cr/StringView.h>
 
 namespace floormat { class world; }
@@ -28,5 +29,16 @@ StringView name(kind k);
 
 // `pool` must be the one Dijkstra reads for bbox_size: the endpoints are picked by its cell bits.
 route build(world& w, kind k, chunk_coords_ origin, Grid::Pass::Pool& pool);
+
+#ifdef FM_NO_DEBUG3
+constexpr inline uint32_t exit_cells = 80;
+#else
+constexpr inline uint32_t exit_cells = 24;
+#endif
+
+// Destroys every object but `keep` on tiles [0, 2*cells]² and the square outside the exit.
+// `pool` must be the one Dijkstra reads for the walker's bbox.
+route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
+              Grid::Pass::Pool& pool, object_id keep);
 
 } // namespace floormat::mazes
