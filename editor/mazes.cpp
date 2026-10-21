@@ -621,11 +621,8 @@ route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
             c.ensure_passability();
         }
 
-    // A cell's centre is a tile corner. Dijkstra seeds around from's tile centre, not from itself,
-    // so the point sits 1 px into the NW tile: from the SE tile no seed reaches the cell centre's
-    // grid cells, the only ones open for a 64-px bbox.
     const auto cell_point = [&](Vector2i cell) {
-        return point::normalize_coords(origin_pt, cell*pitch*tile_size_xy + Vector2i{pitch*tile_size_xy/2 - half_tile<int> - 1});
+        return point::normalize_coords(origin_pt, cell*pitch*tile_size_xy + Vector2i{pitch*tile_size_xy/2 - half_tile<int>});
     };
     const auto entrance = Vector2i{(int)(ends.entrance % g.w), (int)(ends.entrance / g.w)};
     const auto from = open_point(w, pool, cell_point(entrance));
