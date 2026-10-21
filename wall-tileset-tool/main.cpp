@@ -42,13 +42,13 @@ const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
     return atlas.direction_array[idx.val];
 }
 
-template<typename Fmt, typename... Xs>
-auto asformat(Fmt&& fmt, Xs&&... args)
+template<typename... Xs>
+auto asformat(fmt::format_string<Xs...> fmt, Xs&&... args)
 {
-    auto result = fmt::format_to_n((char*)nullptr, 0, forward<Fmt>(fmt), forward<Xs>(args)...);
+    auto result = fmt::format_to_n((char*)nullptr, 0, fmt, forward<Xs>(args)...);
     std::string ret;
     ret.resize(result.size);
-    auto result2 = fmt::format_to_n(ret.data(), ret.size(), forward<Fmt>(fmt), forward<Xs>(args)...);
+    auto result2 = fmt::format_to_n(ret.data(), ret.size(), fmt, forward<Xs>(args)...);
     fm_assert(result2.size == result.size);
     return ret;
 }
@@ -205,7 +205,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
 
     for (;;)
     {
-        auto filename = asformat("{}/{:04}.png"_cf, path, count+1);
+        auto filename = asformat("{}/{:04}.png", path, count+1);
         if (!Path::exists(filename))
             break;
         if (Path::isDirectory(filename)) [[unlikely]]

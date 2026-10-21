@@ -117,7 +117,7 @@ void app::driver_save_world(uint32_t scene_number, StringView scene_name, bool i
         return;
     char name[96];
     // A StringView of a char[N] buffer spans all N bytes, not up to the NUL.
-    const auto len = snformat(name, "{}/driver-{:02}_{}-{}.dat"_cf, StringView{driver_save_dir},
+    const auto len = snformat(name, "{}/driver-{:02}_{}-{}.dat", StringView{driver_save_dir},
                               scene_number, scene_name, is_post ? "post"_s : "pre"_s);
     fm_assert(len < sizeof name);
     const auto path = Path::join(loader.TEMP_PATH, StringView{name, len, StringViewFlag::NullTerminated});
@@ -168,7 +168,7 @@ void app::draw_load_pane(float main_menu_height)
                         std::strftime(date, sizeof date, "%Y-%m-%d %H:%M", tm);
                 }
                 char label[256];
-                snformat(label, "{}"_cf, file);
+                snformat(label, "{}", file);
                 const bool clicked = ImGui::Selectable(label);
                 ImGui::SameLine(300*dpi.x());
                 ImGui::TextUnformatted(date);

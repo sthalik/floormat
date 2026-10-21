@@ -12,7 +12,7 @@ void app::draw_fps()
     const auto dpi = M->dpi_scale();
     char buf[16];
     const float hz = M->smoothed_fps();
-    snformat(buf, "{:.1f} FPS"_cf, hz);
+    snformat(buf, "{:.1f} FPS", hz);
     const ImVec2 size = ImGui::CalcTextSize(buf);
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
@@ -40,9 +40,9 @@ void app::draw_tile_under_cursor()
     const auto local = coord.local();
     const auto z = coord.z();
     if (z == 0)
-        snformat(buf, "{}x{} - {}:{}"_cf, chunk.x, chunk.y, local.x, local.y);
+        snformat(buf, "{}x{} - {}:{}", chunk.x, chunk.y, local.x, local.y);
     else
-        snformat(buf, "{}x{}:{} - {}:{}"_cf, chunk.x, chunk.y, (int)z, local.x, local.y);
+        snformat(buf, "{}x{}:{} - {}:{}", chunk.x, chunk.y, (int)z, local.x, local.y);
     const auto size = ImGui::CalcTextSize(buf);
     const auto window_size = M->window_size();
 
@@ -62,7 +62,7 @@ void app::draw_z_level()
         const auto offset = Vector2(4, -3) * dpi;
         char buf[32];
         ImDrawList& draw = *ImGui::GetForegroundDrawList();
-        snformat(buf, " +{:d}"_cf, _z_level);
+        snformat(buf, " +{:d}", _z_level);
         const auto font_size = ImGui::GetCurrentContext()->FontSize+3;
         auto shadow_offset = Vector2(1, 1)/* * dpi */;
         auto px = Vector2(*cursor.pixel) + offset, px2 = px + shadow_offset;
