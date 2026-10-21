@@ -867,18 +867,26 @@ auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
         const auto res = los(O, P[i], ref, nullptr);
         if (res.blocked)
         {
-            if (!res.best.found || ref.isZero())
+            if (ref.isZero())
                 return give_up();
             // A rect smaller than a step can lie between two lines Han takes as clear.
             auto pick = res.best;
-            for (auto k = 0u; ; k++)
+            for (auto k = 0u; pick.found; k++)
             {
                 const auto check = los(O, O + pick.vec, ref, &pick);
                 if (!check.blocked)
                     break;
-                if (!check.best.found || k == 16)
+                if (k == 16)
                     return give_up();
                 pick = check.best;
+            }
+            // Pixel rounding can clear the line to P[i-1] past a corner its exact segment clips. That
+            // corner lies across ref from pick, so limit excludes it and no pick remains.
+            if (!pick.found)
+            {
+                if (los(O, P[i-1], ref, nullptr).blocked)
+                    return give_up();
+                pick = { .vec = ref, .found = true };
             }
             const auto u = O + pick.vec;
             arrayAppend(sp, path_search_result::waypoint{ u, seg });

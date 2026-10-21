@@ -501,6 +501,29 @@ void test_string_pull_truncate()
     fm_assert(res.smoothings().size() == 2 && st.corners_added >= 1);
 }
 
+// Only pixel rounding clears the line to mid past the pillar. The line to the far corner of the
+// side it passes rounds into the pillar, and the near corner lies across the line to mid.
+void test_string_pull_last_visible()
+{
+    auto w = make_pull_world();
+    constexpr auto size = Vector2ui{16};
+    constexpr auto from = Vector2i{200, 400}, mid = from + Vector2i{400, 20}, to = from + Vector2i{500, -100};
+    constexpr auto pillar = from + Vector2i{119, -31};
+    add_pillar(w, {5, 6}, {2, 58}, Vector2b(pillar - Vector2i{5, 6} * iTILE_SIZE2));
+    w[pull_ch].mark_modified();
+
+    const auto origin = point{pull_ch, {}, {}};
+    path_search_result res;
+    for (auto px : { from, mid, to })
+        arrayAppend(res.raw_path(), origin + px);
+    auto A = astar{};
+    check_pulled(w, res, size, A.string_pull(w, res, size, without_critters()));
+
+    const auto& sp = res.smoothings();
+    fm_assert(sp.size() == 3);
+    fm_assert(sp[1].pt - origin == mid);
+}
+
 void test_string_pull_random()
 {
     uint64_t state = 0x9e3779b97f4a7c15;
@@ -541,6 +564,7 @@ void Test::test_astar()
     test_string_pull_wall();
     test_string_pull_hidden_corner();
     test_string_pull_truncate();
+    test_string_pull_last_visible();
     test_string_pull_random();
 }
 
