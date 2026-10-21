@@ -132,6 +132,7 @@ int App::exec()
         FM_TEST(test_magnum_math),
         FM_TEST(test_util),
         FM_TEST(test_split),
+        FM_TEST(test_enumerate),
         FM_TEST(test_math),
         FM_TEST(test_rtree_pool),
         FM_TEST(test_astar_pool),
