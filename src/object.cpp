@@ -233,7 +233,7 @@ void object::set_bbox_(Vector2b offset_, Vector2b bb_offset, Vector2ub bb_size, 
 {
     fm_assert(offset_ >= -half_tile<Vector2b> && offset_ < half_tile<Vector2b>);
     non_const(offset)      = offset_;
-    non_const(bbox_offset) = clamp_bbox_offset(bb_offset);
+    non_const(bbox_offset) = bb_offset;
     non_const(bbox_size)   = bb_size;
     non_const(pass)        = pass_;
 }
@@ -256,6 +256,8 @@ object::operator object_proto() const
 void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_, pass_mode pass_)
 {
     const bool pass_changed = pass_ != pass;
+
+    bb_offset_ = clamp_bbox_offset(bb_offset_);
 
     if (offset_ == offset && bb_offset_ == bbox_offset && bb_size_ == bbox_size && !pass_changed)
         return;
