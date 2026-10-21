@@ -7,9 +7,9 @@
 #include "src/fps-counter.hpp"
 #include "shaders/shader.hpp"
 #include "src/chunk.hpp"
+#include "compat/fwd/algorithm/sort.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/ArrayView.h>
-#include <algorithm>
 #include <mg/DefaultFramebuffer.h>
 #include <mg/Renderer.h>
 #include <mg/Color.h>

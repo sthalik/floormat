@@ -10,7 +10,7 @@
 #include "RTree-search.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/function2.hpp"
-#include <algorithm>
+#include "compat/fwd/algorithm/sort.hpp"
 #include <bit>
 #include <cmath>
 #include <cr/GrowableArray.h>

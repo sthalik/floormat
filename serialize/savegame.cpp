@@ -8,6 +8,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/hash-table-load-factor.hpp"
 #include "compat/crc64.hpp"
+#include "compat/fwd/algorithm/sort.hpp"
 
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
@@ -32,7 +33,6 @@
 #include <concepts>
 #include <cstdio>
 #include <vector>
-#include <algorithm>
 #include <cr/Algorithms.h>
 #include <cr/Path.h>
 #include <gtl/phmap.hpp>

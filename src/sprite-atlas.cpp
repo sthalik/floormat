@@ -4,10 +4,10 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "src/quads.hpp"
+#include "compat/fwd/algorithm/lower_bound.hpp"
 #include <cmath>
 #include <cstdio>
 #include <bit>
-#include <algorithm>
 #include <cr/GrowableArray.h>
 #include <cr/Path.h>
 #include <cr/StridedArrayView.h>

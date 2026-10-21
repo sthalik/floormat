@@ -1,9 +1,9 @@
 #include "src/spritebatch.hpp"
 #include "src/sprite-list.hpp"
 #include "src/quads.hpp"
+#include "compat/fwd/algorithm/ranges_sort.hpp"
 #include <vector>
 #include <random>
-#include <algorithm>
 #include <map>
 #include <memory>
 #include <tuple>
