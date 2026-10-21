@@ -7,6 +7,7 @@
 #include "keys.hpp"
 #include "tests-private.hpp"
 #include "mazes.hpp"
+#include "random/random.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
 #include "loader/wall-cell.hpp"
@@ -85,6 +86,7 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_door, coverage),
         FM_SCENE(scene_ground_editor, coverage),
         FM_SCENE(scene_drag_paint, coverage),
+        FM_SCENE(scene_maze_test, coverage),
         FM_SCENE(scene_benchmark, profile),
         FM_SCENE(scene_walk, profile),
         FM_SCENE(scene_slide, profile),
@@ -92,6 +94,7 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_maze1, profile),
         FM_SCENE(scene_maze2, profile),
         FM_SCENE(scene_maze3, profile),
+        FM_SCENE(scene_maze_exit, profile),
         FM_SCENE(scene_raycast, profile),
         FM_SCENE(scene_object_ids, profile),
         FM_SCENE(scene_grids, profile),
@@ -1267,6 +1270,126 @@ task app::scene_maze3()
         }
         co_await pan_along_path(res.path());
     }
+}
+
+task app::scene_maze_exit()
+{
+#ifdef FM_NO_DEBUG3
+    constexpr uint32_t count = 54;
+#else
+    constexpr uint32_t count = 9;
+#endif
+    constexpr uint64_t seed0 = 1;
+    // The walk animation advances a frame per pixel and holds two steps in 60 frames, so from 30 a
+    // step shows in two poses or runs backwards. The scene tests the search, and a faster walk
+    // fits more mazes.
+    constexpr float speed = 50;
+    // At this speed the critter moves every frame; standing still this long means the script
+    // ended without reporting, as when maybe_stop_auto_movement() cuts it short.
+    constexpr uint32_t stall_frames = 30;
+    constexpr auto hold_dt = Second*3/2;
+    constexpr uint8_t size = 24;
+    constexpr auto bbox = Vector2ui{size};
+    auto& w = M->world();
+    auto& pool = M->astar().pool_registry().pool_for(size);
+    // reset_world() spawns the player inside the footprint. A critter in a corridor blocks the
+    // walk, while the search, run without_critters(), routes through it.
+    auto P = ensure_player_character(w);
+    auto P_index = P->index();
+    P->teleport_to(P_index, point{chunk_coords_{-1, -1, 0}, local_coords{}, {}}, rotation_COUNT);
+
+    auto gen = Random::splitmix64{};
+    Random::seed(gen, seed0);
+    for (auto i = 0u; i < count; i++)
+    {
+        const auto seed = Random::next(gen);
+        const auto r = mazes::replace(w, {0, 0, 0}, mazes::exit_cells, seed, pool, _character_id);
+        critter_proto p;
+        p.name = "maze"_s;
+        p.speed = speed;
+        p.bbox_size = Vector2ub{size};
+        p.offset = r.from.offset();
+        fm_assert(w[r.from.chunk3()].can_place_object(p, r.from.local()));
+        auto C = w.make_object<critter>(w.make_id(), r.from.coord(), move(p));
+        center_camera_on(r.from);
+        co_yield {};
+
+        auto res = M->astar().Dijkstra<1>(w, r.from, r.to, r.max_dist, bbox, Search::without_critters());
+        // Same partial-route trap as scene_walk.
+        if (!res.is_found())
+        {
+            ERR_nospace << "driver: maze-exit seed " << seed << " has no path "
+                        << r.from << " -> " << r.to << ", closest " << res.distance() << " px";
+            fm_abort("%s", "maze-exit: unroutable");
+        }
+        const auto len = res.cost();
+        if (!M->astar().string_pull(w, res, bbox, Search::without_critters()))
+            fm_warn("maze-exit: seed %llu: string pull gave up", (unsigned long long)seed);
+        const auto frame0 = w.frame_no();
+        C->script.do_reassign(critter_script::make_walk_script(move(res)), C);
+
+        auto last = C->position();
+        for (uint32_t still = 0; C->last_walk == critter::walk_result::none; )
+        {
+            co_yield {};
+            const auto pos = C->position();
+            center_camera_on(pos);
+            if (pos != last)
+            {
+                last = pos;
+                still = 0;
+            }
+            else if (++still == stall_frames)
+                fm_abort("maze-exit: seed %llu: walker stopped", (unsigned long long)seed);
+        }
+        if (C->last_walk != critter::walk_result::arrived)
+            fm_abort("maze-exit: seed %llu: walk ended with %d", (unsigned long long)seed, (int)C->last_walk);
+        fm_assert_equal(r.to, C->position());
+        fm_debug("maze-exit: seed %llu, route %u px over %u tiles, %llu frames",
+                 (unsigned long long)seed, len, r.bfs_tiles, (unsigned long long)(w.frame_no() - frame0));
+
+        const auto t0 = _driver->scene_dt;
+        do
+            co_yield {};
+        while (_driver->scene_dt - t0 < hold_dt);
+        C->chunk().kill_object(*C, C->index());
+    }
+}
+
+// The Maze test's build and solve teleport the player to the maze entrance. Unless the camera
+// follows, the player looks deleted.
+task app::scene_maze_test()
+{
+    auto& w = M->world();
+    const auto win = Vector2(M->window_size());
+    const auto check = [&](const char* step) {
+        const auto px = point_to_pixel(ensure_player_character(w)->position());
+        if (px.x() < 0 || px.y() < 0 || px.x() >= win.x() || px.y() >= win.y())
+        {
+            ERR_nospace << "driver: maze-test: player at pixel " << px << " after " << step
+                        << ", window " << win;
+            fm_abort("%s", "maze-test: player off-screen");
+        }
+    };
+    tests::base_test::Value v;
+    v.type = tests::base_test::ValueType::u32;
+
+    do_key(key_mode_tests);
+    tests().switch_to(floormat::tests::Test::maze);
+    co_yield {};
+    v.u32 = 0;
+    tests().current_test->advance(*this, v);
+    co_yield {};
+    check("build");
+
+    // Away from the entrance, so solve has to bring the camera back itself.
+    center_camera_on(point{});
+    co_yield {};
+    v.u32 = 1;
+    tests().current_test->advance(*this, v);
+    co_yield {};
+    check("solve");
+    tests().switch_to(floormat::tests::Test::none);
 }
 
 // Nothing else in the driver runs the lightmap. do_lightmap_test() keys off tested_light_chunk

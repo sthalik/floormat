@@ -52,7 +52,8 @@ struct base_test
     };
 
     // The driver cannot click an ImGui widget, and cover_test's octant selector is one. Steps it
-    // and hands back the octants built so far as a bitmask. No other test has a selection.
+    // and hands back the octants built so far as a bitmask. maze_test's build and solve buttons
+    // are two more: 0 presses build, anything else solve.
     virtual Value advance(app& a, Value);
 
     virtual ~base_test() noexcept;
@@ -63,7 +64,7 @@ protected:
 
 enum class Test : uint32_t {
     //todo add a speedometer overlay test
-    none, path, raycast, grid, walk, hole, cover, COUNT,
+    none, path, raycast, grid, walk, hole, cover, maze, COUNT,
 };
 
 struct tests_data final : tests_data_
@@ -79,6 +80,7 @@ struct tests_data final : tests_data_
     static Pointer<base_test> make_test_walk();
     static Pointer<base_test> make_test_hole();
     static Pointer<base_test> make_test_cover();
+    static Pointer<base_test> make_test_maze();
 
     Pointer<base_test> current_test;
     Test current_index = Test::none;
@@ -98,6 +100,7 @@ struct tests_data final : tests_data_
         { "Walking"_s,      Test::walk,    make_test_walk    },
         { "Hole"_s,         Test::hole,    make_test_hole    },
         { "Cover"_s,        Test::cover,   make_test_cover   },
+        { "Maze"_s,         Test::maze,    make_test_maze    },
     };
 };
 

@@ -79,6 +79,8 @@ struct app final : floormat_app
     /// See tile_shader::point_to_pixelʹ(): the pixel whose pick is pt.
     Vector2i point_to_pixelʹ(point pt);
     bptr<critter> ensure_player_character(world& w);
+    /// Puts the pixel whose pick is pt at window_size()/2. A half-pixel y lies half a pixel below it.
+    void center_camera_on(point pt);
 
 private:
     explicit app(fm_settings&& opts);
@@ -198,8 +200,6 @@ private:
 
     void do_camera(const Ns& dt, const key_set& cmds, int mods);
     void reset_camera_offset();
-    /// Puts the pixel whose pick is pt at window_size()/2. A half-pixel y lies half a pixel below it.
-    void center_camera_on(point pt);
     /// Moves the cursor to the pixel whose pick is pt.
     void set_cursor_at(point pt);
 
@@ -238,6 +238,8 @@ private:
     pgo::task scene_object_ids();
     pgo::task scene_maze2();
     pgo::task scene_maze3();
+    pgo::task scene_maze_exit();
+    pgo::task scene_maze_test();
     pgo::task scene_grids();
     pgo::task scene_lightmap();
     pgo::task scene_cover();
