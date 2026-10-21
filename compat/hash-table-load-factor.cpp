@@ -9,7 +9,7 @@ namespace {
 struct Entry
 {
     float load_factor;
-    size_t max_capacity;
+    uint32_t max_capacity;
 };
 
 constexpr Entry open_addressing_load_factor_table[] = {
