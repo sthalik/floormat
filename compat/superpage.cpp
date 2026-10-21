@@ -83,9 +83,9 @@ int freebsd_psind_2m() noexcept
 }
 #endif
 
-} // namespace
+struct raw_alloc { void* ptr; size_t size; bool used_large; };
 
-superpage_alloc_t superpage_alloc(size_t bytes) noexcept
+raw_alloc alloc_impl(size_t bytes) noexcept
 {
     fm_assert(bytes > 0);
 
@@ -198,6 +198,15 @@ superpage_alloc_t superpage_alloc(size_t bytes) noexcept
     return { p, sz, false };
 #  endif
 #endif
+}
+
+} // namespace
+
+superpage_alloc_t superpage_alloc(size_t bytes) noexcept
+{
+    const auto a = alloc_impl(bytes);
+    fm_assert(a.size == (size_t)(uint32_t)a.size);
+    return { a.ptr, (uint32_t)a.size, a.used_large };
 }
 
 void superpage_free(superpage_alloc_t a) noexcept

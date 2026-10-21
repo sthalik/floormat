@@ -5,7 +5,7 @@ namespace floormat {
 struct superpage_alloc_t
 {
     void* ptr = nullptr;
-    size_t size = 0;      // rounded up to large-page or 4 KiB granularity
+    uint32_t size = 0;    // rounded up to large-page or 4 KiB granularity
     bool used_large = false;
 };
 
