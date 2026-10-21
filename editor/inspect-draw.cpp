@@ -52,7 +52,7 @@ void app::draw_inspector()
 
 void app::entity_inspector_name(char(&buf)[10], object_id id)
 {
-    auto result = fmt::format_to_n(buf, array_size(buf), "@{:08x}"_cf, id);
+    auto result = fmt::format_to_n(buf, array_size(buf), "@{:08x}", id);
     fm_assert(result.size == 9);
     buf[array_size(buf)-1] = '\0';
 }

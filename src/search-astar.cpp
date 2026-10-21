@@ -537,7 +537,7 @@ void print_result(const path_search_result& result, point from, point to)
     const auto d = result.cost();
     if (result.is_found())
         len = snformat(buf, "Dijkstra: found in {:.2f} ms "
-                            "len:{} len0:{} ratio:{:.4}\n"_cf,
+                            "len:{} len0:{} ratio:{:.4}\n",
                        time, d, d0,
                        d > 0 && d0 > 0 ? (float)d/(float)d0 : 1);
     else if (!result.path().isEmpty())
@@ -546,7 +546,7 @@ void print_result(const path_search_result& result, point from, point to)
         // start lies on the node lattice, and it can remain the closest node
         fm_assert(d != (uint32_t)-1);
         len = snformat(buf, "Dijkstra: no path found in {:.2f} ms "
-                            "closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,
+                            "closest:{} len:{} len0:{} ratio:{:.4}\n",
                        time, result.distance(), d, d0,
                        d0 > 0 ? (float)d/(float)d0 : 1);
     }

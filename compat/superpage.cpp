@@ -126,7 +126,7 @@ raw_alloc alloc_impl(size_t bytes) noexcept
         StringView why = "large pages not supported"_s;
         if (err)
         {
-            snformat(whybuf, "{} (GetLastError 0x{:08x})"_cf, get_win32_error_string(errbuf, err), err);
+            snformat(whybuf, "{} (GetLastError 0x{:08x})", get_win32_error_string(errbuf, err), err);
             why = whybuf;
         }
         warn_small_pages(what, why);

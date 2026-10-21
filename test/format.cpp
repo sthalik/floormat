@@ -7,10 +7,11 @@ namespace floormat {
 
 namespace {
 
-void check(StringView expected, auto&& fmt, auto&&... args)
+template<typename... Xs>
+void check(StringView expected, fmt::format_string<Xs...> fmt, Xs&&... args)
 {
     char buf[64];
-    const auto len = snformat(buf, fmt, args...);
+    const auto len = snformat(buf, fmt, floormat::forward<Xs>(args)...);
     fm_assert(len == expected.size());
     fm_assert(StringView{buf, len} == expected);
 }
@@ -18,22 +19,22 @@ void check(StringView expected, auto&& fmt, auto&&... args)
 void test_stringview()
 {
     const auto s = "abc"_s;
-    check("abc"_s, "{}"_cf, s);
-    check("abc  "_s, "{:<5}"_cf, s);
-    check("  abc"_s, "{:>5}"_cf, s);
-    check(" abc "_s, "{:^5}"_cf, s);
-    check("..abc"_s, "{:.>5}"_cf, s);
-    check("ab"_s, "{:.2}"_cf, s);
-    check("abc|  xy"_s, "{}|{:>4}"_cf, s, "xy"_s);
+    check("abc"_s, "{}", s);
+    check("abc  "_s, "{:<5}", s);
+    check("  abc"_s, "{:>5}", s);
+    check(" abc "_s, "{:^5}", s);
+    check("..abc"_s, "{:.>5}", s);
+    check("ab"_s, "{:.2}", s);
+    check("abc|  xy"_s, "{}|{:>4}", s, "xy"_s);
 }
 
 void test_string()
 {
     const auto s = String{"abc"};
-    check("abc"_s, "{}"_cf, s);
-    check("abc  "_s, "{:<5}"_cf, s);
-    check("  abc"_s, "{:>5}"_cf, s);
-    check("ab"_s, "{:.2}"_cf, s);
+    check("abc"_s, "{}", s);
+    check("abc  "_s, "{:<5}", s);
+    check("  abc"_s, "{:>5}", s);
+    check("ab"_s, "{:.2}", s);
 }
 
 } // namespace

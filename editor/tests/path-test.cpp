@@ -279,7 +279,7 @@ void path_test::draw_ui(app&, float)
         for (auto i = 0uz; i + 1 < raw.size(); i++)
             raw_len += Vector2(raw[i+1] - raw[i]).length();
         do_column("raw length");
-        snformat(buf, "{:.1f} px"_cf, raw_len);
+        snformat(buf, "{:.1f} px", raw_len);
         text(buf);
 
         do_column("time");
@@ -302,26 +302,26 @@ void path_test::draw_ui(app&, float)
             }
 
             do_column("smoothed vertices");
-            snformat(buf, "{}"_cf, sp.size());
+            snformat(buf, "{}", sp.size());
             text(buf);
 
             float sp_len = 0;
             for (auto i = 0uz; i + 1 < sp.size(); i++)
                 sp_len += Vector2(sp[i+1].pt - sp[i].pt).length();
             do_column("smoothed length");
-            snformat(buf, "{:.1f} px"_cf, sp_len);
+            snformat(buf, "{:.1f} px", sp_len);
             text(buf);
 
             do_column("corners added");
-            snformat(buf, "{}"_cf, result.pull.corners_added);
+            snformat(buf, "{}", result.pull.corners_added);
             text(buf);
 
             do_column("LOS checks");
-            snformat(buf, "{}"_cf, result.pull.los_checks);
+            snformat(buf, "{}", result.pull.los_checks);
             text(buf);
 
             do_column("smoothing time");
-            snformat(buf, "{:.3f} ms"_cf, (double)(1000 * result.pull_time));
+            snformat(buf, "{:.3f} ms", (double)(1000 * result.pull_time));
             text(buf);
         }
     }

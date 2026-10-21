@@ -345,7 +345,7 @@ void cover_test::draw_ui(app& a, float)
 
     constexpr auto print_coord = [](auto&& buf, Vector3i c, Vector2i l, Vector2i p)
     {
-        snformat(buf, "(ch {}x{}) <{}x{}> {{{}x{} px}}"_cf, c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
+        snformat(buf, "(ch {}x{}) <{}x{}> {{{}x{} px}}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
     };
 
     constexpr auto do_column = [](StringView name)
@@ -368,13 +368,13 @@ void cover_test::draw_ui(app& a, float)
         do_column("div_size");
         {
             const auto ds = pool->params().div_size;
-            snformat(buf, "{}x{}"_cf, ds, ds);
+            snformat(buf, "{}x{}", ds, ds);
             ImGui::SetNextItemWidth(100);
             if (auto b2 = begin_combo("##div_size", buf))
                 for (auto n : div_sizes)
                 {
                     char label[16];
-                    snformat(label, "{}x{}"_cf, n, n);
+                    snformat(label, "{}x{}", n, n);
                     if (ImGui::Selectable(label, n == ds))
                         set_div_size(a, n);
                 }
@@ -382,13 +382,13 @@ void cover_test::draw_ui(app& a, float)
 
         do_column("chunks");
         {
-            snformat(buf, "{}x{}"_cf, chunk_span, chunk_span);
+            snformat(buf, "{}x{}", chunk_span, chunk_span);
             ImGui::SetNextItemWidth(100);
             if (auto b2 = begin_combo("##chunk_span", buf))
                 for (auto n : chunk_spans)
                 {
                     char label[16];
-                    snformat(label, "{}x{}"_cf, n, n);
+                    snformat(label, "{}x{}", n, n);
                     if (ImGui::Selectable(label, n == chunk_span))
                         chunk_span = n;
                 }
@@ -398,7 +398,7 @@ void cover_test::draw_ui(app& a, float)
 
         constexpr auto fmt_octant_label = [](auto&& out, uint32_t kk) {
             const float dd = 360.f * float(kk) / float(Cover::octant_count);
-            snformat(out, "{} (k={}, {:.1f}°)"_cf, compass_names_16[kk / 2], kk, dd);
+            snformat(out, "{} (k={}, {:.1f}°)", compass_names_16[kk / 2], kk, dd);
         };
 
         fmt_octant_label(buf, (uint32_t)selected_octant);

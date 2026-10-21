@@ -125,7 +125,7 @@ void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, 
             ImGui::SameLine();
             text(" (selected)");
         }
-        const auto len = snformat(buf, "{:d}"_cf, N);
+        const auto len = snformat(buf, "{:d}", N);
         fm_assert(len < array_size(buf));
         ImGui::SameLine(window_width - ImGui::CalcTextSize(buf).x - style.FramePadding.x - 4*dpi[0]);
         text({buf, len});
@@ -154,7 +154,7 @@ void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, 
                 perm_selected ? push_style_color(ImGuiCol_ButtonHovered, color_perm_selected) : raii_wrapper{},
             };
 
-            snformat(buf, "##item_{}"_cf, i);
+            snformat(buf, "##item_{}", i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
             ImGui::ImageButton(buf, e.palette_texture(sprites[i]).id(),
                                ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]),
