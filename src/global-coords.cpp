@@ -1,8 +1,8 @@
 #include "global-coords.hpp"
 #include "point.inl"
 #include "compat/hash.hpp"
+#include "compat/fwd/algorithm/sort.hpp"
 #include <array>
-#include <algorithm>
 
 namespace floormat {
 

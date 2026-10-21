@@ -2,12 +2,12 @@
 #include "src/spritebatch.hpp"
 #include "src/quads.hpp"
 #include "src/hwy.hpp"
+#include "compat/fwd/algorithm/ranges_sort.hpp"
 #include <vector>
 #include <bit>
 #include <cfloat>
 #include <hwy/targets.h>
 #include <utility>
-#include <algorithm>
 #include <cr/ArrayView.h>
 
 namespace floormat::Test {
