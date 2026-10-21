@@ -67,7 +67,7 @@ constexpr fixed_string<MAX> binary_reader<It>::read_asciiz_string() noexcept(fal
     static_assert(MAX > 0);
 
     fixed_string<MAX> ret;
-    for (auto i = 0uz; i < MAX && it != end; i++)
+    for (uint32_t i = 0; i < MAX && it != end; i++)
     {
         const char c = *it++;
         ret.buf[i] = c;

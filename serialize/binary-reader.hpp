@@ -24,7 +24,7 @@ concept string_input_iterator = requires(It it) {
 template<size_t MAX>
 struct fixed_string final {
     char buf[MAX];
-    size_t len;
+    uint32_t len;
     constexpr operator StringView() const noexcept { return { buf, len, StringViewFlag::NullTerminated }; }
 };
 
