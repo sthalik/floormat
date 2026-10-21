@@ -589,26 +589,40 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         {  div_size.x(),  div_size.y() },
     };
 
-    for (auto off : seed_offsets)
-    {
-        auto pt = point::normalize_coords({from.coord(), {}}, off);
-        auto dist = Search::octile_distance(from, pt);
-        // the cell bit only covers the seed itself, so sweep the bbox over the
-        // from -> seed motion, like the goal hop does
-        const auto seed_center = TILE_SIZE2 * Vector2(from.local()) + Vector2(off);
+    const auto from_off = Vector2i(from.offset());
+    const auto from_lo = Vector2i{floor_div(from_off.x(), step), floor_div(from_off.y(), step)} * step;
+    bool seeded = false;
 
-        if (cache.is_passable_for_bbox(w, pool, pt, p)
-            && Search::is_passable_(from_chunk, from_neighbors,
-                                    Math::min(from_center, seed_center) - own_lo,
-                                    Math::max(from_center, seed_center) + own_hi, p))
+    for (auto base : { from_lo, Vector2i{} })
+        for (auto off : seed_offsets)
         {
-            auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
-            cache.add_index(pt, idx);
-            uint32_t f_score = dist + Search::octile_distance(pt, to);
-            if (dist < max_dist && f_score < max_dist)
-                Q.push(idx, f_score, dist);
+            auto pt = point::normalize_coords({from.coord(), {}}, base + off);
+            const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
+            const auto tile_idx = cache.get_tile_index(intra_coord{pt});
+            // the two rings overlap
+            if (cache.lookup_index(chunk_idx, tile_idx) != (uint32_t)-1)
+                continue;
+            auto dist = Search::octile_distance(from, pt);
+            // the cell bit only covers the seed itself, so sweep the bbox over the
+            // from -> seed motion, like the goal hop does
+            const auto seed_center = from_center + Vector2(pt - from);
+
+            if (cache.is_passable_for_bbox(w, pool, pt, p)
+                && Search::is_passable_(from_chunk, from_neighbors,
+                                        Math::min(from_center, seed_center) - own_lo,
+                                        Math::max(from_center, seed_center) + own_hi, p))
+            {
+                auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
+                cache.add_index(chunk_idx, tile_idx, idx);
+                seeded = true;
+                uint32_t f_score = dist + Search::octile_distance(pt, to);
+                if (dist < max_dist && f_score < max_dist)
+                    Q.push(idx, f_score, dist);
+            }
         }
-    }
+
+    if (!seeded)
+        return {};
 
     const auto nchunks = (size_t)cache.size.product();
     if (chunk_bits.size() < nchunks)
@@ -734,7 +748,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         {
             const auto& closest = nodes[closest_idx];
             // dist == 0 is legitimate: the {0,0} seed costs nothing when the
-            // start has no sub-tile offset, and it can remain the closest node
+            // start lies on the node lattice, and it can remain the closest node
             fm_assert(closest.dist != (uint32_t)-1);
             len = snformat(buf, "Dijkstra: no path found in {:.2f} ms "
                                 "closest:{} len:{} len0:{} ratio:{:.4}\n"_cf,

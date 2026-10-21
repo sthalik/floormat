@@ -15,6 +15,7 @@
 #include "loader/scenery-cell.hpp"
 #include "loader/wall-cell.hpp"
 #include "random/random.hpp"
+#include "compat/floor-divmod.hpp"
 #include "compat/function2.hpp"
 #include <cr/GrowableArray.h>
 #include <algorithm>
@@ -27,8 +28,8 @@ constexpr int step = Search::div_size.x(), tile = tile_size_xy/step, dim = (int)
 
 constexpr int last = 2*dim - 1;
 
-// Lattice point v is the pixel v*step. Every node of the search is one: seeds sit at from's tile
-// centre plus 0 or a step.
+// Lattice point v is the pixel v*step. Every node of the search is one: seeds sit at from rounded
+// down to the lattice and at from's tile centre, each plus 0 or a step.
 constexpr int lo = -tile, hi = (last + 1)*tile, n = hi - lo + 1;
 
 constexpr uint32_t unreached = (uint32_t)-1, max_dist = 6*chunk_size_xy;
@@ -164,15 +165,18 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
     Array<entry> heap;
     arrayReserve(heap, 1024);
 
-    for (int j = -1; j <= 1; j++)
-        for (int i = -1; i <= 1; i++)
-        {
-            const auto s = from.tile*tile + Vector2i{i, j};
-            const auto d = Search::octile_distance(zone_point(from), lattice_point(s));
-            dist[L.index(s)] = d;
-            arrayAppend(heap, entry{d, L.index(s)});
-            std::push_heap(heap.begin(), heap.end(), later);
-        }
+    const auto off = Vector2i(from.offset);
+    const auto from_lo = from.tile*tile + Vector2i{floor_div(off.x(), step), floor_div(off.y(), step)};
+    for (auto base : { from_lo, from.tile*tile })
+        for (int j = -1; j <= 1; j++)
+            for (int i = -1; i <= 1; i++)
+            {
+                const auto s = base + Vector2i{i, j};
+                const auto d = Search::octile_distance(zone_point(from), lattice_point(s));
+                dist[L.index(s)] = d;
+                arrayAppend(heap, entry{d, L.index(s)});
+                std::push_heap(heap.begin(), heap.end(), later);
+            }
 
     while (!heap.isEmpty())
     {
