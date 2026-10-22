@@ -2,6 +2,7 @@
 #include "compat/exception.hpp"
 #include "src/scenery-proto.hpp"
 #include "serialize/scenery.hpp"
+#include "serialize/magnum-vector.hpp"
 #include "loader/loader.hpp"
 #include <nlohmann/json.hpp>
 
@@ -24,11 +25,25 @@ void test_scenery_bad_type()
     fm_assert(caught);
 }
 
+void test_scenery_odd_bbox()
+{
+    json j;
+    j["atlas-name"] = "table";
+    j["bbox-offset"] = Vector2i{-3, 5};
+    j["bbox-size"] = Vector2ui{63, 25};
+    const auto f = j.get<scenery_proto>();
+    fm_assert(f.bbox_size == Vector2ub(63, 25));
+    fm_assert(f.bbox_offset == Vector2b(-3, 5));
+    const json j2 = f;
+    fm_assert(j2.at("bbox-size").get<Vector2ui>() == Vector2ui(63, 25));
+}
+
 } // namespace
 
 void test_scenery()
 {
     test_scenery_bad_type();
+    test_scenery_odd_bbox();
 }
 
 } // namespace floormat::Test
