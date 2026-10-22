@@ -78,3 +78,25 @@ function(fm-userconfig-src)
     add_compile_options(-Wall -Wextra)
     add_compile_definitions("$<$<NOT:$<CONFIG:Debug,DEBUG>>:FM_NO_DEBUG3>")
 endfunction()
+
+# Under full LTO a struct copy is compiled in the function it is inlined into, so these are
+# the files of those functions. Source properties reach only targets of the directory that
+# sets them. TARGET_DIRECTORY needs the target to exist, and this hook also runs from
+# external/, before src/ is added.
+function(fm-userconfig-post)
+    if(NOT TARGET floormat OR NOT (floormat-amd64 OR floormat-x86))
+        return()
+    endif()
+    set(opts -mprefer-vector-width=256 -mvzeroupper)
+    set(srcs src/spritebatch.cpp src/chunk-scenery.cpp)
+    foreach(f IN LISTS srcs ITEMS bench/spritebatch.cpp)
+        if(NOT EXISTS "${CMAKE_SOURCE_DIR}/${f}")
+            message(FATAL_ERROR "${f} not found")
+        endif()
+    endforeach()
+    set_property(SOURCE ${srcs} TARGET_DIRECTORY floormat APPEND PROPERTY COMPILE_OPTIONS ${opts})
+    if(TARGET floormat-benchmark_o)
+        set_property(SOURCE bench/spritebatch.cpp TARGET_DIRECTORY floormat-benchmark_o
+                     APPEND PROPERTY COMPILE_OPTIONS ${opts})
+    endif()
+endfunction()
