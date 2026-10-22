@@ -15,6 +15,7 @@
 #include <mg/Image.h>
 #include <mg/PixelFormat.h>
 #include <mg/Renderer.h>
+#include <mg/Shader.h>
 #include <mg/Texture.h>
 #include <mg/TextureFormat.h>
 
@@ -195,6 +196,26 @@ void test_lightmap_object_shadows()
     GL::Renderer::disable(GL::Renderer::Feature::Blending);
     GL::defaultFramebuffer.bind();
 }
+
+void test_tuc_eviction()
+{
+    texture_unit_cache tuc;
+    constexpr int N = 400;
+    fm_assert(GL::Shader::maxTextureImageUnits(GL::Shader::Type::Fragment) < N);
+    GL::Texture2D tex[N];
+    for (auto& t : tex)
+        t.setStorage(1, GL::TextureFormat::RGBA8, Vector2i{1, 1});
+    for (int round = 0; round < 3; round++)
+        for (int j = 0; j < N; j++)
+        {
+            auto& t = tex[(j * 7 + round) % N];
+            const auto u = tuc.bind(t);
+            fm_assert(u > 0);
+            fm_assert_equal(u, tuc.bind(t));
+        }
+    fm_assert(tuc.stats().cache_miss > (size_t)N);
+    fm_assert(tuc.stats().cache_hit >= 3*(size_t)N);
+}
 } // namespace
 
 void test_shader()
@@ -202,6 +223,7 @@ void test_shader()
     test_point();
     test_shader_program();
     test_tuc_stale_binding();
+    test_tuc_eviction();
     test_lightmap_object_shadows();
     test_clip_depth();
 }
