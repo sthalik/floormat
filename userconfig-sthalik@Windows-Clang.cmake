@@ -40,7 +40,6 @@ else()
     add_link_options(-mdaz-ftz)
     add_compile_options(
         -mtune=generic
-        -mno-vzeroupper
 
         -fstrict-vtable-pointers
         -fstrict-enums
@@ -337,7 +336,7 @@ function(fm-userconfig-post)
     if(NOT TARGET floormat OR NOT (floormat-amd64 OR floormat-x86))
         return()
     endif()
-    set(opts -mprefer-vector-width=256 -mvzeroupper)
+    set(opts -mprefer-vector-width=256)
     set(srcs src/spritebatch.cpp src/chunk-scenery.cpp)
     foreach(f IN LISTS srcs ITEMS bench/spritebatch.cpp)
         if(NOT EXISTS "${CMAKE_SOURCE_DIR}/${f}")
