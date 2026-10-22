@@ -98,8 +98,8 @@ endif()
 
 add_link_options(-cgthreads:$ENV{NUMBER_OF_PROCESSORS})
 
-set(_CFLAGS "-diagnostics:caret -Zc:inline -Zc:preprocessor -Zc:static_assert- -Zc:checkGwOdr -Zc:throwingNew -Zc:referenceBinding -Zc:lambda -Zc:strictStrings -Zc:rvalueCast -wd4117 -Zf -Zo -bigobj -cgthreads1 -vd0 -permissive-")
-set(_CXXFLAGS "${_CFLAGS} -Zc:throwingNew -Zc:lambda")
+set(_CFLAGS "-diagnostics:caret -Zc:static_assert- -Zc:checkGwOdr -Zc:referenceBinding -Zc:strictStrings -Zc:rvalueCast -wd4117 -Zf -Zo -bigobj -cgthreads1 -vd0")
+set(_CXXFLAGS "${_CFLAGS}")
 # constexpr <cmath>. Also drops M_PI and M_E from <math.h>, so use std::numbers.
 if("$ENV{VCToolsVersion}" VERSION_GREATER_EQUAL 14.52)
     string(APPEND _CXXFLAGS " -Zc:cmath")
