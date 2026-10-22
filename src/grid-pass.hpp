@@ -2,7 +2,6 @@
 #include "grid.hpp"
 #include "search-pred.hpp"
 #include "pass-mode.hpp"
-#include "compat/array-size.hpp"
 #include <bit>
 
 namespace floormat {
@@ -14,56 +13,14 @@ namespace floormat::detail::grid {
 struct PassGrid;
 struct PassPool;
 
-// Without chunk_size_xy itself, see Params::validate().
-constexpr auto get_divisor_count()
+constexpr uint32_t calc_div_size(uint32_t div_sizeʹ, uint32_t bbox_size)
 {
-    auto count = 0u;
-    for (auto i = 1u; i < chunk_size_xy; i++)
-        if (chunk_size_xy % i == 0)
-            count++;
-    return count;
-}
-
-constexpr auto make_divisor_table()
-{
-    constexpr auto count = get_divisor_count();
-    std::array<uint32_t, count> array;
-    uint32_t divisor = 1;
-    for (auto i = 0u; i < array_size(array); i++)
-    {
-        while (chunk_size_xy % divisor)
-            divisor++;
-        array[i] = divisor++;
-    }
-    return array;
-}
-
-constexpr auto calc_div_size(uint32_t div_sizeʹ, uint32_t bbox_size)
-{
-    constexpr auto div_sizes = make_divisor_table();
-    uint32_t div_size = div_sizeʹ;
-
-    if (!div_sizeʹ || div_sizeʹ > bbox_size) [[unlikely]]
-    {
-        // caller wants cells coarser than the bbox; grid requires div_size <= bbox_size
-        div_size = div_sizes[0];  // smallest divisor as floor
-        for (auto i : div_sizes)
-            if (i <= bbox_size)
-                div_size = i;
-            else
-                break; // largest ≤ upper
-    }
-    else if (chunk_size_xy % div_sizeʹ) [[unlikely]]
-    {
-        // valid magnitude but it doesn't divide the chunk evenly; snap down so cells tile the chunk
-        div_size = div_sizes[0];
-        for (auto i : div_sizes)
-            if (i <= div_sizeʹ)
-                div_size = i;
-            else
-                break;
-    }
-    return div_size;
+    static_assert(std::has_single_bit(chunk_size_xy));
+    // caller wants cells coarser than the bbox; grid requires div_size <= bbox_size
+    auto div_size = div_sizeʹ && div_sizeʹ <= bbox_size ? div_sizeʹ : bbox_size;
+    // smaller than a chunk, see Params::validate()
+    div_size = div_size < chunk_size_xy / 2 ? div_size : chunk_size_xy / 2;
+    return div_size ? std::bit_floor(div_size) : 1;
 }
 
 } // namespace floormat::detail::grid

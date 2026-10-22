@@ -6,7 +6,6 @@
 #include "object.hpp"
 #include "search.hpp"
 #include "src/RTree-search.hpp"
-#include "compat/array-size.hpp"
 #include "compat/function2.hpp"
 #include <bit>
 #include <array>
@@ -301,22 +300,6 @@ struct PassPool final : Pool<PassGrid>
 namespace {
 namespace Tests {
 
-constexpr bool assert_divisor_table()
-{
-    constexpr auto divisors = make_divisor_table();
-    fm_assert(divisors[0] == 1);
-    fm_assert(divisors[array_size(divisors) - 1] < chunk_size_xy);
-    fm_assert(array_size(divisors) == get_divisor_count());
-    for (auto i = 0u; i < array_size(divisors); i++)
-    {
-        fm_assert(divisors[i] > 0);
-        fm_assert(chunk_size_xy % divisors[i] == 0);
-        if (i > 0)
-            fm_assert(divisors[i] > divisors[i - 1]);
-    }
-    return true;
-}
-
 constexpr bool assert_calc_div_size()
 {
     fm_assert(calc_div_size(1, 8) == 1);
@@ -324,6 +307,7 @@ constexpr bool assert_calc_div_size()
     fm_assert(calc_div_size(64, 64) == 64);
     fm_assert(calc_div_size(64, 128) == 64);
     fm_assert(calc_div_size(0, chunk_size_xy) == chunk_size_xy / 2);
+    fm_assert(calc_div_size(chunk_size_xy, chunk_size_xy) == chunk_size_xy / 2);
 
     fm_assert(calc_div_size(0, 64) == 64);
     fm_assert(calc_div_size(0, 100) == 64);
@@ -339,7 +323,6 @@ constexpr bool assert_calc_div_size()
     return true;
 }
 
-static_assert(assert_divisor_table());
 static_assert(assert_calc_div_size());
 
 } // namespace Tests
