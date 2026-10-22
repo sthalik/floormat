@@ -44,7 +44,8 @@ constexpr pool_size small_pools[] = { {4, 32}, {8, 32}, {16, 32}, {32, 32}, };
 constexpr pool_size large_pools[] = { {16, 64}, {32, 64}, {64, 64}, };
 
 // Lattice point v is the pixel v*step, a step being one cell. Every node of the search is one:
-// seeds sit at from rounded down to the lattice and at from's tile centre, each plus 0 or a step.
+// seeds sit at from rounded down to the lattice, plus 0 or a step. The zones are clear, so a
+// seed always takes and start insertion never runs.
 struct lattice
 {
     int step, tile, lo, hi, n, clear_steps;
@@ -169,16 +170,15 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
 
     const auto off = Vector2i(from.offset);
     const auto from_lo = from.tile*tile + Vector2i{floor_div(off.x(), step), floor_div(off.y(), step)};
-    for (auto base : { from_lo, from.tile*tile })
-        for (int j = -1; j <= 1; j++)
-            for (int i = -1; i <= 1; i++)
-            {
-                const auto s = base + Vector2i{i, j};
-                const auto d = oct(zone_point(from), L.pt(s));
-                dist[L.index(s)] = d;
-                arrayAppend(heap, entry{d, L.index(s)});
-                std::push_heap(heap.begin(), heap.end(), later);
-            }
+    for (int j = -1; j <= 1; j++)
+        for (int i = -1; i <= 1; i++)
+        {
+            const auto s = from_lo + Vector2i{i, j};
+            const auto d = oct(zone_point(from), L.pt(s));
+            dist[L.index(s)] = d;
+            arrayAppend(heap, entry{d, L.index(s)});
+            std::push_heap(heap.begin(), heap.end(), later);
+        }
 
     while (!heap.isEmpty())
     {

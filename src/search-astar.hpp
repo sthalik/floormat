@@ -67,6 +67,8 @@ private:
     Array<uint32_t> bucket_sizes;
     Array<point> temp_nodes;
     Array<const uint8_t*> chunk_bits;
+    Array<uint32_t> insertion_state;
+    Array<Range2D> insertion_rects;
 };
 
 } // namespace floormat

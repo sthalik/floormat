@@ -466,6 +466,169 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     Q.push(new_idx, f_score, dist);
 };
 
+constexpr inline int insertion_reach = 2*tile_size_xy;
+
+struct seed_range { uint32_t first, last; };
+
+// HPA*'s start insertion (Botea et al. 2004, "Near Optimal Hierarchical Path-Finding", 3.2.1),
+// for a start in a corridor narrower than the bbox plus a cell. Every cell along it holds a
+// blocked position, so its bit is clear wherever the lattice lies. Dijkstra over single pixels
+// up to insertion_reach per axis from `from`, against the colliders themselves, seeds the
+// lattice point of every set cell it pops.
+struct start_insertion
+{
+    static constexpr int R = insertion_reach, W = 2*R + 1;
+    static constexpr uint32_t free = 1, reached = 2, dir_shift = 2, g_shift = 5;
+
+    chunk_bitmaps& bm;
+    Search::cache& cache;
+    Array<visited>& nodes;
+    uint32_t& node_count;
+    bucket_queue& Q;
+    Array<uint32_t>& state;
+    Array<Range2D>& rects;
+    Array<point>& seed_from;
+    Search::octile oct;
+    point from;
+    Vector2 from_center, own_lo, own_hi;
+    int step;
+    Vector2i phase{};
+    uint32_t first = 0;
+
+    static uint32_t index(Vector2i d) { return (uint32_t)((d.y() + R)*W + d.x() + R); }
+    static Vector2i delta(uint32_t i) { return Vector2i{(int)(i % W), (int)(i / W)} - Vector2i{R}; }
+
+    bool is_free(Vector2i d) const { return state.data()[index(d)] & free; }
+
+    void add_seed(point pt, uint32_t g)
+    {
+        // Rounding pt down to the lattice leaves its cell at steps over 32 px.
+        const auto pix = Vector2i(intra_coord{pt});
+        const auto s = point{pt.chunk3(), intra_coord{pix - pix % step + phase}};
+        fm_debug_assert(bm.is_passable(s));
+        const auto dist = (g >> oct.shift) + oct(pt, s);
+        const auto chunk_idx = cache.get_chunk_index(Vector2i(s.chunk()));
+        const auto tile_idx = cache.get_tile_index(intra_coord{s});
+        const auto idx = cache.lookup_index(chunk_idx, tile_idx);
+        if (idx == (uint32_t)-1)
+        {
+            cache.add_index(chunk_idx, tile_idx, append_node(nodes, node_count, { .dist = dist, .prev = (uint32_t)-1, .pt = s, }));
+            arrayAppend(seed_from, pt);
+        }
+        else if (dist < nodes[idx].dist)
+        {
+            fm_debug_assert(idx >= first);
+            nodes[idx].dist = dist;
+            seed_from[idx - first] = pt;
+        }
+    }
+
+    // Each seed links back to `from` through the position it was reached from and every turn.
+    // These nodes are never in the cache or the queue.
+    void add_path(uint32_t seed, point pt)
+    {
+        auto tail = seed;
+        auto d = pt - from;
+        auto dir = (uint32_t)-1;
+        while (!d.isZero())
+        {
+            const auto s = state.data()[index(d)];
+            fm_debug_assert(s & reached);
+            const auto k = (s >> dir_shift) & 7;
+            if (k != dir)
+            {
+                const auto n = append_node(nodes, node_count, { .dist = s >> g_shift >> oct.shift, .prev = (uint32_t)-1, .pt = from + d, });
+                nodes[tail].prev = n;
+                tail = n;
+                dir = k;
+            }
+            d -= unit_directions[k];
+        }
+    }
+
+    CORRADE_NEVER_INLINE seed_range run(chunk* from_chunk, const std::array<chunk*, 8>& from_neighbors, const astar::pred& p)
+    {
+        const auto ch = from.chunk3();
+        arrayClear(rects);
+        arrayReserve(rects, 16);
+        Search::is_passable_(from_chunk, from_neighbors,
+                             from_center - Vector2{(float)R} - own_lo, from_center + Vector2{(float)R} + own_hi,
+                             [&](chunk& c, collision_data data, Range2D r) {
+            if (p(c, data, r) == path_search_continue::pass)
+                return path_search_continue::pass;
+            // r is in c's frame
+            const auto sc = c.coord();
+            const auto off = Vector2{(float)(sc.x - ch.x), (float)(sc.y - ch.y)} * chunk_size<float>;
+            arrayAppend(rects, Range2D{r.min() + off, r.max() + off});
+            return path_search_continue::pass;
+        });
+
+        constexpr auto size = (uint32_t)W*W;
+        fm_assert((uint64_t)size * oct.diag < 1u << (32 - g_shift));
+        if (state.size() < size)
+            state = Array<uint32_t>{NoInit, size};
+        std::fill_n(state.data(), size, free);
+        // rect_intersects is strict: the box at d overlaps r when
+        // r.min - own_hi < from_center + d < r.max + own_lo on both axes
+        for (const auto& r : rects)
+        {
+            const auto lo = Math::max(Vector2i(Math::floor(r.min() - own_hi - from_center)) + Vector2i{1}, Vector2i{-R});
+            const auto hi = Math::min(Vector2i(Math::ceil(r.max() + own_lo - from_center)) - Vector2i{1}, Vector2i{R});
+            for (auto y = lo.y(); y <= hi.y(); y++)
+            {
+                auto* const row = state.data() + index({0, y});
+                for (auto x = lo.x(); x <= hi.x(); x++)
+                    row[x] &= ~free;
+            }
+        }
+
+        first = node_count;
+        phase = Vector2i(intra_coord{point{from.coord(), {}}}) % step;
+        arrayClear(seed_from);
+        // from's own box was checked against the same colliders before seeding
+        fm_debug_assert(is_free({}));
+        state.data()[index({})] = free | reached;
+        Q.push(index({}), 0, 0);
+
+        while (!Q.empty())
+        {
+            const auto cur = Q.pop();
+            const auto g = cur.g_score;
+            if (g > state.data()[cur.node] >> g_shift)
+                continue;
+            const auto d = delta(cur.node);
+            const auto pt = from + d;
+            if (bm.is_passable(pt))
+            {
+                add_seed(pt, g);
+                continue;
+            }
+            for (auto k = 0u; k < 8; k++)
+            {
+                const auto u = unit_directions[k];
+                const auto e = d + u;
+                if (Math::abs(e.x()) > R || Math::abs(e.y()) > R)
+                    continue;
+                const auto diagonal = u.x() && u.y();
+                const auto g2 = g + (diagonal ? oct.diag : oct.axial);
+                auto& s = state.data()[index(e)];
+                if ((s & reached) && (s >> g_shift) <= g2)
+                    continue;
+                if (!is_free(e) || (diagonal && (!is_free(d + Vector2i{u.x(), 0}) || !is_free(d + Vector2i{0, u.y()}))))
+                    continue;
+                s = free | reached | (k << dir_shift) | (g2 << g_shift);
+                Q.push(index(e), g2, g2);
+            }
+        }
+
+        const auto last = node_count;
+        for (auto i = first; i < last; i++)
+            add_path(i, seed_from[i - first]);
+        arrayClear(seed_from);
+        return { first, last };
+    }
+};
+
 } // namespace
 
 astar::astar() :
@@ -529,15 +692,17 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
 
     // Seeds lie up to seed_reach px from `from` per axis, so their f spreads by up to twice its
     // octile. A step raises f by at most 2*diag.
-    const auto seed_reach = Math::max(2*step - 1, half_tile<int> + step);
-    const auto bucket_count = std::bit_ceil(2*Math::max(oct(Vector2i{seed_reach}), oct.diag) + 2);
-    if (buckets.size() < bucket_count)
-        arrayResize(buckets, bucket_count);
-    if (bucket_sizes.size() < bucket_count)
-        bucket_sizes = Array<uint32_t>{ValueInit, bucket_count};
-    else
-        std::fill_n(bucket_sizes.data(), bucket_count, 0u);
-    auto Q = bucket_queue{ .B = buckets.data(), .sizes = bucket_sizes.data(), .mask = bucket_count - 1, };
+    const auto seed_reach = 2*step - 1;
+    const auto make_queue = [this](uint32_t bucket_count) {
+        if (buckets.size() < bucket_count)
+            arrayResize(buckets, bucket_count);
+        if (bucket_sizes.size() < bucket_count)
+            bucket_sizes = Array<uint32_t>{ValueInit, bucket_count};
+        else
+            std::fill_n(bucket_sizes.data(), bucket_count, 0u);
+        return bucket_queue{ .B = buckets.data(), .sizes = bucket_sizes.data(), .mask = bucket_count - 1, };
+    };
+    auto Q = make_queue(std::bit_ceil(2*Math::max(oct(Vector2i{seed_reach}), oct.diag) + 2));
 
     // A goal touching a collider on its high side has a free node up to two cells less 2 px
     // away on that axis, as a cell's bit needs every position in the cell free.
@@ -590,6 +755,20 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             return {};
     }
 
+    const auto nchunks = (size_t)cache.size.product();
+    if (chunk_bits.size() < nchunks)
+        chunk_bits = Array<const uint8_t*>{ValueInit, nchunks};
+    else
+        std::fill_n(chunk_bits.data(), nchunks, nullptr);
+
+    auto bm = chunk_bitmaps{
+        .w = w, .pool = pool, .cache = cache, .p = p,
+        .bits = chunk_bits.data(),
+        .div_size = params.div_size(),
+        .div_shift = (uint32_t)std::countr_zero(params.div_size()),
+        .div_count = params.div_count,
+    };
+
     constexpr Vector2i seed_offsets[9] = {
         {  0,  0 },
         {  0, -1 },
@@ -606,50 +785,62 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     const auto from_lo = Vector2i{floor_div(from_off.x(), step), floor_div(from_off.y(), step)} * step;
     bool seeded = false;
 
-    for (auto base : { from_lo, Vector2i{} })
-        for (auto off : seed_offsets)
+    for (auto off : seed_offsets)
+    {
+        auto pt = point::normalize_coords({from.coord(), {}}, from_lo + off*step);
+        const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
+        const auto tile_idx = cache.get_tile_index(intra_coord{pt});
+        auto dist = oct(from, pt);
+        // the cell bit only covers the seed itself, so sweep the bbox over the
+        // from -> seed motion, like the goal hop does
+        const auto seed_center = from_center + Vector2(pt - from);
+
+        if (cache.is_passable_for_bbox(w, pool, pt, p)
+            && Search::is_passable_(from_chunk, from_neighbors,
+                                    Math::min(from_center, seed_center) - own_lo,
+                                    Math::max(from_center, seed_center) + own_hi, p))
         {
-            auto pt = point::normalize_coords({from.coord(), {}}, base + off*step);
-            const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
-            const auto tile_idx = cache.get_tile_index(intra_coord{pt});
-            // the two rings overlap
-            if (cache.lookup_index(chunk_idx, tile_idx) != (uint32_t)-1)
-                continue;
-            auto dist = oct(from, pt);
-            // the cell bit only covers the seed itself, so sweep the bbox over the
-            // from -> seed motion, like the goal hop does
-            const auto seed_center = from_center + Vector2(pt - from);
-
-            if (cache.is_passable_for_bbox(w, pool, pt, p)
-                && Search::is_passable_(from_chunk, from_neighbors,
-                                        Math::min(from_center, seed_center) - own_lo,
-                                        Math::max(from_center, seed_center) + own_hi, p))
-            {
-                auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
-                cache.add_index(chunk_idx, tile_idx, idx);
-                seeded = true;
-                uint32_t f_score = dist + oct(pt, to);
-                if (dist < max_dist && f_score < max_dist)
-                    Q.push(idx, f_score, dist);
-            }
+            auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
+            cache.add_index(chunk_idx, tile_idx, idx);
+            seeded = true;
+            uint32_t f_score = dist + oct(pt, to);
+            if (dist < max_dist && f_score < max_dist)
+                Q.push(idx, f_score, dist);
         }
+    }
 
-    if (!seeded)
-        return {};
-
-    const auto nchunks = (size_t)cache.size.product();
-    if (chunk_bits.size() < nchunks)
-        chunk_bits = Array<const uint8_t*>{ValueInit, nchunks};
-    else
-        std::fill_n(chunk_bits.data(), nchunks, nullptr);
-
-    auto bm = chunk_bitmaps{
-        .w = w, .pool = pool, .cache = cache, .p = p,
-        .bits = chunk_bits.data(),
-        .div_size = params.div_size(),
-        .div_shift = (uint32_t)std::countr_zero(params.div_size()),
-        .div_count = params.div_count,
+    const auto insert_start = [&] {
+        auto insertion = start_insertion{
+            .bm = bm, .cache = cache, .nodes = nodes, .node_count = node_count, .Q = Q,
+            .state = insertion_state, .rects = insertion_rects, .seed_from = temp_nodes,
+            .oct = oct, .from = from, .from_center = from_center, .own_lo = own_lo, .own_hi = own_hi,
+            .step = step,
+        };
+        const auto [first, last] = insertion.run(from_chunk, from_neighbors, p);
+        if (first == last)
+            return false;
+        auto f_lo = (uint32_t)-1, f_hi = 0u;
+        for (auto i = first; i < last; i++)
+        {
+            const auto f_score = nodes[i].dist + oct(nodes[i].pt, to);
+            f_lo = Math::min(f_lo, f_score);
+            f_hi = Math::max(f_hi, f_score);
+        }
+        // The seeds' f spreads by more than the 3x3's.
+        if (const auto count = std::bit_ceil(Math::max(f_hi - f_lo, 2*oct.diag) + 2); count > Q.mask + 1)
+            Q = make_queue(count);
+        for (auto i = first; i < last; i++)
+        {
+            const auto dist = nodes[i].dist, f_score = dist + oct(nodes[i].pt, to);
+            if (dist < max_dist && f_score < max_dist)
+                Q.push(i, f_score, dist);
+        }
+        return true;
     };
+
+    auto inserted = !seeded;
+    if (inserted && !insert_start())
+        return {};
 
     const auto directions = make_directions(oct);
     auto closest_dist_sq = (uint64_t)-1;
@@ -657,71 +848,87 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     auto goal_idx = (uint32_t)-1;
     auto to_idx = (uint32_t)-1;
 
-    while (!Q.empty())
+    for (;;)
     {
-        const auto front = Q.pop();
-        const auto cur_idx = front.node;
-        point cur_pt;
-        uint32_t cur_dist;
-        auto& n = nodes[cur_idx];
-        if (front.g_score > n.dist)
-            continue;
-        cur_pt = n.pt;
-        cur_dist = n.dist;
 
-        if (cur_idx == to_idx) [[unlikely]]
+        while (!Q.empty())
         {
-            goal_idx = cur_idx;
+            const auto front = Q.pop();
+            const auto cur_idx = front.node;
+            point cur_pt;
+            uint32_t cur_dist;
+            auto& n = nodes[cur_idx];
+            if (front.g_score > n.dist)
+                continue;
+            cur_pt = n.pt;
+            cur_dist = n.dist;
+
+            if (cur_idx == to_idx) [[unlikely]]
+            {
+                goal_idx = cur_idx;
+                break;
+            }
+
+            const auto goal_delta = cur_pt - to;
+            const auto goal_dist_sq = point::distance_squared(goal_delta);
+
+            if constexpr (FindClosestOnFailure)
+            {
+                if (goal_dist_sq < closest_dist_sq)
+                {
+                    closest_dist_sq = goal_dist_sq;
+                    closest_idx = cur_idx;
+
+                    if constexpr (Debug >= 2)
+                        DBG_nospace << "closest node"
+                                    << " px:" << point::distance(cur_pt, to) << " path:" << cur_dist
+                                    << " pos:" << cur_pt;
+                }
+            }
+
+            if (goal_dist_sq <= goal_thres_sq) [[unlikely]]
+            {
+                if (is_hop_passable(cur_pt))
+                {
+                    // Octile like the steps, so h never exceeds a hop's cost. h is 0 at the goal.
+                    const auto new_dist = cur_dist + oct(goal_delta);
+                    if (to_idx == (uint32_t)-1)
+                    {
+                        to_idx = append_node(nodes, node_count, visited{ .dist = new_dist, .prev = cur_idx, .pt = to, });
+                        Q.push(to_idx, new_dist, new_dist);
+                    }
+                    else if (new_dist < nodes[to_idx].dist)
+                    {
+                        auto& tn = nodes[to_idx];
+                        tn.dist = new_dist;
+                        tn.prev = cur_idx;
+                        Q.push(to_idx, new_dist, new_dist);
+                    }
+                }
+            }
+
+            const auto cells = bm.window(cur_pt);
+
+            for (auto i = 0u; i < 8; i += 2)
+            {
+                const auto d1 = directions.data()[i + 0],
+                           d2 = directions.data()[i + 1];
+                do_dir<1, Debug>(bm, cache, nodes, node_count, Q, d1, oct, goal_delta, cur_pt, cur_idx, cur_dist, max_dist, cells);
+                do_dir<0, Debug>(bm, cache, nodes, node_count, Q, d2, oct, goal_delta, cur_pt, cur_idx, cur_dist, max_dist, cells);
+            }
+        }
+
+        // Where a corridor the lattice can't enter opens into a room, the 3x3 seeds can all lie
+        // in the room. From a set cell, start insertion would only seed that cell.
+        if (goal_idx != (uint32_t)-1 || inserted || bm.is_passable(from))
             break;
-        }
-
-        const auto goal_delta = cur_pt - to;
-        const auto goal_dist_sq = point::distance_squared(goal_delta);
-
-        if constexpr (FindClosestOnFailure)
-        {
-            if (goal_dist_sq < closest_dist_sq)
-            {
-                closest_dist_sq = goal_dist_sq;
-                closest_idx = cur_idx;
-
-                if constexpr (Debug >= 2)
-                    DBG_nospace << "closest node"
-                                << " px:" << point::distance(cur_pt, to) << " path:" << cur_dist
-                                << " pos:" << cur_pt;
-            }
-        }
-
-        if (goal_dist_sq <= goal_thres_sq) [[unlikely]]
-        {
-            if (is_hop_passable(cur_pt))
-            {
-                // Octile like the steps, so h never exceeds a hop's cost. h is 0 at the goal.
-                const auto new_dist = cur_dist + oct(goal_delta);
-                if (to_idx == (uint32_t)-1)
-                {
-                    to_idx = append_node(nodes, node_count, visited{ .dist = new_dist, .prev = cur_idx, .pt = to, });
-                    Q.push(to_idx, new_dist, new_dist);
-                }
-                else if (new_dist < nodes[to_idx].dist)
-                {
-                    auto& tn = nodes[to_idx];
-                    tn.dist = new_dist;
-                    tn.prev = cur_idx;
-                    Q.push(to_idx, new_dist, new_dist);
-                }
-            }
-        }
-
-        const auto cells = bm.window(cur_pt);
-
-        for (auto i = 0u; i < 8; i += 2)
-        {
-            const auto d1 = directions.data()[i + 0],
-                       d2 = directions.data()[i + 1];
-            do_dir<1, Debug>(bm, cache, nodes, node_count, Q, d1, oct, goal_delta, cur_pt, cur_idx, cur_dist, max_dist, cells);
-            do_dir<0, Debug>(bm, cache, nodes, node_count, Q, d2, oct, goal_delta, cur_pt, cur_idx, cur_dist, max_dist, cells);
-        }
+        inserted = true;
+        node_count = 0;
+        cache.allocate(from, max_dist, params.div_size());
+        closest_dist_sq = (uint64_t)-1;
+        closest_idx = to_idx = (uint32_t)-1;
+        if (!insert_start())
+            return {};
     }
 
     path_search_result result;
