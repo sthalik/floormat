@@ -85,7 +85,7 @@ if(DEFINED floormat-64bit AND NOT floormat-arm64)
     endif()
 endif()
 
-# Cache variable, so a userconfig's sets() can override it after project().
+# Cache variables, so a userconfig's sets() can override them after project().
 if("${CMAKE_MSVC_RUNTIME_LIBRARY}" STREQUAL "")
     if(floormat-no-static-crt)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL" CACHE STRING "")
@@ -93,10 +93,13 @@ if("${CMAKE_MSVC_RUNTIME_LIBRARY}" STREQUAL "")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:DebugDLL>" CACHE STRING "")
     endif()
 endif()
+if("${CMAKE_MSVC_DEBUG_INFORMATION_FORMAT}" STREQUAL "")
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "ProgramDatabase" CACHE STRING "")
+endif()
 
 add_link_options(-cgthreads:$ENV{NUMBER_OF_PROCESSORS})
 
-set(_CFLAGS "-diagnostics:caret -Zc:inline -Zc:preprocessor -Zc:static_assert- -Zc:checkGwOdr -Zc:throwingNew -Zc:referenceBinding -Zc:lambda -Zc:strictStrings -Zc:rvalueCast -wd4117 -Zi -Zf -Zo -bigobj -cgthreads1 -vd0 -permissive-")
+set(_CFLAGS "-diagnostics:caret -Zc:inline -Zc:preprocessor -Zc:static_assert- -Zc:checkGwOdr -Zc:throwingNew -Zc:referenceBinding -Zc:lambda -Zc:strictStrings -Zc:rvalueCast -wd4117 -Zf -Zo -bigobj -cgthreads1 -vd0 -permissive-")
 set(_CXXFLAGS "${_CFLAGS} -Zc:throwingNew -Zc:lambda")
 # constexpr <cmath>. Also drops M_PI and M_E from <math.h>, so use std::numbers.
 if("$ENV{VCToolsVersion}" VERSION_GREATER_EQUAL 14.52)
