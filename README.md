@@ -6,7 +6,7 @@ Game project in early development.
 
 ## Build
 
-Should build cleanly on Clang 17+, GCC 13.2+ and MSVC 17.7+.
+Should build cleanly on Clang 19+, GCC 15+ and MSVC 19.51+.
 
 ### Debian/Ubuntu dependencies
 `xorg-dev` `libsdl2-dev` `build-essential` `ninja-build` `cmake-curses-gui`
