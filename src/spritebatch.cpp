@@ -295,7 +295,8 @@ void SpriteBatch::end_chunk()
     fm_debug2_assert(S.size() == first);
 
     reserve(S, last);
-    arrayAppend(impl.starts, last);
+    // A copy. Once last's address escapes, clang reloads it in the loop below and leaves the loop scalar.
+    arrayAppend(impl.starts, auto(last));
     impl.last_start = last;
 
     // The sort uses xmm6-xmm14, which Win64 makes callee-saved. With a runtime do_sort,
