@@ -184,7 +184,7 @@ void test_open_ground_has_no_cover()
     fm_assert_equal(0u, r.candidates);
 }
 
-void test_narrow_pillar_rejected()
+void test_narrow_pillar_rejected(Vector2ui size = body)
 {
     auto w = world();
     add_ground(w);
@@ -193,13 +193,13 @@ void test_narrow_pillar_rejected()
     add_blocker(w, {7, 8}, {16, 18});
     rebuild(w);
 
-    const auto r = find(w, point{ch, {6, 8}, {}}, point{ch, {14, 8}, {}}, 48, 8);
+    const auto r = find(w, point{ch, {6, 8}, {}}, point{ch, {14, 8}, {}}, 48, 8, size);
     fm_assert(!r.found);
     fm_assert(r.candidates > 0);
     fm_assert_equal(r.candidates, r.rejected);
 }
 
-void test_gap_between_pillars_rejected()
+void test_gap_between_pillars_rejected(Vector2ui size = body)
 {
     auto w = world();
     add_ground(w);
@@ -208,30 +208,31 @@ void test_gap_between_pillars_rejected()
     add_blocker(w, {7, 8}, {16, 16}, {0, 11});
     rebuild(w);
 
-    const auto r = find(w, point{ch, {6, 8}, {}}, point{ch, {14, 8}, {}}, 48, 8);
+    const auto r = find(w, point{ch, {6, 8}, {}}, point{ch, {14, 8}, {}}, 48, 8, size);
     fm_assert(r.candidates > 0);
     fm_assert(!r.found);
     fm_assert_equal(r.candidates, r.rejected);
 }
 
-void test_side_wall_corner_seen()
+void test_side_wall_corner_seen(Vector2ui size = body)
 {
     auto w = world();
     add_ground(w);
     // The wall's north face is the body's south face and reaches 4 px past its east face. The pillar
     // ahead ends 6 px north of the wall, and the threat sees the body between them.
-    add_blocker(w, {6, 8}, {100, 16}, {18, 32});
-    add_blocker(w, {7, 8}, {16, 64}, {8, -14});
+    const auto d = Vector2i(size - size/2u) - Vector2i(body/2u);
+    add_blocker(w, {6, 8}, {100, 16}, {(int8_t)(18 + d.x()), (int8_t)(32 + d.y())});
+    add_blocker(w, {7, 8}, {16, 64}, {(int8_t)(8 + d.x()), (int8_t)(-14 + d.y())});
     rebuild(w);
 
     const point npc{ch, {7, 8}, {-12, 12}}, threat{ch, {12, 10}, {-20, -24}};
-    const auto r = find(w, npc, threat, 48, 8);
+    const auto r = find(w, npc, threat, 48, 8, size);
     fm_assert(r.candidates > 0);
-    fm_assert(!r.found || cant_be_shot(w, threat, r.pos));
+    fm_assert(!r.found || cant_be_shot(w, threat, r.pos, size));
 }
 
 // The pillar is as tall as the body, and a wall along its south end stops the body sliding past it.
-void test_shift_to_only_spot(int8_t pillar_dy, bool split = false)
+void test_shift_to_only_spot(int8_t pillar_dy, bool split = false, Vector2ui size = body)
 {
     auto w = world();
     add_ground(w);
@@ -241,14 +242,14 @@ void test_shift_to_only_spot(int8_t pillar_dy, bool split = false)
         add_blocker(w, {7, 8}, {16, 7}, {8, (int8_t)(pillar_dy + 8)});
     }
     else
-        add_blocker(w, {7, 8}, {16, 24}, {8, pillar_dy});
-    add_blocker(w, {5, 8}, {192, 16}, {32, (int8_t)(pillar_dy + 20)});
+        add_blocker(w, {7, 8}, {16, (uint8_t)size.y()}, {8, pillar_dy});
+    add_blocker(w, {5, 8}, {192, 16}, {32, (int8_t)(pillar_dy + (int)(size.y() - size.y()/2) + 8)});
     rebuild(w);
 
     const point npc{ch, {6, 8}, {20, -4}}, threat{ch, {14, 8}, {}};
-    const auto r = find(w, npc, threat, 48, 8);
+    const auto r = find(w, npc, threat, 48, 8, size);
     fm_assert(r.found);
-    fm_assert(cant_be_shot(w, threat, r.pos));
+    fm_assert(cant_be_shot(w, threat, r.pos, size));
 }
 
 void test_pillar_pair(uint8_t far_x, uint8_t near_h, int8_t near_dy, uint8_t far_h, int8_t far_dy, bool must_find)
@@ -305,6 +306,14 @@ void Test::test_cover_point()
     // pillar's top corner by 5e-5 in slope and grazes the top row. (436, 520) is hidden.
     test_pillar_pair(8, 8, 0, 24, 8, true);
     test_wall_out_of_radius();
+    for (const auto size : { Vector2ui{23, 23}, Vector2ui{25, 25}, Vector2ui{23, 25}, Vector2ui{25, 23} })
+    {
+        test_narrow_pillar_rejected(size);
+        test_gap_between_pillars_rejected(size);
+        test_side_wall_corner_seen(size);
+        test_shift_to_only_spot(3, false, size);
+        test_shift_to_only_spot(-1, false, size);
+    }
 }
 
 } // namespace floormat
