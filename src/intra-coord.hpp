@@ -9,7 +9,7 @@ namespace floormat {
 struct point;
 
 // Pixel position in a chunk, from its NW corner: [0, chunk_size) per axis.
-// Checking asserts every value it stores. Wrapping stores anything, and its += and -= wrap into the chunk.
+// Checking asserts every value it stores. Wrapping stores anything, and its + and - wrap into the chunk.
 template<intra_coord_base::Type TYPE>
 struct basic_intra_coord : intra_coord_base
 {
@@ -18,8 +18,6 @@ struct basic_intra_coord : intra_coord_base
     explicit constexpr basic_intra_coord(const point& pt);
     constexpr basic_intra_coord(local_coords local, Vector2b offset);
     template<Type OTHER> requires (OTHER != TYPE) constexpr basic_intra_coord(basic_intra_coord<OTHER> other);
-
-    constexpr basic_intra_coord& operator=(Vector2i value);
 
     static constexpr bool is_in_range(Vector2i value);
     /// @brief Inverse of center_shifted().
@@ -37,38 +35,33 @@ struct basic_intra_coord : intra_coord_base
     /// @return Position where the center of the first tile is {0, 0}.
     constexpr Vector2i center_shifted() const;
 
-    constexpr basic_intra_coord& operator+=(Vector2i delta) requires (TYPE == Checking);
-    constexpr basic_intra_coord& operator-=(Vector2i delta) requires (TYPE == Checking);
-    // returns the number of chunks crossed
-    constexpr Vector2i operator+=(Vector2i delta) requires (TYPE == Wrapping);
-    constexpr Vector2i operator-=(Vector2i delta) requires (TYPE == Wrapping);
+    template<intra_coord_base::Type T> requires (T == intra_coord_base::Checking)
+    friend constexpr basic_intra_coord<T> operator+(basic_intra_coord<T> a, Vector2i b);
+    template<intra_coord_base::Type T> requires (T == intra_coord_base::Checking)
+    friend constexpr basic_intra_coord<T> operator+(Vector2i a, basic_intra_coord<T> b);
+    template<intra_coord_base::Type T> requires (T == intra_coord_base::Checking)
+    friend constexpr basic_intra_coord<T> operator-(basic_intra_coord<T> a, Vector2i b);
+
+    /// @brief Adds @p b and wraps the position into the chunk.
+    /// @return The point in chunk {x, y, 0}, where x and y count the chunks crossed: -1 after going below 0.
+    template<intra_coord_base::Type T> requires (T == intra_coord_base::Wrapping)
+    friend constexpr point operator+(basic_intra_coord<T> a, Vector2i b);
+    template<intra_coord_base::Type T> requires (T == intra_coord_base::Wrapping)
+    friend constexpr point operator+(Vector2i a, basic_intra_coord<T> b);
+    template<intra_coord_base::Type T> requires (T == intra_coord_base::Wrapping)
+    friend constexpr point operator-(basic_intra_coord<T> a, Vector2i b);
+
+    template<intra_coord_base::Type T>
+    friend constexpr Vector2i operator-(basic_intra_coord<T> a, basic_intra_coord<T> b);
+
+    template<intra_coord_base::Type T>
+    friend Debug& operator<<(Debug& dbg, const basic_intra_coord<T>& val);
 
     constexpr bool operator==(const basic_intra_coord&) const = default;
 
 private:
     Vector2i _v;
 };
-
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Checking)
-constexpr basic_intra_coord<TYPE> operator+(basic_intra_coord<TYPE> a, Vector2i b);
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Checking)
-constexpr basic_intra_coord<TYPE> operator+(Vector2i a, basic_intra_coord<TYPE> b);
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Checking)
-constexpr basic_intra_coord<TYPE> operator-(basic_intra_coord<TYPE> a, Vector2i b);
-
-// the point's chunk is the number of chunks crossed, with z 0
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Wrapping)
-constexpr point operator+(basic_intra_coord<TYPE> a, Vector2i b);
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Wrapping)
-constexpr point operator+(Vector2i a, basic_intra_coord<TYPE> b);
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Wrapping)
-constexpr point operator-(basic_intra_coord<TYPE> a, Vector2i b);
-
-template<intra_coord_base::Type TYPE>
-constexpr Vector2i operator-(basic_intra_coord<TYPE> a, basic_intra_coord<TYPE> b);
-
-template<intra_coord_base::Type TYPE>
-Debug& operator<<(Debug& dbg, const basic_intra_coord<TYPE>& val);
 
 template<intra_coord_base::Type TYPE>
 constexpr bool basic_intra_coord<TYPE>::is_in_range(Vector2i value)

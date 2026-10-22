@@ -32,12 +32,10 @@ static_assert(point{{-3, 7, 1}, intra_coord{last}}.intra<intra_coord::Wrapping>(
 constexpr bool test_checking()
 {
     auto a = intra_coord{{3, 4}, {}};
-    a += Vector2i{10, -20};
+    a = a + Vector2i{10, -20};
     fm_assert(a.center_shifted() == Vector2i{3, 4}*tile_size_xy + Vector2i{10, -20});
-    a -= Vector2i{10, -20};
+    a = a - Vector2i{10, -20};
     fm_assert(a == intra_coord{{3, 4}, {}});
-    a = last;
-    fm_assert(Vector2i(a) == last);
 
     fm_assert(Vector2i(intra_coord{Vector2i{5, 6}} + Vector2i{1, 2}) == Vector2i{6, 8});
     fm_assert(Vector2i(Vector2i{1, 2} + intra_coord{Vector2i{5, 6}}) == Vector2i{6, 8});
@@ -50,21 +48,12 @@ constexpr bool test_checking()
 
 constexpr bool test_wrapping()
 {
-    auto w = wrapping_coord{Vector2i{1020, 5}};
-    fm_assert((w += Vector2i{10, 0}) == Vector2i{1, 0});
-    fm_assert(Vector2i(w) == Vector2i{6, 5});
-    fm_assert((w -= Vector2i{7, 6}) == Vector2i{-1, -1});
-    fm_assert(Vector2i(w) == last);
-    fm_assert((w += Vector2i{2, -2}*chunk_size<int>) == Vector2i{2, -2});
-    fm_assert(Vector2i(w) == last);
-
-    auto o = wrapping_coord{Vector2i{2000, -5}};
-    fm_assert((o += Vector2i{}) == Vector2i{1, -1});
-    fm_assert(Vector2i(o) == Vector2i{976, 1019});
-
     fm_assert(wrapping_coord{Vector2i{1020, 5}} + Vector2i{10, 0} == point{{1, 0, 0}, {0, 0}, {-26, -27}});
     fm_assert(Vector2i{10, 0} + wrapping_coord{Vector2i{1020, 5}} == point{{1, 0, 0}, {0, 0}, {-26, -27}});
     fm_assert(wrapping_coord{Vector2i{5, 5}} - Vector2i{10, 0} == point{{-1, 0, 0}, {15, 0}, {27, -27}});
+    fm_assert(wrapping_coord{Vector2i{6, 5}} - Vector2i{7, 6} == point{{-1, -1, 0}, {15, 15}, {31, 31}});
+    fm_assert(wrapping_coord{last} + Vector2i{2, -2}*chunk_size<int> == point{{2, -2, 0}, {15, 15}, {31, 31}});
+    fm_assert(wrapping_coord{Vector2i{2000, -5}} + Vector2i{} == point{{1, -1, 0}, {15, 15}, {-16, 27}});
     return true;
 }
 

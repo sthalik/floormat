@@ -27,15 +27,6 @@ constexpr basic_intra_coord<TYPE>::basic_intra_coord(basic_intra_coord<OTHER> ot
 }
 
 template<intra_coord_base::Type TYPE>
-constexpr basic_intra_coord<TYPE>& basic_intra_coord<TYPE>::operator=(Vector2i value)
-{
-    if constexpr (TYPE == Checking)
-        fm_assert(is_in_range(value));
-    _v = value;
-    return *this;
-}
-
-template<intra_coord_base::Type TYPE>
 constexpr basic_intra_coord<TYPE> basic_intra_coord<TYPE>::from_center_shifted(Vector2i value)
 {
     return basic_intra_coord{value + half_tile<Vector2i>};
@@ -58,77 +49,47 @@ constexpr Vector2b basic_intra_coord<TYPE>::offset() const { return Vector2b(_v 
 template<intra_coord_base::Type TYPE>
 constexpr Vector2i basic_intra_coord<TYPE>::center_shifted() const { return _v - half_tile<Vector2i>; }
 
-template<intra_coord_base::Type TYPE>
-constexpr basic_intra_coord<TYPE>& basic_intra_coord<TYPE>::operator+=(Vector2i delta) requires (TYPE == Checking)
+template<intra_coord_base::Type T> requires (T == intra_coord_base::Checking)
+constexpr basic_intra_coord<T> operator+(basic_intra_coord<T> a, Vector2i b)
 {
-    _v += delta;
-    fm_assert(is_in_range(_v));
-    return *this;
+    return basic_intra_coord<T>{a._v + b};
 }
 
-template<intra_coord_base::Type TYPE>
-constexpr basic_intra_coord<TYPE>& basic_intra_coord<TYPE>::operator-=(Vector2i delta) requires (TYPE == Checking)
-{
-    return *this += -delta;
-}
-
-template<intra_coord_base::Type TYPE>
-constexpr Vector2i basic_intra_coord<TYPE>::operator+=(Vector2i delta) requires (TYPE == Wrapping)
-{
-    const auto [chunks, pos] = floor_divmod<chunk_size<int>>(_v + delta);
-    _v = pos;
-    return chunks;
-}
-
-template<intra_coord_base::Type TYPE>
-constexpr Vector2i basic_intra_coord<TYPE>::operator-=(Vector2i delta) requires (TYPE == Wrapping)
-{
-    return *this += -delta;
-}
-
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Checking)
-constexpr basic_intra_coord<TYPE> operator+(basic_intra_coord<TYPE> a, Vector2i b)
-{
-    a += b;
-    return a;
-}
-
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Checking)
-constexpr basic_intra_coord<TYPE> operator+(Vector2i a, basic_intra_coord<TYPE> b)
+template<intra_coord_base::Type T> requires (T == intra_coord_base::Checking)
+constexpr basic_intra_coord<T> operator+(Vector2i a, basic_intra_coord<T> b)
 {
     return b + a;
 }
 
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Checking)
-constexpr basic_intra_coord<TYPE> operator-(basic_intra_coord<TYPE> a, Vector2i b)
+template<intra_coord_base::Type T> requires (T == intra_coord_base::Checking)
+constexpr basic_intra_coord<T> operator-(basic_intra_coord<T> a, Vector2i b)
 {
-    a -= b;
-    return a;
+    return basic_intra_coord<T>{a._v - b};
 }
 
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Wrapping)
-constexpr point operator+(basic_intra_coord<TYPE> a, Vector2i b)
+template<intra_coord_base::Type T> requires (T == intra_coord_base::Wrapping)
+constexpr point operator+(basic_intra_coord<T> a, Vector2i b)
 {
-    const auto chunks = (a += b);
-    return point{chunk_coords_{(int16_t)chunks.x(), (int16_t)chunks.y(), 0}, a};
+    const auto [chunks, pos] = floor_divmod<chunk_size<int>>(a._v + b);
+    return point{chunk_coords_{(int16_t)chunks.x(), (int16_t)chunks.y(), 0}, intra_coord{pos}};
 }
 
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Wrapping)
-constexpr point operator+(Vector2i a, basic_intra_coord<TYPE> b)
+template<intra_coord_base::Type T> requires (T == intra_coord_base::Wrapping)
+constexpr point operator+(Vector2i a, basic_intra_coord<T> b)
 {
     return b + a;
 }
 
-template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Wrapping)
-constexpr point operator-(basic_intra_coord<TYPE> a, Vector2i b)
+template<intra_coord_base::Type T> requires (T == intra_coord_base::Wrapping)
+constexpr point operator-(basic_intra_coord<T> a, Vector2i b)
 {
     return a + -b;
 }
 
-template<intra_coord_base::Type TYPE>
-constexpr Vector2i operator-(basic_intra_coord<TYPE> a, basic_intra_coord<TYPE> b)
+template<intra_coord_base::Type T>
+constexpr Vector2i operator-(basic_intra_coord<T> a, basic_intra_coord<T> b)
 {
-    return Vector2i(a) - Vector2i(b);
+    return a._v - b._v;
 }
 
 constexpr point::point(chunk_coords_ coord, intra_coord ic) : point{coord, ic.local(), ic.offset()} {}
