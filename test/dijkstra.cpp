@@ -23,7 +23,6 @@ namespace floormat {
 namespace {
 
 constexpr auto flush_ch = chunk_coords_{0, 0, 0};
-constexpr auto flush_bbox = Vector2ui{32};
 constexpr auto flush_tile = local_coords{8, 8};
 
 // Floor every chunk a search from `from` can test: its nodes lie within max_dist of `from`,
@@ -45,10 +44,10 @@ void add_floors(world& w, point from, uint32_t max_dist, uint32_t cell)
         }
 }
 
-bool flush_box_free(world& w, point pt)
+bool box_free(world& w, point pt, Vector2ui size)
 {
-    const auto R = Range2D::fromCenter(Vector2(intra_coord{pt}.center_shifted()), Vector2(flush_bbox/2u));
-    return Search::is_passable(w, flush_ch, R, Search::without_critters());
+    const auto min = Vector2(intra_coord{pt}.center_shifted() - Vector2i(size/2u));
+    return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(size)}, Search::without_critters());
 }
 
 void add_block(world& w, local_coords tile, Vector2ub bbox_size, Vector2b bbox_offset = {})
@@ -65,34 +64,34 @@ void add_block(world& w, local_coords tile, Vector2ub bbox_size, Vector2b bbox_o
 // The goal's bbox touches a collider. Whether the touching coordinate falls on a pass-grid cell
 // boundary must not decide whether it's found.
 template<typename F>
-void check_flush_goal(const char* name, F&& setup, Vector2b goal_offset, Vector2i toward, bool reachable = true)
+void check_flush_goal(const char* name, uint32_t bbox, F&& setup, Vector2b goal_offset, Vector2i toward, bool reachable = true)
 {
     constexpr uint32_t max_dist = 1024;
     const auto from = point{global_coords{flush_ch, {8, 12}}, {}};
     auto w = world();
-    add_floors(w, from, max_dist, flush_bbox.x());
+    add_floors(w, from, max_dist, bbox);
     setup(w);
     auto& c = w[flush_ch];
     c.mark_passability_modified();
     c.ensure_passability();
 
     const auto goal = point{global_coords{flush_ch, flush_tile}, goal_offset};
-    fm_assert(flush_box_free(w, goal));
-    fm_assert(!flush_box_free(w, point::normalize_coords(goal, toward)));
+    fm_assert(box_free(w, goal, Vector2ui(bbox)));
+    fm_assert(!box_free(w, point::normalize_coords(goal, toward), Vector2ui(bbox)));
 
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto& pool16 = A.pool_registry().pool_for(flush_bbox.x());
-    auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, flush_bbox.x(), pass_mode::pass}, pred};
+    auto& pool16 = A.pool_registry().pool_for(bbox);
+    auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, bbox, pass_mode::pass}, pred};
 
     for (auto* pool : { &pool16, &pool8 })
     {
         const auto div = pool->params().div_size();
-        auto r1 = A.Dijkstra<0, true>(w, *pool, from, goal, max_dist, flush_bbox, pred);
-        auto r2 = A.Dijkstra<0, false>(w, *pool, from, goal, max_dist, flush_bbox, pred);
+        auto r1 = A.Dijkstra<0, true>(w, *pool, from, goal, max_dist, Vector2ui(bbox), pred);
+        auto r2 = A.Dijkstra<0, false>(w, *pool, from, goal, max_dist, Vector2ui(bbox), pred);
         if (r1.is_found() != reachable || r2.is_found() != reachable)
-            fm_abort("flush goal '%s' at div %u: found %d, without closest %d",
-                     name, div, (int)r1.is_found(), (int)r2.is_found());
+            fm_abort("flush goal '%s' bbox %u at div %u: found %d, without closest %d",
+                     name, bbox, div, (int)r1.is_found(), (int)r2.is_found());
         if (reachable)
         {
             fm_assert(r1.path().back() == goal);
@@ -106,41 +105,38 @@ void check_flush_goal(const char* name, F&& setup, Vector2b goal_offset, Vector2
     }
 }
 
-void test_flush_goals()
+void test_flush_goals(uint32_t bbox)
 {
     const auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, 0};
     const auto depth = (int)wall.atlas->info().depth;
-    constexpr auto h = (int)flush_bbox.x()/2;
-    const auto far = (int8_t)(half_tile<int> - depth - h);
+    const auto lo = (int)bbox/2, hi = (int)bbox - lo;
+    const auto far = (int8_t)(half_tile<int> - depth - hi);
 
-    check_flush_goal("wall north", [&](world& w) { w[flush_ch][flush_tile].wall_north() = wall; },
-                     {0, (int8_t)(h - half_tile<int>)}, {0, -1});
-    check_flush_goal("wall west", [&](world& w) { w[flush_ch][flush_tile].wall_west() = wall; },
-                     {(int8_t)(h - half_tile<int>), 0}, {-1, 0});
-    check_flush_goal("wall south", [&](world& w) { w[flush_ch][{8, 9}].wall_north() = wall; },
+    check_flush_goal("wall north", bbox, [&](world& w) { w[flush_ch][flush_tile].wall_north() = wall; },
+                     {0, (int8_t)(lo - half_tile<int>)}, {0, -1});
+    check_flush_goal("wall west", bbox, [&](world& w) { w[flush_ch][flush_tile].wall_west() = wall; },
+                     {(int8_t)(lo - half_tile<int>), 0}, {-1, 0});
+    check_flush_goal("wall south", bbox, [&](world& w) { w[flush_ch][{8, 9}].wall_north() = wall; },
                      {0, far}, {0, 1});
-    check_flush_goal("wall east", [&](world& w) { w[flush_ch][{9, 8}].wall_west() = wall; },
+    check_flush_goal("wall east", bbox, [&](world& w) { w[flush_ch][{9, 8}].wall_west() = wall; },
                      {far, 0}, {1, 0});
 
-    // bbox sizes must be even, so the odd offset is what puts the south edge at an odd coordinate
-    constexpr auto size = Vector2ub{tile_size_xy, 60};
-    constexpr auto odd = Vector2b{0, 1};
-    check_flush_goal("odd scenery north", [&](world& w) { add_block(w, {8, 7}, size, odd); },
-                     {0, (int8_t)(odd.y() + size.y()/2 + h - tile_size_xy)}, {0, -1});
+    // Both put the block's south edge at an odd coordinate.
+    for (const auto& [size, offset] : { std::pair{Vector2ub{tile_size_xy, 60}, Vector2b{0, 1}},
+                                        std::pair{Vector2ub{tile_size_xy, 61}, Vector2b{0, 0}} })
+    {
+        const auto south = offset.y() + (size.y() - size.y()/2) - tile_size_xy;
+        check_flush_goal("odd scenery north", bbox, [&](world& w) { add_block(w, {8, 7}, size, offset); },
+                         {0, (int8_t)(south + lo)}, {0, -1});
+    }
 
     // A gap as wide as the bbox and two tiles long. No cell in it has its bit set, and the free
     // nodes past its ends are too far from the middle to hop to it.
-    constexpr auto gap_side = Vector2ub{(uint8_t)(2*tile_size_xy - flush_bbox.x()), 2*tile_size_xy};
-    check_flush_goal("box-wide gap", [&](world& w) {
+    const auto gap_side = Vector2ub{(uint8_t)(2*tile_size_xy - bbox), 2*tile_size_xy};
+    check_flush_goal("box-wide gap", bbox, [&](world& w) {
         add_block(w, {7, 8}, gap_side);
         add_block(w, {9, 8}, gap_side);
     }, {}, {1, 0}, false);
-}
-
-bool box_free(world& w, point pt, uint32_t bbox)
-{
-    const auto R = Range2D::fromCenter(Vector2(intra_coord{pt}.center_shifted()), Vector2(Vector2ui(bbox)/2u));
-    return Search::is_passable(w, pt.chunk3(), R, Search::without_critters());
 }
 
 // The start touches a collider on its high x side, so the cell holding it is closed.
@@ -166,8 +162,8 @@ void check_closed_start_cell(uint32_t bbox, int8_t start_x)
     auto A = astar{};
     auto pool = Grid::Pass::Pool{Grid::Pass::Params{bbox, bbox, pass_mode::pass}, pred};
     fm_assert(pool.params().div_size() == bbox);
-    fm_assert(box_free(w, from, bbox));
-    fm_assert(!box_free(w, point::normalize_coords(from, {1, 0}), bbox));
+    fm_assert(box_free(w, from, Vector2ui(bbox)));
+    fm_assert(!box_free(w, point::normalize_coords(from, {1, 0}), Vector2ui(bbox)));
     fm_assert(!A.cache()->is_passable_for_bbox(w, pool, from, pred));
 
     auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(bbox), pred);
@@ -280,8 +276,7 @@ void Test::test_dijkstra()
                 for (int x = -half_tile<int>; x < half_tile<int>; x++)
                 {
                     const auto pt = point{wpos, {(int8_t)x, (int8_t)y}};
-                    const auto R = Range2D::fromCenter(Vector2(intra_coord{pt}.center_shifted()), Vector2(own_size/2u));
-                    if (!A.cache()->is_passable_for_bbox(w, pool, pt, pred) && Search::is_passable(w, wch, R, pred))
+                    if (!A.cache()->is_passable_for_bbox(w, pool, pt, pred) && box_free(w, pt, own_size))
                         return pt;
                 }
             fm_abort("no goal with a blocked cell");
@@ -296,7 +291,8 @@ void Test::test_dijkstra()
         fm_assert(result2.cost() == result.cost());
     }
 
-    test_flush_goals();
+    for (auto bbox : { 32u, 31u, 33u })
+        test_flush_goals(bbox);
     check_closed_start_cell(32, -2);
     check_closed_start_cell(64, 10);
 }
