@@ -195,6 +195,15 @@ void test_odd_bbox_size()
     fm_assert(!c.can_place_object(proto({-1, 0}, Vector2ub{64}), {9, 8}));
 }
 
+// Magnum's float == is fuzzy: it takes 483.005 for 483.
+bool has_integer_corners(const chunk::RTree::Rect& r)
+{
+    for (auto x : { r.m_min[0], r.m_min[1], r.m_max[0], r.m_max[1] })
+        if (x != (float)(int32_t)x)
+            return false;
+    return true;
+}
+
 Range2Di rtree_rect(chunk& c, object_id id)
 {
     c.ensure_passability();
@@ -204,7 +213,8 @@ Range2Di rtree_rect(chunk& c, object_id id)
         if (std::bit_cast<collision_data>(data).id == id)
         {
             fm_assert(!ret);
-            ret = Range2Di{Vector2i(Vector2{r.m_min[0], r.m_min[1]}), Vector2i(Vector2{r.m_max[0], r.m_max[1]})};
+            fm_assert(has_integer_corners(r));
+            ret = Range2Di{{(int32_t)r.m_min[0], (int32_t)r.m_min[1]}, {(int32_t)r.m_max[0], (int32_t)r.m_max[1]}};
         }
         return true;
     });
@@ -264,6 +274,88 @@ void test_odd_bbox_rotation()
                         s->rotate(i, rs[((size_t)r0/2 + k) % 4]);
                     fm_assert_equal(rect0, rtree_rect(c, s->id));
                 }
+}
+
+// An object's R-tree rect is its bbox, whether ensure_passability() inserts it or a move on a
+// clean chunk replaces it. Raycast's query relies on every rect having integer corners.
+void test_rtree_rect_is_bbox()
+{
+    constexpr auto ch = chunk_coords_{-1, 2, 0};
+    const auto expected = [&](const object& e) {
+        const auto min = (e.position() - point{ch, {}, {}}) + Vector2i(e.bbox_offset) - Vector2i(e.bbox_size/2);
+        return Range2Di{min, min + Vector2i(e.bbox_size)};
+    };
+    const auto tiles = { local_coords{0, 0}, local_coords{15, 15}, local_coords{7, 3} };
+    const auto offsets = { Vector2b{0, 0}, Vector2b{-32, -32}, Vector2b{31, 31}, Vector2b{-29, 17} };
+
+    for (const auto size : { Vector2ub{1, 2}, Vector2ub{17, 3}, Vector2ub{31, 64}, Vector2ub{33, 47}, Vector2ub{255, 254} })
+        for (const auto bb_off : { Vector2b{0, 0}, Vector2b{-127, 127}, Vector2b{127, -127}, Vector2b{3, -7} })
+        {
+            auto w = world();
+            auto& c = w[ch];
+            for (const auto tile : tiles)
+                for (const auto offset : offsets)
+                {
+                    scenery_proto p;
+                    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+                    p.subtype     = generic_scenery_proto{};
+                    p.offset      = offset;
+                    p.bbox_offset = bb_off;
+                    p.bbox_size   = size;
+                    p.pass        = pass_mode::blocked;
+                    const auto s = w.make_scenery(w.make_id(), {ch, tile}, move(p));
+                    fm_assert(s->bbox_offset == bb_off && s->bbox_size == size);
+                    fm_assert_equal(expected(*s), rtree_rect(c, s->id));
+                }
+
+            auto proto = make_critter_proto();
+            proto.bbox_offset = bb_off;
+            proto.bbox_size   = size;
+            const auto C = w.make_object<critter>(w.make_id(), {ch, {7, 3}}, move(proto));
+            fm_assert_equal(expected(*C), rtree_rect(c, C->id));
+            auto i = C->index();
+            for (const auto tile : tiles)
+                for (const auto offset : offsets)
+                {
+                    C->teleport_to(i, {ch, tile}, offset, rotation_COUNT);
+                    fm_assert(!c.is_passability_modified());
+                    fm_assert_equal(expected(*C), rtree_rect(c, C->id));
+                }
+        }
+
+    auto w = world();
+    auto& c = w[ch];
+    const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
+    c[{4, 4}].wall_north() = W;
+    c[{4, 4}].wall_west() = W;
+    c[{5, 4}].wall_north() = W;
+    c[{6, 6}].ground() = tile_image_proto{ loader.ground_atlas("texel"), 0 };
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.offset      = {-5, 9};
+    p.bbox_size   = {33, 47};
+    p.pass        = pass_mode::blocked;
+    w.make_scenery(w.make_id(), {ch, {5, 5}}, move(p));
+    struct hole_at { local_coords tile; Vector2b offset; Vector2ub size; };
+    for (const auto& h : { hole_at{{4, 4}, {-29, -31}, {15, 9}}, hole_at{{5, 5}, {3, 1}, {7, 13}},
+                           hole_at{{6, 6}, {11, -5}, {9, 19}} })
+    {
+        hole_proto hp;
+        hp.offset    = h.offset;
+        hp.bbox_size = h.size;
+        hp.pass      = pass_mode::see_through;
+        (void)w.make_object<hole>(w.make_id(), {ch, h.tile}, hp);
+    }
+    c.ensure_passability();
+    uint32_t n = 0;
+    const auto lo = Vector2{-(float)chunk_size_xy}, hi = Vector2{2*(float)chunk_size_xy};
+    c.rtree()->Search(lo.data(), hi.data(), [&](object_id, const chunk::RTree::Rect& r) {
+        fm_assert(has_integer_corners(r));
+        n++;
+        return true;
+    });
+    fm_assert(n >= 12);
 }
 
 void test_corner_touch()
@@ -578,6 +670,7 @@ void Test::test_rtree()
     test_pass_phases();
     test_odd_bbox_size();
     test_odd_bbox_rotation();
+    test_rtree_rect_is_bbox();
     test_corner_touch();
     test_bbox_offset_min();
     test_light_tree();
