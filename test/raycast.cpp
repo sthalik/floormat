@@ -469,6 +469,9 @@ void test_supercover_hits()
         place_pillar(w, ch,  ch, {10, 5}, Vector2b{0, 0},    Vector2ub{1, 1}),
         place_pillar(w, ch,  ch, {13, 9}, Vector2b{2, -1},   Vector2ub{3, 6}),
         place_pillar(w, ch2, ch, {3, 6},  Vector2b{1, -2},   Vector2ub{25, 4}),
+        // min (410, 483). (100, 479)-(500, 480) stays below y = 480, where cell rows end, and passes
+        // 2.6 to 2.75 px under its pixel squares, so radius 2.75 hits it only from a query grown by 3.
+        place_pillar(w, ch,  ch, {7, 8},  Vector2b{-18, -24}, Vector2ub{40, 10}),
     };
     for (auto c : { ch, ch2, ch3 })
         w[c].mark_modified();
@@ -507,7 +510,7 @@ void test_supercover_hits()
                          from.x(), from.y(), to.x(), to.y(), pool.params().div_size(), (int)res.success,
                          px.x(), px.y(), ref.count, ref.pixels[0].x(), ref.pixels[0].y());
 
-            for (auto radius : { .5f, 2.25f, 6.5f })
+            for (auto radius : { .5f, 2.25f, 2.75f, 6.5f })
             {
                 const auto expected = nearest_rounded_hit(pillars, from, Vector2(to - from), radius);
                 const auto r = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool, Search::never_continue(), radius);
@@ -522,6 +525,7 @@ void test_supercover_hits()
     check({100, 100}, {300, 300});
     check({0, 0}, {400, 1});
     check({0, 0}, {640, 66});
+    check({100, 479}, {500, 480});
     fm_assert(!raycast(w, origin + Vector2i{100, 100}, origin + Vector2i{300, 300}, 0, pools[0], Search::never_continue()).success);
     // through the corner of four chunks
     check({950, 950}, {1040, 1040});

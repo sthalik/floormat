@@ -396,7 +396,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     const auto params = pool.params();
     fm_assert(radius >= 0);
     fm_assert(min_pool_bbox_size(radius) <= params.bbox_size);
-    const auto grow = fuzz2 + radius;
+    // R-tree rects have integer corners and Search() counts a touching rect, so a cell grown by
+    // floor(fuzz2 + radius) finds the same rects as one grown by fuzz2 + radius.
+    const auto grow = (int32_t)(fuzz2 + radius);
     const auto div_size_i = (int32_t)params.div_size();
     const auto min_pass = (uint64_t)params.min_pass;
     const auto div_size_f = (float)div_size_i;
@@ -523,25 +525,11 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
         if (!bit)
         {
+            const auto query_size = Vector2i{div_size_i + 2*grow};
+            const auto query_min = Vector2i{cell_x, cell_y} * div_size_i - Vector2i{half_tile<int32_t> + grow};
+            const auto query_max = query_min + query_size;
             if constexpr(EnableDiagnostics)
-            {
-                chunk_coords_ q_ch_coord {
-                    (int16_t)(from.chunk().x + chunk_off_x),
-                    (int16_t)(from.chunk().y + chunk_off_y),
-                    from.chunk3().z };
-                const Vector2i cell{local_cell_x, local_cell_y};
-                // R-tree rects have integer corners and Search() counts a touching rect, so the
-                // float query below finds the same rects as the cell grown by floor(grow).
-                arrayAppend(diag.queries, bbox{
-                    intra_coord{cell * div_size_i + Vector2i{div_size_i / 2}}.to_point(q_ch_coord),
-                    Vector2ui{(uint32_t)div_size_i + 2*(uint32_t)grow},
-                });
-            }
-
-            float cell_min_x_f = (float)cell_x * div_size_f - half_tile<float> - grow;
-            float cell_max_x_f = (float)(cell_x + 1) * div_size_f - half_tile<float> + grow;
-            float cell_min_y_f = (float)cell_y * div_size_f - half_tile<float> - grow;
-            float cell_max_y_f = (float)(cell_y + 1) * div_size_f - half_tile<float> + grow;
+                arrayAppend(diag.queries, bbox{point{from.chunk3(), {}, {}} + (query_min + query_size/2), Vector2ui(query_size)});
 
             for (int i = 0; i < 3; i++)
             {
@@ -553,16 +541,13 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     int32_t nb_off_x = chunk_off_x + i - 1;
                     int32_t nb_off_y = chunk_off_y + j - 1;
 
-                    float nb_world_x = (float)(nb_off_x * chunk_size<int>);
-                    float nb_world_y = (float)(nb_off_y * chunk_size<int>);
-
-                    Vector2 fmin{cell_min_x_f - nb_world_x, cell_min_y_f - nb_world_y};
-                    Vector2 fmax{cell_max_x_f - nb_world_x, cell_max_y_f - nb_world_y};
+                    const auto nb_world = Vector2i{nb_off_x, nb_off_y} * chunk_size<int32_t>;
+                    const auto fmin = Vector2(query_min - nb_world), fmax = Vector2(query_max - nb_world);
 
                     if (!within_chunk_bounds(fmin, fmax))
                         continue;
 
-                    const auto origin = from_center - Vector2{nb_world_x, nb_world_y};
+                    const auto origin = from_center - Vector2(nb_world);
 
                     nb->rtree()->Search(fmin.data(), fmax.data(), [&, min_pass](uint64_t data, const Rect& r)
                     {
@@ -572,11 +557,10 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                             return true;
                         // a rect owns the pixels in [min, max), as walking does
                         const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-                        const auto shift = Vector2i{nb_off_x, nb_off_y} * chunk_size<int32_t>;
                         if (radius == 0)
                         {
-                            const auto hit = first_pixel_within(line, Vector2i(Math::ceil(range.min())) + shift,
-                                                                Vector2i(Math::ceil(range.max())) - Vector2i{1} + shift,
+                            const auto hit = first_pixel_within(line, Vector2i(Math::ceil(range.min())) + nb_world,
+                                                                Vector2i(Math::ceil(range.max())) - Vector2i{1} + nb_world,
                                                                 best_key);
                             if (hit.key >= best_key) [[likely]]
                                 return true;
@@ -605,7 +589,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                             result.collision = point::normalize_coords(from, Vector2i(contact - origin));
                         }
                         result.collider = x;
-                        result.rect = Range2D{range.min() + Vector2(shift), range.max() + Vector2(shift)};
+                        result.rect = Range2D{range.min() + Vector2(nb_world), range.max() + Vector2(nb_world)};
                         b = false;
                         return true;
                     });
