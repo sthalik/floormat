@@ -46,6 +46,9 @@ if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     # boundary isn't kept in the uop cache, so code layout alone moved A/B timings up to 17 %.
     add_compile_options(-mbranches-within-32B-boundaries)
     add_link_options(-mbranches-within-32B-boundaries)
+    # Skylake JCC erratum: also pads calls and returns.
+    #add_compile_options(-malign-branch=fused,jcc,jmp,call,ret,indirect)
+    #add_link_options(-malign-branch=fused,jcc,jmp,call,ret,indirect)
 endif()
 
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fassume-nothrow-exception-dtor>)

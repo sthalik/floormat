@@ -15,6 +15,8 @@ endif()
 
 if(NOT CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     set(BUILD_SHARED_LIBS OFF)
+    # Skylake JCC erratum. rc.exe rejects the flag.
+    #add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-QIntel-jcc-erratum>)
 else()
     add_definitions(-D_MSVC_STL_HARDENING=1)
 endif()
