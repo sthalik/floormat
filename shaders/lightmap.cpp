@@ -136,6 +136,9 @@ void lightmap_shader::end_occlusion()
 
 std::array<lightmap_shader::shadow_vertex, 4>& lightmap_shader::alloc_quad()
 {
+    // The cap is checked after the shift, so the shift must not wrap.
+    static_assert(Quads::max_quads_per_buffer <= (uint32_t)-1 / 2);
+
     if (count == capacity)
     {
         if (capacity == 0)
@@ -152,9 +155,9 @@ std::array<lightmap_shader::shadow_vertex, 4>& lightmap_shader::alloc_quad()
         auto indexes_ = move(indexes);
         vertexes = Array<std::array<shadow_vertex, 4>>{ValueInit, capacity};
         indexes = Array<Quads::indexes>{ValueInit, capacity};
-        for (auto i = 0uz; i < count; i++)
+        for (auto i = 0u; i < count; i++)
             vertexes[i] = vertexes_[i];
-        for (auto i = 0uz; i < count; i++)
+        for (auto i = 0u; i < count; i++)
             indexes[i] = indexes_[i];
         indexes[count] = Quads::quad_indexes(count);
         auto& ret = vertexes[count];
