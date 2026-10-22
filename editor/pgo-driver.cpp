@@ -259,6 +259,54 @@ Vector2i sprite_center_pixel(app& A, const object& e)
     fm_abort("no clickable for object %zu", (size_t)e.id);
 }
 
+// The k-th cell of a chunk walked in one of five orders. Each order visits every cell once, so an
+// atlas with up to TILE_COUNT variants never paints over itself.
+local_coords ground_pattern_cell(uint32_t pattern, uint32_t k)
+{
+    constexpr int n = TILE_MAX_DIM;
+    fm_assert(k < TILE_COUNT);
+    switch (pattern % 5)
+    {
+    case 0: // rows, alternating direction
+    {
+        const int y = int(k) / n, x = int(k) % n;
+        return { y & 1 ? n-1 - x : x, y };
+    }
+    case 1: // diagonals
+        for (int d = 0; ; d++)
+            for (int x = Math::max(0, d - (n-1)); x <= Math::min(d, n-1); x++)
+                if (k-- == 0)
+                    return { x, d - x };
+    case 2: // checkerboard, one colour then the other
+    {
+        const int half = int(TILE_COUNT/2), j = int(k) % half, y = j / (n/2);
+        return { 2*(j % (n/2)) + ((y + int(k) / half) & 1), y };
+    }
+    case 3: // rings, outermost first, each clockwise
+        for (int lo = 0; ; lo++)
+            for (int e = 0, hi = n-1 - lo; e < 4; e++)
+                for (int s = 0; s < hi - lo; s++)
+                    if (k-- == 0)
+                    {
+                        const int xs[] = { lo+s, hi, hi-s, lo }, ys[] = { lo, lo+s, hi, hi-s };
+                        return { xs[e], ys[e] };
+                    }
+    default: // square spiral out from the middle
+    {
+        constexpr int dx[] = { 1, 0, -1, 0 }, dy[] = { 0, 1, 0, -1 };
+        int x = n/2 - 1, y = n/2 - 1;
+        for (uint32_t leg = 0; ; leg++)
+            for (uint32_t s = 0; s <= leg/2; s++)
+            {
+                if (x >= 0 && y >= 0 && x < n && y < n && k-- == 0)
+                    return { x, y };
+                x += dx[leg % 4];
+                y += dy[leg % 4];
+            }
+    }
+    }
+}
+
 constexpr auto raycast_params = Pass::Params{16, pass_mode::shoot_through};
 
 } // namespace
@@ -688,7 +736,17 @@ task app::scene_ground_editor()
     auto* ed = _editor->current_ground_editor();
     fm_assert(ed);
 
-    uint32_t n = 0;
+    static constexpr chunk_coords_ chunks[] = {
+        {0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {-1, 0, 0}, {0, -1, 0},
+        {1, 1, 0}, {-1, 1, 0}, {-1, -1, 0}, {1, -1, 0},
+    };
+    // The driver fills chunk 0 with floor-tiles, which would hide that atlas's variants.
+    auto& c0 = M->world()[chunks[0]];
+    for (auto k = 0u; k < TILE_COUNT; k++)
+        c0[k].ground() = tile_image_proto{};
+    c0.mark_ground_modified();
+
+    uint32_t n = 0, a = 0;
 
     for (const auto& [name, cell] : *ed)
     {
@@ -702,7 +760,7 @@ task app::scene_ground_editor()
             fm_assert(ed->is_atlas_selected(cell.atlas));
             fm_assert(ed->is_tile_selected(cell.atlas, v));
 
-            const point pt{{{0, 0, 0}, {(uint8_t)(n % TILE_MAX_DIM), (uint8_t)(n / TILE_MAX_DIM % TILE_MAX_DIM)}}, {}};
+            const point pt{{chunks[a % array_size(chunks)], ground_pattern_cell(a, v % (uint32_t)TILE_COUNT)}, {}};
             move_cursor_to(pt);
             fm_assert_equal(pt, cursor_point());
             // click_at() suspends between press and release, so there is no separate pause.
@@ -721,6 +779,7 @@ task app::scene_ground_editor()
         // it takes more than num_tiles() calls to reach the fisher_yates branch a second time.
         for (auto i = 0u; i < variants + 2; i++)
             fm_assert(ed->get_selected());
+        a++;
         co_yield {};
     }
 
