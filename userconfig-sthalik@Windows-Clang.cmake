@@ -170,9 +170,12 @@ set(CMAKE_INSTALL_MESSAGE NEVER)
 
 # -mavx for the VEX encoding: bitmask.cpp's SSSE3 intrinsics lose the two-operand
 # movdqa copies and run 12% faster (20 paired passes).
-# The width pin is a separate decision and is not implied by -mno-avx2: without it
-# AVX1 still vectorizes float work to 256 bits, costing 1.2% of .text for no
-# measurable time. Integer work is capped at 128 either way.
+# -mno-avx2 doesn't imply -mprefer-vector-width=128: without it AVX1 still
+# vectorizes float work and struct copies to 256 bits, adding 1.2% to .text and
+# making Cover_Aligned and Raycast up to 3% slower on an i5-7600. Copies widen
+# only because -mtune=generic replaces x86-64-v2's own tuning, which marks
+# unaligned 32-byte access slow. Integer arithmetic stays at 128 bits either way.
+# fm-userconfig-post below sets =256 on files where 128-bit copies are hot.
 # sse42, avx1 and avx2 exist to measure what each half costs. Nothing ships them.
 if(NOT DEFINED FLOORMAT_SIMD)
     set(FLOORMAT_SIMD "avx128" CACHE STRING "")
