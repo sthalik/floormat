@@ -486,7 +486,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     (int16_t)(from.chunk().y + chunk_off_y),
                     from.chunk3().z };
                 arrayAppend(diag.path, bbox{
-                    intra_coord{chunk_size<Vector2i> / 2}.to_point(ch_coord),
+                    point{ch_coord, intra_coord{chunk_size<Vector2i> / 2}},
                     chunk_size<Vector2ui>,
                 });
             }
