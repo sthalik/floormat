@@ -58,7 +58,6 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
         const auto& frame = atlas->frame(e.r, e.frame);
         const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
         const auto depth_offset = e.depth_offset();
-        constexpr auto f = tile_shader::foreshortening_factor;
 
         if (is_dynamic)
         {
@@ -69,15 +68,13 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
         else
         {
             // --- slope-based sprite split ---
-            const float hx = e.bbox_size.x() * 0.5f, hy = e.bbox_size.y() * 0.5f;
-            const float denom = hx + hy;
-            const float slope = denom > 0.f ? f * (hx - hy) / denom : 0.f;
-            // the box spans [center - lo, center + hi), so an odd size moves its middle half a pixel past center
+            // the box spans [center - lo, center + hi)
             const auto lo = Vector2i(e.bbox_size/2), hi = Vector2i(e.bbox_size) - lo;
-            const auto mid = Vector2(hi - lo)*.5f;
-
-            // bbox center screen offset from sprite's ground anchor
-            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset) + mid, 0.f) - Vector3(group.offset));
+            const auto corner = [&](Vector2i px) {
+                return tile_shader::project(Vector3(Vector2(Vector2i(e.bbox_offset) + px), 0.f) - Vector3(group.offset));
+            };
+            const auto nw = corner(-lo), se = corner(hi), w = corner({-lo.x(), hi.y()}), east = corner({hi.x(), -lo.y()});
+            const float slope = east.x() > w.x() ? (east.y() - w.y()) / (east.x() - w.x()) : 0.f;
 
             // sprite screen extent (pixel offsets from projected center)
             const float left_x   = float(-frame.ground.x());
@@ -91,20 +88,23 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             const auto back_left_depth  = Depth::value_at(depth_start, center, depth_offset + hi.y() - lo.x());
             const auto back_right_depth = Depth::value_at(depth_start, center, depth_offset + hi.x() - lo.y());
 
-            const float x_nw = Math::clamp(bbox_scr.x() + hy - hx, left_x, right_x);
-            const float x_se = Math::clamp(bbox_scr.x() + hx - hy, left_x, right_x);
+            const float x_nw = Math::clamp(nw.x(), left_x, right_x);
+            const float x_se = Math::clamp(se.x(), left_x, right_x);
             const float xs[4] = { left_x, Math::min(x_nw, x_se), Math::max(x_nw, x_se), right_x };
 
             // t: 0 = sprite bottom, 1 = top
             auto t_at = [&](float x) {
-                const float y = bbox_scr.y() + slope * (x - bbox_scr.x());
+                const float y = w.y() + slope * (x - w.x());
                 return Math::clamp((bottom_y - y) / sprite_h, 0.f, 1.f);
             };
             // depth of the bbox's south and east sides at this screen column, parallel to
-            // north and west wall faces so thin walls in front hide the whole sprite
+            // north and west wall faces so thin walls in front hide the whole sprite. One screen
+            // pixel along either side is one unit of depth.
             auto depth_at = [&](float x) {
-                const float u = Math::clamp(x - bbox_scr.x(), -hx - hy, hx + hy);
-                const auto off = (int32_t)Math::floor(mid.sum() + Math::min(u + 2 * hy, 2 * hx - u));
+                const float xc = Math::clamp(x, w.x(), east.x());
+                const float south = (float)(hi.y() - lo.x()) + (xc - w.x()),
+                            east_side = (float)(hi.x() - lo.y()) + (east.x() - xc);
+                const auto off = (int32_t)Math::floor(Math::min(south, east_side));
                 return Depth::value_at(depth_start, center, depth_offset + off);
             };
             // quad[0]=BR, quad[1]=TR, quad[2]=BL, quad[3]=TL
