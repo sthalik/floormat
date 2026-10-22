@@ -1,7 +1,7 @@
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
 
 # Claim the prefix before project(), not after. project() writes the platform default into
 # the cache even when the configure then fails, and it does so without FORCE -- so a single
