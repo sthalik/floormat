@@ -79,7 +79,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
     const auto ds = (int)cover_pool.params().div_size;
     const auto dc = chunk_size_xy / (uint32_t)ds;
     const auto P = Vector3i(q.pos).xy(), T = Vector3i(q.threat).xy();
-    const auto half = Vector2(q.body_size) * .5f;
+    const auto body_lo = Vector2i(q.body_size / 2u), body_hi = Vector2i(q.body_size) - body_lo;
     const auto R = (int)q.radius;
     const auto to_point = [&](Vector2i px) { return q.pos + (px - P); };
 
@@ -89,7 +89,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
     };
     const auto center_of = [ds](Vector2i n) { return n*ds + Vector2i{ds/2 - half_tile<int>}; };
 
-    const auto margin = Vector2i{Math::ceil(half)} + Vector2i{R};
+    const auto margin = body_hi + Vector2i{R};
     const auto lo = cell_of(P - margin), span = cell_of(P + margin) - lo + Vector2i{1};
     Array<uint8_t> known{ValueInit, (size_t)(span.x()*span.y())};
     Array<cell_info> cells{NoInit, (size_t)(span.x()*span.y())};
@@ -119,14 +119,14 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
 
     const auto passable = [&](Vector2i center) {
         const auto pt = to_point(center);
-        const auto min = Vector2(pt.intra().center_shifted() - Vector2i(q.body_size / 2u));
+        const auto min = Vector2(pt.intra().center_shifted() - body_lo);
         return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(q.body_size)}, Search::without_critters());
     };
 
     // A body flush against a blocker covers cells the blocker clears. The slope check covers those.
     const auto body_hidden = [&](Vector2i center) {
-        const auto a = cell_of(center - Vector2i{Math::floor(half)});
-        const auto b = cell_of(center + Vector2i{Math::ceil(half)} - Vector2i{1});
+        const auto a = cell_of(center - body_lo);
+        const auto b = cell_of(center + body_hi - Vector2i{1});
         for (auto y = a.y(); y <= b.y(); y++)
             for (auto x = a.x(); x <= b.x(); x++)
                 if (const auto info = look({x, y}); !info.hidden && !info.blocked)
@@ -136,7 +136,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
 
     Array<candidate> cands;
     arrayReserve(cands, 16);
-    const auto against = Math::ceil(Math::max(half.x(), half.y())) + (float)ds;
+    const auto against = (float)(body_hi.max() + ds);
     for (auto y = lo.y(); y < lo.y() + span.y(); y++)
         for (auto x = lo.x(); x < lo.x() + span.x(); x++)
         {
@@ -161,11 +161,10 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
     if (cands.isEmpty())
         return ret;
 
-    const auto half_i = Vector2i(q.body_size / 2u);
     const auto min_size = (int)Math::min(q.body_size.x(), q.body_size.y());
     const auto step_px = Math::max(1, min_size/2);
     const auto max_push = (int)Math::ceil(against * Math::sqrt(2.f)) + min_size;
-    const auto ext_lo = half_i, ext_hi = Vector2i(q.body_size) - half_i - Vector2i{1};
+    const auto ext_lo = body_lo, ext_hi = body_hi - Vector2i{1};
     const auto reach = [&](Vector2i dir) {
         return Math::dot(Math::max(dir, Vector2i{0}), ext_hi) + Math::dot(Math::max(-dir, Vector2i{0}), ext_lo);
     };
