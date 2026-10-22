@@ -100,7 +100,7 @@ private:
                block_uniform_buf{GL::Buffer::TargetHint::Uniform, };
     Array<std::array<shadow_vertex, 4>> vertexes;
     Array<Quads::indexes> indexes;
-    size_t count = 0, capacity = 0;
+    uint32_t count = 0, capacity = 0;
     Framebuffer framebuffer;
     GL::Mesh occlusion_mesh{NoCreate};
     Vector4i saved_scissor; // GL_SCISSOR_BOX layout: x, y, width, height
