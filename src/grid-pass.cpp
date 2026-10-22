@@ -22,40 +22,6 @@ namespace floormat {
 
 namespace floormat::detail::grid {
 namespace {
-constexpr auto make_inverse_divisor_table()
-{
-    constexpr auto divisors = make_divisor_table();
-    using integer_type =
-        std::conditional_t<(array_size(divisors) > 255),
-                           std::conditional_t<(array_size(divisors) > 65535), uint32_t, uint16_t>,
-                           uint8_t>;
-
-    std::array<integer_type, chunk_size_xy> array;
-
-    for (auto& x : array)
-        x = (integer_type)-1;
-
-    for (auto i = 0u; i < array_size(divisors); i++)
-    {
-        auto div = divisors[i];
-        fm_assert(div > 0);
-        fm_assert(div - 1 < array_size(array));
-        array[div - 1] = (integer_type)i;
-    }
-
-    return array;
-}
-
-constexpr auto get_divisor_index(uint32_t div_size)
-{
-    constexpr auto inv = make_inverse_divisor_table();
-    fm_assert(div_size > 0 && div_size <= chunk_size_xy);
-    auto i = inv[div_size - 1];
-    if (i == (decltype(i))-1) [[unlikely]]
-        fm_abort("get_divisor_index: wrong div_size %u", (unsigned)div_size);
-    return (uint32_t)i;
-}
-
 // Bit n of the grid is bit (n & 7) of byte (n >> 3), as BitArray stores it. Read as
 // little-endian 64-bit words, that's bit (n & 63) of word (n >> 6) on any host.
 uint64_t load_word(const uint8_t* bits, uint32_t word)
@@ -351,31 +317,6 @@ constexpr bool assert_divisor_table()
     return true;
 }
 
-constexpr bool assert_inverse_divisor_table()
-{
-    constexpr auto divisors = make_divisor_table();
-    constexpr auto inv = make_inverse_divisor_table();
-    using T = std::remove_cvref_t<decltype(inv[0])>;
-    constexpr T sentinel = (T)-1;
-
-    for (auto i = 0u; i < array_size(divisors); i++)
-        fm_assert(inv[divisors[i] - 1] == (T)i);
-
-    for (auto n = 1u; n <= chunk_size_xy; n++)
-        if (chunk_size_xy % n != 0 || n == chunk_size_xy)
-            fm_assert(inv[n - 1] == sentinel);
-
-    return true;
-}
-
-constexpr bool assert_get_divisor_index()
-{
-    constexpr auto divisors = make_divisor_table();
-    for (auto i = 0u; i < array_size(divisors); i++)
-        fm_assert(get_divisor_index(divisors[i]) == i);
-    return true;
-}
-
 constexpr bool assert_calc_div_size()
 {
     fm_assert(calc_div_size(1, 8) == 1);
@@ -399,8 +340,6 @@ constexpr bool assert_calc_div_size()
 }
 
 static_assert(assert_divisor_table());
-static_assert(assert_inverse_divisor_table());
-static_assert(assert_get_divisor_index());
 static_assert(assert_calc_div_size());
 
 } // namespace Tests
