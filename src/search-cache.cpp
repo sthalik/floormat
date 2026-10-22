@@ -80,14 +80,6 @@ void cache::add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index)
     indexes[flat] = index;
 }
 
-void cache::add_index(point pt, uint32_t index)
-{
-    fm_assert(pt.coord().z() == 0);
-    auto ch = get_chunk_index(Vector2i(pt.chunk()));
-    auto tile = get_tile_index(intra_coord{pt});
-    add_index(ch, tile, index);
-}
-
 uint32_t cache::lookup_index(uint32_t chunk_index, uint32_t tile_index)
 {
     auto cells_per_chunk = (size_t)div_count_ * div_count_;
@@ -111,19 +103,6 @@ bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, con
     const auto size = pool.params().bbox_size;
     const auto min = Vector2(intra_coord{pt}.center_shifted()) - Vector2{(float)(size / 2)};
     return Search::is_passable_(nullptr, nbs, min, min + Vector2{(float)size}, p);
-}
-
-bool cache::is_passable_between_diag(world& w, Grid::Pass::Pool& pool, point a, point b, const pred& p)
-{
-    if (!is_passable_for_bbox(w, pool, b, p))
-        return false;
-    Vector2i vec = b - a;
-    // off-axis cells; coverage relies on the cell-reach inflation in PassGrid::build_impl()
-    if (!is_passable_for_bbox(w, pool, a + Vector2i{vec.x(), 0}, p))
-        return false;
-    if (!is_passable_for_bbox(w, pool, a + Vector2i{0, vec.y()}, p))
-        return false;
-    return true;
 }
 
 } // namespace floormat::Search
