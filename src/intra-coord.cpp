@@ -2,13 +2,13 @@
 
 namespace floormat {
 
-template<intra_coord_base::Type TYPE>
-Debug& operator<<(Debug& dbg, const basic_intra_coord<TYPE>& val)
+template<intra_coord_base::Type T>
+Debug& operator<<(Debug& dbg, const basic_intra_coord<T>& val)
 {
     dbg << "";
     const auto flags = dbg.flags();
     dbg.setFlags(flags | Debug::Flag::NoSpace);
-    dbg << (TYPE == intra_coord_base::Checking ? "intra_coord{" : "intra_coord<Wrapping>{") << val.x() << "," << val.y() << "}";
+    dbg << (T == intra_coord_base::Checking ? "intra_coord{" : "intra_coord<Wrapping>{") << val.x() << "," << val.y() << "}";
     dbg.setFlags(flags);
     return dbg;
 }
