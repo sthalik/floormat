@@ -144,11 +144,8 @@ void app::draw_collision_boxes()
                 if (x.pass == (uint64_t)pass_mode::pass)
                     if (x.id < TILE_COUNT * 3 + 1)
                         return true;
-            Vector2 start{rect.m_min}, end{rect.m_max};
-            auto size = (end - start);
-            auto center = Vector3(start + size * .5f, 0.f);
             shader.set_tint(x.pass == (uint64_t)pass_mode::pass ? pass_tint : tint);
-            wireframe::draw_quad(shader, center, size, 3);
+            wireframe::draw_quad(shader, Vector2{rect.m_min}, Vector2{rect.m_max}, 3);
             return true;
         };
         c.rtree()->Search(min2f, max2f, draw);
@@ -188,9 +185,7 @@ void app::draw_collision_boxes()
                 Vector2 start{rect.m_min}, end{rect.m_max};
                 if ((t0 < start || t0 >= end).any())
                     return true;
-                auto size = end - start;
-                auto center = Vector3(start + size*.5f, 0.f);
-                wireframe::draw_quad(shader, center, size, 3);
+                wireframe::draw_quad(shader, start, end, 3);
                 return true;
             };
             c.rtree()->Search(t0.data(), t1.data(), draw);

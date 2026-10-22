@@ -46,6 +46,16 @@ void draw_quad(tile_shader& shader, Vector3 center, Vector2 size, float line_wid
     }}, line_width);
 }
 
+void draw_quad(tile_shader& shader, Vector2 min, Vector2 max, float line_width)
+{
+    draw_closed_polyline(shader, {{
+        { min.x(), min.y(), 0 },
+        { max.x(), min.y(), 0 },
+        { max.x(), max.y(), 0 },
+        { min.x(), max.y(), 0 },
+    }}, line_width);
+}
+
 void draw_wall_n(tile_shader& shader, Vector3 center, Vector3 size, float line_width)
 {
     const float x = size[0]*.5f, y = size[1]*.5f, z = size[2];
