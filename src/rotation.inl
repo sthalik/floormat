@@ -40,6 +40,9 @@ constexpr Math::Vector2<T> rotate_point(Math::Vector2<T> rect, rotation r_old, r
     return Math::Vector2<T>{offset_n[i_offset1.x()], offset_n[i_offset1.y()]}*Math::Vector2<T>{m_offset1};
 }
 
+// rotate_point() turns -128 into -127, so storing -128 would move the box on the next teleport
+constexpr Vector2b clamp_bbox_offset(Vector2b x) { return Math::max(x, Vector2b{-127}); }
+
 // The mirror turns -half_tile into +half_tile, outside a sub-tile offset. bbox_offset takes the
 // pixel the clamp removes, keeping the box centre mirrored unless bbox_offset would exceed 127.
 constexpr Pair<Vector2b, Vector2b> rotate_offset(Vector2b offset, Vector2b bbox_offset, rotation r_old, rotation r_new)

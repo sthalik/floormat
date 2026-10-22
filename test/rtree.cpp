@@ -294,6 +294,19 @@ void test_bbox_offset_min()
 
     C->set_bbox(C->offset, {-128, 0}, C->bbox_size, C->pass);
     fm_assert(C->bbox_offset == Vector2b(-127, 0));
+
+    auto w2 = world();
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_offset = {-107, 0};
+    p.bbox_size   = {10, 32};
+    p.pass        = pass_mode::blocked;
+    w2.make_scenery(w2.make_id(), pos, move(p));
+    auto proto2 = make_critter_proto();
+    proto2.bbox_offset = {-128, 0};
+    // clamped, the box is x 369..401, one pixel into the blocker at 400..410
+    fm_assert(!w2[pos.chunk3()].can_place_object(proto2, pos.local()));
 }
 
 uint32_t entries_at(const chunk::RTree& t, Vector2 pt)
