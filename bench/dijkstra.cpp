@@ -1,6 +1,7 @@
 #include "src/search-result.hpp"
 #include "src/search-astar.hpp"
 #include "src/grid-pass.hpp"
+#include "src/grid-pool-registry.hpp"
 #include "src/point.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
@@ -24,10 +25,12 @@ void Dijkstra(benchmark::State& state)
     constexpr auto wt = local_coords{wtx, wty};
     constexpr auto wpos = global_coords{wch, wt};
     const auto from = point{{0, 0, 0}, {11, 9}};
+    constexpr auto own_size = Vector2ui{16};
+    const auto cell = A.pool_registry().pool_for(own_size.x()).params().div_size();
 
     // Same floors as add_floors() in test/dijkstra.cpp.
     const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
-    const auto reach = Vector2i{(int)max_dist + Search::div_size.x()};
+    const auto reach = Vector2i{(int)(max_dist + cell)};
     const auto lo = (from - reach).chunk(), hi = (from + reach).chunk();
     for (auto j = lo.y; j <= hi.y; j++)
         for (auto i = lo.x; i <= hi.x; i++)
@@ -70,7 +73,7 @@ void Dijkstra(benchmark::State& state)
     auto run = [&]<int Debug> {
         return A.Dijkstra<Debug>(w, from,
                                  {wpos, {wox, woy}},   // to
-                                 max_dist, {16, 16},   // size
+                                 max_dist, own_size,
                                  Search::without_critters());
     };
 

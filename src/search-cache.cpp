@@ -11,13 +11,7 @@
 
 namespace floormat::Search {
 
-cache::cache(uint32_t div_size)
-    : div_size_{div_size},
-      div_count_{chunk_size_xy / div_size}
-{
-    fm_assert(div_size > 0);
-    fm_assert(chunk_size_xy % div_size == 0);
-}
+cache::cache() = default;
 
 cache::~cache() noexcept = default;
 
@@ -28,9 +22,13 @@ Vector2ui cache::get_size_to_allocate(uint32_t max_dist)
     return nchunks + Vector2ui(3);
 }
 
-void cache::allocate(point from, uint32_t max_dist)
+void cache::allocate(point from, uint32_t max_dist, uint32_t div_size)
 {
     fm_assert(from.coord().z() == 0);
+    fm_assert(div_size > 0);
+    fm_assert(chunk_size_xy % div_size == 0);
+    div_size_ = div_size;
+    div_count_ = chunk_size_xy / div_size;
     auto off = get_size_to_allocate(max_dist);
     start = Vector2i(from.chunk()) - Vector2i(off);
     size = off * 2u + Vector2ui(1);

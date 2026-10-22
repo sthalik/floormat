@@ -2,7 +2,6 @@
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
 #include "src/search-cache.hpp"
-#include "src/search-constants.hpp"
 #include "src/search-pred.hpp"
 #include "src/search-octile.hpp"
 #include "src/grid-pass.hpp"
@@ -24,19 +23,13 @@ namespace floormat {
 
 namespace {
 
-constexpr int step = Search::div_size.x(), tile = tile_size_xy/step, dim = (int)TILE_MAX_DIM;
-
-constexpr int last = 2*dim - 1;
-
-// Lattice point v is the pixel v*step. Every node of the search is one: seeds sit at from rounded
-// down to the lattice and at from's tile centre, each plus 0 or a step.
-constexpr int lo = -tile, hi = (last + 1)*tile, n = hi - lo + 1;
+constexpr int dim = (int)TILE_MAX_DIM, last = 2*dim - 1;
 
 constexpr uint32_t unreached = (uint32_t)-1, max_dist = 6*chunk_size_xy;
 
-// Every cell within this many steps of a zone centre is free: the seeds and every node within the
+// Every cell within this many px of a zone centre is free: the seeds and every node within the
 // goal hop's reach, so the R-tree checks of both pass.
-constexpr int clear_steps = 8;
+constexpr int clear_px = 2*tile_size_xy;
 
 // off the lattice, where a hop costing anything but octile changes the cost
 struct zone { Vector2i tile; Vector2b offset; };
@@ -50,16 +43,24 @@ constexpr pool_size small_pools[] = { {4, 32}, {8, 32}, {16, 32}, {32, 32}, };
 // A block closes cells up to ~95 px away at 64-px cells and bbox, so this map has no random blocks.
 constexpr pool_size large_pools[] = { {16, 64}, {32, 64}, {64, 64}, };
 
+// Lattice point v is the pixel v*step, a step being one cell. Every node of the search is one:
+// seeds sit at from rounded down to the lattice and at from's tile centre, each plus 0 or a step.
 struct lattice
 {
-    Array<uint8_t> free{ValueInit, (size_t)n*n};
+    int step, tile, lo, hi, n, clear_steps;
+    Array<uint8_t> free;
 
-    static uint32_t index(Vector2i v) { return (uint32_t)((v.y() - lo)*n + v.x() - lo); }
-    static bool inside(Vector2i v) { return v.x() >= lo && v.x() <= hi && v.y() >= lo && v.y() <= hi; }
+    explicit lattice(int step) :
+        step{step}, tile{tile_size_xy/step}, lo{-tile}, hi{(last + 1)*tile}, n{hi - lo + 1},
+        clear_steps{clear_px/step}, free{ValueInit, (size_t)(n*n)}
+    {}
+
+    uint32_t index(Vector2i v) const { return (uint32_t)((v.y() - lo)*n + v.x() - lo); }
+    bool inside(Vector2i v) const { return v.x() >= lo && v.x() <= hi && v.y() >= lo && v.y() <= hi; }
     bool at(Vector2i v) const { return inside(v) && free[index(v)]; }
+    point pt(Vector2i v) const { return point{Vector3i{v*step, 0}}; }
 };
 
-point lattice_point(Vector2i v) { return point{Vector3i{v*step, 0}}; }
 point zone_point(zone z) { return point{Vector3i{z.tile*tile_size_xy + Vector2i(z.offset), 0}}; }
 
 tile_ref tile_at(world& w, int x, int y)
@@ -157,7 +158,8 @@ void make_map(world& w, bool for_large_pools)
 // and cur + (0, dy), as in the search's per-cell tests.
 void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
 {
-    constexpr uint32_t diagonal = 23;
+    const auto oct = Search::octile{(uint32_t)L.step};
+    const auto step = L.step, tile = L.tile, lo = L.lo, hi = L.hi, n = L.n;
     struct entry { uint32_t d, i; };
     constexpr auto later = [](entry a, entry b) { return a.d > b.d; };
 
@@ -172,7 +174,7 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
             for (int i = -1; i <= 1; i++)
             {
                 const auto s = base + Vector2i{i, j};
-                const auto d = Search::octile_distance(zone_point(from), lattice_point(s));
+                const auto d = oct(zone_point(from), L.pt(s));
                 dist[L.index(s)] = d;
                 arrayAppend(heap, entry{d, L.index(s)});
                 std::push_heap(heap.begin(), heap.end(), later);
@@ -185,7 +187,7 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
         arrayRemoveSuffix(heap);
         if (d > dist[i])
             continue;
-        const auto v = Vector2i{(int)(i % n) + lo, (int)(i / n) + lo};
+        const auto v = Vector2i{(int)(i % (uint32_t)n) + lo, (int)(i / (uint32_t)n) + lo};
         fm_assert(v.x() > lo && v.x() < hi && v.y() > lo && v.y() < hi);
 
         for (int dy = -1; dy <= 1; dy++)
@@ -196,7 +198,7 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
                     continue;
                 if (dx && dy && !(L.at(v + Vector2i{dx, 0}) && L.at(v + Vector2i{0, dy})))
                     continue;
-                const auto du = d + (dx && dy ? diagonal : (uint32_t)step);
+                const auto du = d + (dx && dy ? oct.diag : oct.axial);
                 if (du < dist[L.index(u)])
                 {
                     dist[L.index(u)] = du;
@@ -207,19 +209,20 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
     }
 }
 
-// The search's goal hop reach: a cell plus a step less 2 px per axis. Octile from a node past it can
-// be cheaper than any route through the reach, so the reach decides the cost.
-uint32_t reference_cost(const Array<uint32_t>& dist, zone to, uint32_t cell)
+// The search's goal hop reach: two cells less 2 px per axis. Octile from a node past it can be
+// cheaper than any route through the reach, so the reach decides the cost.
+uint32_t reference_cost(const lattice& L, const Array<uint32_t>& dist, zone to)
 {
-    const auto hop_axis = (uint64_t)(cell + step - 2);
+    const auto oct = Search::octile{(uint32_t)L.step};
+    const auto hop_axis = (uint64_t)(2*L.step - 2);
     auto best = unreached;
-    for (int j = -clear_steps; j <= clear_steps; j++)
-        for (int i = -clear_steps; i <= clear_steps; i++)
+    for (int j = -L.clear_steps; j <= L.clear_steps; j++)
+        for (int i = -L.clear_steps; i <= L.clear_steps; i++)
         {
-            const auto v = to.tile*tile + Vector2i{i, j};
-            const auto d = dist[lattice::index(v)];
-            if (d != unreached && point::distance_squared(lattice_point(v), zone_point(to)) <= 2*hop_axis*hop_axis)
-                best = Math::min(best, d + Search::octile_distance(lattice_point(v), zone_point(to)));
+            const auto v = to.tile*L.tile + Vector2i{i, j};
+            const auto d = dist[L.index(v)];
+            if (d != unreached && point::distance_squared(L.pt(v), zone_point(to)) <= 2*hop_axis*hop_axis)
+                best = Math::min(best, d + oct(L.pt(v), zone_point(to)));
         }
     return best;
 }
@@ -231,8 +234,6 @@ void check_map(bool for_large_pools, ArrayView<const pool_size> pools)
 
     auto A = astar{};
     const auto& pred = Search::without_critters();
-    auto L = lattice{};
-    auto dist = Array<uint32_t>{NoInit, (size_t)n*n};
 
     for (auto [cell, bbox] : pools)
     {
@@ -240,14 +241,16 @@ void check_map(bool for_large_pools, ArrayView<const pool_size> pools)
         fm_assert(pool.params().div_size() == cell);
         pool.maybe_mark_stale_all(w);
 
-        for (int y = lo; y <= hi; y++)
-            for (int x = lo; x <= hi; x++)
-                L.free[L.index({x, y})] = A.cache()->is_passable_for_bbox(w, pool, lattice_point({x, y}), pred);
+        auto L = lattice{(int)cell};
+        auto dist = Array<uint32_t>{NoInit, (size_t)(L.n*L.n)};
+        for (int y = L.lo; y <= L.hi; y++)
+            for (int x = L.lo; x <= L.hi; x++)
+                L.free[L.index({x, y})] = A.cache()->is_passable_for_bbox(w, pool, L.pt({x, y}), pred);
 
         for (auto z : zones)
-            for (int j = -clear_steps; j <= clear_steps; j++)
-                for (int i = -clear_steps; i <= clear_steps; i++)
-                    if (!L.at(z.tile*tile + Vector2i{i, j}))
+            for (int j = -L.clear_steps; j <= L.clear_steps; j++)
+                for (int i = -L.clear_steps; i <= L.clear_steps; i++)
+                    if (!L.at(z.tile*L.tile + Vector2i{i, j}))
                         fm_abort("dijkstra reference: zone %d,%d isn't clear at cell %u, bbox %u",
                                  z.tile.x(), z.tile.y(), cell, bbox);
 
@@ -259,7 +262,7 @@ void check_map(bool for_large_pools, ArrayView<const pool_size> pools)
             {
                 if (a == b)
                     continue;
-                const auto expected = reference_cost(dist, zones[b], cell);
+                const auto expected = reference_cost(L, dist, zones[b]);
                 const bool found = expected < max_dist;
                 const auto r = A.Dijkstra<0, false>(w, pool, zone_point(zones[a]), zone_point(zones[b]),
                                                     max_dist, Vector2ui{bbox}, pred);

@@ -10,6 +10,7 @@
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/scenery-proto.hpp"
+#include "src/tile-constants.hpp"
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
@@ -26,11 +27,11 @@ constexpr auto flush_bbox = Vector2ui{32};
 constexpr auto flush_tile = local_coords{8, 8};
 
 // Floor every chunk a search from `from` can test: its nodes lie within max_dist of `from`,
-// and the cells tested around them one step further.
-void add_floors(world& w, point from, uint32_t max_dist)
+// and the cells tested around them one step of `cell` px further.
+void add_floors(world& w, point from, uint32_t max_dist, uint32_t cell)
 {
     const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
-    const auto reach = Vector2i{(int)max_dist + Search::div_size.x()};
+    const auto reach = Vector2i{(int)(max_dist + cell)};
     const auto lo = (from - reach).chunk(), hi = (from + reach).chunk();
     for (auto j = lo.y; j <= hi.y; j++)
         for (auto i = lo.x; i <= hi.x; i++)
@@ -69,7 +70,7 @@ void check_flush_goal(const char* name, F&& setup, Vector2b goal_offset, Vector2
     constexpr uint32_t max_dist = 1024;
     const auto from = point{global_coords{flush_ch, {8, 12}}, {}};
     auto w = world();
-    add_floors(w, from, max_dist);
+    add_floors(w, from, max_dist, flush_bbox.x());
     setup(w);
     auto& c = w[flush_ch];
     c.mark_passability_modified();
@@ -136,6 +137,47 @@ void test_flush_goals()
     }, {}, {1, 0}, false);
 }
 
+bool box_free(world& w, point pt, uint32_t bbox)
+{
+    const auto R = Range2D::fromCenter(Vector2(intra_coord{pt}.center_shifted()), Vector2(Vector2ui(bbox)/2u));
+    return Search::is_passable(w, pt.chunk3(), R, Search::without_critters());
+}
+
+// The start touches a collider on its high x side, so the cell holding it is closed.
+void check_closed_start_cell(uint32_t bbox, int8_t start_x)
+{
+    constexpr uint32_t max_dist = 1024;
+    constexpr auto start_tile = local_coords{5, 5}, block_tile = local_coords{6, 5};
+    constexpr auto block_size = Vector2ub{20, tile_size_xy};
+    const auto from = point{global_coords{flush_ch, start_tile}, {start_x, 0}};
+    const auto goal = point{global_coords{flush_ch, {1, 5}}, {}};
+    const auto block_x = (int)block_tile.x * tile_size_xy;
+    const auto block_lo = (int)start_tile.x * tile_size_xy + start_x + (int)bbox/2;
+    const auto block_offset = Vector2b{(int8_t)(block_lo - block_x + block_size.x()/2), 0};
+
+    auto w = world();
+    add_floors(w, from, max_dist, bbox);
+    add_block(w, block_tile, block_size, block_offset);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    const auto& pred = Search::without_critters();
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{bbox, bbox, pass_mode::pass}, pred};
+    fm_assert(pool.params().div_size() == bbox);
+    fm_assert(box_free(w, from, bbox));
+    fm_assert(!box_free(w, point::normalize_coords(from, {1, 0}), bbox));
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, from, pred));
+
+    auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(bbox), pred);
+    auto r2 = A.Dijkstra<0, true>(w, pool, from, goal, max_dist, Vector2ui(bbox), pred);
+    if (!r1.is_found() || !r2.is_found())
+        fm_abort("closed start cell at div %u: found %d, with closest %d", bbox, (int)r1.is_found(), (int)r2.is_found());
+    fm_assert(r1.path().back() == goal);
+    fm_assert(r2.cost() == r1.cost());
+}
+
 } // namespace
 
 void Test::test_dijkstra()
@@ -151,8 +193,10 @@ void Test::test_dijkstra()
     constexpr auto wt = local_coords{wtx, wty};
     constexpr auto wpos = global_coords{wch, wt};
     const auto from = point{{0, 0, 0}, {11, 9}};
+    constexpr auto own_size = Vector2ui{16};
+    auto& pool = A.pool_registry().pool_for(own_size.x());
 
-    add_floors(w, from, max_dist);
+    add_floors(w, from, max_dist, pool.params().div_size());
     auto& ch = w[wch];
     auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, 0};
 
@@ -180,10 +224,8 @@ void Test::test_dijkstra()
             c.ensure_passability();
         }
 
-    constexpr auto own_size = Vector2ui{16};
     const auto goal = point{wpos, {wox, woy}};
     const auto& pred = Search::without_critters();
-    auto& pool = A.pool_registry().pool_for(own_size.x());
 
     const auto run = [&]<bool debug, bool closest = true>(point to) {
             return A.Dijkstra<debug ? 1 : 0, closest>(
@@ -255,6 +297,8 @@ void Test::test_dijkstra()
     }
 
     test_flush_goals();
+    check_closed_start_cell(32, -2);
+    check_closed_start_cell(64, 10);
 }
 
 } // namespace floormat

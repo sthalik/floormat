@@ -1,6 +1,5 @@
 #pragma once
 #include "compat/safe-ptr.hpp"
-#include "search-constants.hpp"
 #include "search-pred.hpp"
 #include <array>
 #include <cr/Array.h>
@@ -51,19 +50,21 @@ public:
     };
 
     // Han, Uras, Koenig, "Toward a String-Pulling Approach to Path Smoothing on Grid Graphs",
-    // SoCS 2020, Algorithm 1, over the Search::div_size steps of the raw path. Not smoothed when it
-    // gives up, with smoothings() left empty.
+    // SoCS 2020, Algorithm 1, over the steps of the raw path, one cell of the pool for own_size
+    // each. Not smoothed when it gives up, with smoothings() left empty.
     string_pull_result string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p);
+    // `pool` is the one the search ran on: steps of another cell size split its segments wrong.
+    string_pull_result string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,
+                                   Vector2ui own_size, const pred& p);
 
 private:
-    static constexpr auto initial_capacity = TILE_COUNT * 32 * Search::div_factor*Search::div_factor;
-    // The seeds' f can spread by about 134, more than a step adds.
-    static constexpr uint32_t bucket_count = 256;
+    static constexpr uint32_t initial_capacity = 1u << 17;
 
     safe_ptr<struct Search::cache> _cache;
     safe_ptr<Grid::PoolRegistry> _pool_registry;
     Array<visited> nodes;
-    std::array<Array<frontier>, bucket_count> buckets;
+    Array<Array<frontier>> buckets;
+    Array<uint32_t> bucket_sizes;
     Array<point> temp_nodes;
     Array<const uint8_t*> chunk_bits;
 };

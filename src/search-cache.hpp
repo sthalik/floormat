@@ -17,12 +17,12 @@ struct cache
 {
     Vector2ui size;
     Vector2i start{(int)((1u << 31) - 1)};
-    uint32_t div_size_;
-    uint32_t div_count_;
+    uint32_t div_size_ = 0;
+    uint32_t div_count_ = 0;
     Array<uint32_t> indexes;
     BitArray exists;
 
-    explicit cache(uint32_t div_size);
+    cache();
     ~cache() noexcept;
     fm_DISABLE_COPY(cache);
 
@@ -31,7 +31,7 @@ struct cache
     uint32_t get_tile_index(intra_coord pos) const;
     static Vector2ui get_size_to_allocate(uint32_t max_dist);
 
-    void allocate(point from, uint32_t max_dist);
+    void allocate(point from, uint32_t max_dist, uint32_t div_size);
     void add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index);
     void add_index(point pt, uint32_t index);
     uint32_t lookup_index(uint32_t chunk_index, uint32_t tile_index);
