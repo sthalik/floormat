@@ -90,16 +90,28 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
     return has_holes;
 }
 
+// raycast-loop.cpp's integer query finds every rect a float query would only while corners
+// are whole numbers. Magnum's float == is fuzzy.
+[[maybe_unused]] bool has_integer_corners(Range2D r)
+{
+    for (auto x : { r.min().x(), r.min().y(), r.max().x(), r.max().y() })
+        if (x != Math::floor(x))
+            return false;
+    return true;
+}
+
 // The covered part recurses with a threshold above the hole's, so the recursion ends.
 void filter_bbox_through_holes(Chunk_RTree& rtree, const Chunk_RTree& holes, object_id id, Range2D bbox,
                                pass_mode min_pass, bool has_holes)
 {
     fm_assert((bbox.max() > bbox.min()).all());
+    fm_debug3_assert(has_integer_corners(bbox));
     if (!has_holes || min_pass > pass_mode::pass)
         return rtree.Insert(bbox.min().data(), bbox.max().data(), id);
     const auto x = std::bit_cast<collision_data>(id);
 start:
     fm_assert((bbox.max() > bbox.min()).all());
+    fm_debug3_assert(has_integer_corners(bbox));
 
     auto found = chunk::find_hole_in_bbox(holes, bbox, min_pass);
 
