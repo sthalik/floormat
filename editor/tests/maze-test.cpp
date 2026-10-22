@@ -60,7 +60,7 @@ void maze_test::solve(app& a)
     auto i = C->index();
     C->teleport_to(i, route->from, rotation_COUNT);
     a.center_camera_on(route->from);
-    const auto bb = Vector2ui{C->bbox_size};
+    const auto bb = C->circumscribed_bbox_size();
     auto res = m.astar().Dijkstra(w, route->from, route->to, route->max_dist, bb, Search::without_critters());
     if (!res.is_found())
     {

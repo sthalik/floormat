@@ -71,4 +71,20 @@ constexpr Pair<Vector2b, Vector2ub> rotate_bbox(Vector2b offset0, Vector2ub size
     };
 }
 
+// Dijkstra and string_pull centre own_size on the position as [-s/2, s - s/2). The smallest such box
+// around the bbox in all four cardinal rotations keeps a path walkable in every facing.
+constexpr Vector2ui circumscribed_bbox_size(Vector2b bbox_offset, Vector2ub bbox_size, rotation r)
+{
+    constexpr rotation cardinals[] = { rotation::N, rotation::E, rotation::S, rotation::W };
+    Vector2i lo, hi;
+    for (auto c : cardinals)
+    {
+        const auto size = Vector2i(rotate_size(bbox_size, r, c));
+        const auto min = Vector2i(rotate_point(bbox_offset, r, c)) - size/2;
+        lo = Math::min(lo, min);
+        hi = Math::max(hi, min + size);
+    }
+    return Vector2ui(Math::max(lo * -2, hi*2 - Vector2i{1}));
+}
+
 } // namespace floormat

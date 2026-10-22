@@ -43,4 +43,12 @@ static_assert(rotate_offset({  31,  -5 }, { -9,  7 }, rotation::S, rotation::N) 
 static_assert(rotate_offset({   0, -32 }, {  3,  4 }, rotation::N, rotation::E) == offsets{{ 31,  0}, {-3,  3}});
 static_assert(rotate_offset({   0, -32 }, { 0, -127 }, rotation::N, rotation::S) == offsets{{0, 31}, {0, 127}});
 
+static_assert(circumscribed_bbox_size({}, { 32, 32 }, rotation::N) == Vector2ui{32});
+static_assert(circumscribed_bbox_size({}, { 31, 31 }, rotation::N) == Vector2ui{31});
+static_assert(circumscribed_bbox_size({}, { 24, 64 }, rotation::E) == Vector2ui{64});
+// x is -10..21 facing N, -20..11 facing S
+static_assert(circumscribed_bbox_size({ 5, 0 }, { 31, 31 }, rotation::N) == Vector2ui{41});
+static_assert(circumscribed_bbox_size({ 16, -32 }, { 32, 16 }, rotation::N) == Vector2ui{80});
+static_assert(circumscribed_bbox_size({ 32,  16 }, { 16, 32 }, rotation::E) == Vector2ui{80});
+
 } // namespace floormat
