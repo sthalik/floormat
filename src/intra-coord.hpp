@@ -9,7 +9,6 @@ namespace floormat {
 struct point;
 
 // Pixel position in a chunk, from its NW corner: [0, chunk_size) per axis.
-// center_shifted() is the point frame, where the center of tile 0 is {0, 0}.
 // Checking asserts every value it stores. Wrapping stores anything, and its += and -= wrap into the chunk.
 template<intra_coord_base::Type TYPE>
 struct basic_intra_coord : intra_coord_base
@@ -23,6 +22,8 @@ struct basic_intra_coord : intra_coord_base
     constexpr basic_intra_coord& operator=(Vector2i value);
 
     static constexpr bool is_in_range(Vector2i value);
+    /// @brief Inverse of center_shifted().
+    /// @param value Position where the center of the first tile is {0, 0}.
     static constexpr basic_intra_coord from_center_shifted(Vector2i value);
 
     constexpr int x() const;
@@ -32,6 +33,8 @@ struct basic_intra_coord : intra_coord_base
 
     constexpr local_coords local() const;
     constexpr Vector2b offset() const;
+    /// @brief Moves the origin from the chunk's top-left corner to the center of the first tile, as in `point`.
+    /// @return Position where the center of the first tile is {0, 0}.
     constexpr Vector2i center_shifted() const;
     constexpr point to_point(chunk_coords_ ch) const;
 
