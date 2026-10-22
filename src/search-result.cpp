@@ -39,6 +39,7 @@ path_search_result& path_search_result::operator=(path_search_result&& other) no
     _time = other._time;
     _cost = other._cost;
     _distance = other._distance;
+    _div_size = other._div_size;
     _found = other._found;
     return *this;
 }
@@ -119,5 +120,7 @@ bool path_search_result::is_found() const { return _found; }
 void path_search_result::set_found(bool value) { _found = value; }
 uint32_t path_search_result::distance() const { return _distance; }
 void path_search_result::set_distance(uint32_t dist) { _distance = dist; }
+uint32_t path_search_result::div_size() const { return _div_size; }
+void path_search_result::set_div_size(uint32_t value) { _div_size = value; }
 
 } // namespace floormat

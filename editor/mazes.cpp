@@ -412,7 +412,7 @@ struct maze_ends
 
 // A* with a consistent h expands every node with g + h < C*. Picks the border entrance and exit
 // with the most cells under that bound, counted at cell resolution.
-maze_ends pick_ends(const cell_graph& g)
+maze_ends pick_ends(const cell_graph& g, Search::octile oct)
 {
     constexpr auto cell_px = maze_pitch*(uint32_t)tile_size_xy;
     const auto n = g.w*g.h;
@@ -459,7 +459,7 @@ maze_ends pick_ends(const cell_graph& g)
                 for (uint32_t x = 0; x < g.w; x++, c++)
                 {
                     const auto delta = (Vector2i{(int)x, (int)y} - e.outside)*(int)cell_px;
-                    count += bfs.dist[c]*cell_px + Search::octile_distance(delta) < C;
+                    count += bfs.dist[c]*cell_px + oct(delta) < C;
                 }
             if (count > best_count || (count == best_count && de > best.dist))
             {
@@ -520,8 +520,8 @@ route build(world& w, kind k, chunk_coords_ origin, Grid::Pass::Pool& pool)
     const auto from = open_point(w, pool, tile_point(origin, m, a.tile));
     const auto to = open_point(w, pool, tile_point(origin, m, b.tile));
 
-    const auto h_max = Search::octile_distance(tile_point(origin, m, 0),
-                                               tile_point(origin, m, m.size*m.size - 1)) + 2*tile_size_xy;
+    const auto oct = Search::octile{pool.params().div_size()};
+    const auto h_max = oct(tile_point(origin, m, 0), tile_point(origin, m, m.size*m.size - 1)) + 2*tile_size_xy;
     // If the walk through the BFS path's tile centres is passable, the optimum costs at most
     // b.dist*tile_size_xy. A pushed node's g is then at most that plus one step and its h at most
     // h_max, so this max_dist prunes nothing. A larger one only grows Search::cache's rectangle.
@@ -537,7 +537,8 @@ route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
     auto r = rng{seed};
     cell_graph g{cells, cells};
     growing_tree(g, r);
-    const auto ends = pick_ends(g);
+    const auto oct = Search::octile{pool.params().div_size()};
+    const auto ends = pick_ends(g, oct);
     const auto& ex = ends.exit;
     auto m = draw_maze(g);
     {
@@ -630,7 +631,7 @@ route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
 
     // Same bound as build(), over the footprint's diagonal.
     const auto route_tiles = (ends.dist + 1)*maze_pitch;
-    const auto h_max = Search::octile_distance(Vector2i{(int)m.size + 1 + 2*pitch}*tile_size_xy) + 2*tile_size_xy;
+    const auto h_max = oct(Vector2i{(int)m.size + 1 + 2*pitch}*tile_size_xy) + 2*tile_size_xy;
     const auto max_dist = route_tiles*tile_size_xy + h_max + 2*tile_size_xy;
     return { from, to, max_dist, route_tiles };
 }

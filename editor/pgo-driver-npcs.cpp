@@ -10,7 +10,6 @@
 #include "src/scenery.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/search-astar.hpp"
-#include "src/search-constants.hpp"
 #include "src/search-pred.hpp"
 #include "src/search-result.hpp"
 #include "src/grid-pass.hpp"
@@ -63,7 +62,7 @@ struct blocker
 task app::scene_npcs()
 {
     constexpr int16_t r0 = 0, r1 = room_chunks;
-    constexpr int margin = Search::div_size.x();
+    const auto margin = (int)M->astar().pool_registry().pool_for(critter_size).params().div_size();
 
     auto& w = M->world();
     auto wall = loader.wall_atlas("test1", loader_policy::warn);

@@ -582,7 +582,7 @@ enum maze_flag : uint8_t { maze_seen = 1 << 0, maze_open_e = 1 << 1, maze_open_s
 
 // W, N, E, S. The DFS tries the first two first, which is what makes the maze adversarial: they
 // point away from the goal cell at (max,max), so the trunk wanders and the branches aimed at the
-// goal become the dead ends. octile_distance is admissible, so A* expands every node under the
+// goal become the dead ends. Search::octile is admissible, so A* expands every node under the
 // true cost -- and here that is nearly all of them.
 constexpr inline Vector2i maze_dirs[4] = { {-1,0}, {0,-1}, {1,0}, {0,1} };
 

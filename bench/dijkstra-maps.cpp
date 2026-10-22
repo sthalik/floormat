@@ -20,6 +20,8 @@ namespace {
 
 using mazes::kind;
 
+constexpr uint32_t default_cell = 16;
+
 struct map_world
 {
     world w;
@@ -46,7 +48,9 @@ void verify(kind k, uint32_t cell, uint32_t optimum)
 
     const auto res = search(s);
     fm_assert(res.is_found());
-    fm_assert(res.cost() == optimum);
+    if (res.cost() != optimum)
+        fm_abort("dijkstra-maps %s cell %u: cost %u, optimum %u",
+                 mazes::name(k).data(), cell, res.cost(), optimum);
 
     auto& pool = s.pool;
     constexpr auto nch = mazes::map_chunks - 1;
@@ -63,7 +67,7 @@ void verify(kind k, uint32_t cell, uint32_t optimum)
         }
 
     const auto rect = Search::cache::get_size_to_allocate(s.r.max_dist)*2u + Vector2ui{1};
-    const auto h0 = Search::octile_distance(s.r.from, s.r.to);
+    const auto h0 = Search::octile{pool.params().div_size()}(s.r.from, s.r.to);
     DBG_nospace << "dijkstra-maps " << mazes::name(k) << " cell " << pool.params().div_size()
                 << ": open cells " << open_cells << "/" << side*side
                 << ", bfs tiles " << s.r.bfs_tiles
@@ -75,7 +79,7 @@ void verify(kind k, uint32_t cell, uint32_t optimum)
 
 // A world per call, as in Dijkstra<>. A static one is destroyed after bench_app's loader.destroy(),
 // and a leaked one trips the RTree pool destructor's assert that every tree came back.
-template<kind K, uint32_t Cell = (uint32_t)Search::div_size.x()>
+template<kind K, uint32_t Cell = default_cell>
 void bench_map(benchmark::State& state, uint32_t optimum)
 {
     static const bool verified = (verify(K, Cell, optimum), true);
@@ -92,24 +96,24 @@ path_search_result pulled_path(map_world& s)
 {
     auto res = search(s);
     fm_assert(res.is_found());
-    fm_assert(s.A.string_pull(s.w, res, Vector2ui{mazes::bbox_size}, Search::without_critters()));
+    fm_assert(s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::without_critters()));
     return res;
 }
 
 template<kind K>
 void bench_pull(benchmark::State& state)
 {
-    map_world s{K, (uint32_t)Search::div_size.x()};
+    map_world s{K, default_cell};
     auto res = pulled_path<K>(s);
     for (auto _ : state)
-        benchmark::DoNotOptimize(s.A.string_pull(s.w, res, Vector2ui{mazes::bbox_size}, Search::without_critters()));
+        benchmark::DoNotOptimize(s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::without_critters()));
 }
 
 // Without a pool, as move_toward sweeps each frame's steps.
 template<kind K>
 void bench_sweep(benchmark::State& state)
 {
-    map_world s{K, (uint32_t)Search::div_size.x()};
+    map_world s{K, default_cell};
     const auto res = pulled_path<K>(s);
     const auto wp = res.smoothings();
     const auto sweep = [&](size_t i) {
@@ -125,13 +129,13 @@ void bench_sweep(benchmark::State& state)
             benchmark::DoNotOptimize(sweep(i));
 }
 
-// Optimal costs at step costs 16/23.
+// Optimal costs. A step is one cell, its costs as in Search::octile.
 void Dijkstra_Rooms(benchmark::State& state) { bench_map<kind::rooms>(state, 14397); }
 void Dijkstra_Braid(benchmark::State& state) { bench_map<kind::braid>(state, 14451); }
 void Dijkstra_Prim(benchmark::State& state) { bench_map<kind::prim>(state, 24637); }
-void Dijkstra_Braid_Cell4(benchmark::State& state) { bench_map<kind::braid, 4>(state, 14355); }
-void Dijkstra_Braid_Cell8(benchmark::State& state) { bench_map<kind::braid, 8>(state, 14355); }
-void Dijkstra_Braid_Cell32(benchmark::State& state) { bench_map<kind::braid, 32>(state, 15488); }
+void Dijkstra_Braid_Cell4(benchmark::State& state) { bench_map<kind::braid, 4>(state, 14474); }
+void Dijkstra_Braid_Cell8(benchmark::State& state) { bench_map<kind::braid, 8>(state, 14548); }
+void Dijkstra_Braid_Cell32(benchmark::State& state) { bench_map<kind::braid, 32>(state, 16288); }
 void String_Pull_Rooms(benchmark::State& state) { bench_pull<kind::rooms>(state); }
 void String_Pull_Braid(benchmark::State& state) { bench_pull<kind::braid>(state); }
 void String_Pull_Prim(benchmark::State& state) { bench_pull<kind::prim>(state); }

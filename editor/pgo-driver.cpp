@@ -991,7 +991,7 @@ task app::scene_maze1()
 {
     // A tour of the four corner cells rather than one diagonal. Each leg is a search in its own
     // right, and the two that run along an edge have the shortest straight line against the same
-    // snake corridor, so octile_distance tells A* the least about those.
+    // snake corridor, so Search::octile tells A* the least about those.
     constexpr uint32_t num_legs = 4;
 
     populate_scene_maze1();

@@ -5,10 +5,10 @@
 #include "loader/wall-cell.hpp"
 #include "src/world.hpp"
 #include "src/scenery-proto.hpp"
-#include "src/search-constants.hpp"
 #include "src/search.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
+#include "src/grid-pass.hpp"
 #include "src/sweep-aabb.hpp"
 #include "src/raycast-line.hpp"
 #include "src/chunk.hpp"
@@ -23,6 +23,10 @@ namespace floormat {
 using namespace floormat::Search;
 
 namespace {
+
+constexpr int div_factor = 4;
+constexpr auto div_size = iTILE_SIZE2 / div_factor;
+constexpr auto min_size = Vector2ui(div_size);
 
 constexpr Range2Di get_value(Vector2i sz, Vector2ui div, rotation r)
 {
@@ -471,6 +475,7 @@ void test_string_pull_hidden_corner()
 
     const auto origin = point{pull_ch, {}, {}};
     path_search_result res;
+    res.set_div_size(16);
     for (auto px : { Vector2i{200, 500}, Vector2i{600, 500}, Vector2i{600, 300} })
         arrayAppend(res.raw_path(), origin + px);
     auto A = astar{};
@@ -493,6 +498,7 @@ void test_string_pull_truncate()
 
     const auto origin = point{pull_ch, {}, {}};
     path_search_result res;
+    res.set_div_size(16);
     for (auto px : { Vector2i{416, 492}, Vector2i{512, 492}, Vector2i{544, 524}, Vector2i{812, 562} })
         arrayAppend(res.raw_path(), origin + px);
     auto A = astar{};
@@ -514,6 +520,7 @@ void test_string_pull_last_visible()
 
     const auto origin = point{pull_ch, {}, {}};
     path_search_result res;
+    res.set_div_size(16);
     for (auto px : { from, mid, to })
         arrayAppend(res.raw_path(), origin + px);
     auto A = astar{};
@@ -524,7 +531,7 @@ void test_string_pull_last_visible()
     fm_assert(sp[1].pt - origin == mid);
 }
 
-void test_string_pull_random()
+void test_string_pull_random(uint32_t cell)
 {
     uint64_t state = 0x9e3779b97f4a7c15;
     const auto rnd = [&](uint32_t n) {
@@ -545,11 +552,12 @@ void test_string_pull_random()
         w[pull_ch].mark_modified();
         const auto from = point{pull_ch, {1, (uint8_t)rnd(16)}, {(int8_t)((int)rnd(41) - 20), (int8_t)((int)rnd(41) - 20)}};
         const auto to = point{pull_ch, {14, (uint8_t)rnd(16)}, {(int8_t)((int)rnd(41) - 20), (int8_t)((int)rnd(41) - 20)}};
-        auto res = A.Dijkstra(w, from, to, pull_max_dist, size, without_critters());
+        auto pool = Pass::Pool{Pass::Params{cell, size.x(), pass_mode::pass}, without_critters()};
+        auto res = A.Dijkstra(w, pool, from, to, pull_max_dist, size, without_critters());
         if (!res.is_found())
             continue;
         found++;
-        check_pulled(w, res, size, A.string_pull(w, res, size, without_critters()));
+        check_pulled(w, res, size, A.string_pull(w, pool, res, size, without_critters()));
     }
     fm_assert(found >= 16);
 }
@@ -565,7 +573,8 @@ void Test::test_astar()
     test_string_pull_hidden_corner();
     test_string_pull_truncate();
     test_string_pull_last_visible();
-    test_string_pull_random();
+    for (auto cell : { 4u, 8u, 16u, 32u })
+        test_string_pull_random(cell);
 }
 
 } // namespace floormat

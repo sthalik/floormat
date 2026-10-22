@@ -30,6 +30,8 @@ struct path_search_result final
     void set_found(bool value);
     uint32_t distance() const;
     void set_distance(uint32_t dist);
+    uint32_t div_size() const;
+    void set_div_size(uint32_t value);
 
     Array<point>& raw_path();
     ArrayView<const point> path() const;
@@ -48,7 +50,7 @@ private:
 
     Pointer<node> _node;
     float _time = 0;
-    uint32_t _cost = 0, _distance = (uint32_t)-1;
+    uint32_t _cost = 0, _distance = (uint32_t)-1, _div_size = 0;
     bool _found : 1 = false;
 
     static Pointer<node> _pool; // NOLINT(*-avoid-non-const-global-variables) todo thread safety
