@@ -6,8 +6,10 @@
 /images/
 /userconfig*.cmake
 *.profraw
+/AGENTS.md
 /CLAUDE.md
 /.claude/
+/.codex/
 __pycache__/
 *.py[co]
 /lock
