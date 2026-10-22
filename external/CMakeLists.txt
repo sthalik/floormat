@@ -400,6 +400,26 @@ elseif(NOT MSVC AND NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_SYSTEM_PROCESSOR MATCH
     target_compile_options(floormat-hwy PRIVATE -mvzeroupper)
 endif()
 
+# cl.exe never defines __OPTIMIZE__, so Highway assumes a debug build.
+# Defining it makes Highway sort with HeapSort on cl.exe. A copy of shared-inl.h drops that.
+function(fm_hwy_msvc_vqsort)
+    set(src "${CMAKE_CURRENT_SOURCE_DIR}/highway/hwy/contrib/sort/shared-inl.h")
+    set(dir "${CMAKE_CURRENT_BINARY_DIR}/hwy-msvc")
+    set(dst "${dir}/hwy/contrib/sort/shared-inl.h")
+    file(READ "${src}" text)
+    string(REPLACE "(HWY_COMPILER_MSVC && !HWY_IS_DEBUG_BUILD) ||" "" patched "${text}")
+    if(patched STREQUAL text)
+        message(FATAL_ERROR "${src} no longer has the MSVC clause")
+    endif()
+    file(CONFIGURE OUTPUT "${dst}" CONTENT "${patched}" @ONLY NEWLINE_STYLE UNIX)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${src}")
+    target_include_directories(floormat-hwy BEFORE PRIVATE "${dir}")
+    target_compile_definitions(floormat-hwy PUBLIC $<$<NOT:$<CONFIG:Debug>>:__OPTIMIZE__>)
+endfunction()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    fm_hwy_msvc_vqsort()
+endif()
+
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     if(MSVC)
         target_compile_options(CorradeTestSuiteObjects PRIVATE -EHsc)
