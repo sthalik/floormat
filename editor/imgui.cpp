@@ -286,25 +286,25 @@ void app::draw_clickables()
             if (e.is_dynamic())
                 continue;
 
-            constexpr auto f = tile_shader::foreshortening_factor;
             const auto& atlas = *e.atlas;
             const auto& frame = atlas.frame(e.r, e.frame);
             const auto& g = atlas.group(e.r);
-            const auto bb_half = Vector2(e.bbox_size) * 0.5f;
-            const float denom = bb_half.x() + bb_half.y();
-            const float slope = denom > 0.f ? f * (bb_half.x() - bb_half.y()) / denom : 0.f;
 
-            // bbox center screen offset from sprite's ground anchor, odd sizes as in chunk-scenery.cpp
+            // bbox corners' screen offsets from sprite's ground anchor, as in chunk-scenery.cpp
             const auto lo = Vector2i(e.bbox_size/2), hi = Vector2i(e.bbox_size) - lo;
-            const auto bbox_scr = tile_shader::project(Vector3(Vector2(e.bbox_offset) + Vector2(hi - lo)*.5f, 0.f) - Vector3(g.offset));
+            const auto corner = [&](Vector2i px) {
+                return tile_shader::project(Vector3(Vector2(Vector2i(e.bbox_offset) + px), 0.f) - Vector3(g.offset));
+            };
+            const auto nw = corner(-lo), w = corner({-lo.x(), hi.y()}), east = corner({hi.x(), -lo.y()});
+            const float slope = east.x() > w.x() ? (east.y() - w.y()) / (east.x() - w.x()) : 0.f;
 
             // sprite screen extent (pixel offsets from ground anchor)
             const float left_x   = float(-frame.ground.x());
             const float right_x  = float(frame.size.x()) - float(frame.ground.x());
 
             // slope line y-value at left and right sprite edges
-            const float y_at_left  = bbox_scr.y() + slope * (left_x - bbox_scr.x());
-            const float y_at_right = bbox_scr.y() + slope * (right_x - bbox_scr.x());
+            const float y_at_left  = w.y() + slope * (left_x - w.x());
+            const float y_at_right = w.y() + slope * (right_x - w.x());
 
             // sprite's ground anchor on screen
             const Vector2 center = tile_shader::point_to_pixel(Vector3i(e.position()) + Vector3i(g.offset), win_size, camera);
@@ -313,8 +313,8 @@ void app::draw_clickables()
             draw.AddLine({start.x(), start.y()}, {end.x(), end.y()}, color, thickness);
 
             // vertical split at the bbox NW corner (between slope line and top edge)
-            const float x_nw = Math::clamp(bbox_scr.x() + bb_half.y() - bb_half.x(), left_x, right_x);
-            const float y_at_nw = bbox_scr.y() + slope * (x_nw - bbox_scr.x());
+            const float x_nw = Math::clamp(nw.x(), left_x, right_x);
+            const float y_at_nw = w.y() + slope * (x_nw - w.x());
             const float top_y = -float(frame.ground.y());
             const auto vsplit_start = Vector2{center.x() + x_nw, center.y() + y_at_nw};
             const auto vsplit_end   = Vector2{center.x() + x_nw, center.y() + top_y};
