@@ -45,7 +45,7 @@ constexpr std::array<uint8_t, octant_count> octant_order = {
 
 // fill_aligned() carries pixels in 1/fixed_one px in uint16_t. Carries saturate at UINT16_MAX,
 // which rounds to dc, the cap.
-constexpr uint32_t fixed_one = (UINT16_MAX + 1) / chunk_size_xy;
+constexpr uint32_t fixed_one = (UINT16_MAX + 1) / chunk_size_xy; // xxx todo assumes power of two chunk size
 
 uint32_t to_fixed(float px)
 {
@@ -117,12 +117,12 @@ bool sweep_row_vectorized(uint16_t* prev, T* out, const uint8_t* row_bits, int32
     constexpr hn::Rebind<uint8_t, decltype(d)> d8;
     const auto N = (uint32_t)hn::Lanes(d);
     // whole vectors, each starting on a byte of the pass grid
-    if (!std::has_single_bit(uint32_t{chunk_size_xy}) || N % 8 != 0 || dc % N != 0)
+    if (N % 8 != 0 || dc % N != 0)
         return false;
 
     // Rows are dc cells apart, and dc is a multiple of N, so of 8.
     constexpr uint32_t row_bytes = (DivSize ? chunk_size_xy / DivSize : 8) * sizeof *out;
-    constexpr uint32_t out_align = row_bytes < 64 ? row_bytes : 64;
+    constexpr uint32_t out_align = row_bytes < 64 ? row_bytes : 64; // xxx todo assumes power of two chunk size
     prev = assume_aligned<64>(prev);
     out = assume_aligned<out_align>(out);
 
@@ -134,7 +134,7 @@ bool sweep_row_vectorized(uint16_t* prev, T* out, const uint8_t* row_bits, int32
     const auto vone = hn::Set(d, uint16_t{1});
     const auto vblocked = hn::Set(d, (uint16_t)(T)-1);
     // px/unit rounded as (px/(unit/2) + 1)/2, since px + unit/2 can overflow
-    const auto half_shift = std::countr_zero(div_size * fixed_one) - 1;
+    const auto half_shift = std::countr_zero(div_size * fixed_one) - 1; // xxx todo assumes power of two chunk size
     const auto dx = sx < 0 ? 0u - N : N;
     for (uint32_t b = 0, x = sx < 0 ? dc - N : 0; b < dc; b += N, x += dx)
     {

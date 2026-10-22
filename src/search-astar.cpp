@@ -254,11 +254,7 @@ struct chunk_bitmaps
     CORRADE_ALWAYS_INLINE bool test_bit(const uint8_t* b, Vector2ui pix) const
     {
         fm_debug3_assert(pix.x() < chunk_size_xy && pix.y() < chunk_size_xy);
-        Vector2ui pos{NoInit}; (void)pos;
-        if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
-            pos = pix >> div_shift;
-        else
-            pos = pix / div_size;
+        const auto pos = pix >> div_shift;
         const auto i = pos.y() * div_count + pos.x();
         return b[i >> 3] & (1u << (i & 7));
     }
@@ -765,7 +761,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         .w = w, .pool = pool, .cache = cache, .p = p,
         .bits = chunk_bits.data(),
         .div_size = params.div_size(),
-        .div_shift = (uint32_t)std::countr_zero(params.div_size()),
+        .div_shift = (uint32_t)std::countr_zero(params.div_size()), // xxx todo assumes power of two chunk size
         .div_count = params.div_count,
     };
 

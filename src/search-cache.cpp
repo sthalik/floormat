@@ -62,11 +62,7 @@ uint32_t cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(s
 
 uint32_t cache::get_tile_index(intra_coord posʹ) const
 {
-    Vector2ui pos;
-    if constexpr (std::has_single_bit(uint32_t{chunk_size_xy}))
-        pos = Vector2ui(Vector2i(posʹ)) >> (uint32_t)std::countr_zero(div_size_);
-    else
-        pos = Vector2ui(Vector2i(posʹ)) / div_size_;
+    const auto pos = Vector2ui(Vector2i(posʹ)) >> (uint32_t)std::countr_zero(div_size_); // xxx todo assumes power of two chunk size
     auto idx = pos.y() * div_count_ + pos.x();
     fm_debug3_assert(idx < div_count_ * div_count_);
     return idx;

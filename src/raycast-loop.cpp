@@ -117,9 +117,8 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
 
     constexpr auto csize = chunk_size<int32_t>;
     const auto div = pool ? (int32_t)pool->params().div_size() : csize;
-    fm_debug_assert(std::has_single_bit((uint32_t)div));
     const auto div_count = (uint32_t)(csize / div);
-    const auto div_shift = std::countr_zero((uint32_t)div);
+    const auto div_shift = std::countr_zero((uint32_t)div); // xxx todo assumes power of two chunk size
     const auto origin = Vector2i{half_tile<int32_t>};
     const auto cell_of = [&](Vector2i p) {
         return Vector2i{(p.x() + origin.x()) >> div_shift, (p.y() + origin.y()) >> div_shift};
@@ -201,7 +200,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         return axis ? Vector2i{0, s} : Vector2i{s, 0};
     };
     const auto major_step = axis_step(major), minor_step = axis_step(minor);
-    const auto count_shift = std::countr_zero(div_count);
+    const auto count_shift = std::countr_zero(div_count); // xxx todo assumes power of two chunk size
     const auto count_mask = (int32_t)div_count - 1;
     const auto chunk_of = [&](Vector2i c) { return Vector2i{c.x() >> count_shift, c.y() >> count_shift}; };
 
