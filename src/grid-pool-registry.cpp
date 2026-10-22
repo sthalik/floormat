@@ -32,7 +32,7 @@ Pass::Pool& PoolRegistry::pool_for(uint32_t bbox_size)
 
 Cover::Pool& PoolRegistry::cover_pool(const Cover::Params& p)
 {
-    auto& slot = cover_[(uint32_t)std::countr_zero(p.validate().div_size)];
+    auto& slot = cover_[(uint32_t)std::countr_zero(p.validate().div_size)]; // xxx todo assumes power of two chunk size
     if (!slot)
         slot.emplace(p, pass_pool(Pass::Params{p.div_size, pass_mode::shoot_through}));
     return *slot;

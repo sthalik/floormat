@@ -27,13 +27,10 @@ public:
     static constexpr uint32_t direct_count = direct_max_bbox - Pass::Grid::min_bbox_size + 1;
 
 private:
-    // cover pools are indexed by countr_zero(div_size)
-    static_assert(std::has_single_bit(chunk_size_xy));
-
     std::array<Pointer<Pass::Pool>, direct_count> direct_;
     Array<Pointer<Pass::Pool>> fallback_;
     // after the pass pools, so destroyed first: each borrows one of them
-    std::array<Pointer<Cover::Pool>, std::countr_zero(chunk_size_xy)> cover_;
+    std::array<Pointer<Cover::Pool>, std::countr_zero(chunk_size_xy)> cover_; // xxx todo assumes power of two chunk size
     uint32_t div_size_;
 };
 

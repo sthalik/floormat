@@ -15,12 +15,11 @@ struct PassPool;
 
 constexpr uint32_t calc_div_size(uint32_t div_sizeʹ, uint32_t bbox_size)
 {
-    static_assert(std::has_single_bit(chunk_size_xy));
     // caller wants cells coarser than the bbox; grid requires div_size <= bbox_size
     auto div_size = div_sizeʹ && div_sizeʹ <= bbox_size ? div_sizeʹ : bbox_size;
     // smaller than a chunk, see Params::validate()
     div_size = div_size < chunk_size_xy / 2 ? div_size : chunk_size_xy / 2;
-    return div_size ? std::bit_floor(div_size) : 1;
+    return div_size ? std::bit_floor(div_size) : 1; // xxx todo assumes power of two chunk size
 }
 
 } // namespace floormat::detail::grid
@@ -40,13 +39,7 @@ struct Params
     constexpr Params(uint32_t div_size, pass_mode min_pass): Params{div_size, div_size, min_pass} {}
     constexpr Params(uint32_t div_size, uint32_t bbox_size, pass_mode min_pass);
 
-    constexpr uint32_t div_size() const
-    {
-        if constexpr (std::has_single_bit(chunk_size_xy))
-            return chunk_size_xy >> std::countr_zero(div_count);
-        else
-            return chunk_size_xy / div_count;
-    }
+    constexpr uint32_t div_size() const { return chunk_size_xy >> std::countr_zero(div_count); } // xxx todo assumes power of two chunk size
 
     Params validate() const;
 

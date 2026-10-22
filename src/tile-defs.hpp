@@ -22,6 +22,7 @@ template<typename T> constexpr inline T chunk_collision_bounds{
 constexpr inline int32_t tile_size_xy = tile_size<int32_t>;
 constexpr inline int32_t tile_size_z = 192;
 constexpr inline uint32_t chunk_size_xy = chunk_size<uint32_t>;
+static_assert((chunk_size_xy & (chunk_size_xy - 1)) == 0, "chunk_size_xy must be a power of two");
 
 constexpr inline int8_t  chunk_z_min = -1, chunk_z_max = 14;
 constexpr inline int32_t chunk_z_count = chunk_z_max - chunk_z_min + 1;

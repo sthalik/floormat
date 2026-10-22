@@ -19,7 +19,7 @@ struct octile
 constexpr octile::octile(uint32_t step) :
     axial{step},
     diag{(uint32_t)((double)step * Math::Constants<double>::sqrt2()) + 1},
-    shift{(uint32_t)std::countr_zero(step)}
+    shift{(uint32_t)std::countr_zero(step)} // xxx todo assumes power of two chunk size
 {
 }
 

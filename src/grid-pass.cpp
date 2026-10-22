@@ -78,28 +78,6 @@ void clear_rect_whole_rows(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uin
     }
 }
 
-// Any div_count. Rows can start mid-word when chunk_size_xy isn't a power of two, so each
-// row works out its own words.
-void clear_rect_any(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi)
-{
-    for (auto lo = j_lo * div_count + i_lo, end = j_hi * div_count + i_lo; lo <= end; lo += div_count)
-    {
-        const auto hi = lo + (i_hi - i_lo);
-        const auto w0 = lo >> 6, w1 = hi >> 6;
-        const uint64_t m_lo = ~uint64_t{0} << (lo & 63);
-        const uint64_t m_hi = ~uint64_t{0} >> (63 - (hi & 63));
-        if (w0 == w1)
-            clear_word_bits(bits, w0, m_lo & m_hi);
-        else
-        {
-            clear_word_bits(bits, w0, m_lo);
-            for (auto k = w0 + 1; k < w1; k++)
-                store_word(bits, k, 0);
-            clear_word_bits(bits, w1, m_hi);
-        }
-    }
-}
-
 // Whole 64-bit words, so the clear_rect_*() functions never read past the end of a small grid.
 constexpr uint32_t bitmask_size(uint32_t div_count)
 {
@@ -188,7 +166,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     const float pmin_self[2] = { -half_tile<float> - bbox_lo, -half_tile<float> - bbox_lo };
     const float pmax_self[2] = { chunk_size<float> - half_tile<float> + bbox_hi,
                                  chunk_size<float> - half_tile<float> + bbox_hi };
-    const float inv_div = 1.f / (float)div_size;
+    const float inv_div = 1.f / (float)div_size; // xxx todo assumes power of two chunk size
     const int idiv_count = (int)div_countʹ;
     const auto min_pass = (uint64_t)params.min_pass;
     all_empty = true;
@@ -238,18 +216,14 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
         }
     };
 
-    // chunk_size_xy = 1024 never reaches clear_rect_any(): every div_count is a power of two.
-    if (64 % div_countʹ == 0) [[likely]]
+    // div_count is a power of two, so it divides 64 or is a multiple of it.
+    if (64 % div_countʹ == 0) [[likely]] // xxx todo assumes power of two chunk size
         clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
             clear_rect_in_word(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
         });
-    else if (div_countʹ % 64 == 0)
-        clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
-            clear_rect_whole_rows(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
-        });
     else
         clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
-            clear_rect_any(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
+            clear_rect_whole_rows(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
         });
 
     for (auto i = 0u; i < 8; i++)
