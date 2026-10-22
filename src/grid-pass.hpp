@@ -14,10 +14,11 @@ namespace floormat::detail::grid {
 struct PassGrid;
 struct PassPool;
 
+// Without chunk_size_xy itself, see Params::validate().
 constexpr auto get_divisor_count()
 {
     auto count = 0u;
-    for (auto i = 1u; i <= chunk_size_xy; i++)
+    for (auto i = 1u; i < chunk_size_xy; i++)
         if (chunk_size_xy % i == 0)
             count++;
     return count;

@@ -33,7 +33,7 @@ private:
     std::array<Pointer<Pass::Pool>, direct_count> direct_;
     Array<Pointer<Pass::Pool>> fallback_;
     // after the pass pools, so destroyed first: each borrows one of them
-    std::array<Pointer<Cover::Pool>, std::bit_width(chunk_size_xy)> cover_;
+    std::array<Pointer<Cover::Pool>, std::countr_zero(chunk_size_xy)> cover_;
     uint32_t div_size_;
 };
 

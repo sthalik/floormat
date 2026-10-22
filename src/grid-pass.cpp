@@ -339,7 +339,7 @@ constexpr bool assert_divisor_table()
 {
     constexpr auto divisors = make_divisor_table();
     fm_assert(divisors[0] == 1);
-    fm_assert(divisors[array_size(divisors) - 1] == chunk_size_xy);
+    fm_assert(divisors[array_size(divisors) - 1] < chunk_size_xy);
     fm_assert(array_size(divisors) == get_divisor_count());
     for (auto i = 0u; i < array_size(divisors); i++)
     {
@@ -362,7 +362,7 @@ constexpr bool assert_inverse_divisor_table()
         fm_assert(inv[divisors[i] - 1] == (T)i);
 
     for (auto n = 1u; n <= chunk_size_xy; n++)
-        if (chunk_size_xy % n != 0)
+        if (chunk_size_xy % n != 0 || n == chunk_size_xy)
             fm_assert(inv[n - 1] == sentinel);
 
     return true;
@@ -382,7 +382,7 @@ constexpr bool assert_calc_div_size()
     fm_assert(calc_div_size(8, 8) == 8);
     fm_assert(calc_div_size(64, 64) == 64);
     fm_assert(calc_div_size(64, 128) == 64);
-    fm_assert(calc_div_size(chunk_size_xy, chunk_size_xy) == chunk_size_xy);
+    fm_assert(calc_div_size(0, chunk_size_xy) == chunk_size_xy / 2);
 
     fm_assert(calc_div_size(0, 64) == 64);
     fm_assert(calc_div_size(0, 100) == 64);
@@ -414,6 +414,8 @@ Params Params::validate() const
     fm_assert(min_pass > pass_mode::blocked && min_pass < pass_mode::COUNT);
     fm_assert(div_count > 0);
     fm_assert(chunk_size_xy % div_count == 0);
+    // Search::cache's one-chunk margin holds A*'s seeds only for cells smaller than a chunk
+    fm_assert(div_size() < chunk_size_xy);
     fm_assert(bbox_size >= div_size());
     fm_assert(bbox_size <= chunk_size_xy);
     return *this;

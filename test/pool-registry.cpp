@@ -53,7 +53,7 @@ void test_pool_for_is_pass_pool()
 
 void test_cover_pool_per_div()
 {
-    constexpr auto N = (uint32_t)std::bit_width(chunk_size_xy);
+    constexpr auto N = (uint32_t)std::countr_zero(chunk_size_xy);
     Grid::PoolRegistry reg{16};
     Cover::Pool* pools[N];
     for (auto i = 0u; i < N; i++)
