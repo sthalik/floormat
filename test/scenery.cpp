@@ -38,12 +38,26 @@ void test_scenery_odd_bbox()
     fm_assert(j2.at("bbox-size").get<Vector2ui>() == Vector2ui(63, 25));
 }
 
+void test_scenery_atlas_name_round_trip()
+{
+    for (const char* name : { "table", "furniture/bench1" })
+    {
+        json j;
+        j["atlas-name"] = name;
+        const auto f = j.get<scenery_proto>();
+        const json j2 = f;
+        fm_assert(j2.at("atlas-name").get<std::string>() == name);
+        fm_assert(j2.get<scenery_proto>().atlas == f.atlas);
+    }
+}
+
 } // namespace
 
 void test_scenery()
 {
     test_scenery_bad_type();
     test_scenery_odd_bbox();
+    test_scenery_atlas_name_round_trip();
 }
 
 } // namespace floormat::Test

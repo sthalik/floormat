@@ -97,7 +97,9 @@ void adl_serializer<scenery_proto>::to_json(json& j, const scenery_proto& f)
     const door_scenery_proto default_door_scenery;
     if (f.type != default_scenery.type)
         j["type"] = f.type;
-    j["atlas-name"] = f.atlas->name();
+    const auto atlas_name = f.atlas->name();
+    fm_soft_assert(atlas_name.hasPrefix(loader_::SCENERY_PATH));
+    j["atlas-name"] = atlas_name.exceptPrefix(loader_::SCENERY_PATH.size());
     if (f.frame != default_scenery.frame)
         j["frame"] = f.frame;
     if (f.r != default_scenery.r)
