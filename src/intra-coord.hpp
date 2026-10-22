@@ -1,12 +1,13 @@
 #pragma once
 #include "intra-coord-fwd.hpp"
-#include "global-coords.hpp"
 #include "tile-defs.hpp"
 #include "compat/assert.hpp"
+#include <mg/Vector2.h>
 
 namespace floormat {
 
 struct point;
+struct local_coords;
 
 // Pixel position in a chunk, from its NW corner: [0, chunk_size) per axis.
 // Checking asserts every value it stores. Wrapping stores anything, and its + and - wrap into the chunk.
