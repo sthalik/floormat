@@ -19,7 +19,9 @@ Vector2ui cache::get_size_to_allocate(uint32_t max_dist)
 {
     constexpr auto rounding = chunk_size<Vector2ui> - Vector2ui(1);
     auto nchunks = (Vector2ui(max_dist) + rounding) / chunk_size<Vector2ui>;
-    return nchunks + Vector2ui(3);
+    // A node lies within nchunks of from's chunk. Its 3x3 window and A*'s seeds reach
+    // one chunk further.
+    return nchunks + Vector2ui(1);
 }
 
 void cache::allocate(point from, uint32_t max_dist, uint32_t div_size)

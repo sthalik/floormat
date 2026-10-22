@@ -5,7 +5,7 @@
 #include "src/search.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-pool-registry.hpp"
-#include "src/point.hpp"
+#include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
@@ -214,6 +214,31 @@ void test_odd_body_corridor(uint32_t bbox)
     fm_assert(r2.cost() == r1.cost());
 }
 
+// From chunk 0's east edge to goals in chunk 1's east half, max_dist barely covering each. Nodes
+// then reach the far side of Search::cache's rectangle, and A* tests cells one chunk past it.
+void test_cache_margin()
+{
+    constexpr uint32_t cell = 16;
+    const auto from = point{global_coords{flush_ch, {15, 8}}, {31, 0}};
+    const auto goal = [](uint8_t tx, int8_t ox) { return point{global_coords{{1, 0, 0}, {tx, 8}}, {ox, 0}}; };
+    const auto max_dist = [&](point to) { return point::distance(from, to) + 7; };
+    const auto& pred = Search::without_critters();
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, cell, pass_mode::pass}, pred};
+
+    auto w = world();
+    add_floors(w, from, max_dist(goal(TILE_MAX_DIM - 1, half_tile<int> - 1)), cell);
+
+    for (uint8_t tx = 12; tx < TILE_MAX_DIM; tx++)
+        for (int ox = -half_tile<int>; ox < half_tile<int>; ox++)
+        {
+            const auto to = goal(tx, (int8_t)ox);
+            auto r = A.Dijkstra<0, false>(w, pool, from, to, max_dist(to), Vector2ui(cell), pred);
+            if (!r.is_found())
+                fm_abort("cache margin: goal tile %u offset %d not found", (unsigned)tx, ox);
+        }
+}
+
 } // namespace
 
 void Test::test_dijkstra()
@@ -337,6 +362,7 @@ void Test::test_dijkstra()
     check_closed_start_cell(64, 10);
     for (auto bbox : { 31u, 33u })
         test_odd_body_corridor(bbox);
+    test_cache_margin();
 }
 
 } // namespace floormat
