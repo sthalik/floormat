@@ -33,11 +33,9 @@ struct cache
 
     void allocate(point from, uint32_t max_dist, uint32_t div_size);
     void add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index);
-    void add_index(point pt, uint32_t index);
     uint32_t lookup_index(uint32_t chunk_index, uint32_t tile_index);
 
     bool is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, const pred& p);
-    bool is_passable_between_diag(world& w, Grid::Pass::Pool& pool, point a, point b, const pred& p);
 };
 
 } // namespace floormat::Search

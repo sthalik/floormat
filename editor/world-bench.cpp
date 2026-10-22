@@ -444,7 +444,7 @@ uint32_t generate_chunk(world& w, chunk_coords_ ch, const scene_assets& a, bool 
 // populate_labyrinth()'s step of 4 leaves 2. PassGrid::build_impl() inflates a W wall on tile
 // i0 across cells i0-1..i0, so each side wall eats one column of the interior. Width 1 and 2 leave
 // none; width 5 is the first to leave 3, the minimum for a diagonal step, since
-// is_passable_between_diag() tests the two off-axis cells too. A cell is a tile only at div_size
+// A* tests its two off-axis cells too. A cell is a tile only at div_size
 // 64 -- a finer grid resolves sub-tile columns, and width 2 leaves 4*width-6 of them at 16.
 void carve_corridor(world& w, int16_t cx, uint8_t start_tile, uint8_t width, int16_t cy_min, int16_t cy_max)
 {
@@ -536,8 +536,7 @@ void fill_ground_chunks(world& w, int16_t cmin, int16_t cmax)
 // half_width is set by the pass bitmap rather than by the critter. PassGrid::build_impl()
 // blocks the cells around every obstacle, so a cell needs its whole 3x3 tile neighborhood clear;
 // on a 45-degree band that costs two tiles of u at each edge and leaves 2*half_width-3 passable.
-// Three is the minimum a diagonal step needs, because is_passable_between_diag() tests the two
-// off-axis cells as well.
+// Three is the minimum a diagonal step needs, because A* tests its two off-axis cells as well.
 void carve_diagonal(world& w, int u0, uint8_t half_width, int16_t cmin, int16_t cmax)
 {
     const int h = half_width;
