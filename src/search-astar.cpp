@@ -206,7 +206,7 @@ std::array<dir_step, 8> make_directions(const Search::octile& oct)
 
 void set_result_from_idx(path_search_result& result,
                          Array<point>& temp_nodes, const Array<visited>& nodes,
-                         point from, point to, const uint32_t idx)
+                         point from, const uint32_t idx)
 {
     fm_assert(idx != (uint32_t)-1);
 
@@ -215,7 +215,7 @@ void set_result_from_idx(path_search_result& result,
         len++;
 
     const auto& to_node = nodes[idx];
-    result.set_cost(to_node.dist + point::distance(to, to_node.pt));
+    result.set_cost(to_node.dist);
 
     arrayClear(temp_nodes);
     arrayReserve(temp_nodes, len + 2);
@@ -938,13 +938,13 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     {
         result.set_found(true);
         result.set_distance(0);
-        set_result_from_idx(result, temp_nodes, nodes, from, to, goal_idx);
+        set_result_from_idx(result, temp_nodes, nodes, from, goal_idx);
     }
     else if (closest_idx != (uint32_t)-1)
     {
         result.set_found(false);
         result.set_distance(point::distance(nodes[closest_idx].pt, to));
-        set_result_from_idx(result, temp_nodes, nodes, from, to, closest_idx);
+        set_result_from_idx(result, temp_nodes, nodes, from, closest_idx);
     }
 
     result.set_time(timeline.currentFrameTime());
