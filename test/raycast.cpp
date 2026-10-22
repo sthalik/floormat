@@ -462,8 +462,13 @@ void test_supercover_hits()
         place_pillar(w, ch,  ch, {2, 0},  Vector2b{55, 7},   Vector2ub{6, 8}),
         // at radius 2.25 and div 16, (0, 0)-(640, 66) finds the wide one in cell x 48-63 and hits it at
         // x 70.3, after the small one at x 65.3, which only the next cell finds
-        place_pillar(w, ch,  ch, {2, 0},  Vector2b{43, 45},  Vector2ub{254, 70}),
+        place_pillar(w, ch,  ch, {2, 0},  Vector2b{43, 45},  Vector2ub{255, 70}),
         place_pillar(w, ch,  ch, {1, 0},  Vector2b{5, 7},    Vector2ub{2, 2}),
+        place_pillar(w, ch,  ch, {6, 13}, Vector2b{0, 0},    Vector2ub{13, 7}),
+        place_pillar(w, ch,  ch, {12, 12}, Vector2b{-3, 5},  Vector2ub{9, 21}),
+        place_pillar(w, ch,  ch, {10, 5}, Vector2b{0, 0},    Vector2ub{1, 1}),
+        place_pillar(w, ch,  ch, {13, 9}, Vector2b{2, -1},   Vector2ub{3, 6}),
+        place_pillar(w, ch2, ch, {3, 6},  Vector2b{1, -2},   Vector2ub{25, 4}),
     };
     for (auto c : { ch, ch2, ch3 })
         w[c].mark_modified();
@@ -490,9 +495,11 @@ void test_supercover_hits()
             if (ok && ref.count)
             {
                 ok = px == ref.pixels[0] || (ref.count == 2 && px == ref.pixels[1]);
+                const auto shift = Vector2(point{res.from.chunk3(), {}, {}} - origin);
                 bool in_collider = false;
                 for (const auto& p : pillars)
-                    in_collider |= p.id == (object_id)res.collider.id && contains(p, px);
+                    if (p.id == (object_id)res.collider.id)
+                        in_collider |= contains(p, px) && res.rect == Range2D{Vector2(p.min) - shift, Vector2(p.max) - shift};
                 ok &= in_collider;
             }
             if (!ok)
