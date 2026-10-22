@@ -530,9 +530,11 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     (int16_t)(from.chunk().y + chunk_off_y),
                     from.chunk3().z };
                 const Vector2i cell{local_cell_x, local_cell_y};
+                // R-tree rects have integer corners and Search() counts a touching rect, so the
+                // float query below finds the same rects as the cell grown by floor(grow).
                 arrayAppend(diag.queries, bbox{
                     intra_coord{cell * div_size_i + Vector2i{div_size_i / 2}}.to_point(q_ch_coord),
-                    Vector2ui{(uint32_t)div_size_i + 1 + (uint32_t)Math::ceil(2*radius)},
+                    Vector2ui{(uint32_t)div_size_i + 2*(uint32_t)grow},
                 });
             }
 

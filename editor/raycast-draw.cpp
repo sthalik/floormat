@@ -15,11 +15,11 @@ void draw_boxes(app& a, ImDrawList& draw, ArrayView<const detail_rc::bbox> boxes
 {
     for (auto [center, size] : boxes)
     {
-        const auto hx = (int)(size.x()/2), hy = (int)(size.y()/2);
-        const auto p00 = a.point_to_pixel(point::normalize_coords(center, {-hx, -hy})),
-                   p10 = a.point_to_pixel(point::normalize_coords(center, { hx, -hy})),
-                   p01 = a.point_to_pixel(point::normalize_coords(center, {-hx,  hy})),
-                   p11 = a.point_to_pixel(point::normalize_coords(center, { hx,  hy}));
+        const auto min = -Vector2i(size/2u), max = min + Vector2i(size);
+        const auto p00 = a.point_to_pixel(point::normalize_coords(center, min)),
+                   p10 = a.point_to_pixel(point::normalize_coords(center, {max.x(), min.y()})),
+                   p01 = a.point_to_pixel(point::normalize_coords(center, {min.x(), max.y()})),
+                   p11 = a.point_to_pixel(point::normalize_coords(center, max));
         draw.AddLine({p00.x(), p00.y()}, {p01.x(), p01.y()}, color, thickness);
         draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color, thickness);
         draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color, thickness);
