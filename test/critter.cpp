@@ -542,6 +542,88 @@ void test_walk_interrupted()
     fm_assert(!W.npc->moves.AUTO && W.npc->last_walk == critter::walk_result::none);
 }
 
+void add_blocker(world& w, Vector2i min, Vector2i size)
+{
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_offset = Vector2b(min + size/2 - Vector3i(walk_start).xy());
+    p.bbox_size   = Vector2ub(size);
+    p.pass        = pass_mode::blocked;
+    w.make_scenery(w.make_id(), walk_start.coord(), move(p));
+}
+
+critter& make_odd_critter(world& w, Vector2i size, rotation r)
+{
+    object_id id = 0;
+    auto proto = make_proto(1.f);
+    proto.bbox_size = Vector2ub(size);
+    auto& npc = *w.ensure_player_character(id, move(proto));
+    auto idx = npc.index();
+    npc.teleport_to(idx, walk_start, r);
+    return npc;
+}
+
+// Turning keeps a square box's {min, max}, so a critter boxed in flush can face every way.
+void test_turn_boxed_in()
+{
+    for (const auto size : { Vector2i{23, 23}, Vector2i{25, 25}, Vector2i{23, 25} })
+    {
+        auto w = world();
+        auto& npc = make_odd_critter(w, size, rotation::N);
+        auto idx = npc.index();
+        const auto lo = Vector3i(walk_start).xy() - size/2, hi = lo + size;
+        constexpr auto t = 8;
+        add_blocker(w, {lo.x() - t, lo.y() - t}, {size.x() + 2*t, t});
+        add_blocker(w, {lo.x() - t, hi.y()}, {size.x() + 2*t, t});
+        add_blocker(w, {lo.x() - t, lo.y()}, {t, size.y()});
+        add_blocker(w, {hi.x(), lo.y()}, {t, size.y()});
+        w[walk_start.chunk3()].mark_modified();
+        fm_assert(npc.can_move_to({}));
+
+        const auto frame = Second / npc.atlas->info().fps;
+        for (auto i = 0u; i < (uint32_t)rotation_COUNT; i++)
+        {
+            const auto r = rotation(i), r0 = npc.r;
+            const bool same_box = size.x() == size.y() || i/2 % 2 == 0;
+            fm_assert(npc.can_rotate(r) == same_box);
+            npc.update_movement(idx, frame, r);
+            fm_assert(npc.r == (same_box ? r : r0));
+            fm_assert_equal(walk_start, npc.position());
+        }
+    }
+}
+
+// An odd box's extra pixel is on +x/+y. Walking into a blocker ends flush against it on every side.
+void test_walk_flush()
+{
+    constexpr auto gap = 37, t = 8;
+    for (const auto size0 : { Vector2i{23, 23}, Vector2i{25, 25}, Vector2i{23, 25}, Vector2i{24, 24} })
+        for (const auto& [r, dir] : { std::pair{rotation::N, Vector2i{0, -1}}, std::pair{rotation::E, Vector2i{1, 0}},
+                                      std::pair{rotation::S, Vector2i{0, 1}}, std::pair{rotation::W, Vector2i{-1, 0}} })
+        {
+            auto w = world();
+            auto& npc = make_odd_critter(w, size0, r);
+            auto idx = npc.index();
+            const auto size = Vector2i(npc.bbox_size);
+            const auto lo = Vector3i(walk_start).xy() - size/2, hi = lo + size;
+            const auto across = Vector2i{dir.y() != 0 ? 1 : 0, dir.x() != 0 ? 1 : 0};
+            const auto len = across*(Vector2i{2*t} + size) + (Vector2i{1} - across)*t;
+            const auto start = lo - across*t;
+            const auto min = dir.x() > 0 ? Vector2i{hi.x() + gap, start.y()}
+                           : dir.x() < 0 ? Vector2i{lo.x() - gap - t, start.y()}
+                           : dir.y() > 0 ? Vector2i{start.x(), hi.y() + gap}
+                           :               Vector2i{start.x(), lo.y() - gap - t};
+            add_blocker(w, min, len);
+            w[walk_start.chunk3()].mark_modified();
+
+            const auto frame = Second / npc.atlas->info().fps;
+            for (auto i = 0u; i < 3*gap; i++)
+                npc.update_movement(idx, frame, r);
+            fm_assert_equal(walk_start + dir*gap, npc.position());
+        }
+}
+
 void test_player_character_id_lowest()
 {
     auto w = world();
@@ -623,6 +705,8 @@ void Test::test_critter()
     test_walk_smoothed_blocked();
     test_walk_smoothed_displaced();
     test_walk_interrupted();
+    test_turn_boxed_in();
+    test_walk_flush();
     test_player_character_id_lowest();
 
     if (is_noisy)
