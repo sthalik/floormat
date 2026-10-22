@@ -53,12 +53,6 @@ else()
         -Wl,-mllvm,-enable-ext-tsp-block-placement
         -Wl,-mllvm,-hot-cold-split
     )
-    # Skylake JCC erratum, as in userconfig-sthalik@Linux-Clang.cmake.
-    add_compile_options(-mbranches-within-32B-boundaries)
-    add_link_options(-mbranches-within-32B-boundaries)
-    # Also pads calls and returns.
-    #add_compile_options(-malign-branch=fused,jcc,jmp,call,ret,indirect)
-    #add_link_options(-malign-branch=fused,jcc,jmp,call,ret,indirect)
     # Line discriminators for AutoFDO
     add_compile_options(-fdebug-info-for-profiling)
     if(FLOORMAT_PGO STREQUAL "generate" OR FLOORMAT_PGO STREQUAL "cs" OR FLOORMAT_PGO STREQUAL "use") # instrumented PGO, not AutoFDO
