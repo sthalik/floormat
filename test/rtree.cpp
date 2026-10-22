@@ -20,6 +20,7 @@
 #include "compat/function2.hpp"
 #include <bit>
 #include <cr/Optional.h>
+#include <mg/Range.h>
 
 namespace floormat {
 
@@ -194,6 +195,77 @@ void test_odd_bbox_size()
     fm_assert(!c.can_place_object(proto({-1, 0}, Vector2ub{64}), {9, 8}));
 }
 
+Range2Di rtree_rect(chunk& c, object_id id)
+{
+    c.ensure_passability();
+    Optional<Range2Di> ret;
+    const auto lo = Vector2{-(float)chunk_size_xy}, hi = Vector2{2*(float)chunk_size_xy};
+    c.rtree()->Search(lo.data(), hi.data(), [&](object_id data, const chunk::RTree::Rect& r) {
+        if (std::bit_cast<collision_data>(data).id == id)
+        {
+            fm_assert(!ret);
+            ret = Range2Di{Vector2i(Vector2{r.m_min[0], r.m_min[1]}), Vector2i(Vector2{r.m_max[0], r.m_max[1]})};
+        }
+        return true;
+    });
+    fm_assert(ret);
+    return *ret;
+}
+
+// Rotation keeps min = center - size/2, so an odd axis flipped about the tile centre lands 1 px off
+// its mirror image. A centred odd square keeps its rect, so it can turn while flush against walls.
+void test_odd_bbox_rotation()
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    constexpr auto pos = global_coords{ch, {8, 8}};
+    constexpr auto tile_center = Vector2i{8*tile_size_xy};
+    constexpr rotation rs[] = { rotation::N, rotation::E, rotation::S, rotation::W };
+    // Every step N, E, S, W turns the box a quarter, (x, y) to (-y, x).
+    const auto expected = [&](Vector2i center, Vector2ub size, rotation r0, rotation r1) {
+        const auto k = ((int)r1/2 - (int)r0/2 + 4) % 4;
+        for (auto i = 0; i < k; i++)
+            center = {-center.y(), center.x()};
+        if (k % 2)
+            size = size.flipped();
+        const auto min = tile_center + center - Vector2i(size/2);
+        return Range2Di{min, min + Vector2i(size)};
+    };
+
+    for (const auto size : { Vector2ub{63, 63}, Vector2ub{63, 64}, Vector2ub{64, 63}, Vector2ub{64, 64} })
+        for (const auto offset : { Vector2b{0, 0}, Vector2b{-32, -32}, Vector2b{-32, 5} })
+            for (const auto bbox_offset : { Vector2b{0, 0}, Vector2b{3, -7} })
+                for (const auto r0 : rs)
+                {
+                    auto w = world();
+                    auto& c = w[ch];
+                    auto p = scenery_proto(loader.scenery("chair4"));
+                    p.r           = r0;
+                    p.offset      = offset;
+                    p.bbox_offset = bbox_offset;
+                    p.bbox_size   = size;
+                    p.pass        = pass_mode::blocked;
+                    auto s = w.make_scenery(w.make_id(), pos, move(p));
+                    auto i = s->index();
+                    const auto center = Vector2i(offset) + Vector2i(bbox_offset);
+                    const auto rect0 = rtree_rect(c, s->id);
+                    fm_assert_equal(expected(center, size, r0, r0), rect0);
+
+                    for (const auto r1 : rs)
+                    {
+                        s->rotate(i, r1);
+                        const auto rect1 = rtree_rect(c, s->id);
+                        fm_assert_equal(expected(center, size, r0, r1), rect1);
+                        if (center.isZero() && size.x() == size.y())
+                            fm_assert_equal(rect0, rect1);
+                        s->rotate(i, r0);
+                        fm_assert_equal(rect0, rtree_rect(c, s->id));
+                    }
+                    for (auto k = 1u; k <= 4; k++)
+                        s->rotate(i, rs[((size_t)r0/2 + k) % 4]);
+                    fm_assert_equal(rect0, rtree_rect(c, s->id));
+                }
+}
+
 void test_corner_touch()
 {
     const auto start = Range2D{{0, 0}, {10, 10}};
@@ -332,6 +404,34 @@ bool passable_at(chunk& c, Vector2 pt)
     return Search::is_passable_1(c, pt - Vector2{2}, pt + Vector2{2}, Search::without_critters());
 }
 
+void test_odd_hole()
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    constexpr auto pos = global_coords{ch, {8, 8}};
+    for (const auto size : { Vector2ub{15, 9}, Vector2ub{9, 16}, Vector2ub{1, 1} })
+    {
+        auto w = world();
+        auto& c = w[ch];
+        c[{8, 8}].ground() = tile_image_proto{ loader.ground_atlas("texel"), 0 };
+        hole_proto hp;
+        hp.offset      = {3, -2};
+        hp.bbox_offset = {-1, 4};
+        hp.bbox_size   = size;
+        hp.pass        = pass_mode::see_through;
+        (void)w.make_object<hole>(w.make_id(), pos, hp);
+
+        const auto center = Vector2i{8*tile_size_xy} + Vector2i(hp.offset) + Vector2i(hp.bbox_offset);
+        const auto min = center - Vector2i(size/2), max = min + Vector2i(size);
+        for (auto y = min.y() - 2; y < max.y() + 2; y++)
+            for (auto x = min.x() - 2; x < max.x() + 2; x++)
+            {
+                const auto e = entry_at(c, Vector2{(float)x, (float)y} + Vector2{.5f});
+                const bool in_hole = (Vector2i{x, y} >= min).all() && (Vector2i{x, y} < max).all();
+                fm_assert(e && e->pass == (uint64_t)(in_hole ? pass_mode::see_through : pass_mode::blocked));
+            }
+    }
+}
+
 // The part of a wall, scenery or ground under a more open hole takes the hole's pass mode, so a
 // window stays solid to walkers. A hole of equal mode cuts scenery too.
 void test_hole_pass_modes()
@@ -464,10 +564,12 @@ void Test::test_rtree()
     test3();
     test_pass_phases();
     test_odd_bbox_size();
+    test_odd_bbox_rotation();
     test_corner_touch();
     test_bbox_offset_min();
     test_light_tree();
     test_hole_tree();
+    test_odd_hole();
     test_hole_pass_modes();
 }
 
