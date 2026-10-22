@@ -9,6 +9,7 @@
 #include "rect-intersects.hpp"
 #include "hole.hpp"
 #include "hole-cut.hpp"
+#include "rotation.inl"
 #include "src/tile-bbox.hpp"
 #include "src/wall-atlas.hpp"
 #include "compat/function2.hpp"
@@ -436,7 +437,7 @@ bool chunk::can_place_object(const object_proto& proto, local_coords pos)
     }
 
     const auto bbox_size = Vector2(proto.bbox_size);
-    const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(proto.bbox_offset);
+    const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(clamp_bbox_offset(proto.bbox_offset));
     const auto min = center - Vector2(proto.bbox_size/2), max = min + bbox_size;
     return Search::is_passable_(this, _world->neighbors(_coord), min, max, constantly(path_search_continue::blocked));
 }

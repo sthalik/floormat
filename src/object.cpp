@@ -16,13 +16,6 @@
 
 namespace floormat {
 
-namespace {
-
-// rotate_point() turns -128 into -127, so storing -128 would move the box on the next teleport
-constexpr Vector2b clamp_bbox_offset(Vector2b x) { return Math::max(x, Vector2b{-127}); }
-
-} // namespace
-
 template class basic_bptr<object, non_atomic_refcount>;
 template class basic_bptr<const object, non_atomic_refcount>;
 
