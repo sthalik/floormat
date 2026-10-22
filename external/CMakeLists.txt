@@ -389,15 +389,11 @@ fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE
 )
 # -msse4.2: Highway's ops are always_inline with target("sse4.2"). A caller compiled without it
 # fails to build. MSVC has no target attributes.
-# -mvzeroupper undoes a global -mno-vzeroupper. Without it VQSort's AVX2/AVX3 code returns with dirty upper
-# halves, and later non-VEX SSE code pays a false dependency or a state-transition stall.
 # A universal build compiles every CMAKE_OSX_ARCHITECTURES entry in one clang call.
 if(APPLE AND "x86_64" IN_LIST CMAKE_OSX_ARCHITECTURES)
     target_compile_options(floormat-hwy PUBLIC "SHELL:-Xarch_x86_64 -msse4.2")
-    target_compile_options(floormat-hwy PRIVATE -Xarch_x86_64 -mvzeroupper)
 elseif(NOT MSVC AND NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|x86|i[3-6]86)$")
     target_compile_options(floormat-hwy PUBLIC -msse4.2)
-    target_compile_options(floormat-hwy PRIVATE -mvzeroupper)
 endif()
 
 # cl.exe never defines __OPTIMIZE__, so Highway assumes a debug build.
