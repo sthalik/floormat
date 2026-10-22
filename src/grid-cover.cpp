@@ -82,7 +82,7 @@ float raycast_one(chunk& self,
         (int32_t)(cell_y * div_size) + half,
     };
 
-    const point from = intra_coord{origin_local}.to_point(self.coord());
+    const point from{self.coord(), intra_coord{origin_local}};
 
     const auto dir = direction_for_octant(octant);
     const Vector2i delta{Vector2(dir * (float)max_ray_px)};

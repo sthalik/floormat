@@ -1226,7 +1226,7 @@ void app::add_grid_pin(uint32_t n)
 {
     auto& w = M->world();
     const auto h = hash2(n, grid_pin_seed);
-    const auto pt = intra_coord{{(int)(h % chunk_size_xy), (int)(h / chunk_size_xy % chunk_size_xy)}}.to_point({});
+    const auto pt = point{chunk_coords_{}, intra_coord{{(int)(h % chunk_size_xy), (int)(h / chunk_size_xy % chunk_size_xy)}}};
     auto p = pin_proto(grid_pin_size);
     p.offset = pt.offset();
     w.make_scenery(w.make_id(), pt.coord(), move(p));

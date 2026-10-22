@@ -36,7 +36,6 @@ struct basic_intra_coord : intra_coord_base
     /// @brief Moves the origin from the chunk's top-left corner to the center of the first tile, as in `point`.
     /// @return Position where the center of the first tile is {0, 0}.
     constexpr Vector2i center_shifted() const;
-    constexpr point to_point(chunk_coords_ ch) const;
 
     constexpr basic_intra_coord& operator+=(Vector2i delta) requires (TYPE == Checking);
     constexpr basic_intra_coord& operator-=(Vector2i delta) requires (TYPE == Checking);

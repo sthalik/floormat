@@ -83,11 +83,10 @@ void test_round_trip()
                 const auto ic = intra_coord{pt};
                 fm_assert(intra_coord::is_in_range(Vector2i(ic)));
                 fm_assert(ic.center_shifted() == Vector2i(pt.local())*tile_size_xy + Vector2i(pt.offset()));
-                fm_assert_equal(pt, ic.to_point(ch));
-                fm_assert_equal(pt, wrapping_coord{pt}.to_point(ch));
+                fm_assert_equal(pt, point{ch, wrapping_coord{pt}});
                 fm_assert_equal(pt, point{ch, ic});
                 fm_assert(pt.intra() == ic);
-                fm_assert_equal(pt, pt.intra<intra_coord::Wrapping>().to_point(ch));
+                fm_assert_equal(pt, point{ch, pt.intra<intra_coord::Wrapping>()});
             }
 }
 

@@ -143,7 +143,7 @@ void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
     const uint32_t dc = cg.div_count();
     const uint32_t max_d = chunk_size_xy / pool->params().div_size;
 
-    const auto chunk_nw = intra_coord{}.to_point(c.coord());
+    const auto chunk_nw = point{c.coord(), intra_coord{}};
     const auto p00 = a.point_to_pixel(chunk_nw);
     const auto pX  = a.point_to_pixel(chunk_nw + Vector2i{ds, 0});
     const auto pY  = a.point_to_pixel(chunk_nw + Vector2i{0, ds});

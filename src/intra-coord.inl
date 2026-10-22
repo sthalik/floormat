@@ -59,12 +59,6 @@ template<intra_coord_base::Type TYPE>
 constexpr Vector2i basic_intra_coord<TYPE>::center_shifted() const { return _v - half_tile<Vector2i>; }
 
 template<intra_coord_base::Type TYPE>
-constexpr auto basic_intra_coord<TYPE>::to_point(chunk_coords_ ch) const -> point
-{
-    return point{ch, local(), offset()};
-}
-
-template<intra_coord_base::Type TYPE>
 constexpr basic_intra_coord<TYPE>& basic_intra_coord<TYPE>::operator+=(Vector2i delta) requires (TYPE == Checking)
 {
     _v += delta;
@@ -116,7 +110,7 @@ template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Wrappi
 constexpr point operator+(basic_intra_coord<TYPE> a, Vector2i b)
 {
     const auto chunks = (a += b);
-    return a.to_point({(int16_t)chunks.x(), (int16_t)chunks.y(), 0});
+    return point{chunk_coords_{(int16_t)chunks.x(), (int16_t)chunks.y(), 0}, a};
 }
 
 template<intra_coord_base::Type TYPE> requires (TYPE == intra_coord_base::Wrapping)

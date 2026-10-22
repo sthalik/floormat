@@ -1426,7 +1426,7 @@ Vector2 cover_direction(uint32_t k)
 float cover_ray_px(chunk& c, uint32_t x, uint32_t y, uint32_t div_size, Vector2 dir, Pass::Pool& pass_pool)
 {
     const auto half = (int32_t)(div_size / 2);
-    const point from = intra_coord{Vector2i{(int32_t)(x*div_size) + half, (int32_t)(y*div_size) + half}}.to_point(c.coord());
+    const point from{c.coord(), intra_coord{Vector2i{(int32_t)(x*div_size) + half, (int32_t)(y*div_size) + half}}};
     const point to = from + Vector2i{Vector2(dir * (float)chunk_size_xy)};
     const auto r = raycast(c.world(), from, to, 0, pass_pool, Search::without_critters());
     const auto px = !r.has_result || r.success ? (float)chunk_size_xy : Vector2(r.collision - from).length();
