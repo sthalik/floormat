@@ -1,6 +1,9 @@
 #include "impl.hpp"
 
 #ifdef _WIN32
+#include <cstdio>
+#include <io.h>
+#include <fcntl.h>
 #include <windows.h>
 #if __has_include(<ntddk.h>)
 #include <ntddk.h>
@@ -31,11 +34,22 @@ static bool check_windows_build_number(unsigned major, unsigned minor, unsigned 
     else
         return false;
 }
+
+static void init_stdio()
+{
+    // Text mode writes \n as \r\n, which GNU Bash keeps in $(...) and read.
+    // Without a std handle, _fileno() is -2 and _setmode() fails quietly.
+    std::fflush(stdout);
+    std::fflush(stderr);
+    for (FILE* s : { stdin, stdout, stderr })
+        (void)::_setmode(::_fileno(s), _O_BINARY);
+}
 #endif
 
 static void system_init_()
 {
 #ifdef _WIN32
+    init_stdio();
     (void)::SetConsoleOutputCP(CP_UTF8);
     if (check_windows_build_number(10, 0, 17035))
         (void)::SetConsoleCP(CP_UTF8);
