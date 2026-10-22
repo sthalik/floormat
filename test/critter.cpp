@@ -390,7 +390,7 @@ struct script_walker
 
     path_search_result find_path(point from, point to, bool smooth)
     {
-        const auto size = Vector2ui(npc->bbox_size);
+        const auto size = npc->circumscribed_bbox_size();
         auto res = A.Dijkstra(w, from, to, 4096, size, Search::without_critters());
         fm_assert(res.is_found());
         if (smooth)
@@ -624,6 +624,24 @@ void test_walk_flush()
         }
 }
 
+// The 32 px box fits the 40 px gap centred, but facing S it sits 16 px west and hits the wall.
+void test_walk_bbox_offset()
+{
+    for (const bool smooth : { false, true })
+    {
+        script_walker W;
+        add_blocker(W.w, {292, 502}, {200, 20});
+        add_blocker(W.w, {532, 502}, {200, 20});
+        W.w[walk_start.chunk3()].mark_modified();
+        const auto from = walk_start + Vector2i{0, -192}, to = walk_start + Vector2i{0, 192};
+        W.place(from);
+        W.npc->set_bbox(W.npc->offset, Vector2b{16, 0}, W.npc->bbox_size, W.npc->pass);
+        W.walk(W.find_path(from, to, smooth));
+        (void)W.walk_to_end();
+        fm_assert(W.npc->last_walk == critter::walk_result::arrived && W.npc->position() == to);
+    }
+}
+
 void test_player_character_id_lowest()
 {
     auto w = world();
@@ -707,6 +725,7 @@ void Test::test_critter()
     test_walk_interrupted();
     test_turn_boxed_in();
     test_walk_flush();
+    test_walk_bbox_offset();
     test_player_character_id_lowest();
 
     if (is_noisy)

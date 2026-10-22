@@ -5,6 +5,7 @@
 #include "loader/loader.hpp"
 #include "src/world.hpp"
 #include "src/object.hpp"
+#include "src/rotation.inl"
 #include "src/sweep-aabb.hpp"
 #include "src/raycast-line.hpp"
 #include "src/nanosecond.inl"
@@ -403,6 +404,11 @@ bool critter::maybe_stop_auto_movement()
     bool b1 = moves_ == m_auto_mask.val;
     bool b2 = moves.AUTO &= b1;
     return !b2;
+}
+
+Vector2ui critter::circumscribed_bbox_size() const
+{
+    return floormat::circumscribed_bbox_size(bbox_offset, bbox_size, r);
 }
 
 int32_t critter::depth_offset() const

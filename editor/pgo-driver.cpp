@@ -890,7 +890,7 @@ task app::scene_walk()
     const auto to = point{chunk_coords_{0, pgo::walk_chunk_max, 0},
                           local_coords{col, TILE_MAX_DIM-3}, {}};
     const auto dist = point::distance(from, to)*2 + chunk_size_xy;
-    auto res = M->astar().Dijkstra(w, from, to, dist, Vector2ui{C->bbox_size},
+    auto res = M->astar().Dijkstra(w, from, to, dist, C->circumscribed_bbox_size(),
                                    Search::without_critters());
     // A search that gives up still returns the route to the closest node it reached, so
     // empty() stays false and the walk below runs that route to its end and reports success.
@@ -1005,7 +1005,7 @@ task app::scene_maze1()
         const auto from = maze_corner(leg), to = maze_corner(leg + 1);
         // Every cell walked once bounds the true path; the ratio never gets near that.
         const auto max_dist = point::distance(from, to) * 32;
-        auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, Vector2ui{C->bbox_size},
+        auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, C->circumscribed_bbox_size(),
                                           Search::without_critters());
         // Same partial-route trap as scene_walk.
         if (!res.is_found())
@@ -1220,7 +1220,7 @@ task app::scene_maze2()
 
     const auto to = maze2_goal();
     const auto max_dist = point::distance(from, to) * 32;
-    auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, Vector2ui{C->bbox_size},
+    auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, C->circumscribed_bbox_size(),
                                       Search::without_critters());
     // Same partial-route trap as scene_walk.
     if (!res.is_found())

@@ -222,7 +222,7 @@ task app::scene_npcs()
                 for (auto* c : room)
                     crit_pool[*c].mark_stale();
                 auto res = M->astar().Dijkstra<0, false>(w, crit_pool, pos, a.dest, max_dist(pos, a.dest),
-                                                         Vector2ui{C->bbox_size}, except_searcher_pred);
+                                                         C->circumscribed_bbox_size(), except_searcher_pred);
                 searches++;
                 critter_searches++;
                 if (res.is_found())
@@ -241,7 +241,7 @@ task app::scene_npcs()
             if (goal == pos)
                 continue;
             auto res = M->astar().Dijkstra<0, false>(w, pos, goal, max_dist(pos, goal),
-                                                     Vector2ui{C->bbox_size}, Search::without_critters());
+                                                     C->circumscribed_bbox_size(), Search::without_critters());
             searches++;
             if (!res.is_found())
             {

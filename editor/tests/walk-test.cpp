@@ -51,7 +51,7 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
             auto pt0 = C->position();
             auto vec = Math::abs(*ptʹ - pt0) * 2 + chunk_size<Vector2i> * 1;
             auto dist = (uint32_t)vec.length();
-            auto bb = Vector2ui{C->bbox_size};
+            auto bb = C->circumscribed_bbox_size();
             if (e.button == mouse_button_middle)
             {
                 auto S = critter_script::make_walk_script(*ptʹ);

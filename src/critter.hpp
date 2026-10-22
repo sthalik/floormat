@@ -64,6 +64,8 @@ struct critter final : object
     ///   turns, and the result has displaced and blocked set.
     [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& from, const point& dest);
 
+    Vector2ui circumscribed_bbox_size() const;
+
     int32_t depth_offset() const override;
 
     void init_script(const bptr<object>& ptr) override;
