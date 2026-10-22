@@ -174,6 +174,46 @@ void check_closed_start_cell(uint32_t bbox, int8_t start_x)
     fm_assert(r2.cost() == r1.cost());
 }
 
+// A corridor two tiles long, exactly as wide as the union of an odd body's boxes over one cell.
+// That cell column is the only way to the goal, and bbox + 1 closes it.
+void test_odd_body_corridor(uint32_t bbox)
+{
+    constexpr uint32_t max_dist = 1024;
+    constexpr auto t = (int)tile_size_xy;
+    constexpr int8_t goal_x = -8;
+    const auto from = point{global_coords{flush_ch, {8, 12}}, {goal_x, 0}};
+    const auto goal = point{global_coords{flush_ch, flush_tile}, {goal_x, 0}};
+    const auto& pred = Search::without_critters();
+    auto A = astar{};
+    const auto d = (int)A.pool_registry().pool_for(bbox).params().div_size();
+    auto exact = Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)d, bbox, pass_mode::pass}, pred};
+    auto wider = Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)d, bbox + 1, pass_mode::pass}, pred};
+    fm_assert(exact.params().div_size() == (uint32_t)d && wider.params().div_size() == (uint32_t)d);
+
+    const auto x = (int)flush_tile.x * t + goal_x;
+    const auto p0 = (x + half_tile<int>) / d * d - half_tile<int>;
+    const auto lo = (int)bbox/2, hi = (int)bbox - lo;
+    const auto left = p0 - lo, right = p0 + d - 1 + hi;
+
+    auto w = world();
+    add_floors(w, from, max_dist, (uint32_t)d);
+    add_block(w, {7, 8}, {tile_size_xy, 2*tile_size_xy}, {(int8_t)(left - (7*t + t/2)), 0});
+    add_block(w, {9, 8}, {tile_size_xy, 2*tile_size_xy}, {(int8_t)(right - (9*t - t/2)), 0});
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    fm_assert(A.cache()->is_passable_for_bbox(w, exact, goal, pred));
+    fm_assert(!A.cache()->is_passable_for_bbox(w, wider, goal, pred));
+
+    auto r1 = A.Dijkstra<0, false>(w, exact, from, goal, max_dist, Vector2ui(bbox), pred);
+    fm_assert(r1.is_found());
+    auto r2 = A.Dijkstra<0, false>(w, from, goal, max_dist, Vector2ui(bbox), pred);
+    if (!r2.is_found())
+        fm_abort("odd body corridor bbox %u: registry pool has bbox %u", bbox, A.pool_registry().pool_for(bbox).params().bbox_size);
+    fm_assert(r2.cost() == r1.cost());
+}
+
 } // namespace
 
 void Test::test_dijkstra()
@@ -295,6 +335,8 @@ void Test::test_dijkstra()
         test_flush_goals(bbox);
     check_closed_start_cell(32, -2);
     check_closed_start_cell(64, 10);
+    for (auto bbox : { 31u, 33u })
+        test_odd_body_corridor(bbox);
 }
 
 } // namespace floormat

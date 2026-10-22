@@ -297,7 +297,7 @@ void test_save_objs()
         p.atlas        = loader.anim_atlas("npc-walk", loader.ANIM_PATH);
         p.offset       = Vector2b{-1, 2};
         p.bbox_offset  = Vector2b{3, -4};
-        p.bbox_size    = Vector2ub{129, 254};
+        p.bbox_size    = Vector2ub{129, 255};
         p.delta        = uint32_t{65638};
         p.frame        = uint16_t{9};
         p.type         = object_type::critter;

@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include "compat/round-to-even.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
 #include "loader/loader.hpp"
@@ -27,24 +26,6 @@
 namespace floormat {
 namespace {
 
-void test_round_to_even_self()
-{
-    fm_assert(round_to_even<uint32_t>(0,   0)   == 0);
-    fm_assert(round_to_even<uint32_t>(1,   1)   == 2);
-    fm_assert(round_to_even<uint32_t>(2,   2)   == 2);
-    fm_assert(round_to_even<uint32_t>(3,   3)   == 4);
-    fm_assert(round_to_even<uint32_t>(4,   4)   == 4);
-    fm_assert(round_to_even<uint32_t>(5,   5)   == 6);
-    fm_assert(round_to_even<uint32_t>(254, 254) == 254);
-    fm_assert(round_to_even<uint8_t> (1,   1)   == 2);
-    fm_assert(round_to_even<uint8_t> (0xfe, 0xfe) == 0xfe);
-    fm_assert(round_to_even<uint8_t> (0xff, 0xff) == 0xfe);
-
-    fm_assert(round_to_even<uint32_t>(1, 3) == 0);
-    fm_assert(round_to_even<uint32_t>(3, 5) == 2);
-    fm_assert(round_to_even<uint32_t>(5, 3) == 6);
-}
-
 void test_pool_for_promotes_and_snaps()
 {
     Grid::PoolRegistry reg{(uint32_t)tile_size_xy / 4};
@@ -62,7 +43,8 @@ void test_pool_for_promotes_and_snaps()
     fm_assert(&p8 != &p4);
 
     auto& p5 = reg.pool_for(5);
-    fm_assert(p5.params().bbox_size == 6);
+    fm_assert(p5.params().bbox_size == 5);
+    fm_assert(&p5 != &reg.pool_for(6));
 
     auto& p64 = reg.pool_for((uint32_t)tile_size_xy);
     fm_assert(p64.params().bbox_size == (uint32_t)tile_size_xy);
@@ -222,7 +204,7 @@ void test_nw_cull_covers_bbox_offset()
     auto& c = w[ch];
 
     critter_proto p;
-    p.bbox_size = Vector2ub{254, 254};
+    p.bbox_size = Vector2ub{255, 255};
     p.bbox_offset = Vector2b{-127, -127};
     auto C = w.make_object<critter>(w.make_id(), {ch, {0, 0}}, p);
     fm_assert(C);
@@ -254,7 +236,6 @@ void test_can_move_to_zero_bbox()
 
 void Test::test_passability_bbox()
 {
-    test_round_to_even_self();
     test_pool_for_promotes_and_snaps();
     test_const_passable_equivalence();
     test_const_passable_with_neighbors();

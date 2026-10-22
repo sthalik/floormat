@@ -1,5 +1,4 @@
 #include "grid-pool-registry.hpp"
-#include "compat/round-to-even.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat::Grid {
@@ -10,9 +9,9 @@ PoolRegistry::~PoolRegistry() noexcept = default;
 Pass::Pool& PoolRegistry::pass_pool(const Pass::Params& p)
 {
     // the table holds only pool_for()'s params, so equal params always find the same pool
-    if (p.bbox_size % 2 == 0 && p.bbox_size <= direct_max_bbox && p == Pass::Params{div_size_, p.bbox_size, pass_mode::pass})
+    if (p.bbox_size <= direct_max_bbox && p == Pass::Params{div_size_, p.bbox_size, pass_mode::pass})
     {
-        auto& slot = direct_[(p.bbox_size - 2u) / 2u];
+        auto& slot = direct_[p.bbox_size - Pass::Grid::min_bbox_size];
         if (!slot)
             slot.emplace(p, Search::without_critters());
         return *slot;
@@ -28,7 +27,7 @@ Pass::Pool& PoolRegistry::pass_pool(const Pass::Params& p)
 Pass::Pool& PoolRegistry::pool_for(uint32_t bbox_size)
 {
     fm_assert(bbox_size > 0);
-    return pass_pool(Pass::Params{div_size_, round_to_even(bbox_size, bbox_size), pass_mode::pass});
+    return pass_pool(Pass::Params{div_size_, bbox_size, pass_mode::pass});
 }
 
 Cover::Pool& PoolRegistry::cover_pool(const Cover::Params& p)

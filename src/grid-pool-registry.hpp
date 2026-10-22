@@ -1,6 +1,7 @@
 #pragma once
 
 #include "compat/defs.hpp"
+#include "compat/limits.hpp"
 #include "grid-pass.hpp"
 #include "grid-cover.hpp"
 #include <array>
@@ -21,8 +22,9 @@ public:
     Pass::Pool& pool_for(uint32_t bbox_size);
     Cover::Pool& cover_pool(const Cover::Params& p);
 
-    static constexpr uint32_t direct_count = 127;
-    static constexpr uint32_t direct_max_bbox = 254;
+    // object bbox sizes are uint8_t
+    static constexpr uint32_t direct_max_bbox = limits<uint8_t>::max;
+    static constexpr uint32_t direct_count = direct_max_bbox - Pass::Grid::min_bbox_size + 1;
 
 private:
     // cover pools are indexed by countr_zero(div_size)
