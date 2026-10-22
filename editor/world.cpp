@@ -305,7 +305,7 @@ void app::populate_sweep_aabb_slit()
 }
 
 // Arrow keys only. search-astar.cpp keys the pass grid on max(bbox), so click-to-move pathfinds
-// this 254x32 critter as 254x254 and never finds a route.
+// this 255x32 critter as 255x255 and never finds a route.
 //
 // Walls can't bound the legs: a wall collider is a strip of wall_atlas depth lying outside its
 // own tile, which eats into the gap. A tile-sized scenery bbox matches whole_tile() exactly.
@@ -317,7 +317,7 @@ void app::populate_l_corridor()
     constexpr chunk_coords_ ch{0, 0, 0};
     auto& c = w[ch];
 
-    constexpr uint8_t bbox_long = 254, bbox_short = tile_size_xy/2;
+    constexpr uint8_t bbox_long = 255, bbox_short = tile_size_xy/2;
     constexpr uint8_t room_x0 = 6, room_x1 = 11, room_y0 = 3, room_y1 = 10;
     constexpr uint8_t leg_w_y = 7, leg_w_x0 = 1, leg_w_x1 = 5;
     // Held SE slides east along the room's south wall, so the leg has to be on the east edge.
@@ -326,9 +326,9 @@ void app::populate_l_corridor()
     constexpr local_coords start{3, leg_w_y};
 
     // Held NE parks the box in the room's north-east corner, 16 px from the north wall, where
-    // the 254-tall rotated one would stick 111 px out. Two tiles of clearance cut into the wall
+    // the 255-tall rotated one would stick 111 px out. Two tiles of clearance cut into the wall
     // there receive it; a narrower cut wouldn't span the park spot, a wider one would let the
-    // 254-wide box climb in.
+    // 255-wide box climb in.
     constexpr uint8_t notch_x0 = room_x1-2, notch_x1 = room_x1-1;
     constexpr uint8_t notch_y0 = room_y0-2, notch_y1 = room_y0-1;
 

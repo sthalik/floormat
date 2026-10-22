@@ -18,8 +18,8 @@ void test_pass_pool_per_params()
         {16, 32, pass_mode::shoot_through},
         {8, 32, pass_mode::pass},
         {1, 4, pass_mode::pass},
-        // off the table: odd, and over direct_max_bbox
         {16, 33, pass_mode::pass},
+        // off the table: over direct_max_bbox
         {16, 300, pass_mode::pass},
     };
     constexpr auto N = array_size(params);
