@@ -403,6 +403,7 @@ if test $generate -gt 0; then
     wipe_profraws
     run_exes
     merge_pool 0
+    cp -- "$profdata" "${profdata%.profdata}-ir.profdata"
     wipe_profraws
 fi
 
