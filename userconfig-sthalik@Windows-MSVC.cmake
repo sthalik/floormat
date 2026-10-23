@@ -25,7 +25,6 @@ sets(PATH CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install")
 
 sets(BOOL FLOORMAT_SUBMODULE-SDL2 ON)
 
-add_link_options(-STACK:41943040)
 add_link_options(-WX:NO)
 
 if(FLOORMAT_ASAN)

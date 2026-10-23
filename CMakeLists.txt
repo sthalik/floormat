@@ -142,6 +142,13 @@ if(WIN32)
     enable_language(RC)
 endif()
 
+# In MSVC debug builds, -Otb3 on floormat-hwy (external/CMakeLists.txt) gives Highway's
+# Sort16Rows a stack frame larger than the default 1 MiB stack. Set before the userconfig is
+# loaded, because the linker takes the last stack option, so a userconfig's own wins.
+if(MSVC)
+    add_link_options(-STACK:41943040)
+endif()
+
 if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
     fm_load_userconfig()
 endif()
