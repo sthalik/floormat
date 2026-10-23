@@ -387,6 +387,11 @@ fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE
     highway/hwy/contrib/sort/vqsort_f32a.cc highway/hwy/contrib/sort/vqsort_f32d.cc
     highway/hwy/contrib/sort/vqsort_f64a.cc highway/hwy/contrib/sort/vqsort_f64d.cc
 )
+# At -Ob0 every Highway op is an out-of-line call. -Ob3 inlines them even under -Od.
+# -O2 would fail against the debug build's -RTCs (D8016).
+if(MSVC)
+    target_compile_options(floormat-hwy PRIVATE -Otb3)
+endif()
 # -msse4.2: Highway's ops are always_inline with target("sse4.2"). A caller compiled without it
 # fails to build. MSVC has no target attributes.
 # A universal build compiles every CMAKE_OSX_ARCHITECTURES entry in one clang call.
