@@ -1,13 +1,17 @@
 #include "superpage.hpp"
 #include "assert.hpp"
 #include "atomic.hpp"
+#include "strerror.hpp"
+#include <cr/StringView.h>
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+#include "format.hpp"
 #include <windows.h>
 #else
+#include <cerrno>
 #include <sys/mman.h>
 #include <unistd.h>
 #  ifdef __FreeBSD__
@@ -40,17 +44,25 @@ inline size_t round_up(size_t bytes, size_t page) noexcept
     return (bytes + page - 1) & ~(page - 1);
 }
 
-#ifdef _WIN32
-size_t windows_enable_large_pages() noexcept
+[[maybe_unused]] void warn_small_pages(const char* what, StringView why) noexcept
 {
-    static const size_t result = []() -> size_t {
+    fm_warn_once("superpage alloc failed, using small pages (%s): %s", what, why.data());
+}
+
+#ifdef _WIN32
+struct large_pages { size_t page; DWORD err; };
+
+// err is 0 when the OS reports no large-page support.
+large_pages windows_enable_large_pages() noexcept
+{
+    static const large_pages result = []() -> large_pages {
         size_t page = GetLargePageMinimum();
         if (page == 0)
-            return 0;
+            return {};
         HANDLE tok = nullptr;
         if (!OpenProcessToken(GetCurrentProcess(),
                               TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tok))
-            return 0;
+            return { 0, GetLastError() };
         TOKEN_PRIVILEGES tp = {};
         tp.PrivilegeCount = 1;
         tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
@@ -61,8 +73,8 @@ size_t windows_enable_large_pages() noexcept
         DWORD err = GetLastError();
         CloseHandle(tok);
         if (!ok || err == ERROR_NOT_ALL_ASSIGNED)
-            return 0;
-        return page;
+            return { 0, err };
+        return { page, 0 };
     }();
     return result;
 }
@@ -92,15 +104,32 @@ raw_alloc alloc_impl(size_t bytes) noexcept
 #ifdef _WIN32
     if (!atomic_load(&large_failed, memory_order::relaxed))
     {
-        if (size_t page = windows_enable_large_pages(); page > 0)
+        const char* what;
+        DWORD err;
+        if (const auto lp = windows_enable_large_pages(); lp.page > 0)
         {
-            size_t sz = round_up(bytes, page);
+            size_t sz = round_up(bytes, lp.page);
             void* p = VirtualAlloc(nullptr, sz,
                                    MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES,
                                    PAGE_READWRITE);
             if (p)
                 return { p, sz, true };
+            what = "VirtualAlloc(MEM_LARGE_PAGES)";
+            err = GetLastError();
         }
+        else
+        {
+            what = lp.err ? "enable SeLockMemoryPrivilege" : "GetLargePageMinimum";
+            err = lp.err;
+        }
+        char errbuf[128], whybuf[192];
+        StringView why = "large pages not supported"_s;
+        if (err)
+        {
+            snformat(whybuf, "{} (GetLastError 0x{:08x})"_cf, get_win32_error_string(errbuf, err), err);
+            why = whybuf;
+        }
+        warn_small_pages(what, why);
         atomic_store(&large_failed, 1, memory_order::relaxed);
     }
     size_t sz = round_up(bytes, SMALL_PAGE_FALLBACK);
@@ -124,6 +153,10 @@ raw_alloc alloc_impl(size_t bytes) noexcept
         void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE, flags, -1, 0);
         if (p != MAP_FAILED)
             return { p, sz, true };
+#    ifndef MADV_HUGEPAGE
+        char errbuf[128];
+        warn_small_pages("mmap(MAP_HUGETLB)", get_error_string(errbuf, errno));
+#    endif
         atomic_store(&large_failed, 1, memory_order::relaxed);
     }
     size_t sz = round_up(bytes, page);
@@ -131,8 +164,11 @@ raw_alloc alloc_impl(size_t bytes) noexcept
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     fm_assert(p != MAP_FAILED);
 #    ifdef MADV_HUGEPAGE
-    // Opportunistic THP promotion; ignored if kernel declines.
-    (void)madvise(p, sz, MADV_HUGEPAGE);
+    if (madvise(p, sz, MADV_HUGEPAGE) != 0)
+    {
+        char errbuf[128];
+        warn_small_pages("madvise(MADV_HUGEPAGE)", get_error_string(errbuf, errno));
+    }
 #    endif
     return { p, sz, false };
 
@@ -163,7 +199,11 @@ raw_alloc alloc_impl(size_t bytes) noexcept
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS | MAP_ALIGNED_SUPER, -1, 0);
     if (p == MAP_FAILED)
+    {
+        char errbuf[128];
+        warn_small_pages("mmap(MAP_ALIGNED_SUPER)", get_error_string(errbuf, errno));
         p = mmap(nullptr, sz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    }
     fm_assert(p != MAP_FAILED);
     return { p, sz, false };
 
@@ -180,6 +220,7 @@ raw_alloc alloc_impl(size_t bytes) noexcept
             VM_FLAGS_ANYWHERE | VM_FLAGS_SUPERPAGE_SIZE_2MB);
         if (kr == KERN_SUCCESS)
             return { reinterpret_cast<void*>(addr), large_sz, true };
+        warn_small_pages("mach_vm_allocate", mach_error_string(kr));
         atomic_store(&large_failed, 1, memory_order::relaxed);
     }
 #    endif
