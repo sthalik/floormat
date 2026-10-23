@@ -287,8 +287,9 @@ Optional<int> with_game_mode::relaunch() noexcept
 
     PROCESS_INFORMATION pi;
     SetEnvironmentVariableW(guard, L"1");
-    // Suspended until it's in the job.
-    if (!CreateProcessW(path.data(), cmd.data(), nullptr, nullptr, TRUE, CREATE_SUSPENDED,
+    // Suspended until it's in the job. Without a priority class flag, the child gets Normal.
+    const DWORD flags = CREATE_SUSPENDED | GetPriorityClass(GetCurrentProcess());
+    if (!CreateProcessW(path.data(), cmd.data(), nullptr, nullptr, TRUE, flags,
                         nullptr, nullptr, &si, &pi))
     {
         SetEnvironmentVariableW(guard, nullptr);
