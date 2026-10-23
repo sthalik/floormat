@@ -5,14 +5,22 @@ import lldb
 crash_reasons = (lldb.eStopReasonSignal, lldb.eStopReasonException)
 
 def __lldb_init_module(debugger, internal_dict):
-    # Otherwise lldb runs the program in a ConPTY, which turns runs of spaces into cursor moves.
-    if os.name == "nt":
-        os.environ["LLDB_LAUNCH_FLAG_USE_PIPES"] = "1"
     debugger.SetAsync(False)
     debugger.HandleCommand("settings set use-color false")
     debugger.HandleCommand("settings set target.disable-aslr false")
-    debugger.HandleCommand("run")
-    process = debugger.GetSelectedTarget().GetProcess()
+    target = debugger.GetSelectedTarget()
+    # Not "run": it builds its own launch info and drops these flags.
+    info = target.GetLaunchInfo()
+    # Otherwise lldb runs the program in a ConPTY, which turns runs of spaces into cursor moves.
+    # Not LLDB_LAUNCH_FLAG_USE_PIPES: a static-CRT liblldb.dll never sees os.environ.
+    if os.name == "nt":
+        info.SetLaunchFlags(info.GetLaunchFlags() | lldb.eLaunchFlagUsePipes)
+    error = lldb.SBError()
+    process = target.Launch(info, error)
+    if not error.Success():
+        print(error)
+        debugger.HandleCommand("quit 1")
+        return
     while process.GetState() == lldb.eStateStopped:
         if any(t.GetStopReason() in crash_reasons for t in process):
             for t in process:
