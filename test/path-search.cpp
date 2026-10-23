@@ -564,8 +564,8 @@ void test_string_pull_random(uint32_t cell)
 
 struct pillar { Vector2ub size; Vector2b offset; local_coords tile = {8, 8}; };
 
-void check_start_insertion(std::initializer_list<pillar> pillars, Vector2b from_offset, local_coords to_tile, bool found,
-                       uint32_t bbox = pull_bbox.x(), local_coords from_tile = {8, 8})
+void check_seed_search(std::initializer_list<pillar> pillars, Vector2b from_offset, local_coords to_tile, bool found,
+                       uint32_t bbox = pull_bbox.x(), local_coords from_tile = {8, 8}, Vector2b to_offset = {})
 {
     auto A = astar{};
     auto w = make_pull_world();
@@ -573,17 +573,21 @@ void check_start_insertion(std::initializer_list<pillar> pillars, Vector2b from_
         add_pillar(w, p.tile, p.size, p.offset);
     w[pull_ch].mark_modified();
     const auto from = point{pull_ch, from_tile, from_offset};
-    const auto to = point{pull_ch, to_tile, {}};
+    const auto to = point{pull_ch, to_tile, to_offset};
     const auto size = Vector2ui{bbox};
-    for (auto cell : { 4u, 8u, 16u, 32u, 64u })
+    for (auto cell : { 4u, 8u, 16u, 32u, 64u, 128u })
     {
         if (cell > bbox)
             continue;
         auto pool = Pass::Pool{Pass::Params{cell, bbox, pass_mode::pass}, without_critters()};
-        auto res = A.Dijkstra(w, pool, from, to, pull_max_dist, size, without_critters());
-        fm_assert(res.is_found() == found);
+        auto res = A.Dijkstra<0, true>(w, pool, from, to, pull_max_dist, size, without_critters());
+        const auto res2 = A.Dijkstra<0, false>(w, pool, from, to, pull_max_dist, size, without_critters());
+        if (res.is_found() != found || res2.is_found() != found)
+            fm_abort("seed search to (%d, %d) at cell %u: found %d, without closest %d",
+                     (int)to_tile.x, (int)to_tile.y, cell, (int)res.is_found(), (int)res2.is_found());
         if (!found)
             continue;
+        fm_assert(res2.cost() == res.cost());
         const auto raw = res.path();
         fm_assert(raw.front() == from && raw.back() == to);
         for (auto i = 0uz; i + 1 < raw.size(); i++)
@@ -592,27 +596,45 @@ void check_start_insertion(std::initializer_list<pillar> pillars, Vector2b from_
     }
 }
 
-// The start is in a corridor 2 px wider than the bbox, so every cell along it holds a blocked
-// position.
-void test_start_insertion()
+// The start or the goal is in a corridor 2 px wider than the bbox, so every cell along it holds a
+// blocked position.
+void test_seed_search()
 {
     // exit toward the tile centre
-    check_start_insertion({ {{90, 44}, {-75, -39}}, {{90, 44}, {-75, 39}} }, {-28, 0}, {11, 8}, true);
+    check_seed_search({ {{90, 44}, {-75, -39}}, {{90, 44}, {-75, 39}} }, {-28, 0}, {11, 8}, true);
     // exit away from it
-    check_start_insertion({ {{90, 44}, {5, -39}}, {{90, 44}, {5, 39}} }, {-28, 0}, {5, 8}, true);
+    check_seed_search({ {{90, 44}, {5, -39}}, {{90, 44}, {5, 39}} }, {-28, 0}, {5, 8}, true);
     // free rows 5..7 hold no lattice row
-    check_start_insertion({ {{90, 44}, {5, -33}}, {{90, 44}, {5, 45}} }, {-28, 6}, {5, 8}, true);
+    check_seed_search({ {{90, 44}, {5, -33}}, {{90, 44}, {5, 45}} }, {-28, 6}, {5, 8}, true);
     // closed to the west and east, left north through a gap at x 26..28
-    check_start_insertion({ {{130, 44}, {-55, -39}}, {{180, 44}, {-30, 39}}, {{40, 122}, {-120, 0}}, {{46, 182}, {67, -30}} },
+    check_seed_search({ {{130, 44}, {-55, -39}}, {{180, 44}, {-30, 39}}, {{40, 122}, {-120, 0}}, {{46, 182}, {67, -30}} },
                       {-28, 0}, {8, 5}, true);
-    check_start_insertion({ {{180, 44}, {-30, -39}}, {{180, 44}, {-30, 39}}, {{40, 122}, {-120, 0}}, {{50, 122}, {15, 0}} },
+    check_seed_search({ {{180, 44}, {-30, -39}}, {{180, 44}, {-30, 39}}, {{40, 122}, {-120, 0}}, {{50, 122}, {15, 0}} },
                       {-28, 0}, {8, 5}, false);
     // at 64-px cells the lattice point is mid-cell
-    check_start_insertion({ {{90, 44}, {-75, -55}}, {{90, 44}, {-75, 55}} }, {-28, 0}, {11, 8}, true, 64);
+    check_seed_search({ {{90, 44}, {-75, -55}}, {{90, 44}, {-75, 55}} }, {-28, 0}, {11, 8}, true, 64);
     // from where the corridor opens into a closed room west of it, which holds the 3x3 seeds
-    check_start_insertion({ {{90, 44}, {5, -39}}, {{90, 44}, {5, 39}},
+    check_seed_search({ {{90, 44}, {5, -39}}, {{90, 44}, {5, 39}},
                         {{130, 20}, {-31, -71}, {7, 8}}, {{130, 20}, {-31, 71}, {7, 8}}, {{20, 162}, {-76, 0}, {7, 8}} },
                       {9, 0}, {11, 8}, true, pull_bbox.x(), {7, 8});
+    // the goal in such a corridor, 100 px from either end
+    check_seed_search({ {{200, 44}, {0, -39}}, {{200, 44}, {0, 39}} }, {}, {8, 8}, true, pull_bbox.x(), {4, 8});
+    // the goal where the corridor opens into the closed room, whose cells are within goal_radius()
+    check_seed_search({ {{90, 44}, {5, -39}}, {{90, 44}, {5, 39}},
+                        {{130, 20}, {-31, -71}, {7, 8}}, {{130, 20}, {-31, 71}, {7, 8}}, {{20, 162}, {-76, 0}, {7, 8}} },
+                      {}, {7, 8}, true, pull_bbox.x(), {11, 8}, {9, 0});
+    // both ends in a corridor closed at either end
+    check_seed_search({ {{200, 44}, {0, -39}}, {{200, 44}, {0, 39}}, {{20, 122}, {-110, 0}}, {{20, 122}, {110, 0}} },
+                      {-12, 0}, {8, 8}, true, pull_bbox.x(), {8, 8}, {12, 0});
+    // a closed U-shaped corridor whose bend lies over seed_search_radius from the goal, so only
+    // the start's seed search reaches the goal
+    check_seed_search({ {{44, 160}, {-39, -20}}, {{30, 200}, {32, 57}}, {{44, 250}, {103, 25}}, {{186, 44}, {32, -99}},
+                        {{108, 44}, {-7, 62}}, {{108, 44}, {71, 88}, {8, 9}} },
+                      {}, {9, 10}, true, pull_bbox.x(), {8, 8}, {0, -28});
+    // At 128-px cells the lattice lies 64 px off to's tile centre, the corridor's only column, so
+    // only the goal's seed search reaches the goal.
+    check_seed_search({ {{128, 160}, {-1, -17}, {7, 10}}, {{128, 160}, {1, -17}, {11, 10}} },
+                      {}, {9, 9}, true, 128, {2, 4});
 }
 
 } // namespace
@@ -628,7 +650,7 @@ void Test::test_astar()
     test_string_pull_last_visible();
     for (auto cell : { 4u, 8u, 16u, 32u })
         test_string_pull_random(cell);
-    test_start_insertion();
+    test_seed_search();
 }
 
 } // namespace floormat

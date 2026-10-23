@@ -28,10 +28,10 @@ constexpr int dim = (int)TILE_MAX_DIM, last = 2*dim - 1;
 constexpr uint32_t unreached = (uint32_t)-1, max_dist = 6*chunk_size_xy;
 
 // Every cell within this many px of a zone centre is free: the seeds and every node within the
-// goal hop's reach, so the R-tree checks of both pass.
+// search's goal_radius(), so the R-tree checks of both pass.
 constexpr int clear_px = 2*tile_size_xy;
 
-// off the lattice, where a hop costing anything but octile changes the cost
+// off the lattice, where an edge to the goal costing anything but octile changes the cost
 struct zone { Vector2i tile; Vector2b offset; };
 constexpr zone zones[] = {
     { {4, 4}, {13, 7} }, { {last - 5, 4}, {-11, 5} },
@@ -45,7 +45,7 @@ constexpr pool_size large_pools[] = { {16, 64}, {32, 64}, {64, 64}, };
 
 // Lattice point v is the pixel v*step, a step being one cell. Every node of the search is one:
 // seeds sit at from rounded down to the lattice, plus 0 or a step. The zones are clear, so a
-// seed always takes and start insertion never runs.
+// seed always takes, a node is within goal_radius() of the goal, and neither seed search runs.
 struct lattice
 {
     int step, tile, lo, hi, n, clear_steps;
@@ -209,19 +209,19 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
     }
 }
 
-// The search's goal hop reach: two cells less 2 px per axis. Octile from a node past it can be
-// cheaper than any route through the reach, so the reach decides the cost.
+// The search's goal_radius(): two cells less 2 px per axis. Octile from a node past it can be
+// cheaper than any route through the nodes inside it, so it decides the cost.
 uint32_t reference_cost(const lattice& L, const Array<uint32_t>& dist, zone to)
 {
     const auto oct = Search::octile{(uint32_t)L.step};
-    const auto hop_axis = (uint64_t)(2*L.step - 2);
+    const auto goal_radius = (uint64_t)(2*L.step - 2);
     auto best = unreached;
     for (int j = -L.clear_steps; j <= L.clear_steps; j++)
         for (int i = -L.clear_steps; i <= L.clear_steps; i++)
         {
             const auto v = to.tile*L.tile + Vector2i{i, j};
             const auto d = dist[L.index(v)];
-            if (d != unreached && point::distance_squared(L.pt(v), zone_point(to)) <= 2*hop_axis*hop_axis)
+            if (d != unreached && point::distance_squared(L.pt(v), zone_point(to)) <= 2*goal_radius*goal_radius)
                 best = Math::min(best, d + oct(L.pt(v), zone_point(to)));
         }
     return best;
