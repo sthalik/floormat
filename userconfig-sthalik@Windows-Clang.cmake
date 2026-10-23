@@ -102,7 +102,8 @@ else()
             add_link_options(-fprofile-use=${FLOORMAT_PGO_PROFDATA} -fcs-profile-generate)
             # The cs pass is lowered post-link.
             add_link_options(-Wl,-mllvm,-vp-counters-per-site=${fm_vp_per_site})
-            add_link_options(-Wl,--whole-archive,-lclang_rt.profile-x86_64,--no-whole-archive)
+            # The runtime reads it but is first loaded after LTO, which would internalize it.
+            add_link_options(-Wl,--require-defined=__llvm_profile_filename)
         else()
             message(FATAL_ERROR "FLOORMAT_PGO=cs needs a profile at '${FLOORMAT_PGO_PROFDATA}'; "
                                 "run './run-pgo.sh generate' first")
