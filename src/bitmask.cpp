@@ -10,8 +10,14 @@
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wused-but-marked-unused"
 #endif
+#undef HWY_TARGET_INCLUDE
+#define HWY_TARGET_INCLUDE "src/bitmask.cpp"
+#include <hwy/foreach_target.h>
 #include <hwy/highway.h>
 
+// foreach_target.h compiles this file once per target, and HWY_ONCE only holds on the last pass.
+#ifndef FLOORMAT_BITMASK_CPP_SHARED
+#define FLOORMAT_BITMASK_CPP_SHARED
 namespace floormat {
 
 using u8 = uint8_t;
@@ -21,8 +27,20 @@ namespace {
 
 constexpr uint8_t amin = 32;
 
+} // namespace
+
+} // namespace floormat
+#endif
+
+HWY_BEFORE_NAMESPACE();
+namespace floormat::HWY_NAMESPACE {
+namespace {
+
 void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 {
+    static_assert(amin >= 1 && amin <= 128);
+    // BitsFromMask exists only on fixed-width targets. Scalable ones (SVE, RVV) take the scalar loop.
+#if HWY_MAX_BYTES <= 64
     namespace hn = hwy::HWY_NAMESPACE;
     // A block's N bits and up to 7 carried ones fit in acc.
     constexpr hn::CappedTag<u8, 32> d8;
@@ -30,7 +48,6 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
     constexpr hn::Repartition<int16_t, decltype(d8)> di16;
     constexpr hn::Repartition<int32_t, decltype(d8)> di32;
     constexpr auto N = (u32)hn::MaxLanes(d8);
-    static_assert(amin >= 1 && amin <= 128);
     // Added to the alpha byte only. Its bit 7 becomes alpha >= amin.
     const auto bias = hn::BitCast(d8, hn::Set(di32, std::bit_cast<int32_t>(std::array<u8, 4>{0, 0, 0, 128 - amin})));
     // Alpha is the high byte of a 32-bit pixel on little-endian, the low one on big-endian.
@@ -40,6 +57,7 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
         else
             return v;
     };
+#endif
 
     for (auto j = 0u; j < H; j++)
     {
@@ -49,6 +67,7 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
         uint64_t acc = 0;
         u32 have = bitʹ & 7, i = 0;
 
+#if HWY_MAX_BYTES <= 64
         if constexpr (N % 8 == 0)
             for (; i + N <= W; i += N)
             {
@@ -73,6 +92,7 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
                 p += N/8;
                 acc >>= N;
             }
+#endif
         for (; i < W; i++)
         {
             acc |= (uint64_t)(row[(size_t)i*4 + 3] >= amin) << have;
@@ -89,6 +109,13 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 }
 
 } // namespace
+} // namespace floormat::HWY_NAMESPACE
+HWY_AFTER_NAMESPACE();
+
+#if HWY_ONCE
+namespace floormat {
+
+HWY_EXPORT(bm_rows);
 
 #if 1
 void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& bitmask)
@@ -107,7 +134,7 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& bitmask)
     fm_debug_assert(bitmask.size() % 8 == 0);
     std::memset(bitmask.data(), 0, bitmask.size()/8);
 
-    bm_rows(src, dest, width, height, stride);
+    HWY_DYNAMIC_DISPATCH(bm_rows)(src, dest, width, height, stride);
 }
 #else
 void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& bitmask)
@@ -128,3 +155,4 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& bitmask)
 #endif
 
 } // namespace floormat
+#endif

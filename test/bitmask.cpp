@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "src/anim-atlas.hpp"
+#include "src/hwy.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
@@ -8,6 +9,7 @@
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
 #include <mg/PixelFormat.h>
+#include <hwy/targets.h>
 
 namespace floormat {
 
@@ -102,10 +104,10 @@ void check_bitmask(const unsigned char* px, uint32_t W, uint32_t H)
 
 void bitmask_sweep_test()
 {
-    // Width covers every residue mod 16 three times, with zero, one and two whole SSE2 blocks
-    // ahead of the scalar tail. Height covers every start offset: row j begins at bit
-    // (H-j-1)*W, so eight rows walk the full cycle of W mod 8.
-    constexpr uint32_t max_w = 48, max_h = 9;
+    // Width covers every residue mod 32 three times, with zero, one and two whole 32-pixel blocks
+    // (AVX2, AVX3) ahead of the scalar tail, and up to five 16-pixel ones (SSE4). Height covers
+    // every start offset: row j begins at bit (H-j-1)*W, so eight rows walk the full cycle of W mod 8.
+    constexpr uint32_t max_w = 96, max_h = 9;
     unsigned char px[max_w*max_h*4];
 
     for (auto W = 1u; W <= max_w; W++)
@@ -118,8 +120,8 @@ void bitmask_sweep_test()
 
 void bitmask_wide_test()
 {
-    // The sweep stops at 48 where anim/npc-walk.png is 3382 wide. 3391 is prime, runs 211 SSE2
-    // blocks with the widest possible tail, and 3391 % 8 == 7 walks every byte offset.
+    // The sweep stops at 96 where anim/npc-walk.png is 3382 wide. 3391 is prime, leaves the widest
+    // possible tail after 16- and 32-pixel blocks, and 3391 % 8 == 7 walks every byte offset.
     constexpr uint32_t W = 3391, H = 64;
     Array<unsigned char> px{NoInit, (size_t)W*H*4};
     fill_pixels(px.data(), W, H, 0xa5f3u);
@@ -130,9 +132,15 @@ void bitmask_wide_test()
 
 void Test::test_bitmask()
 {
-    bitmask_sweep_test();
-    bitmask_wide_test();
-    bitmask_test();
+    for (const int64_t target : hwy::SupportedAndGeneratedTargets())
+    {
+        hwy::SetSupportedTargetsForTest(target);
+        bitmask_sweep_test();
+        bitmask_wide_test();
+        bitmask_test();
+    }
+    hwy::SetSupportedTargetsForTest(0);
+    vqsort_refresh_targets();
     //bitmask_benchmark();
 }
 
