@@ -102,19 +102,25 @@ jobs:
       uses: actions/cache@v4
       with:
         path: build/lldb
-        key: lldb-v2-${{ env.LLDB_VERSION }}-${{ runner.arch }}
+        key: lldb-v3-${{ env.LLDB_VERSION }}-${{ runner.arch }}
       if: ${{ !cancelled() && runner.os == 'Windows' }}
 
-    # The release tarballs have no lldb, only the MSIs do.
+    # The release tarballs have no lldb, only the MSIs do. lldb looks for its Python package
+    # in ../lib/site-packages from liblldb.dll. native/_lldb.pyd is a 112 MB copy of
+    # liblldb.dll, unused because lldb imports its built-in _lldb first.
     - name: Download lldb
       run: |
         case "$RUNNER_ARCH" in ARM64) arch=woa64 ;; *) arch=win64 ;; esac
         curl -fsSL --retry 3 -o build/llvm.msi "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLDB_VERSION/LLVM-$LLDB_VERSION-$arch.msi"
-        7z e -y -obuild/lldb build/llvm.msi CM_FP_bin.liblldb.dll CM_FP_bin.lldb.exe
+        7z e -y -obuild/lldb build/llvm.msi CM_FP_bin.liblldb.dll CM_FP_bin.lldb.exe 'CM_FP_lib.site_packages.lldb.*.py'
         rm build/llvm.msi
         cd build/lldb
-        mv CM_FP_bin.liblldb.dll liblldb.dll
-        mv CM_FP_bin.lldb.exe lldb.exe
+        # The MSI's names are the install paths with dots for slashes.
+        for f in CM_FP_*; do
+            p=$(echo "${f#CM_FP_}" | sed 's/\.\([a-z]*\)$/@\1/; s/\./\//g; s/@/./; s/site_packages/site-packages/')
+            mkdir -p "$(dirname "$p")"
+            mv "$f" "$p"
+        done
       shell: bash
       if: ${{ !cancelled() && runner.os == 'Windows' && steps.lldb-cache.outputs.cache-hit != 'true' }}
 
@@ -126,12 +132,7 @@ jobs:
         export LLDB_USE_LLDB_SERVER=0
         # A process started by a debugger otherwise gets the slow NT debug heap.
         export _NO_DEBUG_HEAP=1
-        # Pipes instead of a ConPTY, as in lldbscript.py.
-        export LLDB_LAUNCH_FLAG_USE_PIPES=1
-        ../lldb/lldb.exe --batch -o run -k "thread backtrace all" -k "quit 2" -- bin/floormat-test.exe --no-gl 2>&1 </dev/null | tee ../lldb.log | tr -d '\r'
-        echo
-        # lldb returns 0 whatever the program's exit code is.
-        test "$(sed -n 's/^Process [0-9]* exited with status = \(-\?[0-9]*\) .*/\1/p' ../lldb.log | tail -n 1)" = 0
+        ../lldb/bin/lldb.exe --batch -o "command script import ../../.github/lldbscript.py" -- bin/floormat-test.exe --no-gl 2>&1 </dev/null | tr -d '\r'
       shell: bash
       timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Windows' }}
