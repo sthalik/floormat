@@ -3,6 +3,7 @@
 #include "search-pred.hpp"
 #include <array>
 #include <cr/Array.h>
+#include <mg/Vector2.h>
 
 namespace floormat::Search { struct cache; }
 namespace floormat::Grid { class PoolRegistry; }
@@ -20,6 +21,9 @@ public:
     struct visited;
     struct frontier;
     struct bucket_queue;
+    struct goal_seed;
+    struct endpoint;
+    struct chunk_bitmaps;
 
     using pred = Search::pred;
 
@@ -58,17 +62,35 @@ public:
                                    Vector2ui own_size, const pred& p);
 
 private:
+    struct seed_search;
+    struct closest;
+
     static constexpr uint32_t initial_capacity = 1u << 17;
+
+    bucket_queue make_queue(uint32_t bucket_count);
+    chunk_bitmaps make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p);
+    bool seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, uint32_t max_dist);
+    visited run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, uint32_t max_dist);
+    visited run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, const endpoint& goal);
+    template<int Debug, bool FindClosestOnFailure>
+    closest expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal, uint32_t max_dist, closest best);
+    template<int Debug>
+    path_search_result make_result(const closest& best, point from, point to, uint32_t max_dist, float time);
 
     safe_ptr<struct Search::cache> _cache;
     safe_ptr<Grid::PoolRegistry> _pool_registry;
     Array<visited> nodes;
+    uint32_t node_count = 0;
     Array<Array<frontier>> buckets;
     Array<uint32_t> bucket_sizes;
     Array<point> temp_nodes;
     Array<const uint8_t*> chunk_bits;
-    Array<uint32_t> insertion_state;
-    Array<Range2D> insertion_rects;
+    Array<uint32_t> seed_search_state;
+    Array<Range2D> seed_rects;
+    Array<goal_seed> goal_seeds;
+    Array<uint32_t> goal_seed_index;
+    Vector2i goal_seed_off;
+    uint32_t goal_seed_n = 0;
 };
 
 } // namespace floormat

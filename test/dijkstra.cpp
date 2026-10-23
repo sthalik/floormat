@@ -130,12 +130,19 @@ void test_flush_goals(uint32_t bbox)
                          {0, (int8_t)(south + lo)}, {0, -1});
     }
 
-    // A gap as wide as the bbox and two tiles long. No cell in it has its bit set, and the free
-    // nodes past its ends are too far from the middle to hop to it.
+    // A gap as wide as the bbox. No cell in it has its bit set, and the free nodes past its ends
+    // are too far from the middle to move straight to it. Two tiles long, the goal's seed search reaches
+    // them. Four tiles long, it can't.
     const auto gap_side = Vector2ub{(uint8_t)(2*tile_size_xy - bbox), 2*tile_size_xy};
     check_flush_goal("box-wide gap", bbox, [&](world& w) {
         add_block(w, {7, 8}, gap_side);
         add_block(w, {9, 8}, gap_side);
+    }, {}, {1, 0});
+    check_flush_goal("long box-wide gap", bbox, [&](world& w) {
+        add_block(w, {7, 7}, gap_side);
+        add_block(w, {7, 9}, gap_side);
+        add_block(w, {9, 7}, gap_side);
+        add_block(w, {9, 9}, gap_side);
     }, {}, {1, 0}, false);
 }
 
