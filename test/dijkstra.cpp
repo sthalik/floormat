@@ -1,4 +1,9 @@
 #include "app.hpp"
+#include "compat/borrowed-ptr.inl"
+#include "src/anim-atlas.hpp"
+#include "src/critter.hpp"
+#include "src/critter-script.hpp"
+#include "src/nanosecond.inl"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
 #include "src/search-cache.hpp"
@@ -246,6 +251,214 @@ void test_cache_margin()
         }
 }
 
+void add_pocket(world& w, point pt, uint32_t size, int open)
+{
+    constexpr int t = 16;
+    fm_assert(pt.chunk3() == flush_ch);
+    const auto h = (int)size/2;
+    const auto o = Vector2i(pt.offset());
+    const auto back = Vector2ub{(uint8_t)t, (uint8_t)(size + 2*t)}, side = Vector2ub{(uint8_t)(size + t), (uint8_t)t};
+    add_block(w, pt.local(), back, Vector2b(o + Vector2i{-open*(h + t/2), 0}));
+    add_block(w, pt.local(), side, Vector2b(o + Vector2i{-open*t/2, -(h + t/2)}));
+    add_block(w, pt.local(), side, Vector2b(o + Vector2i{-open*t/2, h + t/2}));
+}
+
+void check_one_move(world& w, point pt, uint32_t size, Vector2i open)
+{
+    fm_assert(box_free(w, pt, Vector2ui(size)));
+    for (int dy = -1; dy <= 1; dy++)
+        for (int dx = -1; dx <= 1; dx++)
+            if (dx || dy)
+                fm_assert(box_free(w, point::normalize_coords(pt, {dx, dy}), Vector2ui(size)) == (Vector2i{dx, dy} == open));
+}
+
+bptr<critter> add_walker(world& w, point from, uint32_t size)
+{
+    critter_proto p;
+    p.name = "npc"_s;
+    p.speed = 1;
+    p.bbox_size = Vector2ub((uint8_t)size);
+    p.offset = from.offset();
+    auto C = w.make_object<critter>(w.make_id(), from.coord(), move(p));
+    w.init_scripts();
+    return C;
+}
+
+// The walk collides like any other move, so a path through a collider stops it short.
+void walk_to(world& w, const bptr<critter>& C, path_search_result path, point goal, const char* name, uint32_t cell)
+{
+    C->script.do_reassign(critter_script::make_walk_script(move(path)), C);
+    const auto frame = Second / C->atlas->info().fps;
+    for (auto frames = 0u; C->last_walk == critter::walk_result::none; frames++)
+    {
+        fm_assert(frames < 4000);
+        auto i = C->index();
+        C->update(C, i, frame);
+    }
+    if (C->last_walk != critter::walk_result::arrived || C->position() != goal)
+    {
+        const auto at = Vector3i(C->position()), to = Vector3i(goal);
+        fm_abort("%s at div %u: walk ended %d at (%d, %d), goal (%d, %d)",
+                 name, cell, (int)C->last_walk, at.x(), at.y(), to.x(), to.y());
+    }
+    w.finish_scripts();
+}
+
+// The start stands in a pocket 3 px off the lattice on both axes, so its cell and every ring
+// seed are closed and only its seed search gets out. With boxed_goal, the goal does too.
+void check_pocket(uint32_t cell, bool boxed_goal)
+{
+    constexpr uint32_t max_dist = 1024, size = 32;
+    const auto from = point{global_coords{flush_ch, {5, 8}}, {3, 3}};
+    const auto goal = point{global_coords{flush_ch, {11, 8}}, {-5, 7}};
+    const char* const name = boxed_goal ? "pocket, boxed goal" : "pocket";
+    const auto& pred = Search::without_critters();
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+    fm_assert(pool.params().div_size() == cell);
+
+    auto w = world();
+    add_floors(w, from, max_dist, cell);
+    add_pocket(w, from, size, -1);
+    if (boxed_goal)
+        add_pocket(w, goal, size, 1);
+    // The seed search's flood passes the walker's own collider.
+    const auto C = add_walker(w, from, size);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    check_one_move(w, from, size, {-1, 0});
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, from, pred));
+    if (boxed_goal)
+    {
+        check_one_move(w, goal, size, {1, 0});
+        fm_assert(!A.cache()->is_passable_for_bbox(w, pool, goal, pred));
+    }
+
+    auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
+    auto r2 = A.Dijkstra<0, true>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
+    if (!r1.is_found() || !r2.is_found())
+        fm_abort("%s at div %u: found %d, with closest %d", name, cell, (int)r1.is_found(), (int)r2.is_found());
+    fm_assert(r1.path().front() == from && r1.path().back() == goal);
+    fm_assert(r2.cost() == r1.cost());
+    // Leaving a pocket goes a box width away from the other end and back. No step costs less
+    // than its x travel.
+    const auto x_travel = (uint32_t)(Vector3i(goal).x() - Vector3i(from).x()) + 2*size*(1 + (uint32_t)boxed_goal);
+    if (r1.cost() < x_travel)
+        fm_abort("%s at div %u: cost %u, the way around is at least %u", name, cell, r1.cost(), x_travel);
+    walk_to(w, C, move(r1), goal, name, cell);
+}
+
+// Every seed costs max_dist or more. From the pocket, its seed search first meets a set cell a
+// box width out. Toward it, the ring seeds around an off-lattice start lie 1 px or more away.
+void check_seeds_past_max_dist(uint32_t cell)
+{
+    constexpr uint32_t size = 32;
+    const auto pocket = point{global_coords{flush_ch, {5, 8}}, {3, 3}};
+    const auto open = point{global_coords{flush_ch, {11, 8}}, {-5, 7}};
+    const auto& pred = Search::without_critters();
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+
+    auto w = world();
+    add_floors(w, pocket, 1024, cell);
+    add_pocket(w, pocket, size, -1);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, pocket, pred));
+
+    struct search { point from, to; uint32_t max_dist; };
+    for (auto [from, to, max_dist] : { search{pocket, open, size}, search{open, pocket, 1} })
+    {
+        auto r1 = A.Dijkstra<0, false>(w, pool, from, to, max_dist, Vector2ui(size), pred);
+        auto r2 = A.Dijkstra<0, true>(w, pool, from, to, max_dist, Vector2ui(size), pred);
+        if (r1.is_found() || r2.is_found() || !r1.path().isEmpty() || !r2.path().isEmpty())
+            fm_abort("seeds past max_dist %u at div %u: found %d, with closest %d, path lengths %zu %zu",
+                     max_dist, cell, (int)r1.is_found(), (int)r2.is_found(), r1.path().size(), r2.path().size());
+    }
+}
+
+// The goal stands in a box-wide corridor 5 px short of the room it opens into, so its cell is
+// closed and room nodes lie near it. The room's only other way in is the corridor's far end,
+// facing away from the start. A* exhausts without reaching the goal, then the goal's seed search
+// runs down the corridor to its nodes.
+void check_corridor_goal(uint32_t cell)
+{
+    constexpr uint32_t max_dist = 1024, size = 32;
+    constexpr auto room_tile = local_coords{10, 8};
+    constexpr int corridor_west = 576;
+    const auto from = point{global_coords{flush_ch, {13, 8}}, {}};
+    const auto goal = point{global_coords{flush_ch, room_tile}, {5, 0}};
+    const auto& pred = Search::without_critters();
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+
+    auto w = world();
+    add_floors(w, from, max_dist, cell);
+    add_block(w, room_tile, {64, 64}, {-32, -48});
+    add_block(w, room_tile, {64, 64}, {-32, 48});
+    add_block(w, room_tile, {112, 16}, {56, -72});
+    add_block(w, room_tile, {112, 16}, {56, 72});
+    add_block(w, room_tile, {16, 128}, {104, 0});
+    const auto C = add_walker(w, from, size);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    fm_assert(box_free(w, goal, Vector2ui(size)));
+    fm_assert(!box_free(w, point::normalize_coords(goal, {0, -1}), Vector2ui(size)));
+    fm_assert(!box_free(w, point::normalize_coords(goal, {0, 1}), Vector2ui(size)));
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, goal, pred));
+
+    auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
+    auto r2 = A.Dijkstra<0, true>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
+    if (!r1.is_found() || !r2.is_found())
+        fm_abort("corridor goal at div %u: found %d, with closest %d", cell, (int)r1.is_found(), (int)r2.is_found());
+    fm_assert(r1.path().front() == from && r1.path().back() == goal);
+    fm_assert(r2.cost() == r1.cost());
+    // The corridor is entered where the box clears its walls.
+    const auto mouth_x = corridor_west - (int)size/2;
+    const auto x_travel = (uint32_t)(Vector3i(from).x() - mouth_x + Vector3i(goal).x() - mouth_x);
+    if (r1.cost() < x_travel)
+        fm_abort("corridor goal at div %u: cost %u, the way around is at least %u", cell, r1.cost(), x_travel);
+    walk_to(w, C, move(r1), goal, "corridor goal", cell);
+}
+
+// Posts 3 px apart past the box close every cell between them at div 8. In the gaps, the flood
+// reaches some positions diagonally first, then cheaper on an axial step.
+void check_post_field()
+{
+    constexpr uint32_t max_dist = 1024, size = 32, cell = 8;
+    constexpr int post = 16, pitch = post + (int)size - 1 + 3;
+    const auto from = point{global_coords{flush_ch, flush_tile}, {pitch/2, pitch/2}};
+    const auto goal = point{global_coords{flush_ch, {12, 8}}, {}};
+    const auto& pred = Search::without_critters();
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+
+    auto w = world();
+    add_floors(w, from, max_dist, cell);
+    for (int j = -1; j <= 1; j++)
+        for (int i = -1; i <= 1; i++)
+            add_block(w, flush_tile, Vector2ub(post), Vector2b{(int8_t)(i*pitch), (int8_t)(j*pitch)});
+    const auto C = add_walker(w, from, size);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, from, pred));
+
+    auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
+    auto r2 = A.Dijkstra<0, true>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
+    if (!r1.is_found() || !r2.is_found())
+        fm_abort("post field: found %d, with closest %d", (int)r1.is_found(), (int)r2.is_found());
+    fm_assert(r1.path().front() == from && r1.path().back() == goal);
+    fm_assert(r2.cost() == r1.cost());
+
+    walk_to(w, C, move(r1), goal, "post field", cell);
+}
+
 } // namespace
 
 void Test::test_dijkstra()
@@ -370,6 +583,14 @@ void Test::test_dijkstra()
     for (auto bbox : { 31u, 33u })
         test_odd_body_corridor(bbox);
     test_cache_margin();
+    for (auto cell : { 8u, 16u, 32u })
+    {
+        check_pocket(cell, false);
+        check_pocket(cell, true);
+        check_seeds_past_max_dist(cell);
+        check_corridor_goal(cell);
+    }
+    check_post_field();
 }
 
 } // namespace floormat
