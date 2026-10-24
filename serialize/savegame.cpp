@@ -1120,13 +1120,13 @@ ok:
             default: fm_throw("invalid atlas_type {}", (size_t)type);
             case atlas_type::none: break;
             case atlas_type::ground:
-                atlas = loader.ground_atlas(str, loader_policy::warn).get();
+                atlas = loader.ground_atlas(str, asset_policy).get();
                 break;
             case atlas_type::wall:
-                atlas = loader.wall_atlas(str, loader_policy::warn).get();
+                atlas = loader.wall_atlas(str, asset_policy).get();
                 break;
             case atlas_type::anim:
-                atlas = loader.anim_atlas(str, {}, loader_policy::warn).get();
+                atlas = loader.anim_atlas(str, {}, asset_policy).get();
                 break;
             case atlas_type::vobj:
                 atlas = loader.vobj(str).atlas.get();
