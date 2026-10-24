@@ -44,10 +44,9 @@ void fill_ground(chunk& c)
         c[k].ground() = { ground, variant_t(k % ground->num_tiles()) };
 }
 
-void test_critter_slit_ne()
+bptr<critter> make_slit(world& w)
 {
     // pillar geometry from editor/world.cpp:populate_sweep_aabb_slit.
-    auto w = world();
     constexpr chunk_coords_ ch{0, 0, 0};
     auto& c = w[ch];
     fill_ground(c);
@@ -58,37 +57,44 @@ void test_critter_slit_ne()
     auto proto = Run::make_proto(20.f);
     proto.bbox_size = Vector2ub(tile_size_xy);
     auto C = w.ensure_player_character(id, proto);
-    {
-        auto i = C->index();
-        C->teleport_to(i, global_coords{ch, {1, 1}}, Vector2b{-32, -32}, rotation_COUNT);
-    }
+    auto i = C->index();
+    C->teleport_to(i, global_coords{ch, {1, 1}}, Vector2b{-32, -32}, rotation_COUNT);
     c.mark_modified();
     w.init_scripts();
+    return C;
+}
 
-    const auto initial = C->position();
-
-    // arrows_to_dir is iso-screen: R-only → world NE, L-only → world SW.
-    C->set_keys(false, true, false, false);
+void hold_keys(const bptr<critter>& C, bool L, bool R, bool U, bool D)
+{
+    C->set_keys(L, R, U, D);
     for (int k = 0; k < 60 * 2; k++)
     {
         auto idx = C->index();
         C->update(C, idx, dt_60hz);
     }
-    const auto after_ne = C->position();
-    const auto dist_ne = point::distance_l1(after_ne, initial);
-    fm_assert(dist_ne == 0);
+}
 
-    C->set_keys(true, false, false, false);
-    for (int k = 0; k < 60 * 2; k++)
+void test_critter_slit()
+{
+    // Each pillar reaches 1 px into the box's path, so the NE destination box is free and the N and
+    // E ones aren't. N and E try NE as a diagonal alternative.
+    // arrows_to_dir is iso-screen: R → world NE, R+U → N, R+D → E, L → SW.
+    constexpr struct { bool L, R, U, D; } keys[] = {
+        { false, true, false, false },
+        { false, true, true,  false },
+        { false, true, false, true  },
+    };
+    for (const auto& k : keys)
     {
-        auto idx = C->index();
-        C->update(C, idx, dt_60hz);
+        auto w = world();
+        auto C = make_slit(w);
+        const auto initial = C->position();
+        hold_keys(C, k.L, k.R, k.U, k.D);
+        fm_assert(C->position() == initial);
+        hold_keys(C, true, false, false, false);
+        fm_assert(point::distance_l1(C->position(), initial) > 16);
+        w.finish_scripts();
     }
-    const auto after_sw = C->position();
-    const auto dist_sw = point::distance_l1(after_sw, after_ne);
-    fm_assert(dist_sw > 16);
-
-    w.finish_scripts();
 }
 
 uint32_t first_blocked_step(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
@@ -214,7 +220,7 @@ void test_swept_collider_line()
 
 void Test::test_sweep_aabb()
 {
-    test_critter_slit_ne();
+    test_critter_slit();
     test_swept_collider_cell_corner();
     test_swept_collider_line();
 }
