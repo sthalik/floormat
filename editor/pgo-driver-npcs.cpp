@@ -39,10 +39,11 @@ constexpr uint32_t lattice_side = [] {
         n++;
     return n;
 }();
-constexpr uint32_t num_blockers = num_npcs*3/16;
+constexpr uint32_t num_blockers = num_npcs*3/16, short_num_blockers = 4;
 constexpr uint8_t critter_size = 32, blocker_size = 32;
 constexpr float speed = 4;
-constexpr auto hold_dt = Second*20, blocker_lifetime = Second*5;
+constexpr auto hold_dt = Second*20, short_hold_dt = Second, blocker_lifetime = Second*5;
+constexpr auto short_blocker_lifetime = Second/4;
 
 struct actor
 {
@@ -133,6 +134,11 @@ task app::scene_npcs()
     blocker_proto.bbox_size = Vector2ub{blocker_size};
     blocker_proto.pass = pass_mode::blocked;
     blocker blockers[num_blockers]{};
+    const bool shorten = pgo_driver_use_short_scenes();
+    // Few enough that the short hold reuses slots, killing the blockers in them.
+    const auto num_slots = shorten ? short_num_blockers : num_blockers;
+    const auto lifetime = shorten ? short_blocker_lifetime : blocker_lifetime;
+    const auto hold = shorten ? short_hold_dt : hold_dt;
 
     object_id searcher = 0;
     const auto except_searcher = [&searcher](chunk&, collision_data data, Range2D) {
@@ -156,8 +162,8 @@ task app::scene_npcs()
     bool placed = false;
 
     const auto place_blocker = [&](const path_search_result& res) {
-        auto& slot = blockers[blockers_placed % num_blockers];
-        if (placed || res.size() < 3 || (slot.id && _driver->scene_dt - slot.placed_at < blocker_lifetime))
+        auto& slot = blockers[blockers_placed % num_slots];
+        if (placed || res.size() < 3 || (slot.id && _driver->scene_dt - slot.placed_at < lifetime))
             return;
         const auto mid = res.path()[res.size()/2];
         const auto v = mid - point{};
@@ -254,7 +260,7 @@ task app::scene_npcs()
         co_yield {};
         frames++;
     }
-    while (_driver->scene_dt < hold_dt);
+    while (_driver->scene_dt < hold);
 
     fm_debug("npcs: %u critters, %u frames, %.0f%% of critter-frames moving, %u walks, "
              "%u collisions, %u searches (%u with critters), %u not found, %u blockers placed",
