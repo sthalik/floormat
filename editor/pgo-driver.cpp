@@ -230,10 +230,11 @@ constexpr float pan_speed = tile_size_xy/4.f;
 constexpr uint32_t pan_segments = 4, pan_segment_frames = 64;
 constexpr float pan_segment_px = (float)pan_segment_frames * pan_speed;
 // The same segment length, so a short pan stops the camera at the same four places.
-constexpr uint32_t short_pan_segment_frames = 16;
+constexpr uint32_t short_pan_segment_frames = 4;
 constexpr float short_pan_speed = pan_segment_px / (float)short_pan_segment_frames;
 
 constexpr auto short_hold_dt = Second/10;
+constexpr uint32_t short_dwell_frames = 1;
 
 // Which waypoints of scene_raycast's circle one frame's batch of rays takes. `radar` takes the
 // batch adjacent and advances the whole wedge by its own size, so the beam sweeps exactly its own
@@ -533,20 +534,21 @@ task app::scene_modes()
     // Ctrl+scroll is the only path to a Z level; without it do_mouse_scroll() returns early,
     // and shift instead of ctrl clamps the floor at ground level.
     constexpr uint32_t z_dwell_frames = 30;
+    const auto z_dwell = pgo_driver_use_short_scenes() ? short_dwell_frames : z_dwell_frames;
     fm_assert_equal(0, (int)_z_level);
     set_modifier_state(kmod_ctrl, true);
     do_mouse_scroll(1);
     fm_assert_equal(1, (int)_z_level);
-    co_yield {z_dwell_frames};
+    co_yield {z_dwell};
 
     // Off draws only the current Z level, so it shows nothing until _z_level has moved
     fm_assert(_render_all_z_levels);
     do_key(key_render_all_z_levels);
     fm_assert(!_render_all_z_levels);
-    co_yield {z_dwell_frames};
+    co_yield {z_dwell};
     do_key(key_render_all_z_levels);
     fm_assert(_render_all_z_levels);
-    co_yield {z_dwell_frames};
+    co_yield {z_dwell};
 
     do_mouse_scroll(-1);
     set_modifier_state(kmod_ctrl, false);
@@ -592,13 +594,16 @@ task app::scene_input_events()
     // A camera pan or a mode switch is one frame of change, which at 60 Hz nobody watching can
     // see. Everything here dwells afterwards.
     constexpr uint32_t press_frames = 12, dwell_frames = 8;
+    const auto shorten = pgo_driver_use_short_scenes();
+    const auto pressed = shorten ? short_dwell_frames : press_frames;
+    const auto dwell = shorten ? short_dwell_frames : dwell_frames;
 
     static constexpr key held[] = {
         key_camera_up, key_camera_left, key_camera_down, key_camera_right, key_camera_reset,
         key_left, key_right, key_up, key_down,
     };
     for (auto k : held)
-        co_await press(k, press_frames);
+        co_await press(k, pressed);
 
     static constexpr key one_shots[] = {
         key_rotate_tile, key_emit_timestamp, key_escape,
@@ -608,7 +613,7 @@ task app::scene_input_events()
     for (auto k : one_shots)
     {
         co_await press(k, 1);
-        co_yield {dwell_frames};
+        co_yield {dwell};
     }
 
     static constexpr key toggles[] = {
@@ -618,9 +623,9 @@ task app::scene_input_events()
     for (auto k : toggles)
     {
         co_await press(k, 1);
-        co_yield {dwell_frames};
+        co_yield {dwell};
         co_await press(k, 1);
-        co_yield {dwell_frames};
+        co_yield {dwell};
     }
 
     co_await press(key_noop, 1);
@@ -628,15 +633,15 @@ task app::scene_input_events()
 
     co_await inject_click({0, 0}, mouse_button_left);
     co_await press(key_escape, 1);
-    co_yield {dwell_frames};
+    co_yield {dwell};
     co_await inject_click(M->window_size()/2, mouse_button_left);
     co_await press(key_escape, 1);
-    co_yield {dwell_frames};
+    co_yield {dwell};
 
     M->inject_mouse_scroll(M->window_size()/2, {0, 1});
-    co_yield {dwell_frames};
+    co_yield {dwell};
     M->inject_mouse_scroll(M->window_size()/2, {0, -1});
-    co_yield {dwell_frames};
+    co_yield {dwell};
 
     co_await press(key_mode_none, 1);
     fm_assert(_editor->mode() == editor_mode::none);
@@ -683,13 +688,10 @@ task app::scene_popup_target()
         place("shelf1"_s, 7),
     };
 
-    constexpr uint32_t stagger_frames = 15, hold_frames = 90;
+    constexpr uint32_t stagger_frames = 15, hold_frames = 90, short_hold_frames = 1;
+    const bool shorten = pgo_driver_use_short_scenes();
     const auto dpi = M->dpi_scale();
-    for (auto i = 0u; i < array_size(ids); i++)
-    {
-        add_inspector({ .id = ids[i], .target = popup_target_type::scenery, });
-        // draw_inspector() runs ahead of driver_tick(), so the window exists only next frame
-        co_yield {};
+    const auto place_window = [&](uint32_t i) {
         char id_buf[10], name[sizeof id_buf + 3];
         entity_inspector_name(id_buf, ids[i]);
         std::snprintf(name, sizeof name, "###%s", id_buf);
@@ -697,11 +699,28 @@ task app::scene_popup_target()
         fm_assert(win);
         ImGui::SetWindowPos(win, {60*dpi[0] + 46*dpi[0]*(float)i,
                                   60*dpi[1] + 26*dpi[1]*(float)i}, 0);
-        co_yield {stagger_frames};
+    };
+    // draw_inspector() runs ahead of driver_tick(), so a window exists only the frame after
+    // its add_inspector().
+    if (shorten)
+    {
+        for (auto id : ids)
+            add_inspector({ .id = id, .target = popup_target_type::scenery, });
+        co_yield {};
+        for (auto i = 0u; i < array_size(ids); i++)
+            place_window(i);
     }
+    else
+        for (auto i = 0u; i < array_size(ids); i++)
+        {
+            add_inspector({ .id = ids[i], .target = popup_target_type::scenery, });
+            co_yield {};
+            place_window(i);
+            co_yield {stagger_frames};
+        }
     fm_assert_equal(array_size(ids), inspectors.size());
 
-    co_yield {hold_frames};
+    co_yield {shorten ? short_hold_frames : hold_frames};
 
     kill_inspectors();
     co_yield {};
@@ -723,9 +742,10 @@ task app::scene_door()
 
     // Long enough on either side of the click to see the door shut, swing, and stand open.
     constexpr uint32_t dwell_frames = 45;
+    const auto dwell = pgo_driver_use_short_scenes() ? short_dwell_frames : dwell_frames;
 
     center_camera_on(obj->position());
-    co_yield {dwell_frames};
+    co_yield {dwell};
 
     const auto nframes = (int)door.atlas->info().nframes;
     const auto frame0 = door.frame;
@@ -744,7 +764,7 @@ task app::scene_door()
     fm_assert(door.frame == 0 || door.frame == nframes-1);
     fm_assert_equal(false, door.closing);
 
-    co_yield {dwell_frames};
+    co_yield {dwell};
 }
 
 task app::scene_ground_editor()
@@ -764,6 +784,7 @@ task app::scene_ground_editor()
     c0.mark_ground_modified();
 
     uint32_t n = 0, a = 0;
+    const auto shorten = pgo_driver_use_short_scenes();
 
     for (const auto& [name, cell] : *ed)
     {
@@ -776,6 +797,8 @@ task app::scene_ground_editor()
             fm_assert(ed->is_anything_selected());
             fm_assert(ed->is_atlas_selected(cell.atlas));
             fm_assert(ed->is_tile_selected(cell.atlas, v));
+            if (shorten && v > 0)
+                continue;
 
             const point pt{{chunks[a % array_size(chunks)], ground_pattern_cell(a, v % (uint32_t)TILE_COUNT)}, {}};
             move_cursor_to(pt);
@@ -827,7 +850,9 @@ task app::scene_drag_paint()
         { rotation::W, {0, 1} },
     };
 
-    constexpr uint32_t count = 8;
+    constexpr uint32_t count = 8, short_count = 3;
+    const bool shorten = pgo_driver_use_short_scenes();
+    const auto n = shorten ? short_count : count;
     auto& w = M->world();
 
     for (const auto& [r, step] : runs)
@@ -837,17 +862,17 @@ task app::scene_drag_paint()
 
         const point from{{{0, 0, 0}, {2, 2}}, {}};
         const auto frames_before = _driver->frames_run;
-        for (const auto& p : drag_along(from, step, count, mouse_button_left))
+        for (const auto& p : drag_along(from, step, n, mouse_button_left))
         {
             // A held button must survive the suspension; that is what makes a drag a drag.
             fm_assert(_driver->held_buttons == mouse_button_left);
             co_yield p;
         }
         // One frame per point, so the sub-task's pauses reached the runner unscaled.
-        fm_assert_equal(count, _driver->frames_run - frames_before);
+        fm_assert_equal(n, _driver->frames_run - frames_before);
         fm_assert(_driver->held_buttons == mouse_button_none);
 
-        for (auto i = 0u; i < count; i++)
+        for (auto i = 0u; i < n; i++)
         {
             const auto pt = from + step*(int)i*tile_size_xy;
             // at(), not operator[]: an assertion that lazily creates the chunk it's checking
@@ -870,11 +895,12 @@ task app::scene_drag_paint()
     // survives delegation. A sub-task's count must reach the runner unscaled: not collapsed
     // to one frame, and not multiplied by the outer loop.
     {
-        constexpr uint32_t held = 30;
+        constexpr uint32_t held = 30, short_held = 2;
+        const auto hold = shorten ? short_held : held;
         const point pt{{{0, 0, 0}, {4, 4}}, {}};
         const auto before = _driver->frames_run;
-        co_await press_and_hold(pt, mouse_button_left, held);
-        fm_assert_equal(held, _driver->frames_run - before);
+        co_await press_and_hold(pt, mouse_button_left, hold);
+        fm_assert_equal(hold, _driver->frames_run - before);
         fm_assert(_driver->held_buttons == mouse_button_none);
     }
     co_yield {};
@@ -885,17 +911,36 @@ task app::scene_benchmark()
     populate_scene_benchmark();
     co_yield {};
 
-    static constexpr key pans[] = {
-        key_camera_right, key_camera_down, key_camera_left, key_camera_up,
-    };
-    for (auto k : pans)
+    if (pgo_driver_use_short_scenes())
     {
-        const auto off0 = M->shader().camera_offsetʹ();
-        set_key_state(k, true);
-        co_yield {60};
-        set_key_state(k, false);
-        fm_assert(M->shader().camera_offsetʹ() != off0);
-        co_yield {};
+        // In world chunks, screen right is +x-y and down is +x+y.
+        static constexpr Vector2i jumps[] = { {2, -2}, {2, 2}, {-2, 2}, {-2, -2}, };
+        auto& shader = M->shader();
+        const auto off0 = shader.camera_offset();
+        Vector2i pos;
+        for (auto j : jumps)
+        {
+            pos += j;
+            const auto px = tile_shader::projectʹ(Vector3i{pos * chunk_size<Vector2i>, 0});
+            shader.set_camera_offset(off0 - Vector2d(px)/2);
+            co_yield {};
+        }
+        fm_assert(shader.camera_offset() == off0);
+    }
+    else
+    {
+        static constexpr key pans[] = {
+            key_camera_right, key_camera_down, key_camera_left, key_camera_up,
+        };
+        for (auto k : pans)
+        {
+            const auto off0 = M->shader().camera_offsetʹ();
+            set_key_state(k, true);
+            co_yield {60};
+            set_key_state(k, false);
+            fm_assert(M->shader().camera_offsetʹ() != off0);
+            co_yield {};
+        }
     }
 }
 
@@ -1119,7 +1164,7 @@ task app::scene_raycast()
     // swap and ImGui. The scene runs raycast_with_diag() itself, so the batch size is its own
     // choice rather than the test's queue depth, and driver_draw_overlay() draws all of them.
     constexpr uint32_t rays_per_frame = pgo::max_rays_per_frame;
-    constexpr uint32_t short_waypoint_stride = 8;
+    constexpr uint32_t short_waypoint_stride = 64;
     const uint32_t wp_stride = pgo_driver_use_short_scenes() ? short_waypoint_stride : 1;
 
     populate_scene_raycast_pins();
@@ -1248,7 +1293,7 @@ task app::scene_raycast()
                  (double)mean_dist);
     }
 
-    constexpr uint32_t spin_frames = 155, short_spin_frames = 12;
+    constexpr uint32_t spin_frames = 155, short_spin_frames = 3;
     const auto spin = pgo_driver_use_short_scenes() ? short_spin_frames : spin_frames;
     constexpr int spin_r1 = 5*tile_size_xy/4;
     const auto spin_r0 = pgo::raycast_radii[array_size(pgo::raycast_radii)-1];
@@ -1372,6 +1417,10 @@ task app::scene_maze_exit()
 #else
     constexpr uint32_t count = 9;
 #endif
+    // The first four exit W, E, W, N, every side the first nine use. One walk covers walking.
+    constexpr uint32_t short_count = 4, short_walks = 1;
+    const bool shorten = pgo_driver_use_short_scenes();
+    const auto n = shorten ? short_count : count, walks = shorten ? short_walks : count;
     constexpr uint64_t seed0 = 1;
     // The walk animation advances a frame per pixel and holds two steps in 60 frames, so from 30 a
     // step shows in two poses or runs backwards. The scene tests the search, and a faster walk
@@ -1394,7 +1443,7 @@ task app::scene_maze_exit()
 
     auto gen = Random::splitmix64{};
     Random::seed(gen, seed0);
-    for (auto i = 0u; i < count; i++)
+    for (auto i = 0u; i < n; i++)
     {
         const auto seed = Random::next(gen);
         const auto r = mazes::replace(w, {0, 0, 0}, mazes::exit_cells, seed, pool, _character_id);
@@ -1419,6 +1468,11 @@ task app::scene_maze_exit()
         const auto len = res.cost();
         if (!M->astar().string_pull(w, res, bbox, Search::without_critters()))
             fm_warn("maze-exit: seed %llu: string pull gave up", (unsigned long long)seed);
+        if (i >= walks)
+        {
+            C->chunk().kill_object(*C, C->index());
+            continue;
+        }
         const auto frame0 = w.frame_no();
         C->script.do_reassign(critter_script::make_walk_script(move(res)), C);
 
@@ -1555,13 +1609,16 @@ task app::scene_lightmap()
     // of them rebuilds the occlusion mesh and runs all 48 lights of the block.
     //
     // Each frame costs 2.4-4.5 s on CI's llvmpipe, so the count is kept low.
-    constexpr uint32_t num_tested = 9, frames_per_light = 8;
+    constexpr uint32_t num_tested = 9, short_num_tested = 1, frames_per_light = 8, short_frames_per_light = 1;
+    const bool shorten = pgo_driver_use_short_scenes();
+    const auto tested = shorten ? short_num_tested : num_tested;
+    const auto light_frames = shorten ? short_frames_per_light : frames_per_light;
 
     populate_scene_lightmap();
     auto& w = M->world();
     co_yield {};
 
-    for (auto n = 0u; n < num_tested; n++)
+    for (auto n = 0u; n < tested; n++)
     {
         const auto pt = lightmap_light(n);
         center_camera_on(pt);
@@ -1608,7 +1665,7 @@ task app::scene_lightmap()
             fm_assert(chunks == 16 && lights >= chunks && walls > 0 && boxes > 0);
         }
 
-        co_yield {frames_per_light};
+        co_yield {light_frames};
 
         // A black preview and a working one cost the same wall time, so the accumulation texture
         // is read back rather than trusted. do_lightmap_test() runs from app::draw(), ahead of
@@ -1643,7 +1700,7 @@ task app::scene_lightmap()
     // Left set, the lightmap would keep rendering over whatever world the next scene builds.
     tested_light_chunk = {};
 
-    fm_debug("lightmap: %u chunks tested, %u frames each", num_tested, frames_per_light);
+    fm_debug("lightmap: %u chunks tested, %u frames each", tested, light_frames);
 }
 
 
@@ -1659,6 +1716,7 @@ task app::scene_grids()
     // frame-gated (src/grid-pass.cpp:455), so a second sample in the same frame still sees the new
     // pins as stale and rebuilds for real.
     constexpr uint32_t pins_per_step = 16, steps_per_frame = 8, max_pins = 1u << 14;
+    constexpr uint32_t short_steps_per_frame = 128;
     // Stop once the bitmap is this full. Past it a new pin only takes cells an earlier one had
     // already taken, while a build still walks every object in the chunk. Read off the (8,8)
     // grid, which is the one the grid test draws.
@@ -1666,7 +1724,10 @@ task app::scene_grids()
     // Cover's 8 aligned octants sweep the pass bitmap with a recurrence and are nearly free. The
     // other 24 raycast every cell -- 16384 rays each at cover_test's div_size of 8. Filling all
     // 32 twice would cost more than the rest of the driver, so the expensive half is sampled.
-    constexpr uint32_t cover_octant_budget = 12;
+    constexpr uint32_t cover_octant_budget = 12, short_cover_octant_budget = 2;
+    const bool shorten = pgo_driver_use_short_scenes();
+    const auto steps = shorten ? short_steps_per_frame : steps_per_frame;
+    const auto octant_budget = shorten ? short_cover_octant_budget : cover_octant_budget;
 
     populate_scene_grids();
     auto& w = M->world();
@@ -1716,7 +1777,7 @@ task app::scene_grids()
     // Empty chunk first. With nothing to stop them the cover rays run their full chunk length,
     // which is the expensive end of fill_octant; after the pins go in they die immediately.
     tests().switch_to(floormat::tests::Test::cover);
-    for (auto i = 0u; i < cover_octant_budget; i++)
+    for (auto i = 0u; i < octant_budget; i++)
     {
         step_test();
         co_yield {};
@@ -1727,7 +1788,7 @@ task app::scene_grids()
     float fill = 0;
     while (fill < fill_target && num_pins < max_pins)
     {
-        for (auto s = 0u; s < steps_per_frame && fill < fill_target && num_pins < max_pins; s++)
+        for (auto s = 0u; s < steps && fill < fill_target && num_pins < max_pins; s++)
         {
             // Once per sample, not once per pin. Sixteen builds all describing near-identical
             // occupancy, each walking the whole chunk, is what made the tail crawl.
@@ -1751,7 +1812,7 @@ task app::scene_grids()
     fm_assert(!pass_raycast[c].is_all_empty());
 
     tests().switch_to(floormat::tests::Test::cover);
-    for (auto i = 0u; i < cover_octant_budget; i++)
+    for (auto i = 0u; i < octant_budget; i++)
     {
         step_test();
         co_yield {};
@@ -1760,7 +1821,7 @@ task app::scene_grids()
     fm_debug("grids: %u pins to %.0f%% full of %.0f%%, %u pass builds over 3 pools, "
              "%u cover octants of %u either side",
              num_pins, (double)fill*100, (double)fill_target*100, num_builds,
-             cover_octant_budget, Cover::octant_count);
+             octant_budget, Cover::octant_count);
 
     // Test::none, not just key_mode_none. tests_post_update() is gated on current_test alone
     // (editor/update.cpp:307) and never on the editor mode, and cover_test::update_post() runs

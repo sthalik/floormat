@@ -32,7 +32,8 @@ task app::scene_object_ids()
     constexpr int16_t ground_radius = 3;
     // An eighth, not a quarter: the rounds are what the scene samples the table at, and this
     // doubles how many of them there are between full and empty.
-    constexpr uint32_t kill_divisor = 8;
+    constexpr uint32_t kill_divisor = 8, short_kill_divisor = 2;
+    const auto divisor = pgo_driver_use_short_scenes() ? short_kill_divisor : kill_divisor;
 
     auto& w = M->world();
     auto ground = loader.ground_atlas("metal1");
@@ -90,7 +91,7 @@ task app::scene_object_ids()
         if (num_live == 0)
             break;
         // An eighth of seven is none, and the loop would never end.
-        const auto num_killed = Math::max(num_live/kill_divisor, 1u);
+        const auto num_killed = Math::max(num_live/divisor, 1u);
         for (auto i = num_live - num_killed; i < num_live; i++)
         {
             auto o = w.find_object(live[i]);
