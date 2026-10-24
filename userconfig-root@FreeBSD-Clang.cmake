@@ -42,4 +42,6 @@ function(fm-userconfig-src)
         -Wno-lifetime-safety-cross-tu-suggestions
         -Wno-lifetime-safety-intra-tu-suggestions
     )
+    # See userconfig-runner@Linux-GNU.cmake. Clang fills 0xAA.
+    add_compile_options(-ftrivial-auto-var-init=pattern)
 endfunction()

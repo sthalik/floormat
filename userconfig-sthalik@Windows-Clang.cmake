@@ -310,6 +310,10 @@ function(fm-userconfig-src)
     endif()
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:SHELL:-Xclang -flifetime-safety-inference>")
     #add_link_options(-Wl,-mllvm,-pass-remarks=wholeprogramdevirt)
+    if(FLOORMAT_ASAN)
+        # See userconfig-runner@Linux-GNU.cmake. Clang fills 0xAA.
+        add_compile_options(-ftrivial-auto-var-init=pattern)
+    endif()
 
     if(FLOORMAT_COVERAGE)
         sets(BOOL
