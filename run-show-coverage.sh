@@ -17,8 +17,9 @@ esac
 
 usage() {
     echo "usage: ${self} <all|compile|run|generate|open>... [exe...]" >&2
-    echo "       exe defaults to 'test editor', plus anything else already run when" >&2
+    echo "       exe defaults to 'test benchmark editor', plus anything else already run when" >&2
     echo "       generating; profiles are merged into one report" >&2
+    echo "       FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=1 runs the shortened editor scenes" >&2
     exit 64
 }
 
@@ -61,7 +62,9 @@ exe_tag() {
 # Each binary rejects the others' options, so these are per-exe
 exe_args() {
     case "$(exe_tag "$1")" in
-        editor) echo "--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --scenes=all --driver-repeat 2" ;;
+        editor) echo "--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver-no-swapbuffers --minimized --scenes=all --driver-repeat 2" ;;
+        # instrumented, the default 0.5s per case adds minutes
+        benchmark) echo "--benchmark_min_time=0.05s" ;;
     esac
 }
 
@@ -158,9 +161,9 @@ drop_stale_profraws
 # default list is about objects rather than profiles: main/ lives only in the editor, and
 # leaving it out hides those files instead of showing them at 0%.
 if test -z "$exes"; then
-    exes="floormat-test floormat-editor"
+    exes="floormat-test floormat-benchmark floormat-editor"
     if test $run -eq 0; then
-        # also report the tools and the benchmark once they have been run
+        # also report the tools once they have been run
         for raw in ./"${prof}"-*.profraw; do
             if test -f "$raw"; then
                 tag="floormat-${raw##*/${prof}-}"
