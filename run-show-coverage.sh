@@ -128,6 +128,16 @@ fi
 #find build directory
 build="build/coverage"
 if test -f CMakeLists.txt && test -f shaders/resources.conf; then
+    if test $compile -gt 0 && ! test -f "./${build}/CMakeCache.txt"; then
+        # cache creation finds the LLVM compilers through clang64's PATH
+        case "$OS" in
+            Windows_NT) configure="clang64 cmake" ;;
+            *) configure="cmake" ;;
+        esac
+        $configure -G Ninja -S . -B "./${build}" -DCMAKE_BUILD_TYPE:STRING=Debug -DFLOORMAT_COVERAGE:BOOL=1
+        # the World_Load benchmarks read save/ under loader.TEMP_PATH, the build directory
+        test -e "./${build}/save" || ln -s ../../doc/saves "./${build}/save"
+    fi
     cd ./"${build}"
 elif test -d bin; then
     cd ../../"${build}"
@@ -135,7 +145,7 @@ elif test -x "${first_exe}" || test -x "${first_exe}".exe; then
     cd ../../"${build}"
 elif test -d install/bin && test -d install/share/floormat; then
     cd ../"${build}"
-elif test "./CMakeCache.txt"; then
+elif test -f "./CMakeCache.txt"; then
     cd ../"${build}"
 else
     echo "error: can't find build directory!" >&2
