@@ -344,6 +344,75 @@ void Critter_move(benchmark::State& st)
 
 BENCHMARK(Critter_move)->Unit(benchmark::kMicrosecond);
 
+world make_walk_world(bool wall)
+{
+    const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
+
+    auto w = world();
+    auto& c = w[{0,0,0}];
+    if (wall)
+        for (uint8_t x = 4; x <= 12; x++)
+            c[{x, 9}].wall_north() = W;
+    mark_all_modified(w);
+    return w;
+}
+
+void Critter_walk(benchmark::State& st)
+{
+    constexpr uint32_t max_updates = 4000, stop_updates = 30;
+    const bool path = st.range(0);
+    const auto dt = Second / (uint64_t)st.range(2);
+    const auto start = point{{0,0,0}, {8,15}, {-8, 8}}, dest = point{{0,0,0}, {8,3}, {-8, 8}};
+    const auto dist = point::distance_l1(start, dest);
+
+    auto w = make_walk_world(st.range(3));
+    object_id id = 0;
+    auto npc = w.ensure_player_character(id, make_proto((float)st.range(1)));
+    uint32_t updates = 0;
+
+    const auto walk = [&] {
+        auto index = npc->index();
+        npc->teleport_to(index, start, N);
+        npc->delta = 0;
+        auto last = npc->position();
+        uint32_t stopped = 0;
+        for (updates = 1; updates < max_updates; updates++)
+        {
+            if (path)
+            {
+                auto t = dt;
+                if (npc->move_toward(index, t, dest).blocked || npc->position() == dest)
+                    break;
+                continue;
+            }
+            npc->update_movement(index, dt, N);
+            const auto pos = npc->position();
+            stopped = pos == last ? stopped + 1 : 0;
+            last = pos;
+            if (stopped == stop_updates || point::distance_l1(start, pos) >= dist)
+                break;
+        }
+    };
+
+    for (int i = 0; i < 3; i++)
+        walk();
+    for (auto _ : st)
+        walk();
+    st.counters["updates"] = updates;
+    st.counters["walked"] = point::distance_l1(start, npc->position());
+
+    // as run(): kill_object() would tear down a script this world never initialized
+    auto& c = npc->chunk();
+    c.sort_objects();
+    c.remove_object(*npc, npc->index());
+    npc.destroy();
+}
+
+BENCHMARK(Critter_walk)
+    ->ArgNames({"path", "speed", "hz", "wall"})
+    ->ArgsProduct({{0, 1}, {1, 10, 50}, {60, 10}, {1, 0}})
+    ->Unit(benchmark::kMicrosecond);
+
 } // namespace
 
 } // namespace floormat
