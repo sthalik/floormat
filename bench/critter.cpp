@@ -360,19 +360,22 @@ world make_walk_world(bool wall)
 void Critter_walk(benchmark::State& st)
 {
     constexpr uint32_t max_updates = 4000, stop_updates = 30;
-    const bool path = st.range(0);
-    const auto dt = Second / (uint64_t)st.range(2);
-    const auto start = point{{0,0,0}, {8,15}, {-8, 8}}, dest = point{{0,0,0}, {8,3}, {-8, 8}};
+    const bool path = st.range(0), diag = st.range(1);
+    const auto dt = Second / (uint64_t)st.range(3);
+    // NW meets the wall mid-span. update_movement() slides W along it, move_toward() stops.
+    const auto r = diag ? NW : N;
+    const auto start = diag ? point{{0,0,0}, {15,15}, {-8, 8}} : point{{0,0,0}, {8,15}, {-8, 8}};
+    const auto dest = diag ? point{{0,0,0}, {5,5}, {-8, 8}} : point{{0,0,0}, {8,3}, {-8, 8}};
     const auto dist = point::distance_l1(start, dest);
 
-    auto w = make_walk_world(st.range(3));
+    auto w = make_walk_world(st.range(4));
     object_id id = 0;
-    auto npc = w.ensure_player_character(id, make_proto((float)st.range(1)));
+    auto npc = w.ensure_player_character(id, make_proto((float)st.range(2)));
     uint32_t updates = 0;
 
     const auto walk = [&] {
         auto index = npc->index();
-        npc->teleport_to(index, start, N);
+        npc->teleport_to(index, start, r);
         npc->delta = 0;
         auto last = npc->position();
         uint32_t stopped = 0;
@@ -385,7 +388,7 @@ void Critter_walk(benchmark::State& st)
                     break;
                 continue;
             }
-            npc->update_movement(index, dt, N);
+            npc->update_movement(index, dt, r);
             const auto pos = npc->position();
             stopped = pos == last ? stopped + 1 : 0;
             last = pos;
@@ -409,8 +412,8 @@ void Critter_walk(benchmark::State& st)
 }
 
 BENCHMARK(Critter_walk)
-    ->ArgNames({"path", "speed", "hz", "wall"})
-    ->ArgsProduct({{0, 1}, {1, 10, 50}, {60, 10}, {1, 0}})
+    ->ArgNames({"path", "diag", "speed", "hz", "wall"})
+    ->ArgsProduct({{0, 1}, {0, 1}, {1, 10, 50}, {60, 10}, {1, 0}})
     ->Unit(benchmark::kMicrosecond);
 
 } // namespace
