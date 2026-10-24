@@ -21,6 +21,9 @@ if(NOT SDL2_INCLUDE_DIRS)
         get_target_property(SDL2_INCLUDE_DIRS SDL2::SDL2 INTERFACE_INCLUDE_DIRECTORIES)
     endif()
 endif()
+# sdl2-compat's SDL2Config.cmake puts /usr/include in SDL2_INCLUDE_DIRS. Set on a source file,
+# it reaches GCC as -isystem /usr/include, and libstdc++'s #include_next <math.h> then fails.
+list(REMOVE_ITEM SDL2_INCLUDE_DIRS ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
 set_property(SOURCE "events.cpp" "tests.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIRS}")
 if(TARGET SDL2::SDL2)
     get_target_property(sdl2-target SDL2::SDL2 ALIASED_TARGET)
