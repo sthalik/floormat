@@ -143,10 +143,20 @@ if(WIN32)
 endif()
 
 # In MSVC debug builds, -Otb3 on floormat-hwy (external/CMakeLists.txt) gives Highway's
-# Sort16Rows a stack frame larger than the default 1 MiB stack. Set before the userconfig is
-# loaded, because the linker takes the last stack option, so a userconfig's own wins.
+# Sort16Rows a stack frame larger than the default 1 MiB stack. Linux has no option for it,
+# because its kernel sizes the main stack from RLIMIT_STACK alone. FreeBSD's kernel raises
+# RLIMIT_STACK to the PT_GNU_STACK size that -z stack-size writes. Set before the userconfig is
+# loaded, because link.exe, ld and lld take the last stack option, so a userconfig's own wins.
 if(MSVC)
     add_link_options(-STACK:41943040)
+else()
+    if(WIN32)
+        add_link_options($<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:LINKER:--stack,41943040>)
+    elseif(APPLE)
+        add_link_options($<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:LINKER:-stack_size,0x2800000>)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+        add_link_options($<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:LINKER:-z,stack-size=41943040>)
+    endif()
 endif()
 
 if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
