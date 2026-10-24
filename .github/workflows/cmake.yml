@@ -197,6 +197,70 @@ jobs:
 #        name: buildoutput
 #        path: ${{github.workspace}}/build/
 
+  # Memcheck reports reads of uninitialized memory, which ASan doesn't see.
+  valgrind:
+    runs-on: ubuntu-26.04
+    env:
+      # --fair-sched: the thread tests have wall-clock deadlines, and the default lock tends to go
+      # back to the thread that released it. --keep-debuginfo: the image importer plugins are
+      # unloaded before the leak search.
+      VALGRIND_OPTS: >-
+        --error-exitcode=99 --track-origins=yes --leak-check=full --show-leak-kinds=all
+        --errors-for-leak-kinds=definite,possible --track-fds=yes --fair-sched=yes
+        --num-callers=40 --keep-debuginfo=yes --gen-suppressions=all
+      # Otherwise SDL leaks what libdbus allocated.
+      SDL_SHUTDOWN_DBUS_ON_QUIT: 1
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt -q=2 update
+        sudo apt -q install g++-16 ninja-build valgrind
+        sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb
+        sudo apt -q install libsdl2-dev
+
+    - name: Configure
+      run: /usr/bin/env CC=gcc-16 CXX=g++-16 cmake -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFLOORMAT_VALGRIND=1
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install
+
+    - name: Test under memcheck
+      run: |
+        cd ${{github.workspace}}/build/install
+        export MAGNUM_LOG=default LD_LIBRARY_PATH="$PWD/lib"
+        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
+        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
+        valgrind --version
+        xvfb-run valgrind bin/floormat-test
+      timeout-minutes: 60
+
+    - name: Test without a GL context under memcheck
+      run: |
+        cd ${{github.workspace}}/build/install
+        export MAGNUM_LOG=default LD_LIBRARY_PATH="$PWD/lib"
+        env -u DISPLAY -u WAYLAND_DISPLAY valgrind bin/floormat-test --no-gl
+      timeout-minutes: 60
+      if: ${{ !cancelled() }}
+
+    - name: Test pgo-driver scenes under memcheck
+      run: |
+        cd ${{github.workspace}}/build/install
+        export MAGNUM_LOG=default LD_LIBRARY_PATH="$PWD/lib"
+        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
+        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
+        export LP_NUM_THREADS=$(nproc) FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=1
+        # Fewer pixels for llvmpipe, and fewer frames for every wait timed in update().
+        # With origin tracking, maze2 alone peaks at 45 GB, past the runner's 16.
+        xvfb-run valgrind --track-origins=no bin/floormat-editor --scenes=all \
+          --driver-no-swapbuffers --geometry 512x360 --fixed-framerate=15
+      timeout-minutes: 60
+      if: ${{ !cancelled() }}
+
   freebsd:
     runs-on: ubuntu-latest
 
