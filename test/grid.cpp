@@ -2,6 +2,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/debug.hpp"
 #include "compat/function2.hpp"
+#include "compat/valgrind.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-cover.hpp"
 #include "src/intra-coord.inl"
@@ -1910,14 +1911,10 @@ void test_grid()
     // 128 and 256 leave rows narrower than a vector, or exactly one wide
     const auto aligned_octants = { 0u, 4u, 8u, 12u, 16u, 20u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan
-    const auto cover_sizes = {
-#if !fm_ASAN
-        1u, 2u, 4u, 8u,
-#endif
-        16u, 32u, 64u, 128u, 256u,
-    };
-    for (const auto ds : cover_sizes)
-        test_cover_matches_reference(ds, aligned_octants);
+    const auto min_size = fm_ASAN ? 16u : is_valgrind() ? 4u : 1u;
+    for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u, 256u })
+        if (ds >= min_size)
+            test_cover_matches_reference(ds, aligned_octants);
     test_cover_matches_reference(32, { 0u, 1u, 6u, 13u, 20u, 22u, 31u });
     test_bit_matches_every_position();
 }
