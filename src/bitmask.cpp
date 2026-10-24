@@ -81,7 +81,7 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
                                                          hn::OrderedDemote2To(di16, v2, v3));
                 acc |= hn::BitsFromMask(di8, hn::Lt(v, hn::Zero(di8))) << have;
                 // have is in [0,7] before every block, so each block fills exactly N/8 bytes.
-                uint64_t w;
+                uint64_t w = 0;
                 std::memcpy(&w, p, N/8);
                 // Byte k in memory takes bits 8k..8k+7 of acc.
                 if constexpr (std::endian::native == std::endian::big)
