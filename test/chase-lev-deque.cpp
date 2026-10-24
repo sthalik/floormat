@@ -3,6 +3,7 @@
 #include "compat/chase-lev-deque.hpp"
 #include "compat/fwd/chrono.hpp"
 #include "compat/fwd/thread.hpp"
+#include "compat/valgrind.hpp"
 #include <array>
 #include <bit>
 #include <latch>
@@ -279,7 +280,9 @@ void Test::test_chase_lev_deque()
     // More thieves than any CI runner has cores.
     test_steal_while_growing<128, 2>();
     test_reuse_during_steal();
-    test_last_element();
+    // Valgrind runs one thread at a time and yields on PAUSE, so the owner always wins.
+    if (!is_valgrind())
+        test_last_element();
 }
 
 } // namespace floormat
