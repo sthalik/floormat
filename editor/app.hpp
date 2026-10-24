@@ -263,6 +263,7 @@ private:
     void kill_inspectors();
 
     static ArrayView<const struct pgo::scene> scenes() noexcept;
+    static bool pgo_driver_use_short_scenes();
 
     Array<chunk_coords_> _chunk_bounds_array;
     uint64_t _timestamp = 0;

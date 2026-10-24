@@ -46,10 +46,12 @@ run_test() {
         local dir="$(basename -- "$PWD")"
         local wrapper="$1"; shift
         local type="$1"; shift
+        local short=
+        case "$dir" in *-asan|*-debug) short=1;; esac
         cd install/bin &&
         case "$type" in
             1) "$wrapper" ./floormat-test;;
-            2) "$wrapper" ./floormat-editor --scenes=all --driver-no-swapbuffers --minimized --vsync=true;;
+            2) FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=$short "$wrapper" ./floormat-editor --scenes=all --driver-no-swapbuffers --minimized --vsync=true;;
             3) "$wrapper" ./floormat-benchmark;;
         esac
     )

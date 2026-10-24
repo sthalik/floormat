@@ -50,6 +50,7 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include <cstdio>
+#include <cstdlib>
 #include <numeric>
 #include <mg/Functions.h>
 #include <cr/GrowableArray.h>
@@ -109,6 +110,15 @@ ArrayView<const pgo::scene> app::scenes() noexcept
     static_assert(array_size(Scenes) <= 32); // pgo::state::scene_mask
 
     return Scenes;
+}
+
+bool app::pgo_driver_use_short_scenes()
+{
+    static const bool ret = [] {
+        const auto* s = getenv("FLOORMAT_PGO_DRIVER_SHORTEN_SCENES");
+        return s && *s && !(s[0] == '0' && !s[1]);
+    }();
+    return ret;
 }
 
 } // namespace floormat
@@ -219,6 +229,11 @@ constexpr float pan_speed = tile_size_xy/4.f;
 // route instead of crawling the first chunk of it. The overlay draws the whole route regardless.
 constexpr uint32_t pan_segments = 4, pan_segment_frames = 64;
 constexpr float pan_segment_px = (float)pan_segment_frames * pan_speed;
+// The same segment length, so a short pan stops the camera at the same four places.
+constexpr uint32_t short_pan_segment_frames = 16;
+constexpr float short_pan_speed = pan_segment_px / (float)short_pan_segment_frames;
+
+constexpr auto short_hold_dt = Second/10;
 
 // Which waypoints of scene_raycast's circle one frame's batch of rays takes. `radar` takes the
 // batch adjacent and advances the whole wedge by its own size, so the beam sweeps exactly its own
@@ -377,6 +392,8 @@ task app::pan_along_path(ArrayView<const point> path)
 {
     fm_assert(!path.isEmpty());
     const auto n = (uint32_t)path.size();
+    const bool shorten = pgo_driver_use_short_scenes();
+    const auto speed = shorten ? short_pan_speed : pan_speed;
     // A copy, unlike this function's own borrowed view. pgo::state is not scoped to the
     // coroutine, so a view left there dangles if the frame is ever abandoned mid-pan.
     _driver->route = Array<point>{InPlaceInit, path};
@@ -405,14 +422,14 @@ task app::pan_along_path(ArrayView<const point> path)
         const bool is_last = seg + 1 == pan_segments;
         auto i = is_last ? last_seg : seg * n / pan_segments;
         auto cur = is_last ? last_start : path[i];
-        auto frames = pan_segment_frames;
+        auto frames = shorten ? short_pan_segment_frames : pan_segment_frames;
 
         // The entries are waypoints and not steps -- maze2's 20705 px route is 35 of them, 590 px
         // apart -- so one a frame would still teleport the camera. Walk each leg of the polyline.
         while (frames > 0 && i + 1 < n)
         {
             const auto d = path[i+1] - cur;
-            const auto steps = Math::max(1u, (uint32_t)(Vector2(d).length()/pan_speed));
+            const auto steps = Math::max(1u, (uint32_t)(Vector2(d).length()/speed));
             for (auto k = 1u; k <= steps && frames > 0; k++, frames--)
             {
                 center_camera_on(point::normalize_coords(cur, d * (int)k / (int)steps));
@@ -890,6 +907,7 @@ task app::scene_clickables()
     // The hold counts fixed 60 Hz ticks, and Debug draws this scene at a few frames a second.
     constexpr auto hold_dt = Second/2;
 #endif
+    const auto hold = pgo_driver_use_short_scenes() ? short_hold_dt : hold_dt;
     auto& w = M->world();
     center_camera_on(ensure_player_character(w)->position());
     populate_scene_clickables();
@@ -905,26 +923,28 @@ task app::scene_clickables()
 
     do
         co_yield {};
-    while (_driver->scene_dt < hold_dt);
+    while (_driver->scene_dt < hold);
 }
 
 // scene_dt restarts at zero on the tick populate runs, so the hold counts from a built world.
 task app::scene_torture_flat()
 {
     constexpr auto hold_dt = Second*5;
+    const auto hold = pgo_driver_use_short_scenes() ? short_hold_dt : hold_dt;
     populate_scene_benchmark();
     do
         co_yield {};
-    while (_driver->scene_dt < hold_dt);
+    while (_driver->scene_dt < hold);
 }
 
 task app::scene_torture_all_z()
 {
     constexpr auto hold_dt = Second*5;
+    const auto hold = pgo_driver_use_short_scenes() ? short_hold_dt : hold_dt;
     populate_scene_benchmark_all_z();
     do
         co_yield {};
-    while (_driver->scene_dt < hold_dt);
+    while (_driver->scene_dt < hold);
 }
 
 task app::scene_walk()
@@ -935,7 +955,8 @@ task app::scene_walk()
     constexpr uint8_t col = pgo::walk_corridor_tile + 1;
     // The corridor is the same length and the search is the same search; this only decides how
     // many frames the critter spends covering it.
-    constexpr float speed_mult = 3;
+    constexpr float speed_mult = 3, short_speed_mult = 6;
+    const auto mult = pgo_driver_use_short_scenes() ? short_speed_mult : speed_mult;
     constexpr uint32_t poll_frames = 15, max_polls = 400;
     populate_scene_benchmark_walkable(pgo::walk_corridor_width);
     auto& w = M->world();
@@ -963,7 +984,7 @@ task app::scene_walk()
     auto& D = *_driver;
     D.route = Array<point>{InPlaceInit, res.path()};
 
-    C->speed *= speed_mult;
+    C->speed *= mult;
     C->script.do_reassign(critter_script::make_walk_script(move(res)), move(C));
 
     const auto n = (uint32_t)D.route.size();
@@ -997,7 +1018,7 @@ task app::scene_walk()
     fm_assert_equal(goal, last);
     // route against straight is what says the baffles are being walked around, not through.
     fm_debug("walk: %ux speed, %u waypoints, route %.0f px over %.0f straight, %u polls",
-             (uint32_t)speed_mult, n, (double)route_len,
+             (uint32_t)mult, n, (double)route_len,
              (double)point::distance(from, to), polls);
 }
 
@@ -1098,6 +1119,8 @@ task app::scene_raycast()
     // swap and ImGui. The scene runs raycast_with_diag() itself, so the batch size is its own
     // choice rather than the test's queue depth, and driver_draw_overlay() draws all of them.
     constexpr uint32_t rays_per_frame = pgo::max_rays_per_frame;
+    constexpr uint32_t short_waypoint_stride = 8;
+    const uint32_t wp_stride = pgo_driver_use_short_scenes() ? short_waypoint_stride : 1;
 
     populate_scene_raycast_pins();
     auto& w = M->world();
@@ -1195,7 +1218,8 @@ task app::scene_raycast()
         // One sector per ray of the batch, so the spokes stay 2*pi/32 apart whatever the radius.
         // The waypoint count no longer divides, so the frames whose offset runs off the end of
         // the last sector are one ray short.
-        const auto num_frames = (n + rays_per_frame - 1) / rays_per_frame;
+        const auto m = (n + wp_stride - 1) / wp_stride;
+        const auto num_frames = (m + rays_per_frame - 1) / rays_per_frame;
         const auto stride = frame_stride(num_frames);
         const auto rays0 = num_rays;
 
@@ -1207,34 +1231,36 @@ task app::scene_raycast()
             {
                 const auto idx = sweep_order == ray_order::spokes ? j*num_frames + off
                                                                   : f*rays_per_frame + j;
-                if (idx >= n)
+                if (idx >= m)
                     continue;
-                cast(k++, wp[idx]);
+                cast(k++, wp[idx * wp_stride]);
             }
             D.num_rays = k;
             co_yield {};
         }
         total_frames += num_frames;
-        // Every waypoint cast exactly once, whichever order they went out in.
-        fm_assert_equal(n, num_rays - rays0);
+        // Each of the m waypoints cast exactly once, whichever order they went out in.
+        fm_assert_equal(m, num_rays - rays0);
         const auto advance = sweep_order == ray_order::spokes ? stride : rays_per_frame;
-        fm_debug("raycast: %u rays around a %d px circle in %u frames, %.2f deg/frame, "
-                 "%u/%u sampled rays hit at %.0f px mean",
-                 n, ray_len, num_frames, 360.*advance/n, sampled_hits, num_sampled,
+        fm_debug("raycast: %u rays around a %d px circle of %u waypoints in %u frames, "
+                 "%.2f deg/frame, %u/%u sampled rays hit at %.0f px mean",
+                 m, ray_len, n, num_frames, 360.*advance/m, sampled_hits, num_sampled,
                  (double)mean_dist);
     }
 
-    constexpr uint32_t spin_frames = 155;
+    constexpr uint32_t spin_frames = 155, short_spin_frames = 12;
+    const auto spin = pgo_driver_use_short_scenes() ? short_spin_frames : spin_frames;
     constexpr int spin_r1 = 5*tile_size_xy/4;
     const auto spin_r0 = pgo::raycast_radii[array_size(pgo::raycast_radii)-1];
     const auto spin_rays0 = num_rays;
     // Where the radar sweep's last revolution ended.
     float theta = 0;
+    uint32_t revs = 0, skipped = 0;
     // (0, 0) is never on the circle, so the first ray is kept.
     Vector2i prev;
-    for (auto f = 0u; f < spin_frames; f++)
+    for (auto f = 0u; f < spin; f++)
     {
-        const auto t = (float)(f+1) / (float)spin_frames;
+        const auto t = (float)(f+1) / (float)spin;
         const auto ray_len = (int)Math::round((float)spin_r0 - (float)(spin_r0 - spin_r1) * t*t);
         const auto step = tau / (float)num_steps(ray_len);
         uint32_t k = 0;
@@ -1245,16 +1271,24 @@ task app::scene_raycast()
             if (pt == prev)
                 continue;
             prev = pt;
+            // Counts distinct points, as the circles' stride does. About 7 angle steps make one.
+            if (++skipped < wp_stride)
+                continue;
+            skipped = 0;
             cast(k++, pt);
         }
         if (theta >= tau)
+        {
             theta -= tau;
+            revs++;
+        }
         D.num_rays = k;
         co_yield {};
     }
-    total_frames += spin_frames;
-    fm_debug("raycast: %u rays spiralling from %d to %d px in %u frames",
-             num_rays - spin_rays0, spin_r0, spin_r1, spin_frames);
+    total_frames += spin;
+    fm_assert(revs >= 1);
+    fm_debug("raycast: %u rays spiralling from %d to %d px in %u frames, %u revolutions",
+             num_rays - spin_rays0, spin_r0, spin_r1, spin, revs);
 
     D.num_rays = 0;
     fm_assert_equal((uint64_t)total_frames, w.frame_no() - frame0);
@@ -1347,6 +1381,7 @@ task app::scene_maze_exit()
     // ended without reporting, as when maybe_stop_auto_movement() cuts it short.
     constexpr uint32_t stall_frames = 30;
     constexpr auto hold_dt = Second*3/2;
+    const auto hold = pgo_driver_use_short_scenes() ? short_hold_dt : hold_dt;
     constexpr uint8_t size = 24;
     constexpr auto bbox = Vector2ui{size};
     auto& w = M->world();
@@ -1410,7 +1445,7 @@ task app::scene_maze_exit()
         const auto t0 = _driver->scene_dt;
         do
             co_yield {};
-        while (_driver->scene_dt - t0 < hold_dt);
+        while (_driver->scene_dt - t0 < hold);
         C->chunk().kill_object(*C, C->index());
     }
 }
@@ -1463,7 +1498,8 @@ task app::scene_cover()
     // One rotation a second of update() time. With --fixed-framerate, a slow build takes longer
     // in real time but plays the same frames. 32 octants, so the whole thing is over half a
     // minute at speed -- octant_dt is the dial.
-    constexpr auto octant_dt = Second/3;
+    constexpr auto octant_dt = Second/3, short_octant_dt = Second/20;
+    const auto dt = pgo_driver_use_short_scenes() ? short_octant_dt : octant_dt;
 
     populate_scene_cover();
     auto& w = M->world();
@@ -1493,7 +1529,7 @@ task app::scene_cover()
         const auto t0 = _driver->scene_dt;
         do
             co_yield {};
-        while (_driver->scene_dt - t0 < octant_dt);
+        while (_driver->scene_dt - t0 < dt);
         auto val = tests().current_test->advance(*this, {});
         fm_assert(val.type == tests::base_test::ValueType::u32);
         built |= val.u32;
@@ -1503,7 +1539,7 @@ task app::scene_cover()
     fm_assert_equal((uint32_t)-1, built);
 
     fm_debug("cover: %u octants at %u ms each, all built", Cover::octant_count,
-             (uint32_t)Time::to_milliseconds(octant_dt));
+             (uint32_t)Time::to_milliseconds(dt));
 
     // Left alive, cover_test keeps calling fill_next_unfilled() every frame of whatever scene
     // comes next -- tests_post_update() is gated on current_test alone, not the editor mode.
@@ -1740,6 +1776,7 @@ task app::scene_grids()
     // Bounded by update() time so the frame count is the same everywhere, and measured against
     // Time::now() because what a frame costs in real time is the question.
     constexpr auto idle_dt = Second*3;
+    const auto idle = pgo_driver_use_short_scenes() ? short_hold_dt : idle_dt;
     const auto idle_t0 = _driver->scene_dt;
     const auto wall_t0 = Time::now();
     uint32_t idle_frames = 0;
@@ -1747,7 +1784,7 @@ task app::scene_grids()
     {
         co_yield {};
         idle_frames++;
-    } while (_driver->scene_dt - idle_t0 < idle_dt);
+    } while (_driver->scene_dt - idle_t0 < idle);
 
     const auto idle_ms = (double)Time::to_milliseconds(Time::now() - wall_t0);
     fm_debug("grids: idle %u frames in %.2f s over %u objects, %.2f ms/frame, %.1f fps",
