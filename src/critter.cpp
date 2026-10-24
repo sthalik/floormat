@@ -199,14 +199,15 @@ bool update_movement_body(size_t& i, critter& C, const anim_def& info, uint32_t 
 
 bool update_movement_alternatives(size_t& i, critter& C, const anim_def& info, Ns& ticks, const step_costs& cost, rotation new_r)
 {
+    // A cardinal new_r has diagonal alternatives. Positions and colliders are whole pixels, so
+    // whatever blocked the straight step overlaps the box by at least 1 px across the motion and
+    // blocks a 1-px diagonal step too.
+    if (!is_diagonal(new_r))
+        return false;
     // rotations[0] == new_r; the caller just tried that, skip it
     const auto rotations = rotation_to_similar(new_r);
-    // both are diagonal for a cardinal new_r, both cardinal for a diagonal one
+    // both cardinal, cheaper than the new_r step the caller's ticks cover
     const auto alt_cost = cost(rotations.data()[1]);
-    // Only a cardinal new_r has dearer alternatives. A diagonal step can't get past a collider the
-    // straight one hit, so the time isn't kept for them.
-    if (ticks < alt_cost)
-        return false;
     for (auto k : { 1u, 2u })
     {
         if (update_movement_body(i, C, info, 1, rotations.data()[k], new_r))
