@@ -350,8 +350,12 @@ void check_pocket(uint32_t cell, bool boxed_goal)
     walk_to(w, C, move(r1), goal, name, cell);
 }
 
-// Every seed costs max_dist or more. From the pocket, its seed search first meets a set cell a
-// box width out. Toward it, the ring seeds around an off-lattice start lie 1 px or more away.
+// No search queues a seed. From the pocket with max_dist 32, the seed search first meets a set
+// cell a box width out, so every seed costs max_dist or more. Toward the pocket with max_dist 1,
+// the ring seeds around the off-lattice start lie 1 px or more away. From the pocket with
+// max_dist 4 box widths, the seeds a box width out cost less. A seed's cost plus its octile
+// distance to `open` is still at least the octile distance from `pocket` to `open`, which is
+// longer.
 void check_seeds_past_max_dist(uint32_t cell)
 {
     constexpr uint32_t size = 32;
@@ -370,7 +374,7 @@ void check_seeds_past_max_dist(uint32_t cell)
     fm_assert(!A.cache()->is_passable_for_bbox(w, pool, pocket, pred));
 
     struct search { point from, to; uint32_t max_dist; };
-    for (auto [from, to, max_dist] : { search{pocket, open, size}, search{open, pocket, 1} })
+    for (auto [from, to, max_dist] : { search{pocket, open, size}, search{open, pocket, 1}, search{pocket, open, 4*size} })
     {
         auto r1 = A.Dijkstra<0, false>(w, pool, from, to, max_dist, Vector2ui(size), pred);
         auto r2 = A.Dijkstra<0, true>(w, pool, from, to, max_dist, Vector2ui(size), pred);
@@ -423,6 +427,12 @@ void check_corridor_goal(uint32_t cell)
     const auto x_travel = (uint32_t)(Vector3i(from).x() - mouth_x + Vector3i(goal).x() - mouth_x);
     if (r1.cost() < x_travel)
         fm_abort("corridor goal at div %u: cost %u, the way around is at least %u", cell, r1.cost(), x_travel);
+    // With max_dist at that bound, A* runs out of nodes again, and the goal's seed search after
+    // it finds no link under max_dist.
+    auto r3 = A.Dijkstra<0, false>(w, pool, from, goal, x_travel, Vector2ui(size), pred);
+    auto r4 = A.Dijkstra<0, true>(w, pool, from, goal, x_travel, Vector2ui(size), pred);
+    if (r3.is_found() || r4.is_found())
+        fm_abort("corridor goal at div %u, max_dist %u: found %d, with closest %d", cell, x_travel, (int)r3.is_found(), (int)r4.is_found());
     walk_to(w, C, move(r1), goal, "corridor goal", cell);
 }
 
