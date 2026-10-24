@@ -46,17 +46,17 @@ void text(StringView str)
     ImGui::TextEx(str.data(), str.data() + str.size(), ImGuiTextFlags_NoWidthForLargeClippedText);
 }
 
-raii_wrapper::raii_wrapper(raii_wrapper::F fn) : dtor{fn}, truthy{fn != nullptr} {}
-raii_wrapper::raii_wrapper(raii_wrapper::F fn, bool truthy) : dtor{fn}, truthy{truthy} {}
+raii_wrapper::raii_wrapper(raii_wrapper::F fn) : dtor{fn}, ret{fn != nullptr} {}
+raii_wrapper::raii_wrapper(raii_wrapper::F fn, bool ret) : dtor{fn}, ret{ret} {}
 raii_wrapper::~raii_wrapper() { if (dtor) dtor(); }
-raii_wrapper::raii_wrapper(raii_wrapper&& other) noexcept : dtor{other.dtor}, truthy{other.truthy} { other.dtor = nullptr; other.truthy = false; }
+raii_wrapper::raii_wrapper(raii_wrapper&& other) noexcept : dtor{other.dtor}, ret{other.ret} { other.dtor = nullptr; other.ret = false; }
 raii_wrapper& raii_wrapper::operator=(raii_wrapper&& other) noexcept
 {
     dtor = std::exchange(other.dtor, nullptr);
-    truthy = std::exchange(other.truthy, false);
+    ret = std::exchange(other.ret, false);
     return *this;
 }
-raii_wrapper::operator bool() const noexcept { return truthy; }
+raii_wrapper::operator bool() const noexcept { return ret; }
 
 raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value)
 {
