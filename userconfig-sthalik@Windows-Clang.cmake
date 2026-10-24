@@ -3,12 +3,12 @@ if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
         add_definitions(
             -fprofile-instr-generate
             -fcoverage-mapping
-            -mllvm -runtime-counter-relocation=true
         )
         add_link_options(
             -fprofile-instr-generate
             -fcoverage-mapping
         )
+        add_compile_options(-O3 -march=native)
         set(BUILD_SHARED_LIBS OFF)
     else()
         add_link_options(-Wl,--gc-sections)
@@ -190,7 +190,7 @@ endif()
 
 sets(STRING
      CMAKE_C_FLAGS "${fm_simd} -ggdb -gcolumn-info"
-     CMAKE_C_FLAGS_DEBUG "-O0 -fstack-protector-all -ggdb -gdwarf-aranges"
+     CMAKE_C_FLAGS_DEBUG "-fstack-protector-all -ggdb -gdwarf-aranges"
      CMAKE_C_FLAGS_RELEASE "-O3 -mpopcnt -fomit-frame-pointer -fno-stack-protector -static"
      CMAKE_EXE_LINKER_FLAGS_DEBUG ""
      CMAKE_SHARED_LINKER_FLAGS_DEBUG ""
