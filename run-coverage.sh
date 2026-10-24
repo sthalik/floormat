@@ -118,10 +118,6 @@ done
 which cmake ninja llvm-profdata llvm-cov genhtml >/dev/null
 
 exes="${exes# }"
-first_exe="${exes%% *}"
-if test -z "$first_exe"; then
-    first_exe=floormat-editor
-fi
 
 #find build directory
 build="build/coverage"
@@ -137,14 +133,6 @@ if test -f CMakeLists.txt && test -f shaders/resources.conf; then
         test -e "./${build}/save" || ln -s ../../doc/saves "./${build}/save"
     fi
     cd ./"${build}"
-elif test -d bin; then
-    cd ../../"${build}"
-elif test -x "${first_exe}" || test -x "${first_exe}".exe; then
-    cd ../../"${build}"
-elif test -d install/bin && test -d install/share/floormat; then
-    cd ../"${build}"
-elif test -f "./CMakeCache.txt"; then
-    cd ../"${build}"
 else
     echo "error: can't find build directory!" >&2
     exit 65
