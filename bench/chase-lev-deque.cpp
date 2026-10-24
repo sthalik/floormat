@@ -1,5 +1,5 @@
 #include "compat/atomic.hpp"
-#include "compat/chase-lev-deque.hpp"
+#include "compat/chase-lev-deque.inl"
 #include <thread>
 #include <vector>
 #include <benchmark/benchmark.h>

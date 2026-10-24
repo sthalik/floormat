@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/atomic.hpp"
-#include "compat/chase-lev-deque.hpp"
+#include "compat/chase-lev-deque.inl"
 #include "compat/fwd/chrono.hpp"
 #include "compat/fwd/thread.hpp"
 #include "compat/valgrind.hpp"
