@@ -27,11 +27,6 @@ if test -z "$1"; then
     usage
 fi
 
-if ! command -v llvm-profdata >/dev/null 2>&1; then
-    export PATH="/clang64/bin:/usr/bin:$PATH"
-    which llvm-profdata >/dev/null
-fi
-
 compile=0
 run=0
 generate=0
@@ -118,6 +113,9 @@ while test $# -gt 0; do
         shift
     done
 done
+
+# checked for every command, so the first run names every missing tool
+which cmake ninja llvm-profdata llvm-cov genhtml >/dev/null
 
 exes="${exes# }"
 first_exe="${exes%% *}"
