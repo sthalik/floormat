@@ -26,15 +26,25 @@ namespace {
 
 constexpr Ns dt_60hz = Second / 60;
 
-void place_pillar(world& w, chunk_coords_ ch, local_coords tile, Vector2b bb_off, Vector2ub bb_size)
+void place_pillar(world& w, chunk_coords_ ch, local_coords tile, Vector2b bb_off, Vector2ub bb_size,
+                  pass_mode pass = pass_mode::blocked)
 {
     scenery_proto p;
     p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
     p.subtype     = generic_scenery_proto{};
     p.bbox_offset = bb_off;
     p.bbox_size   = bb_size;
-    p.pass        = pass_mode::blocked;
+    p.pass        = pass;
     w.make_scenery(w.make_id(), {ch, tile}, move(p));
+}
+
+// A pillar covering [min, max) in the frame of chunk ch. Its center must lie on one of ch's tiles.
+void place_rect(world& w, chunk_coords_ ch, Vector2i min, Vector2i max, pass_mode pass = pass_mode::blocked)
+{
+    const auto center = min + (max - min) / 2;
+    fm_assert(center >= -half_tile<Vector2i> && center < chunk_size<Vector2i> - half_tile<Vector2i>);
+    const auto tile = (center + half_tile<Vector2i>) / tile_size_xy;
+    place_pillar(w, ch, local_coords{tile}, Vector2b(center - tile * tile_size_xy), Vector2ub(max - min), pass);
 }
 
 void fill_ground(chunk& c)
@@ -216,6 +226,49 @@ void test_swept_collider_line()
     }
 }
 
+// A box walking 41 steps ends flush against a pillar: on its leading face for a cardinal line, at its
+// leading corner for a diagonal one. Touching isn't overlap, so nothing blocks. With the pillar 1 px
+// deeper, step 41 is the first the box can't reach. A pass_mode::pass pillar across the line never
+// blocks.
+void test_swept_collider_flush()
+{
+    constexpr chunk_coords_ ch{0, 0, 0};
+    constexpr auto from = Vector2i{301, 287};
+    constexpr uint32_t steps = 41;
+    constexpr Vector2i dirs[] = { {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1} };
+    for (auto size : { Vector2ui{1}, Vector2ui{4}, Vector2ui{7}, Vector2ui{24, 25} })
+        for (auto d : dirs)
+            for (int32_t deeper : { 0, 1 })
+            {
+                auto w = world();
+                fill_ground(w[ch]);
+                const auto box = [&](uint32_t k) {
+                    const auto min = from + d * int32_t(k) - Vector2i(size/2u);
+                    return Range2Di{min, min + Vector2i(size)};
+                };
+                const auto end = box(steps), mid = box(steps/2);
+                Vector2i min, max;
+                for (auto i = 0u; i < 2; i++)
+                {
+                    min[i] = d[i] > 0 ? end.max()[i] - deeper : d[i] < 0 ? end.min()[i] + deeper - 8 : end.min()[i] - 3;
+                    max[i] = d[i] == 0 ? end.max()[i] + 3 : min[i] + 8;
+                }
+                place_rect(w, ch, min, max);
+                place_rect(w, ch, mid.min() - Vector2i{5}, mid.max() + Vector2i{5}, pass_mode::pass);
+                w[ch].mark_modified();
+
+                const auto line = rc::bresenham_line{from, from + d * int32_t(steps)};
+                const auto res = find_swept_collider(w, ch, line, 0, steps, size, Search::never_continue());
+                fm_assert(res.has_collider == (deeper != 0));
+                fm_assert(res.step == (deeper ? steps : steps + 1));
+
+                const auto pool_bbox = (Math::max(size.x(), size.y()) + 1) & ~1u;
+                Pass::Pool pool8{Pass::Params{8, pool_bbox, pass_mode::pass}, Search::never_continue()};
+                check_swept_line(w, ch, from, from + d * int32_t(steps), 0, steps, size, nullptr);
+                check_swept_line(w, ch, from, from + d * int32_t(steps), 0, steps, size, &pool8);
+            }
+}
+
 } // namespace
 
 void Test::test_sweep_aabb()
@@ -223,6 +276,7 @@ void Test::test_sweep_aabb()
     test_critter_slit();
     test_swept_collider_cell_corner();
     test_swept_collider_line();
+    test_swept_collider_flush();
 }
 
 } // namespace floormat

@@ -101,6 +101,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_spritebatch),
     FM_TEST_GL(test_critter),
     FM_TEST_GL(test_sweep_aabb),
+    FM_TEST_GL(test_critter_walk),
     FM_TEST_GL(test_slide),
     FM_TEST_GL(test_corridor),
     FM_TEST_GL(test_dijkstra),
