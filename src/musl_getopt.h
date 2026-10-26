@@ -2,9 +2,27 @@
 
 namespace floormat::getopt {
 
-int getopt(int, char * const [], const char *);
-extern char *optarg;
-extern int optind, opterr, optopt;
-extern int optpos, optreset;
+enum argument_kind : uint8_t
+{
+    no_argument, required_argument, optional_argument,
+};
+
+struct state
+{
+    const char *optarg = nullptr;
+    int optind = 1, opterr = 1, optopt = 0;
+    int optpos = 0, optreset = 0;
+};
+
+struct option {
+    const char *name = nullptr;
+    argument_kind has_arg = no_argument;
+    int *flag = nullptr;
+    int val = 0;
+};
+
+int getopt(int, const char * const [], const char *, state& st);
+int getopt_long(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, state& st);
+int getopt_long_only(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, state& st);
 
 } // namespace floormat::getopt

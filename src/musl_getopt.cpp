@@ -5,13 +5,22 @@
 //   src/misc/getopt_long.c  blob 6949ab1c7eec09753b49946da4ceeef6b89e3adc
 //   include/getopt.h        blob 35cbd358b52855fb1596da7970c84c18dd0f1cdb
 //
-// Changed from upstream, and nothing else, so a diff against those three files stays
-// readable. The musl-private includes are gone together with what they provided: the
-// __lctrans_cur() message lookup, the FLOCK/FUNLOCK pair, and the __getopt_msg prototype.
-// Both weak_alias() lines are gone, which also removes optreset -- reset with optind = 0
-// or __optreset = 1 instead. The two .c files are one translation unit now, so the
-// "extern int __optpos, __optreset" from getopt_long.c moved into the declaration block.
-// Everything sits in a namespace because MinGW libmingwex exports these same symbols.
+// Changed from upstream, and nothing else. Tabs became four spaces. The two .c files are
+// one translation unit, and musl_getopt.h replaces include/getopt.h. _BSD_SOURCE,
+// _GNU_SOURCE, <unistd.h>, <getopt.h> and <wchar.h> are gone, because musl_getopt.h
+// declares the API and C++ has wchar_t built in. The musl-private includes are gone
+// together with what they provided: the __lctrans_cur() message lookup, the FLOCK/FUNLOCK
+// pair, and the __getopt_msg() prototype. The globals optarg, optind, opterr, optopt,
+// __optpos and __optreset are fields of struct state, which every call takes by
+// reference, so separate parses don't share them. Reset a parse with st.optind = 0 or
+// st.optreset = 1. Both weak_alias() lines are gone. getopt() takes const char* argv,
+// and optarg is const char*. getopt_long() keeps char* const* because it permutes argv.
+// Names lost their __ prefix, which C++ reserves. __getopt_msg() is static.
+// __getopt_long() is getopt_longʹ(), defined after getopt_long_core(), so the forward
+// declaration is gone. The no_argument, required_argument and optional_argument macros
+// became enum argument_kind, which is also the type of option::has_arg. Every field of
+// struct option has a default. Everything sits in a namespace with C++ linkage because
+// MinGW libmingwex exports these same symbols.
 //
 // ---------------------------------------------------------------------
 // Copyright (c) 2005-2020 Rich Felker, et al.
@@ -46,28 +55,9 @@
 
 namespace floormat::getopt {
 
-// ---- include/getopt.h ------------------------------------------------
-
-struct option {
-    const char *name;
-    int has_arg;
-    int *flag;
-    int val;
-};
-
-int getopt_long(int, char *const *, const char *, const struct option *, int *);
-int getopt_long_only(int, char *const *, const char *, const struct option *, int *);
-
-#define no_argument        0
-#define required_argument  1
-#define optional_argument  2
-
 // ---- src/misc/getopt.c -----------------------------------------------
 
-char *optarg; // todo thread safety
-int optind=1, opterr=1, optopt, optpos, optreset=0; // todo thread safety
-
-static void __getopt_msg(const char *a, const char *b, const char *c, size_t l)
+static void getopt_msg(const char *a, const char *b, const char *c, size_t l)
 {
     FILE *f = stderr;
     fputs(a, f)>=0
@@ -76,12 +66,16 @@ static void __getopt_msg(const char *a, const char *b, const char *c, size_t l)
     && putc('\n', f);
 }
 
-int getopt(int argc, char * const argv[], const char *optstring)
+int getopt(int argc, const char * const argv[], const char *optstring, state& st)
 {
+    const auto*& optarg = st.optarg;
+    auto &optind = st.optind, &opterr = st.opterr, &optopt = st.optopt;
+    auto &optpos = st.optpos, &optreset = st.optreset;
+
     int i;
     wchar_t c, d;
     int k, l;
-    char *optchar;
+    const char *optchar;
 
     if (!optind || optreset) {
         optreset = 0;
@@ -132,7 +126,7 @@ int getopt(int argc, char * const argv[], const char *optstring)
     if (d != c || c == ':') {
         optopt = c;
         if (optstring[0] != ':' && opterr)
-            __getopt_msg(argv[0], ": unrecognized option: ", optchar, k);
+            getopt_msg(argv[0], ": unrecognized option: ", optchar, k);
         return '?';
     }
     if (optstring[i] == ':') {
@@ -145,7 +139,7 @@ int getopt(int argc, char * const argv[], const char *optstring)
         if (optind > argc) {
             optopt = c;
             if (optstring[0] == ':') return ':';
-            if (opterr) __getopt_msg(argv[0],
+            if (opterr) getopt_msg(argv[0],
                 ": option requires an argument: ",
                 optchar, k);
             return '?';
@@ -153,8 +147,6 @@ int getopt(int argc, char * const argv[], const char *optstring)
     }
     return c;
 }
-
-// ---- src/misc/getopt_long.c ------------------------------------------
 
 static void permute(char *const *argv, int dest, int src)
 {
@@ -166,39 +158,10 @@ static void permute(char *const *argv, int dest, int src)
     av[dest] = tmp;
 }
 
-static int __getopt_long_core(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, int longonly);
-
-static int __getopt_long(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, int longonly)
+static int getopt_long_core(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, int longonly, state& st)
 {
-    int ret, skipped, resumed;
-    if (!optind || optreset) {
-        optreset = 0;
-        optpos = 0;
-        optind = 1;
-    }
-    if (optind >= argc || !argv[optind]) return -1;
-    skipped = optind;
-    if (optstring[0] != '+' && optstring[0] != '-') {
-        int i;
-        for (i=optind; ; i++) {
-            if (i >= argc || !argv[i]) return -1;
-            if (argv[i][0] == '-' && argv[i][1]) break;
-        }
-        optind = i;
-    }
-    resumed = optind;
-    ret = __getopt_long_core(argc, argv, optstring, longopts, idx, longonly);
-    if (resumed > skipped) {
-        int i, cnt = optind-resumed;
-        for (i=0; i<cnt; i++)
-            permute(argv, skipped, optind-1);
-        optind = skipped + cnt;
-    }
-    return ret;
-}
-
-static int __getopt_long_core(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, int longonly)
-{
+    const auto*& optarg = st.optarg;
+    auto &optind = st.optind, &opterr = st.opterr, &optopt = st.optopt;
     optarg = 0;
     if (longopts && argv[optind][0] == '-' &&
         ((longonly && argv[optind][1] && argv[optind][1] != '-') ||
@@ -242,7 +205,7 @@ static int __getopt_long_core(int argc, char *const *argv, const char *optstring
                     optopt = longopts[i].val;
                     if (colon || !opterr)
                         return '?';
-                    __getopt_msg(argv[0],
+                    getopt_msg(argv[0],
                         ": option does not take an argument: ",
                         longopts[i].name,
                         strlen(longopts[i].name));
@@ -254,7 +217,7 @@ static int __getopt_long_core(int argc, char *const *argv, const char *optstring
                     optopt = longopts[i].val;
                     if (colon) return ':';
                     if (!opterr) return '?';
-                    __getopt_msg(argv[0],
+                    getopt_msg(argv[0],
                         ": option requires an argument: ",
                         longopts[i].name,
                         strlen(longopts[i].name));
@@ -272,7 +235,7 @@ static int __getopt_long_core(int argc, char *const *argv, const char *optstring
         if (argv[optind][1] == '-') {
             optopt = 0;
             if (!colon && opterr)
-                __getopt_msg(argv[0], cnt ?
+                getopt_msg(argv[0], cnt ?
                     ": option is ambiguous: " :
                     ": unrecognized option: ",
                     argv[optind]+2,
@@ -281,17 +244,48 @@ static int __getopt_long_core(int argc, char *const *argv, const char *optstring
             return '?';
         }
     }
-    return getopt(argc, argv, optstring);
+    return getopt(argc, argv, optstring, st);
 }
 
-int getopt_long(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx)
+static int getopt_longʹ(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, int longonly, state& st)
 {
-    return __getopt_long(argc, argv, optstring, longopts, idx, 0);
+    auto &optind = st.optind, &optpos = st.optpos, &optreset = st.optreset;
+
+    int ret, skipped, resumed;
+    if (!optind || optreset) {
+        optreset = 0;
+        optpos = 0;
+        optind = 1;
+    }
+    if (optind >= argc || !argv[optind]) return -1;
+    skipped = optind;
+    if (optstring[0] != '+' && optstring[0] != '-') {
+        int i;
+        for (i=optind; ; i++) {
+            if (i >= argc || !argv[i]) return -1;
+            if (argv[i][0] == '-' && argv[i][1]) break;
+        }
+        optind = i;
+    }
+    resumed = optind;
+    ret = getopt_long_core(argc, argv, optstring, longopts, idx, longonly, st);
+    if (resumed > skipped) {
+        int i, cnt = optind-resumed;
+        for (i=0; i<cnt; i++)
+            permute(argv, skipped, optind-1);
+        optind = skipped + cnt;
+    }
+    return ret;
 }
 
-int getopt_long_only(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx)
+int getopt_long(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, state& st)
 {
-    return __getopt_long(argc, argv, optstring, longopts, idx, 1);
+    return getopt_longʹ(argc, argv, optstring, longopts, idx, 0, st);
+}
+
+int getopt_long_only(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, state& st)
+{
+    return getopt_longʹ(argc, argv, optstring, longopts, idx, 1, st);
 }
 
 } // namespace floormat::getopt
