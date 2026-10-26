@@ -27,7 +27,7 @@ void sweep_line(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
 {
     fm_assert(!pool || pool->params().bbox_size >= Math::max(bbox_size.x(), bbox_size.y()));
     // a box spans [center - lo, center + hi), as scenery_tile()
-    const auto lo = Vector2(bbox_size/2u), hi = Vector2(bbox_size) - lo;
+    const auto lo = Vector2i(bbox_size/2u), hi = Vector2i(bbox_size) - lo;
     auto bound = (int64_t)last_step + 1;
 
     const auto meet = [](int64_t a0, int64_t a1, int64_t b0, int64_t b1, int64_t c0, int64_t c1) {
@@ -35,14 +35,12 @@ void sweep_line(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
         return lo <= hi ? lo : INT64_MAX;
     };
 
-    // The first step >= k0 that a box overlapping r blocks, from the pixels of steps k0 to k1 and
-    // the off-axis pixels of the moves from k0 - 1 to k1.
-    const auto first_blocked = [&](Range2D r, uint32_t k0, uint32_t k1) -> int64_t {
-        // centers whose box overlaps r, strictly as rect_intersects
-        const auto x = line.steps_within(0, (int32_t)Math::floor(r.min().x() - hi.x()) + 1,
-                                            (int32_t)Math::ceil(r.max().x() + lo.x()) - 1);
-        const auto y = line.steps_within(1, (int32_t)Math::floor(r.min().y() - hi.y()) + 1,
-                                            (int32_t)Math::ceil(r.max().y() + lo.y()) - 1);
+    // The first step >= k0 that a box overlapping [r0, r1) blocks, from the pixels of steps k0 to
+    // k1 and the off-axis pixels of the moves from k0 - 1 to k1.
+    const auto first_blocked = [&](Vector2i r0, Vector2i r1, uint32_t k0, uint32_t k1) -> int64_t {
+        // centers whose box overlaps [r0, r1), strictly as rect_intersects
+        const auto x = line.steps_within(0, r0.x() - hi.x() + 1, r1.x() + lo.x() - 1);
+        const auto y = line.steps_within(1, r0.y() - hi.y() + 1, r1.y() + lo.y() - 1);
         const int64_t x0 = x.first, x1 = x.last, y0 = y.first, y1 = y.last;
         const int64_t m0 = Math::max((int64_t)k0 - 1, (int64_t)first_step), m1 = Math::min((int64_t)k1, (int64_t)last_step - 1);
         const auto pixel = meet(x0, x1, y0, y1, k0, k1);
@@ -55,29 +53,32 @@ void sweep_line(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
     const auto visit = [&](const rc::detail::line_cell& cell) {
         const auto k0 = cell.first_step, k1 = cell.last_step;
         const auto a = line.pixel_at(k0 > first_step ? k0 - 1 : k0), b = line.pixel_at(k1 < last_step ? k1 + 1 : k1);
-        const auto qmin = Vector2(Math::min(a, b)) - lo, qmax = Vector2(Math::max(a, b)) + hi;
+        const auto qmin = Math::min(a, b) - lo, qmax = Math::max(a, b) + hi;
         for (int j = 0; j < 3; j++)
             for (int i = 0; i < 3; i++)
             {
                 auto* c = cell.chunks[(size_t)(j*3 + i)];
                 if (!c)
                     continue;
-                const auto shift = Vector2((cell.chunk_offset + Vector2i{i - 1, j - 1}) * chunk_size<int32_t>);
-                const auto fmin = qmin - shift, fmax = qmax - shift;
-                if (!rc::detail::within_chunk_bounds(fmin, fmax))
+                const auto shift = (cell.chunk_offset + Vector2i{i - 1, j - 1}) * chunk_size<int32_t>;
+                const auto imin = qmin - shift, imax = qmax - shift;
+                if (!rc::detail::within_chunk_bounds(imin, imax))
                     continue;
+                const auto fmin = Vector2(imin), fmax = Vector2(imax);
                 c->rtree()->Search(fmin.data(), fmax.data(), [&](uint64_t data, const auto& r) {
                     const auto x = std::bit_cast<collision_data>(data);
                     if (x.pass == (uint64_t)pass_mode::pass)
                         return true;
                     const auto rect = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-                    const auto step = first_blocked(Range2D{rect.min() + shift, rect.max() + shift}, k0, k1);
+                    const auto r0 = Vector2i(rect.min()) + shift, r1 = Vector2i(rect.max()) + shift;
+                    fm_debug3_assert(Vector2(r0 - shift) == rect.min() && Vector2(r1 - shift) == rect.max());
+                    const auto step = first_blocked(r0, r1, k0, k1);
                     if (step >= bound)
                         return true;
                     // last, since without_critters looks up the object
                     if (p(*c, x, rect) == path_search_continue::pass)
                         return true;
-                    bound = on_blocker(step, x, Range2D{rect.min() + shift, rect.max() + shift});
+                    bound = on_blocker(step, x, Range2D{Vector2(r0), Vector2(r1)});
                     return true;
                 });
             }
