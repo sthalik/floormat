@@ -1,9 +1,8 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
 #include "compat/debug.hpp"
-#include <cr/Pair.h>
+#include "compat/path.hpp"
 #include <cr/String.h>
-#include <cr/Path.h>
 #ifdef _WIN32
 #include <cr/Array.h>
 #include <cr/Unicode.h>
@@ -23,7 +22,13 @@ bool loader_impl::chdir(StringView pathname)
     fm_assert(pathname.flags() & StringViewFlag::NullTerminated);
     int ret;
 #ifdef _WIN32
-    ret = ::_wchdir(Unicode::widen(pathname).data());
+    const auto wide = Unicode::widen(pathname);
+    // MAX_PATH is 260 with the null terminator, which widen()'s size leaves out. _wchdir accepts
+    // '/' after the "//?/" prefix and stores the cwd with '\'.
+    if (wide.size() < 260)
+        ret = ::_wchdir(wide.data());
+    else
+        ret = ::_wchdir(Unicode::widen(extended_length_path(pathname)).data());
 #else
     ret = ::chdir(pathname.data());
 #endif
@@ -47,31 +52,19 @@ void loader_impl::set_application_working_directory()
     if (once)
         return;
     once = true;
-    if (auto loc = Path::currentDirectory(); loc)
-        original_working_directory = move(*loc);
+    if (auto loc = current_directory(); !loc.isEmpty())
+        original_working_directory = move(loc);
     else
     {
-        auto err = error_string();
-        ERR << "can't get original working directory" << err;
+        ERR << "can't get original working directory";
         original_working_directory = "."_s;
     }
-    if (const auto loc = Path::executableLocation())
+    if (const auto loc = executable_location(); !loc.isEmpty())
     {
-        String path;
-#ifdef _WIN32
-        path = "\\\\?\\"_s + *loc;
-#else
-        path = *loc;
-#endif
-        StringView p = path;
-        p = Path::split(p).first();
-        p = Path::split(p).first();
-        path = p;
-#ifdef _WIN32
-        for (char& c : path)
-            if (c == '/')
-                c = '\\';
-#endif
+        StringView p = loc;
+        p = split(p).first();
+        p = split(p).first();
+        const String path = p;
         chdir(path) &&
         chdir("share/floormat"_s);
     }
