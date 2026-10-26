@@ -27,3 +27,5 @@ endif()
 if(WIN32)
     target_link_libraries(${self} PUBLIC ntdll)
 endif()
+# Under gcc -ffinite-math-only, NaN passes the range checks on load.
+fm_no_fast_math(FINITE_MATH_ONLY SOURCE savegame.cpp)
