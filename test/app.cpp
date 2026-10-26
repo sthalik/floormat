@@ -48,6 +48,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_magnum_math),
     FM_TEST(test_util),
     FM_TEST(test_split),
+    FM_TEST(test_getopt),
     FM_TEST(test_enumerate),
     FM_TEST(test_zip),
     FM_TEST(test_math),

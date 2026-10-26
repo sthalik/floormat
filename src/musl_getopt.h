@@ -22,7 +22,7 @@ struct option {
 };
 
 int getopt(int, const char * const [], const char *, state& st);
-int getopt_long(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, state& st);
-int getopt_long_only(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, state& st);
+int getopt_long(int argc, char **argv, const char *optstring, const struct option *longopts, int *idx, state& st);
+int getopt_long_only(int argc, char **argv, const char *optstring, const struct option *longopts, int *idx, state& st);
 
 } // namespace floormat::getopt

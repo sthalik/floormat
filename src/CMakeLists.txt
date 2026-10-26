@@ -41,6 +41,6 @@ endif()
 # CMAKE_CXX_COMPILER_ID as Clang, so testing MSVC would wrongly exclude it.
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set_property(SOURCE musl_getopt.cpp APPEND PROPERTY COMPILE_OPTIONS
-        -Wno-sign-conversion -Wno-zero-as-null-pointer-constant -Wno-cast-qual
+        -Wno-sign-conversion -Wno-zero-as-null-pointer-constant
         -Wno-shorten-64-to-32 -Wno-conditional-uninitialized -Wno-comma)
 endif()

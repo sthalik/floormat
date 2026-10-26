@@ -14,8 +14,8 @@
 // __optpos and __optreset are fields of struct state, which every call takes by
 // reference, so separate parses don't share them. Reset a parse with st.optind = 0 or
 // st.optreset = 1. Both weak_alias() lines are gone. getopt() takes const char* argv,
-// and optarg is const char*. getopt_long() keeps char* const* because it permutes argv.
-// Names lost their __ prefix, which C++ reserves. __getopt_msg() is static.
+// and optarg is const char*. getopt_long() and getopt_long_only() take char** argv
+// because they permute it, so permute() needs no cast. Names lost their __ prefix, which C++ reserves. __getopt_msg() is static.
 // __getopt_long() is getopt_longʹ(), defined after getopt_long_core(), so the forward
 // declaration is gone. The no_argument, required_argument and optional_argument macros
 // became enum argument_kind, which is also the type of option::has_arg. Every field of
@@ -148,17 +148,16 @@ int getopt(int argc, const char * const argv[], const char *optstring, state& st
     return c;
 }
 
-static void permute(char *const *argv, int dest, int src)
+static void permute(char **argv, int dest, int src)
 {
-    char **av = (char **)argv;
-    char *tmp = av[src];
+    char *tmp = argv[src];
     int i;
     for (i=src; i>dest; i--)
-        av[i] = av[i-1];
-    av[dest] = tmp;
+        argv[i] = argv[i-1];
+    argv[dest] = tmp;
 }
 
-static int getopt_long_core(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, int longonly, state& st)
+static int getopt_long_core(int argc, char **argv, const char *optstring, const struct option *longopts, int *idx, int longonly, state& st)
 {
     const auto*& optarg = st.optarg;
     auto &optind = st.optind, &opterr = st.opterr, &optopt = st.optopt;
@@ -247,7 +246,7 @@ static int getopt_long_core(int argc, char *const *argv, const char *optstring, 
     return getopt(argc, argv, optstring, st);
 }
 
-static int getopt_longʹ(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, int longonly, state& st)
+static int getopt_longʹ(int argc, char **argv, const char *optstring, const struct option *longopts, int *idx, int longonly, state& st)
 {
     auto &optind = st.optind, &optpos = st.optpos, &optreset = st.optreset;
 
@@ -278,12 +277,12 @@ static int getopt_longʹ(int argc, char *const *argv, const char *optstring, con
     return ret;
 }
 
-int getopt_long(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, state& st)
+int getopt_long(int argc, char **argv, const char *optstring, const struct option *longopts, int *idx, state& st)
 {
     return getopt_longʹ(argc, argv, optstring, longopts, idx, 0, st);
 }
 
-int getopt_long_only(int argc, char *const *argv, const char *optstring, const struct option *longopts, int *idx, state& st)
+int getopt_long_only(int argc, char **argv, const char *optstring, const struct option *longopts, int *idx, state& st)
 {
     return getopt_longʹ(argc, argv, optstring, longopts, idx, 1, st);
 }
