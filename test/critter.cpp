@@ -252,6 +252,15 @@ void test_fps_zero_stays()
     fm_assert_equal(walk_start, npc.position());
     fm_assert(npc.r == rotation::N);
     fm_assert(npc.delta == object::ns_to_delta(Second * 3u));
+
+    // 2^53 ns, the most alloc_ticks() takes, still pays for no step. A step cost whose
+    // frame_duration(0) * length product wrapped around 64 bits would be under 2^48 ns.
+    dt = Ns{uint64_t{1} << 53};
+    const auto res3 = npc.move_toward(idx, dt, dest);
+    dt = Ns{uint64_t{1} << 53};
+    const auto res4 = npc.move_toward(idx, dt, walk_start, dest);
+    fm_assert(!res3.blocked && !res3.moved && !res4.blocked && !res4.moved);
+    fm_assert_equal(walk_start, npc.position());
 }
 
 // A diagonal step at fps 1 costs 1.41 s, so delta has to hold more than a second.

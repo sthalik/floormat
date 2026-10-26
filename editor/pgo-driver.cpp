@@ -1068,7 +1068,7 @@ task app::scene_walk()
 }
 
 // Driven by the key bitmask, not a script: move_toward() reports blocked and gives up, so only
-// this path reaches update_movement_alternatives().
+// this path slides in update_movement_1().
 task app::scene_slide()
 {
     constexpr uint32_t poll_frames = 10, max_polls = 200;

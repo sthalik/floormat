@@ -12,11 +12,6 @@ namespace floormat::Grid::Pass { class Pool; }
 
 namespace floormat {
 
-struct sweep_result
-{
-    bool has_collider;
-};
-
 struct swept_collider_result
 {
     // The first step the box can't reach, or last_step + 1.
@@ -27,8 +22,6 @@ struct swept_collider_result
     bool has_collider;
 };
 
-sweep_result sweep_aabb_vs_aabb(Range2D start, Vector2 displacement, Range2D obstacle);
-sweep_result find_swept_collider(chunk& c, Range2D start, Vector2 displacement, const Search::pred& p);
 // A box of bbox_size centered on each pixel of the line from first_step to last_step, and on both
 // off-axis pixels of each diagonal step. Pixels are in the frame of chunk ch, as for its rects. A
 // pool must be built for a bbox of at least bbox_size; its set bits are taken as free.

@@ -358,14 +358,6 @@ void test_rtree_rect_is_bbox()
     fm_assert(n >= 12);
 }
 
-void test_corner_touch()
-{
-    const auto start = Range2D{{0, 0}, {10, 10}};
-    constexpr auto V = Vector2{20, 20};
-    fm_assert(!sweep_aabb_vs_aabb(start, V, Range2D{{20, -10}, {30, 10}}).has_collider);
-    fm_assert(sweep_aabb_vs_aabb(start, V, Range2D{{20, -9}, {30, 11}}).has_collider);
-}
-
 void test_bbox_offset_min()
 {
     auto w = world();
@@ -671,7 +663,6 @@ void Test::test_rtree()
     test_odd_bbox_size();
     test_odd_bbox_rotation();
     test_rtree_rect_is_bbox();
-    test_corner_touch();
     test_bbox_offset_min();
     test_light_tree();
     test_hole_tree();

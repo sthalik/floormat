@@ -75,7 +75,7 @@ constexpr inline int slide_wall_x = -4, slide_wall_y0 = 8, slide_wall_y1 = 14;
 constexpr inline int slide_floor_y = 15, slide_floor_x1 = 2;
 // Blocked south by the floor row, west by its own wall_west: both alternatives to SW are gone.
 constexpr inline int slide_corner_x = slide_wall_x, slide_corner_y = slide_wall_y1;
-// Only these are cleared; the dense scene outside keeps the 8 neighbours sweep_critter() searches
+// Only these are cleared; the dense scene outside keeps the 8 neighbours free_steps() searches
 // realistically full.
 constexpr inline int16_t slide_chunk_min = -1, slide_chunk_max = 0;
 constexpr inline uint8_t slide_bbox = 32;

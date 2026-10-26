@@ -213,12 +213,11 @@ Ns object::alloc_ticks(const Ns& dt, uint32_t delta, uint32_t hz, float speed)
     return ticks;
 }
 
-Ns object::frame_duration(uint32_t hz, double frames)
+Ns object::frame_duration(uint32_t hz)
 {
-    // Above alloc_ticks()'s 2^53 + 2^32 - 1 ns. Ns * double asserts 2^53, so the multiply is done here.
+    // Above alloc_ticks()'s 2^53 + 2^32 - 1 ns.
     constexpr auto never = uint64_t{1} << 54;
-    const auto frame = hz ? Second.stamp / hz : never;
-    return Ns{(uint64_t)(double(frame) * frames)};
+    return Ns{hz ? Second.stamp / hz : never};
 }
 
 uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& delta, uint32_t hz, float speed)

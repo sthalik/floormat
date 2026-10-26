@@ -48,7 +48,8 @@ struct critter final : object
     /// Walks to dest in up to two legs, along an axis until the rest is diagonal, then
     /// diagonally (next_step()). For direct walks without A*.
     /// - Facing follows each leg.
-    /// - Each run of up to a tile is one continuous AABB sweep. A blocked run moves nothing.
+    /// - One collider query covers both legs and their turns, up to half a chunk of steps. The
+    ///   walk stops before the first blocked step.
     /// - A diagonal step costs √2 frames. Time below the next step's cost stays in delta.
     /// - On arrival all unspent time goes back in dt.
     /// - Starts from any position.

@@ -54,7 +54,7 @@ bptr<critter> add_player(world& w)
 }
 
 // The gap admits the bbox at exactly one x. The walk clears it only because rect_intersects and
-// axis_overlap both treat edge contact as no contact.
+// free_steps() both treat edge contact as no contact.
 void test_corridor_south()
 {
     auto w = world();

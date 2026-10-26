@@ -17,8 +17,8 @@
 #include "src/nanosecond.inl"
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
+#include <cmath>
 #include <cstdio>
-#include <numbers>
 
 namespace floormat {
 namespace {
@@ -700,6 +700,13 @@ Ns measure_line_cost(Vector2i vec)
     fm_assert(!res.blocked && res.moved && C.position() == from + vec);
     const auto spent = dt_in - dt;
     fm_assert(spent.stamp % steps == 0);
+    const auto cost = double(spent.stamp / steps);
+    // The code computes frame * step_length() / anim_speed_unit in integers. step_length() is under
+    // two units short and the product is rounded down, so the cost is at most
+    // 2 * frame / anim_speed_unit + 1 ns below frame * |vec| / steps, and never above it.
+    const auto frame = double(object::frame_duration(C.atlas->info().fps).stamp);
+    const auto exact = frame * std::sqrt(double(vec.dot())) / double(steps);
+    fm_assert(cost <= exact && cost >= exact - 2 * frame / double(anim_speed_unit) - 1);
     return Ns{spent.stamp / steps};
 }
 
@@ -786,8 +793,7 @@ void walk_layout(product& P, const direction& d, uint32_t box, const layout& l, 
 
     const auto run = [&](world& w, critter& C, entry e, rotation start_r, time_mode t) {
         const auto& info = C.atlas->info();
-        const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps),
-                             object::frame_duration(info.fps, std::numbers::sqrt2)};
+        const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps), P.line_cost({1, 1})};
         const auto walk_r = e == entry::move_toward_line ? d.line_r : d.leg_r;
         const auto wk = walk{e, walk_r, start, start + vec, budget,
                              e == entry::move_toward_line ? P.line_cost(vec) : Ns{}};
@@ -873,11 +879,10 @@ void each_layout(const direction& d, uint32_t box, const F& f)
     f(layout{level::start_overlap}, entry::COUNT);
     for (int32_t g : { 0, 1, 2 })
         f(layout{level::head_on, g}, entry::COUNT);
-    // len_limit in move_toward(dest), max_run in update_movement()
-    for (int32_t g : { 63, 64, 65 })
-        f(layout{level::head_on, g}, entry::move_toward_dest);
+    // max_run in update_movement() and move_toward(dest)
     for (int32_t g : { 511, 512, 513 })
-        f(layout{level::head_on, g}, entry::update_movement);
+        for (auto e : { entry::update_movement, entry::move_toward_dest })
+            f(layout{level::head_on, g}, e);
     if (!is_diagonal(d.leg_r))
     {
         for (auto side : { uint8_t{0}, uint8_t{1} })
@@ -1073,8 +1078,7 @@ void run_random(product& P, uint32_t count)
         Run::mark_all_modified(w);
 
         const auto& info = C.atlas->info();
-        const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps),
-                             object::frame_duration(info.fps, std::numbers::sqrt2)};
+        const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps), P.line_cost({1, 1})};
         const auto wk = walk{e, e == entry::move_toward_line ? d.line_r : d.leg_r, start, start + vec, 40,
                              e == entry::move_toward_line ? P.line_cost(vec) : Ns{}};
         const auto cd = case_desc{wk, rotation(next(8)), box, layout{level::none}, pl, time_mode::whole, (int32_t)i};
