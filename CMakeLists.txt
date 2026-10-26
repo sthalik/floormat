@@ -285,6 +285,7 @@ endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
     add_compile_options(-Wno-shift-op-parentheses)
+    add_compile_options(-Wno-logical-op-parentheses)
     add_compile_options(-Wno-c99-compat)
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-ambiguous-reversed-operator>)
     add_compile_options(-Wno-reserved-macro-identifier)
