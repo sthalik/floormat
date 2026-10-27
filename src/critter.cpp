@@ -467,7 +467,6 @@ uint32_t step_at(const rc::bresenham_line& line, Vector2i px)
 
 Ns return_unspent_dt(const Ns& ticks, float speed)
 {
-    // A tiny speed would overflow the cast. 2^53 ns is the bound alloc_ticks() asserts on.
     constexpr auto max_ns = double(uint64_t{1} << 53);
     return Ns{(uint64_t)Math::min((double)ticks.stamp / (double)speed, max_ns)};
 }

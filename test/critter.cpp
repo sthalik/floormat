@@ -271,6 +271,37 @@ void test_delta_range()
     fm_assert(object::fraction_to_ns(uint32_t(-1)) == Second);
 }
 
+void test_alloc_ticks_clamp()
+{
+    const auto frame = object::frame_duration(60);
+    const auto max = frame * 4096u - Ns{1u};
+    fm_assert_equal(max, object::alloc_ticks(frame * 4096u, 0, frame, 1.f));
+    fm_assert_equal(max, object::alloc_ticks(max, 0, frame, 1.f));
+    fm_assert_equal(Ns{1u}, object::frame_duration(uint32_t(-1)));
+    fm_assert_equal(Ns{uint64_t{1} << 53}, object::alloc_ticks(Millisecond * 100u, 0, object::frame_duration(0), 1e9f));
+}
+
+// 100 ms at speed 1e6 is 1e14 ns, far over 4096 frames, so the ticks of every call are cut.
+void test_speed_huge()
+{
+    auto w = world();
+    object_id id = 0;
+    auto& npc = *w.ensure_player_character(id, make_proto(1e6f));
+    auto idx = npc.index();
+    npc.teleport_to(idx, walk_start, rotation_COUNT);
+    const auto dest = point::normalize_coords(walk_start, Vector2i{100, 50});
+
+    npc.update_movement(idx, Millisecond * 100u, rotation::E);
+
+    npc.teleport_to(idx, walk_start, rotation_COUNT);
+    auto dt = Millisecond * 100u;
+    (void)npc.move_toward(idx, dt, dest);
+
+    npc.teleport_to(idx, walk_start, rotation_COUNT);
+    dt = Millisecond * 100u;
+    (void)npc.move_toward(idx, dt, walk_start, dest);
+}
+
 struct line_walker
 {
     world w;
@@ -753,6 +784,8 @@ void Test::test_critter()
     test_speed_zero_stays();
     test_fps_zero_stays();
     test_delta_range();
+    test_alloc_ticks_clamp();
+    test_speed_huge();
     test_move_toward_line();
     test_move_toward_line_blocked();
     test_move_toward_line_displaced();

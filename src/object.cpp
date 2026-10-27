@@ -205,13 +205,23 @@ uint32_t object::ns_to_delta(const Ns& time)
 
 Ns object::alloc_ticks(const Ns& dt, uint32_t delta, Ns frame, float speed)
 {
-    const auto from_dt = Ns(uint64_t(double(dt.stamp) * double(speed)));
-    fm_assert(from_dt <= Ns{uint64_t{1} << 53});
-    // At speed 0 stored time would still pay for a step.
-    delta *= speed > 0 ? 1u : 0u;
-    const auto ticks = from_dt + Ns{delta};
-    // ticks / frame < 2^12 without dividing.
-    fm_assert(ticks.stamp >> 12 < frame.stamp);
+    fm_assert(frame.stamp > 0);
+    if (speed <= 0) [[unlikely]]
+        return Ns{};
+    constexpr auto max_from_dt = double(uint64_t{1} << 53);
+    auto from_dt = double(dt.stamp) * double(speed);
+    if (from_dt > max_from_dt) [[unlikely]]
+    {
+        fm_warn_once("alloc_ticks: dt * speed over 2^53 ns, clamped");
+        from_dt = max_from_dt;
+    }
+    auto ticks = Ns(uint64_t(from_dt)) + Ns{delta};
+    if (ticks.stamp >> 12 >= frame.stamp) [[unlikely]]
+    {
+        fm_warn_once("alloc_ticks: %llu ns reach 4096 frames of %llu ns, clamped",
+                     (unsigned long long)ticks.stamp, (unsigned long long)frame.stamp);
+        ticks = Ns{(frame.stamp << 12) - 1};
+    }
     return ticks;
 }
 
@@ -219,7 +229,7 @@ Ns object::frame_duration(uint32_t hz)
 {
     // Above alloc_ticks()'s 2^53 + 2^32 - 1 ns.
     constexpr auto never = uint64_t{1} << 54;
-    return Ns{hz ? Second.stamp / hz : never};
+    return Ns{hz ? Math::max(Second.stamp / hz, uint64_t{1}) : never};
 }
 
 uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& delta, Ns frame, float speed)
