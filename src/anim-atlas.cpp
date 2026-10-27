@@ -1,4 +1,6 @@
 #include "anim-atlas.hpp"
+#include "object.hpp"
+#include "nanosecond.hpp"
 #include "shaders/shader.hpp"
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
@@ -43,10 +45,11 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_d
     return array;
 }
 
-anim_atlas::anim_atlas() noexcept = default;
+anim_atlas::anim_atlas() noexcept : _frame_duration{object::frame_duration(0).stamp} {}
 anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) :
     _name{move(name)}, _bitmask{make_bitmask(image)},
-    _info{move(info)}, _group_indices{make_group_indices(_info)}
+    _info{move(info)}, _group_indices{make_group_indices(_info)},
+    _frame_duration{object::frame_duration(_info.fps).stamp}
 {
     fm_soft_assert(!_info.groups.isEmpty());
 
@@ -72,6 +75,7 @@ anim_atlas& anim_atlas::operator=(anim_atlas&&) noexcept = default;
 
 StringView anim_atlas::name() const noexcept { return _name; }
 const anim_def& anim_atlas::info() const noexcept { return _info; }
+Ns anim_atlas::frame_duration() const noexcept { return Ns{_frame_duration}; }
 
 auto anim_atlas::group(rotation r) const -> const anim_group&
 {

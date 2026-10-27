@@ -202,14 +202,15 @@ uint32_t object::ns_to_delta(const Ns& time)
     return (uint32_t)Math::min(time.stamp, uint64_t{limits<uint32_t>::max});
 }
 
-Ns object::alloc_ticks(const Ns& dt, uint32_t delta, uint32_t hz, float speed)
+Ns object::alloc_ticks(const Ns& dt, uint32_t delta, Ns frame, float speed)
 {
     const auto from_dt = Ns(uint64_t(double(dt.stamp) * double(speed)));
     fm_assert(from_dt <= Ns{uint64_t{1} << 53});
     // At speed 0 stored time would still pay for a step.
     delta *= speed > 0 ? 1u : 0u;
     const auto ticks = from_dt + Ns{delta};
-    fm_assert(ticks / frame_duration(hz) < 1 << 12);
+    // ticks / frame < 2^12 without dividing.
+    fm_assert(ticks.stamp >> 12 < frame.stamp);
     return ticks;
 }
 
@@ -220,12 +221,11 @@ Ns object::frame_duration(uint32_t hz)
     return Ns{hz ? Second.stamp / hz : never};
 }
 
-uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& delta, uint32_t hz, float speed)
+uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& delta, Ns frame, float speed)
 {
-    const auto ticks = alloc_ticks(dt, delta, hz, speed);
-    const auto duration = frame_duration(hz);
-    const auto nframes = (uint32_t)(ticks / duration);
-    delta = ns_to_delta(Ns{ticks % duration});
+    const auto ticks = alloc_ticks(dt, delta, frame, speed);
+    const auto nframes = (uint32_t)(ticks / frame);
+    delta = ns_to_delta(Ns{ticks % frame});
     return nframes;
 }
 

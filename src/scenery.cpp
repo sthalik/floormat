@@ -4,6 +4,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "tile-constants.hpp"
 #include "anim-atlas.hpp"
+#include "nanosecond.hpp"
 #include "rotation.inl"
 #include "world.hpp"
 #include "shaders/shader.hpp"
@@ -81,7 +82,7 @@ void door_scenery::update(const bptr<object>&, size_t&, const Ns& dt)
     fm_assert(atlas);
     auto& anim = *atlas;
     const auto nframes = (int)anim.info().nframes;
-    const auto n = (int)alloc_frame_time(dt, delta, atlas->info().fps, 1);
+    const auto n = (int)alloc_frame_time(dt, delta, atlas->frame_duration(), 1);
     if (n == 0)
         return;
     const int8_t dir = closing ? 1 : -1;

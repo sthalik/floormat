@@ -145,7 +145,6 @@ struct step_costs
     Ns costs[2];
 
     explicit step_costs(Ns frame) : costs{frame, step_duration(frame, step_length(1, 1))} {}
-    explicit step_costs(uint32_t hz) : step_costs{object::frame_duration(hz)} {}
     Ns frame() const { return costs[0]; }
     Ns operator()(rotation r) const { return costs[is_diagonal(r)]; }
 };
@@ -551,8 +550,8 @@ void critter::update(const bptr<object>& ptrʹ, size_t& i, const Ns& dt)
 void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
 {
     const auto& info = atlas->info();
-    const auto cost = step_costs{info.fps};
-    auto ticks = alloc_ticks(dt, delta, info.fps, speed);
+    const auto cost = step_costs{atlas->frame_duration()};
+    auto ticks = alloc_ticks(dt, delta, cost.frame(), speed);
     if (ticks < cost.frame())
     {
         delta = ns_to_delta(ticks);
@@ -580,8 +579,8 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
     }
 
     const auto& info = atlas->info();
-    const auto cost = step_costs{info.fps};
-    auto ticks = alloc_ticks(dt, delta, info.fps, speed);
+    const auto cost = step_costs{atlas->frame_duration()};
+    auto ticks = alloc_ticks(dt, delta, cost.frame(), speed);
     dt = Ns{};
     bool moved = false;
 
@@ -689,9 +688,10 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
     }
 
     const auto& info = atlas->info();
-    auto ticks = alloc_ticks(dt, delta, info.fps, speed);
+    const auto frame_ns = atlas->frame_duration();
+    auto ticks = alloc_ticks(dt, delta, frame_ns, speed);
     const auto step_len = step_length(line.minor_len(), steps);
-    const auto step_cost = step_duration(frame_duration(info.fps), step_len);
+    const auto step_cost = step_duration(frame_ns, step_len);
     const auto n = (uint32_t)Math::min(uint64_t{steps - k}, ticks / step_cost);
     if (n == 0)
     {

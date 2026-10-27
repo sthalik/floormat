@@ -10,6 +10,8 @@
 
 namespace floormat {
 
+struct Ns;
+
 class anim_atlas final : public bptr_base
 {
     using texcoords = Quads::texcoords;
@@ -21,6 +23,7 @@ class anim_atlas final : public bptr_base
     std::array<uint8_t, (size_t)rotation_COUNT> _group_indices = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
+    uint64_t _frame_duration;
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
 
@@ -36,6 +39,7 @@ public:
 
     StringView name() const noexcept;
     const anim_def& info() const noexcept;
+    Ns frame_duration() const noexcept;
 
     const anim_group& group(rotation r) const;
     const anim_frame& frame(rotation r, size_t frame) const;

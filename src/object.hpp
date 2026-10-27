@@ -99,8 +99,8 @@ public:
     void teleport_to(size_t& i, point pt, rotation new_r);
 
     /// delta holds ns. Stored time saturates at 2^32 - 1 ns, 4.29 s.
-    static uint32_t alloc_frame_time(const Ns& dt, uint32_t& delta, uint32_t hz, float speed);
-    static Ns alloc_ticks(const Ns& dt, uint32_t delta, uint32_t hz, float speed);
+    static uint32_t alloc_frame_time(const Ns& dt, uint32_t& delta, Ns frame, float speed);
+    static Ns alloc_ticks(const Ns& dt, uint32_t delta, Ns frame, float speed);
     /// At hz 0 longer than any time alloc_ticks() returns, so an fps 0 atlas never advances.
     static Ns frame_duration(uint32_t hz);
     static uint32_t ns_to_delta(const Ns& time);
