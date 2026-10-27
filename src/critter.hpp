@@ -1,5 +1,4 @@
 #pragma once
-#include "global-coords.hpp"
 #include "object.hpp"
 #include "script.hpp"
 #include <cr/String.h>
