@@ -19,7 +19,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include "compat/fwd/allocator.hpp"
-#include <tuple>
+#include "compat/fwd/tuple-fwd.hpp"
 #include <type_traits>
 #include <utility>
 
@@ -692,13 +692,13 @@ struct invoke_table<First, Second, Args...> {
                                                function_pointer_of<Args>...> {
     constexpr invocation_vtable() noexcept
         : std::tuple<function_pointer_of<First>, function_pointer_of<Second>,
-                     function_pointer_of<Args>...>(std::make_tuple(
+                     function_pointer_of<Args>...>(
               &function_trait<First>::template internal_invoker<
                   T, IsInplace>::invoke,
               &function_trait<Second>::template internal_invoker<
                   T, IsInplace>::invoke,
               &function_trait<Args>::template internal_invoker<
-                  T, IsInplace>::invoke...)) {
+                  T, IsInplace>::invoke...) {
     }
   };
 
@@ -717,10 +717,10 @@ struct invoke_table<First, Second, Args...> {
                           function_pointer_of<Args>...> {
     constexpr invocation_view_vtable() noexcept
         : std::tuple<function_pointer_of<First>, function_pointer_of<Second>,
-                     function_pointer_of<Args>...>(std::make_tuple(
+                     function_pointer_of<Args>...>(
               &function_trait<First>::template view_invoker<T>::invoke,
               &function_trait<Second>::template view_invoker<T>::invoke,
-              &function_trait<Args>::template view_invoker<T>::invoke...)) {
+              &function_trait<Args>::template view_invoker<T>::invoke...) {
     }
   };
 
@@ -739,12 +739,12 @@ struct invoke_table<First, Second, Args...> {
     constexpr empty_vtable() noexcept
         : std::tuple<function_pointer_of<First>, function_pointer_of<Second>,
                      function_pointer_of<Args>...>(
-              std::make_tuple(&function_trait<First>::template empty_invoker<
-                                  IsThrowing>::invoke,
-                              &function_trait<Second>::template empty_invoker<
-                                  IsThrowing>::invoke,
-                              &function_trait<Args>::template empty_invoker<
-                                  IsThrowing>::invoke...)) {
+              &function_trait<First>::template empty_invoker<
+                  IsThrowing>::invoke,
+              &function_trait<Second>::template empty_invoker<
+                  IsThrowing>::invoke,
+              &function_trait<Args>::template empty_invoker<
+                  IsThrowing>::invoke...) {
     }
   };
 

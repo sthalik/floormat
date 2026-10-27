@@ -5,6 +5,7 @@
 #include "field-status.hpp"
 #include "compat/defs.hpp"
 #include "compat/constantly.hpp"
+#include <tuple>
 
 namespace floormat::entities::detail {
 template<typename Obj, typename Type, typename Default, size_t I, typename... Fs> struct find_reader;

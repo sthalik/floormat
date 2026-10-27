@@ -5,6 +5,7 @@
 #include "concepts.hpp"
 #include <utility>
 #include <array>
+#include <tuple>
 #include <compat/function2.hpp>
 #include <cr/StringView.h>
 
