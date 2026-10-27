@@ -10,13 +10,11 @@
 #include "src/search.hpp"
 #include "src/raycast-line.hpp"
 #include "src/nanosecond.inl"
-#include "shaders/shader.hpp"
 #include "compat/map.hpp"
 #include "compat/iota.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
-#include <utility>
 #include <array>
 #include <cr/ArrayView.h>
 #include <mg/BatchFunctions.h>

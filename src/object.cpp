@@ -10,7 +10,6 @@
 #include "compat/non-const.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "nanosecond.inl"
-#include <cr/GrowableArray.h>
 #include <cr/Pair.h>
 #include <cr/StructuredBindings.h>
 

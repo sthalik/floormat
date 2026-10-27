@@ -6,8 +6,6 @@
 #include "anim-atlas.hpp"
 #include "nanosecond.hpp"
 #include "rotation.inl"
-#include "world.hpp"
-#include "shaders/shader.hpp"
 #include <mg/Functions.h>
 
 namespace floormat {

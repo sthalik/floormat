@@ -45,8 +45,6 @@
 #include "compat/assert.hpp"
 #include "compat/enum-bitset.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/split-string.hpp"
-#include "imgui-raii.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"

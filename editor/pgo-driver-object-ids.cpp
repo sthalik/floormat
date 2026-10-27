@@ -6,7 +6,7 @@
 #include "src/tile.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/light.hpp"
-#include "src/point.inl"
+#include "src/point.hpp"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "floormat/main.hpp"

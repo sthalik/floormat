@@ -20,7 +20,6 @@
 #include "loader/anim-cell.hpp"
 #include "compat/constantly.hpp"
 #include <cr/GrowableArray.h>
-#include <cinttypes>
 #include <cstdio>
 
 namespace floormat::Run {

@@ -10,7 +10,6 @@
 #include "src/ground-atlas.hpp"
 #include "src/tile-image.hpp"
 #include "src/tile-defs.hpp"
-#include "src/tile-constants.hpp"
 #include "src/global-coords.hpp"
 #include "src/nanosecond.inl"
 #include "src/point.inl"
