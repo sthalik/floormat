@@ -10,6 +10,7 @@
 #include "src/wall-atlas.hpp"
 #include "src/search.hpp"
 #include "src/point.inl"
+#include "src/rotation.inl"
 #include "src/RTree.hpp"
 #include "src/sweep-aabb.hpp"
 #include "src/RTree-search.hpp"
@@ -276,6 +277,25 @@ void test_odd_bbox_rotation()
                         s->rotate(i, rs[((size_t)r0/2 + k) % 4]);
                     fm_assert_equal(rect0, rtree_rect(c, s->id));
                 }
+}
+
+// teleport_to() skips both calls when the rotation stays the same. For rotate_size() that returns the
+// size unchanged. For rotate_point() it returns clamp_bbox_offset(v), which differs from v at -128.
+// Skipping it is still correct, because the constructor and set_bbox() store bbox_offset already
+// clamped, and set_bbox_() asserts that.
+void test_same_rotation()
+{
+    for (auto i = 0u; i < (uint32_t)rotation_COUNT; i++)
+    {
+        const auto r = rotation(i);
+        for (auto k = 0u; k < 1u << 16; k++)
+        {
+            const auto v = Vector2b{int8_t(k & 0xff), int8_t(k >> 8)};
+            fm_assert_equal(clamp_bbox_offset(v), rotate_point(v, r, r));
+            const auto s = Vector2ub{uint8_t(k & 0xff), uint8_t(k >> 8)};
+            fm_assert_equal(s, rotate_size(s, r, r));
+        }
+    }
 }
 
 // An object's R-tree rect is its bbox, whether ensure_passability() inserts it or a move on a
@@ -827,6 +847,7 @@ void Test::test_rtree()
     test_pass_phases();
     test_odd_bbox_size();
     test_odd_bbox_rotation();
+    test_same_rotation();
     test_rtree_rect_is_bbox();
     test_bbox_offset_min();
     test_light_tree();

@@ -145,8 +145,10 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
     const bool dyn = is_dynamic(), upd_pass = updates_passability(), upd_walls = updates_walls();
 
     chunk::bbox bb0, bb1;
-    const auto bb_offset = rotate_point(bbox_offset, r, new_r);
-    const auto bb_size   = rotate_size(bbox_size, r, new_r);
+    // rotate_point(v, r, r) is clamp_bbox_offset(v), and bbox_offset is stored clamped.
+    const bool turned = new_r != r;
+    const auto bb_offset = turned ? rotate_point(bbox_offset, r, new_r) : bbox_offset;
+    const auto bb_size   = turned ? rotate_size(bbox_size, r, new_r) : bbox_size;
     bool b0 = c->_bbox_for_scenery(*this, bb0),
          b1 = c->_bbox_for_scenery(*this, coord_.local(), offset_, bb_offset, bb_size, bb1);
 
@@ -232,6 +234,7 @@ uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& delta, Ns frame, float
 void object::set_bbox_(Vector2b offset_, Vector2b bb_offset, Vector2ub bb_size, pass_mode pass_)
 {
     fm_assert(offset_ >= -half_tile<Vector2b> && offset_ < half_tile<Vector2b>);
+    fm_debug3_assert(bb_offset == clamp_bbox_offset(bb_offset));
     non_const(offset)      = offset_;
     non_const(bbox_offset) = bb_offset;
     non_const(bbox_size)   = bb_size;
