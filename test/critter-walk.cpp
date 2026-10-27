@@ -63,13 +63,25 @@ struct walker_state
     Vector2ub bbox_size;
     uint32_t delta;
     uint8_t moves;
+    uint16_t frame;
+    uint32_t anim_progress;
 
     bool operator==(const walker_state&) const = default;
 };
 
 walker_state state_of(const critter& C)
 {
-    return { C.position(), C.r, C.bbox_offset, C.bbox_size, C.delta, C.moves_ };
+    return { C.position(), C.r, C.bbox_offset, C.bbox_size, C.delta, C.moves_, C.frame, C.anim_progress };
+}
+
+// Returns the length of one step of a line moving major px along one axis and minor px along the other,
+// in 1/anim_speed_unit px. This is step_length() in src/critter.cpp with a double square root in place
+// of isqrt(). The root's argument stays under 2^34, where truncating the correctly rounded root gives
+// the exact floor that isqrt() returns.
+uint32_t step_length(uint32_t minor, uint32_t major)
+{
+    const auto q = uint64_t{minor} * anim_speed_unit / major;
+    return uint32_t(std::sqrt(double(uint64_t{anim_speed_unit} * anim_speed_unit + q * q)));
 }
 
 walker_state facing(walker_state s, rotation new_r)
@@ -121,8 +133,20 @@ struct model
     world& w;
     skip_self pred;
     Ns frame, diag;
+    uint64_t anim_speed;
+    uint32_t nframes;
 
     Ns cost(rotation r) const { return is_diagonal(r) ? diag : frame; }
+
+    // Advances s.frame and s.anim_progress by one step len / anim_speed_unit px long, scaled by
+    // anim_speed and rounded down. advance_anim_frames() in src/critter.cpp advances a batch of steps
+    // at once and rounds each step the same way, so one step at a time reaches the same values.
+    void animate(walker_state& s, uint32_t len) const
+    {
+        const auto total = s.anim_progress + anim_speed * len / anim_speed_unit;
+        s.frame = uint16_t((s.frame + total / anim_speed_unit) % nframes);
+        s.anim_progress = uint32_t(total % anim_speed_unit);
+    }
 
     Range2D box_at(point p, chunk_coords_ ch, Vector2b offset, Vector2ub size) const
     {
@@ -179,6 +203,7 @@ struct model
             if (step_free(s, vec_of(new_r)))
             {
                 s.pos = s.pos + vec_of(new_r);
+                animate(s, step_length(is_diagonal(new_r), 1));
                 ticks -= step;
                 ev |= ev_step;
                 o.steps++;
@@ -197,6 +222,7 @@ struct model
                 return ret(end_reason::blocked);
             }
             s.pos = s.pos + vec_of(alternative(new_r, k));
+            animate(s, step_length(0, 1));
             ticks -= frame;
             ev |= k == 1 ? ev_slide1 : ev_slide2;
             o.slides++;
@@ -250,6 +276,7 @@ struct model
             if (!step_free(s, d))
                 return blocked(end_reason::blocked);
             s.pos = s.pos + d;
+            animate(s, step_length(is_diagonal(new_r), 1));
             ticks -= cost(new_r);
             moved = true;
             ev |= ev_step;
@@ -293,10 +320,12 @@ struct model
             s = facing(s, line_r);
             ev |= ev_turn;
         }
+        const auto len = step_length(line.minor_len(), steps);
         auto t = k;
         while (t < k + n && step_free(s, line.pixel_at(t + 1) - line.pixel_at(t)))
         {
             s.pos = s.pos + (line.pixel_at(t + 1) - line.pixel_at(t));
+            animate(s, len);
             t++;
         }
         const bool hit = t < k + n;
@@ -586,7 +615,8 @@ void print_case(const case_desc& cd, uint32_t call)
 void print_state(const char* name, const walker_state& s, Ns dt, critter::move_result res)
 {
     DBG_nospace << name << ": pos " << s.pos << " r " << (int)s.r << " bbox " << s.bbox_offset << " "
-                << s.bbox_size << " delta " << s.delta << " moves " << (int)s.moves << " dt " << dt.stamp
+                << s.bbox_size << " delta " << s.delta << " moves " << (int)s.moves << " frame " << s.frame
+                << " anim_progress " << s.anim_progress << " dt " << dt.stamp
                 << " blocked " << res.blocked << " moved " << res.moved << " displaced " << res.displaced;
 }
 
@@ -793,7 +823,8 @@ void walk_layout(product& P, const direction& d, uint32_t box, const layout& l, 
 
     const auto run = [&](world& w, critter& C, entry e, rotation start_r, time_mode t) {
         const auto& info = C.atlas->info();
-        const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps), P.line_cost({1, 1})};
+        const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps), P.line_cost({1, 1}),
+                             uint64_t(C.anim_speed * float(anim_speed_unit)), info.nframes};
         const auto walk_r = e == entry::move_toward_line ? d.line_r : d.leg_r;
         const auto wk = walk{e, walk_r, start, start + vec, budget,
                              e == entry::move_toward_line ? P.line_cost(vec) : Ns{}};
@@ -1048,6 +1079,8 @@ void run_random(product& P, uint32_t count)
         seed = seed * 6364136223846793005u + 1442695040888963407u;
         return uint32_t(seed >> 33) % n;
     };
+    // At anim_speed 1 the division by anim_speed_unit is exact, so only other speeds show where it rounds.
+    constexpr float anim_speeds[] = { 1, 0.75f, 1.5f };
     for (auto i = 0u; i < count; i++)
     {
         const auto e = entry(next(3));
@@ -1074,11 +1107,13 @@ void run_random(product& P, uint32_t count)
         auto proto = Run::make_proto(1.f);
         proto.bbox_offset = boxes[box].offset;
         proto.bbox_size = boxes[box].size;
+        proto.anim_speed = anim_speeds[i % array_size(anim_speeds)];
         auto& C = *w.ensure_player_character(id, move(proto));
         Run::mark_all_modified(w);
 
         const auto& info = C.atlas->info();
-        const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps), P.line_cost({1, 1})};
+        const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps), P.line_cost({1, 1}),
+                             uint64_t(C.anim_speed * float(anim_speed_unit)), info.nframes};
         const auto wk = walk{e, e == entry::move_toward_line ? d.line_r : d.leg_r, start, start + vec, 40,
                              e == entry::move_toward_line ? P.line_cost(vec) : Ns{}};
         const auto cd = case_desc{wk, rotation(next(8)), box, layout{level::none}, pl, time_mode::whole, (int32_t)i};
