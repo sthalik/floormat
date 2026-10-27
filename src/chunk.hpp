@@ -158,6 +158,7 @@ private:
 
     static void _rtree_insert(RTree& t, const bbox& x);
     static void _rtree_remove(RTree& t, const bbox& x);
+    static void _rtree_move(RTree& t, const bbox& x0, const bbox& x1);
 
     void _add_light_bbox(const bbox& x);
     void _remove_light_bbox(const bbox& x);

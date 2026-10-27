@@ -18,7 +18,9 @@
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
+#include "random/random.hpp"
 #include <bit>
+#include <cr/Array.h>
 #include <cr/Optional.h>
 #include <mg/Range.h>
 
@@ -651,6 +653,169 @@ void test_hole_pass_modes()
     }
 }
 
+bool contains(const chunk::RTree::Rect& a, const chunk::RTree::Rect& b)
+{
+    return a.m_min[0] <= b.m_min[0] && a.m_min[1] <= b.m_min[1] && b.m_max[0] <= a.m_max[0] && b.m_max[1] <= a.m_max[1];
+}
+
+// Every internal rect covers its child's rects, every child is one level below its parent, a
+// non-root node holds MINNODES to MAXNODES entries, and an internal root at least two.
+void check_tree(const chunk::RTree::Node* n, bool is_root = true)
+{
+    fm_assert(n->m_count <= chunk::RTree::MAXNODES);
+    if (!is_root)
+        fm_assert(n->m_count >= chunk::RTree::MINNODES);
+    else if (n->m_level > 0)
+        fm_assert(n->m_count >= 2);
+    if (n->m_level == 0)
+        return;
+    for (int i = 0; i < n->m_count; i++)
+    {
+        const auto& b = n->m_branch[i];
+        fm_assert(b.m_child->m_level == n->m_level - 1);
+        for (int j = 0; j < b.m_child->m_count; j++)
+            fm_assert(contains(b.m_rect, b.m_child->m_branch[j].m_rect));
+        check_tree(b.m_child, false);
+    }
+}
+
+struct entry_pos
+{
+    const chunk::RTree::Node* leaf = nullptr;
+    int index = -1;
+    const chunk::RTree::Rect* bound = nullptr;
+};
+
+// The leaf holding data, the entry's index in it, and the leaf's rect in its parent node, which is
+// null when the leaf is the root. leaf is null when no leaf holds data. Visits every leaf, whatever
+// the rects on the way.
+entry_pos find_entry(const chunk::RTree::Node* n, object_id data, const chunk::RTree::Rect* bound = nullptr)
+{
+    if (n->m_level == 0)
+    {
+        for (int i = 0; i < n->m_count; i++)
+            if (n->m_branch[i].m_data == data)
+                return { n, i, bound };
+        return {};
+    }
+    for (int i = 0; i < n->m_count; i++)
+        if (auto x = find_entry(n->m_branch[i].m_child, data, &n->m_branch[i].m_rect); x.leaf)
+            return x;
+    return {};
+}
+
+// Same levels, entry counts, rects and data, branch by branch.
+void check_same(const chunk::RTree::Node* a, const chunk::RTree::Node* b)
+{
+    fm_assert(a->m_level == b->m_level && a->m_count == b->m_count);
+    for (int i = 0; i < a->m_count; i++)
+    {
+        const auto &x = a->m_branch[i], &y = b->m_branch[i];
+        fm_assert(contains(x.m_rect, y.m_rect) && contains(y.m_rect, x.m_rect));
+        if (a->m_level == 0)
+            fm_assert(x.m_data == y.m_data);
+        else
+            check_same(x.m_child, y.m_child);
+    }
+}
+
+// Moves random entries by up to 4 px per axis. Every 16th move also resizes the rect to 1 to 64 px
+// per side. Move() must succeed on every entry. It must move in place exactly when the new rect is
+// within its leaf's rect in the parent node, or the leaf is the root. A copy of the tree takes the
+// same in-place moves, and Remove() then Insert() for the others: both trees must stay the same.
+// After each move the tree keeps its invariants, and every 8th move random searches find exactly
+// the entries a scan finds, with their current data. The 300-entry tree must take both paths.
+// Move() of an id that isn't in the tree must return false and leave the tree as it was.
+void test_move()
+{
+    struct entry { Range2Di r; object_id data; };
+    for (uint32_t n : { 5u, 300u })
+    {
+        Random::xoshiro256starstar rng;
+        Random::seed(rng, 19);
+        const auto rnd = [&](uint32_t k) { return int32_t(Random::next(rng) % k); };
+        const auto random_rect = [&](uint32_t max_size) {
+            const auto min = Vector2i{rnd(1024), rnd(1024)};
+            return Range2Di{min, min + Vector2i{1 + rnd(max_size), 1 + rnd(max_size)}};
+        };
+        // Closed intervals, as RTree::Overlap() tests them.
+        const auto overlaps = [](const Range2Di& a, const Range2Di& b) {
+            return (a.min() <= b.max()).all() && (b.min() <= a.max()).all();
+        };
+
+        chunk::RTree t;
+        Array<entry> es{ValueInit, n};
+        for (auto id = 1u; id <= n; id++)
+        {
+            es[id - 1] = { random_rect(64), id };
+            const auto lo = Vector2(es[id - 1].r.min()), hi = Vector2(es[id - 1].r.max());
+            t.Insert(lo.data(), hi.data(), id);
+        }
+        auto ref = t;
+
+        uint32_t in_place = 0, outside = 0;
+        for (auto i = 1u; i <= 20'000; i++)
+        {
+            const auto id = 1 + uint32_t(rnd(n));
+            auto& e = es[id - 1];
+            const auto shift = Vector2i{rnd(9) - 4, rnd(9) - 4};
+            auto r1 = Range2Di{e.r.min() + shift, e.r.max() + shift};
+            if (i % 16 == 0)
+                r1 = Range2Di{r1.min(), r1.min() + Vector2i{1 + rnd(64), 1 + rnd(64)}};
+            const object_id data1 = object_id{i} << 32 | id;
+            const auto lo0 = Vector2(e.r.min()), hi0 = Vector2(e.r.max());
+            const auto lo1 = Vector2(r1.min()), hi1 = Vector2(r1.max());
+            fm_assert(!t.Move(lo0.data(), hi0.data(), n + 1, lo1.data(), hi1.data(), data1));
+            fm_assert_equal(int(n), t.Count());
+            const auto pos0 = find_entry(t.raw_root(), e.data);
+            fm_assert(pos0.leaf);
+            const auto rect1 = chunk::RTree::Rect{{lo1.x(), lo1.y()}, {hi1.x(), hi1.y()}};
+            const bool fits = !pos0.bound || contains(*pos0.bound, rect1);
+            fm_assert(t.Move(lo0.data(), hi0.data(), e.data, lo1.data(), hi1.data(), data1));
+            if (fits)
+            {
+                in_place++;
+                const auto pos1 = find_entry(t.raw_root(), data1);
+                fm_assert(pos1.leaf == pos0.leaf && pos1.index == pos0.index);
+                fm_assert(ref.Move(lo0.data(), hi0.data(), e.data, lo1.data(), hi1.data(), data1));
+            }
+            else
+            {
+                outside++;
+                ref.Remove(lo0.data(), hi0.data(), e.data);
+                ref.Insert(lo1.data(), hi1.data(), data1);
+            }
+            e = { r1, data1 };
+            check_tree(t.raw_root());
+            check_same(t.raw_root(), ref.raw_root());
+
+            if (i % 8 != 0)
+                continue;
+            for (auto k = 0u; k < 8; k++)
+            {
+                const auto q = random_rect(256);
+                const auto qlo = Vector2(q.min()), qhi = Vector2(q.max());
+                Array<bool> seen{ValueInit, n};
+                uint32_t found = 0, expected = 0;
+                t.Search(qlo.data(), qhi.data(), [&](object_id data, const chunk::RTree::Rect&) {
+                    const auto& x = es[(data & 0xffffffff) - 1];
+                    fm_assert(x.data == data && overlaps(x.r, q) && !seen[(data & 0xffffffff) - 1]);
+                    seen[(data & 0xffffffff) - 1] = true;
+                    found++;
+                    return true;
+                });
+                for (const auto& x : es)
+                    expected += overlaps(x.r, q);
+                fm_assert_equal(expected, found);
+            }
+        }
+        fm_assert_equal(int(n), t.Count());
+        fm_assert(in_place > 0);
+        if (n > 5)
+            fm_assert(outside > 0);
+    }
+}
+
 } // namespace
 
 
@@ -668,6 +833,7 @@ void Test::test_rtree()
     test_hole_tree();
     test_odd_hole();
     test_hole_pass_modes();
+    test_move();
 }
 
 } // namespace floormat

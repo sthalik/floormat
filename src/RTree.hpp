@@ -205,6 +205,41 @@ void RTREE_QUAL::Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMD
 
 
 RTREE_TEMPLATE
+bool RTREE_QUAL::Move(const ELEMTYPE a_oldMin[NUMDIMS], const ELEMTYPE a_oldMax[NUMDIMS], const DATATYPE& a_oldData,
+                      const ELEMTYPE a_newMin[NUMDIMS], const ELEMTYPE a_newMax[NUMDIMS], const DATATYPE& a_newData)
+{
+#ifdef RTREE_DEBUG
+  for(int index=0; index<NUMDIMS; ++index)
+  {
+    fm_assert(a_oldMin[index] <= a_oldMax[index]);
+    fm_assert(a_newMin[index] <= a_newMax[index]);
+  }
+#endif //RTREE_DEBUG
+
+  Rect rect;
+  Branch branch;
+  branch.m_data = a_newData;
+
+  for(int axis=0; axis<NUMDIMS; ++axis)
+  {
+    rect.m_min[axis] = a_oldMin[axis];
+    rect.m_max[axis] = a_oldMax[axis];
+    branch.m_rect.m_min[axis] = a_newMin[axis];
+    branch.m_rect.m_max[axis] = a_newMax[axis];
+  }
+
+  ListNode* reInsertList = NULL;
+  const MoveResult res = MoveRec(&rect, a_oldData, branch, m_root, NULL, &reInsertList);
+  if(res == MoveResult::removed)
+  {
+    FinishRemove(reInsertList, &m_root);
+    InsertRect(branch, &m_root, 0);
+  }
+  return res != MoveResult::not_found;
+}
+
+
+RTREE_TEMPLATE
 int RTREE_QUAL::Count() const
 {
   int count = 0;
@@ -1129,41 +1164,51 @@ bool RTREE_QUAL::RemoveRect(Rect* a_rect, const DATATYPE& a_id, Node** a_root)
   if(!RemoveRectRec(a_rect, a_id, *a_root, &reInsertList))
   {
     // Found and deleted a data item
-    // Reinsert any branches from eliminated nodes
-    while(reInsertList)
-    {
-      Node* tempNode = reInsertList->m_node;
-
-      for(int index = 0; index < tempNode->m_count; ++index)
-      {
-        // TODO go over this code. should I use (tempNode->m_level - 1)?
-        InsertRect(tempNode->m_branch[index],
-                   a_root,
-                   tempNode->m_level);
-      }
-
-      ListNode* remLNode = reInsertList;
-      reInsertList = reInsertList->m_next;
-
-      FreeNode(remLNode->m_node);
-      FreeListNode(remLNode);
-    }
-
-    // Check for redundant root (not leaf, 1 child) and eliminate TODO replace
-    // if with while? In case there is a whole branch of redundant roots...
-    if((*a_root)->m_count == 1 && (*a_root)->IsInternalNode())
-    {
-      Node* tempNode = (*a_root)->m_branch[0].m_child;
-
-      fm_assert(tempNode);
-      FreeNode(*a_root);
-      *a_root = tempNode;
-    }
+    FinishRemove(reInsertList, a_root);
     return false;
   }
   else
   {
     return true;
+  }
+}
+
+
+// Called after an entry was taken out of its leaf, with the nodes that were left under-full on the
+// way up. Inserts their branches again at their level, frees them, and replaces an internal root
+// that has one child with that child.
+RTREE_TEMPLATE
+void RTREE_QUAL::FinishRemove(ListNode* a_reInsertList, Node** a_root)
+{
+  // Reinsert any branches from eliminated nodes
+  while(a_reInsertList)
+  {
+    Node* tempNode = a_reInsertList->m_node;
+
+    for(int index = 0; index < tempNode->m_count; ++index)
+    {
+      // TODO go over this code. should I use (tempNode->m_level - 1)?
+      InsertRect(tempNode->m_branch[index],
+                 a_root,
+                 tempNode->m_level);
+    }
+
+    ListNode* remLNode = a_reInsertList;
+    a_reInsertList = a_reInsertList->m_next;
+
+    FreeNode(remLNode->m_node);
+    FreeListNode(remLNode);
+  }
+
+  // Check for redundant root (not leaf, 1 child) and eliminate TODO replace
+  // if with while? In case there is a whole branch of redundant roots...
+  if((*a_root)->m_count == 1 && (*a_root)->IsInternalNode())
+  {
+    Node* tempNode = (*a_root)->m_branch[0].m_child;
+
+    fm_assert(tempNode);
+    FreeNode(*a_root);
+    *a_root = tempNode;
   }
 }
 
@@ -1215,6 +1260,90 @@ bool RTREE_QUAL::RemoveRectRec(Rect* a_rect, const DATATYPE& a_id, Node* a_node,
     }
     return true;
   }
+}
+
+
+// Searches a_node's subtree for the entry with data a_id, through the branches whose rect contains
+// a_rect. Every rect on the path to the entry's leaf contains the entry's stored rect, so a branch
+// that doesn't contain it can't lead to the entry. a_rect must therefore be the stored rect.
+// a_bound is a_node's rect in its parent, or NULL for the root.
+// Returns moved when the entry's new rect is within its leaf's rect in the parent, and the entry
+// then has a_new's rect and data. A root leaf has no parent rect for the new rect to leave, so it
+// always moves. Every ancestor's rect contains a_bound, so a new rect within it leaves them all
+// valid. A move doesn't shrink them. Only a remove from the moved entry's leaf, or a split of that
+// leaf, recomputes the leaf's rect in its parent from its entries. Until then that rect keeps its
+// extent and every rect above it still contains it, so a search over the vacated area keeps
+// descending into them.
+// Returns removed when the new rect isn't within the leaf's rect. The entry is then taken out as
+// RemoveRectRec() does it, which saves Remove() searching for it again, and the caller inserts it.
+// Returns not_found when no leaf it reached holds a_id, and the tree is unchanged.
+RTREE_TEMPLATE
+typename RTREE_QUAL::MoveResult RTREE_QUAL::MoveRec(Rect* a_rect, const DATATYPE& a_id, const Branch& a_new, Node* a_node, const Rect* a_bound, ListNode** a_listNode)
+{
+  fm_assert(a_rect && a_node && a_listNode);
+
+  if(a_node->IsInternalNode())
+  {
+    for(int index = 0; index < a_node->m_count; ++index)
+    {
+      Branch& branch = a_node->m_branch[index];
+      if(Contains(branch.m_rect, *a_rect))
+      {
+        switch(MoveRec(a_rect, a_id, a_new, branch.m_child, &branch.m_rect, a_listNode))
+        {
+        case MoveResult::not_found:
+          break;
+        case MoveResult::moved:
+          return MoveResult::moved;
+        case MoveResult::removed:
+          if(branch.m_child->m_count >= MINNODES)
+          {
+            branch.m_rect = NodeCover(branch.m_child);
+          }
+          else
+          {
+            ReInsert(branch.m_child, a_listNode);
+            DisconnectBranch(a_node, index); // Must return after this call as count has changed
+          }
+          return MoveResult::removed;
+        }
+      }
+    }
+    return MoveResult::not_found;
+  }
+  else
+  {
+    for(int index = 0; index < a_node->m_count; ++index)
+    {
+      Branch& branch = a_node->m_branch[index];
+      if(branch.m_data == a_id)
+      {
+        if(a_bound && !Contains(*a_bound, a_new.m_rect))
+        {
+          DisconnectBranch(a_node, index); // Must return after this call as count has changed
+          return MoveResult::removed;
+        }
+        branch.m_rect = a_new.m_rect;
+        branch.m_data = a_new.m_data;
+        return MoveResult::moved;
+      }
+    }
+    return MoveResult::not_found;
+  }
+}
+
+
+RTREE_TEMPLATE
+bool RTREE_QUAL::Contains(const Rect& a_outer, const Rect& a_inner)
+{
+  for(int index=0; index < NUMDIMS; ++index)
+  {
+    if(a_inner.m_min[index] < a_outer.m_min[index] || a_inner.m_max[index] > a_outer.m_max[index])
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
 

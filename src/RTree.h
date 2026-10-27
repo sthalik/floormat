@@ -79,6 +79,13 @@ public:
   /// \param a_dataId Positive Id of data.  Maybe zero, but negative numbers not allowed.
   void Remove(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], const DATATYPE& a_dataId);
 
+  /// Replace an entry's rect and data. In place when the new rect is within its leaf's rect in the
+  /// parent node, else as Remove() then Insert() would, in one search. Returns false when the entry
+  /// isn't found, and the tree is unchanged then. The old rect must be the one the entry was inserted
+  /// or last moved with.
+  bool Move(const ELEMTYPE a_oldMin[NUMDIMS], const ELEMTYPE a_oldMax[NUMDIMS], const DATATYPE& a_oldData,
+            const ELEMTYPE a_newMin[NUMDIMS], const ELEMTYPE a_newMax[NUMDIMS], const DATATYPE& a_newData);
+
   /// Find all within search rectangle
   /// \param a_min Min of search bounding rect
   /// \param a_max Max of search bounding rect
@@ -256,6 +263,10 @@ protected:
   void Classify(int a_index, int a_group, PartitionVars* a_parVars);
   bool RemoveRect(Rect* a_rect, const DATATYPE& a_id, Node** a_root);
   bool RemoveRectRec(Rect* a_rect, const DATATYPE& a_id, Node* a_node, ListNode** a_listNode);
+  void FinishRemove(ListNode* a_reInsertList, Node** a_root);
+  enum class MoveResult { not_found, removed, moved };
+  MoveResult MoveRec(Rect* a_rect, const DATATYPE& a_id, const Branch& a_new, Node* a_node, const Rect* a_bound, ListNode** a_listNode);
+  static bool Contains(const Rect& a_outer, const Rect& a_inner);
   ListNode* AllocListNode();
   void FreeListNode(ListNode* a_listNode);
   bool Overlap(Rect* a_rectA, Rect* a_rectB) const;
@@ -279,6 +290,9 @@ protected:
 public:
   // return all the AABBs that form the RTree
   void ListTree(Array<Rect>& vec, Array<Node*>& temp) const;
+
+  // tests
+  const Node* raw_root() const noexcept { return m_root; }
 };
 
 #ifndef RTREE_NO_EXTERN_TEMPLATE

@@ -320,6 +320,16 @@ void chunk::_rtree_insert(RTree& t, const bbox& x)
     t.Insert(start.data(), end.data(), std::bit_cast<object_id>(x.data));
 }
 
+void chunk::_rtree_move(RTree& t, const bbox& x0, const bbox& x1)
+{
+    fm_assert((x1.pos.max() > x1.pos.min()).all());
+    auto start0 = Vector2(x0.pos.min()), end0 = Vector2(x0.pos.max());
+    auto start1 = Vector2(x1.pos.min()), end1 = Vector2(x1.pos.max());
+    const auto id0 = std::bit_cast<object_id>(x0.data), id1 = std::bit_cast<object_id>(x1.data);
+    if (!t.Move(start0.data(), end0.data(), id0, start1.data(), end1.data(), id1))
+        t.Insert(start1.data(), end1.data(), id1);
+}
+
 void chunk::_add_light_bbox(const bbox& x)
 {
     if (_pass_modified)
@@ -389,10 +399,13 @@ void chunk::_replace_bbox_impl(const bptr<object>& e, const bbox& x0, const bbox
         if (x1 == x0)
             return;
         if constexpr(Dynamic)
-            _remove_bbox_dynamic(x0);
+            _rtree_move(*_rtree, x0, x1);
         else
+        {
             _remove_bbox_static(e, x0);
-        [[fallthrough]];
+            _add_bbox_static(e, x1);
+        }
+        return;
     case 1 << 1 | 0 << 0:
         if constexpr(Dynamic)
             _add_bbox_dynamic(x1);
