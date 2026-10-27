@@ -99,11 +99,8 @@ endif()
 add_link_options(-cgthreads:$ENV{NUMBER_OF_PROCESSORS})
 
 set(_CFLAGS "-diagnostics:caret -Zc:static_assert- -Zc:checkGwOdr -Zc:referenceBinding -Zc:strictStrings -Zc:rvalueCast -wd4117 -Zf -Zo -bigobj -cgthreads1 -vd0")
-set(_CXXFLAGS "${_CFLAGS}")
 # constexpr <cmath>. Also drops M_PI and M_E from <math.h>, so use std::numbers.
-if("$ENV{VCToolsVersion}" VERSION_GREATER_EQUAL 14.52)
-    string(APPEND _CXXFLAGS " -Zc:cmath")
-endif()
+set(_CXXFLAGS "${_CFLAGS} -Zc:cmath")
 set(_CFLAGS_RELEASE "-O2 -Oit -Oy -Ox -Ob3 -fp:fast -GS- -GF -GL -Gw -Gy")
 set(_CFLAGS_DEBUG "-Od -Ob0 -guard:cf -RTCsu")
 if(NOT "${floormat-simd}" STREQUAL "")

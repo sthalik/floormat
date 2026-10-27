@@ -114,9 +114,6 @@ public:
 };
 
 template<typename... Rs>
-constexpr bool nothrow_view_ctor = (std::is_nothrow_constructible_v<detail_range::all_t<Rs>, Rs> && ...); // Workaround for C2382 in MSVC 19.51, fixed in 19.52.
-
-template<typename... Rs>
 class view
 {
     static_assert(sizeof...(Rs) >= 2, "zip() needs at least two ranges");
@@ -124,7 +121,7 @@ class view
     tuple_t<detail_range::all_t<Rs>...> _bases;
 
 public:
-    constexpr explicit view(Rs&&... rs) noexcept(nothrow_view_ctor<Rs...>);
+    constexpr explicit view(Rs&&... rs) noexcept((std::is_nothrow_constructible_v<detail_range::all_t<Rs>, Rs> && ...));
 
     constexpr iterator<detail_range::all_t<Rs>...> begin() noexcept;
     constexpr iterator<const detail_range::all_t<Rs>...> begin() const noexcept;
@@ -219,7 +216,7 @@ constexpr bool iterator<Vs...>::operator==(const sentinel<Vs...>& s) const noexc
 }
 
 template<typename... Rs>
-constexpr view<Rs...>::view(Rs&&... rs) noexcept(nothrow_view_ctor<Rs...>) :
+constexpr view<Rs...>::view(Rs&&... rs) noexcept((std::is_nothrow_constructible_v<detail_range::all_t<Rs>, Rs> && ...)) :
     _bases{ {detail_range::all_t<Rs>{forward<Rs>(rs)}}... }
 {}
 
