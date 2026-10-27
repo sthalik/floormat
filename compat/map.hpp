@@ -1,7 +1,7 @@
 #pragma once
 #include "compat/array-size.hpp"
 #include <type_traits>
-#include <array>
+#include <utility>
 
 namespace floormat::detail::map {
 

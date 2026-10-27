@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "src/tile-constants.hpp"
 #include "src/raycast-diag.hpp"

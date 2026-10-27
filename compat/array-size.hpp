@@ -1,6 +1,7 @@
 #pragma once
+#include "compat/fwd/array-fwd.hpp"
+#include <type_traits>
 #include <mg/Math/TypeTraits.h>
-#include <array>
 
 namespace floormat::detail {
 

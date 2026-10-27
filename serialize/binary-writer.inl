@@ -2,6 +2,7 @@
 #include "binary-writer.hpp"
 #include "binary-serializer.hpp"
 #include "compat/assert.hpp"
+#include <array>
 #include <cr/StringView.h>
 
 namespace floormat::Serialize {

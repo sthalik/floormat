@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/array-size.hpp"
+#include <array>
 #include <mg/Color.h>
 
 namespace floormat::Test {

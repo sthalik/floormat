@@ -4,7 +4,6 @@
 #include "src/quads.hpp"
 #include "src/ground-def.hpp"
 #include "sprite-atlas.hpp"
-#include <array>
 #include <cr/Array.h>
 #include <cr/String.h>
 #include <mg/Vector2.h>

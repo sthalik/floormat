@@ -1,7 +1,6 @@
 #pragma once
 #include "compat/safe-ptr.hpp"
 #include "search-pred.hpp"
-#include <array>
 #include <cr/Array.h>
 #include <mg/Vector2.h>
 

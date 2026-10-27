@@ -14,6 +14,7 @@
 #include "loader/scenery-cell.hpp"
 #include "loader/wall-cell.hpp"
 #include "random/random.hpp"
+#include "compat/array-size.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/fill.hpp"
 #include "compat/function2.hpp"

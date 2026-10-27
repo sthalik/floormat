@@ -1,5 +1,4 @@
 #pragma once
-#include "compat/map.hpp"
 #include <array>
 #include <mg/Vector3.h>
 

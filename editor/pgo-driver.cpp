@@ -41,6 +41,7 @@
 #include <mg/PixelFormat.h>
 #include <mg/BatchFunctions.h>
 #include "src/nanosecond.hpp"
+#include "compat/array-size.hpp"
 #include "compat/assert.hpp"
 #include "compat/enum-bitset.hpp"
 #include "compat/borrowed-ptr.inl"

@@ -8,6 +8,7 @@
 #include "object-type.hpp"
 #include "scenery-type.hpp"
 #include "loader/policy.hpp"
+#include <array>
 
 namespace floormat {
 

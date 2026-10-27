@@ -8,6 +8,7 @@
 
 #include "compat/map.hpp"
 #include "compat/assert.hpp"
+#include <array>
 #include <cr/StaticArray.h>
 #include <mg/Vector3.h>
 
