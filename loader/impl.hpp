@@ -7,7 +7,7 @@
 #include "string-index-map.hpp"
 #include <cr/Optional.h>
 #include <cr/Array.h>
-#include <cr/StringStlHash.h>
+#include <cr/String.h>
 #include <cr/Resource.h>
 #include <mg/AbstractImporter.h>
 
