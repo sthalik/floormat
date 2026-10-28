@@ -241,7 +241,9 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
         size_t n = 0;
         for (const auto& s : runs)
         {
-            if (n && s.lo < runs[n-1].hi)
+            // Runs that only touch merge too when a corner at the touch is nearer than the body: a
+            // ray at that slope touches its pixel square at least a pixel before the body's.
+            if (n && (s.lo < runs[n-1].hi || !(runs[n-1].hi < s.lo) && Math::min(runs[n-1].hi.d, s.lo.d) < body.d0))
                 runs[n-1].hi = runs[n-1].hi < s.hi ? s.hi : runs[n-1].hi;
             else
                 runs[n++] = s;

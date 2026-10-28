@@ -297,6 +297,23 @@ void test_octants_beside_bearing()
     fm_assert(cant_be_shot(w, threat, r.pos));
 }
 
+// Three 16 px blocks corner to corner. The spot is hidden only where two blocks' slope ranges from
+// the threat meet at the corner they share.
+void test_touching_blockers()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 16});
+    add_blocker(w, {7, 8}, {16, 16}, {16, 16});
+    add_blocker(w, {7, 8}, {16, 16}, {32, 32});
+    rebuild(w);
+
+    const auto threat = at_px({454, 567});
+    const auto r = find(w, at_px({455, 484}), threat, 48, 8);
+    fm_assert(r.found);
+    fm_assert(cant_be_shot(w, threat, r.pos));
+}
+
 void test_wall_out_of_radius()
 {
     auto w = world();
@@ -390,6 +407,7 @@ void Test::test_cover_point()
     // pillar's top corner by 5e-5 in slope and grazes the top row. (436, 520) is hidden.
     test_pillar_pair(8, 8, 0, 24, 8, true);
     test_octants_beside_bearing();
+    test_touching_blockers();
     test_wall_out_of_radius();
     for (const auto size : { Vector2ui{23, 23}, Vector2ui{25, 25}, Vector2ui{23, 25}, Vector2ui{25, 23} })
     {
