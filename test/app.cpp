@@ -86,7 +86,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_wall_atlas),
     FM_TEST_GL(test_wall_atlas2),
     // the rest are slow
-    FM_TEST_GL(test_grid),
+    FM_TEST(test_grid),
     FM_TEST_GL(test_rtree),
     FM_TEST_GL(test_astar),
     FM_TEST_GL(test_hole),
@@ -106,7 +106,7 @@ constexpr test_entry test_list[] = {
     FM_TEST_GL(test_corridor),
     FM_TEST_GL(test_dijkstra),
     FM_TEST_GL(test_dijkstra_reference),
-    FM_TEST_GL(test_cover_point),
+    FM_TEST(test_cover_point),
     FM_TEST_GL(test_loader2),
     FM_TEST_GL(test_loader3),
     FM_TEST_GL(test_saves),

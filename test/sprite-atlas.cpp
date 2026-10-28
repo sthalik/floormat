@@ -7,6 +7,7 @@
 #include <mg/PixelFormat.h>
 #include <mg/ImageView.h>
 #include <mg/Image.h>
+#include <mg/TextureArray.h>
 
 namespace floormat::SpriteAtlas {
 namespace {
@@ -154,6 +155,44 @@ void texcoords_encode_expected_corners()
     fm_assert(Math::abs(vmin - vl) <= eps && Math::abs(vmax - vh) <= eps);
 }
 
+// add() only stages pixels. texture() grows the texture over every layer packed since and uploads
+// them, a rotated sprite transposed.
+void staged_adds_reach_texture()
+{
+    sprite_atlas atlas{64};
+    // 40x40 leaves no room for a second shelf in a 64 px layer, so each takes a new layer
+    constexpr uint32_t n = 3, w = 40, h = 40, rw = 7, rh = 11;
+    Array<unsigned char> src[n + 1];
+    const Sprite* sprites[n + 1];
+    for (auto i = 0u; i <= n; i++)
+    {
+        const auto sw = i < n ? w : rw, sh = i < n ? h : rh;
+        src[i] = Array<unsigned char>{NoInit, sw*sh*4};
+        fill_pattern(src[i].data(), sw, sh);
+        for (auto& c : src[i])
+            c = (unsigned char)(c + 37*i);
+        const Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)sw, (Int)sh}, src[i]};
+        sprites[i] = atlas.add(view, i == n).raw();
+    }
+    fm_assert(sprites[n]->is_rotated);
+    fm_assert(sprites[n-1]->layer == n-1);
+
+    auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
+    for (auto i = 0u; i <= n; i++)
+    {
+        const auto s = sprite{sprites[i]};
+        const auto sw = s.is_rotated() ? s.height() : s.width(), sh = s.is_rotated() ? s.width() : s.height();
+        auto img = tex.subImage(0, Range3Di{{(Int)s.x(), (Int)s.y(), (Int)s.layer()},
+                                            {(Int)(s.x() + sw), (Int)(s.y() + sh), (Int)s.layer() + 1}},
+                                Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
+        const auto* slot = reinterpret_cast<const uint32_t*>(img.data().data());
+        const auto* orig = reinterpret_cast<const uint32_t*>(src[i].data());
+        for (auto y = 0u; y < s.height(); y++)
+            for (auto x = 0u; x < s.width(); x++)
+                fm_assert(orig[y*s.width() + x] == (s.is_rotated() ? slot[x*sw + s.height()-1-y] : slot[y*sw + x]));
+    }
+}
+
 void wrapper_accessors_roundtrip_values()
 {
     sprite_atlas atlas{256};
@@ -246,6 +285,7 @@ void test_sprite_atlas()
     upload_and_readback_is_lossless();
     realloc_preserves_uploaded_pixels();
     texcoords_encode_expected_corners();
+    staged_adds_reach_texture();
     wrapper_accessors_roundtrip_values();
     free_atlas_clears_state_and_allows_reuse();
     sprites_do_not_overlap_pairwise();

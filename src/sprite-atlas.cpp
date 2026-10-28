@@ -16,6 +16,7 @@
 #include <mg/TextureArray.h>
 #include <mg/TextureFormat.h>
 #include <mg/Color.h>
+#include <mg/Context.h>
 #include <mg/Framebuffer.h>
 #include <mg/ImageView.h>
 #include <mg/Image.h>
@@ -80,10 +81,11 @@ uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A)
 void realloc_atlas(Atlas& atlas, uint16_t new_n_layers)
 {
     fm_assert(atlas.layer_size > 0);
-    fm_assert(new_n_layers > atlas.n_layers);
+    fm_assert(new_n_layers > atlas.texture_layers && new_n_layers >= atlas.n_layers);
 
     auto layer_size = (Int)atlas.layer_size;
-    auto used_layers = (Int)atlas.layers.size();
+    // layers packed since the last upload exist only on the CPU side
+    auto used_layers = Math::min((Int)atlas.layers.size(), (Int)atlas.texture_layers);
 
     // glTexStorage3D is immutable, so growth is reallocate-and-copy:
     // allocate a fresh Texture2DArray with the bigger layer count, then move
@@ -118,7 +120,16 @@ void realloc_atlas(Atlas& atlas, uint16_t new_n_layers)
     }
 
     atlas.texture = move(new_texture);
-    atlas.n_layers = new_n_layers;
+    atlas.n_layers = atlas.texture_layers = new_n_layers;
+}
+
+void ensure_texture(Atlas& atlas)
+{
+    if (atlas.texture_layers >= atlas.n_layers)
+        return;
+    // Without a context add() sized layers to max_layer_size, which this GPU must hold.
+    fm_assert(max_2d_texture_size() >= atlas.layer_size);
+    realloc_atlas(atlas, atlas.n_layers);
 }
 
 void free_atlas(Atlas& atlas)
@@ -131,7 +142,10 @@ void free_atlas(Atlas& atlas)
     atlas.texture = GL::Texture2DArray{NoCreate};
     atlas.layers = {};
     atlas.height_classes = {};
+    atlas.pending = {};
+    atlas.staging = {};
     atlas.n_layers = 0;
+    atlas.texture_layers = 0;
 }
 
 Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
@@ -167,11 +181,7 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
     {
         // No layer has room — must create a new Layer.
         if (atlas.layers.size() >= atlas.n_layers)
-        {
-            // GL texture has no spare slots either; grow it.
-            auto new_n = alloc_more_layers_count(atlas.n_layers, atlas);
-            realloc_atlas(atlas, new_n);
-        }
+            atlas.n_layers = alloc_more_layers_count(atlas.n_layers, atlas);
         arrayReserve(atlas.layers, 16);
         arrayAppend(atlas.layers, InPlaceInit);
         layer_idx = (uint32_t)(atlas.layers.size() - 1);
@@ -271,58 +281,103 @@ Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate)
     return &*sp;
 }
 
-void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels)
+static Vector2ui slot_size(const Sprite& sprite)
 {
     // Sprite stores width/height as `size - 1` of the ORIGINAL dims so 1024
-    // fits in 10 bits; the +1 here recovers the pixel dimension for the
-    // size check.
+    // fits in 10 bits.
+    const uint32_t orig_w = (uint32_t)sprite.width + 1;
+    const uint32_t orig_h = (uint32_t)sprite.height + 1;
+    return sprite.is_rotated ? Vector2ui{orig_h, orig_w} : Vector2ui{orig_w, orig_h};
+}
+
+// Writes the sprite's pixels to dst tightly packed, in the slot's orientation.
+static void copy_to_slot(char* dst, const Sprite& sprite, const ImageView2D& pixels)
+{
     const uint32_t orig_w = (uint32_t)sprite.width + 1;
     const uint32_t orig_h = (uint32_t)sprite.height + 1;
     fm_assert((uint32_t)pixels.size().x() == orig_w);
     fm_assert((uint32_t)pixels.size().y() == orig_h);
 
+    const auto px_size = (size_t)pixels.pixelSize();
+    const auto src_view = pixels.pixels();
+    const size_t src_row_stride = (size_t)src_view.stride()[0];
+    const auto* src_base = (const char*)src_view.data();
+
     if (!sprite.is_rotated)
     {
-        // Direct upload
-        const ImageView3D view3d{pixels.storage(), pixels.format(),
-                                 {pixels.size(), 1}, pixels.data()};
-        atlas.texture.setSubImage(0,
-            {(Int)sprite.x, (Int)sprite.y, (Int)sprite.layer},
-            view3d);
+        const size_t row = (size_t)orig_w * px_size;
+        for (uint32_t y = 0; y < orig_h; y++)
+            std::memcpy(dst + (size_t)y * row, src_base + (size_t)y * src_row_stride, row);
+        return;
     }
-    else
+
+    // Rotate 90° CCW in GL bottom-up memory. Derivation (both views
+    // bu-oriented): dst_bu[y_r][x_r] = src_bu[orig_h-1-x_r][y_r].
+    // Slot dims are (slot_w=orig_h, slot_h=orig_w).
+    const uint32_t slot_w = orig_h;
+    const uint32_t slot_h = orig_w;
+    const size_t dst_row_stride = (size_t)slot_w * px_size;
+    for (uint32_t y_r = 0; y_r < slot_h; y_r++)
     {
-        // Rotate 90° CCW in GL bottom-up memory. Derivation (both views
-        // bu-oriented): dst_bu[y_r][x_r] = src_bu[orig_h-1-x_r][y_r].
-        // Slot dims are (slot_w=orig_h, slot_h=orig_w).
-        const auto px_size = (size_t)pixels.pixelSize();
-        const auto src_view = pixels.pixels();
-        const size_t src_row_stride = (size_t)src_view.stride()[0];
-        const auto* src_base = (const char*)src_view.data();
-        const uint32_t slot_w = orig_h;
-        const uint32_t slot_h = orig_w;
-        Array<char> rotated{NoInit, (size_t)slot_w * (size_t)slot_h * px_size};
-        const size_t dst_row_stride = (size_t)slot_w * px_size;
-        for (uint32_t y_r = 0; y_r < slot_h; y_r++)
+        char* dst_row = dst + (size_t)y_r * dst_row_stride;
+        for (uint32_t x_r = 0; x_r < slot_w; x_r++)
         {
-            char* dst_row = rotated.data() + (size_t)y_r * dst_row_stride;
-            for (uint32_t x_r = 0; x_r < slot_w; x_r++)
-            {
-                const char* src_px = src_base
-                                   + (size_t)(slot_w - 1 - x_r) * src_row_stride
-                                   + (size_t)y_r * px_size;
-                std::memcpy(dst_row + (size_t)x_r * px_size, src_px, px_size);
-            }
+            const char* src_px = src_base
+                               + (size_t)(slot_w - 1 - x_r) * src_row_stride
+                               + (size_t)y_r * px_size;
+            std::memcpy(dst_row + (size_t)x_r * px_size, src_px, px_size);
         }
-        PixelStorage storage;
-        storage.setAlignment(1);
-        const ImageView3D view3d{storage, pixels.format(),
-                                 {(Int)slot_w, (Int)slot_h, 1},
-                                 ArrayView<const void>{rotated.data(), rotated.size()}};
-        atlas.texture.setSubImage(0,
-            {(Int)sprite.x, (Int)sprite.y, (Int)sprite.layer},
-            view3d);
     }
+}
+
+static void upload_slot(Atlas& atlas, const Sprite& sprite, PixelFormat format, ArrayView<const char> slot)
+{
+    const auto size = slot_size(sprite);
+    PixelStorage storage;
+    storage.setAlignment(1);
+    const ImageView3D view3d{storage, format, {(Int)size.x(), (Int)size.y(), 1}, slot};
+    atlas.texture.setSubImage(0, {(Int)sprite.x, (Int)sprite.y, (Int)sprite.layer}, view3d);
+}
+
+void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels)
+{
+    ensure_texture(atlas);
+    if (!sprite.is_rotated)
+    {
+        fm_assert(Vector2ui(pixels.size()) == slot_size(sprite));
+        const ImageView3D view3d{pixels.storage(), pixels.format(), {pixels.size(), 1}, pixels.data()};
+        atlas.texture.setSubImage(0, {(Int)sprite.x, (Int)sprite.y, (Int)sprite.layer}, view3d);
+        return;
+    }
+    const auto size = slot_size(sprite);
+    Array<char> slot{NoInit, (size_t)size.x() * size.y() * pixels.pixelSize()};
+    copy_to_slot(slot.data(), sprite, pixels);
+    upload_slot(atlas, sprite, pixels.format(), slot);
+}
+
+void stage_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels)
+{
+    const auto size = slot_size(sprite);
+    const auto offset = atlas.staging.size();
+    const auto bytes = (size_t)size.x() * size.y() * pixels.pixelSize();
+    fm_assert(offset + bytes <= UINT32_MAX);
+    arrayReserve(atlas.staging, 1 << 20);
+    copy_to_slot(arrayAppend(atlas.staging, NoInit, bytes).data(), sprite, pixels);
+    arrayReserve(atlas.pending, 64);
+    arrayAppend(atlas.pending, PendingSprite{ &sprite, pixels.format(), (uint32_t)offset });
+}
+
+void flush(Atlas& atlas)
+{
+    ensure_texture(atlas);
+    for (auto i = 0u; i < (uint32_t)atlas.pending.size(); i++)
+    {
+        const auto& p = atlas.pending[i];
+        const auto end = i + 1 < atlas.pending.size() ? (size_t)atlas.pending[i + 1].offset : atlas.staging.size();
+        upload_slot(atlas, *p.sprite, p.format, atlas.staging.slice(p.offset, end));
+    }
+    atlas.pending = {};
+    atlas.staging = {};
 }
 
 std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& sprite,
@@ -403,6 +458,7 @@ std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sp
 void dump_atlas(Atlas& atlas, StringView out_path)
 {
     fm_assert(atlas.n_layers > 0);
+    flush(atlas);
 
     // stb's image-write encoders use `int` internally for byte counts, so
     // single files past ~2 GB of raw pixels (≈ 512 MP at RGBA8) overflow.
@@ -467,6 +523,7 @@ void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path)
     const Int y = (Int)sprite.y;
     const Int layer = (Int)sprite.layer;
 
+    flush(atlas);
     auto img = atlas.texture.subImage(0,
         Range3Di{{x, y, layer}, {x + (Int)slot_w, y + (Int)slot_h, layer + 1}},
         Image3D{PixelFormat::RGBA8Unorm});
@@ -541,8 +598,9 @@ sprite sprite_atlas::add(const ImageView2D& pixels, bool allow_rotate)
 {
     if (_atlas->layer_size == 0)
     {
-        auto ls = SpriteAtlas::max_2d_texture_size();
-        ls = Math::min<uint32_t>(ls, SpriteAtlas::max_layer_size);
+        uint32_t ls = SpriteAtlas::max_layer_size;
+        if (GL::Context::hasCurrent())
+            ls = Math::min(ls, SpriteAtlas::max_2d_texture_size());
         fm_assert(ls > 0);
         _atlas->layer_size = (uint16_t)ls;
     }
@@ -551,7 +609,7 @@ sprite sprite_atlas::add(const ImageView2D& pixels, bool allow_rotate)
                                         (uint32_t)size.x(),
                                         (uint32_t)size.y(),
                                         allow_rotate);
-    SpriteAtlas::upload_sprite(*_atlas, *s, pixels);
+    SpriteAtlas::stage_sprite(*_atlas, *s, pixels);
     return sprite{s};
 }
 
@@ -570,6 +628,8 @@ std::array<Vector3, 4> sprite_atlas::texcoords_for(sprite s,
 
 GL::AbstractTexture& sprite_atlas::texture()
 {
+    if (!_atlas->pending.isEmpty() || _atlas->texture_layers < _atlas->n_layers) [[unlikely]]
+        SpriteAtlas::flush(*_atlas);
     return _atlas->texture;
 }
 
