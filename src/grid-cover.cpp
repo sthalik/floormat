@@ -234,7 +234,7 @@ struct CoverGrid : GridBase
 
     void reset_for_reuse(chunk& ch, Params new_params);
     void apply_params();
-    // Only maybe_mark_stale() compares these: check_versions() runs on each read, in debug builds.
+    // Only maybe_mark_stale() compares these: check_versions() runs on reads, in debug builds.
     bool ring2_versions_match() const;
     void maybe_mark_stale();
     template<typename T> T* octant_plane(uint32_t k);
@@ -527,13 +527,11 @@ uint32_t Grid::get_cell_index(uint32_t x, uint32_t y, uint32_t div_count)
 
 uint32_t Grid::get_cell_index_from_coord(intra_coord pos) const
 {
-    detail::grid::check_versions(grid);
     return grid->get_cell_index_from_coord(pos);
 }
 
 uint16_t Grid::distance(uint32_t index, uint32_t octant) const
 {
-    detail::grid::check_versions(grid);
     fm_debug_assert(octant < octant_count);
     fm_debug_assert(index < grid->cell_count);
     fm_assert(grid->built_octants & 1u << octant);
@@ -563,7 +561,6 @@ void Grid::build_if_stale()
 bool Grid::ensure_octant(uint32_t k)
 {
     fm_debug_assert(k < octant_count);
-    detail::grid::check_versions(grid);
     grid->build_if_stale();
     return grid->fill_octant(k, *grid->c);
 }
