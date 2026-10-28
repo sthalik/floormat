@@ -1786,6 +1786,51 @@ void test_cover_rebuilds_on_neighbor_change(uint32_t div_size)
     fm_assert(walk() != n);
 }
 
+// An east ray from the last column runs almost to the east neighbor's far edge, where a blocker
+// of the chunk two east overhangs. Adding that blocker changes the distance, so the grid must
+// rebuild, although the blocker's chunk isn't a neighbor.
+void test_cover_rebuilds_on_ring2_change(uint32_t div_size)
+{
+    constexpr auto E2 = chunk_coords_{2, 0, 0};
+    auto w = world();
+    for (auto ch : { COORD, COORD_E, E2 })
+        add_ground_all(w[ch]);
+    for (auto ch : { COORD, COORD_E, E2 })
+        rebuild_passability(w[ch]);
+
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    const auto dc = chunk_size_xy / div_size;
+    // a row through tile row 8, which the blocker spans
+    const auto cell = Cover::Grid::get_cell_index(dc - 1, (uint32_t)(tile_size_xy*8 + half_tile<int>) / div_size, dc);
+    const auto east = [&](Cover::Pool& p) {
+        p.maybe_mark_stale_all(w);
+        Cover::Grid g = p[w[COORD]];
+        g.build_if_stale();
+        (void)g.ensure_octant(0);
+        return (uint32_t)g.distance(cell, 0);
+    };
+    fm_assert(east(pool) == dc);
+
+    // x from 2048 - 80 to 2048 - 48 in COORD's frame
+    add_blocker(w, {E2, local_coords{0, 8}}, {-64, 0}, {32, 64});
+    rebuild_passability(w[E2]);
+    const auto face = 2*(int)chunk_size_xy - 80, center = (int)chunk_size_xy - half_tile<int> - (int)div_size/2;
+    const auto expected = (uint32_t)(2*(face - center) + (int)div_size) / (2*div_size);
+    fm_assert(expected < dc);
+    {
+        Pass::Pool fresh_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+        Cover::Pool fresh{Cover::Params{div_size}, fresh_pass_pool};
+        fm_assert(east(fresh) == expected);
+    }
+    const auto d = east(pool);
+    if (d != expected)
+    {
+        Error{standard_error()} << "!!! fatal: div_size" << div_size << "distance" << d << "but expected" << expected;
+        fm_assert(false);
+    }
+}
+
 // The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
 // ray rounded. Seeds rounded to whole units would be off by up to one more half unit.
 void test_cover_diagonal_matches_ray(uint32_t div_size)
@@ -1908,6 +1953,8 @@ void test_grid()
     for (const auto ds : { 8u, 16u })
         test_cover_blocked_cells(ds);
     test_cover_rebuilds_on_neighbor_change(16);
+    for (const auto ds : { 8u, 16u })
+        test_cover_rebuilds_on_ring2_change(ds);
     // 128 and 256 leave rows narrower than a vector, or exactly one wide
     const auto aligned_octants = { 0u, 4u, 8u, 12u, 16u, 20u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan
