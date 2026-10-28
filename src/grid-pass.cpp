@@ -339,13 +339,11 @@ uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
 
 uint32_t Grid::get_bitmask_index_from_coord(intra_coord pos) const
 {
-    detail::grid::check_versions(grid);
     return grid->get_bitmask_index_from_coord(pos);
 }
 
 Range2D Grid::get_coord_from_div(uint32_t x, uint32_t y) const
 {
-    detail::grid::check_versions(grid);
     return grid->get_coord_from_div(x, y);
 }
 
