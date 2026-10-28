@@ -281,6 +281,22 @@ void test_pillar_pair(uint8_t far_x, uint8_t near_h, int8_t near_dy, uint8_t far
     fm_assert(!r.found || cant_be_shot(w, threat, r.pos));
 }
 
+point at_px(Vector2i px) { return point{Vector3i{px, 0}}; }
+
+// Found only when each cell reads both octants beside the threat's bearing, not only the nearest.
+void test_octants_beside_bearing()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+
+    const auto threat = at_px({574, 667});
+    const auto r = find(w, at_px({438, 468}), threat, 48, 8);
+    fm_assert(r.found);
+    fm_assert(cant_be_shot(w, threat, r.pos));
+}
+
 void test_wall_out_of_radius()
 {
     auto w = world();
@@ -373,6 +389,7 @@ void Test::test_cover_point()
     // At (436, 519) every ray to a body pixel hits a pillar. One aimed past the body clears the far
     // pillar's top corner by 5e-5 in slope and grazes the top row. (436, 520) is hidden.
     test_pillar_pair(8, 8, 0, 24, 8, true);
+    test_octants_beside_bearing();
     test_wall_out_of_radius();
     for (const auto size : { Vector2ui{23, 23}, Vector2ui{25, 25}, Vector2ui{23, 25}, Vector2ui{25, 23} })
     {

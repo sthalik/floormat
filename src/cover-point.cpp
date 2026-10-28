@@ -21,12 +21,19 @@ namespace floormat {
 
 namespace {
 
-uint32_t octant_toward(Vector2 v)
+struct octant_pair
+{
+    uint32_t lo, hi;
+};
+
+// The two octants whose bearings are on either side of v's.
+octant_pair octants_around(Vector2 v)
 {
     constexpr auto n = (int)Cover::octant_count;
     constexpr float step = 2.f * Math::Constants<float>::pi() / (float)n;
-    const auto k = (int)std::lround(std::atan2(v.y(), v.x()) / step);
-    return (uint32_t)((k % n + n) % n);
+    const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / step);
+    const auto lo = (uint32_t)((k % n + n) % n);
+    return { lo, (lo + 1) % (uint32_t)n };
 }
 
 struct candidate
@@ -109,11 +116,17 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
             return cells[i];
         auto g = cover_pool[*c];
         g.build_if_stale();
-        const auto k = octant_toward(v);
-        (void)g.ensure_octant(k);
-        const auto d = g.distance(g.get_cell_index_from_coord(pt.intra()), k);
+        const auto cell = g.get_cell_index_from_coord(pt.intra());
         // dc is also a miss, so a threat past the cap reads as exposed
-        cells[i] = { d != Cover::blocked && d < dc && (float)(d*(uint32_t)ds) < len, d == Cover::blocked, d };
+        const auto hides = [&](uint16_t d) { return d != Cover::blocked && d < dc && (float)(d*(uint32_t)ds) < len; };
+        // The cell's center sees the threat between two octants. Either one hiding it makes a
+        // candidate, since the slope check below decides exactly.
+        const auto k = octants_around(v);
+        (void)g.ensure_octant(k.lo);
+        (void)g.ensure_octant(k.hi);
+        const auto d0 = g.distance(cell, k.lo), d1 = g.distance(cell, k.hi);
+        const auto d = hides(d0) && hides(d1) ? Math::min(d0, d1) : hides(d1) ? d1 : d0;
+        cells[i] = { hides(d), d == Cover::blocked, d };
         return cells[i];
     };
 
