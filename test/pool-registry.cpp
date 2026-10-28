@@ -16,8 +16,10 @@ void test_pass_pool_per_params()
     constexpr Params params[] = {
         {16, 32, pass_mode::pass},
         {16, 32, pass_mode::shoot_through},
+        {16, 32, pass_mode::see_through},
         {8, 32, pass_mode::pass},
         {1, 4, pass_mode::pass},
+        {1, 4, pass_mode::see_through},
         {16, 33, pass_mode::pass},
         {128, 255, pass_mode::pass},
         // off the table: over direct_max_bbox
