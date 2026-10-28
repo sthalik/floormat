@@ -13,7 +13,6 @@
 #include "src/search-pred.hpp"
 #include "src/search-result.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pool-registry.hpp"
 #include "src/point.inl"
 #include "src/nanosecond.inl"
 #include "compat/assert.hpp"
@@ -63,7 +62,7 @@ struct blocker
 task app::scene_npcs()
 {
     constexpr int16_t r0 = 0, r1 = room_chunks;
-    const auto margin = (int)M->astar().pool_registry().pool_for(critter_size).params().div_size();
+    const auto margin = (int)Pass::Params{astar::default_div_size, critter_size, pass_mode::pass}.div_size();
 
     auto& w = M->world();
     auto wall = loader.wall_atlas("test1", loader_policy::warn);
@@ -148,7 +147,7 @@ task app::scene_npcs()
     const Search::pred except_searcher_pred{except_searcher};
 
     // Its own pool, since the registry's pools always build with without_critters().
-    Pass::Pool crit_pool{M->astar().pool_registry().pool_for(critter_size).params(), except_searcher_pred};
+    Pass::Pool crit_pool{Pass::Params{astar::default_div_size, critter_size, pass_mode::pass}, except_searcher_pred};
 
     uint64_t rng = 0x9e3779b97f4a7c15u;
     const auto next_angle = [&rng] {

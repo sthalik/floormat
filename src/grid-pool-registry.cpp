@@ -3,15 +3,17 @@
 
 namespace floormat::Grid {
 
-PoolRegistry::PoolRegistry(uint32_t div_size) : div_size_{div_size} {}
+PoolRegistry::PoolRegistry() = default;
 PoolRegistry::~PoolRegistry() noexcept = default;
 
 Pass::Pool& PoolRegistry::pass_pool(const Pass::Params& p)
 {
-    // the table holds only pool_for()'s params, so equal params always find the same pool
-    if (p.bbox_size <= direct_max_bbox && p == Pass::Params{div_size_, p.bbox_size, pass_mode::pass})
+    // The table holds only pass pools, so a slot's div_size and bbox_size give its params
+    // and equal params always find the same pool.
+    if (p.bbox_size <= direct_max_bbox && p.min_pass == pass_mode::pass)
     {
-        auto& slot = direct_[p.bbox_size - Pass::Grid::min_bbox_size];
+        const auto div_shift = (uint32_t)std::countr_zero(p.validate().div_size()); // xxx todo assumes power of two chunk size
+        auto& slot = direct_[div_shift][p.bbox_size - Pass::Grid::min_bbox_size];
         if (!slot)
             slot.emplace(p, Search::without_critters());
         return *slot;
@@ -22,12 +24,6 @@ Pass::Pool& PoolRegistry::pass_pool(const Pass::Params& p)
             return *pool;
     arrayAppend(fallback_, InPlaceInit, InPlaceInit, p, Search::without_critters());
     return *fallback_.back();
-}
-
-Pass::Pool& PoolRegistry::pool_for(uint32_t bbox_size)
-{
-    fm_assert(bbox_size > 0);
-    return pass_pool(Pass::Params{div_size_, bbox_size, pass_mode::pass});
 }
 
 Cover::Pool& PoolRegistry::cover_pool(const Cover::Params& p)

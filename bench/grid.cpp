@@ -281,7 +281,7 @@ void Cover_Find(benchmark::State& state)
     make_cover_world(w);
     const auto params = Cover::Params{(uint32_t)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
-    Grid::PoolRegistry pools{params.div_size};
+    Grid::PoolRegistry pools;
     const auto& pred = Search::never_continue();
     auto r = find_cover_point(w, pools, params, q, pred);
     for (auto _ : state)
@@ -303,7 +303,7 @@ void Cover_Find_Octants(benchmark::State& state)
     {
         state.PauseTiming();
         pools = NullOpt;
-        pools.emplace(params.div_size);
+        pools.emplace();
         auto& pass_pool = pools->pass_pool(Pass::Params{params.div_size, pass_mode::shoot_through});
         auto& cover_pool = pools->cover_pool(params);
         for_cover_chunks([&](chunk_coords_ ch) {
@@ -330,7 +330,7 @@ void Cover_Find_Fresh(benchmark::State& state)
     {
         state.PauseTiming();
         pools = NullOpt;
-        pools.emplace(params.div_size);
+        pools.emplace();
         state.ResumeTiming();
         r = find_cover_point(w, *pools, params, q, Search::never_continue());
     }

@@ -44,7 +44,7 @@ void maze_test::build(app& a)
     auto& m = a.main();
     auto& w = m.world();
     auto C = a.ensure_player_character(w);
-    auto& pool = m.astar().pool_registry().pool_for(Math::max(C->bbox_size.x(), C->bbox_size.y()));
+    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, C->bbox_size.max(), pass_mode::pass});
     route = mazes::replace(w, {0, 0, 0}, mazes::exit_cells, seed, pool, C->id);
     auto i = C->index();
     C->teleport_to(i, route->from, rotation_COUNT);

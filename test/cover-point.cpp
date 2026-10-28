@@ -69,7 +69,7 @@ bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Sea
 cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size, Vector2ui size = body,
                         const Search::pred& pred = Search::without_critters())
 {
-    Grid::PoolRegistry pools{div_size};
+    Grid::PoolRegistry pools;
     return find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius}, pred);
 }
 
