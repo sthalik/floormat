@@ -1,5 +1,10 @@
 #include "src/grid-pass.hpp"
 #include "src/grid-cover.hpp"
+#include "src/grid-pool-registry.hpp"
+#include "src/cover-point.hpp"
+#include "src/point.inl"
+#include "src/intra-coord.inl"
+#include "src/search.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/critter.hpp"
@@ -11,6 +16,10 @@
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
+#include <bit>
+#include <cr/Optional.h>
+#include <mg/Functions.h>
+#include <mg/Range.h>
 #include <benchmark/benchmark.h>
 
 namespace floormat {
@@ -203,6 +212,139 @@ void Cover_Aligned(benchmark::State& state)
 }
 
 BENCHMARK(Cover_Aligned)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
+
+constexpr auto cover_body = Vector2ui{24, 24};
+
+template<typename F> void for_cover_chunks(F&& fun)
+{
+    for (int16_t y = -1; y <= 1; y++)
+        for (int16_t x = -1; x <= 1; x++)
+            fun(chunk_coords_{x, y, 0});
+}
+
+void make_cover_world(world& w)
+{
+    for_cover_chunks([&](chunk_coords_ ch) { make_cover_chunk(w, w[ch]); });
+    for_cover_chunks([&](chunk_coords_ ch) { rebuild(w[ch]); });
+}
+
+struct find_case
+{
+    Vector2i npc;
+    float bearing_deg, dist;
+};
+
+// The npc stands on a tile corner in chunk (0, 0). Case 4's threat is past the cover grid's 1024 px cap.
+constexpr find_case find_cases[] = {
+    { {  96, 544 },  10,  256 },
+    { { 800,  96 }, 100,  192 },
+    { { 416, 800 }, 200,  512 },
+    { { 864, 864 }, 300,  384 },
+    { { 160, 160 }, 140, 1536 },
+    { { 352, 416 }, 250,   96 },
+};
+
+cover_query make_cover_query(world& w, const find_case& f)
+{
+    const auto a = Rad{Deg{f.bearing_deg}};
+    const auto threat = f.npc + Vector2i(Math::round(Vector2{Math::cos(a), Math::sin(a)} * f.dist));
+    const auto npc = point{Vector3i{f.npc, 0}};
+    const auto min = Vector2(npc.intra().center_shifted() - Vector2i(cover_body/2u));
+    fm_assert(Search::is_passable(w, npc.chunk3(), Range2D{min, min + Vector2(cover_body)}, Search::never_continue()));
+    return { npc, cover_body, point{Vector3i{threat, 0}}, 3*(uint32_t)tile_size_xy };
+}
+
+void set_find_counters(benchmark::State& state, const cover_point_result& r)
+{
+    state.counters["found"] = r.found;
+    state.counters["candidates"] = r.candidates;
+}
+
+// Octants built on the 3×3 chunks, the ones casting a ray per cell apart from those sweeping the pass bitmap.
+void set_fill_counters(benchmark::State& state, world& w, Cover::Pool& pool, uint32_t sweeps_before)
+{
+    constexpr uint32_t sweep_mask = 0x11111111u;
+    uint32_t rays = 0, sweeps = 0;
+    for_cover_chunks([&](chunk_coords_ ch) {
+        const auto k = pool[w[ch]].built_octants();
+        rays += (uint32_t)std::popcount(k & ~sweep_mask);
+        sweeps += (uint32_t)std::popcount(k & sweep_mask);
+    });
+    state.counters["ray_fills"] = rays;
+    state.counters["sweep_fills"] = sweeps - sweeps_before;
+}
+
+// Every grid and octant the query reads is built, as for each later seek from the same threat.
+void Cover_Find(benchmark::State& state)
+{
+    auto w = world();
+    make_cover_world(w);
+    const auto params = Cover::Params{(uint32_t)state.range(0)};
+    const auto q = make_cover_query(w, find_cases[state.range(1)]);
+    Grid::PoolRegistry pools{params.div_size};
+    auto r = find_cover_point(w, pools, params, q);
+    for (auto _ : state)
+        r = find_cover_point(w, pools, params, q);
+    set_find_counters(state, r);
+}
+
+// The first seek from a threat at a bearing no cover grid has seen: the pass grids and cover grids
+// are built, but only octant 0 of each.
+void Cover_Find_Octants(benchmark::State& state)
+{
+    auto w = world();
+    make_cover_world(w);
+    const auto params = Cover::Params{(uint32_t)state.range(0)};
+    const auto q = make_cover_query(w, find_cases[state.range(1)]);
+    Optional<Grid::PoolRegistry> pools;
+    cover_point_result r;
+    for (auto _ : state)
+    {
+        state.PauseTiming();
+        pools = NullOpt;
+        pools.emplace(params.div_size);
+        auto& pass_pool = pools->pass_pool(Pass::Params{params.div_size, pass_mode::shoot_through});
+        auto& cover_pool = pools->cover_pool(params);
+        for_cover_chunks([&](chunk_coords_ ch) {
+            pass_pool[w[ch]].build_if_stale();
+            cover_pool[w[ch]].build_if_stale();
+        });
+        state.ResumeTiming();
+        r = find_cover_point(w, *pools, params, q);
+    }
+    set_find_counters(state, r);
+    set_fill_counters(state, w, pools->cover_pool(params), 9);
+}
+
+// The first seek in an area: every grid the query reads is built from nothing.
+void Cover_Find_Fresh(benchmark::State& state)
+{
+    auto w = world();
+    make_cover_world(w);
+    const auto params = Cover::Params{(uint32_t)state.range(0)};
+    const auto q = make_cover_query(w, find_cases[state.range(1)]);
+    Optional<Grid::PoolRegistry> pools;
+    cover_point_result r;
+    for (auto _ : state)
+    {
+        state.PauseTiming();
+        pools = NullOpt;
+        pools.emplace(params.div_size);
+        state.ResumeTiming();
+        r = find_cover_point(w, *pools, params, q);
+    }
+    set_find_counters(state, r);
+    set_fill_counters(state, w, pools->cover_pool(params), 0);
+}
+
+void find_args(benchmark::Benchmark* b)
+{
+    b->ArgNames({"div", "case"})->ArgsProduct({{8, 16}, benchmark::CreateDenseRange(0, (int64_t)std::size(find_cases) - 1, 1)});
+}
+
+BENCHMARK(Cover_Find)->Apply(find_args)->Unit(benchmark::kMicrosecond);
+BENCHMARK(Cover_Find_Octants)->Apply(find_args)->Unit(benchmark::kMillisecond);
+BENCHMARK(Cover_Find_Fresh)->Apply(find_args)->Unit(benchmark::kMillisecond);
 
 } // namespace
 
