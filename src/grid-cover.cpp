@@ -43,6 +43,20 @@ constexpr std::array<uint8_t, octant_count> octant_order = {
     17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31,
 };
 
+constexpr std::array<Vector2b, 16> ring2_offsets = {{
+    {-2, -2}, {-1, -2}, { 0, -2}, { 1, -2}, { 2, -2},
+    {-2, -1},                               { 2, -1},
+    {-2,  0},                               { 2,  0},
+    {-2,  1},                               { 2,  1},
+    {-2,  2}, {-1,  2}, { 0,  2}, { 1,  2}, { 2,  2},
+}};
+
+uint64_t pass_gen_at(const world& w, chunk_coords_ coord)
+{
+    const auto* c = w.at(coord);
+    return c ? c->pass_gen() : (uint64_t)-1;
+}
+
 // fill_aligned() carries pixels in 1/fixed_one px in uint16_t. Carries saturate at UINT16_MAX,
 // which rounds to dc, the cap.
 constexpr uint32_t fixed_one = (UINT16_MAX + 1) / chunk_size_xy; // xxx todo assumes power of two chunk size
@@ -210,6 +224,9 @@ struct CoverGrid : GridBase
     // fill_aligned()'s previous row in pixels. It starts at row[line_cells], on 64 bytes, with spare
     // cells either side.
     Array<uint16_t> row;
+    // A ray reads the pass grids and RTrees of the 3×3 around the chunk, and those hold objects of
+    // the next ring out. Stamped like GridBase::versions, at ring2_offsets.
+    std::array<uint64_t, 16> ring2_versions{};
     uint32_t built_octants = 0;
 
     CoverGrid(chunk& c, Params params);
@@ -217,6 +234,9 @@ struct CoverGrid : GridBase
 
     void reset_for_reuse(chunk& ch, Params new_params);
     void apply_params();
+    // Only maybe_mark_stale() compares these: check_versions() runs on each read, in debug builds.
+    bool ring2_versions_match() const;
+    void maybe_mark_stale();
     template<typename T> T* octant_plane(uint32_t k);
 
     static uint32_t get_cell_index(uint32_t x, uint32_t y, uint32_t div_count);
@@ -263,6 +283,25 @@ void CoverGrid::build_impl(chunk* self)
     for (auto i = 0u; i < 8; i++)
         versions[i] = neighbors[i] ? neighbors[i]->pass_gen() : (uint64_t)-1;
     versions[8] = self->pass_gen();
+    for (auto i = 0u; i < ring2_offsets.size(); i++)
+        ring2_versions[i] = pass_gen_at(self->world(), coord + ring2_offsets[i]);
+}
+
+bool CoverGrid::ring2_versions_match() const
+{
+    const auto& w = c->world();
+    for (auto i = 0u; i < ring2_offsets.size(); i++)
+        if (pass_gen_at(w, coord + ring2_offsets[i]) != ring2_versions[i])
+            return false;
+    return true;
+}
+
+void CoverGrid::maybe_mark_stale()
+{
+    fm_debug3_assert(c && c->world().at(coord) == c);
+
+    if (!is_stale() && (!versions_match() || !ring2_versions_match()))
+        mark_stale();
 }
 
 bool CoverGrid::fill_octant(uint32_t k, chunk& self)
@@ -557,7 +596,7 @@ void Pool::maybe_mark_stale_all(const world& w)
     if (!pool->update_checked_pass_gen(w))
         return;
     for (auto* g : pool->live)
-        g->maybe_mark_stale();
+        static_cast<detail::grid::CoverGrid*>(g)->maybe_mark_stale();
 }
 
 void Pool::build_if_stale_all()
