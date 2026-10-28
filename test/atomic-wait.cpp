@@ -144,14 +144,22 @@ uint64_t thread_cpu_time()
 }
 
 // thread_cpu_time() units per second of busy work. Cycles on Windows, nanoseconds elsewhere.
+// Keeps the fastest of several runs, since a run preempted midway reads low and tightens the bound in test_sleeps().
 double cpu_time_rate()
 {
-    auto t0 = steady_clock::now();
-    auto c0 = thread_cpu_time();
-    while (steady_clock::now() - t0 < 10ms)
-        cpu_relax();
-    auto c1 = thread_cpu_time();
-    return (double)(c1 - c0) / std::chrono::duration<double>(steady_clock::now() - t0).count();
+    double rate = 0;
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        auto t0 = steady_clock::now();
+        auto c0 = thread_cpu_time();
+        while (steady_clock::now() - t0 < 10ms)
+            cpu_relax();
+        auto c1 = thread_cpu_time();
+        double r = (double)(c1 - c0) / std::chrono::duration<double>(steady_clock::now() - t0).count();
+        if (r > rate)
+            rate = r;
+    }
+    return rate;
 }
 
 template<typename T>
@@ -196,8 +204,9 @@ void test_notify_without_waiters()
 
 // A waiter that never reaches the kernel sleep, or whose OS compare never matches, spins in
 // atomic_wait's loop and burns CPU time for as long as the wake is delayed.
+// Returns the largest share of a busy thread's CPU time that any waiter used.
 template<typename T>
-void test_sleeps(double rate)
+double sleeps_cpu_share(double rate)
 {
     struct pair { T old, next; };
     constexpr pair pairs[] = {
@@ -222,9 +231,10 @@ void test_sleeps(double rate)
         if (i < n)
         {
             auto& s = slots[i];
-            atomic_store(&s.ready, uint8_t{1});
+            // Read before `ready`, so the waker's whole sleep falls inside the measured interval.
             auto t0 = steady_clock::now();
             auto c0 = thread_cpu_time();
+            atomic_store(&s.ready, uint8_t{1});
             atomic_wait(&s.value, pairs[i].old);
             s.cpu = thread_cpu_time() - c0;
             s.wall = std::chrono::duration<double>(steady_clock::now() - t0).count();
@@ -244,11 +254,27 @@ void test_sleeps(double rate)
         }
     });
 
+    double share = 0;
     for (const auto& s : slots)
     {
         fm_assert(s.wall >= 0.025);
-        fm_assert((double)s.cpu < 0.25 * rate * s.wall);
+        double x = (double)s.cpu / (rate * s.wall);
+        if (x > share)
+            share = x;
     }
+    return share;
+}
+
+// A host that preempts a VM's vCPU bills the stolen time to the guest thread running on it, so
+// one attempt over the bound is noise. A waiter that spins goes over on every attempt.
+template<typename T>
+void test_sleeps(double rate)
+{
+    double share = 0;
+    for (uint32_t i = 0; i < 3; ++i)
+        if ((share = sleeps_cpu_share<T>(rate)) < 0.25)
+            return;
+    fm_abort("atomic_wait waiter used %.0f%% of a CPU while asleep", share * 100);
 }
 
 template<typename T>
