@@ -55,7 +55,7 @@ Array<Color4ub> expected_pixels(const anim_atlas& atlas, rotation r, uint32_t fr
     fm_assert(Vector2ui{w, h} == atlas.frame(r, frame).size);
     const bool rotated = sp.is_rotated, mirror = !g.mirror_from.isEmpty();
     const auto sw = rotated ? h : w, sh = rotated ? w : h;
-    const auto img = loader.atlas().raw()->texture.subImage(0,
+    const auto img = static_cast<GL::Texture2DArray&>(loader.atlas().texture()).subImage(0,
         Range3Di{{(Int)sp.x, (Int)sp.y, (Int)sp.layer}, {(Int)(sp.x + sw), (Int)(sp.y + sh), (Int)sp.layer + 1}},
         Image3D{PixelFormat::RGBA8Unorm});
     const auto* slot = reinterpret_cast<const Color4ub*>(img.data().data());
