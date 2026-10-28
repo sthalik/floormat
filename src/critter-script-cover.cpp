@@ -13,6 +13,7 @@
 #include "tile-defs.hpp"
 #include "world.hpp"
 #include "entity/name-of.hpp"
+#include "compat/function2.hpp"
 #include <cr/Optional.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -31,6 +32,14 @@ struct cover_script;
 constexpr StringView script_name = name_of<cover_script>;
 using ScriptPtr = Pointer<critter_script>;
 using walk_result = critter::walk_result;
+
+// Every collider but the critter itself blocks, other critters included, as when it moves.
+auto blocks_all_but(object_id self)
+{
+    return [self](chunk&, collision_data x, Range2D) {
+        return x.id == self ? path_search_continue::pass : path_search_continue::blocked;
+    };
+}
 
 // Takes cover from a critter, then keeps stepping out of it and back.
 struct cover_script final : critter_script
@@ -136,8 +145,9 @@ void cover_script::seek(const bptr<critter>& c)
     }
     const auto body = Vector2ui(c->bbox_size);
     const auto from = c->position();
+    const auto pred = blocks_all_but(c->id);
     const auto r = find_cover_point(w, A.pool_registry(), Cover::Params{div_size},
-                                    {from, body, threat->position(), cover_radius});
+                                    {from, body, threat->position(), cover_radius}, pred);
     if (!r.found)
     {
         wait = retry_time;
@@ -153,13 +163,13 @@ void cover_script::seek(const bptr<critter>& c)
         return;
     }
     const auto max_dist = point::distance(from, cover)*2 + (uint32_t)tile_size_xy;
-    auto path = A.Dijkstra<0, false>(w, from, cover, max_dist, body, Search::without_critters());
+    auto path = A.Dijkstra<0, false>(w, from, cover, max_dist, body, pred);
     if (!path.is_found())
     {
         wait = retry_time;
         return;
     }
-    (void)A.string_pull(w, path, body, Search::without_critters());
+    (void)A.string_pull(w, path, body, pred);
     walk = critter_walk{move(path)};
     st = state::to_cover;
 }
@@ -213,6 +223,7 @@ Optional<point> cover_script::find_peek(critter& c, point threat)
     const auto body = Vector2i(c.bbox_size);
     const auto across = Math::abs(Vector2i{axis.y(), axis.x()});
     const auto step = Math::max(1, Math::dot(body, across)/2);
+    const auto pred = blocks_all_but(c.id);
     const auto seen = [&](int t) {
         return raycast(w, threat, cover + across*t, c.id, ray_pool, Search::without_critters()).success;
     };
@@ -220,7 +231,7 @@ Optional<point> cover_script::find_peek(critter& c, point threat)
     const auto clear = [&](int t) {
         const auto lo = cover.intra().center_shifted() - body/2 + Math::min(across*t, Vector2i{});
         const auto size = body + Math::abs(across*t);
-        return Search::is_passable(w, cover.chunk3(), Range2D{Vector2(lo), Vector2(lo + size)}, Search::without_critters());
+        return Search::is_passable(w, cover.chunk3(), Range2D{Vector2(lo), Vector2(lo + size)}, pred);
     };
 
     Optional<int> best;
