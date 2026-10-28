@@ -8,12 +8,12 @@ PoolRegistry::~PoolRegistry() noexcept = default;
 
 Pass::Pool& PoolRegistry::pass_pool(const Pass::Params& p)
 {
-    // The table holds only pass pools, so a slot's div_size and bbox_size give its params
-    // and equal params always find the same pool.
-    if (p.bbox_size <= direct_max_bbox && p.min_pass == pass_mode::pass)
+    p.validate();
+    if (p.bbox_size <= direct_max_bbox)
     {
-        const auto div_shift = (uint32_t)std::countr_zero(p.validate().div_size()); // xxx todo assumes power of two chunk size
-        auto& slot = direct_[div_shift][p.bbox_size - Pass::Grid::min_bbox_size];
+        const auto mode = (uint32_t)p.min_pass - 1;
+        const auto div_shift = (uint32_t)std::countr_zero(p.div_size()); // xxx todo assumes power of two chunk size
+        auto& slot = direct_[mode][div_shift][p.bbox_size - Pass::Grid::min_bbox_size];
         if (!slot)
             slot.emplace(p, Search::without_critters());
         return *slot;
