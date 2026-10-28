@@ -4,6 +4,9 @@
 #include "loader/scenery-cell.hpp"
 #include "src/cover-point.hpp"
 #include "src/critter.hpp"
+#include "src/critter-script.hpp"
+#include "src/anim-atlas.hpp"
+#include "src/nanosecond.inl"
 #include "src/grid-cover.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-pool-registry.hpp"
@@ -68,20 +71,25 @@ cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint
     return find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius});
 }
 
-// Puts a critter at pos and shoots at its pixels. What a ray hits changes only at the slope of a pixel
-// square's corner, so rays at each corner's slope and between each adjacent pair cover every aim.
-bool cant_be_shot(world& w, point threat, point pos, Vector2ui size = body)
+bptr<critter> add_critter(world& w, point pos, Vector2ui size = body)
 {
     critter_proto p;
     p.name = "npc"_s;
     p.bbox_size = Vector2ub(size);
     p.offset = pos.offset();
-    const auto id = w.make_object<critter>(w.make_id(), pos.coord(), move(p))->id;
+    return w.make_object<critter>(w.make_id(), pos.coord(), move(p));
+}
+
+// Shoots from threat at the pixels of critter id, whose box is centred on pos, passing through
+// critter threat_id. What a ray hits changes only at the slope of a pixel square's corner, so rays
+// at each corner's slope and between each adjacent pair cover every aim.
+bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vector2ui size, object_id id)
+{
     // PoolRegistry's pools leave critters out of the grid, and raycast() skips the cells it marks empty.
     Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::never_continue()};
     const auto T = Vector3i(threat).xy();
     const auto shot = [&](Vector2i to) {
-        const auto r = raycast(w, threat, threat + (to - T), 0, pool, Search::never_continue());
+        const auto r = raycast(w, threat, threat + (to - T), threat_id, pool, Search::never_continue());
         return !r.success && r.collider.id == id;
     };
     const auto lo = Vector3i(pos).xy() - Vector2i(size/2u), hi = lo + Vector2i(size) - Vector2i{1};
@@ -134,6 +142,12 @@ bool cant_be_shot(world& w, point threat, point pos, Vector2ui size = body)
         if (cast(slopes[i]) || i + 1 < slopes.size() && cast({slopes[i].a + slopes[i+1].a, slopes[i].d + slopes[i+1].d}))
             return false;
     return true;
+}
+
+// Puts a critter at pos and shoots at it.
+bool cant_be_shot(world& w, point threat, point pos, Vector2ui size = body)
+{
+    return cant_be_shot_at(w, threat, 0, pos, size, add_critter(w, pos, size)->id);
 }
 
 void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, local_coords wall_tile,
@@ -278,6 +292,60 @@ void test_wall_out_of_radius()
     fm_assert(!r.found);
 }
 
+// The npc walks behind the wall and stays hidden for 2 s. It then slides along the wall the least
+// that lets a ray from the threat reach its center, stays out 2 s, and walks back to the same spot.
+void test_cover_script()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+
+    const point threat_pos{ch, {12, 8}, {}};
+    const auto threat = add_critter(w, threat_pos);
+    auto npc = add_critter(w, point{ch, {4, 8}, {}});
+    w.init_scripts();
+    auto A = astar{};
+    npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
+
+    const auto fps = npc->atlas->info().fps;
+    const auto frame = Second / fps;
+    struct rest { point pos; uint32_t frames; };
+    Array<rest> rests;
+    auto last = npc->position();
+    auto still = 0u;
+    for (auto frames = 0u; rests.size() < 4; frames++)
+    {
+        fm_assert(frames < 60*fps);
+        auto i = npc->index();
+        npc->update(npc, i, frame);
+        if (npc->position() == last)
+        {
+            still++;
+            continue;
+        }
+        if (still >= fps)
+            arrayAppend(rests, rest{last, still});
+        last = npc->position();
+        still = 0;
+    }
+
+    const auto [hidden, peek, back, peek2] = std::array{rests[0], rests[1], rests[2], rests[3]};
+    // each wait may end a frame early or late, and the walk's arrival frame counts as still
+    const auto near_2s = [&](uint32_t n) { return n + 2 >= 2*fps && n <= 2*fps + 2; };
+    fm_assert(near_2s(hidden.frames) && near_2s(peek.frames) && near_2s(back.frames));
+    fm_assert(cant_be_shot_at(w, threat_pos, threat->id, hidden.pos, body, npc->id));
+    fm_assert(back.pos == hidden.pos && peek2.pos == peek.pos);
+
+    const auto slide = Vector3i(peek.pos).xy() - Vector3i(hidden.pos).xy();
+    fm_assert(slide.x() == 0 && slide.y() != 0);
+    Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
+    const auto seen = [&](point p) { return raycast(w, threat_pos, p, threat->id, pool, Search::without_critters()).success; };
+    fm_assert(seen(peek.pos));
+    fm_assert(!seen(peek.pos - Vector2i{0, slide.y() > 0 ? 1 : -1}));
+    w.finish_scripts();
+}
+
 } // namespace
 
 void Test::test_cover_point()
@@ -314,6 +382,7 @@ void Test::test_cover_point()
         test_shift_to_only_spot(3, false, size);
         test_shift_to_only_spot(-1, false, size);
     }
+    test_cover_script();
 }
 
 } // namespace floormat
