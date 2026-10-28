@@ -8,6 +8,7 @@
 *.profraw
 /AGENTS.md
 /CLAUDE.md
+/opencode.json
 /.claude/
 /.codex/
 __pycache__/
