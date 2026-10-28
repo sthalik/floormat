@@ -282,9 +282,10 @@ void Cover_Find(benchmark::State& state)
     const auto params = Cover::Params{(uint32_t)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Grid::PoolRegistry pools{params.div_size};
-    auto r = find_cover_point(w, pools, params, q);
+    const auto& pred = Search::never_continue();
+    auto r = find_cover_point(w, pools, params, q, pred);
     for (auto _ : state)
-        r = find_cover_point(w, pools, params, q);
+        r = find_cover_point(w, pools, params, q, pred);
     set_find_counters(state, r);
 }
 
@@ -310,7 +311,7 @@ void Cover_Find_Octants(benchmark::State& state)
             cover_pool[w[ch]].build_if_stale();
         });
         state.ResumeTiming();
-        r = find_cover_point(w, *pools, params, q);
+        r = find_cover_point(w, *pools, params, q, Search::never_continue());
     }
     set_find_counters(state, r);
     set_fill_counters(state, w, pools->cover_pool(params), 9);
@@ -331,7 +332,7 @@ void Cover_Find_Fresh(benchmark::State& state)
         pools = NullOpt;
         pools.emplace(params.div_size);
         state.ResumeTiming();
-        r = find_cover_point(w, *pools, params, q);
+        r = find_cover_point(w, *pools, params, q, Search::never_continue());
     }
     set_find_counters(state, r);
     set_fill_counters(state, w, pools->cover_pool(params), 0);

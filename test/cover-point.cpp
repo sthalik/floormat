@@ -23,6 +23,7 @@
 #include "src/tile-defs.hpp"
 #include <algorithm>
 #include <cr/GrowableArray.h>
+#include <cr/Optional.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -59,16 +60,17 @@ void rebuild(world& w)
     c.ensure_passability();
 }
 
-bool passable(world& w, point pt, Vector2ui size)
+bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Search::without_critters())
 {
     const auto min = Vector2(pt.intra().center_shifted() - Vector2i(size/2u));
-    return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(size)}, Search::without_critters());
+    return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(size)}, pred);
 }
 
-cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size, Vector2ui size = body)
+cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size, Vector2ui size = body,
+                        const Search::pred& pred = Search::without_critters())
 {
     Grid::PoolRegistry pools{div_size};
-    return find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius});
+    return find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius}, pred);
 }
 
 bptr<critter> add_critter(world& w, point pos, Vector2ui size = body)
@@ -325,9 +327,31 @@ void test_wall_out_of_radius()
     fm_assert(!r.found);
 }
 
+// A critter stands on the spot found on empty ground, so the body has to fit somewhere else.
+void test_spot_taken()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+
+    const point npc{ch, {4, 8}, {}}, threat{ch, {12, 8}, {}};
+    const auto spot = find(w, npc, threat, 3*tile_size_xy, 8);
+    fm_assert(spot.found);
+    const auto other = add_critter(w, spot.pos);
+    const auto r = find(w, npc, threat, 3*tile_size_xy, 8, body, Search::never_continue());
+    fm_assert(r.found);
+    fm_assert(passable(w, r.pos, body, Search::never_continue()));
+    w[ch].remove_object(*other, other->index());
+    fm_assert(cant_be_shot(w, threat, r.pos));
+}
+
+struct cover_cycle { point hidden, peek; };
+
 // The npc walks behind the wall and stays hidden for 2 s. It then slides along the wall the least
 // that lets a ray from the threat reach its center, stays out 2 s, and walks back to the same spot.
-void test_cover_script()
+// Another critter stands at other_pos throughout.
+cover_cycle test_cover_script(const Optional<point>& other_pos = {})
 {
     auto w = world();
     add_ground(w);
@@ -337,6 +361,7 @@ void test_cover_script()
     const point threat_pos{ch, {12, 8}, {}};
     const auto threat = add_critter(w, threat_pos);
     auto npc = add_critter(w, point{ch, {4, 8}, {}});
+    const auto other = other_pos ? add_critter(w, *other_pos) : bptr<critter>{};
     w.init_scripts();
     auto A = astar{};
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
@@ -363,6 +388,9 @@ void test_cover_script()
         still = 0;
     }
 
+    if (other)
+        w[ch].kill_object(*other, other->index());
+
     const auto [hidden, peek, back, peek2] = std::array{rests[0], rests[1], rests[2], rests[3]};
     // each wait may end a frame early or late, and the walk's arrival frame counts as still
     const auto near_2s = [&](uint32_t n) { return n + 2 >= 2*fps && n <= 2*fps + 2; };
@@ -377,6 +405,7 @@ void test_cover_script()
     fm_assert(seen(peek.pos));
     fm_assert(!seen(peek.pos - Vector2i{0, slide.y() > 0 ? 1 : -1}));
     w.finish_scripts();
+    return { hidden.pos, peek.pos };
 }
 
 } // namespace
@@ -409,6 +438,7 @@ void Test::test_cover_point()
     test_octants_beside_bearing();
     test_touching_blockers();
     test_wall_out_of_radius();
+    test_spot_taken();
     for (const auto size : { Vector2ui{23, 23}, Vector2ui{25, 25}, Vector2ui{23, 25}, Vector2ui{25, 23} })
     {
         test_narrow_pillar_rejected(size);
@@ -417,7 +447,13 @@ void Test::test_cover_point()
         test_shift_to_only_spot(3, false, size);
         test_shift_to_only_spot(-1, false, size);
     }
-    test_cover_script();
+    const auto [hidden, peek] = test_cover_script();
+    test_cover_script(hidden);
+    // 1 px past the hidden body on the side it peeked from, so only the other side is left
+    const auto side = Vector2i{0, Vector3i(peek).y() > Vector3i(hidden).y() ? 1 : -1};
+    const auto c = test_cover_script(hidden + side*((int)body.y() + 1));
+    fm_assert(c.hidden == hidden);
+    fm_assert((Vector3i(c.peek).y() - Vector3i(c.hidden).y())*side.y() < 0);
 }
 
 } // namespace floormat

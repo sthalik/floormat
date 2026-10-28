@@ -1,5 +1,6 @@
 #pragma once
 #include "point.hpp"
+#include "search-pred.hpp"
 
 namespace floormat { class world; }
 namespace floormat::Grid { class PoolRegistry; }
@@ -26,7 +27,9 @@ struct cover_point_result
     bool found = false;
 };
 
+// pred decides where the body fits, so a critter standing on a spot can rule it out. What hides
+// the body is decided without critters, as in the cover grids.
 cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Grid::Cover::Params params,
-                                    const cover_query& q);
+                                    const cover_query& q, const Search::pred& pred);
 
 } // namespace floormat

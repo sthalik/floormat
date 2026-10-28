@@ -77,7 +77,8 @@ int64_t floor_div(int64_t x, int64_t d)
 
 } // namespace
 
-cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::Params params, const cover_query& q)
+cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::Params params, const cover_query& q,
+                                    const Search::pred& pred)
 {
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     auto& cover_pool = pools.cover_pool(params);
@@ -133,7 +134,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
     const auto passable = [&](Vector2i center) {
         const auto pt = to_point(center);
         const auto min = Vector2(pt.intra().center_shifted() - body_lo);
-        return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(q.body_size)}, Search::without_critters());
+        return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(q.body_size)}, pred);
     };
 
     // A body flush against a blocker covers cells the blocker clears. The slope check covers those.
