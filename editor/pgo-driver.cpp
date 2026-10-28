@@ -1381,7 +1381,7 @@ task app::scene_maze3()
     using mazes::kind;
     constexpr auto n = (uint32_t)kind::COUNT;
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pool_for(mazes::bbox_size);
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass});
     mazes::route routes[n];
     for (auto k = 0u; k < n; k++)
     {
@@ -1434,7 +1434,7 @@ task app::scene_maze_exit()
     constexpr uint8_t size = 24;
     constexpr auto bbox = Vector2ui{size};
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pool_for(size);
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, size, pass_mode::pass});
     // reset_world() spawns the player inside the footprint. A critter in a corridor blocks the
     // walk, while the search, run without_critters(), routes through it.
     auto P = ensure_player_character(w);
@@ -1738,7 +1738,7 @@ task app::scene_grids()
 
     Pass::Pool pass_raycast{raycast_params, Search::never_continue()};
     Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
-    Pass::Pool pass_critter{M->astar().pool_registry().pool_for(C->bbox_size.max()).params(), Search::never_continue()};
+    Pass::Pool pass_critter{Pass::Params{astar::default_div_size, C->bbox_size.max(), pass_mode::pass}, Search::never_continue()};
 
     // maybe_mark_stale_all() is where the version compare and the eager ensure_passability() of
     // the chunk and its neighbours live, so it does the whole per-frame discipline for us. The

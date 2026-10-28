@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/safe-ptr.hpp"
 #include "search-pred.hpp"
+#include "tile-defs.hpp"
 #include <cr/Array.h>
 #include <mg/Vector2.h>
 
@@ -25,6 +26,9 @@ public:
     struct chunk_bitmaps;
 
     using pred = Search::pred;
+
+    // cell size of the pools searched by the overloads that take no pool
+    static constexpr uint32_t default_div_size = (uint32_t)tile_size_xy/4;
 
     astar();
     ~astar() noexcept;

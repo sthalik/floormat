@@ -854,9 +854,20 @@ struct astar::seed_search
     }
 };
 
+namespace {
+
+Pass::Params default_pool_params(Vector2ui own_size)
+{
+    const auto bbox = Math::max(own_size.x(), own_size.y());
+    fm_assert(bbox > 0);
+    return {astar::default_div_size, bbox, pass_mode::pass};
+}
+
+} // namespace
+
 astar::astar() :
     _cache{InPlaceInit},
-    _pool_registry{InPlaceInit, (uint32_t)tile_size_xy/4}
+    _pool_registry{InPlaceInit}
 {
 }
 
@@ -876,7 +887,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    uint32_t max_dist, Vector2ui own_size,
                                    const pred& p)
 {
-    auto& pool = _pool_registry->pool_for(Math::max(own_size.x(), own_size.y()));
+    auto& pool = _pool_registry->pass_pool(default_pool_params(own_size));
     return Dijkstra<Debug, FindClosestOnFailure>(w, pool, from, to, max_dist, own_size, p);
 }
 
@@ -1267,7 +1278,7 @@ template path_search_result astar::Dijkstra<3, false>(world&, Grid::Pass::Pool&,
 
 auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p) -> string_pull_result
 {
-    return string_pull(w, _pool_registry->pool_for(Math::max(own_size.x(), own_size.y())), result, own_size, p);
+    return string_pull(w, _pool_registry->pass_pool(default_pool_params(own_size)), result, own_size, p);
 }
 
 auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,

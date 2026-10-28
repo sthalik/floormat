@@ -86,7 +86,7 @@ void check_flush_goal(const char* name, uint32_t bbox, F&& setup, Vector2b goal_
 
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto& pool16 = A.pool_registry().pool_for(bbox);
+    auto& pool16 = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass});
     auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, bbox, pass_mode::pass}, pred};
 
     for (auto* pool : { &pool16, &pool8 })
@@ -197,7 +197,8 @@ void test_odd_body_corridor(uint32_t bbox)
     const auto goal = point{global_coords{flush_ch, flush_tile}, {goal_x, 0}};
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    const auto d = (int)A.pool_registry().pool_for(bbox).params().div_size();
+    const auto registry_params = Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass};
+    const auto d = (int)registry_params.div_size();
     auto exact = Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)d, bbox, pass_mode::pass}, pred};
     auto wider = Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)d, bbox + 1, pass_mode::pass}, pred};
     fm_assert(exact.params().div_size() == (uint32_t)d && wider.params().div_size() == (uint32_t)d);
@@ -222,7 +223,7 @@ void test_odd_body_corridor(uint32_t bbox)
     fm_assert(r1.is_found());
     auto r2 = A.Dijkstra<0, false>(w, from, goal, max_dist, Vector2ui(bbox), pred);
     if (!r2.is_found())
-        fm_abort("odd body corridor bbox %u: registry pool has bbox %u", bbox, A.pool_registry().pool_for(bbox).params().bbox_size);
+        fm_abort("odd body corridor bbox %u: registry pool has bbox %u", bbox, registry_params.bbox_size);
     fm_assert(r2.cost() == r1.cost());
 }
 
@@ -485,7 +486,7 @@ void Test::test_dijkstra()
     constexpr auto wpos = global_coords{wch, wt};
     const auto from = point{{0, 0, 0}, {11, 9}};
     constexpr auto own_size = Vector2ui{16};
-    auto& pool = A.pool_registry().pool_for(own_size.x());
+    auto& pool = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, own_size.x(), pass_mode::pass});
 
     add_floors(w, from, max_dist, pool.params().div_size());
     auto& ch = w[wch];

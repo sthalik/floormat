@@ -26,27 +26,30 @@
 namespace floormat {
 namespace {
 
-void test_pool_for_promotes_and_snaps()
+void test_pass_pool_promotes_and_snaps()
 {
-    Grid::PoolRegistry reg{(uint32_t)tile_size_xy / 4};
+    Grid::PoolRegistry reg;
+    const auto pool = [&](uint32_t bbox) -> auto& {
+        return reg.pass_pool(Grid::Pass::Params{(uint32_t)tile_size_xy / 4, bbox, pass_mode::pass});
+    };
 
-    auto& p2 = reg.pool_for(2);
+    auto& p2 = pool(2);
     fm_assert(p2.params().bbox_size == Grid::Pass::Grid::min_bbox_size);
     fm_assert(p2.params().bbox_size == 4);
 
-    auto& p4 = reg.pool_for(4);
+    auto& p4 = pool(4);
     fm_assert(p4.params().bbox_size == 4);
     fm_assert(&p2 == &p4);
 
-    auto& p8 = reg.pool_for(8);
+    auto& p8 = pool(8);
     fm_assert(p8.params().bbox_size == 8);
     fm_assert(&p8 != &p4);
 
-    auto& p5 = reg.pool_for(5);
+    auto& p5 = pool(5);
     fm_assert(p5.params().bbox_size == 5);
-    fm_assert(&p5 != &reg.pool_for(6));
+    fm_assert(&p5 != &pool(6));
 
-    auto& p64 = reg.pool_for((uint32_t)tile_size_xy);
+    auto& p64 = pool((uint32_t)tile_size_xy);
     fm_assert(p64.params().bbox_size == (uint32_t)tile_size_xy);
 }
 
@@ -236,7 +239,7 @@ void test_can_move_to_zero_bbox()
 
 void Test::test_passability_bbox()
 {
-    test_pool_for_promotes_and_snaps();
+    test_pass_pool_promotes_and_snaps();
     test_const_passable_equivalence();
     test_const_passable_with_neighbors();
     test_pred_rect_is_in_self_chunk_frame();

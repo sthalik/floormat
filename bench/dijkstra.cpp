@@ -1,7 +1,6 @@
 #include "src/search-result.hpp"
 #include "src/search-astar.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pool-registry.hpp"
 #include "src/point.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
@@ -26,7 +25,7 @@ void Dijkstra(benchmark::State& state)
     constexpr auto wpos = global_coords{wch, wt};
     const auto from = point{{0, 0, 0}, {11, 9}};
     constexpr auto own_size = Vector2ui{16};
-    const auto cell = A.pool_registry().pool_for(own_size.x()).params().div_size();
+    const auto cell = Pass::Params{astar::default_div_size, own_size.x(), pass_mode::pass}.div_size();
 
     // Same floors as add_floors() in test/dijkstra.cpp.
     const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
