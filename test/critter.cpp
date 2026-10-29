@@ -267,7 +267,7 @@ void test_missing_atlas_walks()
     auto w = world();
     object_id id = 0;
     auto proto = make_proto(1.f);
-    proto.atlas = loader.make_placeholder_anim_atlas(loader.INVALID, 30);
+    proto.atlas = loader.make_placeholder_anim_atlas(loader.INVALID, {.fps = 30});
     auto& npc = *w.ensure_player_character(id, move(proto));
     auto idx = npc.index();
     npc.teleport_to(idx, walk_start, rotation::N);

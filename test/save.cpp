@@ -574,6 +574,133 @@ void test_save_missing_tile_atlas()
     fm_assert(loader.wall_atlas(wall_to, loader_policy::ignore) == loader.invalid_wall_atlas().atlas);
 }
 
+// `name` with its last four characters replaced, so that write_patched() can swap one for the other.
+String missing_name(StringView name)
+{
+    constexpr auto suffix = "gone"_s;
+    fm_assert(name.size() > suffix.size());
+    auto ret = String{name};
+    for (uint32_t i = 0; i < suffix.size(); i++)
+        ret[ret.size() - suffix.size() + i] = suffix[i];
+    fm_assert(ret != name);
+    return ret;
+}
+
+void test_save_missing_door_atlas()
+{
+    const auto tmp = Path::join(loader.TEMP_PATH, "test/test-save-missing-door-atlas.dat"_s);
+    const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-door-atlas-2.dat"_s);
+    const auto resaved = Path::join(loader.TEMP_PATH, "test/test-save-missing-door-atlas-3.dat"_s);
+    constexpr auto ch = chunk_coords_{2, -3, 0};
+    constexpr auto closed_pos = local_coords{4, 5}, open_pos = local_coords{6, 5}, table_pos = local_coords{8, 5};
+
+    const auto& door_proto = loader.scenery("door1");
+    const auto door_from = String{door_proto.atlas->name()};
+    const auto table_from = String{loader.scenery("table1").atlas->name()};
+    const auto door_to = missing_name(door_from), table_to = missing_name(table_from);
+    object_id closed_id = 0, open_id = 0, table_id = 0;
+    {
+        auto w = world();
+        w[ch].mark_modified();
+        auto closed = door_proto, open = door_proto;
+        closed.frame = uint16_t(door_proto.atlas->info().nframes - 1);
+        closed.pass = pass_mode::blocked;
+        open.frame = 0;
+        open.pass = pass_mode::pass;
+        closed_id = w.make_id();
+        open_id = w.make_id();
+        table_id = w.make_id();
+        w.make_scenery(closed_id, {ch, closed_pos}, move(closed));
+        w.make_scenery(open_id, {ch, open_pos}, move(open));
+        w.make_scenery(table_id, {ch, table_pos}, scenery_proto(loader.scenery("table1")));
+        if (Path::exists(tmp))
+            Path::remove(tmp);
+        w.serialize(tmp);
+    }
+    auto save = Path::read(tmp);
+    fm_assert(save);
+    write_patched(patched, *save, {door_from.data(), door_from.size()}, {door_to.data(), door_to.size()});
+    save = Path::read(patched);
+    fm_assert(save);
+    write_patched(patched, *save, {table_from.data(), table_from.size()}, {table_to.data(), table_to.size()});
+
+    const auto check = [&](world& w) {
+        const auto check_door = [&](object_id id, uint16_t frame, pass_mode pass) {
+            const auto d = w.find_object<door_scenery>(id);
+            fm_assert(d);
+            fm_assert(d->atlas->name() == door_to);
+            fm_assert(d->atlas->is_placeholder());
+            fm_assert(d->atlas->info().fps == 30);
+            fm_assert(d->atlas->info().nframes == 2);
+            fm_assert(d->frame == frame);
+            fm_assert(d->pass == pass);
+            fm_assert(d->is_dynamic());
+        };
+        check_door(closed_id, 1, pass_mode::blocked);
+        check_door(open_id, 0, pass_mode::pass);
+        const auto t = w.find_object<generic_scenery>(table_id);
+        fm_assert(t);
+        fm_assert(t->atlas->name() == table_to);
+        fm_assert(t->atlas->is_placeholder());
+        fm_assert(t->atlas->info().fps == 0);
+        fm_assert(t->atlas->info().nframes == 1);
+        fm_assert(t->frame == 0);
+        fm_assert(!t->is_dynamic());
+    };
+
+    auto w = world::deserialize(patched, loader_policy::ignore);
+    check(w);
+    if (Path::exists(resaved))
+        Path::remove(resaved);
+    w.serialize(resaved);
+    auto w2 = world::deserialize(resaved, loader_policy::ignore);
+    check(w2);
+    fm_assert(loader.anim_atlas(door_to, {}, loader_policy::ignore) == loader.invalid_anim_atlas().atlas);
+
+    {
+        const auto restored = Path::join(loader.TEMP_PATH, "test/test-save-missing-door-atlas-4.dat"_s);
+        const auto last = uint16_t(door_proto.atlas->info().nframes - 1);
+        fm_assert(last > 1);
+        auto bytes = Path::read(resaved);
+        fm_assert(bytes);
+        write_patched(restored, *bytes, {door_to.data(), door_to.size()}, {door_from.data(), door_from.size()});
+        bytes = Path::read(restored);
+        fm_assert(bytes);
+        write_patched(restored, *bytes, {table_to.data(), table_to.size()}, {table_from.data(), table_from.size()});
+        auto w3 = world::deserialize(restored, loader_policy::error);
+
+        const auto swing = [&](object_id id, uint16_t from, uint16_t to, pass_mode from_pass, pass_mode to_pass) {
+            const auto obj = w3.find_object(id);
+            const auto d = w3.find_object<door_scenery>(id);
+            fm_assert(d);
+            fm_assert(!d->atlas->is_placeholder());
+            fm_assert(d->atlas->name() == door_from);
+            fm_assert(d->frame == from && d->pass == from_pass && !d->active);
+            auto index = d->index();
+            fm_assert(d->activate(index));
+            for (uint32_t i = 0; d->active; i++)
+            {
+                fm_assert(i < 10);
+                d->update(obj, index, Second);
+            }
+            fm_assert(d->frame == to && d->pass == to_pass);
+        };
+        swing(closed_id, last, 0, pass_mode::blocked, pass_mode::pass);
+        swing(open_id, 0, last, pass_mode::pass, pass_mode::blocked);
+    }
+
+    const auto toggle =[&](object_id id, uint16_t frame, pass_mode pass) {
+        const auto obj = w.find_object(id);
+        const auto d = w.find_object<door_scenery>(id);
+        auto index = d->index();
+        fm_assert(d->activate(index));
+        d->update(obj, index, Second);
+        fm_assert(d->frame == frame && d->pass == pass && !d->active);
+    };
+    toggle(closed_id, 0, pass_mode::pass);
+    toggle(open_id, 1, pass_mode::blocked);
+}
+
 } // namespace
 
 void Test::test_save()
@@ -591,6 +718,7 @@ void Test::test_saves()
     test_save_offset_frac();
     test_save_missing_atlas();
     test_save_missing_tile_atlas();
+    test_save_missing_door_atlas();
 }
 
 } // namespace floormat
