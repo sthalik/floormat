@@ -241,8 +241,8 @@ struct visitor_ : visitor_base<IsNewest>
         case object_type::critter:
             self.visit(obj.atlas, atlas_type::anim, f);
             if constexpr(!IsWriter)
-                if (obj.atlas == loader.invalid_anim_atlas().atlas) [[unlikely]]
-                    obj.atlas = loader.invalid_critter_atlas().atlas;
+                if (obj.atlas->name() == loader.INVALID || obj.atlas->is_placeholder()) [[unlikely]]
+                    obj.atlas = self.critter_placeholder(obj.atlas);
             break;
         }
         fm_debug_assert(obj.atlas);
@@ -271,9 +271,9 @@ struct visitor_ : visitor_base<IsNewest>
             if (self.PROTO < 31) [[unlikely]]
                 obj.delta = object::ns_to_delta(object::fraction_to_ns(obj.delta));
         visit(obj.frame, f);
-        // Both stand-ins for a missing atlas have one frame.
+        // A placeholder has one frame.
         if constexpr(!IsWriter)
-            if (obj.atlas->name() == loader.INVALID) [[unlikely]]
+            if (obj.atlas->name() == loader.INVALID || obj.atlas->is_placeholder()) [[unlikely]]
                 obj.frame = 0;
         visit(obj.r, f);
         visit(obj.pass, f);
@@ -901,7 +901,12 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     {
         void* atlas;
         atlas_type type;
+        bptr<anim_atlas> anim, critter_anim;
     };
+
+    // A critter on an fps-0 placeholder never walks, and the missing atlas's fps is unknown. Scenery
+    // placeholders stay at fps 0, since is_dynamic() is fps > 0.
+    static constexpr uint32_t critter_placeholder_fps = 30;
 
     std::vector<StringView> strings;
     std::vector<atlas_pair> atlases;
@@ -912,6 +917,18 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     loader_policy asset_policy;
 
     reader(class world& w, loader_policy policy) : w{w}, asset_policy{policy} {}
+
+    const bptr<anim_atlas>& critter_placeholder(const bptr<anim_atlas>& a)
+    {
+        for (auto& x : atlases)
+            if (x.anim == a)
+            {
+                if (!x.critter_anim)
+                    x.critter_anim = loader.make_placeholder_anim_atlas(a->name(), critter_placeholder_fps);
+                return x.critter_anim;
+            }
+        fm_abort("placeholder '%s' isn't in the atlas table", a->name().data());
+    }
 
     template<typename F> void visit(String& str, F&& f)
     { atlasid id; f(id); str = get_string(id); }
@@ -931,7 +948,9 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
         default:
             fm_throw("invalid atlas type {}", (int)type);
         case atlas_type::anim:
-            a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}, asset_policy);
+            fm_soft_assert(id < atlases.size());
+            fm_soft_assert(atlases[id].type == atlas_type::anim);
+            a = atlases[id].anim;
             break;
         case atlas_type::vobj:
             a = loader.vobj(get_atlas<atlas_type::vobj>(id)).atlas;
@@ -1095,9 +1114,9 @@ ok:
     {
         using atlas_type = typename atlas_from_type<Type>::Type;
         fm_soft_assert(id < atlases.size());
-        auto [atlas, type] = atlases[id];
-        fm_soft_assert(type == Type);
-        const auto* atlasʹ = static_cast<const atlas_type*>(atlas);
+        const auto& x = atlases[id];
+        fm_soft_assert(x.type == Type);
+        const auto* atlasʹ = static_cast<const atlas_type*>(x.atlas);
         return atlasʹ->name();
     }
 
@@ -1120,6 +1139,7 @@ ok:
             atlasid id; id << s;
             auto str = get_string(id);
             void* atlas = nullptr;
+            bptr<anim_atlas> anim;
             switch (type)
             {
             default: fm_throw("invalid atlas_type {}", (size_t)type);
@@ -1131,13 +1151,18 @@ ok:
                 atlas = loader.wall_atlas(str, asset_policy).get();
                 break;
             case atlas_type::anim:
-                atlas = loader.anim_atlas(str, {}, asset_policy).get();
+                anim = loader.anim_atlas(str, {}, asset_policy);
+                // One of its own, named after the missing atlas so that saving again keeps the
+                // name, and owned here so that the loader keeps nothing.
+                if (anim->name() == loader.INVALID || anim->is_placeholder()) [[unlikely]]
+                    anim = loader.make_placeholder_anim_atlas(str, 0);
+                atlas = &*anim;
                 break;
             case atlas_type::vobj:
                 atlas = loader.vobj(str).atlas.get();
                 break;
             }
-            atlases.push_back({.atlas = atlas, .type = type });
+            atlases.push_back({.atlas = atlas, .type = type, .anim = move(anim), .critter_anim = {} });
         }
     }
 

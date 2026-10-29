@@ -91,6 +91,14 @@ chunk& Test::make_test_chunk(world& w, chunk_coords_ ch)
 
 namespace {
 
+// Each load makes placeholders of its own, so the same missing atlas comes back as a new pointer.
+void match_placeholders(const object_proto& a, object_proto& b)
+{
+    const auto is_placeholder = [](const auto& x) { return x->name() == loader.INVALID || x->is_placeholder(); };
+    if (is_placeholder(a.atlas) && is_placeholder(b.atlas) && a.atlas->name() == b.atlas->name())
+        b.atlas = a.atlas;
+}
+
 void assert_chunks_equal(const chunk& a, const chunk& b)
 {
     fm_assert(a.objects().size() == b.objects().size());
@@ -116,14 +124,18 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
         case object_type::critter: {
             const auto& e1 = static_cast<const critter&>(ae);
             const auto& e2 = static_cast<const critter&>(be);
-            const auto p1 = critter_proto(e1), p2 = critter_proto(e2);
+            const auto p1 = critter_proto(e1);
+            auto p2 = critter_proto(e2);
+            match_placeholders(p1, p2);
             fm_assert(p1 == p2);
             break;
         }
         case object_type::scenery: {
             const auto& e1 = static_cast<const scenery&>(ae);
             const auto& e2 = static_cast<const scenery&>(be);
-            const auto p1 = scenery_proto(e1), p2 = scenery_proto(e2);
+            const auto p1 = scenery_proto(e1);
+            auto p2 = scenery_proto(e2);
+            match_placeholders(p1, p2);
             fm_assert(p1 == p2);
             break;
         }
@@ -457,7 +469,7 @@ void check_missing_atlas(StringView name, uint32_t expected_count)
     const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-atlas.dat"_s);
     const auto file = Path::read(path);
     fm_assert(file);
-    constexpr auto from = "npc-walk"_s, to = "npc-gone"_s;
+    constexpr auto from = "anim/npc-walk"_s, to = "anim/npc-gone"_s;
     write_patched(patched, *file, {from.data(), from.size()}, {to.data(), to.size()});
 
     auto w = world::deserialize(patched, loader_policy::ignore);
@@ -465,6 +477,8 @@ void check_missing_atlas(StringView name, uint32_t expected_count)
     double max_err = 0;
     for (auto& c : w.chunks())
         c.objects().visit<critter>([&](critter& C) {
+            fm_assert(C.atlas->name() == to);
+            fm_assert(C.atlas->is_placeholder());
             fm_assert(C.atlas->info().fps == 30);
             fm_assert(C.frame == 0);
             // quicksave.dat's player was saved facing SE on frame 23.
@@ -484,10 +498,13 @@ void check_missing_atlas(StringView name, uint32_t expected_count)
     count = 0;
     for (auto& c : w2.chunks())
         c.objects().visit<critter>([&](critter& C) {
-            fm_assert(C.atlas == loader.invalid_critter_atlas().atlas);
+            fm_assert(C.atlas->name() == to);
+            fm_assert(C.atlas->is_placeholder());
+            fm_assert(C.atlas->info().fps == 30);
             count++;
         });
     fm_assert(count == expected_count);
+    fm_assert(loader.anim_atlas(to, {}, loader_policy::ignore) == loader.invalid_anim_atlas().atlas);
 }
 
 void test_save_missing_atlas()

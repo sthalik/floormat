@@ -35,15 +35,36 @@ void anim_traits::atlas_list(Storage& s)
     s.name_map[loader.INVALID] = -1uz;
 }
 
+namespace {
+constexpr inline auto invalid_atlas_size = Vector2ui{tile_size_xy/2};
+} // namespace
+
 auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
-    return make_invalid_atlas(0);
+    constexpr auto size = invalid_atlas_size;
+    auto err_tex = loader.make_error_texture(size);
+
+    // Allocate the single frame in the shared sprite atlas so render-path
+    // lookups succeed for any object that ended up using this placeholder
+    // (e.g. missing asset with loader_policy::warn). Same pattern as loader/vobj.cpp.
+    const auto px_size = (size_t)err_tex.pixels().size()[2];
+    const auto row_stride = (size_t)size.x() * px_size;
+    const auto* src_base = (const char*)err_tex.pixels().data();
+    PixelStorage storage;
+    storage.setRowLength((Int)size.x());
+    storage.setAlignment(1);
+    const ImageView2D view{storage, err_tex.format(),
+                           {(Int)size.x(), (Int)size.y()},
+                           ArrayView<const void>{src_base, (size_t)size.y() * row_stride}};
+    auto sp = loader.atlas().add(view);
+
+    return { .atlas = make_invalid_atlas(loader.INVALID, 0, sp.raw()), .name = loader.INVALID, };
 }
 
-auto anim_traits::make_invalid_atlas(uint32_t fps) -> Cell
+auto anim_traits::make_invalid_atlas(StringView name, uint32_t fps, const SpriteAtlas::Sprite* sprite) -> bptr<Atlas>
 {
-    constexpr auto size = Vector2ui{tile_size_xy/2};
+    constexpr auto size = invalid_atlas_size;
     constexpr auto ground = Vector2i(size/2);
 
     auto frame = anim_frame {
@@ -59,6 +80,7 @@ auto anim_traits::make_invalid_atlas(uint32_t fps) -> Cell
         groups[i] = anim_group {
             .name = rotation_names[i],
             .frames = array({ frame }),
+            .sprites = array({ sprite }),
         };
     auto def = anim_def {
         .object_name = loader.INVALID,
@@ -70,36 +92,7 @@ auto anim_traits::make_invalid_atlas(uint32_t fps) -> Cell
         .fps = fps,
     };
     auto err_tex = loader.make_error_texture(size);
-
-    // Allocate the single frame in the shared sprite atlas so render-path
-    // lookups succeed for any object that ended up using this placeholder
-    // (e.g. missing asset with loader_policy::warn). Must happen before the
-    // atlas ctor consumes `def`. Same pattern as loader/vobj.cpp.
-    {
-        const auto px_size = (size_t)err_tex.pixels().size()[2];
-        const auto row_stride = (size_t)size.x() * px_size;
-        const auto* src_base = (const char*)err_tex.pixels().data();
-        PixelStorage storage;
-        storage.setRowLength((Int)size.x());
-        storage.setAlignment(1);
-        const ImageView2D view{storage, err_tex.format(),
-                               {(Int)size.x(), (Int)size.y()},
-                               ArrayView<const void>{src_base, (size_t)size.y() * row_stride}};
-        auto sp = loader.atlas().add(view);
-        for (auto& g : def.groups)
-        {
-            g.sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, 1};
-            g.sprites[0] = sp.raw();
-        }
-    }
-
-    auto atlas = bptr<class anim_atlas>{InPlace, loader.INVALID, err_tex, move(def)};
-
-    auto info = anim_cell {
-        .atlas = atlas,
-        .name = loader.INVALID,
-    };
-    return info;
+    return bptr<class anim_atlas>{InPlace, name, err_tex, move(def), true};
 }
 
 auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>

@@ -24,6 +24,7 @@ class anim_atlas final : public bptr_base
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
     uint64_t _frame_duration;
+    bool _placeholder = false;
 
     static decltype(_group_indices) make_group_indices(const anim_def& anim) noexcept;
 
@@ -31,13 +32,14 @@ public:
     static uint8_t rotation_to_index(StringView name);
 
     anim_atlas() noexcept;
-    anim_atlas(String name, const ImageView2D& tex, anim_def info);
+    anim_atlas(String name, const ImageView2D& tex, anim_def info, bool placeholder = false);
     ~anim_atlas() noexcept override;
 
     anim_atlas(anim_atlas&&) noexcept;
     anim_atlas& operator=(anim_atlas&&) noexcept;
 
     StringView name() const noexcept;
+    bool is_placeholder() const noexcept;
     const anim_def& info() const noexcept;
     Ns frame_duration() const noexcept;
 

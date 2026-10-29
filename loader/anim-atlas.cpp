@@ -2,6 +2,7 @@
 #include "atlas-loader.inl"
 #include "anim-cell.hpp"
 #include "anim-traits.hpp"
+#include "src/anim-atlas.hpp"
 #include "compat/borrowed-ptr.hpp"
 
 namespace floormat::loader_detail {
@@ -35,13 +36,12 @@ const anim_cell& loader_impl::invalid_anim_atlas()
     return _anim_loader->get_invalid_atlas();
 }
 
-// Not invalid_anim_atlas() with fps 30, because fps > 0 would make the scenery on it dynamic. 30
-// since the missing atlas's frame rate is unknown, and at fps 0 a critter never walks.
-const anim_cell& loader_impl::invalid_critter_atlas()
+// A new copy of invalid_anim_atlas() named `name`, at `fps`. It shares that atlas's sprite, since
+// the sprite atlas never frees one.
+bptr<anim_atlas> loader_impl::make_placeholder_anim_atlas(StringView name, uint32_t fps)
 {
-    if (!_invalid_critter_atlas) [[unlikely]]
-        _invalid_critter_atlas = atlas_loader_traits<class anim_atlas>::make_invalid_atlas(30);
-    return *_invalid_critter_atlas;
+    const auto* sprite = invalid_anim_atlas().atlas->group(rotation::N).sprites[0];
+    return atlas_loader_traits<class anim_atlas>::make_invalid_atlas(name, fps, sprite);
 }
 
 } // namespace floormat::loader_detail
