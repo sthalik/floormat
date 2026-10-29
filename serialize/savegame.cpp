@@ -241,7 +241,7 @@ struct visitor_ : visitor_base<IsNewest>
         case object_type::critter:
             self.visit(obj.atlas, atlas_type::anim, f);
             if constexpr(!IsWriter)
-                if (obj.atlas->name() == loader.INVALID || obj.atlas->is_placeholder()) [[unlikely]]
+                if (obj.atlas->is_placeholder()) [[unlikely]]
                     obj.atlas = self.critter_placeholder(obj.atlas);
             break;
         }
@@ -273,7 +273,7 @@ struct visitor_ : visitor_base<IsNewest>
         visit(obj.frame, f);
         // A placeholder has one frame.
         if constexpr(!IsWriter)
-            if (obj.atlas->name() == loader.INVALID || obj.atlas->is_placeholder()) [[unlikely]]
+            if (obj.atlas->is_placeholder()) [[unlikely]]
                 obj.frame = 0;
         visit(obj.r, f);
         visit(obj.pass, f);
@@ -901,6 +901,8 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     {
         void* atlas;
         atlas_type type;
+        bptr<ground_atlas> ground;
+        bptr<wall_atlas> wall;
         bptr<anim_atlas> anim, critter_anim;
     };
 
@@ -948,9 +950,7 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
         default:
             fm_throw("invalid atlas type {}", (int)type);
         case atlas_type::anim:
-            fm_soft_assert(id < atlases.size());
-            fm_soft_assert(atlases[id].type == atlas_type::anim);
-            a = atlases[id].anim;
+            a = get_atlas_pair(id, atlas_type::anim).anim;
             break;
         case atlas_type::vobj:
             a = loader.vobj(get_atlas<atlas_type::vobj>(id)).atlas;
@@ -1110,13 +1110,18 @@ ok:
         return strings[id];
     }
 
+    const atlas_pair& get_atlas_pair(atlasid id, atlas_type type)
+    {
+        fm_soft_assert(id < atlases.size());
+        const auto& x = atlases[id];
+        fm_soft_assert(x.type == type);
+        return x;
+    }
+
     template<atlas_type Type> StringView get_atlas(atlasid id)
     {
         using atlas_type = typename atlas_from_type<Type>::Type;
-        fm_soft_assert(id < atlases.size());
-        const auto& x = atlases[id];
-        fm_soft_assert(x.type == Type);
-        const auto* atlasʹ = static_cast<const atlas_type*>(x.atlas);
+        const auto* atlasʹ = static_cast<const atlas_type*>(get_atlas_pair(id, Type).atlas);
         return atlasʹ->name();
     }
 
@@ -1139,22 +1144,30 @@ ok:
             atlasid id; id << s;
             auto str = get_string(id);
             void* atlas = nullptr;
+            bptr<ground_atlas> ground;
+            bptr<wall_atlas> wall;
             bptr<anim_atlas> anim;
+            // A missing atlas gets a placeholder of its own, named after it so that saving again
+            // keeps the name, and owned here so that the loader keeps nothing.
             switch (type)
             {
             default: fm_throw("invalid atlas_type {}", (size_t)type);
             case atlas_type::none: break;
             case atlas_type::ground:
-                atlas = loader.ground_atlas(str, asset_policy).get();
+                ground = loader.ground_atlas(str, asset_policy);
+                if (ground->is_placeholder()) [[unlikely]]
+                    ground = loader.make_placeholder_ground_atlas(str);
+                atlas = &*ground;
                 break;
             case atlas_type::wall:
-                atlas = loader.wall_atlas(str, asset_policy).get();
+                wall = loader.wall_atlas(str, asset_policy);
+                if (wall->is_placeholder()) [[unlikely]]
+                    wall = loader.make_placeholder_wall_atlas(str);
+                atlas = &*wall;
                 break;
             case atlas_type::anim:
                 anim = loader.anim_atlas(str, {}, asset_policy);
-                // One of its own, named after the missing atlas so that saving again keeps the
-                // name, and owned here so that the loader keeps nothing.
-                if (anim->name() == loader.INVALID || anim->is_placeholder()) [[unlikely]]
+                if (anim->is_placeholder()) [[unlikely]]
                     anim = loader.make_placeholder_anim_atlas(str, 0);
                 atlas = &*anim;
                 break;
@@ -1162,7 +1175,10 @@ ok:
                 atlas = loader.vobj(str).atlas.get();
                 break;
             }
-            atlases.push_back({.atlas = atlas, .type = type, .anim = move(anim), .critter_anim = {} });
+            atlases.push_back({
+                .atlas = atlas, .type = type,
+                .ground = move(ground), .wall = move(wall), .anim = move(anim), .critter_anim = {},
+            });
         }
     }
 
@@ -1223,21 +1239,15 @@ ok:
 
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
-                auto name = get_atlas<atlas_type::ground>(id);
-                auto a = loader.ground_atlas(name, loader_policy::warn);
-                c[t].ground() = { move(a), (variant_t)-1 };
+                c[t].ground() = { get_atlas_pair(id, atlas_type::ground).ground, (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
-                auto name = get_atlas<atlas_type::wall>(id);
-                auto a = loader.wall_atlas(name, loader_policy::warn);
-                c[t].wall_north() = { move(a), (variant_t)-1 };
+                c[t].wall_north() = { get_atlas_pair(id, atlas_type::wall).wall, (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
-                auto name = get_atlas<atlas_type::wall>(id);
-                auto a = loader.wall_atlas(name, loader_policy::warn);
-                c[t].wall_west() = { move(a), (variant_t)-1 };
+                c[t].wall_west() = { get_atlas_pair(id, atlas_type::wall).wall, (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<variant_t>([&](uint32_t t, variant_t id) {

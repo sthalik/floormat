@@ -6,6 +6,7 @@
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "loader/loader.hpp"
 #include <cmath>
 #include <cr/BitArrayView.h>
 #include <cr/StridedArrayView.h>
@@ -75,7 +76,7 @@ anim_atlas::anim_atlas(anim_atlas&&) noexcept = default;
 anim_atlas& anim_atlas::operator=(anim_atlas&&) noexcept = default;
 
 StringView anim_atlas::name() const noexcept { return _name; }
-bool anim_atlas::is_placeholder() const noexcept { return _placeholder; }
+bool anim_atlas::is_placeholder() const noexcept { return _placeholder || _name == loader_::INVALID; }
 const anim_def& anim_atlas::info() const noexcept { return _info; }
 Ns anim_atlas::frame_duration() const noexcept { return Ns{_frame_duration}; }
 

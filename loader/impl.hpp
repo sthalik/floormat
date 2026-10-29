@@ -53,6 +53,7 @@ struct loader_impl final : loader_
     const bptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
     ArrayView<const ground_cell> ground_atlas_list() noexcept(false) override;
     const ground_cell& invalid_ground_atlas() override;
+    bptr<class ground_atlas> make_placeholder_ground_atlas(StringView name) override;
     bptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
 
     // >-----> walls >----->
@@ -62,6 +63,7 @@ struct loader_impl final : loader_
     ArrayView<const wall_cell> wall_atlas_list() override;
     bptr<class wall_atlas> get_wall_atlas(StringView filename) noexcept(false) override;
     const wall_cell& invalid_wall_atlas() override;
+    bptr<class wall_atlas> make_placeholder_wall_atlas(StringView name) override;
 
     // >-----> anim >----->
     [[nodiscard]] static atlas_loader<class anim_atlas>* make_anim_atlas_loader();

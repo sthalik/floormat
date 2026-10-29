@@ -183,6 +183,15 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
     resolve_wall_rotations(_dir_array, _direction_map);
 }
 
+wall_atlas::wall_atlas(const wall_atlas& a, StringView name) :
+    _info{a._info}, _path{name}, _direction_map{a._direction_map}, _placeholder{true}
+{
+    _info.name = name;
+    arrayAppend(_dir_array, a._dir_array);
+    arrayAppend(_frame_array, a._frame_array);
+    arrayAppend(_frame_sprites, a._frame_sprites);
+}
+
 auto wall_atlas::get_Direction(Direction_ num) const -> const Direction*
 {
     fm_debug_assert(num < Direction_::COUNT);
@@ -273,6 +282,7 @@ auto wall_atlas::raw_sprite_array() const -> ArrayView<const sprite> { return _f
 unsigned wall_atlas::depth() const { return _info.depth; }
 auto wall_atlas::info() const -> const Info& { return _info; }
 StringView wall_atlas::name() const { return _info.name; }
+bool wall_atlas::is_placeholder() const noexcept { return _placeholder || _info.name == loader_::INVALID; }
 
 Vector2ui wall_atlas::image_size() const
 {
