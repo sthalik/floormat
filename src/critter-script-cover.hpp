@@ -13,6 +13,9 @@ struct cover_script_options
     // casting rays to see whether the threat sees it. Walks then go on to their end whatever the
     // threat does. For comparing the CPU time of the two.
     bool search_every_move = false;
+    // cover_query::octants of the script's searches. With 3, a cover spot must also hide the critter
+    // from the threat turned 11.25° either way about it.
+    uint8_t octants = 3;
 };
 
 struct cover_script_status

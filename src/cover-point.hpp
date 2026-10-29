@@ -18,6 +18,8 @@ struct cover_query
     Vector2ui body_size;
     point threat;
     uint32_t radius;
+    // 0, or the number of cover grid octants checked, odd and at most 9. See find_cover_point.
+    uint8_t octants = 0;
 };
 
 struct cover_point_result
@@ -44,6 +46,13 @@ struct cover_point
     // them when found is false.
     // pred decides where the body fits, so a critter standing on a spot can rule it out. What hides
     // the body is decided without critters, as in the cover grids.
+    // With q.octants, a candidate needs the body hidden in each of the q.octants octants centered on
+    // the one nearest the bearing from the cell's center to the threat, so that a threat which moves
+    // a little still doesn't see it. Hidden in an octant means that the highest distance among the
+    // cells under the body that aren't blocked puts a blocker nearer than the threat. A spot is then
+    // accepted only when the threat turned about the body's center by j octants either way, for j
+    // from 1 to q.octants/2 and rounded to whole px, sees no pixel of it either. rejected also counts
+    // the spots a turned threat sees.
     // With list_spots, the search goes on past pos, and spots holds every accepted spot once, in the
     // order tried, starting with pos. Two candidates can be pushed to the same spot. The other fields
     // are the same as without list_spots. spots points into this cover_point, so it is valid until

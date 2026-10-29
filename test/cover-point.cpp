@@ -70,11 +70,13 @@ bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Sea
 }
 
 cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size, Vector2ui size = body,
-                        const Search::pred& pred = Search::without_critters(), bool list_spots = false)
+                        const Search::pred& pred = Search::without_critters(), bool list_spots = false,
+                        uint8_t octants = 0)
 {
     static cover_point finder;
     Grid::PoolRegistry pools;
-    return finder.find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius}, pred, list_spots);
+    return finder.find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius, octants}, pred,
+                                   list_spots);
 }
 
 bptr<critter> add_critter(world& w, point pos, Vector2ui size = body)
@@ -420,6 +422,129 @@ void test_lists_past_rejected()
     fm_assert(r.spots.size() > 1);
 }
 
+// Where find_cover_point puts the threat turned about pos by j octants, rounded to whole px. It
+// rounds float math, so each component must lie at least 1e-3 px from a half pixel.
+Vector2i turned_threat(Vector2i threat, Vector2i pos, int j)
+{
+    const auto v = Vector2d(threat - pos);
+    const auto a = j * 2 * Math::Constants<double>::pi() / Cover::octant_count;
+    const auto t = Vector2d{v.x()*std::cos(a) - v.y()*std::sin(a), v.x()*std::sin(a) + v.y()*std::cos(a)};
+    fm_assert((Math::abs(t - Math::floor(t) - Vector2d{.5}) >= Vector2d{1e-3}).all());
+    return pos + Vector2i(Math::round(t));
+}
+
+// True when no ray from threat hits a critter of size body centered on pos, put there for the
+// shots. It is removed afterwards, so it can't stop the rays aimed at the next spot.
+bool hidden_from(world& w, Vector2i threat, point pos)
+{
+    const auto c = add_critter(w, pos);
+    const auto ret = cant_be_shot_at(w, at_px(threat), 0, pos, body, c->id);
+    w[ch].remove_object(*c, c->index());
+    return ret;
+}
+
+Array<point> copy_spots(const cover_point_result& r)
+{
+    Array<point> ret;
+    arrayReserve(ret, r.spots.size());
+    for (const auto p : r.spots)
+        arrayAppend(ret, p);
+    return ret;
+}
+
+// test_hides_behind_wall's first scene. With 3 octants, the spots listed are those listed with
+// none that the threat turned an octant either way doesn't see, and some near the wall's ends are
+// left out. Both take the same first spot, behind the wall's middle.
+void test_octants_wall_middle()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+
+    const point npc{ch, {4, 8}, {}}, threat{ch, {12, 8}, {}};
+    const auto T = Vector3i(threat).xy();
+    constexpr auto radius = 3*tile_size_xy;
+    const auto r0 = find(w, npc, threat, radius, 8, body, Search::without_critters(), true);
+    fm_assert(r0.found);
+    const auto spots0 = copy_spots(r0);
+    const auto pos0 = r0.pos;
+    const auto r3 = find(w, npc, threat, radius, 8, body, Search::without_critters(), true, 3);
+    fm_assert(r3.found && r3.pos == pos0);
+    const auto spots3 = copy_spots(r3);
+
+    auto kept = 0u;
+    for (const auto p : spots0)
+    {
+        const auto v = Vector3i(p).xy();
+        fm_assert(hidden_from(w, T, p));
+        const auto hidden = hidden_from(w, turned_threat(T, v, -1), p) && hidden_from(w, turned_threat(T, v, 1), p);
+        const auto listed = std::find(spots3.begin(), spots3.end(), p) != spots3.end();
+        fm_assert(listed == hidden);
+        kept += hidden;
+    }
+    fm_assert_equal(kept, (uint32_t)spots3.size());
+    fm_assert(kept < spots0.size());
+}
+
+// The npc stands west of the wall near its north end, and the threat east of it, a little south.
+// Without octants, each spot found lies at the north end, where the wall hides it from the threat.
+// The threat turned an octant north sees each of them. With 3 octants the cover grid still passes
+// as many candidates, so the test from the turned threat is what rejects them.
+void test_octants_turned_threat_sees()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+
+    const point npc{ch, {4, 6}, {}};
+    const auto T = Vector2i{634, 499};
+    constexpr auto radius = 3*tile_size_xy;
+    const auto r0 = find(w, npc, at_px(T), radius, 8, body, Search::without_critters(), true);
+    fm_assert(r0.found);
+    const auto spots0 = copy_spots(r0);
+    const auto candidates0 = r0.candidates;
+    const auto r3 = find(w, npc, at_px(T), radius, 8, body, Search::without_critters(), true, 3);
+    fm_assert(!r3.found);
+    fm_assert_equal(candidates0, r3.candidates);
+    fm_assert_equal(r3.candidates, r3.rejected);
+    for (const auto p : spots0)
+    {
+        fm_assert(hidden_from(w, T, p));
+        fm_assert(!hidden_from(w, turned_threat(T, Vector3i(p).xy(), -1), p));
+    }
+}
+
+// At div_size 16, a 24 px body centered on a cell's center lies in 3x3 cells, and the outer
+// cells' centers lie 4 px outside it, so the cover grid reads octants at points the body doesn't
+// cover. The npc stands west of the wall near its north
+// end, and the threat south-east of it. Without octants, the one candidate is pushed to a spot
+// that neither the threat nor the threat turned an octant either way sees. With 3 octants the
+// cover grid rejects that candidate.
+void test_octants_grid_rejects()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+
+    const point npc{ch, {4, 6}, {}};
+    const auto T = Vector2i{560, 522};
+    constexpr auto radius = 3*tile_size_xy;
+    const auto r0 = find(w, npc, at_px(T), radius, 16);
+    fm_assert(r0.found);
+    const auto pos0 = r0.pos;
+    const auto candidates0 = r0.candidates;
+    const auto r3 = find(w, npc, at_px(T), radius, 16, body, Search::without_critters(), false, 3);
+    fm_assert(!r3.found);
+    fm_assert(r3.candidates < candidates0);
+    const auto v = Vector3i(pos0).xy();
+    fm_assert(hidden_from(w, T, pos0));
+    fm_assert(hidden_from(w, turned_threat(T, v, -1), pos0));
+    fm_assert(hidden_from(w, turned_threat(T, v, 1), pos0));
+}
+
 struct cover_cycle { point hidden, peek; };
 
 // Where cover_script puts the gun of a body centered on pos: offset px to the right of pos as it
@@ -687,11 +812,13 @@ void test_cover_script_keeps_peeking(point hidden, point peek)
 // Half a second after the npc is back at cover from its first peek, the threat moves north-east of
 // the wall, from where it can shoot the npc at the cover spot. The npc walks south, past the
 // wall's south end, to a spot just below it that the wall hides from there. It stands there for
-// what was left of its 2 s hidden, which the walk doesn't spend, then steps out.
+// what was left of its 2 s hidden, which the walk doesn't spend, then steps out. The wall is too
+// narrow for that spot to stay hidden from the threat turned an octant either way, so the test
+// sets octants to 0, and the search checks the spot only from where the threat stands.
 void test_cover_script_follows_while_hidden(point hidden)
 {
     cover_scene s;
-    set_cover_script_options(*s.npc, {.search_every_move = true});
+    set_cover_script_options(*s.npc, {.search_every_move = true, .octants = 0});
     for (auto k = 0u; k < 2; k++)
     {
         (void)s.next_stop();
@@ -960,7 +1087,7 @@ void test_cover_script_hidden_checks(point hidden)
         fm_assert_equal(1u, t.paths);
     }
 
-    const point threat_pos{ch, {4, 2}, {}};
+    const point threat_pos{ch, {2, 4}, {}};
     s.move_threat(threat_pos);
     fm_assert(s.seen_from(threat_pos, hidden));
     s.step();
@@ -1212,8 +1339,8 @@ void test_cover_script_flanked_retreat_cover(point hidden, point peek)
 // east and south of the cover behind the wall's east face. They close every way there, since
 // each gap they leave is narrower than the body. Dijkstra doesn't see critters between its ends,
 // so critters in their place would leave the path open. The search from peek with the threat on
-// the wall's west side still finds that cover. With no path to it, the npc stays out until its
-// 2 s are up, then retreats.
+// the wall's west side and the script's octants still finds that cover. With no path to it, the
+// npc stays out until its 2 s are up, then retreats.
 void test_cover_script_flanked_no_path(point peek)
 {
     const point west{ch, {2, 8}, {}};
@@ -1232,7 +1359,8 @@ void test_cover_script_flanked_no_path(point peek)
     rebuild(s.w);
 
     s.move_threat(west);
-    const auto r = find(s.w, peek, west, 5*tile_size_xy, 8, body, Search::never_continue());
+    const auto r = find(s.w, peek, west, 5*tile_size_xy, 8, body, Search::never_continue(), false,
+                        cover_script_options{}.octants);
     const auto v = Vector3i(r.pos).xy();
     fm_assert(r.found && v.x() - (int)body.x()/2 >= 456 && v.x() + (int)body.x()/2 <= 494);
     fm_assert(v.y() - (int)body.y()/2 >= 456 && v.y() + (int)body.y()/2 <= 575);
@@ -1480,6 +1608,9 @@ void Test::test_cover_point()
     test_spot_taken();
     test_lists_cover_spots();
     test_lists_past_rejected();
+    test_octants_wall_middle();
+    test_octants_turned_threat_sees();
+    test_octants_grid_rejects();
     for (const auto size : { Vector2ui{23, 23}, Vector2ui{25, 25}, Vector2ui{23, 25}, Vector2ui{25, 23} })
     {
         test_narrow_pillar_rejected(size);

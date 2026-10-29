@@ -272,8 +272,9 @@ bool cover_script::sees(critter& c, point from, point to)
 // The direction along the blocker's face, the one find_peek slides in.
 Vector2i cover_script::across() const { return Math::abs(Vector2i{axis.y(), axis.x()}); }
 
-// find_cover_point's cover from the threat within cover_radius of c. Not found when the threat is
-// gone or nothing hides c from it. Unless the threat is gone, threat_pos is then where it stands.
+// find_cover_point's cover from the threat within cover_radius of c, with options.octants. Not
+// found when the threat is gone or nothing hides c from it. Unless the threat is gone, threat_pos
+// is then where it stands.
 cover_point_result cover_script::nearest_cover(critter& c)
 {
     auto& w = c.world();
@@ -283,7 +284,7 @@ cover_point_result cover_script::nearest_cover(critter& c)
     threat_pos = threat->position();
     searches++;
     return finder.find_cover_point(w, A.pool_registry(), Cover::Params{div_size},
-                                   {c.position(), Vector2ui(c.bbox_size), threat_pos, cover_radius},
+                                   {c.position(), Vector2ui(c.bbox_size), threat_pos, cover_radius, options.octants},
                                    blocks_all_but(c.id));
 }
 

@@ -21,6 +21,8 @@ namespace floormat {
 
 namespace {
 
+constexpr float octant_step = 2.f * Math::Constants<float>::pi() / (float)Cover::octant_count;
+
 struct octant_pair
 {
     uint32_t lo, hi;
@@ -30,11 +32,25 @@ struct octant_pair
 octant_pair octants_around(Vector2 v)
 {
     constexpr auto n = (int)Cover::octant_count;
-    constexpr float step = 2.f * Math::Constants<float>::pi() / (float)n;
-    const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / step);
+    const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step);
     const auto lo = (uint32_t)((k % n + n) % n);
     return { lo, (lo + 1) % (uint32_t)n };
 }
+
+// The octant whose bearing is nearest v's. A bearing halfway between octants k and k + 1 takes
+// k + 1, mod Cover::octant_count, since floor(x + 1/2) rounds a half up.
+uint32_t nearest_octant(Vector2 v)
+{
+    constexpr auto n = (int)Cover::octant_count;
+    const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step + .5f);
+    return (uint32_t)((k % n + n) % n);
+}
+
+// Cells first to last, both included, on both axes.
+struct cell_span
+{
+    Vector2i first, last;
+};
 
 struct candidate
 {
@@ -93,6 +109,7 @@ struct cover_point::Impl
     Array<Range2Di> rects;
     Array<slope_range> runs;
     Array<point> spots;
+    Array<Range2Di> turned_rects;
 };
 
 cover_point::cover_point()
@@ -106,8 +123,10 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
                                                  const cover_query& q, const Search::pred& pred,
                                                  bool list_spots)
 {
-    auto& [known, cells, cands, rects, runs, spots] = *impl;
+    auto& [known, cells, cands, rects, runs, spots, turned_rects] = *impl;
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
+    // Odd, so the octants checked lie evenly on both sides of the nearest one.
+    fm_assert(q.octants == 0 || q.octants % 2 == 1 && q.octants <= 9);
     if (list_spots)
     {
         arrayClear(spots);
@@ -139,6 +158,11 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
     reserve_scratch(cells, count);
     arrayResize(cells, NoInit, count);
 
+    // dc is also a miss, so a threat past the cap reads as exposed
+    const auto hides = [&](uint16_t d, float len) {
+        return d != Cover::blocked && d < dc && (float)(d*(uint32_t)ds) < len;
+    };
+
     const auto look = [&](Vector2i n) -> cell_info {
         const auto i = (size_t)((n.y() - lo.y())*span.x() + n.x() - lo.x());
         if (known[i])
@@ -155,17 +179,31 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
         auto g = cover_pool[*c];
         g.build_if_stale();
         const auto cell = g.get_cell_index_from_coord(pt.intra());
-        // dc is also a miss, so a threat past the cap reads as exposed
-        const auto hides = [&](uint16_t d) { return d != Cover::blocked && d < dc && (float)(d*(uint32_t)ds) < len; };
         // The cell's center sees the threat between two octants. Either one hiding it makes a
         // candidate, since the slope check below decides exactly.
         const auto k = octants_around(v);
         (void)g.ensure_octant(k.lo);
         (void)g.ensure_octant(k.hi);
         const auto d0 = g.distance(cell, k.lo), d1 = g.distance(cell, k.hi);
-        const auto d = hides(d0) && hides(d1) ? Math::min(d0, d1) : hides(d1) ? d1 : d0;
-        cells[i] = { hides(d), d == Cover::blocked, d };
+        const auto d = hides(d0, len) && hides(d1, len) ? Math::min(d0, d1) : hides(d1, len) ? d1 : d0;
+        cells[i] = { hides(d, len), d == Cover::blocked, d };
         return cells[i];
+    };
+
+    // Octant k's distance at cell n, empty when n's chunk doesn't exist. Cells under a body near a
+    // chunk edge lie in the next chunk, whose octants are filled lazily too.
+    const auto distance_at = [&](Vector2i n, uint32_t k) -> Optional<uint16_t> {
+        const auto pt = to_point(center_of(n));
+        auto* c = w.at(pt.chunk3());
+        if (!c)
+            return {};
+        auto g = cover_pool[*c];
+        (void)g.ensure_octant(k);
+        return g.distance(g.get_cell_index_from_coord(pt.intra()), k);
+    };
+
+    const auto cells_under = [&](Vector2i center) {
+        return cell_span{cell_of(center - body_lo), cell_of(center + body_hi - Vector2i{1})};
     };
 
     const auto passable = [&](Vector2i center) {
@@ -176,12 +214,42 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
 
     // A body flush against a blocker covers cells the blocker clears. The slope check covers those.
     const auto body_hidden = [&](Vector2i center) {
-        const auto a = cell_of(center - body_lo);
-        const auto b = cell_of(center + body_hi - Vector2i{1});
+        const auto [a, b] = cells_under(center);
         for (auto y = a.y(); y <= b.y(); y++)
             for (auto x = a.x(); x <= b.x(); x++)
                 if (const auto info = look({x, y}); !info.hidden && !info.blocked)
                     return false;
+        return true;
+    };
+
+    // True when, in each of the q.octants octants centered on the one nearest the bearing from center
+    // to the threat, the highest distance among the cells under a body centered on center passes
+    // hides() at the distance from center to the threat. Blocked cells are skipped, as body_hidden
+    // skips them. False when a cell's chunk doesn't exist, as look() reads such a cell as seen.
+    const auto half = (int)q.octants/2;
+    const auto hidden_in_octants = [&](Vector2i center) {
+        constexpr auto n = (int)Cover::octant_count;
+        const auto v = Vector2(T - center);
+        const auto len = v.length();
+        const auto m = (int)nearest_octant(v);
+        const auto [a, b] = cells_under(center);
+        for (auto j = -half; j <= half; j++)
+        {
+            const auto k = (uint32_t)((m + j + n) % n);
+            // Stays 0, which hides, when every cell is blocked.
+            uint16_t highest = 0;
+            for (auto y = a.y(); y <= b.y(); y++)
+                for (auto x = a.x(); x <= b.x(); x++)
+                {
+                    const auto d = distance_at({x, y}, k);
+                    if (!d)
+                        return false;
+                    if (*d != Cover::blocked)
+                        highest = Math::max(highest, *d);
+                }
+            if (!hides(highest, len))
+                return false;
+        }
         return true;
     };
 
@@ -194,9 +262,12 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
             const auto off = center - P;
             if (off.dot() > R*R)
                 continue;
+            // With q.octants, look() still reads the center's two bracketing octants, for blocker_px.
+            // Its hidden is then also implied by hidden_in_octants(), unless the center is blocked.
             const auto info = look({x, y});
             const auto blocker_px = info.distance*(uint32_t)ds;
-            if (!info.hidden || (float)blocker_px > against || !passable(center) || !body_hidden(center))
+            if (!info.hidden || (float)blocker_px > against || !passable(center)
+                || !(q.octants ? hidden_in_octants(center) : body_hidden(center)))
                 continue;
             const auto a = Math::abs(off);
             const auto walk_dist = (float)Math::max(a.x(), a.y()) + (Math::sqrt(2.f) - 1) * (float)Math::min(a.x(), a.y());
@@ -228,12 +299,9 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
     // The candidate nearest a spot may be filtered out, so a shift reaches two cells.
     const auto range = 2*ds;
 
-    // The rects a ray skips are left out the same way.
-    arrayClear(rects);
-    {
-        // Every segment from the threat to a body stays in this box, so one search serves all candidates.
-        const auto spread = Vector2i{R + range + 1} + Math::max(ext_lo, ext_hi);
-        const auto qlo = Math::min(T, P - spread) - Vector2i{1}, qhi = Math::max(T, P + spread) + Vector2i{1};
+    // Appends the rects that the box from qlo to qhi touches, relative to threat and doubled. The
+    // rects a ray skips are left out the same way.
+    const auto collect_rects = [&](Vector2i threat, Vector2i qlo, Vector2i qhi, Array<Range2Di>& out) {
         const auto z = q.pos.chunk3().z;
         const auto chunk_of = [](int px) { return floor_div(px + half_tile<int>, chunk_size<int>); };
         constexpr auto min_pass = (uint64_t)pass_mode::shoot_through;
@@ -252,14 +320,21 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
                     const auto pmin = Vector2i(Math::ceil(range.min())), pmax = Vector2i(Math::ceil(range.max()));
                     if (x.pass < min_pass && (pmin < pmax).all()
                         && Search::without_critters()(*c, x, range) != path_search_continue::pass)
-                        arrayAppend(rects, Range2Di{(pmin + origin - T)*2 - Vector2i{1}, (pmax + origin - T)*2 - Vector2i{1}});
+                        arrayAppend(out, Range2Di{(pmin + origin - threat)*2 - Vector2i{1}, (pmax + origin - threat)*2 - Vector2i{1}});
                     return true;
                 });
             }
+    };
+
+    arrayClear(rects);
+    {
+        // Every segment from the threat to a body stays in this box, so one search serves all candidates.
+        const auto spread = Vector2i{R + range + 1} + Math::max(ext_lo, ext_hi);
+        collect_rects(T, Math::min(T, P - spread) - Vector2i{1}, Math::max(T, P + spread) + Vector2i{1}, rects);
     }
 
-    const auto body_at = [&](Vector2i pos, Vector2i axis, Vector2i across) {
-        const auto e = Math::dot(T - pos, axis), c = Math::dot(pos - T, across);
+    const auto body_at = [&](Vector2i pos, Vector2i axis, Vector2i across, Vector2i threat) {
+        const auto e = Math::dot(threat - pos, axis), c = Math::dot(pos - threat, across);
         return square_box{ 2*(e - reach(axis)) - 1, 2*(e + reach(-axis)) + 1,
                            2*(c - reach(-across)) - 1, 2*(c + reach(across)) + 1 };
     };
@@ -269,9 +344,9 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
 
     // A ray aimed anywhere hits a rect when it touches a closed pixel square (bresenham_line::off_axis_at).
     // Only squares nearer than the body's near face surely come first. Open ranges let a grazing ray pass.
-    const auto build_runs = [&](const square_box& body, Vector2i axis, Vector2i across) {
+    const auto build_runs = [&](const square_box& body, Vector2i axis, Vector2i across, ArrayView<const Range2Di> from) {
         arrayClear(runs);
-        for (const auto& r : rects)
+        for (const auto& r : from)
         {
             const auto da = (int64_t)Math::dot(-r.min(), axis), db = (int64_t)Math::dot(-r.max(), axis);
             // 1 is half a pixel, where the threat's own pixel ends
@@ -352,32 +427,77 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
         return start + axis*lo_px;
     };
 
+    const auto axis_toward = [](Vector2i v) {
+        return Math::abs(v.x()) >= Math::abs(v.y()) ? Vector2i{v.x() > 0 ? 1 : -1, 0}
+                                                    : Vector2i{0, v.y() > 0 ? 1 : -1};
+    };
+
+    // cos and sin of j octants, at j - 1, for j from 1 to half
+    Vector2 turns[4];
+    for (auto j = 1; j <= half; j++)
+        turns[j - 1] = { std::cos((float)j * octant_step), std::sin((float)j * octant_step) };
+
+    // True when the threat turned about pos by j octants either way, for j from 1 to half and rounded
+    // to whole px, sees no pixel of a body centered on pos and pushed along axis. Each turned threat
+    // gets its own R-tree search, of the box from it to the body. Shifting the threat's rects instead
+    // would need their box widened to hold every turned threat of every candidate. With 4 octants
+    // either way and a far threat, that box spans many chunks, and build_runs goes through each rect
+    // in it for every spot, the tests from the threat where it stands included.
+    // A turned threat gets the threat's slope test along axis, where the blocker the body is flush
+    // against lies in front of it. When the turned threat sees the body there, and the bigger
+    // component of the way to it is along the other axis, the test runs again along that one, as the
+    // loop picks an axis for the threat. Either finding the body hidden is enough, since each test is
+    // exact for the rects nearer than the body's near face along its axis. The second alone would
+    // leave out a wall the body is flush against, as it lies beside the body along that axis.
+    const auto hidden_from_turned = [&](Vector2i pos, Vector2i axis) {
+        const auto v = Vector2(T - pos);
+        for (auto j = 0; j < half; j++)
+            for (const auto s : { turns[j].y(), -turns[j].y() })
+            {
+                const auto c = turns[j].x();
+                const auto t = pos + Vector2i(Math::round(Vector2{v.x()*c - v.y()*s, v.x()*s + v.y()*c}));
+                arrayClear(turned_rects);
+                collect_rects(t, Math::min(t, pos - ext_lo) - Vector2i{1}, Math::max(t, pos + ext_hi) + Vector2i{1},
+                              turned_rects);
+                const auto seen_along = [&](Vector2i ax) {
+                    const auto ac = Math::abs(Vector2i{ax.y(), ax.x()});
+                    const auto body = body_at(pos, ax, ac, t);
+                    build_runs(body, ax, ac, turned_rects);
+                    return !hidden(body);
+                };
+                const auto own = axis_toward(t - pos);
+                if (seen_along(axis) && (own == axis || seen_along(own)))
+                    return false;
+            }
+        return true;
+    };
+
     for (const auto& cand : cands)
     {
-        const auto v = T - cand.center;
-        const auto axis = Math::abs(v.x()) >= Math::abs(v.y()) ? Vector2i{v.x() > 0 ? 1 : -1, 0}
-                                                                : Vector2i{0, v.y() > 0 ? 1 : -1};
+        const auto axis = axis_toward(T - cand.center);
         const auto across = Math::abs(Vector2i{axis.y(), axis.x()});
         auto p = place(cand.center, axis);
         if (!p)
             continue;
-        auto body = body_at(*p, axis, across);
-        build_runs(body, axis, across);
-        if (!hidden(body))
+        auto body = body_at(*p, axis, across, T);
+        build_runs(body, axis, across, rects);
+        auto seen = !hidden(body);
+        if (seen)
         {
             if (const auto t = shift_to_cover(body))
                 if (const auto x = place(cand.center + across * *t, axis))
                 {
                     p = x;
-                    body = body_at(*p, axis, across);
-                    build_runs(body, axis, across);
+                    body = body_at(*p, axis, across, T);
+                    build_runs(body, axis, across, rects);
                 }
-            if (!hidden(body))
-            {
-                if (!ret.found)
-                    ret.rejected++;
-                continue;
-            }
+            seen = !hidden(body);
+        }
+        if (seen || !hidden_from_turned(*p, axis))
+        {
+            if (!ret.found)
+                ret.rejected++;
+            continue;
         }
         const auto pt = to_point(*p);
         if (!ret.found)
