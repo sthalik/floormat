@@ -18,6 +18,10 @@ struct cover_query
     Vector2ui body_size;
     point threat;
     uint32_t radius;
+    /// 0, or an odd number up to 9 of cover grid octants, centered on the bearing from a candidate to
+    /// the threat, that must each hide the body, so a threat that moves a little still doesn't see it.
+    /// An accepted spot must also stay hidden from the threat turned about it by up to octants/2.
+    uint8_t octants = 0;
 };
 
 struct cover_point_result
@@ -31,8 +35,8 @@ struct cover_point_result
     ArrayView<const point> spots;
     /// The number of candidates, including those never tried.
     uint32_t candidates = 0;
-    /// The candidates pushed flush to a blocker and still seen, among those tried before pos, or
-    /// among all of them when found is false.
+    /// The candidates pushed flush to a blocker and still seen by the threat or a turned one,
+    /// among those tried before pos, or among all of them when found is false.
     uint32_t rejected = 0;
     bool found = false;
 };
