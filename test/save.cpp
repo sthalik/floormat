@@ -8,10 +8,13 @@
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include "src/ground-atlas.hpp"
+#include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/nanosecond.inl"
 #include "loader/loader.hpp"
 #include "loader/anim-cell.hpp"
+#include "loader/ground-cell.hpp"
+#include "loader/wall-cell.hpp"
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/crc64.hpp"
@@ -92,11 +95,11 @@ chunk& Test::make_test_chunk(world& w, chunk_coords_ ch)
 namespace {
 
 // Each load makes placeholders of its own, so the same missing atlas comes back as a new pointer.
-void match_placeholders(const object_proto& a, object_proto& b)
+template<typename Atlas>
+void match_placeholders(const bptr<Atlas>& a, bptr<Atlas>& b)
 {
-    const auto is_placeholder = [](const auto& x) { return x->name() == loader.INVALID || x->is_placeholder(); };
-    if (is_placeholder(a.atlas) && is_placeholder(b.atlas) && a.atlas->name() == b.atlas->name())
-        b.atlas = a.atlas;
+    if (a && b && a->is_placeholder() && b->is_placeholder() && a->name() == b->name())
+        b = a;
 }
 
 void assert_chunks_equal(const chunk& a, const chunk& b)
@@ -105,7 +108,11 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
 
     for (auto i = 0uz; i < TILE_COUNT; i++)
     {
-        const auto &a1 = a[i], &b1 = b[i];
+        const auto a1 = tile_proto(a[i]);
+        auto b1 = tile_proto(b[i]);
+        match_placeholders(a1.ground_atlas, b1.ground_atlas);
+        match_placeholders(a1.wall_north_atlas, b1.wall_north_atlas);
+        match_placeholders(a1.wall_west_atlas, b1.wall_west_atlas);
         fm_assert(a1 == b1);
     }
 
@@ -126,7 +133,7 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
             const auto& e2 = static_cast<const critter&>(be);
             const auto p1 = critter_proto(e1);
             auto p2 = critter_proto(e2);
-            match_placeholders(p1, p2);
+            match_placeholders(p1.atlas, p2.atlas);
             fm_assert(p1 == p2);
             break;
         }
@@ -135,7 +142,7 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
             const auto& e2 = static_cast<const scenery&>(be);
             const auto p1 = scenery_proto(e1);
             auto p2 = scenery_proto(e2);
-            match_placeholders(p1, p2);
+            match_placeholders(p1.atlas, p2.atlas);
             fm_assert(p1 == p2);
             break;
         }
@@ -513,6 +520,60 @@ void test_save_missing_atlas()
     check_missing_atlas("proto-30-offset-frac.dat"_s, 24);
 }
 
+void test_save_missing_tile_atlas()
+{
+    const auto tmp = Path::join(loader.TEMP_PATH, "test/test-save-missing-tile-atlas.dat"_s);
+    const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-tile-atlas-2.dat"_s);
+    const auto resaved = Path::join(loader.TEMP_PATH, "test/test-save-missing-tile-atlas-3.dat"_s);
+    constexpr auto ground_from = "tiles"_s, ground_to = "gone1"_s;
+    constexpr auto wall_from = "test1"_s, wall_to = "gone2"_s;
+    constexpr auto ch = chunk_coords_{2, -3, 0};
+    constexpr auto pos = local_coords{4, 5};
+
+    const auto& ground = loader.ground_atlas(ground_from);
+    const auto variant = variant_t(ground->num_tiles() - 1);
+    fm_assert(variant > 0);
+    {
+        auto w = world();
+        auto& c = w[ch];
+        c.mark_modified();
+        c[pos].ground() = { ground, variant };
+        c[pos].wall_north() = { loader.wall_atlas(wall_from), 0 };
+        c[pos].wall_west() = { loader.wall_atlas(wall_from), 0 };
+        if (Path::exists(tmp))
+            Path::remove(tmp);
+        w.serialize(tmp);
+    }
+    auto save = Path::read(tmp);
+    fm_assert(save);
+    write_patched(patched, *save, {ground_from.data(), ground_from.size()}, {ground_to.data(), ground_to.size()});
+    save = Path::read(patched);
+    fm_assert(save);
+    write_patched(patched, *save, {wall_from.data(), wall_from.size()}, {wall_to.data(), wall_to.size()});
+
+    const auto check = [&](world& w) {
+        auto t = w[ch][pos];
+        const auto G = t.ground_atlas();
+        fm_assert(G->name() == ground_to);
+        fm_assert(G->is_placeholder());
+        fm_assert(t.ground().variant == variant);
+        const auto N = t.wall_north_atlas(), W = t.wall_west_atlas();
+        fm_assert(N->name() == wall_to);
+        fm_assert(N->is_placeholder());
+        fm_assert(N == W);
+    };
+
+    auto w = world::deserialize(patched, loader_policy::ignore);
+    check(w);
+    if (Path::exists(resaved))
+        Path::remove(resaved);
+    w.serialize(resaved);
+    auto w2 = world::deserialize(resaved, loader_policy::ignore);
+    check(w2);
+    fm_assert(loader.ground_atlas(ground_to, loader_policy::ignore) == loader.invalid_ground_atlas().atlas);
+    fm_assert(loader.wall_atlas(wall_to, loader_policy::ignore) == loader.invalid_wall_atlas().atlas);
+}
+
 } // namespace
 
 void Test::test_save()
@@ -529,6 +590,7 @@ void Test::test_saves()
     test_save_nan();
     test_save_offset_frac();
     test_save_missing_atlas();
+    test_save_missing_tile_atlas();
 }
 
 } // namespace floormat

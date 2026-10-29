@@ -22,14 +22,19 @@ class ground_atlas final : public bptr_base
     ground_def _def;
     String _path;
     Array<sprite> _frame_sprites;
+    bool _placeholder = false;
 
 public:
     ground_atlas(ground_def info, const ImageView2D& img);
+    // A placeholder copy of `a` named `name`. It shares a's sprites, since the sprite atlas never
+    // frees one.
+    ground_atlas(const ground_atlas& a, StringView name);
     texcoords texcoords_for_id(size_t id) const;
     size_t num_tiles() const;
     Vector2ub num_tiles2() const;
     ArrayView<const sprite> raw_sprite_array() const;
     StringView name() const;
+    bool is_placeholder() const noexcept;
     enum pass_mode pass_mode() const;
 };
 

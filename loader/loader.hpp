@@ -57,7 +57,9 @@ struct loader_
     [[nodiscard]] static bool check_atlas_name(StringView name) noexcept;
 
     virtual const wall_cell& invalid_wall_atlas() = 0;
+    virtual bptr<class wall_atlas> make_placeholder_wall_atlas(StringView name) = 0;
     virtual const ground_cell& invalid_ground_atlas() = 0;
+    virtual bptr<class ground_atlas> make_placeholder_ground_atlas(StringView name) = 0;
     virtual const anim_cell& invalid_anim_atlas() = 0;
     virtual bptr<class anim_atlas> make_placeholder_anim_atlas(StringView name, uint32_t fps) = 0;
     virtual const scenery_cell& invalid_scenery_atlas() = 0;
