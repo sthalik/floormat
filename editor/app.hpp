@@ -223,6 +223,7 @@ private:
     pgo::task inject_click(Vector2i pos, mouse_button button);
     pgo::task drag_along(point from, Vector2i step, uint32_t count, uint8_t button);
     pgo::task pan_along_path(ArrayView<const point> path);
+    pgo::task hold_for(Ns dt);
     pgo::task scene_modes();
     pgo::task scene_input_events();
     pgo::task scene_popup_target();
@@ -247,6 +248,7 @@ private:
     pgo::task scene_clickables();
     pgo::task scene_torture_flat();
     pgo::task scene_torture_all_z();
+    pgo::task scene_overlays();
 
     [[nodiscard]] bool tests_handle_key(const key_event& e, bool is_down);
     [[nodiscard]] bool tests_handle_mouse_click(const mouse_button_event& e, bool is_down);
