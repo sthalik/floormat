@@ -425,7 +425,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     if(MSVC)
         target_compile_options(CorradeTestSuiteObjects PRIVATE -EHsc)
     endif()
-    fm_run_hook(fm-userconfig-post)
+    fm_run_hook(fm-userconfig-external-post)
 endif()
 
 find_package(SDL2 QUIET REQUIRED)
