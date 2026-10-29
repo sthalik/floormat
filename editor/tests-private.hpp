@@ -53,8 +53,14 @@ struct base_test
 
     // The driver cannot click an ImGui widget, and cover_test's octant selector is one. Steps it
     // and hands back the octants built so far as a bitmask. maze_test's build and solve buttons
-    // are two more: 0 presses build, anything else solve.
+    // are two more: 0 presses build, anything else solve. cover_ai_test's buttons and its "Other
+    // cover spots" box are four more: 0 presses Start and 3 Reset, each returning the new npc's
+    // id as u64, or none when it couldn't spawn. 1 presses Stop. 2 ticks the box, lists the spots
+    // at once and returns their number as u32.
     virtual Value advance(app& a, Value);
+    // When the editor switches from the tests mode to another mode. Not when the test is replaced,
+    // which runs its destructor.
+    virtual void on_leave_tests_mode(app& a);
 
     virtual ~base_test() noexcept;
 
@@ -64,7 +70,7 @@ protected:
 
 enum class Test : uint32_t {
     //todo add a speedometer overlay test
-    none, path, raycast, grid, walk, hole, cover, maze, COUNT,
+    none, path, raycast, grid, walk, hole, cover, maze, cover_ai, COUNT,
 };
 
 struct tests_data final : tests_data_
@@ -81,6 +87,7 @@ struct tests_data final : tests_data_
     static Pointer<base_test> make_test_hole();
     static Pointer<base_test> make_test_cover();
     static Pointer<base_test> make_test_maze();
+    static Pointer<base_test> make_test_cover_ai();
 
     Pointer<base_test> current_test;
     Test current_index = Test::none;
@@ -101,6 +108,7 @@ struct tests_data final : tests_data_
         { "Hole"_s,         Test::hole,    make_test_hole    },
         { "Cover"_s,        Test::cover,   make_test_cover   },
         { "Maze"_s,         Test::maze,    make_test_maze    },
+        { "Cover AI"_s,     Test::cover_ai, make_test_cover_ai },
     };
 };
 

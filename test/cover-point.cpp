@@ -1008,8 +1008,9 @@ rotation nearest_of_8(Vector2i v)
 // corner. From there the gun at the same spot is still the first the threat sees, so the npc stays
 // there, and it faces the threat's new direction from the next update until its 2 s out are up.
 // The wall still hides the cover, so the npc never searches. It casts two rays in the update after
-// the threat moves, to its gun and to its cover, and none while the threat stands still. hidden is
-// the cover spot test_cover_script returned.
+// the threat moves, to its gun and to its cover, and none while the threat stands still. From that
+// update on, the status's gun ray goes from the threat's new spot to the gun point for it. hidden
+// is the cover spot test_cover_script returned.
 void test_cover_script_faces_threat(point hidden)
 {
     constexpr auto gun_offset = -23;
@@ -1025,6 +1026,8 @@ void test_cover_script_faces_threat(point hidden)
     fm_assert(s.npc->r == r1);
     const auto out = s.fps/2;
     const auto t0 = s.status();
+    const auto threat0 = s.threat->position();
+    fm_assert(t0.gun_seen_from == threat0 && t0.gun == gun_at(peek, threat0, gun_offset));
     for (auto k = 0u; k < out; k++)
     {
         s.step();
@@ -1036,6 +1039,8 @@ void test_cover_script_faces_threat(point hidden)
     s.move_threat(threat_pos);
     const auto r2 = nearest_of_8(threat_pos - peek);
     fm_assert(r2 != r1);
+    const auto gun2 = gun_at(peek, threat_pos, gun_offset);
+    fm_assert(gun2 != t0.gun);
     auto frames = 0u;
     for (;;)
     {
@@ -1046,6 +1051,7 @@ void test_cover_script_faces_threat(point hidden)
         if (s.npc->position() != peek)
             break;
         fm_assert(s.npc->r == r2);
+        fm_assert(t.gun_seen_from == threat_pos && t.gun == gun2);
         fm_assert(++frames <= 2*s.fps + 2);
     }
     // As in test_cover_script, a wait may end a frame early or late. The update in which the wait

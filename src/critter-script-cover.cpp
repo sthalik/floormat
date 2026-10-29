@@ -95,6 +95,7 @@ struct cover_script final : critter_script
     cover_script(astar& A, object_id threat, uint32_t div_size, Optional<int> gun_offset);
 
     cover_script_status status() const;
+    void list_spots(critter& c, Array<point>& out);
 
     cover_script_options options;
 
@@ -108,6 +109,7 @@ private:
     void go_on(const bptr<critter>& c, size_t& i, const Ns& dt);
     bool wait_for(const Ns& dt);
     bool sees(critter& c, point from, point to);
+    bool sees_gun(critter& c, point pos, point threat);
     Vector2i across() const;
     cover_point_result nearest_cover(critter& c);
     bool find_cover(critter& c);
@@ -133,11 +135,12 @@ private:
     astar& A;
     critter_walk walk;
     cover_point finder;
+    cover_query query = {};
     Array<retreat_spot> retreat_spots;
     // threat_pos is where the threat stood at the last check or search. next_cover and next_axis
     // become cover and axis only when leave_peek walks c there, since until then c peeks from
     // cover, and find_peek and the ray to its gun go along that cover's face.
-    point cover, next_cover, threat_pos, retreat_pos, peek_pos, gun_pos;
+    point cover, next_cover, threat_pos, retreat_pos, peek_pos, gun_pos, gun_seen_from;
     Vector2i axis, next_axis;
     Ns wait{}, last_update{}, max_update{}, total_update{};
     object_id threat_id;
@@ -147,7 +150,7 @@ private:
     state st = state::seek;
     flank flanked = flank::none;
     uint8_t replans = 0;
-    bool has_cover = false, has_peek = false;
+    bool has_cover = false, has_peek = false, has_query = false;
 };
 
 StringView cover_script::name() const { return "cover"_s; }
@@ -165,10 +168,23 @@ cover_script_status cover_script::status() const
 {
     return {
         .cover = flanked == flank::cover ? next_cover : cover, .peek = peek_pos, .gun = gun_pos,
-        .searches = searches, .rays = rays, .paths = paths,
+        .gun_seen_from = gun_seen_from, .query = query, .searches = searches, .rays = rays, .paths = paths,
         .last_update = last_update, .max_update = max_update, .total_update = total_update,
-        .st = st, .has_cover = has_cover, .has_peek = has_peek,
+        .st = st, .has_cover = has_cover, .has_peek = has_peek, .has_query = has_query,
     };
+}
+
+void cover_script::list_spots(critter& c, Array<point>& out)
+{
+    arrayClear(out);
+    if (!has_query)
+        return;
+    const auto r = finder.find_cover_point(c.world(), A.pool_registry(), Cover::Params{div_size}, query,
+                                           blocks_all_but(c.id), true);
+    const auto n = r.spots.size();
+    if (arrayCapacity(out) < n)
+        arrayReserve(out, n + n/2);
+    arrayAppend(out, r.spots);
 }
 
 void cover_script::on_init(const bptr<critter>& c)
@@ -269,12 +285,24 @@ bool cover_script::sees(critter& c, point from, point to)
     return raycast(c.world(), from, to, c.id, pool, Search::without_critters()).success;
 }
 
+// True when a ray from threat reaches gun_point() of c's body centered on pos. gun_pos and
+// gun_seen_from then hold the ray's ends, for the status.
+bool cover_script::sees_gun(critter& c, point pos, point threat)
+{
+    const auto gun = gun_point(c, pos, threat, across(), gun_offset);
+    if (!sees(c, threat, gun))
+        return false;
+    gun_pos = gun;
+    gun_seen_from = threat;
+    return true;
+}
+
 // The direction along the blocker's face, the one find_peek slides in.
 Vector2i cover_script::across() const { return Math::abs(Vector2i{axis.y(), axis.x()}); }
 
 // find_cover_point's cover from the threat within cover_radius of c, with options.octants. Not
 // found when the threat is gone or nothing hides c from it. Unless the threat is gone, threat_pos
-// is then where it stands.
+// is then where it stands, and query is this search's, found or not, for list_cover_spots.
 cover_point_result cover_script::nearest_cover(critter& c)
 {
     auto& w = c.world();
@@ -282,10 +310,10 @@ cover_point_result cover_script::nearest_cover(critter& c)
     if (!threat)
         return {};
     threat_pos = threat->position();
+    query = {c.position(), Vector2ui(c.bbox_size), threat_pos, cover_radius, options.octants};
+    has_query = true;
     searches++;
-    return finder.find_cover_point(w, A.pool_registry(), Cover::Params{div_size},
-                                   {c.position(), Vector2ui(c.bbox_size), threat_pos, cover_radius, options.octants},
-                                   blocks_all_but(c.id));
+    return finder.find_cover_point(w, A.pool_registry(), Cover::Params{div_size}, query, blocks_all_but(c.id));
 }
 
 // True when nearest_cover finds cover, and then cover and axis hold it.
@@ -500,7 +528,7 @@ void cover_script::check_exposed(critter& c, point threat)
     }
     if (flanked == flank::retreat)
         flanked = flank::none;
-    if (flanked == flank::none && !sees(c, threat, gun_point(c, c.position(), threat, across(), gun_offset)))
+    if (flanked == flank::none && !sees_gun(c, c.position(), threat))
         peek_again(c);
 }
 
@@ -523,7 +551,7 @@ void cover_script::check_walk(critter& c)
             wait = hidden_time;
         return;
     }
-    if (st == state::to_peek && !sees(c, pos, gun_point(c, walk.dest(), pos, across(), gun_offset)))
+    if (st == state::to_peek && !sees_gun(c, walk.dest(), pos))
         peek_again(c);
 }
 
@@ -641,7 +669,8 @@ void cover_script::face_threat(critter& c, size_t i)
 // slide could pass is at least that wide, then bisected. The bisection takes the cover itself as
 // unseen, so the slide is at least 1 px. When a step's slide runs into a collider, the last slide
 // tried on that side is the longest clear one, also found by bisection. Empty when neither side
-// has one within max_peek px. peek_pos and gun_pos hold the spot and its gun point when found.
+// has one within max_peek px. peek_pos and gun_pos hold the spot and its gun point when found, and
+// gun_seen_from holds threat.
 Optional<point> cover_script::find_peek(critter& c, point threat)
 {
     auto& w = c.world();
@@ -704,6 +733,7 @@ Optional<point> cover_script::find_peek(critter& c, point threat)
         return {};
     peek_pos = cover + dir * *best;
     gun_pos = gun_point(c, peek_pos, threat, dir, gun_offset);
+    gun_seen_from = threat;
     return peek_pos;
 }
 
@@ -737,6 +767,14 @@ void set_cover_script_options(critter& c, const cover_script_options& options)
 {
     if (auto* s = cover_script_of(c))
         s->options = options;
+}
+
+void list_cover_spots(critter& c, Array<point>& out)
+{
+    if (auto* s = cover_script_of(c))
+        s->list_spots(c, out);
+    else
+        arrayClear(out);
 }
 
 } // namespace floormat
