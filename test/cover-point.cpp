@@ -67,11 +67,11 @@ bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Sea
 }
 
 cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size, Vector2ui size = body,
-                        const Search::pred& pred = Search::without_critters())
+                        const Search::pred& pred = Search::without_critters(), bool list_spots = false)
 {
     static cover_point finder;
     Grid::PoolRegistry pools;
-    return finder.find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius}, pred);
+    return finder.find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius}, pred, list_spots);
 }
 
 bptr<critter> add_critter(world& w, point pos, Vector2ui size = body)
@@ -345,6 +345,76 @@ void test_spot_taken()
     fm_assert(passable(w, r.pos, body, Search::never_continue()));
     w[ch].remove_object(*other, other->index());
     fm_assert(cant_be_shot(w, threat, r.pos));
+}
+
+// Returns the search for npc and threat with its spots listed, after checking that a search
+// without them returns the same fields. The spots are valid until the next find().
+cover_point_result find_listed(world& w, point npc, point threat, uint32_t radius)
+{
+    const auto r0 = find(w, npc, threat, radius, 8);
+    const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters(), true);
+    fm_assert(r.found == r0.found);
+    fm_assert(r.pos == r0.pos && r.axis == r0.axis);
+    fm_assert_equal(r0.candidates, r.candidates);
+    fm_assert_equal(r0.rejected, r.rejected);
+    fm_assert(r.spots.isEmpty() == !r.found);
+    fm_assert(!r.found || r.spots[0] == r.pos);
+    for (auto i = 0u; i < r.spots.size(); i++)
+    {
+        for (auto j = i + 1; j < r.spots.size(); j++)
+            fm_assert(r.spots[i] != r.spots[j]);
+        fm_assert(passable(w, r.spots[i], body));
+        // Removed after the shot, so it can't stop the rays aimed at the next spot.
+        const auto c = add_critter(w, r.spots[i]);
+        fm_assert(cant_be_shot_at(w, threat, 0, r.spots[i], body, c->id));
+        w[ch].remove_object(*c, c->index());
+    }
+    return r;
+}
+
+// The scene of test_hides_behind_wall's first call, where the wall hides the body at more than
+// one spot.
+void test_lists_cover_spots()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+
+    const point npc{ch, {4, 8}, {}}, threat{ch, {12, 8}, {}};
+    constexpr auto radius = 3*tile_size_xy;
+    cover_point fresh;
+    Grid::PoolRegistry pools;
+    const auto r1 = fresh.find_cover_point(w, pools, Cover::Params{8}, {npc, body, threat, radius},
+                                           Search::without_critters(), true);
+    // Spots left over from a search on the other side of the wall would show in the next list.
+    const auto other = find(w, point{ch, {10, 8}, {}}, point{ch, {2, 8}, {}}, radius, 8, body, Search::without_critters(), true);
+    fm_assert(!other.spots.isEmpty());
+    const auto r = find_listed(w, npc, threat, radius);
+    fm_assert(r.spots.size() > 1);
+    fm_assert_equal(r1.spots.size(), r.spots.size());
+    for (auto i = 0u; i < r.spots.size(); i++)
+        fm_assert(r.spots[i] == r1.spots[i]);
+}
+
+// test_narrow_pillar_rejected's pillar, then a wall the npc is nearer to. The pillar's candidates
+// are tried after the wall's first spot, so the list's search rejects them past pos.
+void test_lists_past_rejected()
+{
+    const point npc{ch, {6, 6}, {}}, threat{ch, {14, 8}, {}};
+    constexpr auto radius = 3*tile_size_xy;
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 18});
+    rebuild(w);
+    const auto p = find(w, npc, threat, radius, 8);
+    fm_assert(!p.found && p.rejected > 0);
+
+    add_blocker(w, {7, 5}, {16, 64});
+    rebuild(w);
+    const auto r = find_listed(w, npc, threat, radius);
+    fm_assert(r.found);
+    fm_assert(r.spots.size() > 1);
 }
 
 struct cover_cycle { point hidden, peek; };
@@ -685,6 +755,8 @@ void Test::test_cover_point()
     test_touching_blockers();
     test_wall_out_of_radius();
     test_spot_taken();
+    test_lists_cover_spots();
+    test_lists_past_rejected();
     for (const auto size : { Vector2ui{23, 23}, Vector2ui{25, 25}, Vector2ui{23, 25}, Vector2ui{25, 23} })
     {
         test_narrow_pillar_rejected(size);

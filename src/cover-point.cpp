@@ -92,6 +92,7 @@ struct cover_point::Impl
     Array<candidate> cands;
     Array<Range2Di> rects;
     Array<slope_range> runs;
+    Array<point> spots;
 };
 
 cover_point::cover_point()
@@ -102,10 +103,16 @@ cover_point::cover_point()
 cover_point::~cover_point() noexcept = default;
 
 cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::Params params,
-                                                 const cover_query& q, const Search::pred& pred)
+                                                 const cover_query& q, const Search::pred& pred,
+                                                 bool list_spots)
 {
-    auto& [known, cells, cands, rects, runs] = *impl;
+    auto& [known, cells, cands, rects, runs, spots] = *impl;
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
+    if (list_spots)
+    {
+        arrayClear(spots);
+        arrayReserve(spots, 16);
+    }
     auto& cover_pool = pools.cover_pool(params);
     cover_pool.maybe_mark_stale_all(w);
 
@@ -367,15 +374,28 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
                 }
             if (!hidden(body))
             {
-                ret.rejected++;
+                if (!ret.found)
+                    ret.rejected++;
                 continue;
             }
         }
-        ret.pos = to_point(*p);
-        ret.axis = axis;
-        ret.found = true;
-        break;
+        const auto pt = to_point(*p);
+        if (!ret.found)
+        {
+            ret.pos = pt;
+            ret.axis = axis;
+            ret.found = true;
+        }
+        if (!list_spots)
+            break;
+        auto i = 0u;
+        while (i < spots.size() && spots[i] != pt)
+            i++;
+        if (i == spots.size())
+            arrayAppend(spots, pt);
     }
+    if (list_spots)
+        ret.spots = spots;
     return ret;
 }
 
