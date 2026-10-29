@@ -282,10 +282,11 @@ void Cover_Find(benchmark::State& state)
     const auto params = Cover::Params{(uint32_t)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Grid::PoolRegistry pools;
+    cover_point finder;
     const auto& pred = Search::never_continue();
-    auto r = find_cover_point(w, pools, params, q, pred);
+    auto r = finder.find_cover_point(w, pools, params, q, pred);
     for (auto _ : state)
-        r = find_cover_point(w, pools, params, q, pred);
+        r = finder.find_cover_point(w, pools, params, q, pred);
     set_find_counters(state, r);
 }
 
@@ -298,6 +299,7 @@ void Cover_Find_Octants(benchmark::State& state)
     const auto params = Cover::Params{(uint32_t)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Optional<Grid::PoolRegistry> pools;
+    cover_point finder;
     cover_point_result r;
     for (auto _ : state)
     {
@@ -311,7 +313,7 @@ void Cover_Find_Octants(benchmark::State& state)
             cover_pool[w[ch]].build_if_stale();
         });
         state.ResumeTiming();
-        r = find_cover_point(w, *pools, params, q, Search::never_continue());
+        r = finder.find_cover_point(w, *pools, params, q, Search::never_continue());
     }
     set_find_counters(state, r);
     set_fill_counters(state, w, pools->cover_pool(params), 9);
@@ -325,6 +327,7 @@ void Cover_Find_Fresh(benchmark::State& state)
     const auto params = Cover::Params{(uint32_t)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Optional<Grid::PoolRegistry> pools;
+    cover_point finder;
     cover_point_result r;
     for (auto _ : state)
     {
@@ -332,7 +335,7 @@ void Cover_Find_Fresh(benchmark::State& state)
         pools = NullOpt;
         pools.emplace();
         state.ResumeTiming();
-        r = find_cover_point(w, *pools, params, q, Search::never_continue());
+        r = finder.find_cover_point(w, *pools, params, q, Search::never_continue());
     }
     set_find_counters(state, r);
     set_fill_counters(state, w, pools->cover_pool(params), 0);

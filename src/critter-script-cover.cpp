@@ -64,6 +64,7 @@ private:
 
     astar& A;
     critter_walk walk;
+    cover_point finder;
     point cover, threat_pos;
     Vector2i axis;
     Ns wait{};
@@ -146,8 +147,8 @@ void cover_script::seek(const bptr<critter>& c)
     const auto body = Vector2ui(c->bbox_size);
     const auto from = c->position();
     const auto pred = blocks_all_but(c->id);
-    const auto r = find_cover_point(w, A.pool_registry(), Cover::Params{div_size},
-                                    {from, body, threat->position(), cover_radius}, pred);
+    const auto r = finder.find_cover_point(w, A.pool_registry(), Cover::Params{div_size},
+                                           {from, body, threat->position(), cover_radius}, pred);
     if (!r.found)
     {
         wait = retry_time;
