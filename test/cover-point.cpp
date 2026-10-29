@@ -409,6 +409,251 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
     return { hidden.pos, peek.pos };
 }
 
+// The wall and the npc of test_cover_script, with the threat at threat_pos and no other critter.
+// Each step() updates the npc by one frame of its animation.
+struct cover_scene
+{
+    world w;
+    astar A;
+    Grid::Pass::Pool ray_pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
+    bptr<critter> threat, npc;
+    uint32_t fps = 0;
+    Ns frame;
+
+    explicit cover_scene(point threat_pos = point{ch, {12, 8}, {}});
+    ~cover_scene() noexcept;
+    void step();
+    bool seen_from(point threat_pos, point pos);
+    point next_stop();
+    uint32_t stay(uint32_t max, Vector2i threat_step = {});
+};
+
+cover_scene::cover_scene(point threat_pos)
+{
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+    threat = add_critter(w, threat_pos);
+    npc = add_critter(w, point{ch, {4, 8}, {}});
+    w.init_scripts();
+    npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
+    fps = npc->atlas->info().fps;
+    frame = Second / fps;
+}
+
+cover_scene::~cover_scene() noexcept { w.finish_scripts(); }
+
+void cover_scene::step()
+{
+    auto i = npc->index();
+    npc->update(npc, i, frame);
+}
+
+bool cover_scene::seen_from(point threat_pos, point pos)
+{
+    return raycast(w, threat_pos, pos, threat->id, ray_pool, Search::without_critters()).success;
+}
+
+// Steps until the npc holds a position for a second, a stop as in test_cover_script, and returns
+// it while the npc still stands there.
+point cover_scene::next_stop()
+{
+    auto last = npc->position();
+    for (auto frames = 0u, still = 0u; still < fps; frames++)
+    {
+        fm_assert(frames < 60*fps);
+        step();
+        if (npc->position() != last)
+        {
+            last = npc->position();
+            still = 0;
+        }
+        else
+            still++;
+    }
+    return last;
+}
+
+// The number of updates the npc stays where it stands, at most max. The threat moves by
+// threat_step before each one.
+uint32_t cover_scene::stay(uint32_t max, Vector2i threat_step)
+{
+    const auto pos = npc->position();
+    for (auto frames = 0u; ; frames++)
+    {
+        if (threat_step != Vector2i{})
+        {
+            auto i = threat->index();
+            threat->teleport_to(i, threat->position() + threat_step, rotation_COUNT);
+        }
+        step();
+        if (npc->position() != pos)
+            return frames;
+        fm_assert(frames < max);
+    }
+}
+
+// Half a second after the npc reaches peek, the threat moves to the wall's west side, from where
+// the cover spot is in the open. The npc walks around the wall to a spot east of it that the
+// threat sees. It stands there for what was left of its 2 s out, which the walk doesn't spend,
+// then hides behind the wall's east face.
+void test_cover_script_keeps_peeking(point hidden, point peek)
+{
+    cover_scene s;
+    for (auto frames = 0u; s.npc->position() != peek; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.step();
+    }
+    // The walk to peek is a straight line, which arrives on the update that reaches it.
+    const auto out = s.fps/2;
+    for (auto k = 0u; k < out; k++)
+        s.step();
+    fm_assert(s.npc->position() == peek);
+
+    const point threat_pos{ch, {2, 8}, {}};
+    auto i = s.threat->index();
+    s.threat->teleport_to(i, threat_pos, rotation_COUNT);
+    fm_assert(s.seen_from(threat_pos, hidden));
+
+    // The npc is seen all the way around the wall's north end, and its first step back toward
+    // cover takes its center out of sight. still counts the updates since the npc last moved.
+    auto peek2 = peek;
+    auto seen = 0u, still = 0u;
+    for (;;)
+    {
+        fm_assert(seen < 60*s.fps);
+        s.step();
+        const auto pos = s.npc->position();
+        if (!s.seen_from(threat_pos, pos))
+            break;
+        still = pos == peek2 ? still + 1 : 0;
+        peek2 = pos;
+        seen++;
+    }
+    fm_assert(peek2 != peek);
+    // The first update after the teleport started with the npc standing at peek, so it spent a
+    // frame of the wait, and follow_threat started the walk in it. As in test_cover_script, a wait
+    // may end a frame early or late. A walk that arrives on an update without a move, as a
+    // walk_mode::path walk does when its last step uses up dt, adds that update to still. The walk
+    // takes at least half a second, far more than that slack, so the check fails when the walk
+    // spends the wait.
+    const auto standing = out + 1 + still;
+    fm_assert(standing + 2 >= 2*s.fps && standing <= 2*s.fps + 2);
+    fm_assert(seen - still >= s.fps/2);
+    const auto hidden2 = s.next_stop();
+    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, hidden2, body, s.npc->id));
+}
+
+// Half a second after the npc is back at cover from its first peek, the threat moves north-east of
+// the wall, from where it can shoot the npc at the cover spot. The npc walks south, past the
+// wall's south end, to a spot just below it that the wall hides from there. It stands there for
+// what was left of its 2 s hidden, which the walk doesn't spend, then steps out.
+void test_cover_script_follows_while_hidden(point hidden)
+{
+    cover_scene s;
+    for (auto k = 0u; k < 2; k++)
+    {
+        (void)s.next_stop();
+        (void)s.stay(2*s.fps);
+    }
+    // The walk back from peek is a straight line, which arrives on the update that reaches it.
+    for (auto frames = 0u; s.npc->position() != hidden; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.step();
+    }
+    const auto before = s.fps/2;
+    for (auto k = 0u; k < before; k++)
+        s.step();
+    fm_assert(s.npc->position() == hidden);
+
+    const point threat_pos{ch, {9, 2}, {}};
+    auto i = s.threat->index();
+    s.threat->teleport_to(i, threat_pos, rotation_COUNT);
+    fm_assert(!cant_be_shot_at(s.w, threat_pos, s.threat->id, hidden, body, s.npc->id));
+
+    // Diagonal steps cost more than a frame, so some updates of a walk don't move the npc. The
+    // loop ends at the npc's first move after a second without one, which is it stepping out.
+    auto spot = hidden;
+    auto walk = 0u, still = 0u;
+    auto spot_hidden = false;
+    for (;;)
+    {
+        fm_assert(walk + still < 60*s.fps);
+        s.step();
+        if (s.npc->position() == spot)
+        {
+            if (++still == s.fps)
+                spot_hidden = cant_be_shot_at(s.w, threat_pos, s.threat->id, spot, body, s.npc->id);
+            continue;
+        }
+        if (still >= s.fps)
+            break;
+        spot = s.npc->position();
+        walk += still + 1;
+        still = 0;
+    }
+    // The first update after the teleport started with the npc standing at cover, so it spent a
+    // frame of the wait, and follow_threat started the walk in it. The slack and the walk's least
+    // length are test_cover_script_keeps_peeking's, for the same reasons.
+    const auto standing = before + 1 + still;
+    fm_assert(standing + 2 >= 2*s.fps && standing <= 2*s.fps + 2);
+    fm_assert(walk >= s.fps/2);
+    fm_assert(spot_hidden);
+}
+
+// The threat stands 56 px east of the wall's east face, and the npc's cover 28 px west of it. A
+// ray from the threat to a spot the npc peeks from then passes the face's corner two thirds of
+// the way, so the spot moves 1 px for each 2 px the threat moves along the wall. With a second of
+// the npc's 2 s out left, the threat walks 1 px per frame along the wall, away from the side the
+// npc peeks on and back, over 4 px. The npc follows the spot and still turns back to cover when
+// its 2 s are up.
+void test_cover_script_threat_walks_along_wall()
+{
+    cover_scene s{point{ch, {8, 8}, {}}};
+    const auto hidden = s.next_stop();
+    (void)s.stay(2*s.fps);
+    const auto peek = s.next_stop();
+    const auto slide = Vector3i(peek).xy() - Vector3i(hidden).xy();
+    fm_assert(slide.x() == 0 && slide.y() != 0);
+    const auto side = slide.y() > 0 ? 1 : -1;
+
+    // next_stop() returned after a second at peek.
+    const auto left = s.fps;
+    constexpr auto amplitude = 4u;
+    for (auto frames = 0u; ; frames++)
+    {
+        const auto dir = frames % (2*amplitude) < amplitude ? -side : side;
+        auto i = s.threat->index();
+        s.threat->teleport_to(i, s.threat->position() + Vector2i{0, dir}, rotation_COUNT);
+        s.step();
+        // The spots it peeks from lie on the far side of peek from the cover, so this is the walk back.
+        if ((Vector3i(s.npc->position()).y() - Vector3i(peek).y())*side < 0)
+        {
+            // Those spots span less than amplitude px, and the walk back is 1 px per frame along
+            // the face, so it crosses peek within amplitude + 1 frames.
+            fm_assert(frames + 2 >= left && frames <= left + amplitude + 2);
+            break;
+        }
+        fm_assert(frames <= left + amplitude + 2);
+    }
+}
+
+// From the npc's arrival at cover, the threat walks east 1 px per frame, away from the wall, so
+// the same spot stays hidden. The npc still steps out when its 2 s there are up.
+void test_cover_script_walking_threat(point hidden)
+{
+    cover_scene s;
+    for (auto frames = 0u; s.npc->position() != hidden; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.step();
+    }
+    const auto frames = s.stay(2*s.fps + 2, Vector2i{1, 0});
+    fm_assert(frames + 2 >= 2*s.fps);
+}
+
 } // namespace
 
 void Test::test_cover_point()
@@ -449,6 +694,10 @@ void Test::test_cover_point()
         test_shift_to_only_spot(-1, false, size);
     }
     const auto [hidden, peek] = test_cover_script();
+    test_cover_script_keeps_peeking(hidden, peek);
+    test_cover_script_walking_threat(hidden);
+    test_cover_script_follows_while_hidden(hidden);
+    test_cover_script_threat_walks_along_wall();
     test_cover_script(hidden);
     // 1 px past the hidden body on the side it peeked from, so only the other side is left
     const auto side = Vector2i{0, Vector3i(peek).y() > Vector3i(hidden).y() ? 1 : -1};

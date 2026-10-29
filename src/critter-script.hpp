@@ -26,8 +26,9 @@ struct critter_script : base_script
 
     static Pointer<critter_script> make_walk_script(point to);
     static Pointer<critter_script> make_walk_script(path_search_result path);
-    // Hides from the threat critter, then steps out and back every 2 s. A must outlive the script's
-    // updates: the editor's astar is destroyed before the world.
+    // Hides from the threat critter, then steps out and back every 2 s. It looks for cover again
+    // after the threat moves. A must outlive the script's updates: the editor's astar is destroyed
+    // before the world.
     static Pointer<critter_script> make_cover_script(astar& A, object_id threat, uint32_t div_size);
 };
 
