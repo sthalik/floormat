@@ -46,7 +46,8 @@ auto blocks_all_but(object_id self)
 // the gun on the left. Without offset, it is half of c's bbox_size along across, the direction
 // find_peek slides in. rotation_to_vec in critter.cpp maps N to (0, -1) and E, a right turn from N,
 // to (1, 0), so the right of a facing (x, y) is (-y, x). With pos at threat there is no facing, and
-// the gun is at pos.
+// the gun is at pos. face_threat turns the exposed c to within 22.5° of this facing, unless c's box
+// turned that way would overlap a collider.
 point gun_point(const critter& c, point pos, point threat, Vector2i across, Optional<int> offset)
 {
     if (pos == threat)
@@ -67,6 +68,9 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
 // find_peek's spot for it. An exposed critter with no such spot walks to the new cover and hides
 // there for all of hidden_time. When that search finds no cover or no path, or the threat is gone,
 // the critter stands where it is and looks for cover again after retry_time.
+// Only an exposed critter turns toward the threat. face_threat runs when a walk to a peek spot
+// arrives, and when the threat moves and find_peek's new spot is where the critter stands. A
+// critter in seek keeps its rotation, even in the open.
 struct cover_script final : critter_script
 {
     enum class state : uint8_t { seek, to_cover, hidden, to_peek, exposed, };
@@ -89,6 +93,7 @@ private:
     void step_out(const bptr<critter>& c);
     void take_cover(const bptr<critter>& c);
     void walk_update(const bptr<critter>& c, size_t& i, const Ns& dt);
+    void face_threat(critter& c, size_t i);
     Optional<point> find_peek(critter& c, point threat);
 
     astar& A;
@@ -157,10 +162,13 @@ void cover_script::on_update(const bptr<critter>& c, size_t& i, const Ns& dt)
         {
             // A threat that moved during a walk is followed here. This update started with c
             // standing, so its dt was spent on the wait above, and the walk follow_threat starts
-            // moves by the same dt.
+            // moves by the same dt. follow_threat leaves st at exposed only when c already stands
+            // on the new peek spot. walk_update calls face_threat when a walk to one arrives.
             follow_threat(c);
             if (st == state::to_cover || st == state::to_peek)
                 walk_update(c, i, dt);
+            else if (st == state::exposed)
+                face_threat(*c, i);
         }
         return;
     }
@@ -280,7 +288,13 @@ void cover_script::walk_update(const bptr<critter>& c, size_t& i, const Ns& dt)
     if (ret == walk_result::arrived)
     {
         replans = 0;
-        st = st == state::to_cover ? state::hidden : state::exposed;
+        if (st == state::to_cover)
+            st = state::hidden;
+        else
+        {
+            st = state::exposed;
+            face_threat(*c, i);
+        }
         return;
     }
     if (st == state::to_peek)
@@ -290,6 +304,23 @@ void cover_script::walk_update(const bptr<critter>& c, size_t& i, const Ns& dt)
     }
     st = state::seek;
     wait = replans++ ? retry_time : Ns{};
+}
+
+// Turns c to the one of the 8 rotations nearest the direction from c's center to threat_pos. c
+// keeps its rotation when threat_pos is its center, which gives no direction, or when can_rotate
+// finds its box turned that way overlapping a collider. rotate() keeps bbox_offset at zero, so c's
+// position stays its body's center, which find_cover_point and Dijkstra take it to be. It swaps
+// bbox_size's x and y when c turns between N, NE, S or SW and E, SE, W or NW. find_cover, walk_to,
+// find_peek and gun_point read bbox_size when they run, so after this turn they take a non-square
+// body as it faces the threat, as after a walk they take it as the walk left it.
+void cover_script::face_threat(critter& c, size_t i)
+{
+    const auto v = threat_pos - c.position();
+    if (v.isZero())
+        return;
+    const auto r = nearest_rotation(v);
+    if (r != c.r && c.can_rotate(r))
+        c.rotate(i, r);
 }
 
 // The spot nearest the cover, sliding along the blocker's face, where a ray from the threat reaches

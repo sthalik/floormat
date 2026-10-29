@@ -117,6 +117,10 @@ private:
     critter(object_id id, class chunk& c, critter_proto proto);
 };
 
+// The one of the 8 rotations whose direction is nearest vec's. vec must not be zero. No vec lies
+// on a boundary between two of them, since tan 22.5° is irrational.
+rotation nearest_rotation(Vector2i vec);
+
 template<> struct object_type_<struct critter> : std::integral_constant<object_type, object_type::critter> {};
 template<> struct object_type_<struct critter_proto> : std::integral_constant<object_type, object_type::critter> {};
 
