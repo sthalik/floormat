@@ -26,13 +26,16 @@ struct critter_script : base_script
 
     static Pointer<critter_script> make_walk_script(point to);
     static Pointer<critter_script> make_walk_script(path_search_result path);
-    // Hides from the threat critter, then steps out and back every 2 s. It looks for cover again
-    // after the threat moves. A must outlive the script's updates: the editor's astar is destroyed
-    // before the world. It steps out until the threat sees its gun, which is to its right as it faces
-    // the threat, by half its width along the cover's face or by gun_offset px. A negative gun_offset
-    // puts the gun on the left. It turns to the nearest of the 8 rotations toward the threat when it
-    // has stepped out, and again when the threat moves and the spot to step out to stays the same.
-    // It keeps its rotation when its box turned that way would overlap a collider.
+    // Hides from the threat critter, then steps out and back every 2 s. After the threat moves, it
+    // looks for cover again when the threat sees it or its cover, and walks away from the threat
+    // when no cover it has a path to lies within 5 tiles. set_cover_script_options in
+    // critter-script-cover.hpp can make it look on every move instead. A must outlive the script's
+    // updates: the editor's astar is destroyed before the world. It steps out until the threat sees
+    // its gun, which is to its right as it faces the threat, by half its width along the cover's
+    // face or by gun_offset px. A negative gun_offset puts the gun on the left. It turns to the
+    // nearest of the 8 rotations toward the threat when it has stepped out, and again when the
+    // threat moves while it stays out. It keeps its rotation when its box turned that way would
+    // overlap a collider.
     static Pointer<critter_script> make_cover_script(astar& A, object_id threat, uint32_t div_size);
     static Pointer<critter_script> make_cover_script(astar& A, object_id threat, uint32_t div_size, int gun_offset);
 };
