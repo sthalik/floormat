@@ -56,12 +56,11 @@ void test_scenery_atlas_name_round_trip()
     }
 }
 
-// A door saved mid-swing whose atlas is missing loads active, on the stand-in with fps 0.
 void test_scenery_door_fps_zero()
 {
     auto w = world();
     auto proto = loader.scenery("door1");
-    proto.atlas = loader.invalid_anim_atlas().atlas;
+    proto.atlas = loader.anim_atlas("test-8x8", loader.ANIM_PATH);
     proto.frame = 0;
     const auto eʹ = w.make_scenery(w.make_id(), {{0, 0, 0}, {8, 8}}, move(proto));
     fm_assert(eʹ->scenery_type() == scenery_type::door);

@@ -21,6 +21,7 @@ template<> struct atlas_loader_traits<anim_atlas>
     static String& name_of(Cell& x);
     static void atlas_list(Storage& st);
     static Cell make_invalid_atlas(Storage& st);
+    static Cell make_invalid_atlas(uint32_t fps);
     static bptr<Atlas> make_atlas(StringView name, const Cell& c);
     static Optional<Cell> make_cell(StringView name);
 };

@@ -38,7 +38,11 @@ void anim_traits::atlas_list(Storage& s)
 auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
+    return make_invalid_atlas(0);
+}
 
+auto anim_traits::make_invalid_atlas(uint32_t fps) -> Cell
+{
     constexpr auto size = Vector2ui{tile_size_xy/2};
     constexpr auto ground = Vector2i(size/2);
 
@@ -63,6 +67,7 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
         .pixel_size = size,
         .scale = anim_scale::fixed{size.x(), true},
         .nframes = 1,
+        .fps = fps,
     };
     auto err_tex = loader.make_error_texture(size);
 

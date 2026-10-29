@@ -59,6 +59,7 @@ struct loader_
     virtual const wall_cell& invalid_wall_atlas() = 0;
     virtual const ground_cell& invalid_ground_atlas() = 0;
     virtual const anim_cell& invalid_anim_atlas() = 0;
+    virtual const anim_cell& invalid_critter_atlas() = 0;
     virtual const scenery_cell& invalid_scenery_atlas() = 0;
 
     /** \deprecated{internal use only}*/ [[nodiscard]]

@@ -236,8 +236,13 @@ struct visitor_ : visitor_base<IsNewest>
             self.visit(obj.atlas, atlas_type::vobj, f);
             break;
         case object_type::scenery:
+            self.visit(obj.atlas, atlas_type::anim, f);
+            break;
         case object_type::critter:
             self.visit(obj.atlas, atlas_type::anim, f);
+            if constexpr(!IsWriter)
+                if (obj.atlas == loader.invalid_anim_atlas().atlas) [[unlikely]]
+                    obj.atlas = loader.invalid_critter_atlas().atlas;
             break;
         }
         fm_debug_assert(obj.atlas);
@@ -266,9 +271,9 @@ struct visitor_ : visitor_base<IsNewest>
             if (self.PROTO < 31) [[unlikely]]
                 obj.delta = object::ns_to_delta(object::fraction_to_ns(obj.delta));
         visit(obj.frame, f);
-        // The stand-in for a missing atlas has one frame.
+        // Both stand-ins for a missing atlas have one frame.
         if constexpr(!IsWriter)
-            if (obj.atlas == loader.invalid_anim_atlas().atlas) [[unlikely]]
+            if (obj.atlas->name() == loader.INVALID) [[unlikely]]
                 obj.frame = 0;
         visit(obj.r, f);
         visit(obj.pass, f);
@@ -400,7 +405,7 @@ struct visitor_ : visitor_base<IsNewest>
                 // path length × 32768, and a pixel of path cost a frame
                 uint16_t offset_frac;
                 visit(offset_frac, f);
-                // a 1-frame atlas can have fps 0, as does the one loaded for a missing atlas
+                // a 1-frame atlas can have fps 0
                 if (const auto fps = obj.atlas->info().fps)
                     obj.delta = object::ns_to_delta(Ns{obj.delta} + (Second / fps) * (double(offset_frac) / 32768));
             }

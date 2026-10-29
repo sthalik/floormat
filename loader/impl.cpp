@@ -73,6 +73,7 @@ void loader_impl::destroy()
     _ground_loader = {InPlace};
     _wall_loader = {InPlace};
     _anim_loader = {InPlace};
+    _invalid_critter_atlas = NullOpt;
     _scenery_loader = {InPlace};
     vobj_atlas_map.clear();
     arrayClear(vobjs);

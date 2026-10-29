@@ -11,6 +11,7 @@
 #include "src/anim-atlas.hpp"
 #include "src/nanosecond.inl"
 #include "loader/loader.hpp"
+#include "loader/anim-cell.hpp"
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/crc64.hpp"
@@ -408,7 +409,19 @@ void test_save_nan()
     check_nan_rejected(patched, *save, lid, &light::radius, lp.radius);
 }
 
-// Each critter is named after the offset_frac and delta it was saved with.
+// Each critter is named after the offset_frac and delta it was saved with. Returns how many ns its
+// delta is from that pair converted at its atlas's fps.
+double offset_frac_error(const critter& C)
+{
+    uint32_t offset_frac, delta;
+    fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
+    // delta counted (uint32_t)-1 per second. offset_frac is path length × 32768, and a
+    // pixel of path cost a frame.
+    const auto expected = delta * 1e9 / double(uint32_t(-1))
+                        + offset_frac * 1e9 / (32768 * double(C.atlas->info().fps));
+    return Math::abs(double(C.delta) - expected);
+}
+
 void check_offset_frac(StringView name, uint16_t expected_proto, uint32_t expected_count)
 {
     constexpr auto magic = ".floormat.save"_s;
@@ -424,14 +437,7 @@ void check_offset_frac(StringView name, uint16_t expected_proto, uint32_t expect
     double max_err = 0;
     for (auto& c : w.chunks())
         c.objects().visit<critter>([&](critter& C) {
-            uint32_t offset_frac, delta;
-            fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
-            // delta counted (uint32_t)-1 per second. offset_frac is path length × 32768, and a
-            // pixel of path cost a frame.
-            const auto expected = delta * 1e9 / double(uint32_t(-1))
-                                + offset_frac * 1e9 / (32768 * double(C.atlas->info().fps));
-            const auto got = double(C.delta);
-            max_err = Math::max(max_err, Math::abs(got - expected));
+            max_err = Math::max(max_err, offset_frac_error(C));
             count++;
         });
     fm_assert(count == expected_count);
@@ -445,8 +451,6 @@ void test_save_offset_frac()
     check_offset_frac("proto-30-offset-frac.dat"_s, 30, 24);
 }
 
-// A missing anim atlas loads as a stand-in with one frame and fps 0, which can't turn offset_frac
-// into time.
 void check_missing_atlas(StringView name, uint32_t expected_count)
 {
     const auto path = Path::join(loader.TEMP_PATH, Path::join("test/save"_s, name));
@@ -458,19 +462,29 @@ void check_missing_atlas(StringView name, uint32_t expected_count)
 
     auto w = world::deserialize(patched, loader_policy::ignore);
     uint32_t count = 0;
+    double max_err = 0;
     for (auto& c : w.chunks())
         c.objects().visit<critter>([&](critter& C) {
-            fm_assert(C.atlas->info().fps == 0);
+            fm_assert(C.atlas->info().fps == 30);
             fm_assert(C.frame == 0);
-            uint32_t offset_frac, delta;
             // quicksave.dat's player was saved facing SE on frame 23.
             if (C.playable)
                 fm_assert(C.r == rotation::SE);
-            else
-            {
-                fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
-                fm_assert(C.delta == object::ns_to_delta(object::fraction_to_ns(delta)));
-            }
+            max_err = Math::max(max_err, offset_frac_error(C));
+            count++;
+        });
+    fm_assert(count == expected_count);
+    fm_assert(max_err < 5);
+
+    const auto resaved = Path::join(loader.TEMP_PATH, "test/test-save-missing-atlas-2.dat"_s);
+    if (Path::exists(resaved))
+        Path::remove(resaved);
+    w.serialize(resaved);
+    auto w2 = world::deserialize(resaved, loader_policy::ignore);
+    count = 0;
+    for (auto& c : w2.chunks())
+        c.objects().visit<critter>([&](critter& C) {
+            fm_assert(C.atlas == loader.invalid_critter_atlas().atlas);
             count++;
         });
     fm_assert(count == expected_count);
