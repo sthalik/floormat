@@ -165,8 +165,15 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
             const auto walk_dist = (float)Math::max(a.x(), a.y()) + (Math::sqrt(2.f) - 1) * (float)Math::min(a.x(), a.y());
             arrayAppend(cands, candidate{center, walk_dist, blocker_px});
         }
+    // Cells mirrored about the npc's row or column can tie on both keys. std::sort leaves the
+    // order of equal elements to the standard library, so the position breaks the tie and every
+    // library picks the same cell.
     std::sort(cands.begin(), cands.end(), [](const candidate& a, const candidate& b) {
-        return a.walk_dist != b.walk_dist ? a.walk_dist < b.walk_dist : a.blocker_px < b.blocker_px;
+        if (a.walk_dist != b.walk_dist)
+            return a.walk_dist < b.walk_dist;
+        if (a.blocker_px != b.blocker_px)
+            return a.blocker_px < b.blocker_px;
+        return a.center.y() != b.center.y() ? a.center.y() < b.center.y() : a.center.x() < b.center.x();
     });
 
     cover_point_result ret;
