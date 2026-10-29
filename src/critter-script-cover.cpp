@@ -41,7 +41,17 @@ auto blocks_all_but(object_id self)
     };
 }
 
-// Takes cover from a critter, then keeps stepping out of it and back.
+// Takes cover from a critter, then keeps stepping out of it and back. Each phase, hidden or
+// exposed, lasts until its wait runs out, unless a walk is blocked or a search for cover fails.
+// Only updates that start with the critter standing in its phase spend the wait. The update in
+// which it starts walking after a threat that moved is one of them, so a threat that keeps moving
+// can't keep the phase from ending. The phase lasts longer by the walk's later updates, and by
+// none when the walk arrives in the update that starts it.
+// When the critter stands with some wait left and the threat moved or is gone, it looks for cover
+// again from where it stands. A hidden critter then walks to the new cover, and an exposed one to
+// find_peek's spot for it. An exposed critter with no such spot walks to the new cover and hides
+// there for all of hidden_time. When that search finds no cover or no path, or the threat is gone,
+// the critter stands where it is and looks for cover again after retry_time.
 struct cover_script final : critter_script
 {
     enum class state : uint8_t { seek, to_cover, hidden, to_peek, exposed, };
@@ -57,8 +67,12 @@ struct cover_script final : critter_script
 
 private:
     bool wait_for(const Ns& dt);
+    bool find_cover(critter& c);
+    bool walk_to(critter& c, point to, state then);
     void seek(const bptr<critter>& c);
+    void follow_threat(const bptr<critter>& c);
     void step_out(const bptr<critter>& c);
+    void take_cover(const bptr<critter>& c);
     void walk_update(const bptr<critter>& c, size_t& i, const Ns& dt);
     Optional<point> find_peek(critter& c, point threat);
 
@@ -111,14 +125,26 @@ void cover_script::on_update(const bptr<critter>& c, size_t& i, const Ns& dt)
         walk_update(c, i, dt);
         return;
     case state::hidden:
-        if (wait_for(dt))
-            step_out(c);
-        return;
     case state::exposed:
         if (wait_for(dt))
         {
-            walk = critter_walk{cover};
-            st = state::to_cover;
+            if (st == state::hidden)
+                step_out(c);
+            else
+            {
+                walk = critter_walk{cover};
+                st = state::to_cover;
+                wait = hidden_time;
+            }
+        }
+        else if (const auto threat = c->world().find_object(threat_id); !threat || threat->position() != threat_pos)
+        {
+            // A threat that moved during a walk is followed here. This update started with c
+            // standing, so its dt was spent on the wait above, and the walk follow_threat starts
+            // moves by the same dt.
+            follow_threat(c);
+            if (st == state::to_cover || st == state::to_peek)
+                walk_update(c, i, dt);
         }
         return;
     }
@@ -135,61 +161,99 @@ bool cover_script::wait_for(const Ns& dt)
     return true;
 }
 
-void cover_script::seek(const bptr<critter>& c)
+// True when there is cover from the threat within cover_radius of c, and then cover, axis and
+// threat_pos hold it. False when the threat is gone or nothing hides c from it.
+bool cover_script::find_cover(critter& c)
 {
-    auto& w = c->world();
+    auto& w = c.world();
     const auto threat = w.find_object(threat_id);
     if (!threat)
-    {
-        wait = retry_time;
-        return;
-    }
-    const auto body = Vector2ui(c->bbox_size);
-    const auto from = c->position();
-    const auto pred = blocks_all_but(c->id);
+        return false;
     const auto r = finder.find_cover_point(w, A.pool_registry(), Cover::Params{div_size},
-                                           {from, body, threat->position(), cover_radius}, pred);
+                                           {c.position(), Vector2ui(c.bbox_size), threat->position(), cover_radius},
+                                           blocks_all_but(c.id));
     if (!r.found)
-    {
-        wait = retry_time;
-        return;
-    }
+        return false;
     cover = r.pos;
     axis = r.axis;
     threat_pos = threat->position();
-    if (from == cover)
+    return true;
+}
+
+// True when c stands at `to`, and then st is `then`, or starts walking there along a Dijkstra path,
+// smoothed when string_pull can, and then st is the walk to `then`. False when there is no path.
+bool cover_script::walk_to(critter& c, point to, state then)
+{
+    auto& w = c.world();
+    const auto from = c.position();
+    if (from == to)
     {
-        st = state::hidden;
-        wait = hidden_time;
-        return;
+        st = then;
+        return true;
     }
-    const auto max_dist = point::distance(from, cover)*2 + (uint32_t)tile_size_xy;
-    auto path = A.Dijkstra<0, false>(w, from, cover, max_dist, body, pred);
+    const auto body = Vector2ui(c.bbox_size);
+    const auto pred = blocks_all_but(c.id);
+    const auto max_dist = point::distance(from, to)*2 + (uint32_t)tile_size_xy;
+    auto path = A.Dijkstra<0, false>(w, from, to, max_dist, body, pred);
     if (!path.is_found())
-    {
-        wait = retry_time;
-        return;
-    }
+        return false;
     (void)A.string_pull(w, path, body, pred);
     walk = critter_walk{move(path)};
-    st = state::to_cover;
+    st = then == state::hidden ? state::to_cover : state::to_peek;
+    return true;
+}
+
+void cover_script::seek(const bptr<critter>& c)
+{
+    wait = find_cover(*c) && walk_to(*c, cover, state::hidden) ? hidden_time : retry_time;
+}
+
+// Looks for cover again from where c stands, then walks to the spot for c's phase: the new cover,
+// or find_peek's spot for it when c is exposed. c keeps what is left of the wait, which the walk
+// doesn't spend, and stays put when it already stands there. An exposed c with no such spot walks
+// to the new cover and hides there for all of hidden_time. With the threat gone, no cover or no
+// path, st is seek and wait is retry_time.
+void cover_script::follow_threat(const bptr<critter>& c)
+{
+    const auto exposed = st == state::exposed;
+    if (find_cover(*c))
+    {
+        const auto peek = exposed ? find_peek(*c, threat_pos) : Optional<point>{};
+        if (peek ? walk_to(*c, *peek, state::exposed) : walk_to(*c, cover, state::hidden))
+        {
+            if (exposed && !peek)
+                wait = hidden_time;
+            return;
+        }
+    }
+    st = state::seek;
+    wait = retry_time;
 }
 
 void cover_script::step_out(const bptr<critter>& c)
 {
-    const auto threat = c->world().find_object(threat_id);
-    if (!threat || threat->position() != threat_pos)
-    {
-        st = state::seek;
-        return;
-    }
     if (const auto p = find_peek(*c, threat_pos))
     {
         walk = critter_walk{*p};
         st = state::to_peek;
+        wait = exposed_time;
     }
     else
         wait = hidden_time;
+}
+
+// Walks c to cover along a Dijkstra path and hides it there for hidden_time. It serves where c may
+// be off the slide from cover that find_peek checked, so a straight walk back could run into the
+// blocker. With no path, st is seek and wait is retry_time.
+void cover_script::take_cover(const bptr<critter>& c)
+{
+    if (walk_to(*c, cover, state::hidden))
+        wait = hidden_time;
+    else
+    {
+        st = state::seek;
+        wait = retry_time;
+    }
 }
 
 void cover_script::walk_update(const bptr<critter>& c, size_t& i, const Ns& dt)
@@ -201,13 +265,11 @@ void cover_script::walk_update(const bptr<critter>& c, size_t& i, const Ns& dt)
     {
         replans = 0;
         st = st == state::to_cover ? state::hidden : state::exposed;
-        wait = st == state::hidden ? hidden_time : exposed_time;
         return;
     }
     if (st == state::to_peek)
     {
-        walk = critter_walk{cover};
-        st = state::to_cover;
+        take_cover(c);
         return;
     }
     st = state::seek;
