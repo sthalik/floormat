@@ -4,6 +4,7 @@
 #include "compat/safe-ptr.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "atlas-loader-fwd.hpp"
+#include "anim-cell.hpp"
 #include "string-index-map.hpp"
 #include <cr/Optional.h>
 #include <cr/Array.h>
@@ -69,6 +70,8 @@ struct loader_impl final : loader_
     ArrayView<const anim_cell> anim_atlas_list() override;
     bptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
     const anim_cell& invalid_anim_atlas() override;
+    Optional<anim_cell> _invalid_critter_atlas;
+    const anim_cell& invalid_critter_atlas() override;
     bptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) override;
 
     // >-----> scenery >----->

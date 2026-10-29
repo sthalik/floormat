@@ -226,14 +226,14 @@ void test_speed_zero_stays()
     fm_assert(npc.delta == 0);
 }
 
-// The stand-in for a missing anim atlas has fps 0. Its critter keeps the time but never takes a step
-// or turns, since turning a static object moves its offset.
+// test-8x8 has one frame and no fps, so fps 0. Its critter keeps the time but never takes a step or
+// turns, since turning a static object moves its offset.
 void test_fps_zero_stays()
 {
     auto w = world();
     object_id id = 0;
     auto proto = make_proto(1.f);
-    proto.atlas = loader.invalid_anim_atlas().atlas;
+    proto.atlas = loader.anim_atlas("test-8x8", loader.ANIM_PATH);
     auto& npc = *w.ensure_player_character(id, move(proto));
     fm_assert(npc.atlas->info().fps == 0);
     auto idx = npc.index();
@@ -260,6 +260,20 @@ void test_fps_zero_stays()
     const auto res4 = npc.move_toward(idx, dt, walk_start, dest);
     fm_assert(!res3.blocked && !res3.moved && !res4.blocked && !res4.moved);
     fm_assert_equal(walk_start, npc.position());
+}
+
+void test_missing_atlas_walks()
+{
+    auto w = world();
+    object_id id = 0;
+    auto proto = make_proto(1.f);
+    proto.atlas = loader.invalid_critter_atlas().atlas;
+    auto& npc = *w.ensure_player_character(id, move(proto));
+    auto idx = npc.index();
+    npc.teleport_to(idx, walk_start, rotation::N);
+    npc.update_movement(idx, Second, rotation::E);
+    fm_assert_equal(Vector2i{30, 0}, npc.position() - walk_start);
+    fm_assert(npc.r == rotation::E);
 }
 
 // A diagonal step at fps 1 costs 1.41 s, so delta has to hold more than a second.
@@ -783,6 +797,7 @@ void Test::test_critter()
     test_unspent_dt_tiny_speed();
     test_speed_zero_stays();
     test_fps_zero_stays();
+    test_missing_atlas_walks();
     test_delta_range();
     test_alloc_ticks_clamp();
     test_speed_huge();
