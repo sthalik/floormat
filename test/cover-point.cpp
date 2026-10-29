@@ -419,9 +419,25 @@ void test_lists_past_rejected()
 
 struct cover_cycle { point hidden, peek; };
 
+// Where cover_script puts the gun of a body centered on pos: offset px to the right of pos as it
+// faces threat, square to the exact direction to threat and rounded to whole px. gun_point() in
+// critter-script-cover.cpp has the same float expression, and release builds compile both with
+// fast math, so their last bits may differ. That changes the rounded result only near a half
+// pixel, so each component must lie at least 1e-4 px from one.
+point gun_at(point pos, point threat, int offset)
+{
+    if (pos == threat)
+        return pos;
+    const auto f = Vector2(threat - pos);
+    const auto v = Vector2{-f.y(), f.x()} * ((float)offset / f.length());
+    fm_assert((Math::abs(v - Math::floor(v) - Vector2{.5f}) >= Vector2{1e-4f}).all());
+    return pos + Vector2i(Math::round(v));
+}
+
 // The npc walks behind the wall and stays hidden for 2 s. It then slides along the wall the least
-// that lets a ray from the threat reach its center, stays out 2 s, and walks back to the same spot.
-// Another critter stands at other_pos throughout.
+// that lets a ray from the threat reach its gun, half the body's width to its right as it faces the
+// threat. It stays out 2 s and walks back to the same spot. Another critter stands at other_pos
+// throughout.
 cover_cycle test_cover_script(const Optional<point>& other_pos = {})
 {
     auto w = world();
@@ -472,15 +488,23 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
     const auto slide = Vector3i(peek.pos).xy() - Vector3i(hidden.pos).xy();
     fm_assert(slide.x() == 0 && slide.y() != 0);
     Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
-    const auto seen = [&](point p) { return raycast(w, threat_pos, p, threat->id, pool, Search::without_critters()).success; };
+    // The slide is along y, so the body's width along the wall is body.y().
+    const auto seen = [&](point p) {
+        const auto gun = gun_at(p, threat_pos, (int)body.y()/2);
+        return raycast(w, threat_pos, gun, threat->id, pool, Search::without_critters()).success;
+    };
     fm_assert(seen(peek.pos));
     fm_assert(!seen(peek.pos - Vector2i{0, slide.y() > 0 ? 1 : -1}));
     w.finish_scripts();
     return { hidden.pos, peek.pos };
 }
 
-// The wall and the npc of test_cover_script, with the threat at threat_pos and no other critter.
-// Each step() updates the npc by one frame of its animation.
+// The wall and the npc of test_cover_script, with the threat at threat_pos, and another critter at
+// other_pos when it is given. The npc's bbox_size is npc_size while it faces north, as it starts.
+// Its gun is gun_offset px to its right, or where the 3-argument make_cover_script puts it when
+// gun_offset is empty. With the default 0 the gun is at the body's center, so
+// seen_from(threat_pos, npc->position()) is the check the npc makes. Each step() updates the npc
+// by one frame of its animation.
 struct cover_scene
 {
     world w;
@@ -490,7 +514,8 @@ struct cover_scene
     uint32_t fps = 0;
     Ns frame;
 
-    explicit cover_scene(point threat_pos = point{ch, {12, 8}, {}});
+    explicit cover_scene(point threat_pos = point{ch, {12, 8}, {}}, Optional<int> gun_offset = 0,
+                         const Optional<point>& other_pos = {}, Vector2ui npc_size = body);
     ~cover_scene() noexcept;
     void step();
     bool seen_from(point threat_pos, point pos);
@@ -498,15 +523,20 @@ struct cover_scene
     uint32_t stay(uint32_t max, Vector2i threat_step = {});
 };
 
-cover_scene::cover_scene(point threat_pos)
+cover_scene::cover_scene(point threat_pos, Optional<int> gun_offset, const Optional<point>& other_pos,
+                         Vector2ui npc_size)
 {
     add_ground(w);
     add_blocker(w, {7, 8}, {16, 96});
     rebuild(w);
     threat = add_critter(w, threat_pos);
-    npc = add_critter(w, point{ch, {4, 8}, {}});
+    npc = add_critter(w, point{ch, {4, 8}, {}}, npc_size);
+    if (other_pos)
+        add_critter(w, *other_pos);
     w.init_scripts();
-    npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
+    auto script = gun_offset ? critter_script::make_cover_script(A, threat->id, 8, *gun_offset)
+                             : critter_script::make_cover_script(A, threat->id, 8);
+    npc->script.do_reassign(move(script), npc);
     fps = npc->atlas->info().fps;
     frame = Second / fps;
 }
@@ -724,6 +754,69 @@ void test_cover_script_walking_threat(point hidden)
     fm_assert(frames + 2 >= 2*s.fps);
 }
 
+// The npc's cover and peek spots in a cover_scene made with these arguments. It asserts that the
+// threat sees the npc's gun at the peek spot and not with the slide 1 px shorter. The gun is
+// gun_offset px to the npc's right, or where the 3-argument make_cover_script puts it when
+// gun_offset is empty.
+cover_cycle peek_with_gun(Optional<int> gun_offset, const Optional<point>& other_pos = {}, Vector2ui npc_size = body)
+{
+    cover_scene s{point{ch, {12, 8}, {}}, gun_offset, other_pos, npc_size};
+    const auto hidden = s.next_stop();
+    // The slide is along y, so the default is half of bbox_size.y(). find_peek() reads bbox_size
+    // at hidden, and each walk turns the npc, which rotates bbox_size.
+    const auto offset = gun_offset ? *gun_offset : (int)s.npc->bbox_size.y()/2;
+    (void)s.stay(2*s.fps);
+    const auto peek = s.next_stop();
+    const auto slide = Vector3i(peek).xy() - Vector3i(hidden).xy();
+    fm_assert(slide.x() == 0 && slide.y() != 0);
+    const auto side = slide.y() > 0 ? 1 : -1;
+    const auto threat = s.threat->position();
+    fm_assert(s.seen_from(threat, gun_at(peek, threat, offset)));
+    fm_assert(!s.seen_from(threat, gun_at(peek - Vector2i{0, side}, threat, offset)));
+    return { hidden, peek };
+}
+
+// The npc faces the threat in the east, and north is -y, so its right is +y. Compared with a gun at
+// its center, a gun to its right shortens the slide to its right and lengthens the one to its left,
+// and a gun to its left does the reverse. The default puts the gun half the body's width to its
+// right. A 30 by 24 px body's width along the wall differs from its depth toward the threat,
+// whichever way it is turned, so peek_with_gun's check of the default tells the two apart. hidden
+// is the cover spot test_cover_script returned.
+void test_cover_script_gun_offset(point hidden)
+{
+    constexpr auto right = 1, left = -1;
+    // A critter stands 1 px past the body at hidden on the side not tested.
+    const auto slide = [&](int offset, int side) {
+        const auto c = peek_with_gun(offset, hidden - Vector2i{0, side*((int)body.y() + 1)});
+        fm_assert(c.hidden == hidden);
+        const auto dy = Vector3i(c.peek).y() - Vector3i(c.hidden).y();
+        fm_assert(dy*side > 0);
+        return Math::abs(dy);
+    };
+    const auto r0 = slide(0, right), l0 = slide(0, left);
+    const auto r7 = slide(7, right), l7 = slide(7, left);
+    const auto r11 = slide(-11, right), l11 = slide(-11, left);
+    fm_assert(r7 < r0 && r0 < r11);
+    fm_assert(l7 > l0 && l0 > l11);
+
+    const auto d = peek_with_gun({});
+    fm_assert(d.hidden == hidden);
+    fm_assert(d.peek == peek_with_gun((int)body.y()/2).peek);
+    fm_assert(Vector3i(d.peek).y() > Vector3i(hidden).y());
+    (void)peek_with_gun({}, {}, Vector2ui{30, 24});
+}
+
+// A critter stands 1 px past the body at the npc's peek spot, on the far side from the cover, so
+// every longer slide runs into it. The slide there, 44 px, is no multiple of find_peek's step of
+// half the body, so the first step past it is blocked. The npc still peeks from that spot.
+void test_cover_script_peek_beside_critter(point hidden)
+{
+    const auto c = peek_with_gun({});
+    const auto side = Vector3i(c.peek).y() > Vector3i(hidden).y() ? 1 : -1;
+    const auto c2 = peek_with_gun({}, c.peek + Vector2i{0, side*((int)body.y() + 1)});
+    fm_assert(c2.hidden == hidden && c2.peek == c.peek);
+}
+
 } // namespace
 
 void Test::test_cover_point()
@@ -766,10 +859,16 @@ void Test::test_cover_point()
         test_shift_to_only_spot(-1, false, size);
     }
     const auto [hidden, peek] = test_cover_script();
-    test_cover_script_keeps_peeking(hidden, peek);
+    // cover_scene's gun is at the body's center, and test_cover_script's is not, so they peek from
+    // different spots.
+    const auto c0 = peek_with_gun(0);
+    fm_assert(c0.hidden == hidden);
+    test_cover_script_keeps_peeking(hidden, c0.peek);
     test_cover_script_walking_threat(hidden);
     test_cover_script_follows_while_hidden(hidden);
     test_cover_script_threat_walks_along_wall();
+    test_cover_script_gun_offset(hidden);
+    test_cover_script_peek_beside_critter(hidden);
     test_cover_script(hidden);
     // 1 px past the hidden body on the side it peeked from, so only the other side is left
     const auto side = Vector2i{0, Vector3i(peek).y() > Vector3i(hidden).y() ? 1 : -1};

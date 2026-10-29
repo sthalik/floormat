@@ -41,6 +41,21 @@ auto blocks_all_but(object_id self)
     };
 }
 
+// Where the gun is when c's body is centered on pos and c faces threat: offset px to the right of
+// pos, square to the exact direction from pos to threat, rounded to whole px. A negative offset puts
+// the gun on the left. Without offset, it is half of c's bbox_size along across, the direction
+// find_peek slides in. rotation_to_vec in critter.cpp maps N to (0, -1) and E, a right turn from N,
+// to (1, 0), so the right of a facing (x, y) is (-y, x). With pos at threat there is no facing, and
+// the gun is at pos.
+point gun_point(const critter& c, point pos, point threat, Vector2i across, Optional<int> offset)
+{
+    if (pos == threat)
+        return pos;
+    const auto dist = offset ? *offset : Math::dot(Vector2i(c.bbox_size), across)/2;
+    const auto f = Vector2(threat - pos);
+    return pos + Vector2i(Math::round(Vector2{-f.y(), f.x()} * ((float)dist / f.length())));
+}
+
 // Takes cover from a critter, then keeps stepping out of it and back. Each phase, hidden or
 // exposed, lasts until its wait runs out, unless a walk is blocked or a search for cover fails.
 // Only updates that start with the critter standing in its phase spend the wait. The update in
@@ -63,7 +78,7 @@ struct cover_script final : critter_script
     void on_destroy(const bptr<critter>& c, script_destroy_reason reason) override;
     void delete_self() noexcept override;
 
-    cover_script(astar& A, object_id threat, uint32_t div_size);
+    cover_script(astar& A, object_id threat, uint32_t div_size, Optional<int> gun_offset);
 
 private:
     bool wait_for(const Ns& dt);
@@ -84,6 +99,7 @@ private:
     Ns wait{};
     object_id threat_id;
     uint32_t div_size;
+    Optional<int> gun_offset;
     state st = state::seek;
     uint8_t replans = 0;
 };
@@ -95,8 +111,8 @@ void cover_script::delete_self() noexcept { delete this; }
 // The world is destroyed after astar, so A is gone by now.
 void cover_script::on_destroy(const bptr<critter>& c, script_destroy_reason) { c->clear_auto_movement(); }
 
-cover_script::cover_script(astar& A, object_id threat, uint32_t div_size) :
-    A{A}, threat_id{threat}, div_size{div_size}
+cover_script::cover_script(astar& A, object_id threat, uint32_t div_size, Optional<int> gun_offset) :
+    A{A}, threat_id{threat}, div_size{div_size}, gun_offset{gun_offset}
 {}
 
 void cover_script::on_init(const bptr<critter>& c)
@@ -277,8 +293,11 @@ void cover_script::walk_update(const bptr<critter>& c, size_t& i, const Ns& dt)
 }
 
 // The spot nearest the cover, sliding along the blocker's face, where a ray from the threat reaches
-// the body's center. Searched in steps of half the body, since a blocker the slide could pass
-// is at least that wide, then bisected. Empty when neither side has one within max_peek px.
+// gun_point() of the body centered there. Searched in steps of half the body, since a blocker the
+// slide could pass is at least that wide, then bisected. The bisection takes the cover itself as
+// unseen, so the slide is at least 1 px. When a step's slide runs into a collider, the last slide
+// tried on that side is the longest clear one, also found by bisection. Empty when neither side
+// has one within max_peek px.
 Optional<point> cover_script::find_peek(critter& c, point threat)
 {
     auto& w = c.world();
@@ -288,7 +307,8 @@ Optional<point> cover_script::find_peek(critter& c, point threat)
     const auto step = Math::max(1, Math::dot(body, across)/2);
     const auto pred = blocks_all_but(c.id);
     const auto seen = [&](int t) {
-        return raycast(w, threat, cover + across*t, c.id, ray_pool, Search::without_critters()).success;
+        const auto gun = gun_point(c, cover + across*t, threat, across, gun_offset);
+        return raycast(w, threat, gun, c.id, ray_pool, Search::without_critters()).success;
     };
     // The slide sweeps the box spanning both ends.
     const auto clear = [&](int t) {
@@ -304,7 +324,21 @@ Optional<point> cover_script::find_peek(critter& c, point threat)
         for (auto t = step; t <= max_peek && !hi; t += step)
         {
             if (!clear(side*t))
+            {
+                // A longer slide's box holds a shorter one's, so the clear slides end before t.
+                auto clear_t = lo, blocked_t = t;
+                while (blocked_t - clear_t > 1)
+                {
+                    const auto mid = (clear_t + blocked_t)/2;
+                    if (clear(side*mid))
+                        clear_t = mid;
+                    else
+                        blocked_t = mid;
+                }
+                if (clear_t > lo && seen(side*clear_t))
+                    hi = clear_t;
                 break;
+            }
             if (seen(side*t))
                 hi = t;
             else
@@ -332,7 +366,12 @@ Optional<point> cover_script::find_peek(critter& c, point threat)
 
 ScriptPtr critter_script::make_cover_script(astar& A, object_id threat, uint32_t div_size)
 {
-    return ScriptPtr(new cover_script{A, threat, div_size});
+    return ScriptPtr(new cover_script{A, threat, div_size, {}});
+}
+
+ScriptPtr critter_script::make_cover_script(astar& A, object_id threat, uint32_t div_size, int gun_offset)
+{
+    return ScriptPtr(new cover_script{A, threat, div_size, gun_offset});
 }
 
 } // namespace floormat
