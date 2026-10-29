@@ -22,8 +22,10 @@
 #include "src/scenery-proto.hpp"
 #include "src/tile-defs.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
+#include <mg/Constants.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -817,6 +819,63 @@ void test_cover_script_peek_beside_critter(point hidden)
     fm_assert(c2.hidden == hidden && c2.peek == c.peek);
 }
 
+// The one of the 8 rotations nearest v's direction, from v's angle clockwise from north, which is
+// -y. The angle must lie at least 1° from a boundary between two of them, so that atan2's rounding
+// can't change the result.
+rotation nearest_of_8(Vector2i v)
+{
+    const auto octants = std::atan2((double)v.x(), (double)-v.y()) / (Math::Constants<double>::pi()/4);
+    const auto k = std::round(octants);
+    fm_assert(.5 - std::abs(octants - k) >= 1./45);
+    return rotation((uint8_t)(((int)k + 8) % 8));
+}
+
+// The npc's gun is 23 px to its left, and a critter stands 1 px north of the body at hidden, so the
+// npc peeks past the wall's south end. From the update it arrives there, it faces the threat in the
+// east. Half a second later the threat moves to 13 px east and 3 px north of the wall's south-east
+// corner. From there the gun at the same spot is still the first the threat sees, so the npc stays
+// there, and it faces the threat's new direction from the next update until its 2 s out are up.
+// hidden is the cover spot test_cover_script returned.
+void test_cover_script_faces_threat(point hidden)
+{
+    constexpr auto gun_offset = -23;
+    const auto north = hidden - Vector2i{0, (int)body.y() + 1};
+    const auto peek = peek_with_gun(gun_offset, north).peek;
+    cover_scene s{point{ch, {12, 8}, {}}, gun_offset, north};
+    for (auto frames = 0u; s.npc->position() != peek; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.step();
+    }
+    const auto r1 = nearest_of_8(s.threat->position() - peek);
+    fm_assert(s.npc->r == r1);
+    const auto out = s.fps/2;
+    for (auto k = 0u; k < out; k++)
+    {
+        s.step();
+        fm_assert(s.npc->position() == peek && s.npc->r == r1);
+    }
+
+    const point threat_pos{ch, {7, 9}, {21, -19}};
+    auto i = s.threat->index();
+    s.threat->teleport_to(i, threat_pos, rotation_COUNT);
+    const auto r2 = nearest_of_8(threat_pos - peek);
+    fm_assert(r2 != r1);
+    auto frames = 0u;
+    for (;;)
+    {
+        s.step();
+        if (s.npc->position() != peek)
+            break;
+        fm_assert(s.npc->r == r2);
+        fm_assert(++frames <= 2*s.fps + 2);
+    }
+    // As in test_cover_script, a wait may end a frame early or late. The update in which the wait
+    // runs out starts the walk back without a move, so frames counts it.
+    const auto standing = out + frames;
+    fm_assert(standing + 2 >= 2*s.fps && standing <= 2*s.fps + 2);
+}
+
 } // namespace
 
 void Test::test_cover_point()
@@ -869,6 +928,7 @@ void Test::test_cover_point()
     test_cover_script_threat_walks_along_wall();
     test_cover_script_gun_offset(hidden);
     test_cover_script_peek_beside_critter(hidden);
+    test_cover_script_faces_threat(hidden);
     test_cover_script(hidden);
     // 1 px past the hidden body on the side it peeked from, so only the other side is left
     const auto side = Vector2i{0, Vector3i(peek).y() > Vector3i(hidden).y() ? 1 : -1};

@@ -443,19 +443,6 @@ constexpr step_s next_step(point from, point to)
     return { count, step };
 }
 
-// Diagonal when minor/major > tan 22.5° = √2 - 1, that is (minor + major)² > 2·major².
-// Integers never tie.
-rotation nearest_rotation(Vector2i vec)
-{
-    fm_debug_assert(!vec.isZero());
-    const auto a = Vector2ui(Math::abs(vec));
-    const uint64_t major = Math::max(a.x(), a.y()), minor = Math::min(a.x(), a.y());
-    const bool diagonal = (minor + major) * (minor + major) > 2 * major * major;
-    const bool x_major = a.x() >= a.y();
-    const auto step = Vector2b{(signed char)(x_major || diagonal), (signed char)(!x_major || diagonal)};
-    return dir_from_step({1, step * Vector2b(Math::sign(vec))});
-}
-
 // The step whose pixel is px, or -1u. Along the major axis one step has px's coordinate, along
 // the minor axis a range of them.
 uint32_t step_at(const rc::bresenham_line& line, Vector2i px)
@@ -472,6 +459,18 @@ Ns return_unspent_dt(const Ns& ticks, float speed)
 }
 
 } // namespace
+
+// Diagonal when minor/major > tan 22.5° = √2 - 1, that is (minor + major)² > 2·major².
+rotation nearest_rotation(Vector2i vec)
+{
+    fm_debug_assert(!vec.isZero());
+    const auto a = Vector2ui(Math::abs(vec));
+    const uint64_t major = Math::max(a.x(), a.y()), minor = Math::min(a.x(), a.y());
+    const bool diagonal = (minor + major) * (minor + major) > 2 * major * major;
+    const bool x_major = a.x() >= a.y();
+    const auto step = Vector2b{(signed char)(x_major || diagonal), (signed char)(!x_major || diagonal)};
+    return dir_from_step({1, step * Vector2b(Math::sign(vec))});
+}
 
 extern template class Script<critter, critter_script>;
 
