@@ -75,6 +75,28 @@ void test_scenery_door_fps_zero()
     fm_assert(e.frame == 0 && e.active);
 }
 
+void test_scenery_door_placeholder()
+{
+    auto w = world();
+    auto proto = loader.scenery("door1");
+    proto.atlas = loader.make_placeholder_anim_atlas(loader.INVALID, {.fps = 30, .nframes = 2});
+    proto.frame = 1;
+    proto.pass = pass_mode::blocked;
+    const auto eʹ = w.make_scenery(w.make_id(), {{0, 0, 0}, {8, 8}}, move(proto));
+    fm_assert(eʹ->scenery_type() == scenery_type::door);
+    auto& e = static_cast<door_scenery&>(*eʹ);
+    fm_assert(e.is_dynamic());
+    auto index = e.index();
+
+    fm_assert(e.activate(index));
+    e.update(eʹ, index, Second);
+    fm_assert(e.frame == 0 && e.pass == pass_mode::pass && !e.active);
+
+    fm_assert(e.activate(index));
+    e.update(eʹ, index, Second);
+    fm_assert(e.frame == 1 && e.pass == pass_mode::blocked && !e.active);
+}
+
 } // namespace
 
 void test_scenery()
@@ -83,6 +105,7 @@ void test_scenery()
     test_scenery_odd_bbox();
     test_scenery_atlas_name_round_trip();
     test_scenery_door_fps_zero();
+    test_scenery_door_placeholder();
 }
 
 } // namespace floormat::Test

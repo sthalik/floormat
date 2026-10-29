@@ -1,5 +1,6 @@
 #pragma once
 #include "atlas-loader-fwd.hpp"
+#include "loader.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include <cr/Optional.h>
 
@@ -22,7 +23,7 @@ template<> struct atlas_loader_traits<anim_atlas>
     static String& name_of(Cell& x);
     static void atlas_list(Storage& st);
     static Cell make_invalid_atlas(Storage& st);
-    static bptr<Atlas> make_invalid_atlas(StringView name, uint32_t fps, const SpriteAtlas::Sprite* sprite);
+    static bptr<Atlas> make_invalid_atlas(StringView name, placeholder_anim_params params, const SpriteAtlas::Sprite* sprite);
     static bptr<Atlas> make_atlas(StringView name, const Cell& c);
     static Optional<Cell> make_cell(StringView name);
 };

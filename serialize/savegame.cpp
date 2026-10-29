@@ -271,9 +271,10 @@ struct visitor_ : visitor_base<IsNewest>
             if (self.PROTO < 31) [[unlikely]]
                 obj.delta = object::ns_to_delta(object::fraction_to_ns(obj.delta));
         visit(obj.frame, f);
-        // A placeholder has one frame.
+        // A critter or vobj placeholder has one frame. A scenery one is clamped in read_scenery,
+        // after a door's atlas is swapped for one with two frames.
         if constexpr(!IsWriter)
-            if (obj.atlas->is_placeholder()) [[unlikely]]
+            if (obj.atlas->is_placeholder() && s.type != object_type::scenery) [[unlikely]]
                 obj.frame = 0;
         visit(obj.r, f);
         visit(obj.pass, f);
@@ -903,12 +904,14 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
         atlas_type type;
         bptr<ground_atlas> ground;
         bptr<wall_atlas> wall;
-        bptr<anim_atlas> anim, critter_anim;
+        bptr<anim_atlas> anim, critter_anim, door_anim;
     };
 
-    // A critter on an fps-0 placeholder never walks, and the missing atlas's fps is unknown. Scenery
+    // A critter on an fps-0 placeholder never walks, and the missing atlas's fps is unknown. A door
+    // needs a closed and an open frame, and fps > 0 for update() to step between them. Other scenery
     // placeholders stay at fps 0, since is_dynamic() is fps > 0.
     static constexpr uint32_t critter_placeholder_fps = 30;
+    static constexpr placeholder_anim_params door_placeholder_params = { .fps = 30, .nframes = 2 };
 
     std::vector<StringView> strings;
     std::vector<atlas_pair> atlases;
@@ -920,16 +923,28 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
 
     reader(class world& w, loader_policy policy) : w{w}, asset_policy{policy} {}
 
-    const bptr<anim_atlas>& critter_placeholder(const bptr<anim_atlas>& a)
+    atlas_pair& atlas_pair_of(const bptr<anim_atlas>& a)
     {
         for (auto& x : atlases)
             if (x.anim == a)
-            {
-                if (!x.critter_anim)
-                    x.critter_anim = loader.make_placeholder_anim_atlas(a->name(), critter_placeholder_fps);
-                return x.critter_anim;
-            }
+                return x;
         fm_abort("placeholder '%s' isn't in the atlas table", a->name().data());
+    }
+
+    const bptr<anim_atlas>& critter_placeholder(const bptr<anim_atlas>& a)
+    {
+        auto& x = atlas_pair_of(a);
+        if (!x.critter_anim)
+            x.critter_anim = loader.make_placeholder_anim_atlas(a->name(), {.fps = critter_placeholder_fps});
+        return x.critter_anim;
+    }
+
+    const bptr<anim_atlas>& door_placeholder(const bptr<anim_atlas>& a)
+    {
+        auto& x = atlas_pair_of(a);
+        if (!x.door_anim)
+            x.door_anim = loader.make_placeholder_anim_atlas(a->name(), door_placeholder_params);
+        return x.door_anim;
     }
 
     template<typename F> void visit(String& str, F&& f)
@@ -982,12 +997,27 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
         case scenery_type::door: {
             door_scenery_proto p;
             visit_scenery_proto(p, f);
+            if (sc.atlas->is_placeholder()) [[unlikely]]
+                sc.atlas = door_placeholder(sc.atlas);
+            else if (!p.active)
+            {
+                // door_scenery::activate() asserts a resting door is on frame 0 or the last one. A door
+                // saved on the 2-frame placeholder is on frame 1 when closed, which is mid-swing in
+                // the real atlas, so it moves to the end that its pass mode says.
+                const auto last = sc.atlas->info().nframes - 1;
+                if (sc.frame != 0 && sc.frame != last)
+                    sc.frame = (uint16_t)(sc.pass == pass_mode::blocked ? last : 0u);
+            }
             sc.subtype = move(p);
             goto ok;
         }
         }
         fm_throw("invalid sc_type {}", (int)sc_type);
 ok:
+        // The header leaves a scenery placeholder's frame alone. object's ctor asserts
+        // frame < nframes, so the frame is clamped against the final atlas.
+        if (sc.atlas->is_placeholder()) [[unlikely]]
+            sc.frame = (uint16_t)Math::min<uint32_t>(sc.frame, sc.atlas->info().nframes - 1);
         ret = w.make_scenery(h.id, coord, move(sc));
     }
 
@@ -1168,7 +1198,7 @@ ok:
             case atlas_type::anim:
                 anim = loader.anim_atlas(str, {}, asset_policy);
                 if (anim->is_placeholder()) [[unlikely]]
-                    anim = loader.make_placeholder_anim_atlas(str, 0);
+                    anim = loader.make_placeholder_anim_atlas(str, {});
                 atlas = &*anim;
                 break;
             case atlas_type::vobj:
@@ -1177,7 +1207,7 @@ ok:
             }
             atlases.push_back({
                 .atlas = atlas, .type = type,
-                .ground = move(ground), .wall = move(wall), .anim = move(anim), .critter_anim = {},
+                .ground = move(ground), .wall = move(wall), .anim = move(anim), .critter_anim = {}, .door_anim = {},
             });
         }
     }

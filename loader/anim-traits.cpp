@@ -59,13 +59,15 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
                            ArrayView<const void>{src_base, (size_t)size.y() * row_stride}};
     auto sp = loader.atlas().add(view);
 
-    return { .atlas = make_invalid_atlas(loader.INVALID, 0, sp.raw()), .name = loader.INVALID, };
+    return { .atlas = make_invalid_atlas(loader.INVALID, {}, sp.raw()), .name = loader.INVALID, };
 }
 
-auto anim_traits::make_invalid_atlas(StringView name, uint32_t fps, const SpriteAtlas::Sprite* sprite) -> bptr<Atlas>
+auto anim_traits::make_invalid_atlas(StringView name, placeholder_anim_params params, const SpriteAtlas::Sprite* sprite) -> bptr<Atlas>
 {
     constexpr auto size = invalid_atlas_size;
     constexpr auto ground = Vector2i(size/2);
+    const auto nframes = params.nframes;
+    fm_soft_assert(nframes > 0);
 
     auto frame = anim_frame {
         .ground = ground,
@@ -79,8 +81,8 @@ auto anim_traits::make_invalid_atlas(StringView name, uint32_t fps, const Sprite
     for (auto i = 0uz; i < groups.size(); i++)
         groups[i] = anim_group {
             .name = rotation_names[i],
-            .frames = array({ frame }),
-            .sprites = array({ sprite }),
+            .frames = Array<anim_frame>{DirectInit, nframes, frame},
+            .sprites = Array<const SpriteAtlas::Sprite*>{DirectInit, nframes, sprite},
         };
     auto def = anim_def {
         .object_name = loader.INVALID,
@@ -88,8 +90,10 @@ auto anim_traits::make_invalid_atlas(StringView name, uint32_t fps, const Sprite
         .groups = move(groups),
         .pixel_size = size,
         .scale = anim_scale::fixed{size.x(), true},
-        .nframes = 1,
-        .fps = fps,
+        .nframes = nframes,
+        .fps = params.fps,
+        // Last frame, so door_scenery::depth_offset draws an open placeholder door at the open offset.
+        .action_frame = nframes - 1,
     };
     auto err_tex = loader.make_error_texture(size);
     return bptr<class anim_atlas>{InPlace, name, err_tex, move(def), true};

@@ -27,6 +27,11 @@ struct scenery_proto;
 struct json_wrapper;
 class sprite_atlas;
 
+struct placeholder_anim_params
+{
+    uint32_t fps = 0, nframes = 1;
+};
+
 struct loader_
 {
     virtual void destroy() = 0;
@@ -61,7 +66,7 @@ struct loader_
     virtual const ground_cell& invalid_ground_atlas() = 0;
     virtual bptr<class ground_atlas> make_placeholder_ground_atlas(StringView name) = 0;
     virtual const anim_cell& invalid_anim_atlas() = 0;
-    virtual bptr<class anim_atlas> make_placeholder_anim_atlas(StringView name, uint32_t fps) = 0;
+    virtual bptr<class anim_atlas> make_placeholder_anim_atlas(StringView name, placeholder_anim_params params) = 0;
     virtual const scenery_cell& invalid_scenery_atlas() = 0;
 
     /** \deprecated{internal use only}*/ [[nodiscard]]

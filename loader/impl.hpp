@@ -71,7 +71,7 @@ struct loader_impl final : loader_
     ArrayView<const anim_cell> anim_atlas_list() override;
     bptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
     const anim_cell& invalid_anim_atlas() override;
-    bptr<class anim_atlas> make_placeholder_anim_atlas(StringView name, uint32_t fps) override;
+    bptr<class anim_atlas> make_placeholder_anim_atlas(StringView name, placeholder_anim_params params) override;
     bptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) override;
 
     // >-----> scenery >----->
