@@ -38,6 +38,7 @@ tests_data_::tests_data_() = default;
 tests_data::~tests_data() noexcept = default;
 
 base_test::Value base_test::advance(app&, Value) { return {}; }
+void base_test::on_leave_tests_mode(app&) {}
 base_test::~base_test() noexcept = default;
 base_test::base_test() = default;
 
@@ -109,6 +110,12 @@ void app::tests_reset_mode()
     auto mode = tests().current_index;
     tests().switch_to(Test::none);
     tests().switch_to(mode);
+}
+
+void app::tests_leave_mode()
+{
+    if (auto& x = tests().current_test)
+        x->on_leave_tests_mode(*this);
 }
 
 void app::draw_tests_pane(float width)

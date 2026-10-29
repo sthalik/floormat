@@ -258,6 +258,7 @@ private:
     void draw_tests_pane(float width);
     void draw_tests_overlay();
     void tests_reset_mode();
+    void tests_leave_mode();
     tests::tests_data& tests();
 
     void reserve_inspector_array();

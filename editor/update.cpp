@@ -145,7 +145,11 @@ void app::do_emit_timestamp()
 void app::do_set_mode(editor_mode mode)
 {
     if (mode != _editor->mode())
+    {
         kill_popups(false);
+        if (_editor->mode() == editor_mode::tests)
+            tests_leave_mode();
+    }
     _editor->set_mode(mode);
 }
 
