@@ -164,12 +164,26 @@ void make_cover_chunk(world& w, chunk& c)
         }
 }
 
+template<typename F> void for_cover_chunks(F&& fun)
+{
+    for (int16_t y = -1; y <= 1; y++)
+        for (int16_t x = -1; x <= 1; x++)
+            fun(chunk_coords_{x, y, 0});
+}
+
+// Rays from chunk (0, 0) reach loaded neighbours, as in the game. A ray leaving into a missing
+// chunk hits nothing and runs to the 1024 px cap.
+void make_cover_world(world& w)
+{
+    for_cover_chunks([&](chunk_coords_ ch) { make_cover_chunk(w, w[ch]); });
+    for_cover_chunks([&](chunk_coords_ ch) { rebuild(w[ch]); });
+}
+
 void Cover_Build(benchmark::State& state)
 {
     auto w = world();
+    make_cover_world(w);
     auto& c = w[{0, 0, 0}];
-    make_cover_chunk(w, c);
-    rebuild(c);
 
     const auto div_size = (uint32_t)state.range(0);
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
@@ -192,9 +206,8 @@ BENCHMARK(Cover_Build)->Arg(16)->Arg(8)->Unit(benchmark::kMillisecond);
 void Cover_Aligned(benchmark::State& state)
 {
     auto w = world();
+    make_cover_world(w);
     auto& c = w[{0, 0, 0}];
-    make_cover_chunk(w, c);
-    rebuild(c);
 
     const auto div_size = (uint32_t)state.range(0);
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
@@ -214,19 +227,6 @@ void Cover_Aligned(benchmark::State& state)
 BENCHMARK(Cover_Aligned)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
 
 constexpr auto cover_body = Vector2ui{24, 24};
-
-template<typename F> void for_cover_chunks(F&& fun)
-{
-    for (int16_t y = -1; y <= 1; y++)
-        for (int16_t x = -1; x <= 1; x++)
-            fun(chunk_coords_{x, y, 0});
-}
-
-void make_cover_world(world& w)
-{
-    for_cover_chunks([&](chunk_coords_ ch) { make_cover_chunk(w, w[ch]); });
-    for_cover_chunks([&](chunk_coords_ ch) { rebuild(w[ch]); });
-}
 
 struct find_case
 {
