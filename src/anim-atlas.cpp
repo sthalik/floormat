@@ -46,10 +46,11 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_d
 }
 
 anim_atlas::anim_atlas() noexcept : _frame_duration{object::frame_duration(0).stamp} {}
-anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info) :
+anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info, bool placeholder) :
     _name{move(name)}, _bitmask{make_bitmask(image)},
     _info{move(info)}, _group_indices{make_group_indices(_info)},
-    _frame_duration{object::frame_duration(_info.fps).stamp}
+    _frame_duration{object::frame_duration(_info.fps).stamp},
+    _placeholder{placeholder}
 {
     fm_soft_assert(!_info.groups.isEmpty());
 
@@ -74,6 +75,7 @@ anim_atlas::anim_atlas(anim_atlas&&) noexcept = default;
 anim_atlas& anim_atlas::operator=(anim_atlas&&) noexcept = default;
 
 StringView anim_atlas::name() const noexcept { return _name; }
+bool anim_atlas::is_placeholder() const noexcept { return _placeholder; }
 const anim_def& anim_atlas::info() const noexcept { return _info; }
 Ns anim_atlas::frame_duration() const noexcept { return Ns{_frame_duration}; }
 
