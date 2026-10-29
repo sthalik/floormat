@@ -41,7 +41,7 @@ struct Params
 
     constexpr uint32_t div_size() const { return chunk_size_xy >> std::countr_zero(div_count); } // xxx todo assumes power of two chunk size
 
-    Params validate() const;
+    [[nodiscard]] Params validate() const;
 
     bool operator==(const Params&) const noexcept;
 };

@@ -24,7 +24,7 @@ struct Params
 
     constexpr explicit Params(uint32_t div_size): div_size{div_size} {}
 
-    Params validate() const;
+    [[nodiscard]] Params validate() const;
     bool operator==(const Params&) const noexcept;
 };
 
