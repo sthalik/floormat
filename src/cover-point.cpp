@@ -75,11 +75,36 @@ int64_t floor_div(int64_t x, int64_t d)
     return q - (x % d < 0);
 }
 
+// arrayResize() alone reallocates to exactly count whenever count exceeds the capacity, so a scratch
+// array whose size varies per call would allocate again on every new largest size.
+template<typename T> void reserve_scratch(Array<T>& A, size_t count)
+{
+    if (arrayCapacity(A) < count)
+        arrayReserve(A, count + count/2);
+}
+
 } // namespace
 
-cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::Params params, const cover_query& q,
-                                    const Search::pred& pred)
+struct cover_point::Impl
 {
+    Array<uint8_t> known;
+    Array<cell_info> cells;
+    Array<candidate> cands;
+    Array<Range2Di> rects;
+    Array<slope_range> runs;
+};
+
+cover_point::cover_point()
+{
+    arrayReserve(impl->cands, 16);
+}
+
+cover_point::~cover_point() noexcept = default;
+
+cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::Params params,
+                                                 const cover_query& q, const Search::pred& pred)
+{
+    auto& [known, cells, cands, rects, runs] = *impl;
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     auto& cover_pool = pools.cover_pool(params);
     cover_pool.maybe_mark_stale_all(w);
@@ -99,8 +124,13 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
 
     const auto margin = body_hi + Vector2i{R};
     const auto lo = cell_of(P - margin), span = cell_of(P + margin) - lo + Vector2i{1};
-    Array<uint8_t> known{ValueInit, (size_t)(span.x()*span.y())};
-    Array<cell_info> cells{NoInit, (size_t)(span.x()*span.y())};
+    const auto count = (size_t)(span.x()*span.y());
+    arrayClear(known);
+    reserve_scratch(known, count);
+    arrayResize(known, ValueInit, count);
+    arrayClear(cells);
+    reserve_scratch(cells, count);
+    arrayResize(cells, NoInit, count);
 
     const auto look = [&](Vector2i n) -> cell_info {
         const auto i = (size_t)((n.y() - lo.y())*span.x() + n.x() - lo.x());
@@ -148,8 +178,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
         return true;
     };
 
-    Array<candidate> cands;
-    arrayReserve(cands, 16);
+    arrayClear(cands);
     const auto against = (float)(body_hi.max() + ds);
     for (auto y = lo.y(); y < lo.y() + span.y(); y++)
         for (auto x = lo.x(); x < lo.x() + span.x(); x++)
@@ -193,7 +222,7 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
     const auto range = 2*ds;
 
     // The rects a ray skips are left out the same way.
-    Array<Range2Di> rects;
+    arrayClear(rects);
     {
         // Every segment from the threat to a body stays in this box, so one search serves all candidates.
         const auto spread = Vector2i{R + range + 1} + Math::max(ext_lo, ext_hi);
@@ -233,7 +262,6 @@ cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::
 
     // A ray aimed anywhere hits a rect when it touches a closed pixel square (bresenham_line::off_axis_at).
     // Only squares nearer than the body's near face surely come first. Open ranges let a grazing ray pass.
-    Array<slope_range> runs;
     const auto build_runs = [&](const square_box& body, Vector2i axis, Vector2i across) {
         arrayClear(runs);
         for (const auto& r : rects)
