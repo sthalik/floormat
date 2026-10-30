@@ -24,15 +24,23 @@ struct cover_query
     uint8_t octants = 0;
 };
 
+struct cover_spot
+{
+    point pos;
+    /// toward the threat; pos is flush against a blocker along it
+    Vector2i axis;
+};
+
 struct cover_point_result
 {
     /// The first accepted spot, when found.
     point pos;
     /// toward the threat; pos is flush against a blocker along it
     Vector2i axis;
-    /// With list_spots, every accepted spot once, in the order tried, starting with pos. Points
-    /// into the cover_point, so it is valid until the next find_cover_point() call.
-    ArrayView<const point> spots;
+    /// With list_spots, every accepted spot once, in the order tried, starting with pos and axis.
+    /// A spot two candidates reach keeps the first one's axis. Points into the cover_point, so it
+    /// is valid until the next find_cover_point() call.
+    ArrayView<const cover_spot> spots;
     /// The number of candidates, including those never tried.
     uint32_t candidates = 0;
     /// The candidates pushed flush to a blocker and still seen by the threat or a turned one,
