@@ -19,6 +19,9 @@ namespace floormat::Grid::Cover {
 inline constexpr uint32_t octant_count = 32;
 inline constexpr uint16_t blocked = (uint16_t)-1;
 
+// Within 0.7° of k*11.25°. Octant k's distances run along it.
+Vector2 octant_direction(uint32_t k);
+
 struct Params
 {
     uint32_t div_size;
