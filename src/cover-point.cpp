@@ -355,7 +355,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
         return slope_range{ { b.a0, b.a0 > 0 ? b.d1 : b.d0 }, { b.a1, b.a1 > 0 ? b.d0 : b.d1 } };
     };
 
-    // A ray aimed anywhere hits a rect when it touches a closed pixel square (bresenham_line::off_axis_at).
+    // A ray aimed anywhere hits a rect when it touches a closed pixel square (bresenham_line::orthogonal_at).
     // Only squares nearer than the body's near face surely come first. Open ranges let a grazing ray pass.
     const auto build_runs = [&](const square_box& body, Vector2i axis, Vector2i across, ArrayView<const Range2Di> from) {
         arrayClear(runs);

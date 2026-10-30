@@ -365,7 +365,7 @@ void test_move_toward_line()
             fm_assert(!res.blocked);
             const auto px = L.npc->position() - from;
             const auto k2 = line.step_of(px);
-            fm_assert_equal(line.pixel_at(k2), px);
+            fm_assert_equal(line.point_at(k2), px);
             fm_assert(k2 >= k);
             k = k2;
         }
@@ -410,7 +410,7 @@ void test_move_toward_line_blocked()
     for (auto i = 0u; i < 1000 && !res.blocked; i++)
         res = L.step(from, dest);
     fm_assert(res.blocked && !res.displaced);
-    fm_assert_equal(line.pixel_at(expected.step - 1), L.npc->position() - origin);
+    fm_assert_equal(line.point_at(expected.step - 1), L.npc->position() - origin);
     const auto stopped = L.npc->position();
     bool blocked = false;
     for (auto i = 0; i < 2; i++)
@@ -499,7 +499,7 @@ bool on_segment(point a, point b, point p)
     const auto origin = point{a.chunk3(), {}, {}};
     const auto line = rc::bresenham_line{a - origin, b - origin};
     for (auto k = 0u; k <= line.steps(); k++)
-        if (line.pixel_at(k) == p - origin)
+        if (line.point_at(k) == p - origin)
             return true;
     return false;
 }
@@ -583,7 +583,7 @@ void test_walk_smoothed_blocked()
     W.walk(move(res));
     (void)W.walk_to_end();
     fm_assert(W.npc->last_walk == critter::walk_result::blocked && !W.npc->moves.AUTO);
-    fm_assert_equal(line.pixel_at(expected.step - 1), W.npc->position() - origin);
+    fm_assert_equal(line.point_at(expected.step - 1), W.npc->position() - origin);
 }
 
 void test_walk_smoothed_displaced()

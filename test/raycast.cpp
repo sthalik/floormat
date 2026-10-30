@@ -392,11 +392,11 @@ struct supercover_hit
 {
     Vector2i pixels[2];
     uint32_t count;
-    bool off_axis;
+    bool orthogonal;
 };
 
-// The first supercover pixels inside a pillar, walked pixel by pixel. Two when both off-axis
-// pixels at a corner are.
+// The first supercover pixels inside a pillar, walked pixel by pixel. Two when both orthogonal
+// points at a corner are.
 supercover_hit first_supercover_hit(ArrayView<const pillar> pillars, const rc::bresenham_line& line)
 {
     const auto blocked = [&](Vector2i px) {
@@ -407,16 +407,16 @@ supercover_hit first_supercover_hit(ArrayView<const pillar> pillars, const rc::b
     };
     for (auto k = 0u; k <= line.steps(); k++)
     {
-        if (blocked(line.pixel_at(k)))
-            return { { line.pixel_at(k), {} }, 1, false };
+        if (blocked(line.point_at(k)))
+            return { { line.point_at(k), {} }, 1, false };
         if (k == line.steps())
             break;
         supercover_hit ret = {};
-        if (const auto o = line.off_axis_at(k); o.diagonal)
+        if (const auto o = line.orthogonal_at(k); o.diagonal)
             for (auto i = 0u; i < 2; i++)
-                if (o.crossed[i] && blocked(o.pixels[i]))
-                    ret.pixels[ret.count++] = o.pixels[i];
-        ret.off_axis = ret.count > 0;
+                if (o.in_supercover[i] && blocked(o.points[i]))
+                    ret.pixels[ret.count++] = o.points[i];
+        ret.orthogonal = ret.count > 0;
         if (ret.count)
             return ret;
     }
@@ -483,13 +483,13 @@ void test_supercover_hits()
         Pass::Pool{Pass::Params{16, 16, pass_mode::pass}, Search::never_continue()},
     };
     const auto origin = point{ch, {}, {}};
-    uint32_t hits = 0, off_axis_hits = 0;
+    uint32_t hits = 0, orthogonal_hits = 0;
 
     const auto check = [&](Vector2i from, Vector2i to) {
         const auto line = rc::bresenham_line{from, to};
         const auto ref = first_supercover_hit(pillars, line);
         hits += ref.count > 0;
-        off_axis_hits += ref.off_axis;
+        orthogonal_hits += ref.orthogonal;
         auto diag = rc::raycast_diag_s{};
         for (auto& pool : pools)
         {
@@ -548,7 +548,7 @@ void test_supercover_hits()
         const auto to = i % 3 ? aim + (aim - from) / 4 : from + Vector2i{next(601) - 300, next(601) - 300};
         check(from, to);
     }
-    fm_assert(hits >= 64 && off_axis_hits >= 16);
+    fm_assert(hits >= 64 && orthogonal_hits >= 16);
 }
 
 static_assert(rc::min_pool_bbox_size(6) == 15);

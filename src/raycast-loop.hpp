@@ -17,16 +17,16 @@ struct line_cell
     // From the line's chunk.
     Vector2i chunk_offset;
     // The cell holds no pixel of the line other than those of steps first_step to last_step and
-    // the off-axis pixels of steps first_step - 1 to last_step.
+    // the orthogonal points of steps first_step - 1 to last_step.
     uint32_t first_step, last_step;
 };
 
 // Visits the cells holding the line's pixels from first_step to last_step in step order, until
 // visit returns false. Pixels are in the frame of chunk ch, as for its rects. With a pool, cells
-// are the pool's, and those whose bit is set are skipped; without one, cells are chunks. Off-axis
-// pixels count when the segment crosses them, or always with both_off_axis.
+// are the pool's, and those whose bit is set are skipped; without one, cells are chunks.
+// Orthogonal points count when they are in the supercover, or always with both_orthogonal.
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
-                         uint32_t first_step, uint32_t last_step, bool both_off_axis,
+                         uint32_t first_step, uint32_t last_step, bool both_orthogonal,
                          Grid::Pass::Pool* pool,
                          fu2::function_view<bool(const line_cell&) const> visit);
 

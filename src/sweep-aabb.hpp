@@ -23,7 +23,7 @@ struct swept_collider_result
 };
 
 // A box of bbox_size centered on each pixel of the line from first_step to last_step, and on both
-// off-axis pixels of each diagonal step. Pixels are in the frame of chunk ch, as for its rects. A
+// orthogonal points of each diagonal step. Pixels are in the frame of chunk ch, as for its rects. A
 // pool must be built for a bbox of at least bbox_size; its set bits are taken as free.
 swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                                           uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,

@@ -447,7 +447,7 @@ constexpr step_s next_step(point from, point to)
 // the minor axis a range of them.
 uint32_t step_at(const rc::bresenham_line& line, Vector2i px)
 {
-    const auto x = line.steps_within(0, px.x(), px.x()), y = line.steps_within(1, px.y(), px.y());
+    const auto x = line.interval_bounds_to_steps(0, px.x(), px.x()), y = line.interval_bounds_to_steps(1, px.y(), px.y());
     const auto k = Math::max(x.first, y.first);
     return k <= Math::min(x.last, y.last) ? k : -1u;
 }
@@ -724,7 +724,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
     const bool done = res.has_collider || reached == steps;
     if (reached > k)
     {
-        teleport_to(index, origin + line.pixel_at(reached), new_r);
+        teleport_to(index, origin + line.point_at(reached), new_r);
         advance_anim_frames(*this, reached - k, step_len, info.nframes);
     }
 

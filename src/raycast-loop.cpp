@@ -107,7 +107,7 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
 }
 
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
-                         uint32_t first_step, uint32_t last_step, bool both_off_axis,
+                         uint32_t first_step, uint32_t last_step, bool both_orthogonal,
                          Grid::Pass::Pool* pool,
                          fu2::function_view<bool(const line_cell&) const> visit)
 {
@@ -125,7 +125,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     };
 
     const auto major = line.major_axis(), minor = 1 - major;
-    const auto from = line.from();
+    const auto from = line.start_pos();
     const uint64_t len = line.steps(), minor_len = line.minor_len();
     // The steps with minor offset at most b end before t = ceil((2b + 1)*len / (2*minor_len)). Keeping
     // t_rem = t*2*minor_len - (2b + 1)*len lets the next cell's b + div skip the division.
@@ -211,7 +211,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     for (auto k = first_step; ; )
     {
         if (!stepped)
-            global_cell = cell_of(line.pixel_at(k));
+            global_cell = cell_of(line.point_at(k));
         const auto chunk_off = chunk_of(global_cell);
         const auto local_cell = Vector2i{global_cell.x() & count_mask, global_cell.y() & count_mask};
         if (chunk_off != loaded)
@@ -229,9 +229,9 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             hi = lo + Vector2i{div - 1};
             skip = has_grid && grid.bit(Pass::Grid::get_bitmask_index((uint32_t)local_cell.x(), (uint32_t)local_cell.y(), div_count));
         }
-        fm_debug3_assert((line.pixel_at(k) >= lo).all() && (line.pixel_at(k) <= hi).all());
+        fm_debug3_assert((line.point_at(k) >= lo).all() && (line.point_at(k) <= hi).all());
         const auto b = line.sign(minor) > 0 ? (int64_t)on(hi, minor) - on(from, minor) : (int64_t)on(from, minor) - on(lo, minor);
-        const auto last_major = line.steps_within(major, on(lo, major), on(hi, major)).last, last_minor = last_within_minor(b);
+        const auto last_major = line.interval_bounds_to_steps(major, on(lo, major), on(hi, major)).last, last_minor = last_within_minor(b);
         const auto last = Math::min(Math::min(last_major, last_minor), last_step);
         if (!skip)
         {
@@ -247,14 +247,14 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         {
             const bool exit_major = last == last_major, exit_minor = last == last_minor;
             const auto next = global_cell + (exit_major ? major_step : Vector2i{}) + (exit_minor ? minor_step : Vector2i{});
-            // Only a step leaving through both sides at once has off-axis pixels outside this cell and the next.
-            // Pixel i moves along axis i first, and the minor offset at last is b, as in off_axis_at().
+            // Only a step leaving through both sides at once has orthogonal points outside this cell and the next.
+            // Orthogonal point i moves along axis i first, and the minor offset at last is b, as in orthogonal_at().
             if (exit_major && exit_minor)
             {
                 const auto e = (int64_t)((2*(uint64_t)last + 1)*minor_len) - (int64_t)((2*(uint64_t)b + 1)*len);
                 for (auto i = 0u; i < 2; i++)
                 {
-                    if (!both_off_axis && !(i == major ? e <= 0 : e >= 0))
+                    if (!both_orthogonal && !(i == major ? e <= 0 : e >= 0))
                         continue;
                     const auto corner = i == 0 ? Vector2i{next.x(), global_cell.y()} : Vector2i{global_cell.x(), next.y()};
                     const auto corner_off = chunk_of(corner);
@@ -271,17 +271,17 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             continue;
         }
 
-        // A diagonal step through the corner of four cells puts its off-axis pixels in two cells
-        // neither of its pixels is in. Visited without a bit lookup, since it's rare.
+        // A diagonal step through the corner of four cells puts its orthogonal points in two cells
+        // neither end of the step is in. Visited without a bit lookup, since it's rare.
         stepped = false;
-        if (const auto o = line.off_axis_at(last); o.diagonal)
+        if (const auto o = line.orthogonal_at(last); o.diagonal)
         {
-            const auto c0 = cell_of(line.pixel_at(last)), c1 = cell_of(line.pixel_at(last + 1));
+            const auto c0 = cell_of(line.point_at(last)), c1 = cell_of(line.point_at(last + 1));
             for (auto i = 0u; i < 2; i++)
             {
-                if (!both_off_axis && !o.crossed[i])
+                if (!both_orthogonal && !o.in_supercover[i])
                     continue;
-                const auto c = cell_of(o.pixels[i]);
+                const auto c = cell_of(o.points[i]);
                 if (c == c0 || c == c1)
                     continue;
                 if (chunk_of(c) != loaded)
@@ -299,29 +299,29 @@ namespace {
 
 struct line_pixel
 {
-    // 2k for the pixel of step k, 2k + 1 for an off-axis pixel of the step from k to k + 1
+    // 2k for the pixel of step k, 2k + 1 for an orthogonal point of the step from k to k + 1
     int64_t key;
     Vector2i pixel;
 };
 
 // The first pixel of the line's supercover in the closed rect [lo, hi], or bound if its key isn't below it.
-line_pixel first_pixel_within(const bresenham_line& line, Vector2i lo, Vector2i hi, int64_t bound)
+line_pixel first_pixel_in_bounds(const bresenham_line& line, Vector2i lo, Vector2i hi, int64_t bound)
 {
-    const auto x = line.steps_within(0, lo.x(), hi.x()), y = line.steps_within(1, lo.y(), hi.y());
+    const auto x = line.interval_bounds_to_steps(0, lo.x(), hi.x()), y = line.interval_bounds_to_steps(1, lo.y(), hi.y());
     const int64_t x0 = x.first, x1 = x.last, y0 = y.first, y1 = y.last;
     line_pixel ret = { bound, {} };
     if (const auto k = Math::max(x0, y0); k <= Math::min(x1, y1) && 2*k < bound)
-        ret = { 2*k, line.pixel_at((uint32_t)k) };
-    // The steps putting off-axis pixel i in the rect form a range. If its first step's pixel isn't
-    // crossed, a main pixel in the rect comes before every later one.
+        ret = { 2*k, line.point_at((uint32_t)k) };
+    // The steps putting orthogonal point i in the rect form a range. If its first step's point i
+    // isn't in the supercover, a main pixel in the rect comes before every later one.
     for (auto i = 0u; i < 2; i++)
     {
         const auto t  = i == 0 ? Math::max(x0 - 1, y0) : Math::max(x0, y0 - 1);
         const auto t1 = i == 0 ? Math::min(x1 - 1, y1) : Math::min(x1, y1 - 1);
         if (t > Math::min(t1, (int64_t)line.steps() - 1) || 2*t + 1 >= ret.key)
             continue;
-        if (const auto o = line.off_axis_at((uint32_t)t); o.diagonal && o.crossed[i])
-            ret = { 2*t + 1, o.pixels[i] };
+        if (const auto o = line.orthogonal_at((uint32_t)t); o.diagonal && o.in_supercover[i])
+            ret = { 2*t + 1, o.points[i] };
     }
     return ret;
 }
@@ -558,9 +558,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
                         if (radius == 0)
                         {
-                            const auto hit = first_pixel_within(line, Vector2i(Math::ceil(range.min())) + nb_world,
-                                                                Vector2i(Math::ceil(range.max())) - Vector2i{1} + nb_world,
-                                                                best_key);
+                            const auto hit = first_pixel_in_bounds(line, Vector2i(Math::ceil(range.min())) + nb_world,
+                                                                   Vector2i(Math::ceil(range.max())) - Vector2i{1} + nb_world,
+                                                                   best_key);
                             if (hit.key >= best_key) [[likely]]
                                 return true;
                             // last, since without_critters looks up the object

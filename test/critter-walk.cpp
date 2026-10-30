@@ -292,7 +292,7 @@ struct model
         const auto line = rc::bresenham_line{from - line_origin, dest - line_origin};
         const auto steps = line.steps();
         const auto k = line.step_of(s.pos - line_origin);
-        fm_assert(line_origin + line.pixel_at(k) == s.pos);
+        fm_assert(line_origin + line.point_at(k) == s.pos);
         uint8_t ev = 0;
         const auto ret = [&](end_reason end, Ns dt_out, critter::move_result res) {
             if (s.pos.chunk3() != ch)
@@ -322,9 +322,9 @@ struct model
         }
         const auto len = step_length(line.minor_len(), steps);
         auto t = k;
-        while (t < k + n && step_free(s, line.pixel_at(t + 1) - line.pixel_at(t)))
+        while (t < k + n && step_free(s, line.point_at(t + 1) - line.point_at(t)))
         {
-            s.pos = s.pos + (line.pixel_at(t + 1) - line.pixel_at(t));
+            s.pos = s.pos + (line.point_at(t + 1) - line.point_at(t));
             animate(s, len);
             t++;
         }

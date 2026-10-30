@@ -57,7 +57,7 @@ struct critter final : object
     /// Walks the Bresenham pixels of the segment from `from` to dest, which stay within half a
     /// pixel of it at any angle. For segments of a smoothed path.
     /// - Facing is the nearest of the 8 directions, fixed for the segment.
-    /// - A frame's steps are one find_swept_collider() over the line, off-axis pixels of
+    /// - A frame's steps are one find_swept_collider() over the line, orthogonal points of
     ///   diagonal steps included. The critter stops at the last step its box reaches.
     /// - A step costs its length in frames. Time below one step stays in delta.
     /// - The critter must stand on one of the line's pixels. Otherwise it neither moves nor
