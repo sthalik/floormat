@@ -765,6 +765,7 @@ uint64_t Grid::build_no() const { return grid->build_no; }
 Grid::operator bool() const noexcept { return grid != nullptr; }
 detail::grid::CoverGrid* Grid::raw() const noexcept { return grid; }
 
+bool Grid::is_stale() const { return grid->is_stale(); }
 void Grid::mark_stale() { grid->mark_stale(); }
 void Grid::maybe_mark_stale() { grid->maybe_mark_stale(); }
 

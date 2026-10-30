@@ -176,6 +176,29 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
         return d != Cover::blocked && d < dc && (float)(d*(uint32_t)ds) < len;
     };
 
+    const auto fills0 = cover_pool.octant_fills();
+    bool out_of_fills = false;
+    const auto may_fill = [&] {
+        out_of_fills = out_of_fills || cover_pool.octant_fills() - fills0 >= q.max_fills;
+        return !out_of_fills;
+    };
+    // False, with g unchanged, when building g or filling octant k would pass q.max_fills.
+    const auto ensure = [&](Cover::Grid& g, uint32_t k) {
+        if (g.is_stale())
+        {
+            if (!may_fill())
+                return false;
+            g.build_if_stale();
+        }
+        if (!(g.built_octants() & 1u << k))
+        {
+            if (!may_fill())
+                return false;
+            (void)g.ensure_octant(k);
+        }
+        return true;
+    };
+
     const auto look = [&](Vector2i n) -> cell_info {
         const auto i = (size_t)((n.y() - lo.y())*span.x() + n.x() - lo.x());
         if (known[i])
@@ -190,28 +213,31 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
         if (!c || len < 1)
             return cells[i];
         auto g = cover_pool[*c];
-        g.build_if_stale();
-        const auto cell = g.get_cell_index_from_coord(pt.intra());
         // The cell's center sees the threat between two octants. Either one hiding it makes a
         // candidate, since the slope check below decides exactly.
         const auto k = octants_around(v);
-        (void)g.ensure_octant(k.lo);
-        (void)g.ensure_octant(k.hi);
+        if (!ensure(g, k.lo) || !ensure(g, k.hi))
+        {
+            known[i] = false;
+            return cells[i];
+        }
+        const auto cell = g.get_cell_index_from_coord(pt.intra());
         const auto d0 = g.distance(cell, k.lo), d1 = g.distance(cell, k.hi);
         const auto d = hides(d0, len) && hides(d1, len) ? Math::min(d0, d1) : hides(d1, len) ? d1 : d0;
         cells[i] = { hides(d, len), d == Cover::blocked, d };
         return cells[i];
     };
 
-    // Octant k's distance at cell n, empty when n's chunk doesn't exist. Cells under a body near a
-    // chunk edge lie in the next chunk, whose octants are filled lazily too.
+    // Octant k's distance at cell n, empty when n's chunk doesn't exist or out of fills. Cells under
+    // a body near a chunk edge lie in the next chunk, whose octants are filled lazily too.
     const auto distance_at = [&](Vector2i n, uint32_t k) -> Optional<uint16_t> {
         const auto pt = to_point(center_of(n));
         auto* c = w.at(pt.chunk3());
         if (!c)
             return {};
         auto g = cover_pool[*c];
-        (void)g.ensure_octant(k);
+        if (!ensure(g, k))
+            return {};
         return g.distance(g.get_cell_index_from_coord(pt.intra()), k);
     };
 
@@ -278,8 +304,16 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
             // Its hidden is then also implied by hidden_in_octants(), unless the center is blocked.
             const auto info = look({x, y});
             const auto blocker_px = info.distance*(uint32_t)ds;
-            if (!info.hidden || (float)blocker_px > against || !passable(center)
-                || !(q.octants ? hidden_in_octants(center) : body_hidden(center)))
+            const auto ok = info.hidden && (float)blocker_px <= against && passable(center)
+                            && (q.octants ? hidden_in_octants(center) : body_hidden(center));
+            if (out_of_fills)
+            {
+                cover_point_result ret;
+                ret.fills = cover_pool.octant_fills() - fills0;
+                ret.out_of_fills = true;
+                return ret;
+            }
+            if (!ok)
                 continue;
             const auto a = Math::abs(off);
             const auto walk_dist = (float)Math::max(a.x(), a.y()) + (Math::sqrt(2.f) - 1) * (float)Math::min(a.x(), a.y());
@@ -298,6 +332,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
 
     cover_point_result ret;
     ret.candidates = (uint32_t)cands.size();
+    ret.fills = cover_pool.octant_fills() - fills0;
     if (cands.isEmpty())
         return ret;
 

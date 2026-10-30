@@ -55,6 +55,7 @@ public:
     explicit operator bool() const noexcept;
     detail::grid::CoverGrid* raw() const noexcept;
 
+    bool is_stale() const;
     void mark_stale();
     void maybe_mark_stale();
     void build_if_stale();

@@ -405,6 +405,50 @@ void test_lists_cover_spots()
         fm_assert(r.spots[i].pos == r1.spots[i].pos && r.spots[i].axis == r1.spots[i].axis);
 }
 
+// test_lists_cover_spots' scene on fresh pools, searched with max_fills = 1 until a call finds
+// cover. Each call does one fill, and together they do the fills of one unlimited search and find
+// its spot.
+void test_max_fills()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+
+    const point npc{ch, {4, 8}, {}}, threat{ch, {12, 8}, {}};
+    constexpr auto radius = 3*(uint32_t)tile_size_xy;
+    cover_point finder;
+    cover_query q{npc, body, threat, radius, 3};
+    const auto whole = [&] {
+        Grid::PoolRegistry pools;
+        return finder.find_cover_point(w, pools, Cover::Params{8}, q, Search::without_critters());
+    }();
+    fm_assert(whole.found && !whole.out_of_fills);
+    fm_assert(whole.fills > 2);
+
+    Grid::PoolRegistry pools;
+    q.max_fills = 1;
+    auto calls = 0u, fills = 0u;
+    cover_point_result r;
+    do
+    {
+        r = finder.find_cover_point(w, pools, Cover::Params{8}, q, Search::without_critters());
+        fm_assert(r.fills <= 1);
+        fm_assert(!r.out_of_fills || r.fills == 1 && !r.found);
+        fills += r.fills;
+        calls++;
+        fm_assert(calls <= whole.fills + 1);
+    }
+    while (r.out_of_fills);
+    fm_assert(calls > 1);
+    fm_assert_equal(whole.fills, fills);
+    fm_assert(r.found && r.pos == whole.pos && r.axis == whole.axis);
+
+    q.max_fills = 0;
+    const auto warm = finder.find_cover_point(w, pools, Cover::Params{8}, q, Search::without_critters());
+    fm_assert(warm.found && !warm.out_of_fills && warm.fills == 0 && warm.pos == whole.pos);
+}
+
 // test_narrow_pillar_rejected's pillar, then a wall the npc is nearer to. The pillar's candidates
 // are tried after the wall's first spot, so the list's search rejects them past pos.
 void test_lists_past_rejected()
@@ -1789,6 +1833,7 @@ void Test::test_cover_point()
     test_wall_out_of_radius();
     test_spot_taken();
     test_lists_cover_spots();
+    test_max_fills();
     test_lists_past_rejected();
     test_lists_by_area(0);
     test_lists_by_area(3);

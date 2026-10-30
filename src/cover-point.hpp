@@ -32,6 +32,9 @@ struct cover_query
     /// candidates. Areas that tile the plane together accept the spots one search without an area
     /// does, since each candidate is judged alone. Two areas can accept the same spot.
     Optional<Range2Di> area = {};
+    /// The most octant fills the call may do, a stale grid's rebuild counting as one. A read that
+    /// needs one more ends the call with out_of_fills before any candidate is tried.
+    uint32_t max_fills = (uint32_t)-1;
 };
 
 struct cover_spot
@@ -56,7 +59,12 @@ struct cover_point_result
     /// The candidates pushed flush to a blocker and still seen by the threat or a turned one,
     /// among those tried before pos, or among all of them when found is false.
     uint32_t rejected = 0;
+    /// Octant fills the call did, rebuilds included.
+    uint32_t fills = 0;
     bool found = false;
+    /// The call stopped at q.max_fills and found nothing. The same query goes on from there, as the
+    /// fills done stay in the grids.
+    bool out_of_fills = false;
 };
 
 struct cover_point
