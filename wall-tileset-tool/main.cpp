@@ -44,7 +44,7 @@ const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
 }
 
 template<typename... Xs>
-auto asformat(fmt::format_string<Xs...> fmt, Xs&&... args)
+std::string asformat(fmt::format_string<Xs...> fmt, Xs&&... args)
 {
     auto result = fmt::format_to_n((char*)nullptr, 0, fmt, forward<Xs>(args)...);
     std::string ret;
