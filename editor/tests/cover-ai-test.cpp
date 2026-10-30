@@ -118,21 +118,23 @@ struct cover_ai_test final : base_test
     void search_tile(critter& c);
     bool player_sees(app& a, const critter& c, point pt);
     void send(critter& c, uint32_t k, bool peek);
-    Optional<uint32_t> switch_cover(app& a);
+    ArrayView<const cover_spot> script_spots(app& a, critter& c, const cover_script_status& s);
+    Optional<uint32_t> step_cover(app& a, bool back);
+    void draw_cover_picker(app& a);
     void update_rates(const cover_script_status& s);
     void update_ray(app& a, const critter& c, const cover_script_status& s);
 
     weak_bptr<critter> npc;
     rc::raycast_result_s ray;
-    Array<cover_spot> spots, tile_spots;
+    Array<cover_spot> spots, tile_spots, script_list;
     Array<spot_state> spot_states;
     // The tiles of the overlay's search, as offsets from search_center, nearest first.
     Array<Vector2i> tiles;
     cover_script_options options;
     point start_pos, search_center, search_threat;
-    object_id threat = 0;
-    uint64_t search_pass_gen = 0;
-    uint32_t next_tile = 0, search_radius = 0, tiles_radius = 0;
+    object_id threat = 0, script_list_npc = 0;
+    uint64_t search_pass_gen = 0, script_list_pass_gen = 0;
+    uint32_t next_tile = 0, search_radius = 0, tiles_radius = 0, script_list_searches = 0;
     Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
     counts snapshot;
     per_second rates;
@@ -140,7 +142,7 @@ struct cover_ai_test final : base_test
     note last_note = note::none;
     uint8_t search_octants = 0;
     bool show_spots = false;
-    bool has_start : 1 = false, has_snapshot : 1 = false, has_search : 1 = false;
+    bool has_start : 1 = false, has_snapshot : 1 = false, has_search : 1 = false, has_script_list : 1 = false;
 };
 
 // reset_world_pre() runs finish_scripts() before tests_reset_mode() destroys the test, and
@@ -336,25 +338,46 @@ void cover_ai_test::send(critter& c, uint32_t k, bool peek)
     last_note = ok ? note::none : note::no_path;
 }
 
-// Lists the spots of the script's last search again, apart from the overlay's, and sends the npc to
-// the first after its cover, wrapping around, that the player doesn't see and a path leads to.
-// Returns its index in that list, or empty when there is none.
-Optional<uint32_t> cover_ai_test::switch_cover(app& a)
+// The spots of the script's last search, apart from the overlay's, from list_cover_spots(), which
+// runs that search again. They are kept until the script searches again, world::pass_gen() moves or
+// the npc is another, since listing them each frame would cost a whole search per frame. Critters
+// walking don't move pass_gen, so a spot the player walks onto stays listed.
+ArrayView<const cover_spot> cover_ai_test::script_spots(app& a, critter& c, const cover_script_status& s)
+{
+    const auto gen = a.main().world().pass_gen();
+    if (!has_script_list || script_list_npc != c.id || script_list_searches != s.searches || script_list_pass_gen != gen)
+    {
+        list_cover_spots(c, script_list);
+        script_list_npc = c.id;
+        script_list_searches = s.searches;
+        script_list_pass_gen = gen;
+        has_script_list = true;
+    }
+    return script_list;
+}
+
+// Sends the npc to hide at the first of script_spots() after its cover, or before it when back is
+// set, wrapping around, that the player doesn't see and a path leads to. When its cover isn't
+// listed, the search starts at the list's first spot, or its last when back is set. Returns the
+// spot's index in that list, or empty when there is none.
+Optional<uint32_t> cover_ai_test::step_cover(app& a, bool back)
 {
     const auto c = npc.lock();
     const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
     if (!s)
         return {};
-    Array<cover_spot> list;
-    list_cover_spots(*c, list);
+    const auto list = script_spots(a, *c, *s);
     const auto n = (uint32_t)list.size();
     auto from = 0u;
     while (from < n && !(s->has_cover && list[from].pos == s->cover))
         from++;
-    for (auto j = 1u; j <= n; j++)
+    const auto listed = from < n;
+    if (!listed)
+        from = back ? 0 : n - 1;
+    for (auto j = 0u; j < n; j++)
     {
-        const auto k = (from + j) % n;
-        if (k == from || player_sees(a, *c, list[k].pos))
+        const auto k = back ? (from + n - 1 - j) % n : (from + 1 + j) % n;
+        if (listed && k == from || player_sees(a, *c, list[k].pos))
             continue;
         if (send_to_cover(*c, list[k]))
         {
@@ -502,7 +525,8 @@ base_test::Value cover_ai_test::advance(app& a, Value v)
         ret.u32 = (uint32_t)spots.size();
         break;
     case 4:
-        if (const auto k = switch_cover(a))
+    case 5:
+        if (const auto k = step_cover(a, v.u32 == 5))
         {
             ret.type = ValueType::u32;
             ret.u32 = *k;
@@ -546,6 +570,54 @@ void cover_ai_test::draw_overlay(app& a)
     }
 }
 
+void cover_ai_test::draw_cover_picker(app& a)
+{
+    char preview[96], label[96], coord[64];
+    const auto c = npc.lock();
+    auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+    auto d = begin_disabled(!s);
+
+    if (ImGui::ArrowButton("##prev-cover", ImGuiDir_Left))
+    {
+        (void)step_cover(a, true);
+        s = get_cover_script_status(*c);
+    }
+    ImGui::SameLine();
+
+    ArrayView<const cover_spot> list;
+    if (s)
+        list = script_spots(a, *c, *s);
+    auto cur = (uint32_t)-1;
+    for (auto i = 0u; i < list.size(); i++)
+        if (s->has_cover && list[i].pos == s->cover)
+        {
+            cur = i;
+            break;
+        }
+    if (list.isEmpty())
+        snformat(preview, "no spots listed");
+    else if (cur == (uint32_t)-1)
+        snformat(preview, "cover not among {} spots", list.size());
+    else
+    {
+        print_coord(coord, list[cur].pos);
+        snformat(preview, "{}/{}: {}", cur + 1, list.size(), (const char*)coord);
+    }
+    ImGui::SetNextItemWidth(-(ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.x));
+    if (auto b = begin_combo("##cover-spot", preview))
+        for (auto i = 0u; i < list.size(); i++)
+        {
+            print_coord(coord, list[i].pos);
+            snformat(label, "{}: {}", i + 1, (const char*)coord);
+            if (ImGui::Selectable(label, i == cur))
+                last_note = send_to_cover(*c, list[i]) ? note::none : note::no_path;
+        }
+    ImGui::SameLine();
+
+    if (ImGui::ArrowButton("##next-cover", ImGuiDir_Right))
+        (void)step_cover(a, false);
+}
+
 void cover_ai_test::draw_ui(app& a, float)
 {
     constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
@@ -563,8 +635,7 @@ void cover_ai_test::draw_ui(app& a, float)
     ImGui::SameLine();
     if (ImGui::Button("Reset"))
         reset(a);
-    if (ImGui::Button("Switch to other cover"))
-        (void)switch_cover(a);
+    draw_cover_picker(a);
 
     switch (last_note)
     {
