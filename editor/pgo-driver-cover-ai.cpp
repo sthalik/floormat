@@ -66,6 +66,28 @@ constexpr uint32_t map_moves = 7, short_map_moves = 3;
 // npc's way.
 constexpr uint32_t map_min_player_dist = 2*tile_size_xy;
 
+// What cover_ai_test's "Other cover spots" box lists once its search has reached every tile: the
+// spots of one search over its default radius, 1024 px, around the tile c stands on and from
+// threat. Its default octants are the script's.
+void overlay_spots(critter& c, point threat, Array<cover_spot>& out)
+{
+    const auto s = get_cover_script_status(c);
+    fm_assert(s && s->has_query);
+    auto q = s->query;
+    q.pos = point{c.position().coord(), {}};
+    q.threat = threat;
+    q.radius = 16*tile_size_xy;
+    list_cover_spots(c, q, out);
+}
+
+bool listed(const Array<cover_spot>& spots, point pt)
+{
+    for (const auto& x : spots)
+        if (x.pos == pt)
+            return true;
+    return false;
+}
+
 } // namespace
 
 // An npc hides behind a wall from the player, steps out until it sees the player, and goes back.
@@ -169,14 +191,14 @@ task app::scene_cover_ai()
     fm_assert_equal(stops[0].pos, status().cover);
     const auto cover = Vector3i(stops[0].pos).xy(), peek = Vector3i(stops[1].pos).xy();
 
+    Array<cover_spot> overlay;
     {
         const auto v = press(2);
         fm_assert(v.type == base_test::ValueType::u32);
         fm_assert(v.u32 >= 1);
-        Array<cover_spot> spots;
-        list_cover_spots(*w.find_object<critter>(npc_id), spots);
-        fm_assert_equal(v.u32, (uint32_t)spots.size());
-        fm_assert_equal(status().cover, spots[0].pos);
+        overlay_spots(*w.find_object<critter>(npc_id), ensure_player_character(w)->position(), overlay);
+        fm_assert_equal(v.u32, (uint32_t)overlay.size());
+        fm_assert(listed(overlay, status().cover));
     }
 
     // The "Switch to other cover" button, then clicks on peek spots' dots, then one on the first
@@ -223,12 +245,14 @@ task app::scene_cover_ai()
             }
         }
 
+        // The box's spots are still those of the search above, since the player hasn't moved.
+        fm_assert(listed(overlay, switched.pos));
         struct target { point peek, cover; };
         target targets[2] = { {p->pos, switched.pos}, };
         auto n_targets = 1u;
         Optional<cover_spot> nearest;
         point other_peek;
-        for (const auto& x : spots)
+        for (const auto& x : overlay)
         {
             const auto q = find_cover_peek(*w.find_object<critter>(npc_id), x);
             if (!q || q->pos == p->pos || nearest && q->pos != other_peek)
@@ -451,28 +475,27 @@ task app::scene_cover_ai_map()
         }
         arrayAppend(covers, cover);
 
-        // the "Other cover spots" box, for the search that found cover
         uint32_t n_spots, n_peeks = 0;
-        Ns peeks_time;
+        Ns box_time;
         {
             base_test::Value v;
             v.type = base_test::ValueType::u32;
             v.u32 = 2;
+            auto t = Time::now();
             v = tests().current_test->advance(*this, v);
+            box_time = t.update();
             fm_assert(v.type == base_test::ValueType::u32);
             n_spots = v.u32;
+            auto& C = *w.find_object<critter>(npc_id);
             Array<cover_spot> spots;
-            list_cover_spots(*w.find_object<critter>(npc_id), spots);
+            overlay_spots(C, player, spots);
             fm_assert_equal(n_spots, (uint32_t)spots.size());
-            fm_assert(n_spots >= 1);
-            fm_assert_equal(cover, spots[0].pos);
+            fm_assert(listed(spots, cover));
             for (const auto& x : spots)
+            {
                 fm_assert(!sees(player, x.pos));
-            // what cover_ai_test::update_spots does every frame
-            auto t = Time::now();
-            for (const auto& x : spots)
-                n_peeks += !sees(player, x.pos) && find_cover_peek(*w.find_object<critter>(npc_id), x);
-            peeks_time = t.update();
+                n_peeks += !!find_cover_peek(C, x);
+            }
         }
 
         deadline = _driver->scene_dt + max_dt;
@@ -495,8 +518,8 @@ task app::scene_cover_ai_map()
             const auto [px, py] = print(s.peek);
             const auto [tx, ty] = print(player);
             fm_debug("cover-ai-map: move %u, player (%d, %d): cover (%d, %d), peek (%d, %d), %u spots listed, "
-                     "%u with peek spots, rays and peek spots %.0f us", k, tx, ty, cx, cy, px, py, n_spots, n_peeks,
-                     (double)Time::to_milliseconds(peeks_time)*1e3);
+                     "%u with peek spots, whole search %.0f us", k, tx, ty, cx, cy, px, py, n_spots, n_peeks,
+                     (double)Time::to_milliseconds(box_time)*1e3);
         }
         if (k == n_moves)
             break;
