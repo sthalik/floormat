@@ -69,9 +69,10 @@ constexpr uint32_t map_min_player_dist = 2*tile_size_xy;
 } // namespace
 
 // An npc hides behind a wall from the player, steps out until it sees the player, and goes back.
-// cover_ai_test spawns it, lists the other cover spots and resets it. After the player moves, the
-// npc peeks from a new spot that sees the player and hides where the player can't see it. Leaving
-// the tests mode, switching tests and reset_world() each remove the npc.
+// cover_ai_test spawns it, lists the other cover spots, sends it to them by its button and by clicks
+// on their dots, and resets it. After the player moves, the npc peeks from a new spot that sees
+// the player and hides where the player can't see it. Leaving the tests mode, switching tests and
+// reset_world() each remove the npc.
 task app::scene_cover_ai()
 {
     using tests::base_test;
@@ -176,6 +177,103 @@ task app::scene_cover_ai()
         list_cover_spots(*w.find_object<critter>(npc_id), spots);
         fm_assert_equal(v.u32, (uint32_t)spots.size());
         fm_assert_equal(status().cover, spots[0].pos);
+    }
+
+    // The "Switch to other cover" button, then clicks on peek spots' dots, then one on the first
+    // listed spot's dot, which sends the npc back to its cover. After each, the npc goes on as from
+    // cover it found itself. Spots along the wall's face slide to the same peek spots. The first
+    // click is on the peek spot of the npc's cover, which then stays its cover. The second, when a
+    // listed spot has another peek spot, is on that one, and the nearest spot sliding there becomes
+    // the cover.
+    {
+        const auto npc_at = [&] { return w.find_object(npc_id)->position(); };
+        const auto hidden_at = [&](point p) {
+            const auto s = status();
+            return s.st == state::hidden && s.cover == p && npc_at() == p;
+        };
+        const auto exposed_at = [&](point p) {
+            const auto s = status();
+            return s.st == state::exposed && s.has_peek && s.peek == p && npc_at() == p;
+        };
+        const auto first = stops[0].pos;
+        deadline = _driver->scene_dt + max_dt;
+        while (!hidden_at(first))
+        {
+            fm_assert(_driver->scene_dt < deadline);
+            co_yield {};
+        }
+
+        const auto v = press(4);
+        fm_assert(v.type == base_test::ValueType::u32);
+        Array<cover_spot> spots;
+        list_cover_spots(*w.find_object<critter>(npc_id), spots);
+        fm_assert(v.u32 > 0 && v.u32 < spots.size());
+        const auto switched = spots[v.u32];
+        fm_assert_equal(switched.pos, status().cover);
+        const auto p = find_cover_peek(*w.find_object<critter>(npc_id), switched);
+        fm_assert(p);
+        // hidden, out and back, as at cover it found itself
+        for (const auto exposed : { false, true, false })
+        {
+            deadline = _driver->scene_dt + max_dt;
+            while (!(exposed ? exposed_at(p->pos) : hidden_at(switched.pos)))
+            {
+                fm_assert(_driver->scene_dt < deadline);
+                co_yield {};
+            }
+        }
+
+        struct target { point peek, cover; };
+        target targets[2] = { {p->pos, switched.pos}, };
+        auto n_targets = 1u;
+        Optional<cover_spot> nearest;
+        point other_peek;
+        for (const auto& x : spots)
+        {
+            const auto q = find_cover_peek(*w.find_object<critter>(npc_id), x);
+            if (!q || q->pos == p->pos || nearest && q->pos != other_peek)
+                continue;
+            if (!nearest || point::distance_squared(x.pos, q->pos) < point::distance_squared(nearest->pos, q->pos))
+                nearest = x;
+            other_peek = q->pos;
+        }
+        if (nearest)
+            targets[n_targets++] = {other_peek, nearest->pos};
+        for (auto t = 0u; t < n_targets; t++)
+        {
+            const auto [peek, cover] = targets[t];
+            set_cursor_at(peek);
+            co_await click_at_cursor(mouse_button_left);
+            {
+                const auto s = status();
+                fm_assert(s.st == state::to_peek);
+                fm_assert(s.cover == cover && s.has_peek && s.peek == peek);
+            }
+            deadline = _driver->scene_dt + max_dt;
+            while (!exposed_at(peek))
+            {
+                fm_assert(_driver->scene_dt < deadline);
+                co_yield {};
+            }
+            deadline = _driver->scene_dt + max_dt;
+            while (!hidden_at(cover))
+            {
+                fm_assert(_driver->scene_dt < deadline);
+                co_yield {};
+            }
+        }
+
+        set_cursor_at(first);
+        co_await click_at_cursor(mouse_button_left);
+        fm_assert(status().st == state::to_cover);
+        fm_assert_equal(first, status().cover);
+        deadline = _driver->scene_dt + max_dt;
+        while (!hidden_at(first))
+        {
+            fm_assert(_driver->scene_dt < deadline);
+            co_yield {};
+        }
+        fm_debug("cover-ai: switched to spot %u of %u, %u peek spots clicked", v.u32, (uint32_t)spots.size(), n_targets);
     }
 
     // The player moves north while the npc peeks. From there the wall hides the gun as well as the
@@ -354,7 +452,8 @@ task app::scene_cover_ai_map()
         arrayAppend(covers, cover);
 
         // the "Other cover spots" box, for the search that found cover
-        uint32_t n_spots;
+        uint32_t n_spots, n_peeks = 0;
+        Ns peeks_time;
         {
             base_test::Value v;
             v.type = base_test::ValueType::u32;
@@ -369,6 +468,11 @@ task app::scene_cover_ai_map()
             fm_assert_equal(cover, spots[0].pos);
             for (const auto& x : spots)
                 fm_assert(!sees(player, x.pos));
+            // what cover_ai_test::update_spots does every frame
+            auto t = Time::now();
+            for (const auto& x : spots)
+                n_peeks += !sees(player, x.pos) && find_cover_peek(*w.find_object<critter>(npc_id), x);
+            peeks_time = t.update();
         }
 
         deadline = _driver->scene_dt + max_dt;
@@ -390,8 +494,9 @@ task app::scene_cover_ai_map()
             const auto [cx, cy] = print(cover);
             const auto [px, py] = print(s.peek);
             const auto [tx, ty] = print(player);
-            fm_debug("cover-ai-map: move %u, player (%d, %d): cover (%d, %d), peek (%d, %d), %u spots listed",
-                     k, tx, ty, cx, cy, px, py, n_spots);
+            fm_debug("cover-ai-map: move %u, player (%d, %d): cover (%d, %d), peek (%d, %d), %u spots listed, "
+                     "%u with peek spots, rays and peek spots %.0f us", k, tx, ty, cx, cy, px, py, n_spots, n_peeks,
+                     (double)Time::to_milliseconds(peeks_time)*1e3);
         }
         if (k == n_moves)
             break;

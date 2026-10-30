@@ -34,8 +34,18 @@ constexpr Vector2i spawn_dirs[] = { {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-
 constexpr uint8_t octant_choices[] = { 0, 1, 3, 5, 7, 9, };
 constexpr const char* state_names[] = { "seek", "to cover", "hidden", "to peek", "exposed", "retreat", };
 static_assert(array_size(state_names) == (size_t)state::retreat + 1);
+// how far from a dot's center, in screen px, a click still picks it
+constexpr float pick_radius = 6;
 
-enum class note : uint8_t { none, no_free_spot, no_start, start_taken, };
+enum class note : uint8_t { none, no_free_spot, no_start, start_taken, no_path, no_other_cover, };
+
+// What update_spots found for a listed spot in the last frame: whether the player sees its center,
+// and when not, find_cover_peek's spot for it.
+struct spot_state
+{
+    cover_peek peek;
+    bool seen = false, has_peek = false;
+};
 
 struct counts { uint32_t searches = 0, rays = 0, paths = 0; };
 struct per_second { float searches = 0, rays = 0, paths = 0; };
@@ -82,7 +92,7 @@ struct cover_ai_test final : base_test
     ~cover_ai_test() noexcept override;
 
     bool handle_key(app&, const key_event&, bool) override { return false; }
-    bool handle_mouse_click(app&, const mouse_button_event&, bool) override { return false; }
+    bool handle_mouse_click(app& a, const mouse_button_event& e, bool is_down) override;
     bool handle_mouse_move(app&, const mouse_move_event&) override { return false; }
     void draw_overlay(app& a) override;
     void draw_ui(app& a, float width) override;
@@ -97,16 +107,21 @@ struct cover_ai_test final : base_test
     object_id spawn(app& a, point at);
     void apply_options();
     void make_list();
+    void update_spots(app& a, critter& c);
+    bool player_sees(app& a, const critter& c, point pt);
+    void send(critter& c, uint32_t k, bool peek);
+    Optional<uint32_t> switch_cover(app& a);
     void update_rates(const cover_script_status& s);
     void update_ray(app& a, const critter& c, const cover_script_status& s);
 
     weak_bptr<critter> npc;
     rc::raycast_result_s ray;
     Array<cover_spot> spots;
+    Array<spot_state> spot_states;
     cover_script_options options;
     point start_pos, list_cover;
     object_id threat = 0;
-    Ns clock{}, snapshot_time{};
+    Ns clock{}, snapshot_time{}, spots_time{};
     counts snapshot;
     per_second rates;
     note last_note = note::none;
@@ -130,6 +145,7 @@ void cover_ai_test::stop()
     npc = nullptr;
     ray.has_result = false;
     arrayClear(spots);
+    arrayClear(spot_states);
     has_list = false;
 }
 
@@ -197,6 +213,7 @@ void cover_ai_test::apply_options()
 void cover_ai_test::make_list()
 {
     arrayClear(spots);
+    arrayClear(spot_states);
     has_list = true;
     list_has_cover = false;
     auto c = npc.lock();
@@ -208,6 +225,126 @@ void cover_ai_test::make_list()
         list_cover = s->cover;
     }
     list_cover_spots(*c, spots);
+}
+
+// The ray the script's check_hidden casts, from the player to pt.
+bool cover_ai_test::player_sees(app& a, const critter& c, point pt)
+{
+    auto& m = a.main();
+    const auto player = m.world().find_object(threat);
+    if (!player)
+        return false;
+    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{cover_div, pass_mode::shoot_through});
+    return raycast(m.world(), player->position(), pt, c.id, pool, Search::without_critters()).success;
+}
+
+// Runs every frame, since the player can move in any of them: one ray from the player to each
+// listed spot, and find_cover_peek for the spots the ray doesn't reach.
+void cover_ai_test::update_spots(app& a, critter& c)
+{
+    auto t = Time::now();
+    const auto n = (uint32_t)spots.size();
+    if (arrayCapacity(spot_states) < n)
+        arrayReserve(spot_states, n + n/2);
+    arrayClear(spot_states);
+    for (const auto& x : spots)
+    {
+        spot_state st;
+        st.seen = player_sees(a, c, x.pos);
+        if (!st.seen)
+            if (const auto p = find_cover_peek(c, x))
+            {
+                st.peek = *p;
+                st.has_peek = true;
+            }
+        arrayAppend(spot_states, st);
+    }
+    spots_time = t.update();
+}
+
+void cover_ai_test::send(critter& c, uint32_t k, bool peek)
+{
+    const auto ok = peek ? send_to_peek(c, spots[k]) : send_to_cover(c, spots[k]);
+    last_note = ok ? note::none : note::no_path;
+}
+
+// Lists the spots again and sends the npc to the first after its cover, wrapping around, that the
+// player doesn't see and a path leads to. Returns its index in the list, or empty when there is
+// none.
+Optional<uint32_t> cover_ai_test::switch_cover(app& a)
+{
+    const auto c = npc.lock();
+    const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+    if (!s)
+        return {};
+    make_list();
+    const auto n = (uint32_t)spots.size();
+    auto from = 0u;
+    while (from < n && !(s->has_cover && spots[from].pos == s->cover))
+        from++;
+    for (auto j = 1u; j <= n; j++)
+    {
+        const auto k = (from + j) % n;
+        if (k == from || player_sees(a, *c, spots[k].pos))
+            continue;
+        if (send_to_cover(*c, spots[k]))
+        {
+            last_note = note::none;
+            return k;
+        }
+    }
+    last_note = note::no_other_cover;
+    return {};
+}
+
+// A left click picks the nearest dot of the overlay within pick_radius. A listed spot's dot sends
+// the npc to hide there, and a peek spot's dot sends it to peek from a spot it belongs to. On a
+// tie the listed spot wins. Spots along one face of a blocker often slide to the same peek spot,
+// and then the npc's cover is the one it peeks from when it is among them, else the one nearest
+// the peek spot, which has the shortest walk back.
+bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_down)
+{
+    if (is_down || e.button != mouse_button_left || !show_spots)
+        return false;
+    const auto c = npc.lock();
+    const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+    if (!s)
+        return false;
+    auto best = pick_radius*pick_radius;
+    auto k = (uint32_t)-1;
+    auto peek = false;
+    for (auto i = 0u; i < spots.size(); i++)
+        if (const auto d = (a.point_to_pixel(spots[i].pos) - e.position).dot(); d < best)
+        {
+            best = d;
+            k = i;
+        }
+    for (auto i = 0u; i < spot_states.size(); i++)
+        if (spot_states[i].has_peek)
+            if (const auto d = (a.point_to_pixel(spot_states[i].peek.pos) - e.position).dot(); d < best)
+            {
+                best = d;
+                k = i;
+                peek = true;
+            }
+    if (k == (uint32_t)-1)
+        return false;
+    if (peek)
+    {
+        const auto pt = spot_states[k].peek.pos;
+        for (auto i = 0u; i < spot_states.size(); i++)
+        {
+            if (i == k || !spot_states[i].has_peek || spot_states[i].peek.pos != pt)
+                continue;
+            if (s->has_cover && spots[k].pos == s->cover)
+                break;
+            if (s->has_cover && spots[i].pos == s->cover ||
+                point::distance_squared(spots[i].pos, pt) < point::distance_squared(spots[k].pos, pt))
+                k = i;
+        }
+    }
+    send(*c, k, peek);
+    return true;
 }
 
 void cover_ai_test::update_rates(const cover_script_status& s)
@@ -258,6 +395,7 @@ void cover_ai_test::update_post(app& a, const Ns& dt)
     {
         ray.has_result = false;
         arrayClear(spots);
+        arrayClear(spot_states);
         has_list = false;
         has_snapshot = false;
         rates = {};
@@ -267,6 +405,8 @@ void cover_ai_test::update_post(app& a, const Ns& dt)
     update_ray(a, *c, *s);
     if (show_spots && (!has_list || s->has_cover != list_has_cover || s->has_cover && s->cover != list_cover))
         make_list();
+    if (show_spots)
+        update_spots(a, *c);
 }
 
 base_test::Value cover_ai_test::advance(app& a, Value v)
@@ -291,6 +431,13 @@ base_test::Value cover_ai_test::advance(app& a, Value v)
         ret.type = ValueType::u32;
         ret.u32 = (uint32_t)spots.size();
         break;
+    case 4:
+        if (const auto k = switch_cover(a))
+        {
+            ret.type = ValueType::u32;
+            ret.u32 = *k;
+        }
+        break;
     default:
         break;
     }
@@ -304,8 +451,15 @@ void cover_ai_test::draw_overlay(app& a)
     if (show_spots)
     {
         ImDrawList& bg = *ImGui::GetBackgroundDrawList();
-        for (const auto& x : spots)
-            draw_dot(bg, a, x.pos, 3, {0.3f, 0.7f, 1, 0.9f});
+        // A list made after update_post, by a click or a button, has no states until the next one.
+        const auto known = spot_states.size() == spots.size();
+        for (auto i = 0u; i < spots.size(); i++)
+        {
+            const auto seen = known && spot_states[i].seen;
+            draw_dot(bg, a, spots[i].pos, 3, seen ? ImVec4{0.6f, 0.6f, 0.6f, 0.8f} : ImVec4{0.3f, 0.7f, 1, 0.9f});
+            if (known && spot_states[i].has_peek)
+                draw_dot(bg, a, spot_states[i].peek.pos, 2.5f, {1, 0.55f, 0.15f, 0.9f});
+        }
     }
     const auto c = npc.lock();
     if (!c)
@@ -342,6 +496,8 @@ void cover_ai_test::draw_ui(app& a, float)
     ImGui::SameLine();
     if (ImGui::Button("Reset"))
         reset(a);
+    if (ImGui::Button("Switch to other cover"))
+        (void)switch_cover(a);
 
     switch (last_note)
     {
@@ -355,6 +511,12 @@ void cover_ai_test::draw_ui(app& a, float)
         break;
     case note::start_taken:
         text("The spot of the last Start is no longer free.");
+        break;
+    case note::no_path:
+        text("No path leads there.");
+        break;
+    case note::no_other_cover:
+        text("No other listed spot is hidden from the player and has a path.");
         break;
     }
 
@@ -386,6 +548,9 @@ void cover_ai_test::draw_ui(app& a, float)
         else
             has_list = false;
     }
+    if (show_spots)
+        ImGui::TextWrapped("Click a blue dot to send the npc to hide there, or an orange one to peek from "
+                           "its spot. The player sees the grey ones.");
 
     const auto c = npc.lock();
     const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
@@ -438,16 +603,26 @@ void cover_ai_test::draw_ui(app& a, float)
             text(buf);
         }
 
+        const auto us = [](const Ns& t) { return (double)(uint64_t)t * 1e-3; };
+
         do_column("listed spots");
-        if (show_spots && has_list)
+        if (show_spots && has_list && spot_states.size() == spots.size())
         {
-            snformat(buf, "{}", spots.size());
+            auto seen = 0u, peeks = 0u;
+            for (const auto& x : spot_states)
+            {
+                seen += x.seen;
+                peeks += x.has_peek;
+            }
+            snformat(buf, "{}, {} seen, {} with peek spots", spots.size(), seen, peeks);
+            text(buf);
+            do_column("listed spots time");
+            snformat(buf, "{:.1f} µs per frame", us(spots_time));
             text(buf);
         }
         else
             text("-");
 
-        const auto us = [](const Ns& t) { return (double)(uint64_t)t * 1e-3; };
         do_column("update time");
         if (s)
         {
