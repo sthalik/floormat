@@ -289,6 +289,7 @@ void app::draw_editor_pane(float main_menu_height)
         ImGui::GetIO().WantTextInput != active)
         active ? M->start_text_input() : M->stop_text_input();
 
+    const auto frame_bg = ImGui::GetStyleColorVec4(ImGuiCol_FrameBg);
     [[maybe_unused]] const raii_wrapper vars[] = {
         push_style_var(ImGuiStyleVar_WindowPadding, {8*dpi[0], 8*dpi[1]}),
         push_style_var(ImGuiStyleVar_WindowBorderSize, 0),
@@ -327,7 +328,11 @@ void app::draw_editor_pane(float main_menu_height)
                 else if (wa)
                     impl_draw_editor_scenery_pane<wall_editor>(*_editor, *wa, dpi);
                 else if (_editor->mode() == editor_mode::tests)
+                {
+                    // With no frame, an unchecked checkbox shows only its label.
+                    const auto b4 = push_style_color(ImGuiCol_FrameBg, {frame_bg.x, frame_bg.y, frame_bg.z, frame_bg.w});
                     draw_tests_pane(width);
+                }
             }
         }
     }
