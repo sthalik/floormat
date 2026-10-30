@@ -24,11 +24,10 @@ struct cover_query
     /// the threat, that must each hide the body, so a threat that moves a little still doesn't see it.
     /// An accepted spot must also stay hidden from the threat turned about it by up to octants/2.
     uint8_t octants = 0;
-    /// 0, or how far in px an accepted spot may slide along the face it is flush against, toward
-    /// the side where the body is first seen. It stops at the last px where the body is still
-    /// hidden, fits and is flush, so a peek from there is short. A side that stops fitting or
-    /// leaves the face first is dropped. A spot seen from neither side within max_slide stays.
-    uint32_t max_slide = 0;
+    /// 0, or how far in px an accepted spot may move along the face it is flush against, toward the
+    /// side where the body is first seen. It stops at the last px where the body is still hidden,
+    /// fits and is flush.
+    uint32_t max_cover_end_dist = 0;
     /// When set, only cells whose center c has area->min() <= c - pos < area->max(), in px, are
     /// candidates. Areas that tile the plane together accept the spots one search without an area
     /// does, since each candidate is judged alone. Two areas can accept the same spot.

@@ -59,7 +59,8 @@ constexpr local_coords map_player_tiles[] = {
     {2, 13}, {10, 6}, {2, 2}, {6, 8}, {13, 2}, {7, 12}, {12, 11}, {4, 3}, {3, 12},
 };
 // After the 7th move, from (2, 2), the npc hides in the corner of the L at (8, 7) and finds no peek
-// spot, since sliding along one axis either way runs into the L or stays hidden for max_peek.
+// spot, since a peek along one axis either way runs into the L or stays hidden for
+// max_peek_dist.
 constexpr uint32_t map_moves = 6, short_map_moves = 3;
 // A player tile nearer the npc than this is skipped, since the player's body could stand in the
 // npc's way.
@@ -67,10 +68,10 @@ constexpr uint32_t map_min_player_dist = 2*tile_size_xy;
 
 // What cover_ai_test's "Other cover spots" box lists once its search has reached every tile: the
 // spots of one search over its default radius, 1024 px, around the tile c stands on and from
-// threat. Its default octants are the script's. max_slide is the panel's, which the "Move spots to
-// cover's end" box sets.
+// threat. Its default octants are the script's. max_cover_end_dist is the panel's, which the
+// "Move spots to cover's end" box sets.
 void overlay_spots(critter& c, point threat, Array<cover_spot>& out,
-                   uint32_t max_slide = cover_script_options{}.max_slide)
+                   uint32_t max_cover_end_dist = cover_script_options{}.max_cover_end_dist)
 {
     const auto s = get_cover_script_status(c);
     fm_assert(s && s->has_query);
@@ -78,7 +79,7 @@ void overlay_spots(critter& c, point threat, Array<cover_spot>& out,
     q.pos = point{c.position().coord(), {}};
     q.threat = threat;
     q.radius = 16*tile_size_xy;
-    q.max_slide = max_slide;
+    q.max_cover_end_dist = max_cover_end_dist;
     list_cover_spots(c, q, out);
 }
 
@@ -246,14 +247,11 @@ task app::scene_cover_ai()
         fm_assert(listed(overlay, status().cover));
     }
 
-    // The next arrow beside the cover combobox, then clicks on peek spots' dots, each followed by
-    // a click on the first listed spot's dot, which sends the npc back to its cover unless it
-    // already hides there. Then the next arrow and the previous one, which sends it back again.
-    // After each, the npc goes on as from cover it found itself. The first peek click is on the
-    // peek spot of the npc's cover, which then stays its cover. The second, when a listed spot has
-    // another peek spot, is on that one, and the nearest spot sliding there becomes the cover. The
-    // search slides every spot to one of the wall's two ends, so here no two spots share a peek
-    // spot. They do once "Move spots to cover's end" is unticked, further down.
+    // The next arrow beside the cover combobox, then clicks on peek spots' dots, each followed by a
+    // click on the first listed spot's dot, then the next arrow and the previous one. After each,
+    // the npc goes on as from cover it found itself. The search moves every spot to one of the
+    // wall's two ends, so no two spots share a peek spot until "Move spots to cover's end" is
+    // unticked, further down.
     {
         const auto npc_at = [&] { return w.find_object(npc_id)->position(); };
         const auto hidden_at = [&](point p) {
@@ -511,7 +509,7 @@ task app::scene_cover_ai()
         const auto& p = stops[0];
         fm_assert(p.status.st == state::exposed && p.status.has_peek);
         fm_assert_equal(p.pos, p.status.peek);
-        fm_assert_equal(threat, p.status.gun_seen_from);
+        fm_assert_equal(threat, p.status.gun_ray_from);
         fm_assert(sees(p.status.gun));
         const auto& h = stops[1];
         fm_assert(h.status.st == state::hidden);
@@ -692,7 +690,7 @@ task app::scene_cover_ai_map()
         }
         {
             const auto s = status();
-            fm_assert_equal(player, s.gun_seen_from);
+            fm_assert_equal(player, s.gun_ray_from);
             fm_assert(sees(player, s.gun));
             const auto [cx, cy] = print(cover);
             const auto [px, py] = print(s.peek);

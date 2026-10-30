@@ -162,7 +162,7 @@ struct cover_ai_test final : base_test
     point start_pos, search_center, search_threat;
     object_id threat = 0, script_list_npc = 0;
     uint64_t search_pass_gen = 0, script_list_pass_gen = 0;
-    uint32_t next_tile = 0, search_radius = 0, search_max_slide = 0, tiles_radius = 0, script_list_searches = 0;
+    uint32_t next_tile = 0, search_radius = 0, search_max_cover_end_dist = 0, tiles_radius = 0, script_list_searches = 0;
     Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
     fill_count fills_before_update, search_fills;
     cover_script_status logged;
@@ -273,7 +273,7 @@ bool cover_ai_test::spots_stale(app& a) const
     const auto player = w.find_object(threat);
     return !player || player->position() != search_threat || w.pass_gen() != search_pass_gen ||
            search_radius != (uint32_t)radius_tiles*tile_size_xy || search_octants != options.octants ||
-           search_max_slide != options.max_slide;
+           search_max_cover_end_dist != options.max_cover_end_dist;
 }
 
 // Starts the overlay's search over, around the center of the tile c stands on, so that each tile
@@ -310,7 +310,7 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
     search_pass_gen = w.pass_gen();
     search_radius = r;
     search_octants = options.octants;
-    search_max_slide = options.max_slide;
+    search_max_cover_end_dist = options.max_cover_end_dist;
     next_tile = 0;
     search_time = Ns{};
     search_fills = {};
@@ -325,7 +325,7 @@ void cover_ai_test::search_tile(app& a, critter& c)
     auto t = Time::now();
     const auto mid = tiles[next_tile++]*tile_size_xy;
     const cover_query q{search_center, Vector2ui(c.bbox_size), search_threat, search_radius, search_octants,
-                        search_max_slide, Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}};
+                        search_max_cover_end_dist, Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}};
     list_cover_spots(c, q, tile_spots);
     auto added = 0u, peeks = 0u;
     for (const auto& x : tile_spots)
@@ -416,9 +416,9 @@ uint32_t cover_ai_test::toggle_hold()
 
 uint32_t cover_ai_test::toggle_move_to_end()
 {
-    options.max_slide = options.max_slide ? 0 : cover_script_options{}.max_slide;
+    options.max_cover_end_dist = options.max_cover_end_dist ? 0 : cover_script_options{}.max_cover_end_dist;
     apply_options();
-    return options.max_slide ? 1 : 0;
+    return options.max_cover_end_dist ? 1 : 0;
 }
 
 // The spots of the script's last search, apart from the overlay's, from list_cover_spots(), which
@@ -547,7 +547,7 @@ void cover_ai_test::update_rates(const cover_script_status& s)
     snapshot_time = clock;
 }
 
-// Casts the status's ray from gun_seen_from to gun again, with the script's pool and filter, so the
+// Casts the status's ray from gun_ray_from to gun again, with the script's pool and filter, so the
 // drawn line and the "ray" row show a ray the script found clear, at grazing angles too, unless the
 // world changed since. The line starts at the player whenever the script checked the gun after the
 // player's last move, and otherwise where the player stood at the last check.
@@ -558,7 +558,7 @@ void cover_ai_test::update_ray(app& a, const critter& c, const cover_script_stat
         return;
     auto& m = a.main();
     auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{cover_div, pass_mode::shoot_through});
-    ray = raycast(m.world(), s.gun_seen_from, s.gun, c.id, pool, Search::without_critters());
+    ray = raycast(m.world(), s.gun_ray_from, s.gun, c.id, pool, Search::without_critters());
 }
 
 void cover_ai_test::update_post(app& a, const Ns& dt)
@@ -676,8 +676,8 @@ void cover_ai_test::draw_overlay(app& a)
     ImDrawList& fg = *ImGui::GetForegroundDrawList();
     if (s->has_cover)
         draw_dot(fg, a, s->cover, 6, {0.2f, 1, 0.2f, 1});
-    // The last find_peek result. While a flanked npc still peeks, it belongs to the cover it peeks
-    // from, and s->cover is already the one it will hide at.
+    // The last find_peek_pos result. While a flanked npc still peeks, it belongs to the cover it
+    // peeks from, and s->cover is already the one it will hide at.
     if (s->has_peek)
     {
         draw_dot(fg, a, s->peek, 5, {1, 0.85f, 0, 1});
@@ -776,7 +776,7 @@ void cover_ai_test::draw_ui(app& a, float)
     bool hold = options.hold != hold_phase::none;
     if (ImGui::Checkbox("Hold", &hold))
         (void)toggle_hold();
-    bool to_end = options.max_slide != 0;
+    bool to_end = options.max_cover_end_dist != 0;
     if (ImGui::Checkbox("Move spots to cover's end", &to_end))
         (void)toggle_move_to_end();
 

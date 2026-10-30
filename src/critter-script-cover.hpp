@@ -22,8 +22,9 @@ struct cover_script_options
     // cover_query::octants of the script's searches. With 3, a cover spot must also hide the critter
     // from the threat turned 11.25° either way about it.
     uint8_t octants = 3;
-    // cover_query::max_slide of the script's searches. 5 tiles is also their radius, cover_radius.
-    uint32_t max_slide = 5*(uint32_t)tile_size_xy;
+    // cover_query::max_cover_end_dist of the script's searches. 5 tiles is also their radius,
+    // cover_radius.
+    uint32_t max_cover_end_dist = 5*(uint32_t)tile_size_xy;
 };
 
 struct cover_script_status
@@ -34,14 +35,11 @@ struct cover_script_status
     // and a search found new cover after the threat saw that one, the new cover, which the critter
     // walks to when it stops peeking.
     point cover;
-    // The last spot find_peek found, when has_peek. Taking new cover clears has_peek.
+    // The last spot find_peek_pos found, when has_peek. Taking new cover clears has_peek.
     point peek;
-    // When has_peek, the ends of a ray from the threat to the gun at peek that the script found
-    // clear: gun_seen_from, where the threat stood, and gun, the gun point for that position.
-    // find_peek sets them for the spot it finds. check_exposed and check_walk move them when they
-    // cast the ray to the gun at peek from where the threat moved to and find it clear. Their
-    // comments say when they cast it, and with options.search_every_move they don't run.
-    point gun, gun_seen_from;
+    // When has_peek, the ends of the last ray from the threat to the gun at peek that was clear:
+    // gun_ray_from, where the threat stood, and gun, the gun point there.
+    point gun, gun_ray_from;
     // The query of the last find_cover_point call, when has_query, whether it found cover or not.
     cover_query query = {};
     // Since the script started: find_cover_point calls, rays cast from the threat, and Dijkstra
@@ -71,8 +69,9 @@ void list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
 
 // The peek spot the script would step out to from s, with the threat where it stands now. Empty
 // when c runs another script or none, the threat is gone, or neither side of s has a peek spot
-// within the script's max_peek. A spot the threat already sees gets a peek spot 1 px from it,
-// since the slide is at least 1 px. The script's counters and update times leave it out.
+// within the script's max_peek_dist. A spot the threat already sees gets a peek spot 1 px from
+// it, since the peek distance is at least 1 px. The script's counters and update times leave it
+// out.
 Optional<cover_peek> find_cover_peek(critter& c, const cover_spot& s);
 
 // Walks c along a Dijkstra path to s, to hide there for hidden_time. An options.hold other than none

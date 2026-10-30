@@ -30,10 +30,9 @@ constexpr Ns hidden_time = 2*Second, exposed_time = 2*Second;
 // before looking for cover again when there was none, or the walk there was blocked twice
 constexpr Ns retry_time = Second;
 constexpr uint32_t cover_radius = 5*(uint32_t)tile_size_xy;
-constexpr int max_peek = 2*tile_size_xy;
-// A spot where the body fits but no path leads, past a wall or among other critters, costs a
-// Dijkstra search that runs out its whole max_dist. A search for cover or a retreat stops after
-// this many of them.
+constexpr int max_peek_dist = 2*tile_size_xy;
+// A spot with no path costs a Dijkstra search that runs out its whole max_dist, so a search for
+// cover or a retreat stops after this many of them.
 constexpr uint32_t max_failed_paths = 8;
 
 struct cover_script;
@@ -49,13 +48,8 @@ auto blocks_all_but(object_id self)
     };
 }
 
-// Where the gun is when c's body is centered on pos and c faces threat: offset px to the right of
-// pos, square to the exact direction from pos to threat, rounded to whole px. A negative offset puts
-// the gun on the left. Without offset, it is half of c's bbox_size along across, the direction
-// find_peek slides in. rotation_to_vec in critter.cpp maps N to (0, -1) and E, a right turn from N,
-// to (1, 0), so the right of a facing (x, y) is (-y, x). With pos at threat there is no facing, and
-// the gun is at pos. face_threat turns the exposed c to within 22.5° of this facing, unless c's box
-// turned that way would overlap a collider.
+// Where the gun is when c's body is centered on pos and c faces threat: offset px to its right, or
+// half of c's bbox_size along across without offset. A negative offset puts it on the left.
 point gun_point(const critter& c, point pos, point threat, Vector2i across, Optional<int> offset)
 {
     if (pos == threat)
@@ -66,7 +60,7 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
 }
 
 // The direction along the face of the blocker a cover spot with this axis is flush against, the one
-// find_peek slides in.
+// find_peek_pos moves the body in.
 Vector2i across_of(Vector2i axis) { return Math::abs(Vector2i{axis.y(), axis.x()}); }
 
 // Takes cover from a critter and steps out of it and back, each phase lasting until its wait runs
@@ -131,8 +125,8 @@ private:
     void take_cover(const bptr<critter>& c);
     void walk_update(const bptr<critter>& c, size_t& i, const Ns& dt);
     void face_threat(critter& c, size_t i, point threat);
-    Optional<cover_peek> peek_from(critter& c, point from, Vector2i dir, point threat);
-    Optional<point> find_peek(critter& c, point threat);
+    Optional<cover_peek> peek_spot(critter& c, point from, Vector2i dir, point threat);
+    Optional<point> find_peek_pos(critter& c, point threat);
 
     astar& A;
     critter_walk walk;
@@ -141,9 +135,8 @@ private:
     Array<retreat_spot> retreat_spots;
     Array<point> unreachable;
     // threat_pos is where the threat stood at the last check or search. next_cover and next_axis
-    // become cover and axis only when leave_peek walks c there, since until then c peeks from
-    // cover, and find_peek and the ray to its gun go along that cover's face.
-    point cover, next_cover, threat_pos, retreat_pos, peek_pos, gun_pos, gun_seen_from;
+    // replace cover and axis only in leave_peek, as c peeks from cover until then.
+    point cover, next_cover, threat_pos, retreat_pos, peek_pos, gun_pos, gun_ray_from;
     Vector2i axis, next_axis;
     Ns wait{}, last_update{}, max_update{}, total_update{};
     object_id threat_id;
@@ -171,7 +164,7 @@ cover_script_status cover_script::status() const
 {
     return {
         .cover = flanked == flank::cover ? next_cover : cover, .peek = peek_pos, .gun = gun_pos,
-        .gun_seen_from = gun_seen_from, .query = query, .searches = searches, .rays = rays, .paths = paths,
+        .gun_ray_from = gun_ray_from, .query = query, .searches = searches, .rays = rays, .paths = paths,
         .last_update = last_update, .max_update = max_update, .total_update = total_update,
         .st = st, .has_cover = has_cover, .has_peek = has_peek, .has_query = has_query,
     };
@@ -327,14 +320,14 @@ bool cover_script::sees(critter& c, point from, point to)
 }
 
 // True when a ray from threat reaches gun_point() of c's body centered on pos. gun_pos and
-// gun_seen_from then hold the ray's ends, for the status.
+// gun_ray_from then hold the ray's ends, for the status.
 bool cover_script::sees_gun(critter& c, point pos, point threat)
 {
     const auto gun = gun_point(c, pos, threat, across(), gun_offset);
     if (!sees(c, threat, gun))
         return false;
     gun_pos = gun;
-    gun_seen_from = threat;
+    gun_ray_from = threat;
     return true;
 }
 
@@ -349,7 +342,7 @@ cover_point_result cover_script::nearest_cover(critter& c)
     if (!threat)
         return {};
     threat_pos = threat->position();
-    query = {c.position(), Vector2ui(c.bbox_size), threat_pos, cover_radius, options.octants, options.max_slide};
+    query = {c.position(), Vector2ui(c.bbox_size), threat_pos, cover_radius, options.octants, options.max_cover_end_dist};
     has_query = true;
     searches++;
     return finder.find_cover_point(w, A.pool_registry(), Cover::Params{div_size}, query, blocks_all_but(c.id));
@@ -569,11 +562,9 @@ void cover_script::seek(const bptr<critter>& c)
         wait = retry_time;
 }
 
-// options.search_every_move's search on each move of the threat. A hidden c relocates. An exposed
-// c looks for cover again from where it stands and walks to find_peek's spot for it, or to the new
-// cover to hide there for all of hidden_time when there is no such spot. It keeps what is left of
-// the wait, which the walk doesn't spend, and stays put when it already stands there. With no
-// cover that a path leads to, or no path to its peek spot, an exposed c retreats as relocate does.
+// options.search_every_move's search on each move of the threat. A hidden c relocates. An exposed c
+// walks to find_peek_pos's spot for the new cover, or hides at it for hidden_time without one, and
+// retreats as relocate does when no cover or peek path is found.
 void cover_script::follow_threat(critter& c)
 {
     if (st == state::hidden)
@@ -583,7 +574,7 @@ void cover_script::follow_threat(critter& c)
     }
     if (auto path = find_cover(c))
     {
-        if (const auto p = find_peek(c, threat_pos))
+        if (const auto p = find_peek_pos(c, threat_pos))
         {
             if (walk_to(c, *p, state::exposed))
                 return;
@@ -608,17 +599,9 @@ void cover_script::check_hidden(critter& c, point threat)
         (void)relocate(c);
 }
 
-// The threat stands at `threat`, elsewhere than at the last check. The first ray goes from there
-// to the center of the cover c is to hide at when exposed_time runs out: next_cover when flanked
-// is flank::cover, else the cover c peeks from. When the ray reaches it, c searches from where it
-// stands for the nearest cover within cover_radius that a path leads to, else for find_retreat's
-// spot. c then stays exposed until exposed_time runs out, and leave_peek walks it to what the
-// search found. When the search finds neither, c seeks after retry_time and is no longer exposed.
-// When the ray is blocked and flanked is flank::retreat, the threat no longer sees the cover c
-// peeks from, so flanked becomes flank::none, and c walks back to that cover when exposed_time
-// runs out. With flanked flank::none, a second ray goes to c's gun, and when that ray is blocked,
-// c walks to find_peek's new spot for its cover without searching. With flank::cover, c casts no
-// ray to its gun, and stays where it is until exposed_time runs out.
+// Rays from `threat`, which stands elsewhere than at the last check: to c's cover, or next_cover
+// when flanked by cover, and, unless flanked, to its gun. A seen cover starts a search, and c leaves
+// for the result when exposed_time runs out. A blocked gun ray sends c to a new peek spot.
 void cover_script::check_exposed(critter& c, point threat)
 {
     threat_pos = threat;
@@ -645,11 +628,8 @@ void cover_script::check_exposed(critter& c, point threat)
         peek_again(c);
 }
 
-// The checks of a walk update in which the threat stands elsewhere than at the last check. A walk
-// to cover or to a peek spot stops when a ray from the threat reaches the cover's center, and c
-// relocates at once. When that walk was to a peek spot and the search finds cover, c hides there
-// for all of hidden_time. Otherwise, when the ray to the gun at the peek spot is blocked, c walks
-// to find_peek's new spot, as an exposed c would. A threat that is gone leaves the walk as it is.
+// The checks of a walk update in which the threat stands elsewhere than at the last check. A seen
+// cover stops the walk and c relocates. A blocked ray to the gun at the peek spot sends c to a new one.
 void cover_script::check_walk(critter& c)
 {
     const auto threat = c.world().find_object(threat_id);
@@ -668,11 +648,12 @@ void cover_script::check_walk(critter& c)
         peek_again(c);
 }
 
-// Walks c to find_peek's spot for its cover with the threat at threat_pos, or to the cover itself
-// to hide there for all of hidden_time when there is none. With no path, c seeks after retry_time.
+// Walks c to find_peek_pos's spot for its cover with the threat at threat_pos, or to the cover
+// itself to hide there for all of hidden_time when there is none. With no path, c seeks after
+// retry_time.
 void cover_script::peek_again(critter& c)
 {
-    if (const auto p = find_peek(c, threat_pos))
+    if (const auto p = find_peek_pos(c, threat_pos))
     {
         if (!walk_to(c, *p, state::exposed))
             retry_later();
@@ -684,10 +665,10 @@ void cover_script::peek_again(critter& c)
 }
 
 // With no peek spot, c hides for hidden_time more. Held exposed, a wait of time_in()'s none would
-// call find_peek in every update.
+// call find_peek_pos in every update.
 void cover_script::step_out(const bptr<critter>& c)
 {
-    if (const auto p = find_peek(*c, threat_pos))
+    if (const auto p = find_peek_pos(*c, threat_pos))
     {
         walk = critter_walk{*p};
         st = state::to_peek;
@@ -697,8 +678,9 @@ void cover_script::step_out(const bptr<critter>& c)
         wait = hidden_time;
 }
 
-// Ends c's time out. Unflanked, c stands on the slide from cover that find_peek checked, and walks
-// straight back. Flanked, c walks along a Dijkstra path to what check_exposed's search found.
+// Ends c's time out. Unflanked, c stands on the line from its cover that find_peek_pos checked
+// clear, and walks straight back. Flanked, c walks along a Dijkstra path to what check_exposed's
+// search found.
 void cover_script::leave_peek(const bptr<critter>& c)
 {
     switch (flanked)
@@ -724,8 +706,8 @@ void cover_script::leave_peek(const bptr<critter>& c)
 }
 
 // Walks c to cover along a Dijkstra path and hides it there for hidden_time. It serves where c may
-// be off the slide from cover that find_peek checked, so a straight walk back could run into the
-// blocker. With no path, c seeks after retry_time.
+// be off the line from its cover that find_peek_pos checked clear, so a straight walk back could
+// run into the blocker. With no path, c seeks after retry_time.
 void cover_script::take_cover(const bptr<critter>& c)
 {
     if (walk_to(*c, cover, state::hidden))
@@ -762,13 +744,9 @@ void cover_script::walk_update(const bptr<critter>& c, size_t& i, const Ns& dt)
     wait = replans++ ? retry_time : Ns{};
 }
 
-// Turns c to the one of the 8 rotations nearest the direction from c's center to threat. c keeps
-// its rotation when threat is its center, which gives no direction, or when can_rotate
-// finds its box turned that way overlapping a collider. rotate() keeps bbox_offset at zero, so c's
-// position stays its body's center, which find_cover_point and Dijkstra take it to be. It swaps
-// bbox_size's x and y when c turns between N, NE, S or SW and E, SE, W or NW. find_cover, walk_to,
-// find_peek and gun_point read bbox_size when they run, so after this turn they take a non-square
-// body as it faces the threat, as after a walk they take it as the walk left it.
+// Turns c to the one of the 8 rotations nearest the direction from its center to threat, unless
+// threat is at its center or can_rotate finds its box overlapping a collider. rotate() swaps
+// bbox_size's x and y between {N, NE, S, SW} and {E, SE, W, NW}, which later searches then read.
 void cover_script::face_threat(critter& c, size_t i, point threat)
 {
     const auto v = threat - c.position();
@@ -779,13 +757,13 @@ void cover_script::face_threat(critter& c, size_t i, point threat)
         c.rotate(i, r);
 }
 
-// The spot nearest `from`, sliding along dir, where a ray from threat reaches gun_point() of the
-// body centered there, and that gun point. Searched in steps of half the body, since a blocker the
-// slide could pass is at least that wide, then bisected. The bisection takes `from` itself as
-// unseen, so the slide is at least 1 px. When a step's slide runs into a collider, the last slide
-// tried on that side is the longest clear one, also found by bisection. Empty when neither side
-// has one within max_peek px.
-Optional<cover_peek> cover_script::peek_from(critter& c, point from, Vector2i dir, point threat)
+// The spot nearest `from`, along dir, where a ray from threat reaches gun_point() of the body
+// centered there, and that gun point. Searched in steps of half the body, since a blocker the peek
+// could pass is at least that wide, then bisected. The bisection takes `from` itself as unseen, so
+// the peek distance is at least 1 px. When a step's peek runs into a collider, the last peek tried
+// on that side is the longest clear one, also found by bisection. Empty when neither side has one
+// within max_peek_dist px.
+Optional<cover_peek> cover_script::peek_spot(critter& c, point from, Vector2i dir, point threat)
 {
     auto& w = c.world();
     const auto body = Vector2i(c.bbox_size);
@@ -794,7 +772,7 @@ Optional<cover_peek> cover_script::peek_from(critter& c, point from, Vector2i di
     const auto seen = [&](int t) {
         return sees(c, threat, gun_point(c, from + dir*t, threat, dir, gun_offset));
     };
-    // The slide sweeps the box spanning both ends.
+    // A walk from `from` along dir sweeps the box spanning both ends.
     const auto clear = [&](int t) {
         const auto lo = from.intra().center_shifted() - body/2 + Math::min(dir*t, Vector2i{});
         const auto size = body + Math::abs(dir*t);
@@ -805,11 +783,11 @@ Optional<cover_peek> cover_script::peek_from(critter& c, point from, Vector2i di
     for (const auto side : { 1, -1 })
     {
         int lo = 0, hi = 0;
-        for (auto t = step; t <= max_peek && !hi; t += step)
+        for (auto t = step; t <= max_peek_dist && !hi; t += step)
         {
             if (!clear(side*t))
             {
-                // A longer slide's box holds a shorter one's, so the clear slides end before t.
+                // A longer peek's box holds a shorter one's, so the clear peeks end before t.
                 auto clear_t = lo, blocked_t = t;
                 while (blocked_t - clear_t > 1)
                 {
@@ -847,17 +825,17 @@ Optional<cover_peek> cover_script::peek_from(critter& c, point from, Vector2i di
     return cover_peek{pos, gun_point(c, pos, threat, dir, gun_offset)};
 }
 
-// peek_from for c's cover. peek_pos and gun_pos hold the spot and its gun point when found, and
-// gun_seen_from holds threat.
-Optional<point> cover_script::find_peek(critter& c, point threat)
+// peek_spot for c's cover. peek_pos and gun_pos hold the spot and its gun point when found, and
+// gun_ray_from holds threat.
+Optional<point> cover_script::find_peek_pos(critter& c, point threat)
 {
-    const auto p = peek_from(c, cover, across(), threat);
+    const auto p = peek_spot(c, cover, across(), threat);
     has_peek = !!p;
     if (!p)
         return {};
     peek_pos = p->pos;
     gun_pos = p->gun;
-    gun_seen_from = threat;
+    gun_ray_from = threat;
     return peek_pos;
 }
 
@@ -868,7 +846,7 @@ Optional<cover_peek> cover_script::peek_for(critter& c, const cover_spot& s)
         return {};
     // sees() counts every ray, and the counters leave this out.
     const auto n = rays;
-    const auto p = peek_from(c, s.pos, across_of(s.axis), threat->position());
+    const auto p = peek_spot(c, s.pos, across_of(s.axis), threat->position());
     rays = n;
     return p;
 }
@@ -883,7 +861,7 @@ bool cover_script::send_to(critter& c, const cover_spot& s, bool peek)
     {
         if (!threat)
             return false;
-        p = peek_from(c, s.pos, across_of(s.axis), threat->position());
+        p = peek_spot(c, s.pos, across_of(s.axis), threat->position());
         if (!p)
             return false;
     }
@@ -908,7 +886,7 @@ bool cover_script::send_to(critter& c, const cover_spot& s, bool peek)
     {
         peek_pos = p->pos;
         gun_pos = p->gun;
-        gun_seen_from = threat_pos;
+        gun_ray_from = threat_pos;
     }
     using hold_phase = cover_script_options::hold_phase;
     if (options.hold != hold_phase::none)
