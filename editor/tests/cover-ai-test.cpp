@@ -62,12 +62,19 @@ void draw_dot(ImDrawList& draw, app& a, point pt, float radius, ImVec4 color)
     draw.AddCircleFilled({px.x(), px.y()}, radius, ImGui::ColorConvertFloat4ToU32(color));
 }
 
+critter_proto npc_proto(point at)
+{
+    critter_proto p;
+    p.name = "npc"_s;
+    p.offset = at.offset();
+    p.bbox_size = {24, 24};
+    return p;
+}
+
 bool can_spawn_at(world& w, point pt)
 {
     auto* c = w.at(pt.chunk3());
-    critter_proto p;
-    p.offset = pt.offset();
-    return c && c->can_place_object(p, pt.local());
+    return c && c->can_place_object(npc_proto(pt), pt.local());
 }
 
 struct cover_ai_test final : base_test
@@ -169,10 +176,7 @@ object_id cover_ai_test::spawn(app& a, point at)
     auto& m = a.main();
     auto& w = m.world();
     threat = a.ensure_player_character(w)->id;
-    critter_proto p;
-    p.name = "npc"_s;
-    p.offset = at.offset();
-    auto c = w.make_object<critter>(w.make_id(), at.coord(), move(p));
+    auto c = w.make_object<critter>(w.make_id(), at.coord(), npc_proto(at));
     // serialize/savegame.cpp leaves it out of saves
     c->ephemeral = true;
     c->script.do_reassign(critter_script::make_cover_script(m.astar(), threat, cover_div), c);
