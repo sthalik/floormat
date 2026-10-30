@@ -4,6 +4,8 @@
 #include "compat/defs.hpp"
 #include "compat/safe-ptr.hpp"
 #include <cr/ArrayView.h>
+#include <cr/Optional.h>
+#include <mg/Range.h>
 
 namespace floormat { class world; }
 namespace floormat::Grid { class PoolRegistry; }
@@ -22,6 +24,10 @@ struct cover_query
     /// the threat, that must each hide the body, so a threat that moves a little still doesn't see it.
     /// An accepted spot must also stay hidden from the threat turned about it by up to octants/2.
     uint8_t octants = 0;
+    /// When set, only cells whose center c has area->min() <= c - pos < area->max(), in px, are
+    /// candidates. Areas that tile the plane together accept the spots one search without an area
+    /// does, since each candidate is judged alone. Two areas can accept the same spot.
+    Optional<Range2Di> area = {};
 };
 
 struct cover_spot

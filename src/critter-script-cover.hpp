@@ -54,12 +54,13 @@ struct cover_peek
     point pos, gun;
 };
 
-// Replaces out with every spot find_cover_point accepts for the status's query, in the order tried.
-// When that search found cover and the world hasn't changed since, the first is the spot it found.
-// It runs the search again with the script's own pools, div_size and predicate, and the query's
-// octants. The script's counters and update times leave it out. out is empty when c runs another
-// script or none, or the script hasn't searched yet.
+// Replaces out with every spot find_cover_point accepts for the status's query, in the order tried,
+// so the first is the spot it found if the world hasn't changed. Empty when c runs another script
+// or none, or the script hasn't searched yet.
 void list_cover_spots(critter& c, Array<cover_spot>& out);
+
+// As list_cover_spots, for q in place of the status's query.
+void list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
 
 // The peek spot the script would step out to from s, with the threat where it stands now. Empty
 // when c runs another script or none, the threat is gone, or neither side of s has a peek spot
