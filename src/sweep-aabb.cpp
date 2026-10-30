@@ -17,7 +17,7 @@ namespace {
 // on_blocker(step, collider, rect) returns the new bound: rects blocking only at or past it are
 // skipped, and the walk ends once a cell's steps reach it.
 template<typename F>
-void sweep_line(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+void sweep_aabb(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                 uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,
                 const Search::pred& p, Grid::Pass::Pool* pool, F&& on_blocker)
 {
@@ -92,7 +92,7 @@ swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::
                                           const Search::pred& p, Grid::Pass::Pool* pool)
 {
     swept_collider_result res = { .step = last_step + 1, .collider = {}, .rect = {}, .has_collider = false };
-    sweep_line(w, ch, line, first_step, last_step, bbox_size, p, pool, [&](int64_t step, collision_data x, Range2D rect) {
+    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, [&](int64_t step, collision_data x, Range2D rect) {
         res = { .step = (uint32_t)step, .collider = x, .rect = rect, .has_collider = true };
         return step;
     });
@@ -104,7 +104,7 @@ void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& l
                          const Search::pred& p, Grid::Pass::Pool* pool,
                          fu2::function_view<bool(const swept_collider_result&) const> f)
 {
-    sweep_line(w, ch, line, first_step, last_step, bbox_size, p, pool, [&](int64_t step, collision_data x, Range2D rect) {
+    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, [&](int64_t step, collision_data x, Range2D rect) {
         const bool more = f(swept_collider_result{ .step = (uint32_t)step, .collider = x, .rect = rect, .has_collider = true });
         return more ? (int64_t)last_step + 1 : 0;
     });
