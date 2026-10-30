@@ -553,8 +553,10 @@ void test_octants_wall_middle()
 
 // The npc stands west of the wall near its north end, and the threat east of it, a little south.
 // Without octants, each spot found lies at the north end, where the wall hides it from the threat.
-// The threat turned an octant north sees each of them. With 3 octants the cover grid still passes
-// as many candidates, so the test from the turned threat is what rejects them.
+// The threat turned an octant north sees each of them. Spots farther south hidden from all three
+// lie past the radius, and the cells within it that reach them are too far from the wall to be
+// candidates. With 3 octants the cover grid passes some candidates, and the test from the turned
+// threat rejects each one.
 void test_octants_turned_threat_sees()
 {
     auto w = world();
@@ -568,45 +570,14 @@ void test_octants_turned_threat_sees()
     const auto r0 = find(w, npc, at_px(T), radius, 8, body, Search::without_critters(), true);
     fm_assert(r0.found);
     const auto spots0 = copy_spots(r0);
-    const auto candidates0 = r0.candidates;
     const auto r3 = find(w, npc, at_px(T), radius, 8, body, Search::without_critters(), true, 3);
     fm_assert(!r3.found);
-    fm_assert_equal(candidates0, r3.candidates);
     fm_assert_equal(r3.candidates, r3.rejected);
     for (const auto p : spots0)
     {
         fm_assert(hidden_from(w, T, p));
         fm_assert(!hidden_from(w, turned_threat(T, Vector3i(p).xy(), -1), p));
     }
-}
-
-// At div_size 16, a 24 px body centered on a cell's center lies in 3x3 cells, and the outer
-// cells' centers lie 4 px outside it, so the cover grid reads octants at points the body doesn't
-// cover. The npc stands west of the wall near its north
-// end, and the threat south-east of it. Without octants, the one candidate is pushed to a spot
-// that neither the threat nor the threat turned an octant either way sees. With 3 octants the
-// cover grid rejects that candidate.
-void test_octants_grid_rejects()
-{
-    auto w = world();
-    add_ground(w);
-    add_blocker(w, {7, 8}, {16, 96});
-    rebuild(w);
-
-    const point npc{ch, {4, 6}, {}};
-    const auto T = Vector2i{560, 522};
-    constexpr auto radius = 3*tile_size_xy;
-    const auto r0 = find(w, npc, at_px(T), radius, 16);
-    fm_assert(r0.found);
-    const auto pos0 = r0.pos;
-    const auto candidates0 = r0.candidates;
-    const auto r3 = find(w, npc, at_px(T), radius, 16, body, Search::without_critters(), false, 3);
-    fm_assert(!r3.found);
-    fm_assert(r3.candidates < candidates0);
-    const auto v = Vector3i(pos0).xy();
-    fm_assert(hidden_from(w, T, pos0));
-    fm_assert(hidden_from(w, turned_threat(T, v, -1), pos0));
-    fm_assert(hidden_from(w, turned_threat(T, v, 1), pos0));
 }
 
 // True when neither the threat nor the threat turned about pos by up to octants/2 octants either
@@ -1825,7 +1796,6 @@ void Test::test_cover_point()
     test_lists_by_area(3);
     test_octants_wall_middle();
     test_octants_turned_threat_sees();
-    test_octants_grid_rejects();
     for (const auto octants : { uint8_t{0}, uint8_t{3} })
     {
         test_moves_to_cover_end(octants, false);

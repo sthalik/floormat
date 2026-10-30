@@ -210,7 +210,6 @@ void cover_test::draw_overlay(app& a)
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
     const auto pos = a.point_to_pixel(result.from);
 
-    constexpr float pi = Math::Constants<float>::pi();
     const auto ds = (int)pool->params().div_size;
     const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 0.6f});
 
@@ -219,8 +218,7 @@ void cover_test::draw_overlay(app& a)
     {
         if (k == sk || !(built & 1u << k) || cg.distance(result.cell_idx, k) == Cover::blocked)
             continue;
-        const auto theta = Rad{2.f * pi * float(k) / float(Cover::octant_count)};
-        const Vector2 dir{Math::cos(theta), Math::sin(theta)};
+        const auto dir = Cover::octant_direction(k);
         const auto len_px = (int)cg.distance(result.cell_idx, k) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
         const auto end_px = a.point_to_pixel(end_pt);
@@ -229,8 +227,7 @@ void cover_test::draw_overlay(app& a)
 
     if (built & 1u << sk && cg.distance(result.cell_idx, sk) != Cover::blocked)
     {
-        const auto theta = Rad{2.f * pi * float(sk) / float(Cover::octant_count)};
-        const Vector2 dir{Math::cos(theta), Math::sin(theta)};
+        const auto dir = Cover::octant_direction(sk);
         const auto len_px = (int)cg.distance(result.cell_idx, sk) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
         const auto end_px = a.point_to_pixel(end_pt);
@@ -397,7 +394,9 @@ void cover_test::draw_ui(app& a, float)
         do_column("octant");
 
         constexpr auto fmt_octant_label = [](auto&& out, uint32_t kk) {
-            const float dd = 360.f * float(kk) / float(Cover::octant_count);
+            const auto dir = Cover::octant_direction(kk);
+            const float deg = float(Deg(Rad(std::atan2(dir.y(), dir.x()))));
+            const float dd = deg < 0 ? deg + 360 : deg;
             snformat(out, "{} (k={}, {:.1f}°)", compass_names_16[kk / 2], kk, dd);
         };
 
