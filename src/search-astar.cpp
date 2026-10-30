@@ -494,11 +494,12 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             bm.resolve(new_pt, chunk_idx);
     }
 
-    auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
-
-    if (new_idx != (uint32_t)-1)
-        if (nodes[new_idx].dist <= dist)
-            return;
+    auto& slot = cache.at(chunk_idx, tile_idx);
+    // An empty cell's dist is -1, above any path's.
+    if (slot.dist <= dist)
+        return;
+    fm_debug3_assert(slot.index == (uint32_t)-1 || nodes[slot.index].dist == slot.dist);
+    auto new_idx = slot.index;
 
     // A window of 0 can also mean nine blocked cells, which the per-cell tests find too.
     if (!window)
@@ -519,7 +520,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             .prev = cur_idx,
             .pt = new_pt,
         });
-        cache.add_index(chunk_idx, tile_idx, new_idx);
+        slot.index = new_idx;
     }
     else
     {
@@ -527,6 +528,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
         n.dist = dist;
         n.prev = cur_idx;
     }
+    slot.dist = dist;
 
     if constexpr (Debug >= 3)
         print_push(dist, new_pt);
@@ -809,9 +811,9 @@ struct astar::seed_search
             const auto tile_idx = cache.get_tile_index(intra_coord{s});
             const auto idx = cache.lookup_index(chunk_idx, tile_idx);
             if (idx == (uint32_t)-1)
-                cache.add_index(chunk_idx, tile_idx, append_node(nodes, a.node_count, { .dist = dist, .prev = (uint32_t)-1, .pt = s, }));
+                cache.add_index(chunk_idx, tile_idx, append_node(nodes, a.node_count, { .dist = dist, .prev = (uint32_t)-1, .pt = s, }), dist);
             else if (dist < nodes[idx].dist)
-                nodes[idx].dist = dist;
+                nodes[idx].dist = cache.at(chunk_idx, tile_idx).dist = dist;
             else
                 return;
             arrayAppend(seed_from, pt);
@@ -974,7 +976,7 @@ bool astar::seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start,
         if (bm.is_passable(pt, chunk_idx) && start.is_passable_to(pt, bm.p))
         {
             auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
-            cache.add_index(chunk_idx, tile_idx, idx);
+            cache.add_index(chunk_idx, tile_idx, idx, dist);
             seeded = true;
             uint32_t f_score = dist + oct(pt, to);
             if (dist < max_dist && f_score < max_dist)
