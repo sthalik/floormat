@@ -1098,6 +1098,69 @@ void test_cover_script_peek_beside_critter()
     fm_assert(c2.hidden == c.hidden && c2.peek == c.peek);
 }
 
+// Whether a ray from threat reaches the gun of a body centered on pos, where the 3-argument
+// make_cover_script puts it for a cover spot with its axis along x.
+bool gun_seen(world& w, point threat, point pos)
+{
+    Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
+    return raycast(w, threat, gun_at(pos, threat, (int)body.y()/2), 0, pool, Search::without_critters()).success;
+}
+
+// The walk from spot to find_cover_peek's spot for it, for an npc standing on spot with the cover
+// script and its default gun point, and its threat at threat_pos. w holds the blockers. It asserts
+// that the threat sees the gun at the peek spot, and doesn't at spot or 1 px back toward it.
+Vector2i peek_walk(world& w, const cover_spot& spot, point threat_pos)
+{
+    rebuild(w);
+    const auto threat = add_critter(w, threat_pos);
+    const auto npc = add_critter(w, spot.pos);
+    w.init_scripts();
+    auto A = astar{};
+    npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
+    const auto p = find_cover_peek(*npc, spot);
+    w.finish_scripts();
+    fm_assert(p);
+    const auto d = Vector3i(p->pos).xy() - Vector3i(spot.pos).xy();
+    const auto back = Vector2i{Math::sign(d.x()), Math::sign(d.y())};
+    fm_assert(gun_seen(w, threat_pos, p->pos));
+    fm_assert(!gun_seen(w, threat_pos, p->pos - back) && !gun_seen(w, threat_pos, spot.pos));
+    return d;
+}
+
+// A 64 px pillar, and a spot flush against its west face, 48 px north of its south-west corner.
+// The threat stands 4 tiles to the south-east. The gun's ray to the threat clears that corner after
+// about 23 px of a walk south, 27 px west and 18 px south-west, so the npc peeks south-west.
+void test_cover_script_peeks_diagonally()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {8, 8}, {64, 64});
+    const cover_spot spot{point{ch, {7, 8}, {20, -16}}, {1, 0}};
+    const auto threat = spot.pos + Vector2i{256, 256};
+    const auto d = peek_walk(w, spot, threat);
+    fm_assert(d.x() < 0 && d.y() == -d.x());
+    for (auto i = 1; i*i <= 2*d.y()*d.y(); i++)
+    {
+        fm_assert(!gun_seen(w, threat, spot.pos + Vector2i{0, i}));
+        fm_assert(!gun_seen(w, threat, spot.pos - Vector2i{i, 0}));
+    }
+}
+
+// An L: a wall 192 px long from north to south, and one 32 px long west from its south end. The
+// spot is in the corner, flush against both, with its axis toward the long wall in the east. The
+// threat stands 2 tiles east and 4 tiles south, so the short wall hides the gun, and only a walk
+// west or north-west clears it, the west one sooner.
+void test_cover_script_peeks_from_corner()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {8, 7}, {16, 192});
+    add_blocker(w, {8, 8}, {32, 16}, {-24, 24});
+    const cover_spot spot{point{ch, {8, 8}, {-20, 4}}, {1, 0}};
+    const auto d = peek_walk(w, spot, spot.pos + Vector2i{128, 256});
+    fm_assert(d.x() < 0 && d.y() == 0);
+}
+
 // The one of the 8 rotations nearest v's direction, from v's angle clockwise from north, which is
 // -y. The angle must lie at least 1° from a boundary between two of them, so that atan2's rounding
 // can't change the result.
@@ -1990,6 +2053,8 @@ void Test::test_cover_point()
     test_cover_script_threat_walks_along_wall(true);
     test_cover_script_gun_offset();
     test_cover_script_peek_beside_critter();
+    test_cover_script_peeks_diagonally();
+    test_cover_script_peeks_from_corner();
     test_cover_script_faces_threat();
     test_cover_script(hidden);
     // 1 px past the hidden body on the side it peeked from, so only the other side is left

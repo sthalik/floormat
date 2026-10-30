@@ -58,10 +58,11 @@ constexpr local_coords map_player_tiles[] = {
     {14, 5}, {6, 6}, {8, 14}, {9, 8}, {2, 8}, {6, 12}, {8, 2}, {8, 9}, {13, 13}, {3, 9},
     {2, 13}, {10, 6}, {2, 2}, {6, 8}, {13, 2}, {7, 12}, {12, 11}, {4, 3}, {3, 12},
 };
-// After the 7th move, from (2, 2), the npc hides in the corner of the L at (8, 7) and finds no peek
-// spot, since a peek along one axis either way runs into the L or stays hidden for
-// max_peek_dist.
-constexpr uint32_t map_moves = 6, short_map_moves = 3;
+// Moves 11 on repeat moves 3 to 10. After moves 7 and 9, the npc hides in the corner of the L at
+// (8, 7), against its west wall, and peeks along its north wall away from the corner. After move
+// 7, a walk along the west wall runs into the north wall one way and stays hidden for
+// max_peek_dist the other.
+constexpr uint32_t map_moves = 10, short_map_moves = 3;
 // A player tile nearer the npc than this is skipped, since the player's body could stand in the
 // npc's way.
 constexpr uint32_t map_min_player_dist = 2*tile_size_xy;

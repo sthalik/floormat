@@ -68,10 +68,8 @@ void list_cover_spots(critter& c, Array<cover_spot>& out);
 void list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
 
 // The peek spot the script would step out to from s, with the threat where it stands now. Empty
-// when c runs another script or none, the threat is gone, or neither side of s has a peek spot
-// within the script's max_peek_dist. A spot the threat already sees gets a peek spot 1 px from
-// it, since the peek distance is at least 1 px. The script's counters and update times leave it
-// out.
+// when c runs another script or none, the threat is gone, or no direction from s has one within
+// the script's max_peek_dist.
 Optional<cover_peek> find_cover_peek(critter& c, const cover_spot& s);
 
 // Walks c along a Dijkstra path to s, to hide there for hidden_time. An options.hold other than none
