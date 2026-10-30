@@ -12,7 +12,9 @@ bresenham_line::bresenham_line(Vector2i from, Vector2i to) : _from{from}
     _minor_len = (uint32_t)(_y_major ? adx : ady);
     _major_sign = (_y_major ? dy : dx) < 0 ? -1 : 1;
     _minor_sign = (_y_major ? dx : dy) < 0 ? -1 : 1;
-    // World pixels span 2^26, where 2*step*minor reaches 2^53. This keeps it under 2^64.
+    // With major below 2^31, 2*step is below 2^32 and minor below 2^31, so the products in
+    // minor_at(), first_step_at_minor() and off_axis_at() stay below 2^63 and fit int64_t. World
+    // coordinates span 2^26 pixels.
     fm_assert(_major_len < 1u << 31);
 }
 
