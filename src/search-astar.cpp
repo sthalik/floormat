@@ -255,7 +255,8 @@ struct neighbourhood
 } // namespace
 
 // One bitmap pointer per chunk of the cache rectangle. Nothing marks a grid stale
-// during a search, so a pointer stays valid until it ends. Null: not resolved, or no chunk.
+// during a search, so a pointer stays valid until it ends. Null: not resolved. Pointer value 1:
+// no chunk, so `(uintptr_t)b > 1` tests for a bitmap in one comparison.
 struct astar::chunk_bitmaps
 {
     world& w;
@@ -278,11 +279,13 @@ struct astar::chunk_bitmaps
         return test_bit(b, Vector2ui(Vector2i(intra_coord{pt})));
     }
 
+    // Only while bits[chunk_idx] is null: the clear drops the chunk's nodes.
     CORRADE_NEVER_INLINE const uint8_t* resolve(point pt, size_t chunk_idx)
     {
+        cache.clear_chunk((uint32_t)chunk_idx);
         auto* c = w.at(pt.chunk3());
         if (!c)
-            return nullptr;
+            return bits[chunk_idx] = std::bit_cast<const uint8_t*>(uintptr_t{1});
         auto grid = pool[*c];
         grid.build_if_stale();
         return bits[chunk_idx] = grid.bits().data;
@@ -290,13 +293,17 @@ struct astar::chunk_bitmaps
 
     CORRADE_NEVER_INLINE bool is_passable_slow(point pt, size_t chunk_idx)
     {
-        if (const auto* b = resolve(pt, chunk_idx))
+        const auto* b = bits[chunk_idx];
+        if (!b)
+            b = resolve(pt, chunk_idx);
+        if ((uintptr_t)b > 1)
             return test_bit(b, pt);
         return cache.is_passable_for_bbox(w, pool, pt, p);
     }
 
     // Next to the chunk edge, the neighbours lie in up to three other chunks. 0 while one of
-    // their bitmaps is unresolved: resolving it here could build a grid that no move reads.
+    // them is unresolved or missing: resolving it here could build a grid that no move reads,
+    // and a missing chunk's cells take the world test.
     CORRADE_NEVER_INLINE uint32_t window_edge(point pt, Vector2i pix)
     {
         constexpr int cs = (int)chunk_size_xy;
@@ -316,7 +323,7 @@ struct astar::chunk_bitmaps
             for (int c = 0; c < 3; c++)
             {
                 const auto* b = bits[cache.get_chunk_index({chunk[c].x(), chunk[r].y()})];
-                if (!b)
+                if ((uintptr_t)b <= 1)
                     return 0;
                 win |= (uint32_t)test_bit(b, Vector2ui{pos[c].x(), pos[r].y()}) << (r*3 + c);
             }
@@ -334,9 +341,13 @@ struct astar::chunk_bitmaps
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
         const auto tile_idx = cache.get_tile_index(intra_coord{pt});
         const auto* b = bits[chunk_idx];
-        if (!b) [[unlikely]]
-            if (!(b = resolve(pt, chunk_idx)))
+        if ((uintptr_t)b <= 1) [[unlikely]]
+        {
+            if (!b)
+                b = resolve(pt, chunk_idx);
+            if ((uintptr_t)b <= 1)
                 return { 0, chunk_idx, tile_idx, pix };
+        }
         uint32_t win = 0;
         // A row is one uint64_t. A narrower one would read past the last row.
         if (constexpr uint32_t row_cells = 64; div_count == row_cells) [[likely]]
@@ -361,7 +372,7 @@ struct astar::chunk_bitmaps
 
     CORRADE_ALWAYS_INLINE bool is_passable(point pt, size_t chunk_idx)
     {
-        if (const auto* b = bits[chunk_idx]) [[likely]]
+        if (const auto* b = bits[chunk_idx]; (uintptr_t)b > 1) [[likely]]
             return test_bit(b, pt);
         return is_passable_slow(pt, chunk_idx);
     }
@@ -478,7 +489,11 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     {
         chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
         tile_idx = cache.get_tile_index(intra_coord{new_pt});
+        // Resolving clears the chunk's cells, so it comes before the lookup.
+        if (!bm.bits[chunk_idx]) [[unlikely]]
+            bm.resolve(new_pt, chunk_idx);
     }
+
     auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
 
     if (new_idx != (uint32_t)-1)
@@ -786,7 +801,9 @@ struct astar::seed_search
         arrayClear(seed_from);
         flood([&](point pt, uint32_t g) {
             const auto s = lattice_point(pt);
-            fm_debug_assert(bm.is_passable(s));
+            // Also resolves s's chunk, which the lookup below needs.
+            const bool passable = bm.is_passable(s);
+            fm_debug_assert(passable);
             const auto dist = seed_dist(g, pt, s);
             const auto chunk_idx = cache.get_chunk_index(Vector2i(s.chunk()));
             const auto tile_idx = cache.get_tile_index(intra_coord{s});
@@ -831,7 +848,9 @@ struct astar::seed_search
         arrayClear(seed_from);
         flood([&](point pt, uint32_t g) {
             const auto s = lattice_point(pt);
-            fm_debug_assert(bm.is_passable(s));
+            // Also resolves s's chunk, which node_at() in run_goal_seed_search() needs.
+            const bool passable = bm.is_passable(s);
+            fm_debug_assert(passable);
             const auto cost = seed_dist(g, pt, s);
             const auto rel = Vector2ui(s - source.pt + off);
             fm_debug_assert(rel.x() < n*(uint32_t)step && rel.y() < n*(uint32_t)step);
@@ -951,7 +970,8 @@ bool astar::seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start,
         auto dist = oct(from, pt);
         // the cell bit only covers the seed itself, so sweep the bbox over the
         // from -> seed motion, as at the goal
-        if (cache.is_passable_for_bbox(bm.w, bm.pool, pt, bm.p) && start.is_passable_to(pt, bm.p))
+        // bm.is_passable() also resolves pt's chunk, which add_index() needs.
+        if (bm.is_passable(pt, chunk_idx) && start.is_passable_to(pt, bm.p))
         {
             auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
             cache.add_index(chunk_idx, tile_idx, idx);

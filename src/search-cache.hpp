@@ -2,7 +2,6 @@
 #include "compat/defs.hpp"
 #include "grid-pass.hpp"
 #include <cr/Array.h>
-#include <cr/BitArray.h>
 #include <mg/Vector2.h>
 
 namespace floormat {
@@ -19,8 +18,8 @@ struct cache
     Vector2i start{(int)((1u << 31) - 1)};
     uint32_t div_size_ = 0;
     uint32_t div_count_ = 0;
+    // A node's index, or -1 once clear_chunk() ran for the cell's chunk in this search.
     Array<uint32_t> indexes;
-    BitArray exists;
 
     cache();
     ~cache() noexcept;
@@ -34,6 +33,8 @@ struct cache
     void allocate(point from, uint32_t max_dist, uint32_t div_size);
     void add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index);
     uint32_t lookup_index(uint32_t chunk_index, uint32_t tile_index);
+    // Drops the chunk's nodes, so it runs once per chunk and search, before the chunk's first lookup.
+    void clear_chunk(uint32_t chunk_index);
 
     bool is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, const pred& p);
 };
