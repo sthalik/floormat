@@ -4,7 +4,7 @@
 #include "grid-pass.hpp"
 #include "object.hpp"
 #include "world.hpp"
-#include "raycast.hpp"
+#include "raycast-loop.hpp"
 #include "point.inl"
 #include "nanosecond.inl"
 #include "timer.hpp"
@@ -79,15 +79,15 @@ T fixed_to_units(uint32_t fixed, uint32_t div_size)
     return (T)((fixed + unit / 2) / unit);
 }
 
+// Calls do_raycasting() itself, since raycast() reads the clock twice per ray.
 float raycast_one(chunk& self,
                   uint32_t cell_x, uint32_t cell_y,
-                  uint32_t div_size, uint32_t octant,
+                  uint32_t div_size, Vector2 dir,
                   Pass::Pool& pass_pool,
                   uint32_t max_ray_px = chunk_size_xy)
 {
     fm_assert(div_size > 0);
     fm_assert(chunk_size_xy % div_size == 0);
-    fm_debug_assert(octant < octant_count);
     fm_debug_assert(cell_x < chunk_size_xy / div_size);
     fm_debug_assert(cell_y < chunk_size_xy / div_size);
 
@@ -99,11 +99,11 @@ float raycast_one(chunk& self,
 
     const point from{self.coord(), intra_coord{origin_local}};
 
-    const auto dir = direction_for_octant(octant);
     const Vector2i delta{Vector2(dir * (float)max_ray_px)};
     const point to = from + delta;
 
-    const auto r = raycast(self.world(), from, to, 0, pass_pool, Search::without_critters());
+    const auto r = rc::detail::do_raycasting<false>(nullptr, self.world(), from, to, 0, pass_pool,
+                                                    Search::without_critters(), 0);
 
     if (!r.has_result || r.success)
         return (float)max_ray_px;
@@ -245,7 +245,7 @@ struct CoverGrid : GridBase
 
     void build_impl(chunk* self);
     bool fill_octant(uint32_t k, chunk& self);
-    template<typename T> void fill_aligned(uint32_t k, chunk& self, const uint8_t* bits,
+    template<typename T> void fill_aligned(uint32_t k, chunk& self, const uint8_t* bits, Vector2 dir,
                                            int32_t sx, int32_t sy, float step_px);
     bool fill_next_unfilled(chunk& self);
 };
@@ -341,9 +341,9 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
         const float t_delta_y = ay > 1e-6f ? (float)div_size / ay : FLT_MAX;
         const auto step_px = sx == 0 ? t_delta_y : t_delta_x;
         if (narrow)
-            fill_aligned<uint8_t>(k, self, bits, sx, sy, step_px);
+            fill_aligned<uint8_t>(k, self, bits, dir, sx, sy, step_px);
         else
-            fill_aligned<uint16_t>(k, self, bits, sx, sy, step_px);
+            fill_aligned<uint16_t>(k, self, bits, dir, sx, sy, step_px);
     }
     else
     {
@@ -357,7 +357,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
                         plane[i] = (T)-1;
                         continue;
                     }
-                    const auto px = raycast_one(self, cx, cy, div_size, k, pass_pool);
+                    const auto px = raycast_one(self, cx, cy, div_size, dir, pass_pool);
                     plane[i] = fixed_to_units<T>(to_fixed(px), div_size);
                 }
         };
@@ -383,7 +383,7 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
 // step. Rows are swept starting from the edge the octant points at, and only a cell whose next one
 // is off the grid casts a ray.
 template<typename T>
-void CoverGrid::fill_aligned(uint32_t k, chunk& self, const uint8_t* bits,
+void CoverGrid::fill_aligned(uint32_t k, chunk& self, const uint8_t* bits, Vector2 dir,
                              int32_t sx, int32_t sy, float step_px)
 {
     const uint32_t div_size = params.div_size, dc = chunk_size_xy / div_size;
@@ -391,7 +391,7 @@ void CoverGrid::fill_aligned(uint32_t k, chunk& self, const uint8_t* bits,
     T* const plane = octant_plane<T>(k);
 
     const auto ray_fixed = [&](uint32_t x, uint32_t y) {
-        return to_fixed(raycast_one(self, x, y, div_size, k, pass_pool));
+        return to_fixed(raycast_one(self, x, y, div_size, dir, pass_pool));
     };
     // The n-th step in sweep order is the difference of rounded multiples, so a carry over any
     // run of steps is off by at most 1/fixed_one px.
