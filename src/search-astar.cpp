@@ -475,8 +475,14 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
         return;
 
     const bool same_chunk = cells.chunk_idx != (uint32_t)-1;
-    const auto new_pt = same_chunk ? point{cur_pt.chunk3(), intra_coord{cells.pix + vec}}
-                                   : point::normalize_coords(cur_pt, vec);
+    point new_pt;
+    if (same_chunk) [[likely]]
+        new_pt = point{cur_pt.chunk3(), intra_coord{cells.pix + vec}};
+    else
+    {
+        const auto [off, pix] = floor_divmod<chunk_size<int>>(cells.pix + vec);
+        new_pt = point{cur_pt.chunk3() + off, intra_coord{pix}};
+    }
 
     uint32_t chunk_idx, tile_idx;
     if (same_chunk) [[likely]]
