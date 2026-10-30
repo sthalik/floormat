@@ -20,8 +20,11 @@ struct cache
     Vector2i start{(int)((1u << 31) - 1)};
     uint32_t div_size_ = 0;
     uint32_t div_count_ = 0;
-    // A node's index, or -1 once clear_chunk() ran for the cell's chunk in this search.
-    Array<uint32_t> indexes;
+    // A node's index and dist, both -1 once clear_chunk() ran for the cell's chunk in this search.
+    // TODO Windows commits the whole window, 8 bytes a cell, though a search writes only the
+    // chunks it clears. Reserve it and commit each chunk's slice in clear_chunk().
+    struct cell { uint32_t index, dist; };
+    Array<cell> cells;
 
     cache();
     ~cache() noexcept;
@@ -33,8 +36,9 @@ struct cache
     static Vector2ui get_size_to_allocate(uint32_t max_dist);
 
     [[nodiscard]] uint32_t allocate(point from, uint32_t max_dist, uint32_t div_size);
-    void add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index);
+    void add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index, uint32_t dist);
     uint32_t lookup_index(uint32_t chunk_index, uint32_t tile_index);
+    cell& at(uint32_t chunk_index, uint32_t tile_index);
     // Drops the chunk's nodes, so it runs once per chunk and search, before the chunk's first lookup.
     void clear_chunk(uint32_t chunk_index);
 

@@ -262,7 +262,7 @@ void test_large_search_limit()
         auto c = Search::cache{};
         clamped = c.allocate(from, max_dist, cell);
         fm_assert(clamped < max_dist);
-        fm_assert(c.indexes.size() * sizeof(uint32_t) <= Search::cache::max_size_bytes);
+        fm_assert(c.cells.size() * sizeof(Search::cache::cell) <= Search::cache::max_size_bytes);
         fm_assert(c.allocate(from, clamped, cell) == clamped);
         fm_assert(c.allocate(from, clamped + 1, cell) == clamped);
     }
