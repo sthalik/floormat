@@ -19,6 +19,7 @@
 #include "src/timer.hpp"
 #include "src/world.hpp"
 #include "floormat/main.hpp"
+#include <bit>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 
@@ -37,9 +38,10 @@ constexpr const char* state_names[] = { "seek", "to cover", "hidden", "to peek",
 static_assert(array_size(state_names) == (size_t)state::retreat + 1);
 // how far from a dot's center, in screen px, a click still picks it
 constexpr float pick_radius = 6;
-// The highest and default radius of the overlay's search, in tiles: 1024 px, as far as a cover grid
-// cell sees blockers. pgo-driver-cover-ai.cpp's overlay_spots takes the same radius.
-constexpr int max_spots_radius_tiles = 16;
+// The default radius of the overlay's search, in tiles: 1024 px, as far as a cover grid cell sees
+// blockers. pgo-driver-cover-ai.cpp's overlay_spots takes the same radius. The slider doubles it
+// from 1 tile up to 1 << max_spots_radius_log2 tiles.
+constexpr int default_spots_radius_tiles = 16, max_spots_radius_log2 = 6;
 // How long the overlay's search may run in a frame. It stops after the tile that reaches it.
 constexpr Ns spots_budget = 2*Millisecond;
 
@@ -138,7 +140,7 @@ struct cover_ai_test final : base_test
     Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
     counts snapshot;
     per_second rates;
-    int radius_tiles = max_spots_radius_tiles;
+    int radius_tiles = default_spots_radius_tiles;
     note last_note = note::none;
     uint8_t search_octants = 0;
     bool show_spots = false;
@@ -683,8 +685,10 @@ void cover_ai_test::draw_ui(app& a, float)
         clear_spots();
     if (show_spots)
     {
+        auto e = std::countr_zero((unsigned)radius_tiles);
         snformat(buf, "{} tiles, {} px", radius_tiles, radius_tiles*tile_size_xy);
-        ImGui::SliderInt("Spots radius", &radius_tiles, 1, max_spots_radius_tiles, buf, slider_flags);
+        if (ImGui::SliderInt("Spots radius", &e, 0, max_spots_radius_log2, buf, slider_flags))
+            radius_tiles = 1 << e;
         ImGui::TextWrapped("Spots hidden from where the player stands, searched a few tiles per frame, "
                            "starting over when the player moves or a wall changes. Click a blue dot to send "
                            "the npc to hide there, or an orange one to peek from its spot.");
