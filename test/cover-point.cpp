@@ -71,12 +71,12 @@ bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Sea
 
 cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size, Vector2ui size = body,
                         const Search::pred& pred = Search::without_critters(), bool list_spots = false,
-                        uint8_t octants = 0)
+                        uint8_t octants = 0, uint32_t max_slide = 0)
 {
     static cover_point finder;
     Grid::PoolRegistry pools;
-    return finder.find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius, octants}, pred,
-                                   list_spots);
+    return finder.find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius, octants, max_slide},
+                                   pred, list_spots);
 }
 
 bptr<critter> add_critter(world& w, point pos, Vector2ui size = body)
@@ -425,30 +425,22 @@ void test_lists_past_rejected()
     fm_assert(r.spots.size() > 1);
 }
 
-// Searches of the tiles around the npc, each with its area, try the candidates of one search over
-// the radius once each and together list its spots. The npc stands on a cell center, so the edges
-// of the tiles around it pass through cell centers.
-void test_lists_by_area(uint8_t octants)
+// Searches of the tiles around npc, each with its area, try the candidates of one search over
+// radius once each and together list its spots, of which there are more than min_spots. With npc on
+// a cell center, the edges of the tiles around it pass through cell centers.
+void check_lists_by_area(world& w, point npc, point threat, uint8_t octants, uint32_t max_slide, uint32_t min_spots)
 {
-    auto w = world();
-    add_ground(w);
-    add_blocker(w, {7, 8}, {16, 96});
-    add_blocker(w, {9, 4}, {96, 16});
-    add_blocker(w, {4, 11}, {16, 16});
-    rebuild(w);
-
-    const point npc{ch, {6, 7}, {4, 4}}, threat{ch, {12, 8}, {}};
     constexpr auto radius = 4*(uint32_t)tile_size_xy;
     cover_point finder;
     Grid::PoolRegistry pools;
     const auto search = [&](Optional<Range2Di> area) {
-        return finder.find_cover_point(w, pools, Cover::Params{8}, {npc, body, threat, radius, octants, area},
+        return finder.find_cover_point(w, pools, Cover::Params{8}, {npc, body, threat, radius, octants, max_slide, area},
                                        Search::without_critters(), true);
     };
     const auto whole = search({});
     Array<cover_spot> spots;
     arrayAppend(spots, whole.spots);
-    fm_assert(spots.size() > 3);
+    fm_assert(spots.size() > min_spots);
 
     Array<point> tiled;
     uint32_t candidates = 0;
@@ -467,6 +459,31 @@ void test_lists_by_area(uint8_t octants)
     fm_assert_equal(spots.size(), tiled.size());
     for (const auto& s : spots)
         fm_assert(std::find(tiled.begin(), tiled.end(), s.pos) != tiled.end());
+}
+
+// Slid spots of one face end at its two ends, so a slide leaves fewer spots.
+void test_lists_by_area(uint8_t octants, uint32_t max_slide = 0)
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    add_blocker(w, {9, 4}, {96, 16});
+    add_blocker(w, {4, 11}, {16, 16});
+    rebuild(w);
+    check_lists_by_area(w, point{ch, {6, 7}, {4, 4}}, point{ch, {12, 8}, {}}, octants, max_slide, max_slide ? 1 : 3);
+}
+
+// A wall of eight blockers 64 px long end to end, x [440, 456) and y [224, 736), between the npc
+// and the threat. A search of one tile collects the rects of the blockers near that tile, and a
+// slide of 2 tiles along the wall reaches blockers past them, which hide the body there.
+void test_lists_by_area_long_wall()
+{
+    auto w = world();
+    add_ground(w);
+    for (auto y = 4; y <= 11; y++)
+        add_blocker(w, {7, (uint8_t)y}, {16, 64});
+    rebuild(w);
+    check_lists_by_area(w, point{ch, {6, 8}, {4, 4}}, point{ch, {12, 8}, {}}, 0, 2*tile_size_xy, 1);
 }
 
 // Where find_cover_point puts the threat turned about pos by j octants, rounded to whole px. It
@@ -590,6 +607,64 @@ void test_octants_grid_rejects()
     fm_assert(hidden_from(w, T, pos0));
     fm_assert(hidden_from(w, turned_threat(T, v, -1), pos0));
     fm_assert(hidden_from(w, turned_threat(T, v, 1), pos0));
+}
+
+// True when neither the threat nor the threat turned about pos by up to octants/2 octants either
+// way hits a body centered on pos.
+bool hidden_from_turned(world& w, Vector2i threat, point pos, uint8_t octants)
+{
+    const auto v = Vector3i(pos).xy();
+    if (!hidden_from(w, threat, pos))
+        return false;
+    for (auto j = 1; j <= octants/2; j++)
+        if (!hidden_from(w, turned_threat(threat, v, -j), pos) || !hidden_from(w, turned_threat(threat, v, j), pos))
+            return false;
+    return true;
+}
+
+// A wall 160 px long, x [440, 456) and y [432, 592), with the threat east of its middle and the
+// npc west of it, 12 px north of its middle. The spot behind the wall slides north, the nearer
+// end, to where the body 1 px farther north is hit from the threat or a turned threat. When
+// north_leg, a wall going west from the north end stops the slide north before that, and the spot
+// slides to the south end. The npc stands nearer the wall's face than the leg's west end, which
+// is cover too.
+void test_slides_to_cover_end(uint8_t octants, bool north_leg)
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 160});
+    if (north_leg)
+        add_blocker(w, {7, 7}, {48, 16}, {-32, -8});
+    rebuild(w);
+
+    const point npc{ch, {6, 8}, {0, -12}}, threat{ch, {12, 8}, {}};
+    const auto T = Vector3i(threat).xy();
+    constexpr auto radius = 3*(uint32_t)tile_size_xy, max_slide = 2*(uint32_t)tile_size_xy;
+    const auto r0 = find(w, npc, threat, radius, 8, body, Search::without_critters(), false, octants);
+    const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters(), false, octants, max_slide);
+    fm_assert(r0.found && r.found && r.axis == r0.axis && r.axis == Vector2i{1, 0});
+    const auto p0 = Vector3i(r0.pos).xy(), p = Vector3i(r.pos).xy();
+    fm_assert(p.x() == p0.x());
+    fm_assert(north_leg ? p.y() > p0.y() : p.y() < p0.y());
+    fm_assert(Math::abs(p.y() - p0.y()) <= (int)max_slide);
+    fm_assert(passable(w, r.pos, body) && !passable(w, r.pos + r.axis, body));
+    const auto farther = r.pos + Vector2i{0, north_leg ? 1 : -1};
+    fm_assert(hidden_from_turned(w, T, r.pos, octants));
+    fm_assert(!hidden_from_turned(w, T, farther, octants));
+}
+
+// test_cover_script's wall and threat. The npc hid at hidden, a spot the threat and the threat
+// turned an octant either way don't see, at one of the wall's ends: 1 px farther along the wall on
+// one side, one of them sees the body.
+void test_cover_script_at_wall_end(point hidden)
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+    const auto T = Vector3i(point{ch, {12, 8}, {}}).xy();
+    fm_assert(hidden_from_turned(w, T, hidden, 3));
+    fm_assert(!hidden_from_turned(w, T, hidden + Vector2i{0, 1}, 3) || !hidden_from_turned(w, T, hidden - Vector2i{0, 1}, 3));
 }
 
 struct cover_cycle { point hidden, peek; };
@@ -861,16 +936,16 @@ void test_cover_script_keeps_peeking(point hidden, point peek)
 // wall's south end, to a spot just below it that the wall hides from there. It stands there for
 // what was left of its 2 s hidden, which the walk doesn't spend, then steps out. The wall is too
 // narrow for that spot to stay hidden from the threat turned an octant either way, so the test
-// sets octants to 0, and the search checks the spot only from where the threat stands.
-void test_cover_script_follows_while_hidden(point hidden)
+// sets octants to 0, and the search checks the spot only from where the threat stands. The cover
+// slides to the wall's end, which is then 4 px farther out than with octants.
+void test_cover_script_follows_while_hidden()
 {
     cover_scene s;
     set_cover_script_options(*s.npc, {.search_every_move = true, .octants = 0});
-    for (auto k = 0u; k < 2; k++)
-    {
-        (void)s.next_stop();
-        (void)s.stay(2*s.fps);
-    }
+    const auto hidden = s.next_stop();
+    (void)s.stay(2*s.fps);
+    (void)s.next_stop();
+    (void)s.stay(2*s.fps);
     // The walk back from peek is a straight line, which arrives on the update that reaches it.
     for (auto frames = 0u; s.npc->position() != hidden; frames++)
     {
@@ -978,10 +1053,12 @@ void test_cover_script_walking_threat(point hidden)
 // The npc's cover and peek spots in a cover_scene made with these arguments. It asserts that the
 // threat sees the npc's gun at the peek spot and not with the slide 1 px shorter. The gun is
 // gun_offset px to the npc's right, or where the 3-argument make_cover_script puts it when
-// gun_offset is empty.
-cover_cycle peek_with_gun(Optional<int> gun_offset, const Optional<point>& other_pos = {}, Vector2ui npc_size = body)
+// gun_offset is empty. max_slide is the script's option.
+cover_cycle peek_with_gun(Optional<int> gun_offset, const Optional<point>& other_pos = {}, Vector2ui npc_size = body,
+                          uint32_t max_slide = cover_script_options{}.max_slide)
 {
     cover_scene s{point{ch, {12, 8}, {}}, gun_offset, other_pos, npc_size};
+    set_cover_script_options(*s.npc, {.max_slide = max_slide});
     const auto hidden = s.next_stop();
     // The slide is along y, so the default is half of bbox_size.y(). find_peek() reads bbox_size
     // at hidden, and each walk turns the npc, which rotates bbox_size.
@@ -1001,14 +1078,15 @@ cover_cycle peek_with_gun(Optional<int> gun_offset, const Optional<point>& other
 // its center, a gun to its right shortens the slide to its right and lengthens the one to its left,
 // and a gun to its left does the reverse. The default puts the gun half the body's width to its
 // right. A 30 by 24 px body's width along the wall differs from its depth toward the threat,
-// whichever way it is turned, so peek_with_gun's check of the default tells the two apart. hidden
-// is the cover spot test_cover_script returned.
-void test_cover_script_gun_offset(point hidden)
+// whichever way it is turned, so peek_with_gun's check of the default tells the two apart. The
+// cover doesn't slide, so it stays behind the wall's middle, with room to peek on both sides.
+void test_cover_script_gun_offset()
 {
     constexpr auto right = 1, left = -1;
+    const auto hidden = peek_with_gun(0, {}, body, 0).hidden;
     // A critter stands 1 px past the body at hidden on the side not tested.
     const auto slide = [&](int offset, int side) {
-        const auto c = peek_with_gun(offset, hidden - Vector2i{0, side*((int)body.y() + 1)});
+        const auto c = peek_with_gun(offset, hidden - Vector2i{0, side*((int)body.y() + 1)}, body, 0);
         fm_assert(c.hidden == hidden);
         const auto dy = Vector3i(c.peek).y() - Vector3i(c.hidden).y();
         fm_assert(dy*side > 0);
@@ -1020,22 +1098,23 @@ void test_cover_script_gun_offset(point hidden)
     fm_assert(r7 < r0 && r0 < r11);
     fm_assert(l7 > l0 && l0 > l11);
 
-    const auto d = peek_with_gun({});
+    const auto d = peek_with_gun({}, {}, body, 0);
     fm_assert(d.hidden == hidden);
-    fm_assert(d.peek == peek_with_gun((int)body.y()/2).peek);
+    fm_assert(d.peek == peek_with_gun((int)body.y()/2, {}, body, 0).peek);
     fm_assert(Vector3i(d.peek).y() > Vector3i(hidden).y());
-    (void)peek_with_gun({}, {}, Vector2ui{30, 24});
+    (void)peek_with_gun({}, {}, Vector2ui{30, 24}, 0);
 }
 
 // A critter stands 1 px past the body at the npc's peek spot, on the far side from the cover, so
 // every longer slide runs into it. The slide there, 44 px, is no multiple of find_peek's step of
-// half the body, so the first step past it is blocked. The npc still peeks from that spot.
-void test_cover_script_peek_beside_critter(point hidden)
+// half the body, so the first step past it is blocked. The npc still peeks from that spot. The
+// cover doesn't slide, so it stays behind the wall's middle.
+void test_cover_script_peek_beside_critter()
 {
-    const auto c = peek_with_gun({});
-    const auto side = Vector3i(c.peek).y() > Vector3i(hidden).y() ? 1 : -1;
-    const auto c2 = peek_with_gun({}, c.peek + Vector2i{0, side*((int)body.y() + 1)});
-    fm_assert(c2.hidden == hidden && c2.peek == c.peek);
+    const auto c = peek_with_gun({}, {}, body, 0);
+    const auto side = Vector3i(c.peek).y() > Vector3i(c.hidden).y() ? 1 : -1;
+    const auto c2 = peek_with_gun({}, c.peek + Vector2i{0, side*((int)body.y() + 1)}, body, 0);
+    fm_assert(c2.hidden == c.hidden && c2.peek == c.peek);
 }
 
 // The one of the 8 rotations nearest v's direction, from v's angle clockwise from north, which is
@@ -1056,14 +1135,16 @@ rotation nearest_of_8(Vector2i v)
 // there, and it faces the threat's new direction from the next update until its 2 s out are up.
 // The wall still hides the cover, so the npc never searches. It casts two rays in the update after
 // the threat moves, to its gun and to its cover, and none while the threat stands still. From that
-// update on, the status's gun ray goes from the threat's new spot to the gun point for it. hidden
-// is the cover spot test_cover_script returned.
-void test_cover_script_faces_threat(point hidden)
+// update on, the status's gun ray goes from the threat's new spot to the gun point for it. The
+// cover doesn't slide, so it stays behind the wall's middle.
+void test_cover_script_faces_threat()
 {
     constexpr auto gun_offset = -23;
+    const auto hidden = peek_with_gun(0, {}, body, 0).hidden;
     const auto north = hidden - Vector2i{0, (int)body.y() + 1};
-    const auto peek = peek_with_gun(gun_offset, north).peek;
+    const auto peek = peek_with_gun(gun_offset, north, body, 0).peek;
     cover_scene s{point{ch, {12, 8}, {}}, gun_offset, north};
+    set_cover_script_options(*s.npc, {.max_slide = 0});
     for (auto frames = 0u; s.npc->position() != peek; frames++)
     {
         fm_assert(frames < 60*s.fps);
@@ -1683,11 +1764,11 @@ void test_cover_script_retreat(point hidden)
     fm_assert(s.status().st == state::seek);
 }
 
-// The npc hides behind the wall. Sent to the last listed spot, it walks there, hides, peeks from
-// find_cover_peek's spot for it and hides there again. Sent to peek from the second, it walks to
-// that spot's peek spot, stays out and hides at the second. A spot inside the wall has no path and
-// no peek spot, and sending the npc there changes nothing. With the threat gone, no spot has a
-// peek spot.
+// The npc hides behind the wall at one of its ends. Sent to the last listed spot, at the other end,
+// it walks there, hides, peeks from find_cover_peek's spot for it and hides there again. Sent to
+// peek from the first, it walks to that spot's peek spot, stays out and hides at the first. A spot
+// inside the wall has no path and no peek spot, and sending the npc there changes nothing. With the
+// threat gone, no spot has a peek spot.
 void test_cover_script_orders(point hidden)
 {
     cover_scene s;
@@ -1695,9 +1776,9 @@ void test_cover_script_orders(point hidden)
     fm_assert(s.npc->position() == hidden);
     Array<cover_spot> spots;
     list_cover_spots(*s.npc, spots);
-    fm_assert(spots.size() >= 3);
+    fm_assert(spots.size() >= 2);
     fm_assert(spots[0].pos == hidden);
-    const auto other = spots[spots.size() - 1], second = spots[1];
+    const auto other = spots[spots.size() - 1], first = spots[0];
 
     const auto rays = s.status().rays;
     const auto p = find_cover_peek(*s.npc, other);
@@ -1721,19 +1802,19 @@ void test_cover_script_orders(point hidden)
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == other.pos);
 
-    const auto q = find_cover_peek(*s.npc, second);
+    const auto q = find_cover_peek(*s.npc, first);
     fm_assert(q);
-    fm_assert(send_to_peek(*s.npc, second));
+    fm_assert(send_to_peek(*s.npc, first));
     {
         const auto t = s.status();
         fm_assert(t.st == state::to_peek);
-        fm_assert(t.cover == second.pos && t.has_peek && t.peek == q->pos && t.gun == q->gun);
+        fm_assert(t.cover == first.pos && t.has_peek && t.peek == q->pos && t.gun == q->gun);
         fm_assert(t.gun_seen_from == s.threat->position());
     }
     s.step_until(state::exposed);
     fm_assert(s.npc->position() == q->pos);
     s.step_until(state::hidden);
-    fm_assert(s.npc->position() == second.pos);
+    fm_assert(s.npc->position() == first.pos);
 
     const cover_spot wall{point{ch, {7, 8}, {}}, {1, 0}};
     const auto t0 = s.status();
@@ -1786,6 +1867,13 @@ void Test::test_cover_point()
     test_octants_wall_middle();
     test_octants_turned_threat_sees();
     test_octants_grid_rejects();
+    for (const auto octants : { uint8_t{0}, uint8_t{3} })
+    {
+        test_slides_to_cover_end(octants, false);
+        test_slides_to_cover_end(octants, true);
+    }
+    test_lists_by_area(3, 2*tile_size_xy);
+    test_lists_by_area_long_wall();
     for (const auto size : { Vector2ui{23, 23}, Vector2ui{25, 25}, Vector2ui{23, 25}, Vector2ui{25, 23} })
     {
         test_narrow_pillar_rejected(size);
@@ -1795,6 +1883,7 @@ void Test::test_cover_point()
         test_shift_to_only_spot(-1, false, size);
     }
     const auto [hidden, peek] = test_cover_script();
+    test_cover_script_at_wall_end(hidden);
     // cover_scene's gun is at the body's center, and test_cover_script's is not, so they peek from
     // different spots.
     const auto c0 = peek_with_gun(0);
@@ -1815,12 +1904,12 @@ void Test::test_cover_point()
     test_cover_script_orders(hidden);
     test_cover_script_keeps_peeking(hidden, c0.peek);
     test_cover_script_walking_threat(hidden);
-    test_cover_script_follows_while_hidden(hidden);
+    test_cover_script_follows_while_hidden();
     test_cover_script_threat_walks_along_wall(false);
     test_cover_script_threat_walks_along_wall(true);
-    test_cover_script_gun_offset(hidden);
-    test_cover_script_peek_beside_critter(hidden);
-    test_cover_script_faces_threat(hidden);
+    test_cover_script_gun_offset();
+    test_cover_script_peek_beside_critter();
+    test_cover_script_faces_threat();
     test_cover_script(hidden);
     // 1 px past the hidden body on the side it peeked from, so only the other side is left
     const auto side = Vector2i{0, Vector3i(peek).y() > Vector3i(hidden).y() ? 1 : -1};

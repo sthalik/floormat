@@ -329,7 +329,7 @@ cover_point_result cover_script::nearest_cover(critter& c)
     if (!threat)
         return {};
     threat_pos = threat->position();
-    query = {c.position(), Vector2ui(c.bbox_size), threat_pos, cover_radius, options.octants};
+    query = {c.position(), Vector2ui(c.bbox_size), threat_pos, cover_radius, options.octants, options.max_slide};
     has_query = true;
     searches++;
     return finder.find_cover_point(w, A.pool_registry(), Cover::Params{div_size}, query, blocks_all_but(c.id));

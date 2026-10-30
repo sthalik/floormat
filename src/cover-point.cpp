@@ -110,6 +110,7 @@ struct cover_point::Impl
     Array<slope_range> runs;
     Array<cover_spot> spots;
     Array<Range2Di> turned_rects;
+    Array<Range2Di> slide_rects;
 };
 
 cover_point::cover_point()
@@ -123,7 +124,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
                                                  const cover_query& q, const Search::pred& pred,
                                                  bool list_spots)
 {
-    auto& [known, cells, cands, rects, runs, spots, turned_rects] = *impl;
+    auto& [known, cells, cands, rects, runs, spots, turned_rects, slide_rects] = *impl;
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     // Odd, so the octants checked lie evenly on both sides of the nearest one.
     fm_assert(q.octants == 0 || q.octants % 2 == 1 && q.octants <= 9);
@@ -485,6 +486,52 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
         return true;
     };
 
+    enum class slide_step : uint8_t { hidden, seen, stopped, };
+    const auto slide_test = [&](Vector2i pos, Vector2i axis, Vector2i across) {
+        const auto body = body_at(pos, axis, across, T);
+        build_runs(body, axis, across, slide_rects);
+        if (!hidden(body) || !hidden_from_turned(pos, axis))
+            return slide_step::seen;
+        return passable(pos) && !passable(pos + axis) ? slide_step::hidden : slide_step::stopped;
+    };
+
+    // The slid bodies can lie past the box of rects, which holds only the candidates' area, so the
+    // slide searches the box from the threat to the bodies of both sides.
+    const auto slide_to_edge = [&](Vector2i pos, Vector2i axis, Vector2i across) {
+        const auto m = (int)q.max_slide;
+        arrayClear(slide_rects);
+        collect_rects(T, Math::min(T, pos - ext_lo - across*m) - Vector2i{1},
+                      Math::max(T, pos + ext_hi + across*m) + Vector2i{1}, slide_rects);
+        bool live[2] = { true, true };
+        int lo[2] = { 0, 0 };
+        for (auto t = step_px; t <= m && (live[0] || live[1]); t += step_px)
+            for (auto i = 0u; i < 2; i++)
+            {
+                if (!live[i])
+                    continue;
+                const auto dir = i ? -across : across;
+                const auto r = slide_test(pos + dir*t, axis, across);
+                if (r == slide_step::stopped)
+                    live[i] = false;
+                else if (r == slide_step::hidden)
+                    lo[i] = t;
+                else
+                {
+                    auto a = lo[i], b = t;
+                    while (b - a > 1)
+                    {
+                        const auto mid = (a + b)/2;
+                        if (slide_test(pos + dir*mid, axis, across) == slide_step::hidden)
+                            a = mid;
+                        else
+                            b = mid;
+                    }
+                    return pos + dir*a;
+                }
+            }
+        return pos;
+    };
+
     for (const auto& cand : cands)
     {
         const auto axis = axis_toward(T - cand.center);
@@ -512,6 +559,8 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
                 ret.rejected++;
             continue;
         }
+        if (q.max_slide)
+            p = slide_to_edge(*p, axis, across);
         const auto pt = to_point(*p);
         if (!ret.found)
         {

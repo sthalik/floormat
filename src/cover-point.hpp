@@ -22,6 +22,9 @@ struct cover_query
     uint32_t radius;
     // 0, or the number of cover grid octants checked, odd and at most 9. See find_cover_point.
     uint8_t octants = 0;
+    // 0, or how far in px each accepted spot may slide along its blocker toward the nearer end of
+    // the cover. See find_cover_point.
+    uint32_t max_slide = 0;
     // When set, the candidates are only the cells whose centers c satisfy area->min() <= c - pos <
     // area->max(), in px. Searches of areas that tile the plane together accept the spots that one
     // search without an area accepts, since each candidate is judged on its own. Two of them can
@@ -67,6 +70,15 @@ struct cover_point
     // accepted only when the threat turned about the body's center by j octants either way, for j
     // from 1 to q.octants/2 and rounded to whole px, sees no pixel of it either. rejected also counts
     // the spots a turned threat sees.
+    // With q.max_slide, each accepted spot then slides along the face it is flush against, across
+    // axis, toward the side where the body is first seen, by up to q.max_slide px. It stops at the
+    // last position, to 1 px, where the body fits by pred, is still flush, and neither the threat
+    // nor a turned threat sees it, so a peek from there is short. Both sides are tried in turn in
+    // steps of half the body's smaller side. A step seen ends its side's slide whether or not the
+    // body fits there, as when a critter stands past the cover's end. A side where the body stops
+    // fitting or stops being flush while still hidden is dropped, since it leads into another
+    // blocker or off the face, where no peek passes the cover's end. A spot that neither side sees
+    // within q.max_slide stays.
     // With list_spots, the search goes on past pos, and spots holds every accepted spot once with its
     // axis, in the order tried, starting with pos and axis. Two candidates can be pushed to the same
     // spot, and spots keeps the first one's axis. The other fields are the same as without
