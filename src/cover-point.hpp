@@ -4,6 +4,8 @@
 #include "compat/defs.hpp"
 #include "compat/safe-ptr.hpp"
 #include <cr/ArrayView.h>
+#include <cr/Optional.h>
+#include <mg/Range.h>
 
 namespace floormat { class world; }
 namespace floormat::Grid { class PoolRegistry; }
@@ -20,6 +22,11 @@ struct cover_query
     uint32_t radius;
     // 0, or the number of cover grid octants checked, odd and at most 9. See find_cover_point.
     uint8_t octants = 0;
+    // When set, the candidates are only the cells whose centers c satisfy area->min() <= c - pos <
+    // area->max(), in px. Searches of areas that tile the plane together accept the spots that one
+    // search without an area accepts, since each candidate is judged on its own. Two of them can
+    // accept the same spot, pushed there from cells in each.
+    Optional<Range2Di> area = {};
 };
 
 struct cover_spot
@@ -43,14 +50,14 @@ struct cover_point_result
 struct cover_point
 {
     // Returns the first spot near q.pos where a body of q.body_size fits by pred and q.threat sees no
-    // pixel of it. Candidates are the cells of the cover grid for params within q.radius of q.pos
-    // where the body fits, the grid marks the cell hidden and the others under the body hidden or
-    // blocked, and a blocker is near enough to push the body against. They are tried in order of
-    // octile distance from q.pos. Each is pushed toward the threat until flush with its blocker, and when the threat sees
-    // it there, it is moved sideways by up to two cells and pushed again. found, pos and axis
-    // describe the first candidate accepted. candidates counts the candidates. rejected counts
-    // those that reached a blocker and stayed seen, among the ones tried before pos, or among all of
-    // them when found is false.
+    // pixel of it. Candidates are the cells of the cover grid for params within q.radius of q.pos,
+    // and in q.area when set, where the body fits, the grid marks the cell hidden and the others
+    // under the body hidden or blocked, and a blocker is near enough to push the body against. They
+    // are tried in order of octile distance from q.pos. Each is pushed toward the threat until flush
+    // with its blocker, and when the threat sees it there, it is moved sideways by up to two cells
+    // and pushed again. found, pos and axis describe the first candidate accepted. candidates
+    // counts the candidates. rejected counts those that reached a blocker and stayed seen, among
+    // the ones tried before pos, or among all of them when found is false.
     // pred decides where the body fits, so a critter standing on a spot can rule it out. What hides
     // the body is decided without critters, as in the cover grids.
     // With q.octants, a candidate needs the body hidden in each of the q.octants octants centered on

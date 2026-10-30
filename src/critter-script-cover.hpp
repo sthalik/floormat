@@ -61,6 +61,9 @@ struct cover_peek
 // script or none, or the script hasn't searched yet.
 void list_cover_spots(critter& c, Array<cover_spot>& out);
 
+// As list_cover_spots, for q in place of the status's query.
+void list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
+
 // The peek spot the script would step out to from s, with the threat where it stands now. Empty
 // when c runs another script or none, the threat is gone, or neither side of s has a peek spot
 // within the script's max_peek. A spot the threat already sees gets a peek spot 1 px from it,

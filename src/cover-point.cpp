@@ -148,8 +148,20 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
     };
     const auto center_of = [ds](Vector2i n) { return n*ds + Vector2i{ds/2 - half_tile<int>}; };
 
-    const auto margin = body_hi + Vector2i{R};
-    const auto lo = cell_of(P - margin), span = cell_of(P + margin) - lo + Vector2i{1};
+    // Where candidate centers can lie, both ends included.
+    auto cand_lo = P - Vector2i{R}, cand_hi = P + Vector2i{R};
+    if (q.area)
+    {
+        cand_lo = Math::max(cand_lo, P + q.area->min());
+        cand_hi = Math::min(cand_hi, P + q.area->max() - Vector2i{1});
+        if (!(cand_lo <= cand_hi).all())
+            return {};
+    }
+    const auto in_area = [&](Vector2i center) {
+        return !q.area || (center - P >= q.area->min()).all() && (center - P < q.area->max()).all();
+    };
+
+    const auto lo = cell_of(cand_lo - body_hi), span = cell_of(cand_hi + body_hi) - lo + Vector2i{1};
     const auto count = (size_t)(span.x()*span.y());
     arrayClear(known);
     reserve_scratch(known, count);
@@ -260,7 +272,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
         {
             const auto center = center_of({x, y});
             const auto off = center - P;
-            if (off.dot() > R*R)
+            if (off.dot() > R*R || !in_area(center))
                 continue;
             // With q.octants, look() still reads the center's two bracketing octants, for blocker_px.
             // Its hidden is then also implied by hidden_in_octants(), unless the center is blocked.
@@ -329,8 +341,9 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
     arrayClear(rects);
     {
         // Every segment from the threat to a body stays in this box, so one search serves all candidates.
-        const auto spread = Vector2i{R + range + 1} + Math::max(ext_lo, ext_hi);
-        collect_rects(T, Math::min(T, P - spread) - Vector2i{1}, Math::max(T, P + spread) + Vector2i{1}, rects);
+        const auto spread = Vector2i{range + 1} + Math::max(ext_lo, ext_hi);
+        collect_rects(T, Math::min(T, cand_lo - spread) - Vector2i{1}, Math::max(T, cand_hi + spread) + Vector2i{1},
+                      rects);
     }
 
     const auto body_at = [&](Vector2i pos, Vector2i axis, Vector2i across, Vector2i threat) {

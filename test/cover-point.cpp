@@ -425,6 +425,50 @@ void test_lists_past_rejected()
     fm_assert(r.spots.size() > 1);
 }
 
+// Searches of the tiles around the npc, each with its area, try the candidates of one search over
+// the radius once each and together list its spots. The npc stands on a cell center, so the edges
+// of the tiles around it pass through cell centers.
+void test_lists_by_area(uint8_t octants)
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    add_blocker(w, {9, 4}, {96, 16});
+    add_blocker(w, {4, 11}, {16, 16});
+    rebuild(w);
+
+    const point npc{ch, {6, 7}, {4, 4}}, threat{ch, {12, 8}, {}};
+    constexpr auto radius = 4*(uint32_t)tile_size_xy;
+    cover_point finder;
+    Grid::PoolRegistry pools;
+    const auto search = [&](Optional<Range2Di> area) {
+        return finder.find_cover_point(w, pools, Cover::Params{8}, {npc, body, threat, radius, octants, area},
+                                       Search::without_critters(), true);
+    };
+    const auto whole = search({});
+    Array<cover_spot> spots;
+    arrayAppend(spots, whole.spots);
+    fm_assert(spots.size() > 3);
+
+    Array<point> tiled;
+    uint32_t candidates = 0;
+    constexpr auto n = (int)radius/tile_size_xy + 1;
+    for (auto y = -n; y <= n; y++)
+        for (auto x = -n; x <= n; x++)
+        {
+            const auto mid = Vector2i{x, y}*tile_size_xy;
+            const auto r = search(Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}});
+            candidates += r.candidates;
+            for (const auto& s : r.spots)
+                if (std::find(tiled.begin(), tiled.end(), s.pos) == tiled.end())
+                    arrayAppend(tiled, s.pos);
+        }
+    fm_assert_equal(whole.candidates, candidates);
+    fm_assert_equal(spots.size(), tiled.size());
+    for (const auto& s : spots)
+        fm_assert(std::find(tiled.begin(), tiled.end(), s.pos) != tiled.end());
+}
+
 // Where find_cover_point puts the threat turned about pos by j octants, rounded to whole px. It
 // rounds float math, so each component must lie at least 1e-3 px from a half pixel.
 Vector2i turned_threat(Vector2i threat, Vector2i pos, int j)
@@ -1695,6 +1739,8 @@ void Test::test_cover_point()
     test_spot_taken();
     test_lists_cover_spots();
     test_lists_past_rejected();
+    test_lists_by_area(0);
+    test_lists_by_area(3);
     test_octants_wall_middle();
     test_octants_turned_threat_sees();
     test_octants_grid_rejects();

@@ -99,7 +99,7 @@ struct cover_script final : critter_script
     cover_script(astar& A, object_id threat, uint32_t div_size, Optional<int> gun_offset);
 
     cover_script_status status() const;
-    void list_spots(critter& c, Array<cover_spot>& out);
+    void list_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
     Optional<cover_peek> peek_for(critter& c, const cover_spot& s);
     bool send_to(critter& c, const cover_spot& s, bool peek);
 
@@ -181,12 +181,10 @@ cover_script_status cover_script::status() const
     };
 }
 
-void cover_script::list_spots(critter& c, Array<cover_spot>& out)
+void cover_script::list_spots(critter& c, const cover_query& q, Array<cover_spot>& out)
 {
     arrayClear(out);
-    if (!has_query)
-        return;
-    const auto r = finder.find_cover_point(c.world(), A.pool_registry(), Cover::Params{div_size}, query,
+    const auto r = finder.find_cover_point(c.world(), A.pool_registry(), Cover::Params{div_size}, q,
                                            blocks_all_but(c.id), true);
     const auto n = r.spots.size();
     if (arrayCapacity(out) < n)
@@ -858,8 +856,16 @@ void set_cover_script_options(critter& c, const cover_script_options& options)
 
 void list_cover_spots(critter& c, Array<cover_spot>& out)
 {
+    if (const auto s = get_cover_script_status(c); s && s->has_query)
+        list_cover_spots(c, s->query, out);
+    else
+        arrayClear(out);
+}
+
+void list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out)
+{
     if (auto* s = cover_script_of(c))
-        s->list_spots(c, out);
+        s->list_spots(c, q, out);
     else
         arrayClear(out);
 }
