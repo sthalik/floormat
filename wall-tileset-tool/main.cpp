@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
+#include "compat/path.hpp"
 #include "compat/format.hpp"
 #include "compat/debug.hpp"
 #include "src/tile-constants.hpp"
@@ -354,7 +355,7 @@ argument_tuple parse_cmdline(int argc, const char* const* argv) noexcept
     options opts;
 
     opts.input_file = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("input.json")));
-    opts.input_dir = Path::split(opts.input_file).first();
+    opts.input_dir = split_pathname(opts.input_file).first();
     if (auto val = args.value<StringView>("output"); val != "\0"_s)
         opts.output_dir = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("output")));
     else

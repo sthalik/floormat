@@ -62,8 +62,8 @@ void loader_impl::set_application_working_directory()
     if (const auto loc = executable_location(); !loc.isEmpty())
     {
         StringView p = loc;
-        p = split(p).first();
-        p = split(p).first();
+        p = split_pathname(p).first();
+        p = split_pathname(p).first();
         const String path = p;
         chdir(path) &&
         chdir("share/floormat"_s);

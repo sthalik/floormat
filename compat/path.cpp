@@ -57,6 +57,27 @@ bool has_drive(StringView s)
     return s.size() >= 2 && (((s[0] | 0x20) >= 'a' && (s[0] | 0x20) <= 'z')) && s[1] == ':';
 }
 
+// The longest path Windows supports, 32767 UTF-16 code units, plus the null terminator. The buffer
+// takes 64 kB, so it comes from the heap.
+constexpr DWORD path_capacity = 1 << 15;
+
+String narrow_path(ArrayView<const wchar_t> path)
+{
+    String ret = Utility::Unicode::narrow(path);
+    for (char& c : ret)
+        if (c == '\\')
+            c = '/';
+    return ret;
+}
+
+// Must run before anything else can overwrite GetLastError().
+String fail(StringView what)
+{
+    char buf[256];
+    ERR << what << get_win32_error_string(buf, GetLastError());
+    return {};
+}
+
 #endif
 
 size_t root_length(StringView pathname)
@@ -88,7 +109,7 @@ size_t root_length(StringView pathname)
 
 } // namespace
 
-Corrade::Containers::Pair<StringView, StringView> split(StringView pathname)
+Pair<StringView, StringView> split_pathname(StringView pathname)
 {
     const auto root = root_length(pathname);
     size_t tail = pathname.size();
@@ -100,6 +121,8 @@ Corrade::Containers::Pair<StringView, StringView> split(StringView pathname)
     return {pathname.prefix(head), pathname.exceptPrefix(tail)};
 }
 
+#ifdef _WIN32
+
 String extended_length_path(StringView pathname)
 {
     if (pathname.hasPrefix("//?/"_s))
@@ -110,33 +133,6 @@ String extended_length_path(StringView pathname)
         return "//?/UNC/"_s + pathname.exceptPrefix(2);
     return "//?/"_s + pathname;
 }
-
-#ifdef _WIN32
-
-namespace {
-
-// The longest path Windows supports, 32767 UTF-16 code units, plus the null terminator. The buffer
-// takes 64 kB, so it comes from the heap.
-constexpr DWORD path_capacity = 1 << 15;
-
-String narrow_path(ArrayView<const wchar_t> path)
-{
-    String ret = Corrade::Utility::Unicode::narrow(path);
-    for (char& c : ret)
-        if (c == '\\')
-            c = '/';
-    return ret;
-}
-
-// Must run before anything else can overwrite GetLastError().
-String fail(StringView what)
-{
-    char buf[256];
-    ERR << what << get_win32_error_string(buf, GetLastError());
-    return {};
-}
-
-} // namespace
 
 String current_directory()
 {

@@ -2,6 +2,7 @@
 #include "compat/debug.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
+#include "compat/path.hpp"
 #include "loader/loader.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/anim.hpp"
@@ -241,7 +242,7 @@ arg_tuple parse_cmdline(int argc, const char* const* argv) noexcept
 
     opts.output_dir = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("output")));
     opts.input_file = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("input.json")));
-    opts.input_dir = Path::split(opts.input_file).first();
+    opts.input_dir = split_pathname(opts.input_file).first();
 
     if (opts.output_dir.isEmpty())
         opts.output_dir = opts.input_dir;
