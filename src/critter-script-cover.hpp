@@ -31,9 +31,7 @@ struct cover_script_status
 {
     enum class state : uint8_t { seek, to_cover, hidden, to_peek, exposed, retreat, };
 
-    // The cover the critter hides at, peeks from or walks to, when has_cover. While st is exposed
-    // and a search found new cover after the threat saw that one, the new cover, which the critter
-    // walks to when it stops peeking.
+    // The cover the critter hides at, peeks from or walks to, when has_cover.
     point cover;
     // The last spot find_peek_pos found, when has_peek. Taking new cover clears has_peek.
     point peek;
