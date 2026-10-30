@@ -101,6 +101,7 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_lightmap, profile),
         FM_SCENE(scene_cover, profile),
         FM_SCENE(scene_cover_ai, coverage),
+        FM_SCENE(scene_cover_ai_map, coverage),
         FM_SCENE(scene_clickables, profile),
         FM_SCENE(scene_torture_flat, profile),
         FM_SCENE(scene_torture_all_z, profile),
