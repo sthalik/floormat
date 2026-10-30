@@ -33,9 +33,9 @@ struct critter_script : base_script
     // updates: the editor's astar is destroyed before the world. It steps out until the threat sees
     // its gun, which is to its right as it faces the threat, by half its width along the cover's
     // face or by gun_offset px. A negative gun_offset puts the gun on the left. It turns to the
-    // nearest of the 8 rotations toward the threat when it has stepped out, and again when the
-    // threat moves while it stays out. It keeps its rotation when its box turned that way would
-    // overlap a collider.
+    // nearest of the 8 rotations toward the threat when it has stepped out, again when the threat
+    // moves while it stays out, and in every update while it waits to look for cover again. It
+    // keeps its rotation when its box turned that way would overlap a collider.
     static Pointer<critter_script> make_cover_script(astar& A, object_id threat, uint32_t div_size);
     static Pointer<critter_script> make_cover_script(astar& A, object_id threat, uint32_t div_size, int gun_offset);
 };

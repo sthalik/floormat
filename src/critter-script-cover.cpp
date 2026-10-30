@@ -78,9 +78,9 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
 // options.search_every_move, a standing critter instead searches on every move of the threat, in
 // follow_threat, and walks cast no rays. A threat that is gone sends a standing critter to seek,
 // which looks for cover again after retry_time.
-// Only an exposed critter turns toward the threat. face_threat runs when a walk to a peek spot
-// arrives, and in each update in which the threat moved and the critter stays exposed. A critter
-// in seek keeps its rotation, even in the open.
+// An exposed critter and one in seek turn toward the threat. face_threat runs when a walk to a
+// peek spot arrives, in each update in which the threat moved and the critter stays exposed, and
+// at the end of each update that leaves the critter in seek. A hidden critter keeps its rotation.
 struct cover_script final : critter_script
 {
     using state = cover_script_status::state;
@@ -129,7 +129,7 @@ private:
     void leave_peek(const bptr<critter>& c);
     void take_cover(const bptr<critter>& c);
     void walk_update(const bptr<critter>& c, size_t& i, const Ns& dt);
-    void face_threat(critter& c, size_t i);
+    void face_threat(critter& c, size_t i, point threat);
     Optional<point> find_peek(critter& c, point threat);
 
     astar& A;
@@ -205,6 +205,13 @@ void cover_script::on_update(const bptr<critter>& c, size_t& i, const Ns& dt)
     // do_clear deletes the script, so the clock starts after it.
     auto t = Time::now();
     update(c, i, dt);
+    // threat_pos is where the threat stood at the last check or search, and in seek c checks
+    // nothing. A retreat ends in seek with c facing away from a threat that may not have moved.
+    if (st == state::seek)
+    {
+        if (const auto threat = c->world().find_object(threat_id))
+            face_threat(*c, i, threat->position());
+    }
     last_update = t.update();
     max_update = std::max(max_update, last_update);
     total_update += last_update;
@@ -262,7 +269,7 @@ void cover_script::go_on(const bptr<critter>& c, size_t& i, const Ns& dt)
     if (st == state::to_cover || st == state::to_peek || st == state::retreat)
         walk_update(c, i, dt);
     else if (st == state::exposed)
-        face_threat(*c, i);
+        face_threat(*c, i, threat_pos);
 }
 
 bool cover_script::wait_for(const Ns& dt)
@@ -634,7 +641,7 @@ void cover_script::walk_update(const bptr<critter>& c, size_t& i, const Ns& dt)
         else
         {
             st = state::exposed;
-            face_threat(*c, i);
+            face_threat(*c, i, threat_pos);
         }
         return;
     }
@@ -647,16 +654,16 @@ void cover_script::walk_update(const bptr<critter>& c, size_t& i, const Ns& dt)
     wait = replans++ ? retry_time : Ns{};
 }
 
-// Turns c to the one of the 8 rotations nearest the direction from c's center to threat_pos. c
-// keeps its rotation when threat_pos is its center, which gives no direction, or when can_rotate
+// Turns c to the one of the 8 rotations nearest the direction from c's center to threat. c keeps
+// its rotation when threat is its center, which gives no direction, or when can_rotate
 // finds its box turned that way overlapping a collider. rotate() keeps bbox_offset at zero, so c's
 // position stays its body's center, which find_cover_point and Dijkstra take it to be. It swaps
 // bbox_size's x and y when c turns between N, NE, S or SW and E, SE, W or NW. find_cover, walk_to,
 // find_peek and gun_point read bbox_size when they run, so after this turn they take a non-square
 // body as it faces the threat, as after a walk they take it as the walk left it.
-void cover_script::face_threat(critter& c, size_t i)
+void cover_script::face_threat(critter& c, size_t i, point threat)
 {
-    const auto v = threat_pos - c.position();
+    const auto v = threat - c.position();
     if (v.isZero())
         return;
     const auto r = nearest_rotation(v);

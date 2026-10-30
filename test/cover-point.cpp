@@ -1546,7 +1546,9 @@ void test_cover_script_search_every_move(point hidden)
 // from where hidden is in the open, and the wall's shadow is too narrow for the body near the
 // wall, where a cover spot must be. The npc searches in the next update, finds no cover within 5
 // tiles, and walks to a spot within 5 tiles of hidden that lies more than 4 tiles farther from the
-// threat. It stands there and looks for cover again after 1 s.
+// threat. It stands there and looks for cover again after 1 s. From the update it arrives, it faces
+// the threat it walked away from. Halfway through the wait the threat stands 2 tiles beside it for
+// 3 updates, and it faces the threat there too.
 void test_cover_script_retreat(point hidden)
 {
     constexpr auto radius = 5*tile_size_xy;
@@ -1568,14 +1570,25 @@ void test_cover_script_retreat(point hidden)
     fm_assert(point::distance_squared(spot, hidden) <= (uint64_t)(radius*radius));
     const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, threat_pos)); };
     fm_assert(dist(spot) - dist(hidden) > 4*tile_size_xy);
+    const auto r1 = nearest_of_8(threat_pos - spot);
+    fm_assert(s.npc->r == r1);
+    // toward the chunk's middle, where the threat's x is
+    const auto side = Vector3i(spot).x() < Vector3i(threat_pos).x() ? 1 : -1;
+    const auto beside = spot + Vector2i{side*2*tile_size_xy, 0};
+    const auto r2 = nearest_of_8(beside - spot);
+    fm_assert(r2 != r1);
 
     const auto searches = s.status().searches;
+    const auto moved = [&](uint32_t frame) { return frame >= s.fps/2 && frame < s.fps/2 + 3; };
     auto frames = 0u;
     for (; s.status().searches == searches; frames++)
     {
         fm_assert(frames <= s.fps + 2);
+        if (moved(frames) != moved(frames - 1))
+            s.move_threat(moved(frames) ? beside : threat_pos);
         s.step();
         fm_assert(s.npc->position() == spot);
+        fm_assert(s.npc->r == (moved(frames) ? r2 : r1));
     }
     fm_assert(frames + 2 >= s.fps);
     fm_assert(s.status().st == state::seek);
