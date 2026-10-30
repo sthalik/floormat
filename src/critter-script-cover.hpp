@@ -11,9 +11,13 @@ struct critter;
 
 struct cover_script_options
 {
-    // Looks for cover again on every move of the threat while the critter stands, without first
-    // casting rays to see whether the threat sees it. Walks then go on to their end whatever the
-    // threat does. For comparing the CPU time of the two.
+    enum class hold_phase : uint8_t { none, hidden, exposed, };
+
+    // hidden or exposed: stay in that phase once there, and its wait never runs out. send_to_cover
+    // and send_to_peek set it to the phase they send the critter to.
+    hold_phase hold = hold_phase::none;
+    // Looks for cover on every move of the threat while the critter stands, without casting rays
+    // first, and walks never stop early. For comparing CPU time.
     bool search_every_move = false;
     // cover_query::octants of the script's searches. With 3, a cover spot must also hide the critter
     // from the threat turned 11.25° either way about it.
@@ -71,17 +75,19 @@ void list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
 // since the slide is at least 1 px. The script's counters and update times leave it out.
 Optional<cover_peek> find_cover_peek(critter& c, const cover_spot& s);
 
-// Walks c along a Dijkstra path to s, to hide there for hidden_time and go on as from cover it
-// found itself. The threat's position becomes the last check's, as after a search, so the script
-// checks whether the threat sees s only once the threat moves. False, with the script unchanged,
-// when c runs another script or none, or no path leads to s.
+// Walks c along a Dijkstra path to s, to hide there for hidden_time. An options.hold other than none
+// becomes hidden. False, with the script unchanged, when c runs another script or none, or no path
+// leads to s.
 bool send_to_cover(critter& c, const cover_spot& s);
 
 // As send_to_cover, but to find_cover_peek's spot for s, to be exposed there for exposed_time and
-// then hide at s. False also when the threat is gone or s has no peek spot.
+// then hide at s. An options.hold other than none becomes exposed. False also when the threat is
+// gone or s has no peek spot.
 bool send_to_peek(critter& c, const cover_spot& s);
 
-// From the script's next update on. Does nothing when c runs another script or none.
+// From the script's next update on. A changed hold that names the phase other than the one c stands
+// in or walks to ends that phase in c's next standing update. Does nothing when c runs another
+// script or none.
 void set_cover_script_options(critter& c, const cover_script_options& options);
 
 } // namespace floormat

@@ -30,6 +30,7 @@ namespace {
 
 using namespace floormat::imgui;
 using state = cover_script_status::state;
+using hold_phase = cover_script_options::hold_phase;
 
 constexpr uint32_t cover_div = 8;
 constexpr int spawn_distance = 4*tile_size_xy;
@@ -141,7 +142,8 @@ struct cover_ai_test final : base_test
     void search_spots(app& a, critter& c, Optional<Ns> budget);
     void search_tile(app& a, critter& c);
     bool player_sees(app& a, const critter& c, point pt);
-    void send(critter& c, uint32_t k, bool peek);
+    bool send(critter& c, const cover_spot& s, bool peek);
+    uint32_t toggle_hold();
     ArrayView<const cover_spot> script_spots(app& a, critter& c, const cover_script_status& s);
     Optional<uint32_t> step_cover(app& a, bool back);
     void draw_cover_picker(app& a);
@@ -383,10 +385,32 @@ bool cover_ai_test::player_sees(app& a, const critter& c, point pt)
     return raycast(m.world(), player->position(), pt, c.id, pool, Search::without_critters()).success;
 }
 
-void cover_ai_test::send(critter& c, uint32_t k, bool peek)
+// The script moves its hold to the phase of an order, and options follows, so that apply_options
+// doesn't move it back.
+bool cover_ai_test::send(critter& c, const cover_spot& s, bool peek)
 {
-    const auto ok = peek ? send_to_peek(c, spots[k]) : send_to_cover(c, spots[k]);
+    const auto ok = peek ? send_to_peek(c, s) : send_to_cover(c, s);
     last_note = ok ? note::none : note::no_path;
+    if (ok && options.hold != hold_phase::none)
+        options.hold = peek ? hold_phase::exposed : hold_phase::hidden;
+    return ok;
+}
+
+// Ticked, the box holds the phase the npc stands in or walks to. An npc in seek or retreat hides
+// at the cover it finds next, so it is held hidden, as with no npc.
+uint32_t cover_ai_test::toggle_hold()
+{
+    if (options.hold != hold_phase::none)
+        options.hold = hold_phase::none;
+    else
+    {
+        const auto c = npc.lock();
+        const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+        const auto out = s && (s->st == state::exposed || s->st == state::to_peek);
+        options.hold = out ? hold_phase::exposed : hold_phase::hidden;
+    }
+    apply_options();
+    return (uint32_t)options.hold;
 }
 
 // The spots of the script's last search, apart from the overlay's, from list_cover_spots(), which
@@ -436,11 +460,8 @@ Optional<uint32_t> cover_ai_test::step_cover(app& a, bool back)
         const auto k = back ? (from + n - 1 - j) % n : (from + 1 + j) % n;
         if (listed && k == from || player_sees(a, *c, list[k].pos))
             continue;
-        if (send_to_cover(*c, list[k]))
-        {
-            last_note = note::none;
+        if (send(*c, list[k], false))
             return k;
-        }
     }
     last_note = note::no_other_cover;
     return {};
@@ -492,7 +513,7 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
                 k = i;
         }
     }
-    send(*c, k, peek);
+    (void)send(*c, spots[k], peek);
     return true;
 }
 
@@ -692,7 +713,7 @@ void cover_ai_test::draw_cover_picker(app& a)
             print_coord(coord, list[i].pos);
             snformat(label, "{}: {}", i + 1, (const char*)coord);
             if (ImGui::Selectable(label, i == cur))
-                last_note = send_to_cover(*c, list[i]) ? note::none : note::no_path;
+                (void)send(*c, list[i], false);
         }
     ImGui::SameLine();
 
@@ -740,6 +761,10 @@ void cover_ai_test::draw_ui(app& a, float)
         break;
     }
 
+    bool hold = options.hold != hold_phase::none;
+    if (ImGui::Checkbox("Hold", &hold))
+        (void)toggle_hold();
+
     bool only_seen = !options.search_every_move;
     if (ImGui::Checkbox("Search only when seen", &only_seen))
     {
@@ -771,7 +796,8 @@ void cover_ai_test::draw_ui(app& a, float)
             radius_tiles = 1 << e;
         ImGui::TextWrapped("Spots hidden from where the player stands, searched a few tiles per frame, "
                            "starting over when the player moves or a wall changes. Click a blue dot to send "
-                           "the npc to hide there, or an orange one to peek from its spot.");
+                           "the npc to hide there, or an orange one to peek from its spot. With Hold "
+                           "ticked, it stays there.");
     }
 
     const auto c = npc.lock();
