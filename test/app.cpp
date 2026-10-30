@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "loader/loader.hpp"
+#include "src/log.hpp"
 #include "compat/array-size.hpp"
 #include "compat/headless.hpp"
 #include "compat/sysexits.hpp"
@@ -9,7 +10,6 @@
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Timeline.h>
-#include <mg/Context.h>
 
 namespace floormat::Test {
 
@@ -17,16 +17,7 @@ namespace {
 
 bool gl_context = false;
 
-bool is_log_quiet() // copy-pasted from src/chunk.cpp
-{
-    if (!gl_context)
-        return false;
-    using GLCCF = GL::Implementation::ContextConfigurationFlag;
-    auto flags = GL::Context::current().configurationFlags();
-    return !!(flags & GLCCF::QuietLog);
-}
-
-enum class gl_use : uint8_t { none, optional, required, };
+enum class gl_use : uint8_t { none, required, };
 
 struct test_entry
 {
@@ -40,7 +31,6 @@ constexpr auto SV_flags = StringViewFlag::Global|StringViewFlag::NullTerminated;
 #define FM_TEST_(name, gl) { ( StringView{#name, array_size(#name)-1, SV_flags} ), ( &(name) ), (gl), }
 #define FM_TEST(name) FM_TEST_(name, gl_use::none)
 #define FM_TEST_GL(name) FM_TEST_(name, gl_use::required)
-#define FM_TEST_GL_OPTIONAL(name) FM_TEST_(name, gl_use::optional)
 
 constexpr test_entry test_list[] = {
     FM_TEST(test_local),
@@ -61,7 +51,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_random),
     FM_TEST(test_bptr),
     FM_TEST(test_bptr_intrusive),
-    FM_TEST_GL(test_chunk_iter),
+    FM_TEST(test_chunk_iter),
     FM_TEST(test_entity),
     FM_TEST(test_float),
     FM_TEST(test_format),
@@ -73,24 +63,24 @@ constexpr test_entry test_list[] = {
 
     FM_TEST(test_bitmask),
     FM_TEST(test_json),
-    FM_TEST_GL(test_json2),
-    FM_TEST_GL(test_json3),
-    FM_TEST_GL(test_loader),
-    FM_TEST_GL(test_scenery),
+    FM_TEST(test_json2),
+    FM_TEST(test_json3),
+    FM_TEST(test_loader),
+    FM_TEST(test_scenery),
     FM_TEST_GL(test_emit_quick),
     FM_TEST(test_raycast_line),
-    FM_TEST_GL(test_raycast),
-    FM_TEST_GL(test_passability_bbox),
+    FM_TEST(test_raycast),
+    FM_TEST(test_passability_bbox),
     FM_TEST(test_hash),
     FM_TEST(test_path),
     FM_TEST(test_wall_atlas),
-    FM_TEST_GL(test_wall_atlas2),
+    FM_TEST(test_wall_atlas2),
     // the rest are slow
     FM_TEST(test_grid),
-    FM_TEST_GL(test_rtree),
-    FM_TEST_GL(test_astar),
-    FM_TEST_GL(test_hole),
-    FM_TEST_GL(test_save),
+    FM_TEST(test_rtree),
+    FM_TEST(test_astar),
+    FM_TEST(test_hole),
+    FM_TEST(test_save),
     FM_TEST(test_spinlock),
     FM_TEST(test_atomic),
     FM_TEST(test_atomic_wait),
@@ -99,22 +89,21 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_inplace_function),
     FM_TEST_GL(test_sprite_atlas),
     FM_TEST(test_spritebatch),
-    FM_TEST_GL(test_critter),
-    FM_TEST_GL(test_sweep_aabb),
-    FM_TEST_GL(test_critter_walk),
-    FM_TEST_GL(test_slide),
-    FM_TEST_GL(test_corridor),
-    FM_TEST_GL(test_dijkstra),
-    FM_TEST_GL(test_dijkstra_reference),
+    FM_TEST(test_critter),
+    FM_TEST(test_sweep_aabb),
+    FM_TEST(test_critter_walk),
+    FM_TEST(test_slide),
+    FM_TEST(test_corridor),
+    FM_TEST(test_dijkstra),
+    FM_TEST(test_dijkstra_reference),
     FM_TEST(test_cover_point),
-    FM_TEST_GL(test_loader2),
-    FM_TEST_GL(test_loader3),
-    FM_TEST_GL(test_saves),
+    FM_TEST(test_loader2),
+    FM_TEST(test_loader3),
+    FM_TEST(test_saves),
     FM_TEST_GL(test_sprites),
-    FM_TEST_GL_OPTIONAL(test_multi_level_table),
+    FM_TEST(test_multi_level_table),
 };
 
-#undef FM_TEST_GL_OPTIONAL
 #undef FM_TEST_GL
 #undef FM_TEST
 #undef FM_TEST_
@@ -286,6 +275,7 @@ options parse_cmdline(int argc, char** argv)
         .addArrayArgument("tests").setHelp("tests", "tests to run, in this order; none or 'all' runs every test", "NAME")
         .addOption("repeat", "1").setHelp("repeat", "run the tests N times", "N")
         .addBooleanOption("no-gl").setHelp("no-gl", "don't create a GL context, skip the tests that need one")
+        .addBooleanOption("gl-only").setHelp("gl-only", "run only the tests that need a GL context")
         .addBooleanOption('l', "list-tests").setHelp("list-tests", "print the tests that would run, then exit")
         // addArrayArgument() requires at least one value. Zero names runs every test.
         .setParseErrorCallback([](const Arguments&, Arguments::ParseError error, const std::string& key) {
@@ -302,7 +292,21 @@ options parse_cmdline(int argc, char** argv)
         ERR_nospace << "invalid --repeat argument '" << str << "': should be a positive number";
         std::exit(EX_USAGE);
     }
+    const bool no_gl = args.isSet("no-gl");
+    if (no_gl && args.isSet("gl-only"))
+    {
+        ERR << "--gl-only and --no-gl can't be used together";
+        std::exit(EX_USAGE);
+    }
     auto tests = select_tests(args);
+    if (args.isSet("gl-only"))
+    {
+        auto n = 0u;
+        for (const auto& e : tests)
+            if (e.gl == gl_use::required)
+                tests[n++] = e;
+        arrayResize(tests, n);
+    }
     if (args.isSet("list-tests"))
     {
         for (const auto& e : tests)
@@ -312,7 +316,7 @@ options parse_cmdline(int argc, char** argv)
     bool uses_gl = false;
     for (const auto& e : tests)
         uses_gl |= e.gl != gl_use::none;
-    return { value, args.isSet("no-gl") || !uses_gl, move(tests) };
+    return { value, no_gl || !uses_gl, move(tests) };
 }
 
 } // namespace
