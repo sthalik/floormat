@@ -4,6 +4,7 @@
 namespace floormat {
 struct local_coords;
 class chunk;
+struct Ns;
 }
 
 namespace floormat::detail::grid {
@@ -78,6 +79,9 @@ public:
 
     Params params() const;
     uint32_t pooled_count() const;
+    // since the pool was made
+    uint32_t octant_fills() const;
+    Ns octant_fill_time() const;
 };
 
 } // namespace floormat::Grid::Cover
