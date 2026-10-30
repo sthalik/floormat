@@ -43,6 +43,29 @@ struct stop_s
     cover_script_status status;
 };
 
+// scene_cover_ai_map's walls: four straight ones and two Ls. None encloses a spot. A box of walls
+// 32 px deep leaves room inside for the npc's body, and the script, which tries only the nearest
+// cover, then keeps picking that spot with no path.
+constexpr local_coords map_west_walls[] = {
+    {5, 5}, {5, 6}, {11, 7}, {11, 8}, {9, 10}, {9, 11}, {8, 7},
+};
+constexpr local_coords map_north_walls[] = {
+    {9, 4}, {10, 4}, {11, 9}, {12, 9}, {4, 10}, {5, 10}, {6, 10}, {8, 7},
+};
+constexpr local_coords map_npc_tile{7, 8};
+// Where the player can stand, around the walls and between them. Each move goes to the next one
+// from which the player sees the npc.
+constexpr local_coords map_player_tiles[] = {
+    {14, 5}, {6, 6}, {8, 14}, {9, 8}, {2, 8}, {6, 12}, {8, 2}, {8, 9}, {13, 13}, {3, 9},
+    {2, 13}, {10, 6}, {2, 2}, {6, 8}, {13, 2}, {7, 12}, {12, 11}, {4, 3}, {3, 12},
+};
+// After the 8th move, from (2, 2), the npc hides in the corner of the L at (8, 7) and finds no peek
+// spot, since sliding along one axis either way runs into the L or stays hidden for max_peek.
+constexpr uint32_t map_moves = 7, short_map_moves = 3;
+// A player tile nearer the npc than this is skipped, since the player's body could stand in the
+// npc's way.
+constexpr uint32_t map_min_player_dist = 2*tile_size_xy;
+
 } // namespace
 
 // An npc hides behind a wall from the player, steps out until it sees the player, and goes back.
@@ -222,6 +245,192 @@ task app::scene_cover_ai()
     fm_debug("cover-ai: cover (%d, %d), peek (%d, %d); after the player moved, cover (%d, %d), peek (%d, %d); "
              "%u ms", cover.x(), cover.y(), peek.x(), peek.y(), cover2.x(), cover2.y(), peek2.x(), peek2.y(),
              (uint32_t)Time::to_milliseconds(_driver->scene_dt));
+
+    tests().switch_to(Test::none);
+    do_key(key_mode_none);
+    co_yield {};
+}
+
+// Walls in six places stand between the npc and the player. The player keeps moving to where it
+// sees the npc. After each move, the npc hides at a new spot the player can't see, then peeks from
+// a spot from which the player sees its gun, and goes back.
+task app::scene_cover_ai_map()
+{
+    using tests::base_test;
+    using tests::Test;
+    using state = cover_script_status::state;
+
+    auto& w = M->world();
+    {
+        auto& c = w[chunk_coords_{}];
+        maybe_initialize_chunk_(c.coord(), c);
+        auto wall = loader.wall_atlas("test1", loader_policy::warn);
+        for (const auto tile : map_west_walls)
+            c[tile].wall_west() = { wall, (variant_t)-1 };
+        for (const auto tile : map_north_walls)
+            c[tile].wall_north() = { wall, (variant_t)-1 };
+        c.mark_modified();
+    }
+
+    const auto tile_pos = [](local_coords tile) { return point{chunk_coords_{}, tile, {}}; };
+    uint32_t at = 0;
+    const auto teleport_player = [&](uint32_t k) {
+        at = k;
+        auto player = ensure_player_character(w);
+        auto index = player->index();
+        player->teleport_to(index, tile_pos(map_player_tiles[k]), rotation_COUNT);
+    };
+    teleport_player(0);
+
+    do_key(key_mode_tests);
+    tests().switch_to(Test::cover_ai);
+    object_id npc_id;
+    {
+        base_test::Value v;
+        v.type = base_test::ValueType::u32;
+        v.u32 = 0;
+        v = tests().current_test->advance(*this, v);
+        fm_assert(v.type == base_test::ValueType::u64);
+        npc_id = v.u64;
+        auto npc = w.find_object<critter>(npc_id);
+        fm_assert(npc);
+        auto index = npc->index();
+        npc->teleport_to(index, tile_pos(map_npc_tile), rotation_COUNT);
+    }
+    center_camera_on(tile_pos({8, 8}));
+    M->reset_fps();
+    co_yield {};
+
+    const auto npc_pos = [&] {
+        auto C = w.find_object(npc_id);
+        fm_assert(C);
+        return C->position();
+    };
+    const auto status = [&] {
+        auto C = w.find_object<critter>(npc_id);
+        fm_assert(C);
+        const auto s = get_cover_script_status(*C);
+        fm_assert(s);
+        return *s;
+    };
+    // what the script's sees() casts
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{cover_div, pass_mode::shoot_through});
+    const auto sees = [&](point from, point to) {
+        return raycast(w, from, to, npc_id, pool, Search::without_critters()).success;
+    };
+    const auto print = [](point pt) {
+        const auto v = Vector3i(pt).xy();
+        return std::pair{v.x(), v.y()};
+    };
+
+    const auto n_moves = pgo_driver_use_short_scenes() ? short_map_moves : map_moves;
+    Array<point> covers;
+    for (auto k = 0u; ; k++)
+    {
+        const auto player = tile_pos(map_player_tiles[at]);
+        auto deadline = _driver->scene_dt + max_dt;
+        for (;;)
+        {
+            if (const auto s = status(); s.st == state::hidden && npc_pos() == s.cover && (!k || s.cover != covers.back()))
+                break;
+            if (_driver->scene_dt >= deadline)
+            {
+                const auto s = status();
+                const auto [x, y] = print(npc_pos());
+                const auto [cx, cy] = print(s.cover);
+                const auto [tx, ty] = print(player);
+                fm_abort("cover-ai-map: move %u, player (%d, %d): the npc doesn't hide at a new spot: "
+                         "state %u at (%d, %d), cover (%d, %d), has_cover %d, searches %u",
+                         k, tx, ty, (unsigned)s.st, x, y, cx, cy, (int)s.has_cover, s.searches);
+            }
+            co_yield {};
+        }
+        const auto cover = npc_pos();
+        if (sees(player, cover))
+        {
+            const auto [x, y] = print(cover);
+            fm_abort("cover-ai-map: move %u: the player sees cover (%d, %d)", k, x, y);
+        }
+        arrayAppend(covers, cover);
+
+        // the "Other cover spots" box, for the search that found cover
+        uint32_t n_spots;
+        {
+            base_test::Value v;
+            v.type = base_test::ValueType::u32;
+            v.u32 = 2;
+            v = tests().current_test->advance(*this, v);
+            fm_assert(v.type == base_test::ValueType::u32);
+            n_spots = v.u32;
+            Array<point> spots;
+            list_cover_spots(*w.find_object<critter>(npc_id), spots);
+            fm_assert_equal(n_spots, (uint32_t)spots.size());
+            fm_assert(n_spots >= 1);
+            fm_assert_equal(cover, spots[0]);
+            for (const auto& pt : spots)
+                fm_assert(!sees(player, pt));
+        }
+
+        deadline = _driver->scene_dt + max_dt;
+        for (;;)
+        {
+            if (const auto s = status(); s.st == state::exposed && npc_pos() == s.peek)
+                break;
+            if (_driver->scene_dt >= deadline)
+            {
+                const auto [x, y] = print(cover);
+                fm_abort("cover-ai-map: move %u: the npc doesn't peek from cover (%d, %d)", k, x, y);
+            }
+            co_yield {};
+        }
+        {
+            const auto s = status();
+            fm_assert_equal(player, s.gun_seen_from);
+            fm_assert(sees(player, s.gun));
+            const auto [cx, cy] = print(cover);
+            const auto [px, py] = print(s.peek);
+            const auto [tx, ty] = print(player);
+            fm_debug("cover-ai-map: move %u, player (%d, %d): cover (%d, %d), peek (%d, %d), %u spots listed",
+                     k, tx, ty, cx, cy, px, py, n_spots);
+        }
+        if (k == n_moves)
+            break;
+
+        deadline = _driver->scene_dt + max_dt;
+        while (!(status().st == state::hidden && npc_pos() == cover))
+        {
+            fm_assert(_driver->scene_dt < deadline);
+            co_yield {};
+        }
+        auto next = (uint32_t)-1;
+        for (auto j = 1u; j < array_size(map_player_tiles); j++)
+        {
+            const auto i = (at + j) % (uint32_t)array_size(map_player_tiles);
+            const auto pt = tile_pos(map_player_tiles[i]);
+            if (point::distance(pt, cover) >= map_min_player_dist && sees(pt, cover))
+            {
+                next = i;
+                break;
+            }
+        }
+        if (next == (uint32_t)-1)
+        {
+            const auto [x, y] = print(cover);
+            fm_abort("cover-ai-map: move %u: no player tile sees cover (%d, %d)", k, x, y);
+        }
+        teleport_player(next);
+        co_yield {};
+    }
+
+    auto distinct = 0u;
+    for (auto i = 0u; i < covers.size(); i++)
+    {
+        auto j = 0u;
+        while (j < i && covers[j] != covers[i])
+            j++;
+        distinct += j == i;
+    }
+    fm_debug("cover-ai-map: %u moves, %u cover spots, %u ms", n_moves, distinct, (uint32_t)Time::to_milliseconds(_driver->scene_dt));
 
     tests().switch_to(Test::none);
     do_key(key_mode_none);
