@@ -253,7 +253,7 @@ void test_side_wall_corner_seen(Vector2ui size = body)
     fm_assert(!r.found || cant_be_shot(w, threat, r.pos, size));
 }
 
-// The pillar is as tall as the body, and a wall along its south end stops the body sliding past it.
+// The pillar is as tall as the body, and a wall along its south end stops the body going past it.
 void test_shift_to_only_spot(int8_t pillar_dy, bool split = false, Vector2ui size = body)
 {
     auto w = world();
