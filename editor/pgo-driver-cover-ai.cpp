@@ -29,7 +29,7 @@ namespace {
 
 // west walls of tiles (8, 7) to (8, 9), between the npc and the player
 constexpr uint8_t wall_x = 8, wall_y0 = 7, wall_y1 = 9;
-constexpr local_coords npc_tile{5, 8}, threat_tile{13, 8}, moved_threat_tile{13, 6};
+constexpr local_coords npc_tile{10, 8}, threat_tile{2, 8}, moved_threat_tile{2, 12};
 // cover_ai_test's, which its script casts rays with
 constexpr uint32_t cover_div = 8;
 constexpr uint32_t cycles = 2, short_cycles = 1;
@@ -300,7 +300,7 @@ task app::scene_cover_ai()
         fm_debug("cover-ai: switched to spot %u of %u, %u peek spots clicked", v.u32, (uint32_t)spots.size(), n_targets);
     }
 
-    // The player moves north while the npc peeks. From there the wall hides the gun as well as the
+    // The player moves south while the npc peeks. From there the wall hides the gun as well as the
     // cover, so check_exposed finds the ray to the gun blocked, and the npc walks to a new peek spot
     // at once.
     deadline = _driver->scene_dt + max_dt;
