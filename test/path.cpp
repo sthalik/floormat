@@ -8,20 +8,8 @@ namespace floormat::Test {
 namespace {
 
 #define CHECK_SPLIT(path, head, tail)                                                       \
-    (fm_assert_equal(StringView{head}, split(StringView{path}).first()),                    \
-     fm_assert_equal(StringView{tail}, split(StringView{path}).second()))
-
-#define CHECK_EXTENDED(path, expected)                                                      \
-    do {                                                                                    \
-        const String actual = extended_length_path(StringView{path});                       \
-        fm_assert_equal(StringView{expected}, StringView{actual});                          \
-    } while (false)
-
-#define CHECK_PREFIX(exe, prefix)                                                           \
-    do {                                                                                    \
-        const String actual = extended_length_path(split(split(StringView{exe}).first()).first()); \
-        fm_assert_equal(StringView{prefix}, StringView{actual});                            \
-    } while (false)
+    (fm_assert_equal(StringView{head}, split_pathname(StringView{path}).first()),           \
+     fm_assert_equal(StringView{tail}, split_pathname(StringView{path}).second()))
 
 void test_split_posix()
 {
@@ -113,19 +101,17 @@ void test_split_unc()
     CHECK_SPLIT("//./UNC/server/share/dir", "//./UNC/server/share/", "dir");
 }
 
-#else
+#define CHECK_EXTENDED(path, expected)                                                      \
+    do {                                                                                    \
+        const String actual = extended_length_path(StringView{path});                       \
+        fm_assert_equal(StringView{expected}, StringView{actual});                          \
+    } while (false)
 
-void test_split_no_windows_roots()
-{
-    CHECK_SPLIT("C:/foo", "C:", "foo");
-    CHECK_SPLIT("C:\\foo", "", "C:\\foo");
-    CHECK_SPLIT("foo\\bar", "", "foo\\bar");
-    CHECK_SPLIT("//?/C:/foo", "//?/C:", "foo");
-    CHECK_SPLIT("//./C:/foo", "//./C:", "foo");
-    CHECK_SPLIT("//server/share/dir", "//server/share", "dir");
-}
-
-#endif
+#define CHECK_PREFIX(exe, prefix)                                                           \
+    do {                                                                                    \
+        const String actual = extended_length_path(split_pathname(split_pathname(StringView{exe}).first()).first()); \
+        fm_assert_equal(StringView{prefix}, StringView{actual});                            \
+    } while (false)
 
 void test_extended_length_path()
 {
@@ -145,16 +131,31 @@ void test_install_prefix()
     CHECK_PREFIX("//?/UNC/server/share/foo/bin/x.exe", "//?/UNC/server/share/foo");
     CHECK_PREFIX("//./D:/foo/bin/x.exe", "//?/D:/foo");
     CHECK_PREFIX("//./UNC/server/share/foo/bin/x.exe", "//?/UNC/server/share/foo");
-#ifdef _WIN32
     CHECK_PREFIX("D:/x.exe", "//?/D:/");
     CHECK_PREFIX("//server/share/x.exe", "//?/UNC/server/share/");
-#endif
 }
+
+#undef CHECK_PREFIX
+#undef CHECK_EXTENDED
+
+#else
+
+void test_split_no_windows_roots()
+{
+    CHECK_SPLIT("C:/foo", "C:", "foo");
+    CHECK_SPLIT("C:\\foo", "", "C:\\foo");
+    CHECK_SPLIT("foo\\bar", "", "foo\\bar");
+    CHECK_SPLIT("//?/C:/foo", "//?/C:", "foo");
+    CHECK_SPLIT("//./C:/foo", "//./C:", "foo");
+    CHECK_SPLIT("//server/share/dir", "//server/share", "dir");
+}
+
+#endif
 
 void test_split_views()
 {
     constexpr auto path = "foo/bar/baz"_s;
-    const auto parts = split(path);
+    const auto parts = split_pathname(path);
     fm_assert(parts.first().data() == path.data());
     fm_assert(parts.second().data() == path.data() + 8);
     fm_assert(parts.second().flags() & StringViewFlag::NullTerminated);
@@ -181,8 +182,6 @@ void test_executable_location()
     fm_assert(Path::exists(actual));
 }
 
-#undef CHECK_PREFIX
-#undef CHECK_EXTENDED
 #undef CHECK_SPLIT
 
 } // namespace
@@ -194,12 +193,12 @@ void test_path()
     test_split_drive();
     test_split_extended();
     test_split_unc();
+    test_extended_length_path();
+    test_install_prefix();
 #else
     test_split_no_windows_roots();
 #endif
     test_split_views();
-    test_extended_length_path();
-    test_install_prefix();
     test_current_directory();
     test_executable_location();
 }

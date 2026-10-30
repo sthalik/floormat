@@ -19,11 +19,15 @@ String executable_location();
 // or "//?/" prefix with the device after it ("C:"), a "\\?\UNC\" prefix with "server/share", or
 // "//server/share". "\\.\" and "//./" work like "\\?\" and "//?/". A "//server" without a share has no
 // root of its own. Elsewhere only '/' separates.
-Corrade::Containers::Pair<StringView, StringView> split(StringView pathname);
+Pair<StringView, StringView> split_pathname(StringView pathname);
+
+#ifdef _WIN32
 
 // pathname, an absolute path with '/' separators, with the "//?/" prefix that lets the Windows file
 // functions take more than MAX_PATH characters. "//server/share/x" becomes "//?/UNC/server/share/x",
 // and a "//./" prefix becomes "//?/". A path that has "//?/" already comes back unchanged.
 String extended_length_path(StringView pathname);
+
+#endif
 
 } // namespace floormat
