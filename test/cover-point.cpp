@@ -363,15 +363,18 @@ cover_point_result find_listed(world& w, point npc, point threat, uint32_t radiu
     fm_assert_equal(r0.candidates, r.candidates);
     fm_assert_equal(r0.rejected, r.rejected);
     fm_assert(r.spots.isEmpty() == !r.found);
-    fm_assert(!r.found || r.spots[0] == r.pos);
+    fm_assert(!r.found || r.spots[0].pos == r.pos && r.spots[0].axis == r.axis);
     for (auto i = 0u; i < r.spots.size(); i++)
     {
+        const auto [pos, axis] = r.spots[i];
         for (auto j = i + 1; j < r.spots.size(); j++)
-            fm_assert(r.spots[i] != r.spots[j]);
-        fm_assert(passable(w, r.spots[i], body));
+            fm_assert(pos != r.spots[j].pos);
+        fm_assert(passable(w, pos, body));
+        // flush against its blocker
+        fm_assert(!passable(w, pos + axis, body));
         // Removed after the shot, so it can't stop the rays aimed at the next spot.
-        const auto c = add_critter(w, r.spots[i]);
-        fm_assert(cant_be_shot_at(w, threat, 0, r.spots[i], body, c->id));
+        const auto c = add_critter(w, pos);
+        fm_assert(cant_be_shot_at(w, threat, 0, pos, body, c->id));
         w[ch].remove_object(*c, c->index());
     }
     return r;
@@ -399,7 +402,7 @@ void test_lists_cover_spots()
     fm_assert(r.spots.size() > 1);
     fm_assert_equal(r1.spots.size(), r.spots.size());
     for (auto i = 0u; i < r.spots.size(); i++)
-        fm_assert(r.spots[i] == r1.spots[i]);
+        fm_assert(r.spots[i].pos == r1.spots[i].pos && r.spots[i].axis == r1.spots[i].axis);
 }
 
 // test_narrow_pillar_rejected's pillar, then a wall the npc is nearer to. The pillar's candidates
@@ -447,8 +450,8 @@ Array<point> copy_spots(const cover_point_result& r)
 {
     Array<point> ret;
     arrayReserve(ret, r.spots.size());
-    for (const auto p : r.spots)
-        arrayAppend(ret, p);
+    for (const auto& s : r.spots)
+        arrayAppend(ret, s.pos);
     return ret;
 }
 
@@ -1594,6 +1597,71 @@ void test_cover_script_retreat(point hidden)
     fm_assert(s.status().st == state::seek);
 }
 
+// The npc hides behind the wall. Sent to the last listed spot, it walks there, hides, peeks from
+// find_cover_peek's spot for it and hides there again. Sent to peek from the second, it walks to
+// that spot's peek spot, stays out and hides at the second. A spot inside the wall has no path and
+// no peek spot, and sending the npc there changes nothing. With the threat gone, no spot has a
+// peek spot.
+void test_cover_script_orders(point hidden)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    Array<cover_spot> spots;
+    list_cover_spots(*s.npc, spots);
+    fm_assert(spots.size() >= 3);
+    fm_assert(spots[0].pos == hidden);
+    const auto other = spots[spots.size() - 1], second = spots[1];
+
+    const auto rays = s.status().rays;
+    const auto p = find_cover_peek(*s.npc, other);
+    fm_assert(p);
+    fm_assert_equal(rays, s.status().rays);
+
+    fm_assert(send_to_cover(*s.npc, other));
+    {
+        const auto t = s.status();
+        fm_assert(t.st == state::to_cover);
+        fm_assert(t.has_cover && t.cover == other.pos && !t.has_peek);
+    }
+    s.step_until(other.pos);
+    fm_assert(s.status().st == state::hidden);
+    s.step_until(state::exposed);
+    {
+        const auto t = s.status();
+        fm_assert(s.npc->position() == p->pos);
+        fm_assert(t.cover == other.pos && t.peek == p->pos && t.gun == p->gun);
+    }
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == other.pos);
+
+    const auto q = find_cover_peek(*s.npc, second);
+    fm_assert(q);
+    fm_assert(send_to_peek(*s.npc, second));
+    {
+        const auto t = s.status();
+        fm_assert(t.st == state::to_peek);
+        fm_assert(t.cover == second.pos && t.has_peek && t.peek == q->pos && t.gun == q->gun);
+        fm_assert(t.gun_seen_from == s.threat->position());
+    }
+    s.step_until(state::exposed);
+    fm_assert(s.npc->position() == q->pos);
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == second.pos);
+
+    const cover_spot wall{point{ch, {7, 8}, {}}, {1, 0}};
+    const auto t0 = s.status();
+    fm_assert(!send_to_cover(*s.npc, wall));
+    fm_assert(!send_to_peek(*s.npc, wall));
+    const auto t1 = s.status();
+    fm_assert(t1.st == t0.st && t1.cover == t0.cover);
+    fm_assert(t1.has_peek == t0.has_peek && t1.peek == t0.peek);
+
+    s.w[ch].kill_object(*s.threat, s.threat->index());
+    fm_assert(!find_cover_peek(*s.npc, other));
+    fm_assert(!send_to_peek(*s.npc, other));
+}
+
 } // namespace
 
 void Test::test_cover_point()
@@ -1655,6 +1723,7 @@ void Test::test_cover_point()
     test_cover_script_peek_again_flanked(hidden, c0.peek);
     test_cover_script_search_every_move(hidden);
     test_cover_script_retreat(hidden);
+    test_cover_script_orders(hidden);
     test_cover_script_keeps_peeking(hidden, c0.peek);
     test_cover_script_walking_threat(hidden);
     test_cover_script_follows_while_hidden(hidden);

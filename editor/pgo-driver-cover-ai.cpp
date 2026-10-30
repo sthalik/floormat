@@ -172,10 +172,10 @@ task app::scene_cover_ai()
         const auto v = press(2);
         fm_assert(v.type == base_test::ValueType::u32);
         fm_assert(v.u32 >= 1);
-        Array<point> spots;
+        Array<cover_spot> spots;
         list_cover_spots(*w.find_object<critter>(npc_id), spots);
         fm_assert_equal(v.u32, (uint32_t)spots.size());
-        fm_assert_equal(status().cover, spots[0]);
+        fm_assert_equal(status().cover, spots[0].pos);
     }
 
     // The player moves north while the npc peeks. From there the wall hides the gun as well as the
@@ -362,13 +362,13 @@ task app::scene_cover_ai_map()
             v = tests().current_test->advance(*this, v);
             fm_assert(v.type == base_test::ValueType::u32);
             n_spots = v.u32;
-            Array<point> spots;
+            Array<cover_spot> spots;
             list_cover_spots(*w.find_object<critter>(npc_id), spots);
             fm_assert_equal(n_spots, (uint32_t)spots.size());
             fm_assert(n_spots >= 1);
-            fm_assert_equal(cover, spots[0]);
-            for (const auto& pt : spots)
-                fm_assert(!sees(player, pt));
+            fm_assert_equal(cover, spots[0].pos);
+            for (const auto& x : spots)
+                fm_assert(!sees(player, x.pos));
         }
 
         deadline = _driver->scene_dt + max_dt;

@@ -64,6 +64,10 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
     return pos + Vector2i(Math::round(Vector2{-f.y(), f.x()} * ((float)dist / f.length())));
 }
 
+// The direction along the face of the blocker a cover spot with this axis is flush against, the one
+// find_peek slides in.
+Vector2i across_of(Vector2i axis) { return Math::abs(Vector2i{axis.y(), axis.x()}); }
+
 // Takes cover from a critter, then keeps stepping out of it and back. Each phase, hidden or
 // exposed, lasts until its wait runs out, unless a walk is blocked or a search for cover fails.
 // Only updates that start with the critter standing in its phase spend the wait. The update in
@@ -95,7 +99,9 @@ struct cover_script final : critter_script
     cover_script(astar& A, object_id threat, uint32_t div_size, Optional<int> gun_offset);
 
     cover_script_status status() const;
-    void list_spots(critter& c, Array<point>& out);
+    void list_spots(critter& c, Array<cover_spot>& out);
+    Optional<cover_peek> peek_for(critter& c, const cover_spot& s);
+    bool send_to(critter& c, const cover_spot& s, bool peek);
 
     cover_script_options options;
 
@@ -130,6 +136,7 @@ private:
     void take_cover(const bptr<critter>& c);
     void walk_update(const bptr<critter>& c, size_t& i, const Ns& dt);
     void face_threat(critter& c, size_t i, point threat);
+    Optional<cover_peek> peek_from(critter& c, point from, Vector2i dir, point threat);
     Optional<point> find_peek(critter& c, point threat);
 
     astar& A;
@@ -174,7 +181,7 @@ cover_script_status cover_script::status() const
     };
 }
 
-void cover_script::list_spots(critter& c, Array<point>& out)
+void cover_script::list_spots(critter& c, Array<cover_spot>& out)
 {
     arrayClear(out);
     if (!has_query)
@@ -304,8 +311,7 @@ bool cover_script::sees_gun(critter& c, point pos, point threat)
     return true;
 }
 
-// The direction along the blocker's face, the one find_peek slides in.
-Vector2i cover_script::across() const { return Math::abs(Vector2i{axis.y(), axis.x()}); }
+Vector2i cover_script::across() const { return across_of(axis); }
 
 // find_cover_point's cover from the threat within cover_radius of c, with options.octants. Not
 // found when the threat is gone or nothing hides c from it. Unless the threat is gone, threat_pos
@@ -671,28 +677,26 @@ void cover_script::face_threat(critter& c, size_t i, point threat)
         c.rotate(i, r);
 }
 
-// The spot nearest the cover, sliding along the blocker's face, where a ray from the threat reaches
-// gun_point() of the body centered there. Searched in steps of half the body, since a blocker the
-// slide could pass is at least that wide, then bisected. The bisection takes the cover itself as
+// The spot nearest `from`, sliding along dir, where a ray from threat reaches gun_point() of the
+// body centered there, and that gun point. Searched in steps of half the body, since a blocker the
+// slide could pass is at least that wide, then bisected. The bisection takes `from` itself as
 // unseen, so the slide is at least 1 px. When a step's slide runs into a collider, the last slide
 // tried on that side is the longest clear one, also found by bisection. Empty when neither side
-// has one within max_peek px. peek_pos and gun_pos hold the spot and its gun point when found, and
-// gun_seen_from holds threat.
-Optional<point> cover_script::find_peek(critter& c, point threat)
+// has one within max_peek px.
+Optional<cover_peek> cover_script::peek_from(critter& c, point from, Vector2i dir, point threat)
 {
     auto& w = c.world();
     const auto body = Vector2i(c.bbox_size);
-    const auto dir = across();
     const auto step = Math::max(1, Math::dot(body, dir)/2);
     const auto pred = blocks_all_but(c.id);
     const auto seen = [&](int t) {
-        return sees(c, threat, gun_point(c, cover + dir*t, threat, dir, gun_offset));
+        return sees(c, threat, gun_point(c, from + dir*t, threat, dir, gun_offset));
     };
     // The slide sweeps the box spanning both ends.
     const auto clear = [&](int t) {
-        const auto lo = cover.intra().center_shifted() - body/2 + Math::min(dir*t, Vector2i{});
+        const auto lo = from.intra().center_shifted() - body/2 + Math::min(dir*t, Vector2i{});
         const auto size = body + Math::abs(dir*t);
-        return Search::is_passable(w, cover.chunk3(), Range2D{Vector2(lo), Vector2(lo + size)}, pred);
+        return Search::is_passable(w, from.chunk3(), Range2D{Vector2(lo), Vector2(lo + size)}, pred);
     };
 
     Optional<int> best;
@@ -735,13 +739,89 @@ Optional<point> cover_script::find_peek(critter& c, point threat)
         if (!best || hi < Math::abs(*best))
             best = side*hi;
     }
-    has_peek = !!best;
     if (!best)
         return {};
-    peek_pos = cover + dir * *best;
-    gun_pos = gun_point(c, peek_pos, threat, dir, gun_offset);
+    const auto pos = from + dir * *best;
+    return cover_peek{pos, gun_point(c, pos, threat, dir, gun_offset)};
+}
+
+// peek_from for c's cover. peek_pos and gun_pos hold the spot and its gun point when found, and
+// gun_seen_from holds threat.
+Optional<point> cover_script::find_peek(critter& c, point threat)
+{
+    const auto p = peek_from(c, cover, across(), threat);
+    has_peek = !!p;
+    if (!p)
+        return {};
+    peek_pos = p->pos;
+    gun_pos = p->gun;
     gun_seen_from = threat;
     return peek_pos;
+}
+
+Optional<cover_peek> cover_script::peek_for(critter& c, const cover_spot& s)
+{
+    const auto threat = c.world().find_object(threat_id);
+    if (!threat)
+        return {};
+    // sees() counts every ray, and the counters leave this out.
+    const auto n = rays;
+    const auto p = peek_from(c, s.pos, across_of(s.axis), threat->position());
+    rays = n;
+    return p;
+}
+
+// send_to_cover, and send_to_peek with peek. The path is found before anything changes, so a spot
+// with no path leaves the script as it was.
+bool cover_script::send_to(critter& c, const cover_spot& s, bool peek)
+{
+    const auto threat = c.world().find_object(threat_id);
+    Optional<cover_peek> p;
+    if (peek)
+    {
+        if (!threat)
+            return false;
+        p = peek_from(c, s.pos, across_of(s.axis), threat->position());
+        if (!p)
+            return false;
+    }
+    const auto to = p ? p->pos : s.pos;
+    const auto here = c.position() == to;
+    path_search_result path;
+    if (!here)
+    {
+        path = path_to(c, to);
+        if (!path.is_found())
+            return false;
+    }
+    cover = s.pos;
+    axis = s.axis;
+    has_cover = true;
+    flanked = flank::none;
+    replans = 0;
+    if (threat)
+        threat_pos = threat->position();
+    has_peek = !!p;
+    if (p)
+    {
+        peek_pos = p->pos;
+        gun_pos = p->gun;
+        gun_seen_from = threat_pos;
+    }
+    wait = p ? exposed_time : hidden_time;
+    if (!here)
+    {
+        walk = critter_walk{move(path)};
+        st = p ? state::to_peek : state::to_cover;
+    }
+    else if (p)
+    {
+        st = state::exposed;
+        face_threat(c, c.index(), threat_pos);
+    }
+    else
+        st = state::hidden;
+    return true;
 }
 
 cover_script* cover_script_of(critter& c)
@@ -776,12 +856,31 @@ void set_cover_script_options(critter& c, const cover_script_options& options)
         s->options = options;
 }
 
-void list_cover_spots(critter& c, Array<point>& out)
+void list_cover_spots(critter& c, Array<cover_spot>& out)
 {
     if (auto* s = cover_script_of(c))
         s->list_spots(c, out);
     else
         arrayClear(out);
+}
+
+Optional<cover_peek> find_cover_peek(critter& c, const cover_spot& s)
+{
+    if (auto* x = cover_script_of(c))
+        return x->peek_for(c, s);
+    return {};
+}
+
+bool send_to_cover(critter& c, const cover_spot& s)
+{
+    auto* x = cover_script_of(c);
+    return x && x->send_to(c, s, false);
+}
+
+bool send_to_peek(critter& c, const cover_spot& s)
+{
+    auto* x = cover_script_of(c);
+    return x && x->send_to(c, s, true);
 }
 
 } // namespace floormat

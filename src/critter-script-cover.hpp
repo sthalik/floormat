@@ -48,12 +48,34 @@ struct cover_script_status
 // Empty when c runs another script or none.
 Optional<cover_script_status> get_cover_script_status(critter& c);
 
+// Where c peeks from a cover spot: pos, its body's center, and gun, its gun point.
+struct cover_peek
+{
+    point pos, gun;
+};
+
 // Replaces out with every spot find_cover_point accepts for the status's query, in the order tried.
 // When that search found cover and the world hasn't changed since, the first is the spot it found.
 // It runs the search again with the script's own pools, div_size and predicate, and the query's
 // octants. The script's counters and update times leave it out. out is empty when c runs another
 // script or none, or the script hasn't searched yet.
-void list_cover_spots(critter& c, Array<point>& out);
+void list_cover_spots(critter& c, Array<cover_spot>& out);
+
+// The peek spot the script would step out to from s, with the threat where it stands now. Empty
+// when c runs another script or none, the threat is gone, or neither side of s has a peek spot
+// within the script's max_peek. A spot the threat already sees gets a peek spot 1 px from it,
+// since the slide is at least 1 px. The script's counters and update times leave it out.
+Optional<cover_peek> find_cover_peek(critter& c, const cover_spot& s);
+
+// Walks c along a Dijkstra path to s, to hide there for hidden_time and go on as from cover it
+// found itself. The threat's position becomes the last check's, as after a search, so the script
+// checks whether the threat sees s only once the threat moves. False, with the script unchanged,
+// when c runs another script or none, or no path leads to s.
+bool send_to_cover(critter& c, const cover_spot& s);
+
+// As send_to_cover, but to find_cover_peek's spot for s, to be exposed there for exposed_time and
+// then hide at s. False also when the threat is gone or s has no peek spot.
+bool send_to_peek(critter& c, const cover_spot& s);
 
 // From the script's next update on. Does nothing when c runs another script or none.
 void set_cover_script_options(critter& c, const cover_script_options& options);

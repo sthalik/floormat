@@ -22,12 +22,19 @@ struct cover_query
     uint8_t octants = 0;
 };
 
+struct cover_spot
+{
+    point pos;
+    // toward the threat; pos is flush against a blocker along it
+    Vector2i axis;
+};
+
 struct cover_point_result
 {
     point pos;
     // toward the threat; pos is flush against a blocker along it
     Vector2i axis;
-    ArrayView<const point> spots;
+    ArrayView<const cover_spot> spots;
     uint32_t candidates = 0;
     uint32_t rejected = 0;
     bool found = false;
@@ -53,9 +60,10 @@ struct cover_point
     // accepted only when the threat turned about the body's center by j octants either way, for j
     // from 1 to q.octants/2 and rounded to whole px, sees no pixel of it either. rejected also counts
     // the spots a turned threat sees.
-    // With list_spots, the search goes on past pos, and spots holds every accepted spot once, in the
-    // order tried, starting with pos. Two candidates can be pushed to the same spot. The other fields
-    // are the same as without list_spots. spots points into this cover_point, so it is valid until
+    // With list_spots, the search goes on past pos, and spots holds every accepted spot once with its
+    // axis, in the order tried, starting with pos and axis. Two candidates can be pushed to the same
+    // spot, and spots keeps the first one's axis. The other fields are the same as without
+    // list_spots. spots points into this cover_point, so it is valid until
     // the next call.
     cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Grid::Cover::Params params,
                                         const cover_query& q, const Search::pred& pred,

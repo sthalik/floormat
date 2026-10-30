@@ -108,7 +108,7 @@ struct cover_point::Impl
     Array<candidate> cands;
     Array<Range2Di> rects;
     Array<slope_range> runs;
-    Array<point> spots;
+    Array<cover_spot> spots;
     Array<Range2Di> turned_rects;
 };
 
@@ -509,10 +509,10 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& p
         if (!list_spots)
             break;
         auto i = 0u;
-        while (i < spots.size() && spots[i] != pt)
+        while (i < spots.size() && spots[i].pos != pt)
             i++;
         if (i == spots.size())
-            arrayAppend(spots, pt);
+            arrayAppend(spots, cover_spot{pt, axis});
     }
     if (list_spots)
         ret.spots = spots;

@@ -102,7 +102,7 @@ struct cover_ai_test final : base_test
 
     weak_bptr<critter> npc;
     rc::raycast_result_s ray;
-    Array<point> spots;
+    Array<cover_spot> spots;
     cover_script_options options;
     point start_pos, list_cover;
     object_id threat = 0;
@@ -304,8 +304,8 @@ void cover_ai_test::draw_overlay(app& a)
     if (show_spots)
     {
         ImDrawList& bg = *ImGui::GetBackgroundDrawList();
-        for (const auto& pt : spots)
-            draw_dot(bg, a, pt, 3, {0.3f, 0.7f, 1, 0.9f});
+        for (const auto& x : spots)
+            draw_dot(bg, a, x.pos, 3, {0.3f, 0.7f, 1, 0.9f});
     }
     const auto c = npc.lock();
     if (!c)
