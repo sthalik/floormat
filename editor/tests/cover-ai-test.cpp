@@ -144,6 +144,7 @@ struct cover_ai_test final : base_test
     bool player_sees(app& a, const critter& c, point pt);
     bool send(critter& c, const cover_spot& s, bool peek);
     uint32_t toggle_hold();
+    uint32_t toggle_move_to_end();
     ArrayView<const cover_spot> script_spots(app& a, critter& c, const cover_script_status& s);
     Optional<uint32_t> step_cover(app& a, bool back);
     void draw_cover_picker(app& a);
@@ -413,6 +414,13 @@ uint32_t cover_ai_test::toggle_hold()
     return (uint32_t)options.hold;
 }
 
+uint32_t cover_ai_test::toggle_move_to_end()
+{
+    options.max_slide = options.max_slide ? 0 : cover_script_options{}.max_slide;
+    apply_options();
+    return options.max_slide ? 1 : 0;
+}
+
 // The spots of the script's last search, apart from the overlay's, from list_cover_spots(), which
 // runs that search again. They are kept until the script searches again, world::pass_gen() moves or
 // the npc is another, since listing them each frame would cost a whole search per frame. Critters
@@ -467,11 +475,10 @@ Optional<uint32_t> cover_ai_test::step_cover(app& a, bool back)
     return {};
 }
 
-// A left click picks the nearest dot of the overlay within pick_radius. A listed spot's dot sends
-// the npc to hide there, and a peek spot's dot sends it to peek from a spot it belongs to. On a
-// tie the listed spot wins. Spots along one face of a blocker often slide to the same peek spot,
-// and then the npc's cover is the one it peeks from when it is among them, else the one nearest
-// the peek spot, which has the shortest walk back.
+// A left click picks the nearest dot of the overlay within pick_radius, a listed spot's on a tie.
+// A listed spot's dot sends the npc to hide there, and a peek spot's dot sends it to peek from a
+// spot it belongs to. Of spots sharing a peek spot, as unmoved spots along one face often do, it
+// peeks from its cover if that is among them, else from the nearest.
 bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_down)
 {
     if (is_down || e.button != mouse_button_left || !show_spots)
@@ -635,6 +642,11 @@ base_test::Value cover_ai_test::advance(app& a, Value v)
             ret.u32 = *k;
         }
         break;
+    case 6:
+    case 7:
+        ret.type = ValueType::u32;
+        ret.u32 = v.u32 == 6 ? toggle_hold() : toggle_move_to_end();
+        break;
     default:
         break;
     }
@@ -764,6 +776,9 @@ void cover_ai_test::draw_ui(app& a, float)
     bool hold = options.hold != hold_phase::none;
     if (ImGui::Checkbox("Hold", &hold))
         (void)toggle_hold();
+    bool to_end = options.max_slide != 0;
+    if (ImGui::Checkbox("Move spots to cover's end", &to_end))
+        (void)toggle_move_to_end();
 
     bool only_seen = !options.search_every_move;
     if (ImGui::Checkbox("Search only when seen", &only_seen))

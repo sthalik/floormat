@@ -67,8 +67,10 @@ constexpr uint32_t map_min_player_dist = 2*tile_size_xy;
 
 // What cover_ai_test's "Other cover spots" box lists once its search has reached every tile: the
 // spots of one search over its default radius, 1024 px, around the tile c stands on and from
-// threat. Its default octants are the script's.
-void overlay_spots(critter& c, point threat, Array<cover_spot>& out)
+// threat. Its default octants are the script's. max_slide is the panel's, which the "Move spots to
+// cover's end" box sets.
+void overlay_spots(critter& c, point threat, Array<cover_spot>& out,
+                   uint32_t max_slide = cover_script_options{}.max_slide)
 {
     const auto s = get_cover_script_status(c);
     fm_assert(s && s->has_query);
@@ -76,7 +78,51 @@ void overlay_spots(critter& c, point threat, Array<cover_spot>& out)
     q.pos = point{c.position().coord(), {}};
     q.threat = threat;
     q.radius = 16*tile_size_xy;
+    q.max_slide = max_slide;
     list_cover_spots(c, q, out);
+}
+
+// A peek spot that n spots of a list peek from: nearest, the one nearest it unless tie says two
+// are as near, and other, another of them.
+struct shared_peek
+{
+    point peek, nearest, other;
+    uint32_t n = 0;
+    bool tie = false;
+};
+
+Array<shared_peek> shared_peeks(critter& c, const Array<cover_spot>& spots)
+{
+    Array<shared_peek> out;
+    for (const auto& x : spots)
+    {
+        const auto p = find_cover_peek(c, x);
+        if (!p)
+            continue;
+        auto i = 0u;
+        while (i < out.size() && out[i].peek != p->pos)
+            i++;
+        if (i == out.size())
+        {
+            arrayAppend(out, shared_peek{p->pos, x.pos, x.pos, 1});
+            continue;
+        }
+        auto& g = out[i];
+        g.n++;
+        const auto d = point::distance_squared(x.pos, g.peek), d0 = point::distance_squared(g.nearest, g.peek);
+        if (d < d0)
+        {
+            g.other = g.nearest;
+            g.nearest = x.pos;
+            g.tie = false;
+        }
+        else
+        {
+            g.other = x.pos;
+            g.tie |= d == d0;
+        }
+    }
+    return out;
 }
 
 bool listed(const Array<cover_spot>& spots, point pt)
@@ -98,6 +144,7 @@ task app::scene_cover_ai()
     using tests::base_test;
     using tests::Test;
     using state = cover_script_status::state;
+    using hold_phase = cover_script_options::hold_phase;
 
     // reset_world() below move-assigns the new world into the one M->world() returns, so w stays
     // valid and then names the new world. No bptr may live across that call, since
@@ -206,7 +253,7 @@ task app::scene_cover_ai()
     // peek spot of the npc's cover, which then stays its cover. The second, when a listed spot has
     // another peek spot, is on that one, and the nearest spot sliding there becomes the cover. The
     // search slides every spot to one of the wall's two ends, so here no two spots share a peek
-    // spot.
+    // spot. They do once "Move spots to cover's end" is unticked, further down.
     {
         const auto npc_at = [&] { return w.find_object(npc_id)->position(); };
         const auto hidden_at = [&](point p) {
@@ -315,7 +362,122 @@ task app::scene_cover_ai()
             fm_assert(_driver->scene_dt < deadline);
             co_yield {};
         }
-        fm_debug("cover-ai: switched to spot %u of %u, %u peek spots clicked", v.u32, (uint32_t)spots.size(), n_targets);
+
+        // The Hold box, ticked while the npc hides at first, holds hidden, and a click on first's
+        // peek spot then holds exposed: the npc stays out 4 s, twice its time out. Unticking "Move
+        // spots to cover's end" applies the panel's options while it is out, and it stays out,
+        // since the click moved the panel's hold too.
+        {
+            const auto h = press(6);
+            fm_assert(h.type == base_test::ValueType::u32);
+            fm_assert_equal((uint32_t)hold_phase::hidden, h.u32);
+        }
+        const auto q = find_cover_peek(*w.find_object<critter>(npc_id), spots[prev.u32]);
+        fm_assert(q);
+        set_cursor_at(q->pos);
+        co_await click_at_cursor(mouse_button_left);
+        fm_assert(status().st == state::to_peek);
+        deadline = _driver->scene_dt + max_dt;
+        while (!exposed_at(q->pos))
+        {
+            fm_assert(_driver->scene_dt < deadline);
+            co_yield {};
+        }
+        for (const auto until = _driver->scene_dt + Second*4; _driver->scene_dt < until;)
+        {
+            co_yield {};
+            fm_assert(exposed_at(q->pos));
+        }
+        {
+            const auto e = press(7);
+            fm_assert(e.type == base_test::ValueType::u32);
+            fm_assert_equal(0u, e.u32);
+        }
+        for (const auto until = _driver->scene_dt + Second; _driver->scene_dt < until;)
+        {
+            co_yield {};
+            fm_assert(exposed_at(q->pos));
+        }
+
+        // Spots left where the search accepts them peek from the same spot past each end of the
+        // wall. Two peek spots shared with no tie for the nearest: the npc first hides at a spot of
+        // the first other than the nearest, held hidden for 3 s, then peeks from there, then from
+        // the nearest spot of the second.
+        Array<cover_spot> unmoved;
+        {
+            const auto v = press(2);
+            fm_assert(v.type == base_test::ValueType::u32);
+            overlay_spots(*w.find_object<critter>(npc_id), ensure_player_character(w)->position(), unmoved, 0);
+            fm_assert_equal(v.u32, (uint32_t)unmoved.size());
+        }
+        const auto shared = shared_peeks(*w.find_object<critter>(npc_id), unmoved);
+        const shared_peek* own_peek = nullptr;
+        const shared_peek* near_peek = nullptr;
+        for (const auto& g : shared)
+            if (g.n < 2 || g.tie)
+                continue;
+            else if (!own_peek)
+                own_peek = &g;
+            else if (!near_peek)
+                near_peek = &g;
+        fm_assert(own_peek && near_peek);
+        set_cursor_at(own_peek->other);
+        co_await click_at_cursor(mouse_button_left);
+        fm_assert(status().st == state::to_cover);
+        deadline = _driver->scene_dt + max_dt;
+        while (!hidden_at(own_peek->other))
+        {
+            fm_assert(_driver->scene_dt < deadline);
+            co_yield {};
+        }
+        for (const auto until = _driver->scene_dt + Second*3; _driver->scene_dt < until;)
+        {
+            co_yield {};
+            fm_assert(hidden_at(own_peek->other));
+        }
+        const target peek_clicks[] = { {own_peek->peek, own_peek->other}, {near_peek->peek, near_peek->nearest} };
+        for (const auto [peek, cover] : peek_clicks)
+        {
+            set_cursor_at(peek);
+            co_await click_at_cursor(mouse_button_left);
+            {
+                const auto s = status();
+                fm_assert(s.st == state::to_peek);
+                fm_assert(s.cover == cover && s.has_peek && s.peek == peek);
+            }
+            deadline = _driver->scene_dt + max_dt;
+            while (!exposed_at(peek))
+            {
+                fm_assert(_driver->scene_dt < deadline);
+                co_yield {};
+            }
+        }
+
+        {
+            const auto e = press(7);
+            fm_assert(e.type == base_test::ValueType::u32);
+            fm_assert_equal(1u, e.u32);
+            const auto v = press(2);
+            fm_assert(v.type == base_test::ValueType::u32);
+            fm_assert_equal((uint32_t)overlay.size(), v.u32);
+        }
+        set_cursor_at(first);
+        co_await click_at_cursor(mouse_button_left);
+        fm_assert(status().st == state::to_cover);
+        deadline = _driver->scene_dt + max_dt;
+        while (!hidden_at(first))
+        {
+            fm_assert(_driver->scene_dt < deadline);
+            co_yield {};
+        }
+        {
+            const auto h = press(6);
+            fm_assert(h.type == base_test::ValueType::u32);
+            fm_assert_equal((uint32_t)hold_phase::none, h.u32);
+        }
+        fm_debug("cover-ai: switched to spot %u of %u, %u peek spots clicked; %u spots left where accepted, "
+                 "peek spots shared by %u and %u", v.u32, (uint32_t)spots.size(), n_targets, (uint32_t)unmoved.size(),
+                 own_peek->n, near_peek->n);
     }
 
     // The player moves south while the npc peeks. From there the wall hides the gun as well as the
