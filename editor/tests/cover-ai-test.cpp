@@ -676,8 +676,6 @@ void cover_ai_test::draw_overlay(app& a)
     ImDrawList& fg = *ImGui::GetForegroundDrawList();
     if (s->has_cover)
         draw_dot(fg, a, s->cover, 6, {0.2f, 1, 0.2f, 1});
-    // The last find_peek_pos result. While a flanked npc still peeks, it belongs to the cover it
-    // peeks from, and s->cover is already the one it will hide at.
     if (s->has_peek)
     {
         draw_dot(fg, a, s->peek, 5, {1, 0.85f, 0, 1});
