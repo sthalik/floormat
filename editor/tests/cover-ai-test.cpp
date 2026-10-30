@@ -740,6 +740,21 @@ void cover_ai_test::draw_ui(app& a, float)
         break;
     }
 
+    using stay_phase = cover_script_options::stay_phase;
+    auto stay = (int)options.stay;
+    text("Stay");
+    ImGui::SameLine();
+    bool stay_changed = ImGui::RadioButton("alternate", &stay, (int)stay_phase::alternate);
+    ImGui::SameLine();
+    stay_changed |= ImGui::RadioButton("hidden", &stay, (int)stay_phase::hidden);
+    ImGui::SameLine();
+    stay_changed |= ImGui::RadioButton("exposed", &stay, (int)stay_phase::exposed);
+    if (stay_changed)
+    {
+        options.stay = (stay_phase)stay;
+        apply_options();
+    }
+
     bool only_seen = !options.search_every_move;
     if (ImGui::Checkbox("Search only when seen", &only_seen))
     {

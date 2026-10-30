@@ -71,6 +71,7 @@ Vector2i across_of(Vector2i axis) { return Math::abs(Vector2i{axis.y(), axis.x()
 
 // Takes cover from a critter, then keeps stepping out of it and back. Each phase, hidden or
 // exposed, lasts until its wait runs out, unless a walk is blocked or a search for cover fails.
+// options.stay can keep the critter in one phase.
 // Only updates that start with the critter standing in its phase spend the wait. The update in
 // which it starts walking after a threat that moved is one of them, so a threat that keeps moving
 // can't keep the phase from ending. The phase lasts longer by the walk's later updates, and by
@@ -106,6 +107,7 @@ struct cover_script final : critter_script
     bool send_to(critter& c, const cover_spot& s, bool peek);
 
     cover_script_options options;
+    void set_options(const cover_script_options& o);
 
 private:
     // What check_exposed's search found after the threat saw the cover of an exposed c: next_cover,
@@ -118,6 +120,8 @@ private:
     void update(const bptr<critter>& c, size_t& i, const Ns& dt);
     void go_on(const bptr<critter>& c, size_t& i, const Ns& dt);
     bool wait_for(const Ns& dt);
+    Ns time_in(state phase) const;
+    bool stays() const;
     bool sees(critter& c, point from, point to);
     bool sees_gun(critter& c, point pos, point threat);
     Vector2i across() const;
@@ -249,7 +253,7 @@ void cover_script::update(const bptr<critter>& c, size_t& i, const Ns& dt)
         return;
     case state::hidden:
     case state::exposed:
-        if (wait_for(dt))
+        if (!stays() && wait_for(dt))
         {
             if (st == state::hidden)
                 step_out(c);
@@ -294,6 +298,39 @@ bool cover_script::wait_for(const Ns& dt)
     }
     wait = Ns{};
     return true;
+}
+
+// The wait c starts phase with, hidden or exposed: hidden_time or exposed_time, or none when
+// options.stay keeps c in the other phase.
+Ns cover_script::time_in(state phase) const
+{
+    using stay_phase = cover_script_options::stay_phase;
+    if (phase == state::hidden)
+        return options.stay == stay_phase::exposed ? Ns{} : hidden_time;
+    return options.stay == stay_phase::hidden ? Ns{} : exposed_time;
+}
+
+// True when options.stay keeps c in the phase it stands in, so its wait isn't spent. A flanked c
+// spends it, since the threat sees the cover c peeks from.
+bool cover_script::stays() const
+{
+    using stay_phase = cover_script_options::stay_phase;
+    if (flanked != flank::none)
+        return false;
+    return options.stay == (st == state::hidden ? stay_phase::hidden : stay_phase::exposed);
+}
+
+void cover_script::set_options(const cover_script_options& o)
+{
+    using stay_phase = cover_script_options::stay_phase;
+    const auto old = options.stay;
+    options = o;
+    if (o.stay == old)
+        return;
+    const auto hiding = st == state::hidden || st == state::to_cover;
+    const auto peeking = st == state::exposed || st == state::to_peek;
+    if (hiding && o.stay == stay_phase::exposed || peeking && o.stay == stay_phase::hidden)
+        wait = Ns{};
 }
 
 // True when a ray from `from` reaches `to` before any collider a shot can't pass. Critters don't
@@ -553,7 +590,7 @@ void cover_script::seek(const bptr<critter>& c)
     if (auto path = find_cover(*c))
     {
         walk_to_cover(move(*path));
-        wait = hidden_time;
+        wait = time_in(state::hidden);
     }
     else
         wait = retry_time;
@@ -581,7 +618,7 @@ void cover_script::follow_threat(critter& c)
         else
         {
             walk_to_cover(move(*path));
-            wait = hidden_time;
+            wait = time_in(state::hidden);
             return;
         }
     }
@@ -652,7 +689,7 @@ void cover_script::check_walk(critter& c)
     {
         const auto peeking = st == state::to_peek;
         if (relocate(c) && peeking && (st == state::to_cover || st == state::hidden))
-            wait = hidden_time;
+            wait = time_in(state::hidden);
         return;
     }
     if (st == state::to_peek && !sees_gun(c, walk.dest(), pos))
@@ -669,18 +706,20 @@ void cover_script::peek_again(critter& c)
             retry_later();
     }
     else if (walk_to(c, cover, state::hidden))
-        wait = hidden_time;
+        wait = time_in(state::hidden);
     else
         retry_later();
 }
 
+// With no peek spot, c hides for hidden_time more. With options.stay exposed, a wait of
+// time_in()'s none would call find_peek in every update.
 void cover_script::step_out(const bptr<critter>& c)
 {
     if (const auto p = find_peek(*c, threat_pos))
     {
         walk = critter_walk{*p};
         st = state::to_peek;
-        wait = exposed_time;
+        wait = time_in(state::exposed);
     }
     else
         wait = hidden_time;
@@ -695,7 +734,7 @@ void cover_script::leave_peek(const bptr<critter>& c)
     case flank::none:
         walk = critter_walk{cover};
         st = state::to_cover;
-        wait = hidden_time;
+        wait = time_in(state::hidden);
         return;
     case flank::cover:
         cover = next_cover;
@@ -718,7 +757,7 @@ void cover_script::leave_peek(const bptr<critter>& c)
 void cover_script::take_cover(const bptr<critter>& c)
 {
     if (walk_to(*c, cover, state::hidden))
-        wait = hidden_time;
+        wait = time_in(state::hidden);
     else
         retry_later();
 }
@@ -899,7 +938,7 @@ bool cover_script::send_to(critter& c, const cover_spot& s, bool peek)
         gun_pos = p->gun;
         gun_seen_from = threat_pos;
     }
-    wait = p ? exposed_time : hidden_time;
+    wait = time_in(p ? state::exposed : state::hidden);
     if (!here)
     {
         walk = critter_walk{move(path)};
@@ -944,7 +983,7 @@ Optional<cover_script_status> get_cover_script_status(critter& c)
 void set_cover_script_options(critter& c, const cover_script_options& options)
 {
     if (auto* s = cover_script_of(c))
-        s->options = options;
+        s->set_options(options);
 }
 
 void list_cover_spots(critter& c, Array<cover_spot>& out)

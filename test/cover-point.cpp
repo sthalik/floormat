@@ -1234,6 +1234,101 @@ void test_cover_script_hidden_checks(point hidden)
     fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, t.cover, body, s.npc->id));
 }
 
+using stay_phase = cover_script_options::stay_phase;
+
+// The npc of cover_scene steps through stay's values, staying put 4 s in each kept phase:
+// - Kept hidden at hidden, it steps out in the update after stay becomes exposed, and stays at peek.
+// - Back to alternate, it peeks for its whole 2 s out, which the kept phase didn't spend, then
+//   hides again at hidden.
+// - Kept hidden there, it still walks to new cover when the threat moves to where it sees hidden,
+//   as test_cover_script_hidden_checks, and stays hidden there.
+void test_cover_script_stays_hidden(point hidden, point peek)
+{
+    cover_scene s;
+    const auto stays_at = [&](point pos, state st) {
+        for (auto k = 0u; k < 4*s.fps; k++)
+        {
+            s.step();
+            fm_assert(s.npc->position() == pos && s.status().st == st);
+        }
+    };
+    set_cover_script_options(*s.npc, {.stay = stay_phase::hidden});
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    stays_at(hidden, state::hidden);
+
+    set_cover_script_options(*s.npc, {.stay = stay_phase::exposed});
+    s.step();
+    fm_assert(s.status().st == state::to_peek);
+    s.step_until(peek);
+    stays_at(peek, state::exposed);
+
+    set_cover_script_options(*s.npc, {});
+    // As in test_cover_script_faces_threat.
+    const auto frames = s.stay(2*s.fps + 3);
+    fm_assert(frames + 2 >= 2*s.fps);
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+
+    set_cover_script_options(*s.npc, {.stay = stay_phase::hidden});
+    const point threat_pos{ch, {2, 4}, {}};
+    s.move_threat(threat_pos);
+    fm_assert(s.seen_from(threat_pos, hidden));
+    s.step();
+    const auto t = s.status();
+    fm_assert(t.st == state::to_cover && t.cover != hidden);
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == t.cover);
+    stays_at(t.cover, state::hidden);
+}
+
+// The npc of cover_scene, kept exposed from the start, hides at hidden for one update and steps
+// out to peek. Half a second later the threat moves as in test_cover_script_flanked, and the npc,
+// flanked, leaves when its 2 s out are up for the cover its search found. It hides there for one
+// update and steps out again. Kept hidden from there, it walks back to the new cover in the next
+// update and stays.
+void test_cover_script_stays_exposed(point hidden, point peek)
+{
+    cover_scene s;
+    set_cover_script_options(*s.npc, {.stay = stay_phase::exposed});
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    s.step();
+    fm_assert(s.status().st == state::to_peek);
+    s.step_until(peek);
+    for (auto k = 0u; k < s.fps/2; k++)
+    {
+        s.step();
+        fm_assert(s.npc->position() == peek && s.status().st == state::exposed);
+    }
+
+    const point threat_pos{ch, {2, 8}, {}};
+    s.move_threat(threat_pos);
+    fm_assert(s.seen_from(threat_pos, hidden));
+    const auto frames = s.stay(2*s.fps + 3);
+    fm_assert(frames + 2 >= 2*s.fps);
+    const auto cover = s.status().cover;
+    fm_assert(cover != hidden);
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == cover);
+    s.step();
+    fm_assert(s.status().st == state::to_peek);
+    s.step_until(state::exposed);
+    const auto peek2 = s.npc->position();
+    fm_assert(peek2 != cover);
+
+    set_cover_script_options(*s.npc, {.stay = stay_phase::hidden});
+    s.step();
+    fm_assert(s.status().st == state::to_cover);
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == cover);
+    for (auto k = 0u; k < 4*s.fps; k++)
+    {
+        s.step();
+        fm_assert(s.npc->position() == cover && s.status().st == state::hidden);
+    }
+}
+
 // Half a second after the npc of cover_scene reaches peek, the threat moves to the wall's west
 // side, from where the cover spot is in the open. In the next update the npc searches and finds
 // cover behind the wall's east face, but stays out until its 2 s are up. Then it walks there
@@ -1890,6 +1985,8 @@ void Test::test_cover_point()
     fm_assert(c0.hidden == hidden);
     test_cover_script_hidden_checks(hidden);
     test_cover_script_flanked(hidden, c0.peek);
+    test_cover_script_stays_hidden(hidden, c0.peek);
+    test_cover_script_stays_exposed(hidden, c0.peek);
     test_cover_script_flanked_retreat(c0.peek);
     test_cover_script_flanked_moves(hidden, c0.peek);
     test_cover_script_flanked_hidden_again(hidden, c0.peek);

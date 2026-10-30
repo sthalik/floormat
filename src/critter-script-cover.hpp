@@ -11,6 +11,14 @@ struct critter;
 
 struct cover_script_options
 {
+    enum class stay_phase : uint8_t { alternate, hidden, exposed, };
+
+    // With hidden or exposed, the critter stays in that phase once there: its wait never runs out,
+    // and the other phase's runs out in its first standing update. An exposed critter whose cover
+    // the threat sees still leaves when exposed_time runs out, for the cover its search found.
+    // When the other phase has no peek spot to step out to, the critter tries again after
+    // hidden_time. Moving after a threat that sees the critter works as with alternate.
+    stay_phase stay = stay_phase::alternate;
     // Looks for cover again on every move of the threat while the critter stands, without first
     // casting rays to see whether the threat sees it. Walks then go on to their end whatever the
     // threat does. For comparing the CPU time of the two.
@@ -83,7 +91,9 @@ bool send_to_cover(critter& c, const cover_spot& s);
 // then hide at s. False also when the threat is gone or s has no peek spot.
 bool send_to_peek(critter& c, const cover_spot& s);
 
-// From the script's next update on. Does nothing when c runs another script or none.
+// From the script's next update on. A changed stay that names the phase other than the one c stands
+// in or walks to ends that phase in c's next standing update. Does nothing when c runs another
+// script or none.
 void set_cover_script_options(critter& c, const cover_script_options& options);
 
 } // namespace floormat
