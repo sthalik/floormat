@@ -136,7 +136,7 @@ struct cover_ai_test final : base_test
     point start_pos, search_center, search_threat;
     object_id threat = 0, script_list_npc = 0;
     uint64_t search_pass_gen = 0, script_list_pass_gen = 0;
-    uint32_t next_tile = 0, search_radius = 0, tiles_radius = 0, script_list_searches = 0;
+    uint32_t next_tile = 0, search_radius = 0, search_max_slide = 0, tiles_radius = 0, script_list_searches = 0;
     Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
     counts snapshot;
     per_second rates;
@@ -243,7 +243,8 @@ bool cover_ai_test::spots_stale(app& a) const
     auto& w = a.main().world();
     const auto player = w.find_object(threat);
     return !player || player->position() != search_threat || w.pass_gen() != search_pass_gen ||
-           search_radius != (uint32_t)radius_tiles*tile_size_xy || search_octants != options.octants;
+           search_radius != (uint32_t)radius_tiles*tile_size_xy || search_octants != options.octants ||
+           search_max_slide != options.max_slide;
 }
 
 // Starts the overlay's search over, around the center of the tile c stands on, so that each tile
@@ -280,6 +281,7 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
     search_pass_gen = w.pass_gen();
     search_radius = r;
     search_octants = options.octants;
+    search_max_slide = options.max_slide;
     next_tile = 0;
     search_time = Ns{};
     has_search = true;
@@ -291,7 +293,7 @@ void cover_ai_test::search_tile(critter& c)
 {
     const auto mid = tiles[next_tile++]*tile_size_xy;
     const cover_query q{search_center, Vector2ui(c.bbox_size), search_threat, search_radius, search_octants,
-                        Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}};
+                        search_max_slide, Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}};
     list_cover_spots(c, q, tile_spots);
     for (const auto& x : tile_spots)
     {

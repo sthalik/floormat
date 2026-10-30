@@ -1,5 +1,6 @@
 #pragma once
 #include "point.hpp"
+#include "tile-defs.hpp"
 #include "cover-point.hpp"
 #include "nanosecond.hpp"
 #include <cr/Optional.h>
@@ -17,6 +18,8 @@ struct cover_script_options
     // cover_query::octants of the script's searches. With 3, a cover spot must also hide the critter
     // from the threat turned 11.25° either way about it.
     uint8_t octants = 3;
+    // cover_query::max_slide of the script's searches. 5 tiles is also their radius, cover_radius.
+    uint32_t max_slide = 5*(uint32_t)tile_size_xy;
 };
 
 struct cover_script_status
