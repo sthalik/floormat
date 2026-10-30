@@ -32,8 +32,9 @@ constexpr Ns retry_time = Second;
 constexpr uint32_t cover_radius = 5*(uint32_t)tile_size_xy;
 constexpr int max_peek = 2*tile_size_xy;
 // A spot where the body fits but no path leads, past a wall or among other critters, costs a
-// Dijkstra search that runs out its whole max_dist. A retreat stops after this many of them.
-constexpr uint32_t max_retreat_paths = 8;
+// Dijkstra search that runs out its whole max_dist. A search for cover or a retreat stops after
+// this many of them.
+constexpr uint32_t max_failed_paths = 8;
 
 struct cover_script;
 constexpr StringView script_name = name_of<cover_script>;
@@ -78,7 +79,8 @@ Vector2i across_of(Vector2i axis) { return Math::abs(Vector2i{axis.y(), axis.x()
 // threat show that the threat sees it or its cover. check_hidden, check_exposed and check_walk
 // cast them, and only in an update in which the threat stands elsewhere than at the last check or
 // search, so a threat that stands still costs no checks. relocate's search takes the nearest cover
-// within cover_radius, else find_retreat's spot away from the threat. With
+// within cover_radius that c stands on or a path leads to, else find_retreat's spot away from the
+// threat. With
 // options.search_every_move, a standing critter instead searches on every move of the threat, in
 // follow_threat, and walks cast no rays. A threat that is gone sends a standing critter to seek,
 // which looks for cover again after retry_time.
@@ -110,6 +112,8 @@ private:
     // or the spot at retreat_pos. leave_peek walks c there when exposed_time runs out.
     enum class flank : uint8_t { none, cover, retreat, };
     struct retreat_spot { uint64_t threat_dist2; Vector2i offset; };
+    // path is empty when c stands on spot.
+    struct reachable_cover { cover_spot spot; path_search_result path; };
 
     void update(const bptr<critter>& c, size_t& i, const Ns& dt);
     void go_on(const bptr<critter>& c, size_t& i, const Ns& dt);
@@ -118,10 +122,13 @@ private:
     bool sees_gun(critter& c, point pos, point threat);
     Vector2i across() const;
     cover_point_result nearest_cover(critter& c);
-    bool find_cover(critter& c);
+    Optional<reachable_cover> nearest_reachable_cover(critter& c);
+    bool joins_unreachable(critter& c, point to);
+    Optional<path_search_result> find_cover(critter& c);
     path_search_result path_to(critter& c, point to);
     path_search_result find_retreat(critter& c);
     bool walk_to(critter& c, point to, state then);
+    void walk_to_cover(path_search_result path);
     bool start_retreat(critter& c);
     bool relocate(critter& c);
     void retry_later();
@@ -144,6 +151,7 @@ private:
     cover_point finder;
     cover_query query = {};
     Array<retreat_spot> retreat_spots;
+    Array<point> unreachable;
     // threat_pos is where the threat stood at the last check or search. next_cover and next_axis
     // become cover and axis only when leave_peek walks c there, since until then c peeks from
     // cover, and find_peek and the ray to its gun go along that cover's face.
@@ -327,17 +335,80 @@ cover_point_result cover_script::nearest_cover(critter& c)
     return finder.find_cover_point(w, A.pool_registry(), Cover::Params{div_size}, query, blocks_all_but(c.id));
 }
 
-// True when nearest_cover finds cover, and then cover and axis hold it.
-bool cover_script::find_cover(critter& c)
+// The first of nearest_cover's spots, in the order find_cover_point tries them, that c stands on or
+// that path_to finds a path to, with that path. Empty when nearest_cover finds nothing, or when
+// max_failed_paths spots have no path. Only when the first spot has no path does a second search
+// list the others, since a search that lists spots can't stop at the first. A walled-in space
+// holds many listed spots, so a spot that joins_unreachable ties to one with no path is skipped
+// without a Dijkstra search and doesn't count toward max_failed_paths.
+Optional<cover_script::reachable_cover> cover_script::nearest_reachable_cover(critter& c)
 {
     const auto r = nearest_cover(c);
     if (!r.found)
-        return false;
-    cover = r.pos;
-    axis = r.axis;
+        return {};
+    if (r.pos == c.position())
+        return reachable_cover{{r.pos, r.axis}, {}};
+    if (auto path = path_to(c, r.pos); path.is_found())
+        return reachable_cover{{r.pos, r.axis}, move(path)};
+
+    searches++;
+    const auto list = finder.find_cover_point(c.world(), A.pool_registry(), Cover::Params{div_size}, query,
+                                              blocks_all_but(c.id), true);
+    if (arrayCapacity(unreachable) < list.spots.size())
+        arrayReserve(unreachable, list.spots.size());
+    arrayClear(unreachable);
+    arrayAppend(unreachable, r.pos);
+    auto failed = 1u;
+    for (auto i = 1u; i < list.spots.size() && failed < max_failed_paths; i++)
+    {
+        const auto& s = list.spots[i];
+        if (s.pos == c.position())
+            return reachable_cover{s, {}};
+        if (!joins_unreachable(c, s.pos))
+        {
+            if (auto path = path_to(c, s.pos); path.is_found())
+                return reachable_cover{s, move(path)};
+            failed++;
+        }
+        arrayAppend(unreachable, s.pos);
+    }
+    return {};
+}
+
+// True when c's body centered on `to` can move in a straight line to a spot in unreachable no more
+// than a tile away on each axis, so that path_to finds no path to `to` either. The rect spanning
+// both bodies holds every position along that line, so the line is free when the rect is passable.
+// A skipped spot can still have a path, when the spot it ties to has one just longer than that
+// spot's max_dist.
+bool cover_script::joins_unreachable(critter& c, point to)
+{
+    const auto body = Vector2i(c.bbox_size);
+    const auto pred = blocks_all_but(c.id);
+    for (const auto& u : unreachable)
+    {
+        const auto d = to - u;
+        if (Math::abs(d.x()) > tile_size_xy || Math::abs(d.y()) > tile_size_xy)
+            continue;
+        const auto a = u.intra().center_shifted(), b = a + d;
+        const auto lo = Math::min(a, b) - body/2;
+        const auto hi = Math::max(a, b) - body/2 + body;
+        if (Search::is_passable(c.world(), u.chunk3(), Range2D{Vector2(lo), Vector2(hi)}, pred))
+            return true;
+    }
+    return false;
+}
+
+// nearest_reachable_cover's path, when it finds cover, and then cover and axis hold it.
+Optional<path_search_result> cover_script::find_cover(critter& c)
+{
+    auto r = nearest_reachable_cover(c);
+    if (!r)
+        return {};
+    cover = r->spot.pos;
+    axis = r->spot.axis;
     has_cover = true;
     has_peek = false;
-    return true;
+    return move(r->path);
 }
 
 // A Dijkstra path from c to `to`, smoothed when string_pull can. Not found when no path within
@@ -361,7 +432,7 @@ path_search_result cover_script::path_to(critter& c, point to)
 // path_to's path to the spot farthest from threat_pos among those within cover_radius of c that
 // lie farther from threat_pos than c, fit c's body and have a path. The spots lie on a grid with a
 // step of half the body, starting at c, and are tried farthest first. Not found when the spots run
-// out, or after max_retreat_paths of them have no path.
+// out, or after max_failed_paths of them have no path.
 path_search_result cover_script::find_retreat(critter& c)
 {
     auto& w = c.world();
@@ -404,7 +475,7 @@ path_search_result cover_script::find_retreat(critter& c)
             continue;
         if (auto path = path_to(c, to); path.is_found())
             return path;
-        if (++failed == max_retreat_paths)
+        if (++failed == max_failed_paths)
             break;
     }
     return {};
@@ -430,6 +501,19 @@ bool cover_script::walk_to(critter& c, point to, state then)
     return true;
 }
 
+// walk_to(c, cover, state::hidden) along find_cover's path, which is empty when c stands on cover.
+void cover_script::walk_to_cover(path_search_result path)
+{
+    flanked = flank::none;
+    if (!path.is_found())
+    {
+        st = state::hidden;
+        return;
+    }
+    walk = critter_walk{move(path)};
+    st = state::to_cover;
+}
+
 bool cover_script::start_retreat(critter& c)
 {
     auto path = find_retreat(c);
@@ -441,13 +525,16 @@ bool cover_script::start_retreat(critter& c)
     return true;
 }
 
-// Searches from where c stands and starts the walk there: to the nearest cover within
-// cover_radius when a path leads to it, else to find_retreat's spot. False when there is neither,
-// and then c seeks after retry_time. The wait stays as it was, since walks don't spend it.
+// Searches from where c stands and starts the walk there: to find_cover's spot, else to
+// find_retreat's. False when there is neither, and then c seeks after retry_time. The wait stays
+// as it was, since walks don't spend it.
 bool cover_script::relocate(critter& c)
 {
-    if (find_cover(c) && walk_to(c, cover, state::hidden))
+    if (auto path = find_cover(c))
+    {
+        walk_to_cover(move(*path));
         return true;
+    }
     if (start_retreat(c))
         return true;
     retry_later();
@@ -463,14 +550,20 @@ void cover_script::retry_later()
 
 void cover_script::seek(const bptr<critter>& c)
 {
-    wait = find_cover(*c) && walk_to(*c, cover, state::hidden) ? hidden_time : retry_time;
+    if (auto path = find_cover(*c))
+    {
+        walk_to_cover(move(*path));
+        wait = hidden_time;
+    }
+    else
+        wait = retry_time;
 }
 
 // options.search_every_move's search on each move of the threat. A hidden c relocates. An exposed
 // c looks for cover again from where it stands and walks to find_peek's spot for it, or to the new
 // cover to hide there for all of hidden_time when there is no such spot. It keeps what is left of
 // the wait, which the walk doesn't spend, and stays put when it already stands there. With no
-// cover or no path to it, an exposed c retreats as relocate does.
+// cover that a path leads to, or no path to its peek spot, an exposed c retreats as relocate does.
 void cover_script::follow_threat(critter& c)
 {
     if (st == state::hidden)
@@ -478,15 +571,16 @@ void cover_script::follow_threat(critter& c)
         (void)relocate(c);
         return;
     }
-    if (find_cover(c))
+    if (auto path = find_cover(c))
     {
         if (const auto p = find_peek(c, threat_pos))
         {
             if (walk_to(c, *p, state::exposed))
                 return;
         }
-        else if (walk_to(c, cover, state::hidden))
+        else
         {
+            walk_to_cover(move(*path));
             wait = hidden_time;
             return;
         }
@@ -521,11 +615,10 @@ void cover_script::check_exposed(critter& c, point threat)
     threat_pos = threat;
     if (sees(c, threat, flanked == flank::cover ? next_cover : cover))
     {
-        // walk_to needs no path to the spot c stands on.
-        if (const auto r = nearest_cover(c); r.found && (r.pos == c.position() || path_to(c, r.pos).is_found()))
+        if (const auto r = nearest_reachable_cover(c))
         {
-            next_cover = r.pos;
-            next_axis = r.axis;
+            next_cover = r->spot.pos;
+            next_axis = r->spot.axis;
             flanked = flank::cover;
         }
         else if (auto path = find_retreat(c); path.is_found())
