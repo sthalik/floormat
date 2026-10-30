@@ -56,12 +56,12 @@ public:
 
 private:
     // step*minor/major rounded with ties up, as an unsigned offset from `from`'s minor coordinate.
-    uint64_t minor_at(uint64_t step) const;
+    uint64_t minor_at(uint32_t step) const;
     // The first step k with minor_at(k) >= m, for m <= minor_len, and 0 for m == 0.
     uint32_t first_step_at_minor(uint64_t m) const;
     // The pixel at `step` pixels from `from` along the major axis and `minor` along the minor
     // axis, each in the direction the line moves.
-    Vector2i make_pixel(uint64_t step, uint64_t minor) const;
+    Vector2i make_pixel(uint32_t step, uint64_t minor) const;
 
     Vector2i _from;
     uint32_t _major_len = 0, _minor_len = 0;

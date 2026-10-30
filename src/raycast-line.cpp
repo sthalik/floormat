@@ -34,13 +34,13 @@ auto bresenham_line::off_axis_at(uint32_t step) const -> off_axis_pixels
 {
     fm_debug_assert(step < _major_len);
     const uint64_t k = step, major = _major_len, minor = _minor_len;
-    const auto m0 = minor_at(k);
-    if (m0 == minor_at(k + 1))
+    const auto m0 = minor_at(step);
+    if (m0 == minor_at(step + 1))
         return { .pixels = {}, .crossed = {}, .diagonal = false };
     // Twice the line's minor coordinate at major k + 1/2, minus the edge between m0 and m0 + 1,
     // all times major. The line meets the edge before k + 1/2 when e > 0.
     const auto e = (int64_t)((2*k + 1) * minor) - (int64_t)((2*m0 + 1) * major);
-    const auto major_first = make_pixel(k + 1, m0), minor_first = make_pixel(k, m0 + 1);
+    const auto major_first = make_pixel(step + 1, m0), minor_first = make_pixel(step, m0 + 1);
     if (!_y_major)
         return { .pixels = { major_first, minor_first }, .crossed = { e <= 0, e >= 0 }, .diagonal = true };
     else
@@ -74,12 +74,12 @@ auto bresenham_line::steps_within(uint32_t axis, int32_t lo, int32_t hi) const -
     return { first_step_at_minor((uint64_t)a), b == len ? _major_len : first_step_at_minor((uint64_t)b + 1) - 1 };
 }
 
-uint64_t bresenham_line::minor_at(uint64_t step) const
+uint64_t bresenham_line::minor_at(uint32_t step) const
 {
     if (_major_len == 0)
         return 0;
     const uint64_t major = _major_len;
-    return (2*step*_minor_len + major) / (2*major);
+    return (2*(uint64_t)step*_minor_len + major) / (2*major);
 }
 
 // minor_at(k) >= m exactly when k >= (2m - 1)*major / (2*minor), for 1 <= m <= minor.
@@ -91,7 +91,7 @@ uint32_t bresenham_line::first_step_at_minor(uint64_t m) const
     return (uint32_t)((a + b - 1) / b);
 }
 
-Vector2i bresenham_line::make_pixel(uint64_t step, uint64_t minor) const
+Vector2i bresenham_line::make_pixel(uint32_t step, uint64_t minor) const
 {
     const auto a = _major_sign * (int32_t)step, b = _minor_sign * (int32_t)minor;
     if (!_y_major)
