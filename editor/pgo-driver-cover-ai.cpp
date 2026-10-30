@@ -91,7 +91,7 @@ bool listed(const Array<cover_spot>& spots, point pt)
 } // namespace
 
 // An npc hides behind a wall from the player, steps out until it sees the player, and goes back.
-// cover_ai_test spawns it, lists the other cover spots, sends it to them by its button and by clicks
+// cover_ai_test spawns it, lists the other cover spots, sends it to them by its arrows and by clicks
 // on their dots, and resets it. After the player moves, the npc peeks from a new spot that sees
 // the player and hides where the player can't see it. Leaving the tests mode, switching tests and
 // reset_world() each remove the npc.
@@ -201,9 +201,10 @@ task app::scene_cover_ai()
         fm_assert(listed(overlay, status().cover));
     }
 
-    // The "Switch to other cover" button, then clicks on peek spots' dots, then one on the first
-    // listed spot's dot, which sends the npc back to its cover. After each, the npc goes on as from
-    // cover it found itself. Spots along the wall's face slide to the same peek spots. The first
+    // The next arrow beside the cover combobox, then clicks on peek spots' dots, then one on the
+    // first listed spot's dot, which sends the npc back to its cover, then the next arrow and the
+    // previous one, which sends it back again. After each, the npc goes on as from cover it found
+    // itself. Spots along the wall's face slide to the same peek spots. The first
     // click is on the peek spot of the npc's cover, which then stays its cover. The second, when a
     // listed spot has another peek spot, is on that one, and the nearest spot sliding there becomes
     // the cover.
@@ -290,6 +291,23 @@ task app::scene_cover_ai()
         set_cursor_at(first);
         co_await click_at_cursor(mouse_button_left);
         fm_assert(status().st == state::to_cover);
+        fm_assert_equal(first, status().cover);
+        deadline = _driver->scene_dt + max_dt;
+        while (!hidden_at(first))
+        {
+            fm_assert(_driver->scene_dt < deadline);
+            co_yield {};
+        }
+
+        // From the same cover, with nothing moved, the next arrow picks the same spot, and the
+        // previous one goes back past the spots the next one skipped.
+        const auto next = press(4);
+        fm_assert(next.type == base_test::ValueType::u32);
+        fm_assert_equal(v.u32, next.u32);
+        fm_assert_equal(switched.pos, status().cover);
+        const auto prev = press(5);
+        fm_assert(prev.type == base_test::ValueType::u32);
+        fm_assert_equal(first, spots[prev.u32].pos);
         fm_assert_equal(first, status().cover);
         deadline = _driver->scene_dt + max_dt;
         while (!hidden_at(first))

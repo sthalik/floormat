@@ -54,11 +54,11 @@ struct base_test
     // The driver cannot click an ImGui widget, and cover_test's octant selector is one. Steps it
     // and hands back the octants built so far as a bitmask. maze_test's build and solve buttons
     // are two more: 0 presses build, anything else solve. cover_ai_test's buttons and its "Other
-    // cover spots" box are five more: 0 presses Start and 3 Reset, each returning the new npc's
+    // cover spots" box are six more: 0 presses Start and 3 Reset, each returning the new npc's
     // id as u64, or none when it couldn't spawn. 1 presses Stop. 2 ticks the box, starts its search
-    // over and runs it to the end, and returns the number of spots as u32. 4 presses "Switch to
-    // other cover" and returns the index of the spot it chose in list_cover_spots' list as u32, or
-    // none.
+    // over and runs it to the end, and returns the number of spots as u32. 4 and 5 press the next
+    // and the previous arrow beside the cover combobox, each returning the index of the spot it
+    // chose in list_cover_spots' list as u32, or none.
     virtual Value advance(app& a, Value);
     // When the editor switches from the tests mode to another mode. Not when the test is replaced,
     // which runs its destructor.
