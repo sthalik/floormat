@@ -9,6 +9,7 @@
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
 #include "src/critter-script-cover.hpp"
+#include "src/grid-cover.hpp"
 #include "src/grid-pool-registry.hpp"
 #include "src/nanosecond.inl"
 #include "src/point.inl"
@@ -65,6 +66,27 @@ void print_coord(auto&& buf, point pt)
     snformat(buf, "(ch {}x{}) <{}x{}> {{{}x{} px}}", c.x(), c.y(), l.x(), l.y(), o.x(), o.y());
 }
 
+void print_spot(auto&& buf, bool has, point pt)
+{
+    const auto v = Vector3i(pt).xy();
+    if (has)
+        snformat(buf, "({}, {})", v.x(), v.y());
+    else
+        snformat(buf, "none");
+}
+
+double us(const Ns& t) { return (double)(uint64_t)t * 1e-3; }
+
+// Octant fills of the cover pool the npc's script searches with, and their time, since the pool
+// was made. A search fills the octants it reads in each chunk the first time.
+struct fill_count { uint32_t n = 0; Ns time{}; };
+
+fill_count fills_of(app& a)
+{
+    auto& p = a.main().astar().pool_registry().cover_pool(Cover::Params{cover_div});
+    return {p.octant_fills(), p.octant_fill_time()};
+}
+
 void do_column(StringView name)
 {
     ImGui::TableNextRow();
@@ -103,7 +125,7 @@ struct cover_ai_test final : base_test
     bool handle_mouse_move(app&, const mouse_move_event&) override { return false; }
     void draw_overlay(app& a) override;
     void draw_ui(app& a, float width) override;
-    void update_pre(app&, const Ns&) override {}
+    void update_pre(app& a, const Ns&) override;
     void update_post(app& a, const Ns& dt) override;
     Value advance(app& a, Value v) override;
     void on_leave_tests_mode(app&) override { stop(); }
@@ -116,8 +138,8 @@ struct cover_ai_test final : base_test
     void clear_spots();
     bool spots_stale(app& a) const;
     void restart_spots(app& a, const critter& c);
-    void search_spots(critter& c, Optional<Ns> budget);
-    void search_tile(critter& c);
+    void search_spots(app& a, critter& c, Optional<Ns> budget);
+    void search_tile(app& a, critter& c);
     bool player_sees(app& a, const critter& c, point pt);
     void send(critter& c, uint32_t k, bool peek);
     ArrayView<const cover_spot> script_spots(app& a, critter& c, const cover_script_status& s);
@@ -125,6 +147,7 @@ struct cover_ai_test final : base_test
     void draw_cover_picker(app& a);
     void update_rates(const cover_script_status& s);
     void update_ray(app& a, const critter& c, const cover_script_status& s);
+    void log_script(app& a, const critter& c, const cover_script_status& s);
 
     weak_bptr<critter> npc;
     rc::raycast_result_s ray;
@@ -138,6 +161,9 @@ struct cover_ai_test final : base_test
     uint64_t search_pass_gen = 0, script_list_pass_gen = 0;
     uint32_t next_tile = 0, search_radius = 0, search_max_slide = 0, tiles_radius = 0, script_list_searches = 0;
     Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
+    fill_count fills_before_update, search_fills;
+    cover_script_status logged;
+    object_id logged_npc = 0;
     counts snapshot;
     per_second rates;
     int radius_tiles = default_spots_radius_tiles;
@@ -284,17 +310,21 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
     search_max_slide = options.max_slide;
     next_tile = 0;
     search_time = Ns{};
+    search_fills = {};
     has_search = true;
 }
 
 // Lists the spots of the next tile that no earlier tile listed, with their peek spots. A candidate
 // in one tile can be pushed onto a spot in another, so two tiles can list one spot.
-void cover_ai_test::search_tile(critter& c)
+void cover_ai_test::search_tile(app& a, critter& c)
 {
+    const auto f0 = fills_of(a);
+    auto t = Time::now();
     const auto mid = tiles[next_tile++]*tile_size_xy;
     const cover_query q{search_center, Vector2ui(c.bbox_size), search_threat, search_radius, search_octants,
                         search_max_slide, Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}};
     list_cover_spots(c, q, tile_spots);
+    auto added = 0u, peeks = 0u;
     for (const auto& x : tile_spots)
     {
         auto i = 0u;
@@ -307,22 +337,39 @@ void cover_ai_test::search_tile(critter& c)
         {
             st.peek = *p;
             st.has_peek = true;
+            peeks++;
         }
         arrayAppend(spots, x);
         arrayAppend(spot_states, st);
+        added++;
+    }
+    const auto dt = t.update();
+    const auto f = fills_of(a);
+    search_fills.n += f.n - f0.n;
+    search_fills.time += f.time - f0.time;
+    if (added || f.n != f0.n)
+    {
+        const auto v = Vector3i(search_center).xy() + mid;
+        fm_debug("cover-ai: spots tile (%d, %d): %u new, %u with peek spots, %.1f us, %u octant fills in %.1f us",
+                 v.x(), v.y(), added, peeks, us(dt), f.n - f0.n, us(f.time - f0.time));
     }
 }
 
-void cover_ai_test::search_spots(critter& c, Optional<Ns> budget)
+void cover_ai_test::search_spots(app& a, critter& c, Optional<Ns> budget)
 {
     auto t = Time::now();
     spots_time = Ns{};
+    const auto first_tile = next_tile;
     while (has_search && next_tile < tiles.size() && (!budget || spots_time < *budget))
     {
-        search_tile(c);
+        search_tile(a, c);
         spots_time += t.update();
     }
     search_time += spots_time;
+    if (next_tile > first_tile && next_tile == tiles.size())
+        fm_debug("cover-ai: spots search done: %u tiles, %u spots, %.1f ms, %u octant fills in %.1f ms",
+                 (uint32_t)tiles.size(), (uint32_t)spots.size(), us(search_time)*1e-3, search_fills.n,
+                 us(search_fills.time)*1e-3);
 }
 
 // The ray the script's check_hidden casts, from the player to pt.
@@ -351,7 +398,13 @@ ArrayView<const cover_spot> cover_ai_test::script_spots(app& a, critter& c, cons
     const auto gen = a.main().world().pass_gen();
     if (!has_script_list || script_list_npc != c.id || script_list_searches != s.searches || script_list_pass_gen != gen)
     {
+        const auto f0 = fills_of(a);
+        auto t = Time::now();
         list_cover_spots(c, script_list);
+        const auto dt = t.update();
+        const auto f = fills_of(a);
+        fm_debug("cover-ai: cover list: %u spots, %.1f us, %u octant fills in %.1f us", (uint32_t)script_list.size(),
+                 us(dt), f.n - f0.n, us(f.time - f0.time));
         script_list_npc = c.id;
         script_list_searches = s.searches;
         script_list_pass_gen = gen;
@@ -495,11 +548,36 @@ void cover_ai_test::update_post(app& a, const Ns& dt)
     }
     update_rates(*s);
     update_ray(a, *c, *s);
+    log_script(a, *c, *s);
     if (!show_spots)
         return;
     if (spots_stale(a))
         restart_spots(a, *c);
-    search_spots(*c, spots_budget);
+    search_spots(a, *c, spots_budget);
+}
+
+void cover_ai_test::update_pre(app& a, const Ns&)
+{
+    fills_before_update = fills_of(a);
+}
+
+// The octant fills are those of the whole world update, of which the script's update is the only
+// part that reads cover grids.
+void cover_ai_test::log_script(app& a, const critter& c, const cover_script_status& s)
+{
+    const auto& l = logged;
+    if (c.id == logged_npc && s.searches == l.searches && s.has_cover == l.has_cover && s.cover == l.cover &&
+        s.has_peek == l.has_peek && s.peek == l.peek)
+        return;
+    logged = s;
+    logged_npc = c.id;
+    const auto f = fills_of(a);
+    char cover[32], peek[32];
+    print_spot(cover, s.has_cover, s.cover);
+    print_spot(peek, s.has_peek, s.peek);
+    fm_debug("cover-ai: search %u, %s, cover %s, peek %s: script update %.1f us, %u octant fills in %.1f us",
+             s.searches, state_names[(size_t)s.st], cover, peek, us(s.last_update), f.n - fills_before_update.n,
+             us(f.time - fills_before_update.time));
 }
 
 base_test::Value cover_ai_test::advance(app& a, Value v)
@@ -523,7 +601,7 @@ base_test::Value cover_ai_test::advance(app& a, Value v)
         if (const auto c = npc.lock())
         {
             restart_spots(a, *c);
-            search_spots(*c, {});
+            search_spots(a, *c, {});
         }
         ret.type = ValueType::u32;
         ret.u32 = (uint32_t)spots.size();
@@ -746,8 +824,6 @@ void cover_ai_test::draw_ui(app& a, float)
             snformat(buf, "hit at {}", (const char*)buf2);
             text(buf);
         }
-
-        const auto us = [](const Ns& t) { return (double)(uint64_t)t * 1e-3; };
 
         do_column("listed spots");
         if (show_spots && has_search)

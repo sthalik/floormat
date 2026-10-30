@@ -6,6 +6,8 @@
 #include "world.hpp"
 #include "raycast.hpp"
 #include "point.inl"
+#include "nanosecond.inl"
+#include "timer.hpp"
 #include "compat/assume-aligned.hpp"
 #include "compat/function2.hpp"
 #include <bit>
@@ -14,7 +16,6 @@
 #include <array>
 #include <cr/Memory.h>
 #include <mg/Functions.h>
-#include <mg/Timeline.h>
 
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wused-but-marked-unused"
@@ -252,6 +253,8 @@ struct CoverGrid : GridBase
 struct CoverPool : Pool<CoverGrid>
 {
     Pass::Pool& pass_pool;
+    uint32_t fills = 0;
+    Ns fill_time{};
 
     CoverPool(Params p, Pass::Pool& pass_pool);
 };
@@ -311,11 +314,11 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
         return false;
 
     const uint32_t div_size = params.div_size;
-    auto& pass_pool = static_cast<CoverPool*>(pool)->pass_pool;
+    auto& P = *static_cast<CoverPool*>(pool);
+    auto& pass_pool = P.pass_pool;
     fm_assert(pass_pool.params().div_size() == div_size);
     pass_pool.maybe_mark_stale_all(self.world());
-    Timeline timeline;
-    timeline.start();
+    auto t = Time::now();
 
     const uint32_t dc = chunk_size_xy / div_size;
 
@@ -365,9 +368,12 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
     }
 
     built_octants |= (1u << k);
+    const auto dt = t.update();
+    P.fills++;
+    P.fill_time += dt;
 #if 0
     DBG << "{fill octant}" << coord << "k=" << k
-        << "took" << (int)(timeline.currentFrameDuration() * 1e6f) << "us";
+        << "took" << (int)(Time::to_milliseconds(dt) * 1e3f) << "us";
 #endif
     return true;
 }
@@ -606,5 +612,7 @@ Pool::Pool(Params params, Pass::Pool& pass_pool): pool{new detail::grid::CoverPo
 Pool::~Pool() noexcept { delete pool; }
 Params Pool::params() const { return pool->params; }
 uint32_t Pool::pooled_count() const { return pool->freelist.size(); }
+uint32_t Pool::octant_fills() const { return pool->fills; }
+Ns Pool::octant_fill_time() const { return pool->fill_time; }
 
 } // namespace floormat::Grid::Cover
