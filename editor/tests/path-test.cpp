@@ -42,6 +42,7 @@ struct path_test final : base_test
         Optional<path_search_result> res;
         astar::string_pull_result pull;
         float pull_time = 0;
+        uint32_t nodes = 0;
     } result;
     bool has_result : 1 = false, has_pending : 1 = false;
     bool smoothing = true;
@@ -180,6 +181,7 @@ void path_test::update_pre(app& a, const Ns&)
 
     result.res = {}; // return back to the pool to preserve cpu cache
     auto res = astar.Dijkstra<1>(w, pending.from, pending.to, pending.max_dist, pending.own_size, Search::without_critters());
+    const auto nodes = astar.last_node_count();
     has_result = !!res;
     astar::string_pull_result pull;
     float pull_time = 0;
@@ -196,6 +198,7 @@ void path_test::update_pre(app& a, const Ns&)
         .res = has_result ? move(res) : Optional<path_search_result>{},
         .pull = pull,
         .pull_time = pull_time,
+        .nodes = nodes,
     };
 }
 
@@ -284,6 +287,10 @@ void path_test::draw_ui(app&, float)
 
         do_column("time");
         std::snprintf(buf, array_size(buf), "%.1f ms", (double)(1000 * res.time()));
+        text(buf);
+
+        do_column("nodes");
+        snformat(buf, "{}", result.nodes);
         text(buf);
 
         if (smoothing)
