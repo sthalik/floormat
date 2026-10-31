@@ -2008,6 +2008,35 @@ void test_cover_script_retreat_circling_threat(point hidden)
     fm_assert_equal(t0.paths + 1, t.paths);
 }
 
+// As test_cover_script_retreat_circling_threat, from the npc's search for cover at hidden. The search restarts
+// only while a whole scan fits in search_tiles_left, so it still reaches its last tile, or a block 7 tiles away.
+void test_cover_script_search_circling_threat(point hidden, bool far_block)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    s.w[ch].remove_object(*s.wall, s.wall->index());
+    const point block{ch, {12, 12}, {}};
+    if (far_block)
+        add_blocker(s.w, block.local(), {64, 64});
+    rebuild(s.w);
+    const auto t0 = s.status();
+    const auto end = far_block ? state::to_cover : state::find_retreat;
+    for (auto updates = 0u; s.status().st != end; updates++)
+    {
+        fm_assert(updates < 60*s.fps);
+        const auto a = (updates + 1) * 2 * Math::Constants<double>::pi() / Cover::octant_count;
+        s.move_threat(hidden + Vector2i(Math::round(Vector2d{std::cos(a), std::sin(a)} * 64.)));
+        s.step();
+        fm_assert(s.status().st == state::search || s.status().st == end);
+    }
+    fm_assert_equal(t0.searches + 1, s.status().searches);
+    if (far_block)
+        fm_assert(point::distance(s.status().cover, block) < 2*(uint32_t)tile_size_xy);
+    else
+        fm_assert_equal(s.status().search_tiles, s.status().search_tile);
+}
+
 // A wall at tile (12, 8) whose west face, over 7 tiles from the npc, is the only cover from the
 // threat at (15, 8). The npc stands while its search reaches there, filling at most one octant
 // and running at most one Dijkstra search per update, then walks there and hides. With turned
@@ -2272,6 +2301,8 @@ void Test::test_cover_point()
     test_cover_script_retreat_closed_in(hidden);
     test_cover_script_retreat_restart(hidden);
     test_cover_script_retreat_circling_threat(hidden);
+    test_cover_script_search_circling_threat(hidden, false);
+    test_cover_script_search_circling_threat(hidden, true);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
     test_cover_script_div_change();
