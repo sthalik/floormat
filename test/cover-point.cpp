@@ -776,6 +776,7 @@ struct cover_scene
     astar A;
     Grid::Pass::Pool ray_pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
     bptr<critter> threat, npc;
+    bptr<scenery> wall;
     uint32_t fps = 0;
     Ns frame;
 
@@ -797,7 +798,7 @@ cover_scene::cover_scene(point threat_pos, Optional<int> gun_offset, const Optio
                          Vector2ui npc_size)
 {
     add_ground(w);
-    add_blocker(w, {7, 8}, {16, 96});
+    wall = add_blocker(w, {7, 8}, {16, 96});
     rebuild(w);
     threat = add_critter(w, threat_pos);
     npc = add_critter(w, point{ch, {4, 8}, {}}, npc_size);
@@ -872,8 +873,10 @@ uint32_t cover_scene::finish_search()
             retreat_updates++;
             fm_assert(paths <= 4);
             fm_assert(t0.retreat_spots > 0 && t0.retreat_spot <= t0.retreat_spots && t0.retreat_failed <= 8);
-            // The panel's progress only moves forward.
-            if (const auto t = status(); t.st == state::find_retreat)
+            // The panel's progress only moves forward, except when the threat's octant changes.
+            const auto t = status();
+            fm_assert(t.retreat_restarts - t0.retreat_restarts <= 1);
+            if (t.st == state::find_retreat && t.retreat_restarts == t0.retreat_restarts)
                 fm_assert(t.retreat_all && !t0.retreat_all || t.retreat_all == t0.retreat_all &&
                           t.retreat_spot > t0.retreat_spot);
         }
@@ -1905,8 +1908,23 @@ void test_cover_script_retreat(point hidden)
     fm_assert(s.status().st == state::search);
 }
 
-// As test_cover_script_retreat, with walls a shot passes closing in the 6 spots in the wall's shadow that the
-// retreat tries first. None has a path, so at 4 paths per update the retreat takes at least 2 updates.
+// Walls a shot passes, 16 px thick around 40x52 px, closing in the 6 spots in the wall's shadow that the
+// retreat from tile (7, 1) tries first.
+void close_in_retreat(world& w, point hidden)
+{
+    const auto mid = hidden + Vector2i{18, 216};
+    const Vector2i walls[][2] = {
+        {{72, 16}, {0, -34}}, {{72, 16}, {0, 34}}, {{16, 84}, {-28, 0}}, {{16, 84}, {28, 0}},
+    };
+    for (const auto& [size, off] : walls)
+    {
+        const auto p = mid + off;
+        add_blocker(w, p.local(), Vector2ub(size), p.offset(), pass_mode::shoot_through);
+    }
+}
+
+// As test_cover_script_retreat, with close_in_retreat's walls. None of the 6 spots has a path, so at 4 paths
+// per update the retreat takes at least 2 updates.
 void test_cover_script_retreat_closed_in(point hidden)
 {
     cover_scene s;
@@ -1915,16 +1933,7 @@ void test_cover_script_retreat_closed_in(point hidden)
     const auto t0 = s.status();
 
     const point threat_pos{ch, {7, 1}, {}};
-    const auto mid = hidden + Vector2i{18, 216};
-    // 16 px thick around 40x52 px
-    const Vector2i walls[][2] = {
-        {{72, 16}, {0, -34}}, {{72, 16}, {0, 34}}, {{16, 84}, {-28, 0}}, {{16, 84}, {28, 0}},
-    };
-    for (const auto& [size, off] : walls)
-    {
-        const auto p = mid + off;
-        add_blocker(s.w, p.local(), Vector2ub(size), p.offset(), pass_mode::shoot_through);
-    }
+    close_in_retreat(s.w, hidden);
     s.move_threat(threat_pos);
     fm_assert(s.seen_from(threat_pos, hidden));
     s.step();
@@ -1933,6 +1942,70 @@ void test_cover_script_retreat_closed_in(point hidden)
     fm_assert_equal(t0.searches + 1, t1.searches);
     fm_assert(t1.st == state::retreat || t1.st == state::seek);
     fm_assert(retreat_updates >= 2);
+}
+
+// As test_cover_script_retreat_closed_in. A 1 px move of the threat keeps the retreat's progress. A 100 px
+// move to another octant starts it over, and it picks a spot nearer than the enclosure that the wall hides.
+void test_cover_script_retreat_restart(point hidden)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    const point threat_pos{ch, {7, 1}, {}};
+    close_in_retreat(s.w, hidden);
+    s.move_threat(threat_pos);
+    s.step_until(state::find_retreat);
+    const auto t0 = s.status();
+
+    s.move_threat(threat_pos + Vector2i{1, 0});
+    s.step();
+    const auto t1 = s.status();
+    fm_assert(t1.st == state::find_retreat && t1.retreat_restarts == t0.retreat_restarts);
+    fm_assert_equal(t0.paths + 4, t1.paths);
+    fm_assert_equal(4u, t1.retreat_failed);
+
+    const auto moved = threat_pos + Vector2i{100, 0};
+    s.move_threat(moved);
+    s.step();
+    const auto t2 = s.status();
+    fm_assert_equal(t1.retreat_restarts + 1, t2.retreat_restarts);
+    // One path: the 4 spots without one stay done.
+    fm_assert(t2.st == state::retreat);
+    fm_assert_equal(t1.paths + 1, t2.paths);
+    s.step_until(state::seek);
+    const auto spot = s.npc->position();
+    // (12, 204) is the first spot test_cover_script_retreat's npc finds, and the first of the enclosure.
+    fm_assert((spot - hidden).dot() < Vector2i{12, 204}.dot());
+    fm_assert(!s.seen_from(moved, spot));
+    const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, moved)); };
+    fm_assert(dist(spot) - dist(hidden) > 3*tile_size_xy);
+}
+
+// As test_cover_script_retreat without the wall. The threat circles 64 px around the npc, an octant per update,
+// restarting the retreat each time, and the npc walks off when the first pass's rays run out, 6 updates in.
+void test_cover_script_retreat_circling_threat(point hidden)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    s.w[ch].remove_object(*s.wall, s.wall->index());
+    rebuild(s.w);
+    s.move_threat(point{ch, {7, 1}, {}});
+    s.step_until(state::find_retreat);
+    const auto t0 = s.status();
+    const auto here = s.npc->position();
+    auto updates = 0u;
+    for (; s.status().st == state::find_retreat; updates++)
+    {
+        fm_assert(updates < 6);
+        const auto a = (updates + 1) * 2 * Math::Constants<double>::pi() / Cover::octant_count;
+        s.move_threat(here + Vector2i(Math::round(Vector2d{std::cos(a), std::sin(a)} * 64.)));
+        s.step();
+    }
+    const auto t = s.status();
+    fm_assert(t.st == state::retreat && t.retreat_all);
+    fm_assert_equal(t0.retreat_restarts + updates, t.retreat_restarts);
+    fm_assert_equal(t0.paths + 1, t.paths);
 }
 
 // A wall at tile (12, 8) whose west face, over 7 tiles from the npc, is the only cover from the
@@ -2197,6 +2270,8 @@ void Test::test_cover_point()
     test_cover_script_search_every_move(hidden);
     test_cover_script_retreat(hidden);
     test_cover_script_retreat_closed_in(hidden);
+    test_cover_script_retreat_restart(hidden);
+    test_cover_script_retreat_circling_threat(hidden);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
     test_cover_script_div_change();
