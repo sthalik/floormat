@@ -39,7 +39,7 @@ private:
     // after the pass pools, so destroyed first: each borrows one of them
     struct
     {
-        std::array<Pointer<Cover::Pool>, std::countr_zero(chunk_size_xy)> direct; // xxx todo assumes power of two chunk size
+        std::array<Pointer<Cover::Pool>, std::bit_width(Cover::max_div_size)> direct;
         Array<Pointer<Cover::Pool>> fallback;
     } cover_;
 };
