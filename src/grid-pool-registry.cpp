@@ -25,6 +25,7 @@ Pass::Pool& PoolRegistry::pass_pool(const Pass::Params& pʹ)
     for (auto& pool : pass_.fallback)
         if (pool->params() == p)
             return *pool;
+    arrayReserve(pass_.fallback, 4);
     arrayAppend(pass_.fallback, InPlaceInit, InPlaceInit, p, Search::without_critters());
     return *pass_.fallback.back();
 }
@@ -45,6 +46,7 @@ Cover::Pool& PoolRegistry::cover_pool(const Cover::Params& pʹ)
     for (auto& pool : cover_.fallback)
         if (pool->params() == p)
             return *pool;
+    arrayReserve(cover_.fallback, 4);
     arrayAppend(cover_.fallback, InPlaceInit, InPlaceInit, p, pass_pool(pass_params));
     return *cover_.fallback.back();
 }
