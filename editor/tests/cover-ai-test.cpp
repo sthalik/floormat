@@ -4,7 +4,6 @@
 #include "../raycast-draw.hpp"
 #include "compat/array-size.hpp"
 #include "compat/format.hpp"
-#include "compat/fwd/algorithm/sort.hpp"
 #include "compat/weak-borrowed-ptr.inl"
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
@@ -32,10 +31,10 @@ using namespace floormat::imgui;
 using state = cover_script_status::state;
 using hold_phase = cover_script_options::hold_phase;
 
-constexpr uint32_t cover_div = 8;
 constexpr int spawn_distance = 4*tile_size_xy;
 constexpr Vector2i spawn_dirs[] = { {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, };
 constexpr uint8_t octant_choices[] = { 0, 1, 3, 5, 7, 9, };
+constexpr uint32_t div_choices[] = { 2, 4, 8, 16, 32, 64, };
 constexpr const char* state_names[] = { "seek", "to cover", "hidden", "to peek", "exposed", "retreat", "search", "find retreat", };
 static_assert(array_size(state_names) == (size_t)state::find_retreat + 1);
 // how far from a dot's center, in screen px, a click still picks it
@@ -44,8 +43,9 @@ constexpr float pick_radius = 6;
 // blockers. pgo-driver-cover-ai.cpp's overlay_spots takes the same radius. The slider doubles it
 // from 1 tile up to 1 << max_spots_radius_log2 tiles.
 constexpr int default_spots_radius_tiles = 16, max_spots_radius_log2 = 6;
-// How long the overlay's search may run in a frame. It stops after the tile that reaches it.
-constexpr Ns spots_budget = 2*Millisecond;
+// The overlay's search per frame, as the script's search per update in critter-script-cover.cpp. A
+// tile whose listing needs another fill waits for the next frame.
+constexpr uint32_t spots_tiles_per_frame = 32, spots_fills_per_frame = 1;
 
 enum class note : uint8_t { none, no_free_spot, no_start, start_taken, no_path, no_other_cover, };
 
@@ -82,9 +82,9 @@ double us(const Ns& t) { return (double)(uint64_t)t * 1e-3; }
 // was made. A search fills the octants it reads in each chunk the first time.
 struct fill_count { uint32_t n = 0; Ns time{}; };
 
-fill_count fills_of(app& a)
+fill_count fills_of(app& a, uint32_t div_size)
 {
-    auto& p = a.main().astar().pool_registry().cover_pool(Cover::Params{cover_div});
+    auto& p = a.main().astar().pool_registry().cover_pool(Cover::Params{div_size});
     return {p.octant_fills(), p.octant_fill_time()};
 }
 
@@ -136,11 +136,15 @@ struct cover_ai_test final : base_test
     void stop();
     object_id spawn(app& a, point at);
     void apply_options();
+    void set_div(app& a, uint32_t div_size);
+    fill_count fills(app& a) const { return fills_of(a, options.div_size); }
     void clear_spots();
     bool spots_stale(app& a) const;
     void restart_spots(app& a, const critter& c);
-    void search_spots(app& a, critter& c, Optional<Ns> budget);
-    void search_tile(app& a, critter& c);
+    void drop_seen_spots(app& a, const critter& c);
+    uint32_t seen_spots(app& a, const critter& c);
+    void search_spots(app& a, critter& c, bool limited);
+    Optional<uint32_t> search_tile(app& a, critter& c, point player, uint32_t max_fills);
     bool player_sees(app& a, const critter& c, point pt);
     bool send(critter& c, const cover_spot& s, bool peek);
     uint32_t toggle_hold();
@@ -159,10 +163,12 @@ struct cover_ai_test final : base_test
     // The tiles of the overlay's search, as offsets from search_center, nearest first.
     Array<Vector2i> tiles;
     cover_script_options options;
-    point start_pos, search_center, search_threat;
+    // spots_player: where the player stood when drop_seen_spots last ran, or the search started.
+    point start_pos, search_center, spots_player;
     object_id threat = 0, script_list_npc = 0;
     uint64_t search_pass_gen = 0, script_list_pass_gen = 0;
     uint32_t next_tile = 0, search_radius = 0, search_max_cover_end_dist = 0, tiles_radius = 0, script_list_searches = 0;
+    uint32_t search_octant = 0, search_div = 0, dropped_spots = 0;
     Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
     fill_count fills_before_update, search_fills;
     cover_script_status logged;
@@ -240,7 +246,7 @@ object_id cover_ai_test::spawn(app& a, point at)
     auto c = w.make_object<critter>(w.make_id(), at.coord(), npc_proto(at));
     // serialize/savegame.cpp leaves it out of saves
     c->ephemeral = true;
-    c->script.do_reassign(critter_script::make_cover_script(m.astar(), threat, cover_div), c);
+    c->script.do_reassign(critter_script::make_cover_script(m.astar(), threat, options.div_size), c);
     set_cover_script_options(*c, options);
     npc = c;
     has_snapshot = false;
@@ -255,6 +261,16 @@ void cover_ai_test::apply_options()
         set_cover_script_options(*c, options);
 }
 
+// Also drops script_spots()' list, since the script's last query accepts other spots in grids of
+// another div_size.
+void cover_ai_test::set_div(app& a, uint32_t div_size)
+{
+    options.div_size = div_size;
+    apply_options();
+    has_script_list = false;
+    fills_before_update = fills(a);
+}
+
 void cover_ai_test::clear_spots()
 {
     arrayClear(spots);
@@ -262,18 +278,18 @@ void cover_ai_test::clear_spots()
     has_search = false;
 }
 
-// The overlay's spots are hidden from where the player stood when its search started, with the
-// colliders as they were then. world::pass_gen() moves when a chunk's walls, ground, holes or static
-// objects change, or a chunk is made or destroyed, but critters walking don't move it.
+// As in the script, only a player move to another octant starts the search over. drop_seen_spots handles the moves
+// within one, and walking critters don't move world::pass_gen().
 bool cover_ai_test::spots_stale(app& a) const
 {
     if (!has_search)
         return true;
     auto& w = a.main().world();
     const auto player = w.find_object(threat);
-    return !player || player->position() != search_threat || w.pass_gen() != search_pass_gen ||
-           search_radius != (uint32_t)radius_tiles*tile_size_xy || search_octants != options.octants ||
-           search_max_cover_end_dist != options.max_cover_end_dist;
+    return !player || nearest_octant(Vector2(player->position() - search_center)) != search_octant ||
+           w.pass_gen() != search_pass_gen || search_radius != (uint32_t)radius_tiles*tile_size_xy ||
+           search_octants != options.octants || search_max_cover_end_dist != options.max_cover_end_dist ||
+           search_div != options.div_size;
 }
 
 // Starts the overlay's search over, around the center of the tile c stands on, so that each tile
@@ -288,45 +304,70 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
     const auto r = (uint32_t)radius_tiles*tile_size_xy;
     if (r != tiles_radius)
     {
-        arrayClear(tiles);
-        const auto n = (int)r/tile_size_xy + 1;
-        for (auto y = -n; y <= n; y++)
-            for (auto x = -n; x <= n; x++)
-            {
-                const auto gap = Math::max(Math::abs(Vector2i{x, y}*tile_size_xy) - Vector2i{half_tile<int>},
-                                           Vector2i{});
-                if (gap.dot() <= (int)(r*r))
-                    arrayAppend(tiles, Vector2i{x, y});
-            }
-        std::sort(tiles.begin(), tiles.end(), [](Vector2i a, Vector2i b) {
-            if (a.dot() != b.dot())
-                return a.dot() < b.dot();
-            return a.y() != b.y() ? a.y() < b.y() : a.x() < b.x();
-        });
+        nearest_tiles(r, tiles);
         tiles_radius = r;
     }
     search_center = point{c.position().coord(), {}};
-    search_threat = player->position();
+    spots_player = player->position();
+    dropped_spots = 0;
+    search_octant = nearest_octant(Vector2(player->position() - search_center));
     search_pass_gen = w.pass_gen();
     search_radius = r;
     search_octants = options.octants;
     search_max_cover_end_dist = options.max_cover_end_dist;
+    search_div = options.div_size;
     next_tile = 0;
     search_time = Ns{};
     search_fills = {};
     has_search = true;
 }
 
-// Lists the spots of the next tile that no earlier tile listed, with their peek spots. A candidate
-// in one tile can be pushed onto a spot in another, so two tiles can list one spot.
-void cover_ai_test::search_tile(app& a, critter& c)
+// After a player move within the search's octant, drops the listed spots the player sees by
+// player_sees(). A spot hidden again comes back only when the search starts over.
+void cover_ai_test::drop_seen_spots(app& a, const critter& c)
 {
-    const auto f0 = fills_of(a);
+    const auto player = a.main().world().find_object(threat);
+    if (!player || player->position() == spots_player)
+        return;
+    spots_player = player->position();
+    auto n = 0u;
+    for (auto i = 0u; i < spots.size(); i++)
+        if (!player_sees(a, c, spots[i].pos))
+        {
+            spots[n] = spots[i];
+            spot_states[n++] = spot_states[i];
+        }
+    dropped_spots += (uint32_t)spots.size() - n;
+    arrayRemoveSuffix(spots, spots.size() - n);
+    arrayRemoveSuffix(spot_states, spot_states.size() - n);
+}
+
+// The listed spots the player sees now.
+uint32_t cover_ai_test::seen_spots(app& a, const critter& c)
+{
+    auto n = 0u;
+    for (const auto& x : spots)
+        n += player_sees(a, c, x.pos);
+    return n;
+}
+
+// Lists the next tile's spots that no earlier tile listed, as two tiles can list one spot, with their peek spots.
+// Returns its octant fills, or empty, with the tile left for the next call, when it needs more than max_fills.
+Optional<uint32_t> cover_ai_test::search_tile(app& a, critter& c, point player, uint32_t max_fills)
+{
+    const auto f0 = fills(a);
     auto t = Time::now();
-    const auto mid = tiles[next_tile++]*tile_size_xy;
-    const cover_query q{search_center, Vector2ui(c.bbox_size), search_threat, search_radius, search_octants,
-                        search_max_cover_end_dist, Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}};
-    list_cover_spots(c, q, tile_spots);
+    const auto mid = tiles[next_tile]*tile_size_xy;
+    const cover_query q{search_center, Vector2ui(c.bbox_size), player, search_radius, search_octants,
+                        search_max_cover_end_dist, Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}},
+                        max_fills};
+    const auto r = list_cover_spots(c, q, tile_spots);
+    const auto f = fills(a);
+    search_fills.n += f.n - f0.n;
+    search_fills.time += f.time - f0.time;
+    if (r.out_of_fills)
+        return {};
+    next_tile++;
     auto added = 0u, peeks = 0u;
     for (const auto& x : tile_spots)
     {
@@ -347,27 +388,32 @@ void cover_ai_test::search_tile(app& a, critter& c)
         added++;
     }
     const auto dt = t.update();
-    const auto f = fills_of(a);
-    search_fills.n += f.n - f0.n;
-    search_fills.time += f.time - f0.time;
     if (added || f.n != f0.n)
     {
         const auto v = Vector3i(search_center).xy() + mid;
         fm_debug("cover-ai: spots tile (%d, %d): %u new, %u with peek spots, %.1f us, %u octant fills in %.1f us",
                  v.x(), v.y(), added, peeks, us(dt), f.n - f0.n, us(f.time - f0.time));
     }
+    return r.fills;
 }
 
-void cover_ai_test::search_spots(app& a, critter& c, Optional<Ns> budget)
+// Without limited, lists every tile left, whatever the fills.
+void cover_ai_test::search_spots(app& a, critter& c, bool limited)
 {
+    const auto player = a.main().world().find_object(threat);
+    if (!player)
+        return;
     auto t = Time::now();
-    spots_time = Ns{};
     const auto first_tile = next_tile;
-    while (has_search && next_tile < tiles.size() && (!budget || spots_time < *budget))
+    auto fills_left = limited ? spots_fills_per_frame : (uint32_t)-1;
+    for (auto n = 0u; has_search && next_tile < tiles.size() && (!limited || n < spots_tiles_per_frame); n++)
     {
-        search_tile(a, c);
-        spots_time += t.update();
+        const auto f = search_tile(a, c, player->position(), fills_left);
+        if (!f)
+            break;
+        fills_left -= *f;
     }
+    spots_time = t.update();
     search_time += spots_time;
     if (next_tile > first_tile && next_tile == tiles.size())
         fm_debug("cover-ai: spots search done: %u tiles, %u spots, %.1f ms, %u octant fills in %.1f ms",
@@ -382,7 +428,7 @@ bool cover_ai_test::player_sees(app& a, const critter& c, point pt)
     const auto player = m.world().find_object(threat);
     if (!player)
         return false;
-    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{cover_div, pass_mode::shoot_through});
+    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through});
     return raycast(m.world(), player->position(), pt, c.id, pool, Search::without_critters()).success;
 }
 
@@ -430,11 +476,11 @@ ArrayView<const cover_spot> cover_ai_test::script_spots(app& a, critter& c, cons
     const auto gen = a.main().world().pass_gen();
     if (!has_script_list || script_list_npc != c.id || script_list_searches != s.searches || script_list_pass_gen != gen)
     {
-        const auto f0 = fills_of(a);
+        const auto f0 = fills(a);
         auto t = Time::now();
         list_cover_spots(c, script_list);
         const auto dt = t.update();
-        const auto f = fills_of(a);
+        const auto f = fills(a);
         fm_debug("cover-ai: cover list: %u spots, %.1f us, %u octant fills in %.1f us", (uint32_t)script_list.size(),
                  us(dt), f.n - f0.n, us(f.time - f0.time));
         script_list_npc = c.id;
@@ -557,7 +603,7 @@ void cover_ai_test::update_ray(app& a, const critter& c, const cover_script_stat
     if (s.st != state::exposed || !s.has_peek)
         return;
     auto& m = a.main();
-    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{cover_div, pass_mode::shoot_through});
+    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through});
     ray = raycast(m.world(), s.gun_ray_from, s.gun, c.id, pool, Search::without_critters());
 }
 
@@ -581,12 +627,14 @@ void cover_ai_test::update_post(app& a, const Ns& dt)
         return;
     if (spots_stale(a))
         restart_spots(a, *c);
-    search_spots(a, *c, spots_budget);
+    else
+        drop_seen_spots(a, *c);
+    search_spots(a, *c, true);
 }
 
 void cover_ai_test::update_pre(app& a, const Ns&)
 {
-    fills_before_update = fills_of(a);
+    fills_before_update = fills(a);
 }
 
 // The octant fills are those of the whole world update, of which the script's update is the only
@@ -599,7 +647,7 @@ void cover_ai_test::log_script(app& a, const critter& c, const cover_script_stat
         return;
     logged = s;
     logged_npc = c.id;
-    const auto f = fills_of(a);
+    const auto f = fills(a);
     char cover[32], peek[32];
     print_spot(cover, s.has_cover, s.cover);
     print_spot(peek, s.has_peek, s.peek);
@@ -629,7 +677,7 @@ base_test::Value cover_ai_test::advance(app& a, Value v)
         if (const auto c = npc.lock())
         {
             restart_spots(a, *c);
-            search_spots(a, *c, {});
+            search_spots(a, *c, false);
         }
         ret.type = ValueType::u32;
         ret.u32 = (uint32_t)spots.size();
@@ -646,6 +694,33 @@ base_test::Value cover_ai_test::advance(app& a, Value v)
     case 7:
         ret.type = ValueType::u32;
         ret.u32 = v.u32 == 6 ? toggle_hold() : toggle_move_to_end();
+        break;
+    case 8:
+        set_div(a, v.au32[1]);
+        ret.type = ValueType::u32;
+        ret.u32 = options.div_size;
+        break;
+    case 9:
+        ret.type = ValueType::au32;
+        ret.au32[0] = has_search ? next_tile : 0;
+        ret.au32[1] = has_search ? (uint32_t)tiles.size() : 0;
+        ret.au32[2] = search_fills.n;
+        ret.au32[3] = has_search;
+        break;
+    case 10:
+        ret.type = ValueType::au32;
+        ret.au32[0] = 0;
+        if (const auto c = npc.lock())
+            ret.au32[0] = seen_spots(a, *c);
+        ret.au32[1] = dropped_spots;
+        ret.au32[2] = (uint32_t)spots.size();
+        break;
+    case 11:
+        ret.type = ValueType::ai32;
+        ret.ai32[0] = Vector3i(search_center).x();
+        ret.ai32[1] = Vector3i(search_center).y();
+        ret.ai32[2] = (int32_t)search_octant;
+        ret.ai32[3] = has_search;
         break;
     default:
         break;
@@ -799,6 +874,15 @@ void cover_ai_test::draw_ui(app& a, float)
         apply_options();
     }
 
+    snformat(buf, "{}x{}", options.div_size, options.div_size);
+    if (auto b = begin_combo("Cover div", buf))
+        for (const auto n : div_choices)
+        {
+            snformat(buf2, "{}x{}", n, n);
+            if (ImGui::Selectable(buf2, n == options.div_size))
+                set_div(a, n);
+        }
+
     if (ImGui::Checkbox("Other cover spots", &show_spots) && !show_spots)
         clear_spots();
     if (show_spots)
@@ -807,8 +891,10 @@ void cover_ai_test::draw_ui(app& a, float)
         snformat(buf, "{} tiles, {} px", radius_tiles, radius_tiles*tile_size_xy);
         if (ImGui::SliderInt("Spots radius", &e, 0, max_spots_radius_log2, buf, slider_flags))
             radius_tiles = 1 << e;
-        ImGui::TextWrapped("Spots hidden from where the player stands, searched a few tiles per frame, "
-                           "starting over when the player moves or a wall changes. Click a blue dot to send "
+        ImGui::TextWrapped("Spots hidden from the player, searched a few tiles per frame with at most one octant fill, "
+                           "starting over when the player's bearing from the npc's tile enters another of the "
+                           "cover grid's 32 octants, or a wall changes. Other player moves drop the spots the "
+                           "player then sees. Click a blue dot to send "
                            "the npc to hide there, or an orange one to peek from its spot. With Hold "
                            "ticked, it stays there.");
     }
@@ -832,6 +918,16 @@ void cover_ai_test::draw_ui(app& a, float)
 
         do_column("state");
         text(!c ? "no npc" : !s ? "no cover script" : state_names[(size_t)s->st]);
+
+        do_column("progress");
+        if (s && s->st == state::search)
+            snformat(buf, "tile {} of {}", s->search_tile, s->search_tiles);
+        else if (s && s->st == state::find_retreat)
+            snformat(buf, "spot {} of {}, pass {}, {} without a path", s->retreat_spot, s->retreat_spots,
+                     s->retreat_all ? 2 : 1, s->retreat_failed);
+        else
+            snformat(buf, "-");
+        text(buf);
 
         do_column("npc");
         if (c)
@@ -870,7 +966,7 @@ void cover_ai_test::draw_ui(app& a, float)
             auto peeks = 0u;
             for (const auto& x : spot_states)
                 peeks += x.has_peek;
-            snformat(buf, "{}, {} with peek spots", spots.size(), peeks);
+            snformat(buf, "{}, {} with peek spots, {} dropped as seen", spots.size(), peeks, dropped_spots);
             text(buf);
             do_column("tiles searched");
             snformat(buf, "{} of {}", next_tile, tiles.size());

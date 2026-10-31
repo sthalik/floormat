@@ -104,7 +104,7 @@ struct cover_script final : critter_script
     cover_script(astar& A, object_id threat, uint32_t div_size, Optional<int> gun_offset);
 
     cover_script_status status() const;
-    void list_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
+    cover_point_result list_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
     Optional<cover_peek> peek_for(critter& c, const cover_spot& s);
     bool send_to(critter& c, const cover_spot& s, bool peek);
 
@@ -180,7 +180,6 @@ private:
     Vector2i axis;
     Ns wait{}, last_update{}, max_update{}, total_update{};
     object_id threat_id;
-    uint32_t div_size;
     uint32_t searches = 0, rays = 0, paths = 0, tile_lists = 0;
     Optional<int> gun_offset;
     state st = state::seek;
@@ -196,29 +195,34 @@ void cover_script::delete_self() noexcept { delete this; }
 void cover_script::on_destroy(const bptr<critter>& c, script_destroy_reason) { c->clear_auto_movement(); }
 
 cover_script::cover_script(astar& A, object_id threat, uint32_t div_size, Optional<int> gun_offset) :
-    A{A}, threat_id{threat}, div_size{div_size}, gun_offset{gun_offset}
-{}
+    A{A}, threat_id{threat}, gun_offset{gun_offset}
+{
+    options.div_size = div_size;
+}
 
 cover_script_status cover_script::status() const
 {
     return {
         .cover = cover, .peek = peek_pos, .gun = gun_pos,
         .gun_ray_from = gun_ray_from, .query = query, .searches = searches, .rays = rays, .paths = paths,
-        .search_tile = search_tile, .search_tiles = (uint32_t)search_tiles().size(), .tile_lists = tile_lists,
+        .search_tile = search_tile, .search_tiles = (uint32_t)search_tiles().size(),
+        .retreat_spot = retreat_next, .retreat_spots = (uint32_t)retreat_spots.size(), .retreat_failed = retreat_failed,
+        .retreat_all = retreat_all, .tile_lists = tile_lists,
         .last_update = last_update, .max_update = max_update, .total_update = total_update,
         .st = st, .has_cover = has_cover, .has_peek = has_peek, .has_query = has_query,
     };
 }
 
-void cover_script::list_spots(critter& c, const cover_query& q, Array<cover_spot>& out)
+cover_point_result cover_script::list_spots(critter& c, const cover_query& q, Array<cover_spot>& out)
 {
     arrayClear(out);
-    const auto r = finder.find_cover_point(c.world(), A.pool_registry(), Cover::Params{div_size}, q,
+    const auto r = finder.find_cover_point(c.world(), A.pool_registry(), Cover::Params{options.div_size}, q,
                                            blocks_all_but(c.id), true);
     const auto n = r.spots.size();
     if (arrayCapacity(out) < n)
         arrayReserve(out, n + n/2);
     arrayAppend(out, r.spots);
+    return r;
 }
 
 void cover_script::on_init(const bptr<critter>& c)
@@ -362,7 +366,7 @@ void cover_script::set_options(const cover_script_options& o)
 bool cover_script::sees(critter& c, point from, point to)
 {
     rays++;
-    auto& pool = A.pool_registry().pass_pool(Pass::Params{div_size, pass_mode::shoot_through});
+    auto& pool = A.pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through});
     return raycast(c.world(), from, to, c.id, pool, Search::without_critters()).success;
 }
 
@@ -458,7 +462,7 @@ void cover_script::search_step(critter& c)
             const auto mid = base + tiles[search_tile]*tile_size_xy;
             const cover_query q{here, body, threat_pos, search_radius, options.octants, options.max_cover_end_dist,
                                 Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}, fills};
-            const auto r = finder.find_cover_point(w, A.pool_registry(), Cover::Params{div_size}, q, pred, true);
+            const auto r = finder.find_cover_point(w, A.pool_registry(), Cover::Params{options.div_size}, q, pred, true);
             tile_lists++;
             fills -= r.fills;
             if (r.out_of_fills)
@@ -1095,12 +1099,12 @@ void list_cover_spots(critter& c, Array<cover_spot>& out)
         arrayClear(out);
 }
 
-void list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out)
+cover_point_result list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out)
 {
     if (auto* s = cover_script_of(c))
-        s->list_spots(c, q, out);
-    else
-        arrayClear(out);
+        return s->list_spots(c, q, out);
+    arrayClear(out);
+    return {};
 }
 
 Optional<cover_peek> find_cover_peek(critter& c, const cover_spot& s)

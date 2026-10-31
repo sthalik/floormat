@@ -24,6 +24,9 @@ struct cover_script_options
     uint8_t octants = 3;
     // cover_query::max_cover_end_dist of the script's searches.
     uint32_t max_cover_end_dist = 5*(uint32_t)tile_size_xy;
+    // The div_size of the grids the script searches and casts rays in, which make_cover_script sets.
+    // Options built from {} set it back to 8.
+    uint32_t div_size = 8;
 };
 
 struct cover_script_status
@@ -47,6 +50,10 @@ struct cover_script_status
     uint32_t searches = 0, rays = 0, paths = 0;
     // In state::search, the number of tiles tried, of search_tiles in all.
     uint32_t search_tile = 0, search_tiles = 0;
+    // In state::find_retreat, the next of retreat_spots spots, and this pass's spots with no path. The
+    // second pass, retreat_all, also tries spots a ray from the threat reaches.
+    uint32_t retreat_spot = 0, retreat_spots = 0, retreat_failed = 0;
+    bool retreat_all = false;
     // Since the script started, the searches' find_cover_point calls, each for one tile. A tile gets
     // another call when the threat moved since its list was made, or when the call ran out of fills.
     uint32_t tile_lists = 0;
@@ -69,8 +76,9 @@ struct cover_peek
 // or none, or the script hasn't searched yet.
 void list_cover_spots(critter& c, Array<cover_spot>& out);
 
-// As list_cover_spots, for q in place of the status's query.
-void list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
+// As list_cover_spots, for q in place of the status's query, returning find_cover_point's result.
+// Empty when c runs another script or none.
+cover_point_result list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
 
 // The peek spot the script would step out to from s, with the threat where it stands now. Empty
 // when c runs another script or none, the threat is gone, or no direction from s has one within
