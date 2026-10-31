@@ -76,7 +76,7 @@ private:
     visited run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, uint32_t max_dist);
     visited run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, const endpoint& goal);
     template<int Debug, bool FindClosestOnFailure>
-    closest expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal, uint32_t max_dist, closest best);
+    closest expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal, uint32_t max_dist, closest best, uint32_t max_pops);
     template<int Debug>
     path_search_result make_result(const closest& best, point from, point to, uint32_t max_dist, float time);
 

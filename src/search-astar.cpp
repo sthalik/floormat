@@ -610,6 +610,82 @@ bool can_reach_goal(chunk_bitmaps& bm, const endpoint& start, const endpoint& go
     return false;
 }
 
+constexpr inline uint32_t enclosed_goal_pops = 1u << 15;
+
+// True when no search node can reach the goal. Floods set cells from those can_reach_goal()
+// accepts, by A*'s steps, which test the same cells in either direction. Gives up at a node,
+// within seed_search_radius + 2*step of `from` per axis, where the seeds lie, at the window's
+// edge, or past max_cells. Only for a goal on a set cell: other goals get goal seeds the flood
+// doesn't start from.
+bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goal, Array<point>& cells)
+{
+    constexpr uint32_t max_cells = 128, mark = (uint32_t)-2;
+    auto& cache = bm.cache;
+    const auto step = (int)bm.div_size;
+    const auto from = start.pt, to = goal.pt;
+    const auto near_from = [&](point pt) {
+        const auto d = Math::abs(pt - from);
+        return Math::max(d.x(), d.y()) <= seed_search_radius + 2*step;
+    };
+    // The start's seed search can link `to` itself.
+    if (near_from(to))
+        return false;
+
+    // false: give up
+    const auto add = [&](point pt, uint32_t chunk_idx) {
+        auto& c = cache.at(chunk_idx, cache.get_tile_index(intra_coord{pt}));
+        if (c.dist == mark)
+            return true;
+        const auto off = Vector2ui(Vector2i(pt.chunk()) - cache.start - Vector2i{1});
+        if (c.index != (uint32_t)-1 || near_from(pt) || cells.size() == max_cells
+            || off.x() >= cache.size.x() - 2 || off.y() >= cache.size.y() - 2)
+            return false;
+        c.dist = mark;
+        arrayAppend(cells, pt);
+        return true;
+    };
+
+    arrayClear(cells);
+    bool enclosed = true;
+    const auto origin = point{from.coord(), {}};
+    const auto off = to - origin;
+    const auto lo = Vector2i{floor_div(off.x(), step), floor_div(off.y(), step)} * step;
+    const auto n = goal_radius(step) / step + 2;
+    for (int j = -n; enclosed && j <= n; j++)
+        for (int i = -n; enclosed && i <= n; i++)
+        {
+            const auto pt = point::normalize_coords(origin, lo + Vector2i{i, j} * step);
+            if (point::distance_squared(pt, to) > goal_thres_sq(step))
+                continue;
+            const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
+            if (bm.is_passable(pt, chunk_idx) && goal.is_passable_to(pt, bm.p))
+                enclosed = add(pt, chunk_idx);
+        }
+    for (auto k = 0u; enclosed && k < cells.size(); k++)
+    {
+        const auto cur = cells[k];
+        for (const auto u : unit_directions)
+        {
+            const auto pt = cur + u*step;
+            const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
+            // Resolving clears the chunk's cells, so it comes before add().
+            if (!bm.is_passable(pt, chunk_idx)
+                || u.x() && u.y() && (!bm.is_passable(cur + Vector2i{u.x()*step, 0}) || !bm.is_passable(cur + Vector2i{0, u.y()*step})))
+                continue;
+            if (!add(pt, chunk_idx))
+            {
+                enclosed = false;
+                break;
+            }
+        }
+    }
+    // A mark left behind would turn away a node of dist (uint32_t)-2.
+    for (const auto pt : cells)
+        cache.at(cache.get_chunk_index(Vector2i(pt.chunk())), cache.get_tile_index(intra_coord{pt})).dist = (uint32_t)-1;
+    arrayClear(cells);
+    return enclosed;
+}
+
 } // namespace
 
 // For an end in a corridor narrower than the bbox plus a cell. Every cell along it holds a
@@ -1060,7 +1136,7 @@ visited astar::run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const en
 
 template<int Debug, bool FindClosestOnFailure>
 auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal,
-                         uint32_t max_dist, closest best) -> closest
+                         uint32_t max_dist, closest best, uint32_t max_pops) -> closest
 {
     auto& cache = bm.cache;
     const auto step = (int)bm.div_size;
@@ -1081,8 +1157,11 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
     auto closest_dist_sq = best.closest_dist_sq;
     auto closest_idx = best.closest_idx;
 
-    while (!Q.empty())
+    for (auto pops = 0u; !Q.empty(); pops++)
     {
+        if constexpr (!FindClosestOnFailure)
+            if (pops == max_pops && to_node.dist == max_dist) [[unlikely]]
+                break;
         const auto front = Q.pop();
         // Every later pop has f at least this one's, and f bounds any path through the node.
         if (front.f_score >= to_node.dist) [[unlikely]]
@@ -1265,7 +1344,17 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             return {};
     }
 
-    best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best);
+    best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, near_goal ? enclosed_goal_pops : (uint32_t)-1);
+    if constexpr (!FindClosestOnFailure)
+    {
+        // Every queued f is below max_dist, so with no path, only max_pops stops the loop early.
+        if (!Q.empty() && best.to_node.dist == max_dist)
+        {
+            if (bm.is_passable(to) && goal_enclosed(bm, start, goal, temp_nodes))
+                return make_result<Debug>(best, from, to, max_dist, elapsed());
+            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, (uint32_t)-1);
+        }
+    }
 
     // Where a corridor the lattice can't enter opens into a room, the 3x3 seeds, or the nodes
     // near the goal, can all lie in the room. From a set cell, a seed search would only seed that
@@ -1279,7 +1368,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             if (const auto link = run_seed_search(bm, Q, start, to, max_dist); link.dist < best.to_node.dist)
                 best.to_node = link;
         if (!Q.empty())
-            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best);
+            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, (uint32_t)-1);
     }
 
     return make_result<Debug>(best, from, to, max_dist, elapsed());
