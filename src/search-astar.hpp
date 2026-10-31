@@ -36,6 +36,7 @@ public:
 
     struct Search::cache* cache();
     Grid::PoolRegistry& pool_registry();
+    uint32_t last_node_count() const { return node_count; }
 
     // todo add simple bresenham short-circuit
     template<int Debug = 0, bool FindClosestOnFailure = true>
