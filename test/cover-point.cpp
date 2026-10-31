@@ -1478,7 +1478,7 @@ void test_cover_script_flanked(point hidden, point peek)
 
 // As in test_cover_script_flanked, but the threat moves to test_cover_script_retreat's spot north
 // of the wall, from where nothing in the chunk hides the npc. Once its search ends the npc starts
-// its walk to a spot more than 4 tiles farther from the threat, and looks for cover again there.
+// its walk to a spot more than 3 tiles farther from the threat, and looks for cover again there.
 void test_cover_script_flanked_retreat(point peek)
 {
     cover_scene s;
@@ -1497,7 +1497,7 @@ void test_cover_script_flanked_retreat(point peek)
     fm_assert(s.status().st == state::retreat);
     s.step_until(state::seek);
     const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, threat_pos)); };
-    fm_assert(dist(s.npc->position()) - dist(peek) > 4*tile_size_xy);
+    fm_assert(dist(s.npc->position()) - dist(peek) > 3*tile_size_xy);
 }
 
 // Adds three blockers north, east and south of the cover behind cover_scene's wall's east face, and
@@ -1852,7 +1852,7 @@ void test_cover_script_search_every_move(point hidden)
 
 // The npc of cover_scene hides at hidden. The threat moves 7 tiles north of the wall's middle,
 // where hidden is in the open and the wall's shadow is too narrow for the body, so the npc finds no
-// cover in the chunk and walks to a spot within 5 tiles of hidden that lies more than 4 tiles
+// cover in the chunk and walks to a spot within 5 tiles of hidden that lies more than 3 tiles
 // farther from the threat. It starts to search again after 1 s, and faces the threat from the
 // update it arrives, also when the threat stands 2 tiles beside it for 3 updates halfway through.
 void test_cover_script_retreat(point hidden)
@@ -1876,7 +1876,7 @@ void test_cover_script_retreat(point hidden)
     const auto spot = s.npc->position();
     fm_assert(point::distance_squared(spot, hidden) <= (uint64_t)(radius*radius));
     const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, threat_pos)); };
-    fm_assert(dist(spot) - dist(hidden) > 4*tile_size_xy);
+    fm_assert(dist(spot) - dist(hidden) > 3*tile_size_xy);
     const auto r1 = nearest_of_8(threat_pos - spot);
     fm_assert(s.npc->r == r1);
     // toward the chunk's middle, where the threat's x is
@@ -1900,9 +1900,8 @@ void test_cover_script_retreat(point hidden)
     fm_assert(s.status().st == state::search);
 }
 
-// As test_cover_script_retreat, with walls a shot passes closing in the spots the retreat tries
-// first, so that they hide nothing and have no path. The retreat tries at least 5 of them, at most
-// 4 per update, so it takes at least 2 updates.
+// As test_cover_script_retreat, with walls a shot passes closing in the 6 spots in the wall's shadow that the
+// retreat tries first. None has a path, so at 4 paths per update the retreat takes at least 2 updates.
 void test_cover_script_retreat_closed_in(point hidden)
 {
     cover_scene s;
@@ -1911,11 +1910,10 @@ void test_cover_script_retreat_closed_in(point hidden)
     const auto t0 = s.status();
 
     const point threat_pos{ch, {7, 1}, {}};
-    const auto away = Vector2(hidden - threat_pos).normalized();
-    const auto mid = hidden + Vector2i(Math::round(away * (float)(5*tile_size_xy - 8)));
-    // 16 px thick around a 96 px square
+    const auto mid = hidden + Vector2i{18, 216};
+    // 16 px thick around 40x52 px
     const Vector2i walls[][2] = {
-        {{128, 16}, {0, -56}}, {{128, 16}, {0, 56}}, {{16, 128}, {-56, 0}}, {{16, 128}, {56, 0}},
+        {{72, 16}, {0, -34}}, {{72, 16}, {0, 34}}, {{16, 84}, {-28, 0}}, {{16, 84}, {28, 0}},
     };
     for (const auto& [size, off] : walls)
     {

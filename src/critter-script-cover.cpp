@@ -31,13 +31,14 @@ constexpr Ns hidden_time = 2*Second, exposed_time = 2*Second;
 constexpr Ns retry_time = Second;
 // The retreat's radius, and the slack of path_to's Dijkstra searches.
 constexpr uint32_t cover_radius = 5*(uint32_t)tile_size_xy;
+constexpr int min_retreat_gain = 3*tile_size_xy;
 constexpr uint32_t search_radius = 2*chunk_size_xy;
 // The work a search for cover may do in one update. Counts, not time, so that the npc behaves the
 // same on every machine.
 // TODO: each critter has its own limits, so n critters searching in different chunks can do n
 // octant fills in one frame.
 constexpr uint32_t search_tiles_per_update = 32, search_fills_per_update = 1, search_paths_per_update = 1;
-constexpr uint32_t retreat_paths_per_update = 4;
+constexpr uint32_t retreat_paths_per_update = 4, retreat_rays_per_update = 256;
 constexpr int max_peek_dist = 2*tile_size_xy;
 // A spot with no path costs a Dijkstra search that runs out its whole max_dist, so a search for
 // cover or a retreat stops after this many of them.
@@ -111,7 +112,7 @@ struct cover_script final : critter_script
     void set_options(const cover_script_options& o);
 
 private:
-    struct retreat_spot { uint64_t threat_dist2; Vector2i offset; };
+    struct retreat_spot { Vector2i offset; bool done; };
     // path is empty when c stands on spot.
     struct reachable_cover { cover_spot spot; path_search_result path; };
     // What end_search does with cover: walk there, also with a new hidden wait, or peek from it.
@@ -168,9 +169,10 @@ private:
     uint32_t unreachable_reach = 0;
     uint64_t search_pass_gen = 0;
     uint32_t search_tile = 0, tile_spot = 0, failed_paths = 0, search_octant = 0;
-    // In state::find_retreat, the index of the next of retreat_spots, and the spots tried without a
-    // path.
+    // In state::find_retreat: the next of retreat_spots, this pass's spots with no path, and whether the pass
+    // tries every spot left or only those a ray from threat_pos doesn't reach.
     uint32_t retreat_next = 0, retreat_failed = 0;
+    bool retreat_all = false;
     search_then then = search_then::seek;
     bool tile_listed = false;
     // threat_pos is where the threat stood at the last check or search.
@@ -614,16 +616,15 @@ path_search_result cover_script::path_to(critter& c, point to)
     return path;
 }
 
-// Puts c in state::find_retreat, which stands while it looks for the spot farthest from threat_pos
-// among those within cover_radius of c that lie farther from it than c, fit c's body and have a
-// path. The spots lie on a half-body grid and are ranked with the threat where it stands now.
+// Puts c in state::find_retreat, standing while it looks for a path to the nearest spot within cover_radius
+// over min_retreat_gain px farther from threat_pos than c. Spots a ray from threat_pos doesn't reach go first.
 void cover_script::begin_retreat(critter& c)
 {
     const auto from = c.position();
     const auto body = Vector2i(c.bbox_size);
     const auto step = Math::max(body/2, Vector2i{1});
     const auto n = Vector2i{(int)cover_radius} / step;
-    const auto here = point::distance_squared(from, threat_pos);
+    const auto here = Math::sqrt((double)point::distance_squared(from, threat_pos));
     const auto count = (uint32_t)((2*n.x() + 1)*(2*n.y() + 1));
     if (arrayCapacity(retreat_spots) < count)
         arrayReserve(retreat_spots, count);
@@ -634,49 +635,80 @@ void cover_script::begin_retreat(critter& c)
             const auto off = Vector2i{x, y} * step;
             if (off.dot() > (int)(cover_radius*cover_radius))
                 continue;
-            if (const auto d = point::distance_squared(from + off, threat_pos); d > here)
-                arrayAppend(retreat_spots, retreat_spot{d, off});
+            if (Math::sqrt((double)point::distance_squared(from + off, threat_pos)) - here > min_retreat_gain)
+                arrayAppend(retreat_spots, retreat_spot{off, false});
         }
     // std::sort leaves the order of equal elements to the standard library, so the offset breaks
     // the tie and every library picks the same spot.
     std::sort(retreat_spots.begin(), retreat_spots.end(), [](const retreat_spot& a, const retreat_spot& b) {
-        if (a.threat_dist2 != b.threat_dist2)
-            return a.threat_dist2 > b.threat_dist2;
+        if (const auto da = a.offset.dot(), db = b.offset.dot(); da != db)
+            return da < db;
         return a.offset.y() != b.offset.y() ? a.offset.y() < b.offset.y() : a.offset.x() < b.offset.x();
     });
     retreat_next = 0;
     retreat_failed = 0;
+    retreat_all = false;
     st = state::find_retreat;
 }
 
-// One update's work of the retreat: up to retreat_paths_per_update spots tried, farthest first. A
-// path found starts the walk, and max_failed_paths spots with no path end it in seek.
+// One update's work of the retreat: up to retreat_paths_per_update paths and retreat_rays_per_update rays. A
+// pass ends after max_failed_paths spots with no path, and c seeks again when the second one ends.
 void cover_script::retreat_step(critter& c)
 {
     auto& w = c.world();
     const auto from = c.position();
     const auto body = Vector2i(c.bbox_size);
     const auto pred = blocks_all_but(c.id);
-    for (auto paths_left = retreat_paths_per_update; retreat_next < retreat_spots.size(); retreat_next++)
+    auto paths_left = retreat_paths_per_update, rays_left = retreat_rays_per_update;
+    for (;;)
     {
-        const auto to = from + retreat_spots[retreat_next].offset;
-        // Dijkstra finds no path into a chunk that doesn't exist.
-        if (!w.at(to.chunk3()))
+        if (retreat_next == retreat_spots.size() || retreat_failed == max_failed_paths)
+        {
+            if (retreat_all)
+                break;
+            retreat_all = true;
+            retreat_next = 0;
+            retreat_failed = 0;
             continue;
+        }
+        auto& s = retreat_spots[retreat_next];
+        const auto to = from + s.offset;
+        if (s.done)
+        {
+            retreat_next++;
+            continue;
+        }
         const auto lo = Vector2(to.intra().center_shifted() - body/2);
-        if (!Search::is_passable(w, to.chunk3(), Range2D{lo, lo + Vector2(body)}, pred))
+        // Dijkstra finds no path into a chunk that doesn't exist.
+        if (!w.at(to.chunk3()) || !Search::is_passable(w, to.chunk3(), Range2D{lo, lo + Vector2(body)}, pred))
+        {
+            s.done = true;
+            retreat_next++;
             continue;
+        }
         if (!paths_left)
             return;
+        if (!retreat_all)
+        {
+            if (!rays_left)
+                return;
+            rays_left--;
+            if (sees(c, threat_pos, to))
+            {
+                retreat_next++;
+                continue;
+            }
+        }
         paths_left--;
+        s.done = true;
+        retreat_next++;
         if (auto path = path_to(c, to); path.is_found())
         {
             walk = critter_walk{move(path)};
             st = state::retreat;
             return;
         }
-        if (++retreat_failed == max_failed_paths)
-            break;
+        retreat_failed++;
     }
     retry_later();
 }
