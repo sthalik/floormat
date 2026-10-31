@@ -9,7 +9,7 @@
 #include "src/critter-script.hpp"
 #include "src/critter-script-cover.hpp"
 #include "src/grid-cover.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/nanosecond.inl"
 #include "src/point.inl"
 #include "src/raycast.hpp"

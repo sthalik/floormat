@@ -1,6 +1,6 @@
 #include "cover-point.hpp"
 #include "grid-cover.hpp"
-#include "grid-pool-registry.hpp"
+#include "grid-registry.hpp"
 #include "collision.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
@@ -139,7 +139,7 @@ cover_point::cover_point()
 
 cover_point::~cover_point() noexcept = default;
 
-cover_point_result cover_point::find_cover_point(world& w, Grid::PoolRegistry& pools, Cover::Params params,
+cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& pools, Cover::Params params,
                                                  const cover_query& q, const Search::pred& pred,
                                                  bool list_spots)
 {

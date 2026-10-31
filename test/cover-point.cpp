@@ -10,7 +10,7 @@
 #include "src/nanosecond.inl"
 #include "src/grid-cover.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/intra-coord.inl"
 #include "src/point.inl"
 #include "src/raycast.hpp"
@@ -82,7 +82,7 @@ cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint
                         uint8_t octants = 0, uint32_t max_cover_end_dist = 0)
 {
     static cover_point finder;
-    Grid::PoolRegistry pools;
+    Grid::GridRegistry pools;
     return finder.find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius, octants, max_cover_end_dist},
                                    pred, list_spots);
 }
@@ -400,7 +400,7 @@ void test_lists_cover_spots()
     const point npc{ch, {4, 8}, {}}, threat{ch, {12, 8}, {}};
     constexpr auto radius = 3*tile_size_xy;
     cover_point fresh;
-    Grid::PoolRegistry pools;
+    Grid::GridRegistry pools;
     const auto r1 = fresh.find_cover_point(w, pools, Cover::Params{8}, {npc, body, threat, radius},
                                            Search::without_critters(), true);
     // Spots left over from a search on the other side of the wall would show in the next list.
@@ -428,13 +428,13 @@ void test_max_fills()
     cover_point finder;
     cover_query q{npc, body, threat, radius, 3};
     const auto whole = [&] {
-        Grid::PoolRegistry pools;
+        Grid::GridRegistry pools;
         return finder.find_cover_point(w, pools, Cover::Params{8}, q, Search::without_critters());
     }();
     fm_assert(whole.found && !whole.out_of_fills);
     fm_assert(whole.fills > 2);
 
-    Grid::PoolRegistry pools;
+    Grid::GridRegistry pools;
     q.max_fills = 1;
     auto calls = 0u, fills = 0u;
     cover_point_result r;
@@ -484,7 +484,7 @@ void check_lists_by_area(world& w, point npc, point threat, uint8_t octants, uin
 {
     constexpr auto radius = 4*(uint32_t)tile_size_xy;
     cover_point finder;
-    Grid::PoolRegistry pools;
+    Grid::GridRegistry pools;
     const auto search = [&](Optional<Range2Di> area) {
         return finder.find_cover_point(w, pools, Cover::Params{8}, {npc, body, threat, radius, octants, max_cover_end_dist, area},
                                        Search::without_critters(), true);

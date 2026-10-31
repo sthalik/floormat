@@ -1,6 +1,6 @@
 #include "src/grid-pass.hpp"
 #include "src/grid-cover.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/cover-point.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"
@@ -281,7 +281,7 @@ void Cover_Find(benchmark::State& state)
     make_cover_world(w);
     const auto params = Cover::Params{(uint32_t)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
-    Grid::PoolRegistry pools;
+    Grid::GridRegistry pools;
     cover_point finder;
     const auto& pred = Search::never_continue();
     auto r = finder.find_cover_point(w, pools, params, q, pred);
@@ -298,7 +298,7 @@ void Cover_Find_Octants(benchmark::State& state)
     make_cover_world(w);
     const auto params = Cover::Params{(uint32_t)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
-    Optional<Grid::PoolRegistry> pools;
+    Optional<Grid::GridRegistry> pools;
     cover_point finder;
     cover_point_result r;
     for (auto _ : state)
@@ -326,7 +326,7 @@ void Cover_Find_Fresh(benchmark::State& state)
     make_cover_world(w);
     const auto params = Cover::Params{(uint32_t)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
-    Optional<Grid::PoolRegistry> pools;
+    Optional<Grid::GridRegistry> pools;
     cover_point finder;
     cover_point_result r;
     for (auto _ : state)

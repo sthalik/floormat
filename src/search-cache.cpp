@@ -1,6 +1,6 @@
 #include "search-cache.hpp"
 #include "search.hpp"
-#include "grid-pool-registry.hpp"
+#include "grid-registry.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "world.hpp"

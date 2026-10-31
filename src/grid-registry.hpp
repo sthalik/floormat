@@ -11,12 +11,12 @@
 
 namespace floormat::Grid {
 
-class PoolRegistry final
+class GridRegistry final
 {
 public:
-    PoolRegistry();
-    ~PoolRegistry() noexcept;
-    fm_DISABLE_MOVE_COPY(PoolRegistry);
+    GridRegistry();
+    ~GridRegistry() noexcept;
+    fm_DISABLE_MOVE_COPY(GridRegistry);
 
     Pass::Pool& pass_pool(const Pass::Params& p);
     Cover::Pool& cover_pool(const Cover::Params& p);

@@ -1,7 +1,7 @@
 #include "search-astar.hpp"
 #include "search-octile.hpp"
 #include "search-cache.hpp"
-#include "grid-pool-registry.hpp"
+#include "grid-registry.hpp"
 #include "search-result.hpp"
 #include "search.hpp"
 #include "world.hpp"
@@ -980,7 +980,7 @@ void astar::reserve(size_t capacity)
 }
 
 Search::cache* astar::cache() { return &*_cache; }
-Grid::PoolRegistry& astar::pool_registry() { return *_pool_registry; }
+Grid::GridRegistry& astar::pool_registry() { return *_pool_registry; }
 
 template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
