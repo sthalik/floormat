@@ -477,14 +477,6 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
 
     const bool same_chunk = cells.chunk_idx != (uint32_t)-1;
     point new_pt;
-    if (same_chunk) [[likely]]
-        new_pt = point{cur_pt.chunk3(), intra_coord{cells.pix + vec}};
-    else
-    {
-        const auto [off, pix] = floor_divmod<chunk_size<int>>(cells.pix + vec);
-        new_pt = point{cur_pt.chunk3() + off, intra_coord{pix}};
-    }
-
     uint32_t chunk_idx, tile_idx;
     if (same_chunk) [[likely]]
     {
@@ -494,6 +486,8 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     }
     else
     {
+        const auto [off, pix] = floor_divmod<chunk_size<int>>(cells.pix + vec);
+        new_pt = point{cur_pt.chunk3() + off, intra_coord{pix}};
         chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
         tile_idx = cache.get_tile_index(intra_coord{new_pt});
         // Resolving clears the chunk's cells, so it comes before the lookup.
@@ -507,6 +501,9 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
         return;
     fm_debug3_assert(slot.index == (uint32_t)-1 || nodes[slot.index].dist == slot.dist);
     auto new_idx = slot.index;
+
+    if (same_chunk) [[likely]]
+        new_pt = point{cur_pt.chunk3(), intra_coord{cells.pix + vec}};
 
     // A window of 0 can also mean nine blocked cells, which the per-cell tests find too.
     if (!window)
