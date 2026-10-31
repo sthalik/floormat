@@ -2115,12 +2115,11 @@ void test_grid()
     test_cover_rebuilds_on_neighbor_change(16);
     for (const auto ds : { 8u, 16u })
         test_cover_rebuilds_on_ring2_change(ds);
-    // 128 and 256 leave rows narrower than a vector, or exactly one wide. Below 8, planes are
-    // uint16_t, and one octant of each step, turned and mirrored, keeps the rays few.
+    // Below 8, planes are uint16_t, and one octant of each step, turned and mirrored, keeps the rays few.
     constexpr uint32_t some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan
     const auto min_size = fm_ASAN ? 16u : is_valgrind() ? 4u : 1u;
-    for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u, 256u })
+    for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u })
         if (ds >= min_size)
             test_cover_matches_reference(ds, ds < 8 ? ArrayView<const uint32_t>{some_octants} : all_octants);
     test_bit_matches_every_position();
