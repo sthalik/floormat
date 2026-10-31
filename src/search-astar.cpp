@@ -7,6 +7,8 @@
 #include "world.hpp"
 #include "sweep-aabb.hpp"
 #include "raycast-line.hpp"
+#include "nanosecond.hpp"
+#include "timer.hpp"
 #include "tile-defs.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
@@ -24,7 +26,6 @@
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
-#include <mg/Timeline.h>
 
 namespace floormat {
 
@@ -1189,9 +1190,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
 {
     reserve(initial_capacity);
 
-    Timeline timeline;
-    if constexpr(Debug > 0)
-        timeline.start();
+    const auto t0 = Debug > 0 ? Time::now() : Time{0};
+    const auto elapsed = [&] { return Debug > 0 ? Time::to_seconds(Time::now() - t0) : 0; };
 
     node_count = 0;
     arrayClear(goal_seeds);
@@ -1254,7 +1254,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
                     best.to_node = link;
                 if (best.to_node.dist == max_dist)
                     return {};
-                return make_result<Debug>(best, from, to, max_dist, timeline.currentFrameTime());
+                return make_result<Debug>(best, from, to, max_dist, elapsed());
             }
     }
 
@@ -1284,7 +1284,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best);
     }
 
-    return make_result<Debug>(best, from, to, max_dist, timeline.currentFrameTime());
+    return make_result<Debug>(best, from, to, max_dist, elapsed());
 }
 
 template path_search_result astar::Dijkstra<0, true>(world&, point, point, uint32_t, Vector2ui, const pred&);
