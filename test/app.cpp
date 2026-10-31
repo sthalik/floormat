@@ -56,6 +56,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_float),
     FM_TEST(test_format),
     FM_TEST(test_fps),
+    FM_TEST(test_timer),
     FM_TEST(test_texcoords),
     FM_TEST_GL(test_shader),
     FM_TEST(test_vqsort),
