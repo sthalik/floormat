@@ -7,7 +7,6 @@ struct Ns;
 
 struct Time final
 {
-    static Time now() noexcept;
     bool operator==(const Time&) const noexcept;
     std::strong_ordering operator<=>(const Time&) const noexcept;
     friend Ns operator-(const Time& lhs, const Time& rhs) noexcept;
@@ -16,10 +15,12 @@ struct Time final
     static float to_seconds(const Ns& ts) noexcept;
     static float to_milliseconds(const Ns& ts) noexcept;
 
-    uint64_t stamp = init();
+    static Time now() noexcept;
 
-private:
-    static uint64_t init() noexcept;
+    Time() noexcept;
+    explicit Time(uint64_t stamp) noexcept;
+
+    uint64_t stamp;
 };
 
 #define fm_DATETIME_BUF_SIZE 32

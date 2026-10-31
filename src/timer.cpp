@@ -22,18 +22,18 @@ using Nsecs = duration<uint64_t, std::nano>;
 using Millis = duration<uint64_t, std::milli>; // 32-bit rep would truncate ms-since-epoch before the %1000
 
 namespace {
-
 uint64_t get_time() noexcept { return duration_cast<Nsecs>(Clock::now().time_since_epoch()).count(); }
-
 const uint64_t Epoch = get_time();
-
 } // namespace
+
+Time::Time() noexcept: Time{now()} {}
+Time::Time(uint64_t stamp) noexcept: stamp{stamp} {}
 
 Time Time::now() noexcept
 {
     auto val = get_time();
     auto ret = val - Epoch;
-    return {ret};
+    return Time{ret};
 }
 
 Ns Time::update(const Time& ts) & noexcept
@@ -43,7 +43,6 @@ Ns Time::update(const Time& ts) & noexcept
     return ret;
 }
 
-uint64_t Time::init() noexcept { return get_time(); }
 bool Time::operator==(const Time&) const noexcept = default;
 std::strong_ordering Time::operator<=>(const Time&) const noexcept = default;
 
