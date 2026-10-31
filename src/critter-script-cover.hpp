@@ -54,6 +54,9 @@ struct cover_script_status
     // second pass, retreat_all, also tries spots a ray from the threat reaches.
     uint32_t retreat_spot = 0, retreat_spots = 0, retreat_failed = 0;
     bool retreat_all = false;
+    // Since the script started, the times find_retreat went back to its first spot because the threat
+    // moved to another octant of the cover grid, seen from the critter.
+    uint32_t retreat_restarts = 0;
     // Since the script started, the searches' find_cover_point calls, each for one tile. A tile gets
     // another call when the threat moved since its list was made, or when the call ran out of fills.
     uint32_t tile_lists = 0;
