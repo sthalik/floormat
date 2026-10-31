@@ -528,7 +528,8 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     }
     else
     {
-        auto& n = nodes[new_idx];
+        // The cell's index is below node_count.
+        auto& n = nodes.data()[new_idx];
         n.dist = dist;
         n.prev = cur_idx;
     }
