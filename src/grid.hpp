@@ -33,7 +33,7 @@ struct GridBase
     chunk* c;
     chunk_coords_ coord;
     std::array<chunk*, 8> neighbors{};
-    std::array<uint64_t, 9> versions;   // [0..7]=neighbors, [8]=self; -1 = stale
+    uint64_t built_pass_gen = 0; // world::pass_gen() after the last build, or 0 when stale
     uint64_t build_no = 0;
     uint32_t live_index = (uint32_t)-1;
 
@@ -43,7 +43,7 @@ struct GridBase
     bool is_stale() const;
     void mark_stale();
     void reset_base_for_reuse(chunk& ch);
-    bool versions_match() const;
+    bool is_current() const;
     void maybe_mark_stale();
 
     static uint32_t pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count);

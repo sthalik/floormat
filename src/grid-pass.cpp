@@ -225,10 +225,6 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
         clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
             clear_rect_whole_rows(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
         });
-
-    for (auto i = 0u; i < 8; i++)
-        versions[i] = neighbors[i] ? neighbors[i]->pass_gen() : (uint64_t)-1;
-    versions[8] = self->pass_gen();
 }
 
 PassGrid::PassGrid(chunk& c, Params params):
@@ -354,7 +350,7 @@ bool Grid::bit(uint32_t index) const
 
 BitView Grid::bits() const
 {
-    detail::grid::check_versions(grid);
+    detail::grid::check_current(grid);
     fm_debug_assert(grid->bitmask.offset() == 0);
     return { reinterpret_cast<uint8_t*>(grid->bitmask.data()) };
 }
@@ -366,13 +362,13 @@ uint32_t Grid::div_count() const
 
 uint64_t Grid::build_no() const
 {
-    detail::grid::check_versions(grid);
+    detail::grid::check_current(grid);
     return grid->build_no;
 }
 
 bool Grid::is_all_empty() const
 {
-    detail::grid::check_versions(grid);
+    detail::grid::check_current(grid);
     return grid->is_all_empty();
 }
 
