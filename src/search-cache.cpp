@@ -77,7 +77,10 @@ uint32_t cache::lookup_index(uint32_t chunk_index, uint32_t tile_index)
 auto cache::at(uint32_t chunk_index, uint32_t tile_index) -> cell&
 {
     auto cells_per_chunk = (size_t)div_count_ * div_count_;
-    return cells[chunk_index * cells_per_chunk + tile_index];
+    const auto i = chunk_index * cells_per_chunk + tile_index;
+    fm_debug3_assert(i < cells.size());
+    // Not operator[]: its bounds check stays in release builds, and do_dir() calls this per neighbour.
+    return cells.data()[i];
 }
 
 void cache::clear_chunk(uint32_t chunk_index)
