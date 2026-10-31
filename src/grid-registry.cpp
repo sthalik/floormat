@@ -1,12 +1,12 @@
-#include "grid-pool-registry.hpp"
+#include "grid-registry.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat::Grid {
 
-PoolRegistry::PoolRegistry() = default;
-PoolRegistry::~PoolRegistry() noexcept = default;
+GridRegistry::GridRegistry() = default;
+GridRegistry::~GridRegistry() noexcept = default;
 
-Pass::Pool& PoolRegistry::pass_pool(const Pass::Params& pʹ)
+Pass::Pool& GridRegistry::pass_pool(const Pass::Params& pʹ)
 {
     const auto p = pʹ.validate();
     const auto div_size = p.div_size();
@@ -30,7 +30,7 @@ Pass::Pool& PoolRegistry::pass_pool(const Pass::Params& pʹ)
     return *pass_.fallback.back();
 }
 
-Cover::Pool& PoolRegistry::cover_pool(const Cover::Params& pʹ)
+Cover::Pool& GridRegistry::cover_pool(const Cover::Params& pʹ)
 {
     const auto p = pʹ.validate();
     const Pass::Params pass_params{p.div_size, pass_mode::shoot_through};

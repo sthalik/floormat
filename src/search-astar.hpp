@@ -6,7 +6,7 @@
 #include <mg/Vector2.h>
 
 namespace floormat::Search { struct cache; }
-namespace floormat::Grid { class PoolRegistry; }
+namespace floormat::Grid { class GridRegistry; }
 namespace floormat::Grid::Pass { class Pool; }
 
 namespace floormat {
@@ -35,7 +35,7 @@ public:
     void reserve(size_t capacity);
 
     struct Search::cache* cache();
-    Grid::PoolRegistry& pool_registry();
+    Grid::GridRegistry& pool_registry();
     uint32_t last_node_count() const { return node_count; }
 
     // todo add simple bresenham short-circuit
@@ -82,7 +82,7 @@ private:
     path_search_result make_result(const closest& best, point from, point to, uint32_t max_dist, float time);
 
     safe_ptr<struct Search::cache> _cache;
-    safe_ptr<Grid::PoolRegistry> _pool_registry;
+    safe_ptr<Grid::GridRegistry> _pool_registry;
     Array<visited> nodes;
     uint32_t node_count = 0;
     Array<Array<frontier>> buckets;

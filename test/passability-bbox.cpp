@@ -17,7 +17,7 @@
 #include "src/global-coords.hpp"
 #include "src/collision.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/search.hpp"
 #include "src/search-pred.hpp"
 #include <utility>
@@ -28,7 +28,7 @@ namespace {
 
 void test_pass_pool_promotes_and_snaps()
 {
-    Grid::PoolRegistry reg;
+    Grid::GridRegistry reg;
     const auto pool = [&](uint32_t bbox) -> auto& {
         return reg.pass_pool(Grid::Pass::Params{(uint32_t)tile_size_xy / 4, bbox, pass_mode::pass});
     };

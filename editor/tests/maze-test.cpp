@@ -7,7 +7,7 @@
 #include "src/search-astar.hpp"
 #include "src/search-pred.hpp"
 #include "src/search-result.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/point.inl"
 #include "src/world.hpp"
 #include "floormat/main.hpp"

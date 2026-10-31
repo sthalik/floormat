@@ -9,7 +9,7 @@
 #include "src/search-cache.hpp"
 #include "src/search.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "src/world.hpp"

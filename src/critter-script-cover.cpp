@@ -3,7 +3,7 @@
 #include "critter-walk.hpp"
 #include "cover-point.hpp"
 #include "critter.hpp"
-#include "grid-pool-registry.hpp"
+#include "grid-registry.hpp"
 #include "nanosecond.inl"
 #include "point.inl"
 #include "intra-coord.inl"

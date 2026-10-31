@@ -8,7 +8,7 @@
 #include "src/wall-atlas.hpp"
 #include "src/critter.hpp"
 #include "src/critter-script-cover.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/raycast.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-pred.hpp"

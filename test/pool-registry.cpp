@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/array-size.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include <bit>
@@ -27,7 +27,7 @@ void test_pass_pool_per_params()
     };
     constexpr auto N = array_size(params);
 
-    Grid::PoolRegistry reg;
+    Grid::GridRegistry reg;
     Pass::Pool* pools[N];
     for (auto i = 0u; i < N; i++)
     {
@@ -44,7 +44,7 @@ void test_pass_pool_per_params()
 
 void test_pass_pool_snapped_params()
 {
-    Grid::PoolRegistry reg;
+    Grid::GridRegistry reg;
     // div 16 snaps to 8 at bbox 10
     fm_assert(&reg.pass_pool(Params{16, 10, pass_mode::pass}) == &reg.pass_pool(Params{8, 10, pass_mode::pass}));
 }
@@ -52,7 +52,7 @@ void test_pass_pool_snapped_params()
 void test_cover_pool_per_div()
 {
     constexpr auto N = (uint32_t)std::bit_width(Cover::max_div_size);
-    Grid::PoolRegistry reg;
+    Grid::GridRegistry reg;
     Cover::Pool* pools[N];
     for (auto i = 0u; i < N; i++)
     {
@@ -71,7 +71,7 @@ void test_cover_pool_shares_pass_pool()
 {
     auto w = world();
     auto& c = w[chunk_coords_{0, 0, 0}];
-    Grid::PoolRegistry reg;
+    Grid::GridRegistry reg;
     auto& cover = reg.cover_pool(Cover::Params{8});
     cover.maybe_mark_stale_all(w);
     cover[c].build_if_stale();

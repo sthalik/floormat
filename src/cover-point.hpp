@@ -8,7 +8,7 @@
 #include <mg/Range.h>
 
 namespace floormat { class world; }
-namespace floormat::Grid { class PoolRegistry; }
+namespace floormat::Grid { class GridRegistry; }
 namespace floormat::Grid::Cover { struct Params; }
 
 namespace floormat {
@@ -83,7 +83,7 @@ struct cover_point
     /// enough to push it against, tried by octile distance from q.pos.
     /// @param list_spots Go on past the first spot and list every accepted one in spots, leaving the
     /// other fields as without it.
-    cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Grid::Cover::Params params,
+    cover_point_result find_cover_point(world& w, Grid::GridRegistry& pools, Grid::Cover::Params params,
                                         const cover_query& q, const Search::pred& pred,
                                         bool list_spots = false);
 
