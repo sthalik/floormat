@@ -169,6 +169,9 @@ private:
     uint32_t unreachable_reach = 0;
     uint64_t search_pass_gen = 0;
     uint32_t search_tile = 0, tile_spot = 0, failed_paths = 0, search_octant = 0;
+    // Tiles the search may still pass, starting at 3/2 of search_tiles().size(). A restart sends search_tile to 0
+    // only while a whole scan fits, so a threat that keeps moving can't keep the search near c.
+    uint32_t search_tiles_left = 0;
     // In state::find_retreat: the next of retreat_spots, this pass's spots with no path, and whether the pass
     // tries every spot left or only those a ray from threat_pos doesn't reach.
     uint32_t retreat_next = 0, retreat_failed = 0;
@@ -405,6 +408,8 @@ void cover_script::begin_search(critter& c, search_then next)
     arrayClear(unreachable);
     unreachable_reach = 0;
     search_pass_gen = 0;
+    const auto n = (uint32_t)search_tiles().size();
+    search_tiles_left = n + n/2;
     restart_search(nearest_octant(Vector2(threat->position() - c.position())));
     search_step(c);
 }
@@ -414,14 +419,15 @@ void cover_script::begin_search(critter& c, search_then next)
 void cover_script::restart_search(uint32_t octant)
 {
     search_octant = octant;
-    search_tile = 0;
+    if (search_tiles_left >= search_tiles().size())
+        search_tile = 0;
     tile_listed = false;
 }
 
 // One update's work of the search: up to search_tiles_per_update tiles in search_tiles() order,
 // each a find_cover_point call with that tile's area and the threat where it stands now. A threat
 // in another octant of the cover grid, seen from c, or a changed pass grid within reach of a path
-// that found none starts the search over.
+// that found none calls restart_search.
 void cover_script::search_step(critter& c)
 {
     auto& w = c.world();
@@ -518,6 +524,8 @@ void cover_script::search_step(critter& c)
         }
         tile_listed = false;
         search_tile++;
+        fm_debug_assert(search_tiles_left);
+        search_tiles_left--;
     }
 }
 
