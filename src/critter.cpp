@@ -296,13 +296,11 @@ void advance_anim_frames(critter& C, uint32_t nsteps, uint32_t step_len, uint32_
     C.frame = uint16_t((uint32_t(C.frame) + whole) % nframes_atlas);
 }
 
-bool move_steps(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
+void move_steps(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
 {
-    if (!C.move_to(i, rotation_to_vec(new_r) * int(nsteps), visible_r)) [[unlikely]]
-        return false;
-
+    [[maybe_unused]] const bool moved = C.move_to(i, rotation_to_vec(new_r) * int(nsteps), visible_r);
+    fm_debug_assert(moved);
     advance_anim_frames(C, nsteps, step_length(new_r), info.nframes);
-    return true;
 }
 
 // Moves C along new_r while ticks last, sliding 1 px along x or y when a diagonal step is blocked.
@@ -324,8 +322,7 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, Ns& ticks, c
         const auto k = res.steps;
         if (k > 0)
         {
-            if (!move_steps(i, C, info, k, new_r, new_r)) [[unlikely]]
-                return false;
+            move_steps(i, C, info, k, new_r, new_r);
             ticks -= step * k;
         }
         if (k == n)
@@ -343,8 +340,7 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, Ns& ticks, c
             e = alt.data()[2];
         else
             return false;
-        if (!move_steps(i, C, info, 1, e, new_r)) [[unlikely]]
-            return false;
+        move_steps(i, C, info, 1, e, new_r);
         ticks -= cost(e);
     }
     return true;
@@ -611,8 +607,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
             const auto k = res[j].steps;
             if (k > 0)
             {
-                if (!move_steps(index, *this, info, k, leg.r, leg.r))
-                    return blocked();
+                move_steps(index, *this, info, k, leg.r, leg.r);
                 ticks -= cost(leg.r) * k;
                 moved = true;
             }
