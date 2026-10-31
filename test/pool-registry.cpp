@@ -51,7 +51,7 @@ void test_pass_pool_snapped_params()
 
 void test_cover_pool_per_div()
 {
-    constexpr auto N = (uint32_t)std::countr_zero(chunk_size_xy); // xxx todo assumes power of two chunk size
+    constexpr auto N = (uint32_t)std::bit_width(Cover::max_div_size);
     Grid::PoolRegistry reg;
     Cover::Pool* pools[N];
     for (auto i = 0u; i < N; i++)

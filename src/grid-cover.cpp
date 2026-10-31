@@ -719,6 +719,7 @@ Params Params::validate() const
     fm_assert(chunk_size_xy % div_size == 0);
     // reads a pass pool of the same div_size, see Pass::Params::validate()
     fm_assert(div_size < chunk_size_xy);
+    fm_assert(div_size <= max_div_size);
     return *this;
 }
 
