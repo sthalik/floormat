@@ -37,15 +37,6 @@ octant_pair octants_around(Vector2 v)
     return { lo, (lo + 1) % (uint32_t)n };
 }
 
-// The octant whose bearing is nearest v's. A bearing halfway between octants k and k + 1 takes
-// k + 1, mod Cover::octant_count, since floor(x + 1/2) rounds a half up.
-uint32_t nearest_octant(Vector2 v)
-{
-    constexpr auto n = (int)Cover::octant_count;
-    const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step + .5f);
-    return (uint32_t)((k % n + n) % n);
-}
-
 // Cells first to last, both included, on both axes.
 struct cell_span
 {
@@ -100,6 +91,34 @@ template<typename T> void reserve_scratch(Array<T>& A, size_t count)
 }
 
 } // namespace
+
+// A bearing halfway between octants k and k + 1 takes k + 1, mod Cover::octant_count, since
+// floor(x + 1/2) rounds a half up.
+uint32_t nearest_octant(Vector2 v)
+{
+    constexpr auto n = (int)Cover::octant_count;
+    const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step + .5f);
+    return (uint32_t)((k % n + n) % n);
+}
+
+void nearest_tiles(uint32_t radius, Array<Vector2i>& out)
+{
+    arrayClear(out);
+    const auto n = (int)radius/tile_size_xy + 1;
+    reserve_scratch(out, (size_t)((2*n + 1)*(2*n + 1)));
+    for (auto y = -n; y <= n; y++)
+        for (auto x = -n; x <= n; x++)
+        {
+            const auto gap = Math::max(Math::abs(Vector2i{x, y}*tile_size_xy) - Vector2i{half_tile<int>}, Vector2i{});
+            if (gap.dot() <= (int)(radius*radius))
+                arrayAppend(out, Vector2i{x, y});
+        }
+    std::sort(out.begin(), out.end(), [](Vector2i a, Vector2i b) {
+        if (a.dot() != b.dot())
+            return a.dot() < b.dot();
+        return a.y() != b.y() ? a.y() < b.y() : a.x() < b.x();
+    });
+}
 
 struct cover_point::Impl
 {

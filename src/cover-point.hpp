@@ -67,6 +67,13 @@ struct cover_point_result
     bool out_of_fills = false;
 };
 
+/// The cover grid octant whose bearing is nearest v's.
+uint32_t nearest_octant(Vector2 v);
+
+/// Replaces out with the offsets, in tiles, of the tiles whose nearest point lies within radius px
+/// of a tile's center, nearest first, then by y and x.
+void nearest_tiles(uint32_t radius, Array<Vector2i>& out);
+
 struct cover_point
 {
     /// @brief The first spot near q.pos where a body of q.body_size fits by pred, which counts
