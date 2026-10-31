@@ -22,14 +22,15 @@ struct cover_script_options
     // cover_query::octants of the script's searches. With 3, a cover spot must also hide the critter
     // from the threat turned 11.25° either way about it.
     uint8_t octants = 3;
-    // cover_query::max_cover_end_dist of the script's searches. 5 tiles is also their radius,
-    // cover_radius.
+    // cover_query::max_cover_end_dist of the script's searches.
     uint32_t max_cover_end_dist = 5*(uint32_t)tile_size_xy;
 };
 
 struct cover_script_status
 {
-    enum class state : uint8_t { seek, to_cover, hidden, to_peek, exposed, retreat, };
+    // search: standing while it looks for cover, a few tiles per update. find_retreat: standing while
+    // it looks for a path to a spot farther from the threat, a few paths per update.
+    enum class state : uint8_t { seek, to_cover, hidden, to_peek, exposed, retreat, search, find_retreat, };
 
     // The cover the critter hides at, peeks from or walks to, when has_cover.
     point cover;
@@ -38,11 +39,17 @@ struct cover_script_status
     // When has_peek, the ends of the last ray from the threat to the gun at peek that was clear:
     // gun_ray_from, where the threat stood, and gun, the gun point there.
     point gun, gun_ray_from;
-    // The query of the last find_cover_point call, when has_query, whether it found cover or not.
+    // When has_query, the last finished search's query, found or not. Its radius is cut to a tile
+    // past the spot found.
     cover_query query = {};
-    // Since the script started: find_cover_point calls, rays cast from the threat, and Dijkstra
-    // searches, those of a retreat included.
+    // Since the script started: finished searches for cover, rays cast from the threat, and
+    // Dijkstra searches, those of a retreat included.
     uint32_t searches = 0, rays = 0, paths = 0;
+    // In state::search, the number of tiles tried, of search_tiles in all.
+    uint32_t search_tile = 0, search_tiles = 0;
+    // Since the script started, the searches' find_cover_point calls, each for one tile. A tile gets
+    // another call when the threat moved since its list was made, or when the call ran out of fills.
+    uint32_t tile_lists = 0;
     Ns last_update, max_update, total_update;
     state st = state::seek;
     bool has_cover = false, has_peek = false, has_query = false;

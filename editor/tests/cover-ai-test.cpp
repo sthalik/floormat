@@ -36,8 +36,8 @@ constexpr uint32_t cover_div = 8;
 constexpr int spawn_distance = 4*tile_size_xy;
 constexpr Vector2i spawn_dirs[] = { {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, };
 constexpr uint8_t octant_choices[] = { 0, 1, 3, 5, 7, 9, };
-constexpr const char* state_names[] = { "seek", "to cover", "hidden", "to peek", "exposed", "retreat", };
-static_assert(array_size(state_names) == (size_t)state::retreat + 1);
+constexpr const char* state_names[] = { "seek", "to cover", "hidden", "to peek", "exposed", "retreat", "search", "find retreat", };
+static_assert(array_size(state_names) == (size_t)state::find_retreat + 1);
 // how far from a dot's center, in screen px, a click still picks it
 constexpr float pick_radius = 6;
 // The default radius of the overlay's search, in tiles: 1024 px, as far as a cover grid cell sees
