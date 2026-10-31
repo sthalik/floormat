@@ -17,7 +17,7 @@ namespace {
 using namespace floormat::imgui;
 
 constexpr inline uint32_t default_div_size = 8;
-constexpr uint32_t div_sizes[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
+constexpr uint32_t div_sizes[] = { 1, 2, 4, 8, 16, 32, 64 };
 // odd, so the clicked chunk is in the middle
 constexpr uint32_t chunk_spans[] = { 1, 3, 5, 7 };
 
