@@ -52,7 +52,8 @@ private:
     void unregister_chunk(chunk* c) noexcept;
     CORRADE_NEVER_INLINE chunk& make_chunk_(chunk_coords_ coord);
     /// Allocate the next passability-generation stamp: chunks store it in _pass_gen at
-    /// construction and on each change, and grids compare per-chunk stamps for staleness.
+    /// construction and on each change, and a grid is stale once a chunk in its range holds a
+    /// stamp newer than its build.
     /// Monotonic uint64, so a chunk reused at a recycled address can't collide (ABA).
     uint64_t next_pass_gen() noexcept;
 

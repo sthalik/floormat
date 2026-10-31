@@ -39,6 +39,7 @@ void GridBase::build_if_stale(this Self& self, Args&&... args)
 
     self.neighbors = sc->world().neighbors(self.coord);
     self.build_impl(sc, forward<Args>(args)...);
+    self.built_pass_gen = sc->world().pass_gen();
     self.build_no = GridBase::next_build_no();
 }
 
@@ -77,9 +78,9 @@ T* Pool<T>::take(chunk& ch) requires BitGrid<T>
 
 // Up to 8 chunk lookups per call, so only accessors a query calls once per chunk check, not per cell.
 template <typename T>
-void check_versions([[maybe_unused]] T* grid)
+void check_current([[maybe_unused]] T* grid)
 {
-    fm_debug3_assert(grid->is_stale() || grid->versions_match());
+    fm_debug3_assert(grid->is_stale() || grid->is_current());
 }
 
 template <typename T>
@@ -96,7 +97,7 @@ template <typename T>
 bool grid_bit_at(Pool<T>* pool, T* grid, uint32_t index)
 {
     (void)pool;
-    //check_versions(grid);
+    //check_current(grid);
     //fm_assert(index < grid->bitmask.size());
     return grid->bitmask[index];
 }

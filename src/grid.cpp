@@ -45,17 +45,16 @@ uint64_t GridBase::next_build_no()
 GridBase::GridBase(chunk& ch):
     c{&ch}, coord{ch.coord()}
 {
-    versions.fill((uint64_t)-1);
 }
 
 bool GridBase::is_stale() const
 {
-    return versions[8] == (uint64_t)-1;
+    return built_pass_gen == 0;
 }
 
 void GridBase::mark_stale()
 {
-    versions[8] = (uint64_t)-1;
+    built_pass_gen = 0;
 }
 
 void GridBase::reset_base_for_reuse(chunk& ch)
@@ -63,22 +62,20 @@ void GridBase::reset_base_for_reuse(chunk& ch)
     c = &ch;
     coord = ch.coord();
     neighbors = {};
-    versions.fill((uint64_t)-1);
+    built_pass_gen = 0;
 }
 
-bool GridBase::versions_match() const
+bool GridBase::is_current() const
 {
-    if (versions[8] != c->pass_gen())
+    // A neighbour emptied and then deleted by world::collect() goes unseen. Chunks normally
+    // disappear only while laying out a map in the editor.
+    if (c->pass_gen() > built_pass_gen)
         return false;
 
     auto& w = c->world();
-    for (auto i = 0u; i < 8; i++)
-    {
-        auto* nb = w.at(coord + world::neighbor_offsets[i]);
-        auto nb_ver = nb ? nb->pass_gen() : (uint64_t)-1;
-        if (nb_ver != versions[i])
+    for (auto off : world::neighbor_offsets)
+        if (auto* nb = w.at(coord + off); nb && nb->pass_gen() > built_pass_gen)
             return false;
-    }
     return true;
 }
 
@@ -86,7 +83,7 @@ void GridBase::maybe_mark_stale()
 {
     fm_debug3_assert(c && c->world().at(coord) == c);
 
-    if (!is_stale() && !versions_match())
+    if (!is_stale() && !is_current())
         mark_stale();
 }
 
@@ -201,8 +198,8 @@ void PoolBase::detach_all() noexcept
 
 bool PoolBase::update_checked_pass_gen(const world& w) noexcept
 {
-    // Every stamp in versions[] came from world::next_pass_gen(), and so did every change that
-    // dirtied a chunk. While the counter hasn't moved, the walk would find nothing.
+    // is_current() fails only on a chunk stamp newer than the build, and every stamp comes from
+    // world::next_pass_gen(). While the counter hasn't moved, the walk would find nothing.
     const auto gen = w.pass_gen();
     if (gen == checked_pass_gen)
         return false;
