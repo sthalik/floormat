@@ -56,12 +56,10 @@ constexpr inline int raycast_radius_max = []
     return m;
 }();
 
-// scene_walk's corridor, shared with the generator that carves it and the menu entry that loads
-// it. Each side wall eats one interior column, so the passable ones are walk_corridor_tile+1
-// through walk_corridor_tile+walk_corridor_width-2.
-// It starts at chunk 0 because the critter starts at its north end and the camera stays on chunk
-// (0,0). The south end reaches past bench_chunk_max, so the scene around it is generated out to
-// walk_chunk_max instead.
+// scene_walk's corridor. Each side wall eats one interior column, so the passable ones are
+// walk_corridor_tile+1 through walk_corridor_tile+walk_corridor_width-2. It starts at chunk 0,
+// where the camera stays and the critter starts at its north end, and reaches past bench_chunk_max,
+// so the scene around it is generated out to walk_chunk_max.
 constexpr inline int16_t walk_chunk_min = 0, walk_chunk_max = 9;
 constexpr inline uint8_t walk_corridor_tile = 1, walk_corridor_width = 9;
 

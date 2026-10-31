@@ -131,10 +131,8 @@ void bench_sweep(benchmark::State& state)
             benchmark::DoNotOptimize(sweep(i));
 }
 
-// Prim's maze with its west seal opened at the NW cell, and `from` on a floored chunk three chunks
-// west of the opening. The two chunks between them don't exist. The route through the maze is many
-// times the straight line, so A* expands every cell of both. Walled chunks north and south keep it
-// from leaving through the missing chunks.
+// Prim's maze opened west at its NW cell, and `from` three chunks west of it, past two missing
+// chunks. A* expands every cell of both, since the route is many times the straight line.
 struct missing_chunks_world
 {
     world w;

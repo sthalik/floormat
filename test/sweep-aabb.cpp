@@ -225,10 +225,8 @@ void test_swept_collider_line()
     }
 }
 
-// A box walking 41 steps ends flush against a pillar: on its leading face for a cardinal line, at its
-// leading corner for a diagonal one. Touching isn't overlap, so nothing blocks. With the pillar 1 px
-// deeper, step 41 is the first the box can't reach. A pass_mode::pass pillar across the line never
-// blocks.
+// A box walking 41 steps ends flush against a pillar, cardinal or diagonal, and isn't blocked.
+// With the pillar 1 px deeper, step 41 is blocked. A pass_mode::pass pillar never blocks.
 void test_swept_collider_flush()
 {
     constexpr chunk_coords_ ch{0, 0, 0};

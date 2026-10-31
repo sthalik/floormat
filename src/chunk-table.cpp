@@ -80,10 +80,9 @@ std::array<const chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) const noex
 {
     constexpr uint32_t side = 1u << side_bits;
     std::array<const chunk*, 8> ret;
-    // A page's slot index holds x in its low side_bits and y in the next side_bits, so away from the
-    // page's edges all 8 neighbors share ch0's page and one lookup finds them. A missing page holds
-    // none of them. lx - 1 < side - 2 holds for lx in [1, side - 2]. For lx == 0 the uint32_t
-    // subtraction wraps to a value above side - 2, so the edge takes the slow path. Likewise for ly.
+    // Away from a page's edges all 8 neighbors share ch0's page, so one lookup finds them, and a
+    // missing page holds none. lx - 1 < side - 2 holds for lx in [1, side - 2], and for lx == 0 the
+    // uint32_t subtraction wraps, so the edge takes the slow path. Likewise for ly.
     const auto lx = (uint32_t(ch0.x) + chunk_bias) & (side - 1), ly = (uint32_t(ch0.y) + chunk_bias) & (side - 1);
     if (lx - 1 < side - 2 && ly - 1 < side - 2) [[likely]]
     {

@@ -60,13 +60,10 @@ public:
     /// @brief The step whose point is @p pt.
     /// @param pt A point on the line. The call asserts it.
     uint32_t step_of(Vector2i pt) const;
-    /// @brief The steps whose point has its coordinate on @p axis in [lo, hi].
+    /// @brief The steps whose point has its coordinate on @p axis, 0 for x or 1 for y, in [lo, hi],
+    /// or {1, 0} when there are none.
     ///
     /// They are consecutive, because both coordinates change monotonically along the line.
-    /// @param axis 0 for x, 1 for y.
-    /// @param lo Lowest coordinate on @p axis, included.
-    /// @param hi Highest coordinate on @p axis, included.
-    /// @return {1, 0} when there are none.
     step_interval interval_bounds_to_steps(uint32_t axis, int32_t lo, int32_t hi) const;
 
 private:

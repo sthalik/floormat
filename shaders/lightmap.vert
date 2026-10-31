@@ -51,14 +51,11 @@ void main() {
         // we need radius in clip units: radius_px * (2 / real_image_size)
         float lr_clip = lr * scale.x * 2.0;
 
-        // cap lr_clip so the shadow quad's angular span
-        // stays under 180°. Beyond that, the projected far vertices cross and
-        // the quad degenerates (split winding → slivers with face culling,
-        // shadow wrap-around without it). The break point is:
-        //   lr_clip_max = min_dist * tan((π - α) / 2) = min_dist * (1 + cos α) / sin α
-        // where α is the segment's angular span seen from the light.
-        // The 0.98 factor keeps a safety margin below the degeneration boundary.
-        // No acos()/tan(): acos() rounds α to 0 for a segment seen edge-on, and tan(float(π)/2) < 0.
+        // Cap lr_clip so the shadow quad's angular span stays under 180°, past which its far
+        // vertices cross and the quad degenerates. The break point is lr_clip_max = min_dist *
+        // tan((π - α) / 2) = min_dist * (1 + cos α) / sin α, α being the segment's angular span
+        // from the light, and 0.98 keeps below it. No acos()/tan(): acos() rounds α to 0 for a
+        // segment seen edge-on, and tan(float(π)/2) < 0.
         float len_a = length(delta_a);
         float len_b = length(delta_b);
         float min_dist = min(len_a, len_b);

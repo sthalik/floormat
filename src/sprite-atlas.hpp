@@ -48,11 +48,8 @@ public:
 
     std::array<Vector3, 4> texcoords_for(sprite s, bool mirror) const;
 
-    // Sub-rect UVs — reads a rectangle inside the sprite rather than the
-    // whole sprite. `sub_offset` and `sub_size` are in the source frame's
-    // top-down coordinates (same convention as JSON frame offsets). The
-    // overload handles the atlas's GL bottom-up storage internally.
-    // Whole-frame case is degenerate: `{0,0}, {width, height}`.
+    // UVs of a rectangle inside the sprite. `sub_offset` and `sub_size` are in the source frame's
+    // top-down coordinates, as JSON frame offsets are. The whole frame is `{0,0}, {width, height}`.
     std::array<Vector3, 4> texcoords_for(sprite s,
                                          Vector2ui sub_offset,
                                          Vector2ui sub_size,

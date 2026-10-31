@@ -571,13 +571,11 @@ void Test::test_raycast()
     for (const auto& [div, bbox] : sizes)
         test_rays(Pass::Params{div, bbox, pass_mode::pass}, w);
 
-    {   // A ray running along a box side makes the slab test compute 0 * inf = NaN.
-        // ray_aabb_intersection passes it as min/max's second argument, which Magnum
-        // drops, so the side counts as a hit. raycast() can't produce this yet:
-        // origins are integers and it inflates rect sides to n + 0.5.
-        // If only the on-side rays fail, the NaN reached `tmin < tmax`: the min/max
-        // arguments were swapped back, or raycast-loop.cpp lost -fno-finite-math-only.
-        // cl clamps 1/0 to 1e20, tilting the ray toward +x/+y, so its max sides miss.
+    {   // A ray along a box side makes the slab test compute 0 * inf = NaN, which
+        // ray_aabb_intersection passes as min/max's second argument for Magnum to drop, so the
+        // side counts as a hit. If only the on-side rays fail, the min/max arguments were swapped
+        // back, or raycast-loop.cpp lost -fno-finite-math-only. cl clamps 1/0 to 1e20, tilting
+        // the ray toward +x/+y, so its max sides miss.
         using namespace rc::detail;
 #if defined _MSC_VER && !defined __clang__
         constexpr bool max_side = false;

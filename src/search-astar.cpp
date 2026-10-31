@@ -688,11 +688,9 @@ bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goa
 
 } // namespace
 
-// For an end in a corridor narrower than the bbox plus a cell. Every cell along it holds a
-// blocked position, so its bit is clear wherever the lattice lies. Dijkstra over integer
-// positions up to seed_search_radius per axis from `source`, against the colliders themselves,
-// stops at every set cell it pops. cf. HPA*'s start insertion (Botea et al. 2004, "Near Optimal
-// Hierarchical Path-Finding", 3.2.1).
+// For an end in a corridor narrower than the bbox plus a cell, whose bits are all clear. Dijkstra
+// over integer positions near `source`, against the colliders, stops at every set cell it pops.
+// cf. HPA*'s start insertion (Botea et al. 2004, "Near Optimal Hierarchical Path-Finding", 3.2.1).
 struct astar::seed_search
 {
     static constexpr int R = seed_search_radius, W = 2*R + 1;

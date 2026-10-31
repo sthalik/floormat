@@ -21,10 +21,9 @@ struct line_cell
     uint32_t first_step, last_step;
 };
 
-// Visits the cells holding the line's pixels from first_step to last_step in step order, until
-// visit returns false. Pixels are in the frame of chunk ch, as for its rects. With a pool, cells
-// are the pool's, and those whose bit is set are skipped; without one, cells are chunks.
-// Orthogonal points count when they are in the supercover, or always with both_orthogonal.
+// Visits the cells of the line's pixels, in chunk ch's frame, from first_step to last_step until
+// visit returns false. Cells are the pool's, skipping set bits, or chunks without a pool.
+// Orthogonal points count when in the supercover, or always with both_orthogonal.
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          uint32_t first_step, uint32_t last_step, bool both_orthogonal,
                          Grid::Pass::Pool* pool,

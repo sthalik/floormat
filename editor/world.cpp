@@ -304,11 +304,9 @@ void app::populate_sweep_aabb_slit()
     c.mark_modified();
 }
 
-// Arrow keys only. search-astar.cpp keys the pass grid on max(bbox), so click-to-move pathfinds
-// this 255x32 critter as 255x255 and never finds a route.
-//
-// Walls can't bound the legs: a wall collider is a strip of wall_atlas depth lying outside its
-// own tile, which eats into the gap. A tile-sized scenery bbox matches whole_tile() exactly.
+// Arrow keys only: A* keys the pass grid on max(bbox), so it routes this 255x32 critter as
+// 255x255 and finds nothing. Stools bound the legs, since a wall's depth strip lies outside its
+// tile and narrows the gap.
 void app::populate_l_corridor()
 {
     reset_world();
