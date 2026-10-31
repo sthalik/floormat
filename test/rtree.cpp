@@ -279,10 +279,8 @@ void test_odd_bbox_rotation()
                 }
 }
 
-// teleport_to() skips both calls when the rotation stays the same. For rotate_size() that returns the
-// size unchanged. For rotate_point() it returns clamp_bbox_offset(v), which differs from v at -128.
-// Skipping it is still correct, because the constructor and set_bbox() store bbox_offset already
-// clamped, and set_bbox_() asserts that.
+// teleport_to() skips rotate_point() when the rotation stays the same, though it would clamp an
+// offset of -128. Stored bbox offsets are clamped already, and set_bbox_() asserts that.
 void test_same_rotation()
 {
     for (auto i = 0u; i < (uint32_t)rotation_COUNT; i++)
@@ -739,13 +737,10 @@ void check_same(const chunk::RTree::Node* a, const chunk::RTree::Node* b)
     }
 }
 
-// Moves random entries by up to 4 px per axis. Every 16th move also resizes the rect to 1 to 64 px
-// per side. Move() must succeed on every entry. It must move in place exactly when the new rect is
-// within its leaf's rect in the parent node, or the leaf is the root. A copy of the tree takes the
-// same in-place moves, and Remove() then Insert() for the others: both trees must stay the same.
-// After each move the tree keeps its invariants, and every 8th move random searches find exactly
-// the entries a scan finds, with their current data. The 300-entry tree must take both paths.
-// Move() of an id that isn't in the tree must return false and leave the tree as it was.
+// Moves random entries up to 4 px per axis, resizing every 16th. Move() must succeed, in place
+// exactly when the new rect fits its leaf's rect in the parent or the leaf is the root, and match
+// Remove() then Insert() on a copy. Invariants and searches are checked as it goes, and Move() of
+// an absent id returns false and changes nothing.
 void test_move()
 {
     struct entry { Range2Di r; object_id data; };

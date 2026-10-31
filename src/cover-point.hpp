@@ -65,10 +65,9 @@ struct cover_point
     /// critters, and q.threat sees no pixel of it.
     ///
     /// Candidates are the cover grid cells within q.radius that hide the body and have a blocker near
-    /// enough to push it against, tried by octile distance from q.pos. Each is pushed toward the
-    /// threat until flush, and if still seen, moved up to two cells sideways and pushed again.
-    /// @param list_spots Go on past the first spot and list every accepted one in spots. The
-    /// other fields stay as without it.
+    /// enough to push it against, tried by octile distance from q.pos.
+    /// @param list_spots Go on past the first spot and list every accepted one in spots, leaving the
+    /// other fields as without it.
     cover_point_result find_cover_point(world& w, Grid::PoolRegistry& pools, Grid::Cover::Params params,
                                         const cover_query& q, const Search::pred& pred,
                                         bool list_spots = false);

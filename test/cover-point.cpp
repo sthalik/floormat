@@ -552,11 +552,9 @@ void test_octants_wall_middle()
 }
 
 // The npc stands west of the wall near its north end, and the threat east of it, a little south.
-// Without octants, each spot found lies at the north end, where the wall hides it from the threat.
-// The threat turned an octant north sees each of them. Spots farther south hidden from all three
-// lie past the radius, and the cells within it that reach them are too far from the wall to be
-// candidates. With 3 octants the cover grid passes some candidates, and the test from the turned
-// threat rejects each one.
+// Without octants, each spot found lies at the north end, which the threat turned an octant north
+// sees. Spots farther south hidden from all three lie past the radius, and with 3 octants the test
+// from the turned threat rejects every candidate the cover grid passes.
 void test_octants_turned_threat_sees()
 {
     auto w = world();

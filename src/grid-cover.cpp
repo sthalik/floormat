@@ -573,12 +573,10 @@ void CoverGrid::fill_aligned(uint32_t k, chunk& self, const uint8_t* bits, Vecto
     }
 }
 
-// The other octants step (q, p) cells at a time. A passable cell is one step further than the cell
-// a step away, unless a blocked cell that the segment between their centers crosses stops it
-// first. Then it holds the distance to the nearest such cell's center along the step's major axis.
-// A blocked cell a step away carries 0, as in fill_aligned(). Rows are swept starting from the edge
-// p points at, and each reads the row |p| back. Only a cell whose cell a step away is off the grid
-// casts a ray.
+// The other octants step (q, p) cells at a time, sweeping rows from the edge p points at. A passable
+// cell whose cell a step away is off the grid casts a ray. Else the nearest blocked cell that the
+// segment between their centers crosses stops it, at that cell's center along the major axis, or
+// else it is a step further than the cell a step away, which carries 0 when blocked.
 template<typename T>
 void CoverGrid::fill_stepped(uint32_t k, chunk& self, const uint8_t* bits)
 {

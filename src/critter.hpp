@@ -44,24 +44,15 @@ struct critter final : object
 
     enum class walk_result : uint8_t { none, arrived, blocked, displaced, };
 
-    /// Walks to dest in up to two legs, along an axis until the rest is diagonal, then
-    /// diagonally (next_step()). For direct walks without A*.
-    /// - Facing follows each leg.
-    /// - One collider query covers both legs and their turns, up to half a chunk of steps. The
-    ///   walk stops before the first blocked step.
-    /// - A diagonal step costs √2 frames. Time below the next step's cost stays in delta.
-    /// - On arrival all unspent time goes back in dt.
-    /// - Starts from any position.
+    /// Walks from any position to dest along an axis until the rest is diagonal, then diagonally,
+    /// for direct walks without A*. It stops before the first blocked step, and time short of the
+    /// next step stays in delta. On arrival all unspent time goes back in dt.
     [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& dest);
 
-    /// Walks the Bresenham pixels of the segment from `from` to dest, which stay within half a
-    /// pixel of it at any angle. For segments of a smoothed path.
-    /// - Facing is the nearest of the 8 directions, fixed for the segment.
-    /// - A frame's steps are one find_swept_collider() over the line, orthogonal points of
-    ///   diagonal steps included. The critter stops at the last step its box reaches.
-    /// - A step costs its length in frames. Time below one step stays in delta.
-    /// - The critter must stand on one of the line's pixels. Otherwise it neither moves nor
-    ///   turns, and the result has displaced and blocked set.
+    /// Walks the Bresenham pixels of the segment from `from` to dest, for segments of a smoothed
+    /// path. The critter must stand on one of them, else it neither moves nor turns and the result
+    /// has displaced and blocked set. It stops at the last step its box reaches, and time short of
+    /// one step stays in delta.
     [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& from, const point& dest);
 
     Vector2ui circumscribed_bbox_size() const;

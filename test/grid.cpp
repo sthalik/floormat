@@ -1474,8 +1474,7 @@ uint32_t cover_units(float px, uint32_t div_size)
 // What an aligned octant holds, worked out cell by cell: walk from the cell along the octant
 // until a blocked cell, adding one step per passable cell on the way, or until the edge of the
 // grid, adding the ray from the last cell. A cell m cells from that edge is S(m) - S(m-1) px
-// further than its next one, S(m) being m steps rounded. Walks stop at cells already worked
-// out, so the whole grid is O(div_count²). Pixels are in 1/cover_fixed_one px.
+// further than its next one, S(m) being m steps rounded. Pixels are in 1/cover_fixed_one px.
 Array<uint16_t> cover_aligned_reference(chunk& c, const Pass::Grid& pg, uint32_t div_size, uint32_t k,
                                         Pass::Pool& pass_pool)
 {
@@ -1575,11 +1574,8 @@ Array<Vector2i> cover_crossed_cells(uint32_t k)
     return ret;
 }
 
-// What an octant that steps (q, p) cells holds, worked out cell by cell, rows in the order
-// fill_stepped() sweeps them. A passable cell whose cell a step away is off the grid casts a ray.
-// Else the nearest blocked cell that the segment between their centers crosses stops it, at that
-// cell's center along the major axis. Else it is a step further than the cell a step away, which
-// carries 0 when blocked. The step on row n of the sweep is R(n) - R(n - |p|), R(n) being n/|p|
+// What an octant that steps (q, p) cells holds by the rules on fill_stepped(), worked out cell by
+// cell in its row order. The step on row n of the sweep is R(n) - R(n - |p|), R(n) being n/|p|
 // steps rounded. Pixels are in 1/cover_fixed_one px and saturate.
 Array<uint16_t> cover_stepped_reference(chunk& c, const Pass::Grid& pg, uint32_t div_size, uint32_t k,
                                         Pass::Pool& pass_pool)

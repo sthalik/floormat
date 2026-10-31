@@ -351,12 +351,9 @@ void check_pocket(uint32_t cell, bool boxed_goal)
     walk_to(w, C, move(r1), goal, name, cell);
 }
 
-// No search queues a seed. From the pocket with max_dist 32, the seed search first meets a set
-// cell a box width out, so every seed costs max_dist or more. Toward the pocket with max_dist 1,
-// the ring seeds around the off-lattice start lie 1 px or more away. From the pocket with
-// max_dist 4 box widths, the seeds a box width out cost less. A seed's cost plus its octile
-// distance to `open` is still at least the octile distance from `pocket` to `open`, which is
-// longer.
+// No search queues a seed. From the pocket with max_dist 32, and toward it with max_dist 1, every
+// seed costs max_dist or more. With max_dist 4 box widths some cost less, but a seed's cost plus its
+// octile distance to `open` is at least the octile distance from `pocket` to `open`, over max_dist.
 void check_seeds_past_max_dist(uint32_t cell)
 {
     constexpr uint32_t size = 32;

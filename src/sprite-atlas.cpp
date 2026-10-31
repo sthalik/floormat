@@ -461,12 +461,9 @@ void dump_atlas(Atlas& atlas, StringView out_path)
     fm_assert(atlas.n_layers > 0);
     flush(atlas);
 
-    // stb's image-write encoders use `int` internally for byte counts, so
-    // single files past ~2 GB of raw pixels (≈ 512 MP at RGBA8) overflow.
-    // Budget each chunk at 256 MP (≈1 GB RGBA8) — half of the limit,
-    // leaving headroom for compression workspace. Layers-per-chunk is
-    // derived from layer_size so this stays safe if the atlas size grows.
-    // e.g. atlas.png → atlas.000.png, atlas.001.png, ...
+    // stb's image-write encoders count bytes in an `int`, so a file past 2 GB of raw pixels
+    // (512 MP at RGBA8) overflows. Each file gets 128 MP, a quarter of that, leaving headroom for
+    // compression workspace. atlas.png becomes atlas.000.png, atlas.001.png, ...
     constexpr uint64_t pixels_per_chunk = uint64_t{1024} * 1024 * 128;
 
     const auto split = Utility::Path::splitExtension(out_path);

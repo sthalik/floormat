@@ -12,13 +12,10 @@ String current_directory();
 
 String executable_location();
 
-// {head, tail} of pathname, both views into it, like Python's os.path.split(). tail follows
-// the last separator after the root. head precedes it without trailing separators, except that the
-// root stays whole. The root is the run of leading separators. On Windows both '/' and '\\'
-// separate, and the root also takes what precedes that run: a drive letter with its colon, a "\\?\"
-// or "//?/" prefix with the device after it ("C:"), a "\\?\UNC\" prefix with "server/share", or
-// "//server/share". "\\.\" and "//./" work like "\\?\" and "//?/". A "//server" without a share has no
-// root of its own. Elsewhere only '/' separates.
+// {head, tail} of pathname as views into it, like Python's os.path.split(). On Windows '\\' also
+// separates, and the root includes a leading drive letter and colon, a "\\?\", "//?/", "\\.\" or
+// "//./" prefix with the device after it, a "\\?\UNC\" prefix with "server/share", or
+// "//server/share". A "//server" without a share has no root of its own.
 Pair<StringView, StringView> split_pathname(StringView pathname);
 
 #ifdef _WIN32
