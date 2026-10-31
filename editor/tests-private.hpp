@@ -55,7 +55,10 @@ struct base_test
     // octants so far as a bitmask. maze_test: build for 0, else solve. cover_ai_test, returning u32
     // unless noted: 0 Start and 3 Reset (npc id as u64, or none), 1 Stop, 2 "Other cover spots" with
     // a full search (spot count), 4 and 5 next and previous cover (spot index, or none), 6 Hold
-    // (hold_phase), 7 "Move spots to cover's end" (1 when ticked).
+    // (hold_phase), 7 "Move spots to cover's end" (1 when ticked), 8 "Cover div" set to au32[1] (the
+    // div), 9 the box's search as au32: tiles listed, tiles in all, octant fills, and 1 while it runs,
+    // 10 its spots as au32: seen from the player now, dropped as seen since the search started, listed,
+    // 11 its center and octant as ai32, x, y and octant, then 1 while it runs.
     virtual Value advance(app& a, Value);
     // When the editor switches from the tests mode to another mode. Not when the test is replaced,
     // which runs its destructor.

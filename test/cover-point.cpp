@@ -871,6 +871,11 @@ uint32_t cover_scene::finish_search()
         {
             retreat_updates++;
             fm_assert(paths <= 4);
+            fm_assert(t0.retreat_spots > 0 && t0.retreat_spot <= t0.retreat_spots && t0.retreat_failed <= 8);
+            // The panel's progress only moves forward.
+            if (const auto t = status(); t.st == state::find_retreat)
+                fm_assert(t.retreat_all && !t0.retreat_all || t.retreat_all == t0.retreat_all &&
+                          t.retreat_spot > t0.retreat_spot);
         }
         else
             fm_assert(paths <= 1);
@@ -2003,6 +2008,52 @@ void test_cover_script_far_cover(bool turned)
     w.finish_scripts();
 }
 
+// In test_cover_script_far_cover's world, options with div_size 16, set while the search runs past
+// its first 32 tiles, start it over in the grids of that div_size, where it finds the far cover.
+void test_cover_script_div_change()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {12, 8}, {16, 96});
+    rebuild(w);
+    const point threat_pos{ch, {15, 8}, {}}, npc_pos{ch, {4, 8}, {}};
+    const auto threat = add_critter(w, threat_pos);
+    auto npc = add_critter(w, npc_pos);
+    w.init_scripts();
+    auto A = astar{};
+    npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
+    const auto frame = Second / npc->atlas->info().fps;
+    const auto status = [&] { return *get_cover_script_status(*npc); };
+    const auto step = [&] {
+        auto i = npc->index();
+        npc->update(npc, i, frame);
+    };
+    const auto fills = [&](uint32_t div) { return A.pool_registry().cover_pool(Cover::Params{div}).octant_fills(); };
+
+    for (auto updates = 0u; status().search_tile <= 32; updates++)
+    {
+        fm_assert(updates < 2000);
+        step();
+        fm_assert(status().st == state::search);
+    }
+    fm_assert(fills(16) == 0);
+    const auto fills8 = fills(8);
+    set_cover_script_options(*npc, {.div_size = 16});
+    step();
+    fm_assert(status().st == state::search && status().search_tile <= 32);
+    for (auto updates = 0u; status().st == state::search; updates++)
+    {
+        fm_assert(updates < 2000);
+        step();
+    }
+    fm_assert(fills(8) == fills8);
+    fm_assert(fills(16) > 1);
+    const auto t = status();
+    fm_assert(t.st == state::to_cover && t.has_cover);
+    fm_assert(point::distance(npc_pos, t.cover) > 7*(uint32_t)tile_size_xy);
+    w.finish_scripts();
+}
+
 // The npc hides behind the wall at one of its ends, then is sent to the last listed spot, at the
 // other end, where it hides and peeks from find_cover_peek's spot for it. Sent to peek from the
 // first, it walks to that spot's peek spot and hides at the first. A spot inside the wall has no
@@ -2148,6 +2199,7 @@ void Test::test_cover_point()
     test_cover_script_retreat_closed_in(hidden);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
+    test_cover_script_div_change();
     test_cover_script_orders(hidden);
     test_cover_script_keeps_peeking(hidden, c0.peek);
     test_cover_script_walking_threat(hidden);
