@@ -198,6 +198,7 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
         .layer = layer_idx,
     });
     L.next_y = (uint16_t)(L.next_y + q_height);
+    arrayReserve(hc.shelves, 16);
     arrayAppend(hc.shelves, shelf_ptr);
 
     return { shelf_ptr, layer_idx };
