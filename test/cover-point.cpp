@@ -101,7 +101,7 @@ bptr<critter> add_critter(world& w, point pos, Vector2ui size = body)
 // at each corner's slope and between each adjacent pair cover every aim.
 bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vector2ui size, object_id id)
 {
-    // PoolRegistry's pools leave critters out of the grid, and raycast() skips the cells it marks empty.
+    // GridRegistry's pools leave critters out of the grid, and raycast() skips the cells it marks empty.
     Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::never_continue()};
     const auto T = Vector3i(threat).xy();
     const auto shot = [&](Vector2i to) {
