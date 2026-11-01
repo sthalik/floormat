@@ -148,6 +148,7 @@ private:
     void check_hidden(critter& c, point threat);
     void check_exposed(critter& c, point threat);
     void check_walk(critter& c);
+    bool check_retreat(critter& c);
     void peek_again(critter& c);
     void step_out(const bptr<critter>& c);
     void leave_peek();
@@ -182,8 +183,8 @@ private:
     // In state::find_retreat: the next of retreat_spots, this pass's spots with no path, and whether the pass
     // tries every spot left or only those a ray from threat_pos doesn't reach.
     uint32_t retreat_next = 0, retreat_failed = 0;
-    // The threat's octant seen from c in state::find_retreat, and how often a change of it or a blocked retreat
-    // walk sent retreat_next to 0.
+    // The threat's octant seen from c in state::find_retreat, and how often a change of it, a blocked retreat
+    // walk or check_retreat sent retreat_next to 0.
     uint32_t retreat_octant = 0, retreat_restarts = 0;
     // Rays the first pass may still cast, starting at one per spot farther than min_retreat_gain from c. That
     // many suffice without a restart, so running out ends the pass early only when the threat changed octant.
@@ -294,7 +295,7 @@ void cover_script::update(const bptr<critter>& c, size_t& i, const Ns& dt)
         go_on(c, i, dt);
         return;
     case state::retreat:
-        if (search_tiles_left)
+        if ((options.search_every_move || !check_retreat(*c)) && search_tiles_left)
             search_step(*c);
         go_on(c, i, dt);
         return;
@@ -893,6 +894,28 @@ void cover_script::check_walk(critter& c)
     }
     if (st == state::to_peek && !sees_gun(c, walk.dest(), pos))
         peek_again(c);
+}
+
+// True when, after a threat move, the end of c's retreat walk is no longer min_retreat_gain px farther than its
+// start, or is seen when the first pass chose it. c then looks for a retreat again, once per walk, as on a block.
+bool cover_script::check_retreat(critter& c)
+{
+    if (replans)
+        return false;
+    const auto threat = c.world().find_object(threat_id);
+    if (!threat || threat->position() == threat_pos)
+        return false;
+    threat_pos = threat->position();
+    fm_debug_assert(retreat_next > 0);
+    const auto to = walk.dest(), from = to - retreat_spots[retreat_next - 1].offset;
+    const auto dist = [&](point p) { return Math::sqrt((double)point::distance_squared(p, threat_pos)); };
+    if (dist(to) - dist(from) > min_retreat_gain && (retreat_all || !sees(c, threat_pos, to)))
+        return false;
+    begin_retreat(c);
+    retreat_restarts++;
+    replans = 1;
+    retreat_step(c);
+    return true;
 }
 
 // Walks c to find_peek_pos's spot for its cover with the threat at threat_pos, or to the cover
