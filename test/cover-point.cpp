@@ -2134,6 +2134,62 @@ void test_cover_script_retreat_blocked(point hidden)
     fm_assert_equal(t1.retreat_restarts, s.status().retreat_restarts);
 }
 
+// As test_cover_script_retreat. The threat moves mid-walk to where it sees the walk's end, still over 3 tiles
+// farther than hidden. The npc looks for a retreat again, and a threat next to the second end starts no third.
+void test_cover_script_retreat_end_seen(point hidden)
+{
+    const point threat_pos{ch, {7, 1}, {}}, moved{ch, {5, 1}, {-20, 0}};
+    const auto dist = [&](point p, point from) { return std::sqrt((double)point::distance_squared(p, from)); };
+    // test_cover_script_retreat's spot
+    const auto end = hidden + Vector2i{12, 204};
+    // Returns where the npc stood when it looked for a retreat again.
+    const auto restart = [&](cover_scene& s) {
+        s.step_until(state::hidden);
+        fm_assert(s.npc->position() == hidden);
+        s.move_threat(threat_pos);
+        s.step_until(state::retreat);
+        fm_assert(s.seen_from(moved, end));
+        fm_assert(dist(end, moved) - dist(hidden, moved) > 3*tile_size_xy);
+        const auto t0 = s.status();
+        const auto from = s.npc->position();
+        s.move_threat(moved);
+        s.step();
+        const auto t = s.status();
+        fm_assert_equal(t0.retreat_restarts + 1, t.retreat_restarts);
+        fm_assert(t.paths - t0.paths <= 4);
+        return from;
+    };
+    point spot;
+    {
+        cover_scene s;
+        const auto from = restart(s);
+        s.step_until(state::retreat);
+        for (auto frames = 0u; s.status().st == state::retreat; frames++)
+        {
+            fm_assert(frames < 60*s.fps);
+            s.step();
+        }
+        fm_assert(s.status().st == state::seek || s.status().st == state::search);
+        spot = s.npc->position();
+        fm_assert(!s.seen_from(moved, spot));
+        fm_assert(dist(spot, moved) - dist(from, moved) > 3*tile_size_xy);
+    }
+
+    cover_scene s;
+    restart(s);
+    s.step_until(state::retreat);
+    const auto t1 = s.status();
+    for (auto frames = 0u; s.status().st == state::retreat; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.move_threat(spot + Vector2i{64 + (int)(frames % 2), 0});
+        s.step();
+        const auto t = s.status();
+        fm_assert(t.st != state::find_retreat);
+        fm_assert_equal(t1.retreat_restarts, t.retreat_restarts);
+    }
+}
+
 // A wall at tile (12, 8) whose west face, over 7 tiles from the npc, is the only cover from the
 // threat at (15, 8). The npc stands while its search reaches there, filling at most one octant
 // and running at most one Dijkstra search per update, then walks there and hides. With turned
@@ -2403,6 +2459,7 @@ void Test::test_cover_point()
     test_cover_script_retreat_finds_cover(hidden, false);
     test_cover_script_retreat_finds_cover(hidden, true);
     test_cover_script_retreat_blocked(hidden);
+    test_cover_script_retreat_end_seen(hidden);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
     test_cover_script_div_change();
