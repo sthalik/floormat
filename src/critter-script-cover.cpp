@@ -29,10 +29,12 @@ namespace {
 constexpr Ns hidden_time = 2*Second, exposed_time = 2*Second;
 // before looking for cover again when there was none, or the walk there was blocked twice
 constexpr Ns retry_time = Second;
-// The retreat's radius, and the slack of path_to's Dijkstra searches.
-constexpr uint32_t cover_radius = 5*(uint32_t)tile_size_xy;
+// A retreat ends at a spot within retreat_radius of the npc that is over min_retreat_gain px farther from the
+// threat. As the gain can't exceed the distance, that spot is over min_retreat_gain px from the npc too.
+constexpr uint32_t retreat_radius = 5*(uint32_t)tile_size_xy;
 constexpr int min_retreat_gain = 3*tile_size_xy;
 constexpr uint32_t search_radius = 2*chunk_size_xy;
+constexpr uint32_t path_slack = 5*(uint32_t)tile_size_xy;
 // The work a search for cover may do in one update. Counts, not time, so that the npc behaves the
 // same on every machine.
 // TODO: each critter has its own limits, so n critters searching in different chunks can do n
@@ -49,9 +51,9 @@ constexpr StringView script_name = name_of<cover_script>;
 using ScriptPtr = Pointer<critter_script>;
 using walk_result = critter::walk_result;
 
-// path_to's max_dist: twice the distance plus cover_radius, as the way around a blocker can be many
+// path_to's max_dist: twice the distance plus path_slack, as the way around a blocker can be many
 // times longer than the straight line.
-uint32_t path_reach(point from, point to) { return point::distance(from, to)*2 + cover_radius; }
+uint32_t path_reach(point from, point to) { return point::distance(from, to)*2 + path_slack; }
 
 // Every collider but the critter itself blocks, other critters included, as when it moves.
 auto blocks_all_but(object_id self)
@@ -633,7 +635,7 @@ path_search_result cover_script::path_to(critter& c, point to)
     return path;
 }
 
-// Puts c in state::find_retreat, standing while it looks for a path to the nearest spot within cover_radius
+// Puts c in state::find_retreat, standing while it looks for a path to the nearest spot within retreat_radius
 // over min_retreat_gain px farther from threat_pos than c. Spots a ray from threat_pos doesn't reach go first.
 void cover_script::begin_retreat(critter& c)
 {
@@ -641,7 +643,7 @@ void cover_script::begin_retreat(critter& c)
     fm_debug_assert(st != state::find_retreat);
     const auto body = Vector2i(c.bbox_size);
     const auto step = Math::max(body/2, Vector2i{1});
-    const auto n = Vector2i{(int)cover_radius} / step;
+    const auto n = Vector2i{(int)retreat_radius} / step;
     const auto count = (uint32_t)((2*n.x() + 1)*(2*n.y() + 1));
     if (arrayCapacity(retreat_spots) < count)
         arrayReserve(retreat_spots, count);
@@ -649,7 +651,7 @@ void cover_script::begin_retreat(critter& c)
     retreat_rays = 0;
     for (auto y = -n.y(); y <= n.y(); y++)
         for (auto x = -n.x(); x <= n.x(); x++)
-            if (const auto off = Vector2i{x, y} * step; off.dot() <= (int)(cover_radius*cover_radius))
+            if (const auto off = Vector2i{x, y} * step; off.dot() <= (int)(retreat_radius*retreat_radius))
             {
                 arrayAppend(retreat_spots, retreat_spot{off, false});
                 retreat_rays += off.dot() > min_retreat_gain*min_retreat_gain;
