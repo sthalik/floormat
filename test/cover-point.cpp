@@ -856,13 +856,18 @@ void cover_scene::step_until(cover_script_status::state st)
     }
 }
 
-// Steps while the npc searches for cover or a retreat, which takes a few updates from the one it
-// starts in, and returns the number of updates that started in state::find_retreat.
+// Steps while the npc searches for a retreat, or for cover, also during the retreat walk, and returns the
+// number of updates that started in state::find_retreat.
 uint32_t cover_scene::finish_search()
 {
     using state = cover_script_status::state;
+    const auto searches = status().searches;
+    const auto searching = [&] {
+        const auto t = status();
+        return t.st == state::search || t.st == state::find_retreat || t.st == state::retreat && t.searches == searches;
+    };
     auto retreat_updates = 0u;
-    for (auto frames = 0u; status().st == state::search || status().st == state::find_retreat; frames++)
+    for (auto frames = 0u; searching(); frames++)
     {
         fm_assert(frames < 60*fps);
         const auto t0 = status();
@@ -1285,8 +1290,8 @@ using state = cover_script_status::state;
 
 // The npc of cover_scene hides at hidden. While the threat walks east 1 px per frame, the npc casts
 // one ray per update, to its body's center, which the wall hides, and doesn't search. When the
-// threat moves north-west of the wall, that ray reaches the center, and the npc searches from the
-// next update on and walks to cover that hides it from there.
+// threat moves north-west of the wall, that ray reaches the center. The npc retreats at once, and
+// walks to cover its search finds on the way, which hides it from there.
 void test_cover_script_hidden_checks(point hidden)
 {
     cover_scene s;
@@ -1320,7 +1325,8 @@ void test_cover_script_hidden_checks(point hidden)
     s.finish_search();
     const auto t = s.status();
     fm_assert_equal(2u, t.searches);
-    fm_assert_equal(2u, t.paths);
+    // the retreat's and the search's
+    fm_assert_equal(3u, t.paths);
     fm_assert(t.st == state::to_cover && t.cover != hidden);
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == t.cover);
@@ -1449,8 +1455,8 @@ void test_cover_script_hold_follows_orders(point hidden, point peek)
 }
 
 // Half a second after the npc of cover_scene reaches peek, the threat moves to the wall's west
-// side, from where the cover spot is in the open. From the next update on the npc searches, finds
-// cover behind the wall's east face and walks off toward it, then hides there.
+// side, from where the cover spot is in the open. The npc retreats at once, its search on the way
+// finds cover behind the wall's east face, and it walks there and hides.
 void test_cover_script_flanked(point hidden, point peek)
 {
     cover_scene s;
@@ -1465,7 +1471,7 @@ void test_cover_script_flanked(point hidden, point peek)
     s.move_threat(threat_pos);
     fm_assert(s.seen_from(threat_pos, hidden));
     s.step();
-    fm_assert(s.status().st == state::search);
+    fm_assert(s.status().st == state::retreat);
     s.finish_search();
     const auto t = s.status();
     fm_assert_equal(t0.searches + 1, t.searches);
@@ -1485,8 +1491,8 @@ void test_cover_script_flanked(point hidden, point peek)
 }
 
 // As in test_cover_script_flanked, but the threat moves to test_cover_script_retreat's spot north
-// of the wall, from where nothing in the chunk hides the npc. Once its search ends the npc starts
-// its walk to a spot more than 3 tiles farther from the threat, and looks for cover again there.
+// of the wall, from where nothing in the chunk hides the npc. The npc walks at once to a spot more than 3
+// tiles farther from the threat, searching on the way.
 void test_cover_script_flanked_retreat(point peek)
 {
     cover_scene s;
@@ -1501,9 +1507,9 @@ void test_cover_script_flanked_retreat(point peek)
     fm_assert(s.seen_from(threat_pos, t0.cover));
     s.step();
     s.finish_search();
-    fm_assert_equal(t0.searches + 1, s.status().searches);
     fm_assert(s.status().st == state::retreat);
     s.step_until(state::seek);
+    fm_assert_equal(t0.searches + 1, s.status().searches);
     const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, threat_pos)); };
     fm_assert(dist(s.npc->position()) - dist(peek) > 3*tile_size_xy);
 }
@@ -1528,10 +1534,9 @@ bool walled_in(point pos)
     return v.x() - h.x() >= 456 && v.x() + h.x() <= 494 && v.y() - h.y() >= 456 && v.y() + h.y() <= 575;
 }
 
-// As in test_cover_script_flanked, but once the npc stands at peek, wall_in_east_cover closes the
-// cover behind the wall's east face. The search from peek still finds that cover first, and with no
-// path to it takes the first spot after it with a path, east of the blockers.
-void test_cover_script_flanked_no_path(point peek)
+// As in test_cover_script_flanked, with wall_in_east_cover's blockers added at peek. Measured from the
+// retreat's end, the spot east of the blockers comes first, and the npc tries no walled-in spot.
+void test_cover_script_flanked_searches_from_retreat_end(point peek)
 {
     const point west{ch, {2, 8}, {}};
     cover_scene s;
@@ -1552,30 +1557,23 @@ void test_cover_script_flanked_no_path(point peek)
     fm_assert(s.npc->position() != peek);
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
-    // No path to two walled-in spots more than a tile apart, which joins_unreachable doesn't tie,
-    // and one found.
-    fm_assert_equal(t0.paths + 3, t1.paths);
+    // the retreat's and the cover's
+    fm_assert_equal(t0.paths + 2, t1.paths);
     fm_assert(Vector3i(t1.cover).x() - (int)body.x()/2 >= 510);
     s.step_until(t1.cover);
     fm_assert(s.status().st == state::hidden);
     fm_assert(!s.seen_from(west, t1.cover));
 }
 
-// The npc of cover_scene hides behind the wall's west face, and wall_in_east_cover closes the cover
-// behind its east face. When the threat moves to the wall's west side and sees the npc, the nearest
-// cover has no path, so the npc takes the first spot after it that has one.
-void test_cover_script_hidden_no_path(point hidden)
+// The threat stands on the wall's west side from the start, with wall_in_east_cover's blockers. The npc's first
+// search, from its start, finds the walled-in cover first and, with no path there, takes the next spot with one.
+void test_cover_script_seek_no_path()
 {
     const point west{ch, {2, 8}, {}};
-    cover_scene s;
-    s.step_until(state::hidden);
-    fm_assert(s.npc->position() == hidden);
-    const auto t0 = s.status();
+    cover_scene s{west};
     wall_in_east_cover(s.w);
-
-    s.move_threat(west);
-    fm_assert(s.seen_from(west, hidden));
-    const auto r = find(s.w, hidden, west, 5*tile_size_xy, 8, body, Search::never_continue(), false,
+    const auto t0 = s.status();
+    const auto r = find(s.w, s.npc->position(), west, 5*tile_size_xy, 8, body, Search::never_continue(), false,
                         cover_script_options{}.octants);
     fm_assert(r.found && walled_in(r.pos));
     s.step();
@@ -1591,25 +1589,19 @@ void test_cover_script_hidden_no_path(point hidden)
     fm_assert(!s.seen_from(west, t1.cover));
 }
 
-// As in test_cover_script_hidden_no_path, with max_cover_end_dist 0, so that the cover behind the
-// wall's east face holds a spot in each cell along it. joins_unreachable ties them to the first,
-// which had no path, and the search tries no other of them.
+// As in test_cover_script_seek_no_path, with max_cover_end_dist 0, which leaves a walled-in spot in each cell
+// along the wall. joins_unreachable ties them to the first, which had no path, so the search tries no other.
 void test_cover_script_no_path_ties()
 {
     const point west{ch, {2, 8}, {}};
-    cover_scene s;
+    cover_scene s{west};
     auto o = cover_script_options{};
     o.max_cover_end_dist = 0;
     set_cover_script_options(*s.npc, o);
-    s.step_until(state::hidden);
-    const auto hidden = s.npc->position();
-    const auto t0 = s.status();
     wall_in_east_cover(s.w);
-
-    s.move_threat(west);
-    fm_assert(s.seen_from(west, hidden));
+    const auto t0 = s.status();
     Array<cover_spot> spots;
-    list_cover_spots(*s.npc, cover_query{hidden, body, west, 5*tile_size_xy, o.octants}, spots);
+    list_cover_spots(*s.npc, cover_query{s.npc->position(), body, west, 5*tile_size_xy, o.octants}, spots);
     fm_assert(std::count_if(spots.begin(), spots.end(), [](const cover_spot& x) { return walled_in(x.pos); }) > 2);
     s.step();
     s.finish_search();
@@ -1625,15 +1617,12 @@ struct no_path_search
     bptr<scenery> south;
 };
 
-// test_cover_script_hidden_no_path's scene, up to the search's update that finds no path to the
-// nearest walled-in spot. Returns the status from before the blockers.
-no_path_search start_no_path_search(cover_scene& s, point hidden)
+// test_cover_script_seek_no_path's scene, for a cover_scene built with the threat there, up to the update that
+// finds no path to the nearest walled-in spot. Returns the status from before the first update.
+no_path_search start_no_path_search(cover_scene& s)
 {
-    s.step_until(state::hidden);
-    fm_assert(s.npc->position() == hidden);
     const auto before = s.status();
     auto south = wall_in_east_cover(s.w);
-    s.move_threat(point{ch, {2, 8}, {}});
     for (auto frames = 0u; s.status().paths == before.paths; frames++)
     {
         fm_assert(frames < 60*s.fps);
@@ -1644,16 +1633,16 @@ no_path_search start_no_path_search(cover_scene& s, point hidden)
     return { before, move(south) };
 }
 
-// Two scenes of start_no_path_search, in one of which the threat then moves to `to`. In the same
-// octant, the next update lists the search's current tile again, for the threat's new position. In
-// another, the search starts over and skips the spot found to have no path.
-void test_cover_script_no_path_threat_moves(point hidden, point to, bool same_octant)
+// Two scenes of start_no_path_search, in one of which the threat then moves to `to`. In the same octant the next
+// update lists the search's tile again. In another the search starts over and skips the spot with no path.
+void test_cover_script_no_path_threat_moves(point to, bool same_octant)
 {
     const point west{ch, {2, 8}, {}};
-    fm_assert(same_octant == (nearest_octant(Vector2(to - hidden)) == nearest_octant(Vector2(west - hidden))));
-    cover_scene s, still;
-    const auto t0 = start_no_path_search(s, hidden).before;
-    (void)start_no_path_search(still, hidden);
+    cover_scene s{west}, still{west};
+    const auto start = s.npc->position();
+    fm_assert(same_octant == (nearest_octant(Vector2(to - start)) == nearest_octant(Vector2(west - start))));
+    const auto t0 = start_no_path_search(s).before;
+    (void)start_no_path_search(still);
     const auto lists = s.status().tile_lists, still_lists = still.status().tile_lists;
     s.move_threat(to);
     s.step();
@@ -1669,12 +1658,17 @@ void test_cover_script_no_path_threat_moves(point hidden, point to, bool same_oc
     fm_assert(!s.seen_from(to, t1.cover));
 }
 
-// As in start_no_path_search, then the south blocker goes away. The changed pass grids start the
-// search over, which forgets that the cover behind the wall's east face had no path, and takes it.
-void test_cover_script_no_path_opened(point hidden)
+// As in start_no_path_search, then the south blocker goes away. The changed pass grids start the search over,
+// which forgets that the walled-in spot had no path, and the npc takes it.
+void test_cover_script_no_path_opened()
 {
-    cover_scene s;
-    auto south = start_no_path_search(s, hidden).south;
+    const point west{ch, {2, 8}, {}};
+    cover_scene s{west};
+    auto south = start_no_path_search(s).south;
+    const auto o = cover_script_options{};
+    const auto r = find(s.w, s.npc->position(), west, 5*tile_size_xy, 8, body, Search::never_continue(), false,
+                        o.octants, o.max_cover_end_dist);
+    fm_assert(r.found && walled_in(r.pos));
     const auto gen = s.w.pass_gen();
     s.w[ch].kill_object(*south, south->index());
     fm_assert(s.w.pass_gen() != gen);
@@ -1682,18 +1676,17 @@ void test_cover_script_no_path_opened(point hidden)
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
     // The spot that had no path. The other walled-in one is more than a tile away.
-    fm_assert(walled_in(t1.cover) && point::distance(t1.cover, hidden) < tile_size_xy);
+    fm_assert(walled_in(t1.cover) && point::distance(t1.cover, r.pos) < tile_size_xy);
     s.step_until(t1.cover);
-    fm_assert(!s.seen_from(point{ch, {2, 8}, {}}, t1.cover));
+    fm_assert(!s.seen_from(west, t1.cover));
 }
 
-// As in start_no_path_search, then a blocker appears 8 chunks east, past where a path from the npc
-// can reach. The search goes on knowing that the walled-in spots have no path, so it tries neither
-// again.
-void test_cover_script_no_path_far_change(point hidden)
+// As in start_no_path_search, then a blocker appears 8 chunks east, past where a path from the npc can reach. The
+// search goes on knowing that the walled-in spots have no path, so it tries neither again.
+void test_cover_script_no_path_far_change()
 {
-    cover_scene s;
-    const auto t0 = start_no_path_search(s, hidden).before;
+    cover_scene s{point{ch, {2, 8}, {}}};
+    const auto t0 = start_no_path_search(s).before;
     const auto gen = s.w.pass_gen();
     add_blocker(s.w, global_coords{chunk_coords_{8, 0, 0}, {8, 8}}, {16, 16});
     fm_assert(s.w.pass_gen() != gen);
@@ -1706,8 +1699,8 @@ void test_cover_script_no_path_far_change(point hidden)
 
 // The npc of cover_scene walks to cover. While the threat walks east 1 px per frame, it casts one
 // ray per update, to the cover's center, which the wall hides, and doesn't search. When the threat
-// moves to the wall's west side, the cover is in the open, and the npc stops to search and walks
-// to cover behind the wall's east face without passing the old one.
+// moves to the wall's west side, the cover is in the open. The npc retreats at once and walks to
+// cover its search finds on the way, behind the wall's east face, without passing the old one.
 void test_cover_script_walk_checks(point hidden)
 {
     cover_scene s;
@@ -1877,10 +1870,9 @@ void test_cover_script_retreat(point hidden)
     fm_assert(!find(s.w, hidden, threat_pos, chunk_size_xy, 8).found);
     s.step();
     s.finish_search();
-    const auto t1 = s.status();
-    fm_assert_equal(t0.searches + 1, t1.searches);
-    fm_assert(t1.st == state::retreat);
+    fm_assert(s.status().st == state::retreat);
     s.step_until(state::seek);
+    fm_assert_equal(t0.searches + 1, s.status().searches);
     const auto spot = s.npc->position();
     fm_assert(point::distance_squared(spot, hidden) <= (uint64_t)(radius*radius));
     const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, threat_pos)); };
@@ -1924,7 +1916,7 @@ void close_in_retreat(world& w, point hidden)
 }
 
 // As test_cover_script_retreat, with close_in_retreat's walls. None of the 6 spots has a path, so at 4 paths
-// per update the retreat takes at least 2 updates.
+// per update the retreat takes the flank's update and at least one more.
 void test_cover_script_retreat_closed_in(point hidden)
 {
     cover_scene s;
@@ -1937,33 +1929,50 @@ void test_cover_script_retreat_closed_in(point hidden)
     s.move_threat(threat_pos);
     fm_assert(s.seen_from(threat_pos, hidden));
     s.step();
+    fm_assert(s.status().st == state::find_retreat);
+    fm_assert_equal(t0.paths + 4, s.status().paths);
     const auto retreat_updates = s.finish_search();
     const auto t1 = s.status();
-    fm_assert_equal(t0.searches + 1, t1.searches);
     fm_assert(t1.st == state::retreat || t1.st == state::seek);
-    fm_assert(retreat_updates >= 2);
+    fm_assert(retreat_updates >= 1);
+    s.step_until(state::seek);
+    fm_assert_equal(t0.searches + 1, s.status().searches);
+}
+
+// test_cover_script_retreat_closed_in's scene, up to the flank's update, in which 4 of the 6 enclosed spots
+// had no path. Returns the status after it.
+cover_script_status flank_closed_in(cover_scene& s, point hidden, point threat_pos)
+{
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    close_in_retreat(s.w, hidden);
+    s.move_threat(threat_pos);
+    s.step();
+    const auto t = s.status();
+    fm_assert(t.st == state::find_retreat);
+    fm_assert_equal(4u, t.retreat_failed);
+    return t;
 }
 
 // As test_cover_script_retreat_closed_in. A 1 px move of the threat keeps the retreat's progress. A 100 px
 // move to another octant starts it over, and it picks a spot nearer than the enclosure that the wall hides.
 void test_cover_script_retreat_restart(point hidden)
 {
-    cover_scene s;
-    s.step_until(state::hidden);
-    fm_assert(s.npc->position() == hidden);
     const point threat_pos{ch, {7, 1}, {}};
-    close_in_retreat(s.w, hidden);
-    s.move_threat(threat_pos);
-    s.step_until(state::find_retreat);
-    const auto t0 = s.status();
+    {
+        cover_scene s;
+        const auto t0 = flank_closed_in(s, hidden, threat_pos);
+        s.move_threat(threat_pos + Vector2i{1, 0});
+        s.step();
+        const auto t1 = s.status();
+        // The 2 enclosed spots left, then a path.
+        fm_assert(t1.st == state::retreat && t1.retreat_restarts == t0.retreat_restarts);
+        fm_assert_equal(t0.paths + 3, t1.paths);
+        fm_assert_equal(6u, t1.retreat_failed);
+    }
 
-    s.move_threat(threat_pos + Vector2i{1, 0});
-    s.step();
-    const auto t1 = s.status();
-    fm_assert(t1.st == state::find_retreat && t1.retreat_restarts == t0.retreat_restarts);
-    fm_assert_equal(t0.paths + 4, t1.paths);
-    fm_assert_equal(4u, t1.retreat_failed);
-
+    cover_scene s;
+    const auto t1 = flank_closed_in(s, hidden, threat_pos);
     const auto moved = threat_pos + Vector2i{100, 0};
     s.move_threat(moved);
     s.step();
@@ -1982,7 +1991,8 @@ void test_cover_script_retreat_restart(point hidden)
 }
 
 // As test_cover_script_retreat without the wall. The threat circles 64 px around the npc, an octant per update,
-// restarting the retreat each time, and the npc walks off when the first pass's rays run out, 6 updates in.
+// restarting the retreat each time, and the npc walks off when the first pass's rays run out, 6 updates in with
+// the flank's.
 void test_cover_script_retreat_circling_threat(point hidden)
 {
     cover_scene s;
@@ -1997,7 +2007,7 @@ void test_cover_script_retreat_circling_threat(point hidden)
     auto updates = 0u;
     for (; s.status().st == state::find_retreat; updates++)
     {
-        fm_assert(updates < 6);
+        fm_assert(updates < 5);
         const auto a = (updates + 1) * 2 * Math::Constants<double>::pi() / Cover::octant_count;
         s.move_threat(here + Vector2i(Math::round(Vector2d{std::cos(a), std::sin(a)} * 64.)));
         s.step();
@@ -2021,20 +2031,107 @@ void test_cover_script_search_circling_threat(point hidden, bool far_block)
         add_blocker(s.w, block.local(), {64, 64});
     rebuild(s.w);
     const auto t0 = s.status();
-    const auto end = far_block ? state::to_cover : state::find_retreat;
-    for (auto updates = 0u; s.status().st != end; updates++)
+    // Without the block the search ends during the retreat walk, or after it with the npc standing.
+    const auto ended = [&] {
+        return far_block ? s.status().st == state::to_cover : s.status().searches != t0.searches;
+    };
+    auto walked = false;
+    for (auto updates = 0u; !ended(); updates++)
     {
         fm_assert(updates < 60*s.fps);
         const auto a = (updates + 1) * 2 * Math::Constants<double>::pi() / Cover::octant_count;
         s.move_threat(hidden + Vector2i(Math::round(Vector2d{std::cos(a), std::sin(a)} * 64.)));
         s.step();
-        fm_assert(s.status().st == state::search || s.status().st == end);
+        const auto st = s.status().st;
+        walked |= st == state::retreat;
+        fm_assert(ended() || st == state::search || st == state::find_retreat || st == state::retreat);
     }
+    fm_assert(walked);
     fm_assert_equal(t0.searches + 1, s.status().searches);
     if (far_block)
         fm_assert(point::distance(s.status().cover, block) < 2*(uint32_t)tile_size_xy);
     else
         fm_assert_equal(s.status().search_tiles, s.status().search_tile);
+}
+
+// As test_cover_script_retreat, with a block 7 tiles south of hidden that hides a spot from tile (7, 1). The npc
+// walks off, then takes that spot, also when a block at (3, 2) hides a nearer one toward the threat.
+void test_cover_script_retreat_finds_cover(point hidden, bool near_threat)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    const point block{ch, {7, 14}, {}};
+    add_blocker(s.w, block.local(), {64, 64});
+    if (near_threat)
+        add_blocker(s.w, {3, 2}, {64, 64});
+    rebuild(s.w);
+    const auto t0 = s.status();
+
+    const point threat_pos{ch, {7, 1}, {}};
+    s.move_threat(threat_pos);
+    fm_assert(s.seen_from(threat_pos, hidden));
+    s.stay(20);
+    auto walked = false;
+    for (auto frames = 0u; s.status().st != state::hidden; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        const auto st = s.status().st;
+        fm_assert(st == state::retreat || st == state::to_cover);
+        walked |= st == state::retreat;
+        s.step();
+    }
+    const auto t = s.status();
+    fm_assert(walked);
+    fm_assert(s.npc->position() == t.cover);
+    fm_assert(point::distance(t.cover, hidden) > 5*(uint32_t)tile_size_xy);
+    fm_assert(point::distance(t.cover, block) < 2*(uint32_t)tile_size_xy);
+    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, t.cover, body, s.npc->id));
+    fm_assert_equal(t0.searches + 1, t.searches);
+}
+
+// As test_cover_script_retreat, with a block put in the way of the npc's retreat walk. The npc looks for a
+// retreat once more from where it was stopped. A second block leaves it searching where it stands.
+void test_cover_script_retreat_blocked(point hidden)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    s.move_threat(point{ch, {7, 1}, {}});
+    s.step_until(state::retreat);
+    // A 64 px block 8 px past the body's edge, along the npc's next step. Shots pass it, so it hides nothing.
+    const auto block_ahead = [&] {
+        const auto from = s.npc->position();
+        s.step();
+        const auto at = s.npc->position();
+        fm_assert(s.status().st == state::retreat && at != from);
+        const auto p = at + Math::sign(at - from)*(32 + 8 + (int)body.x()/2);
+        add_blocker(s.w, p.local(), {64, 64}, p.offset(), pass_mode::shoot_through);
+        rebuild(s.w);
+    };
+    block_ahead();
+    const auto t0 = s.status();
+    s.step_until(state::find_retreat);
+    const auto t1 = s.status();
+    fm_assert_equal(t0.retreat_restarts + 1, t1.retreat_restarts);
+    s.step_until(state::retreat);
+    fm_assert(s.status().paths > t1.paths);
+
+    // Each retreat walk is longer than min_retreat_gain, so stopping this soon means a block.
+    block_ahead();
+    for (auto frames = 0u; s.status().st == state::retreat; frames++)
+    {
+        fm_assert(frames < s.fps/2);
+        s.step();
+    }
+    fm_assert(s.status().st == state::search);
+    for (auto frames = 0u; s.status().st != state::seek; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        fm_assert(s.status().st == state::search);
+        s.step();
+    }
+    fm_assert_equal(t1.retreat_restarts, s.status().retreat_restarts);
 }
 
 // A wall at tile (12, 8) whose west face, over 7 tiles from the npc, is the only cover from the
@@ -2286,13 +2383,13 @@ void Test::test_cover_point()
     test_cover_script_holds_exposed(hidden, c0.peek);
     test_cover_script_hold_follows_orders(hidden, c0.peek);
     test_cover_script_flanked_retreat(c0.peek);
-    test_cover_script_flanked_no_path(c0.peek);
-    test_cover_script_hidden_no_path(hidden);
+    test_cover_script_flanked_searches_from_retreat_end(c0.peek);
+    test_cover_script_seek_no_path();
     test_cover_script_no_path_ties();
-    test_cover_script_no_path_threat_moves(hidden, point{ch, {2, 8}, {0, -1}}, true);
-    test_cover_script_no_path_threat_moves(hidden, point{ch, {2, 8}, {0, -6}}, false);
-    test_cover_script_no_path_opened(hidden);
-    test_cover_script_no_path_far_change(hidden);
+    test_cover_script_no_path_threat_moves(point{ch, {2, 8}, {0, -1}}, true);
+    test_cover_script_no_path_threat_moves(point{ch, {2, 8}, {0, -14}}, false);
+    test_cover_script_no_path_opened();
+    test_cover_script_no_path_far_change();
     test_cover_script_walk_checks(hidden);
     test_cover_script_peek_walk_checks(hidden, c0.peek);
     test_cover_script_peek_again_flanked(hidden, c0.peek);
@@ -2303,6 +2400,9 @@ void Test::test_cover_point()
     test_cover_script_retreat_circling_threat(hidden);
     test_cover_script_search_circling_threat(hidden, false);
     test_cover_script_search_circling_threat(hidden, true);
+    test_cover_script_retreat_finds_cover(hidden, false);
+    test_cover_script_retreat_finds_cover(hidden, true);
+    test_cover_script_retreat_blocked(hidden);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
     test_cover_script_div_change();
