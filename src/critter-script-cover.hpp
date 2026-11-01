@@ -48,14 +48,14 @@ struct cover_script_status
     // Since the script started: finished searches for cover, rays cast from the threat, and
     // Dijkstra searches, those of a retreat included.
     uint32_t searches = 0, rays = 0, paths = 0;
-    // In state::search, the number of tiles tried, of search_tiles in all.
+    // While a search runs, in state::search or during a retreat, the number of tiles tried out of search_tiles.
     uint32_t search_tile = 0, search_tiles = 0;
     // In state::find_retreat, the next of retreat_spots spots, and this pass's spots with no path. The
     // second pass, retreat_all, also tries spots a ray from the threat reaches.
     uint32_t retreat_spot = 0, retreat_spots = 0, retreat_failed = 0;
     bool retreat_all = false;
     // Since the script started, the times find_retreat went back to its first spot because the threat
-    // moved to another octant of the cover grid, seen from the critter.
+    // moved to another octant of the cover grid, seen from the critter, or the retreat walk was blocked.
     uint32_t retreat_restarts = 0;
     // Since the script started, the searches' find_cover_point calls, each for one tile. A tile gets
     // another call when the threat moved since its list was made, or when the call ran out of fills.
