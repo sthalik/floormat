@@ -6,6 +6,7 @@
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
 #include "src/critter-script-cover.hpp"
+#include "src/critter-walk.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/nanosecond.inl"
 #include "src/grid-cover.hpp"
@@ -2413,32 +2414,99 @@ void test_cover_script_orders(point hidden)
     fm_assert(!send_to_peek(*s.npc, other));
 }
 
-// A spot 2 to 5 tiles from the npc, between tile centers 2 and 13 on both axes, from which a ray reaches the npc's
-// center. Bearings from the npc are tried every 45°, turned from the threat's by 90° first and by 45° last.
-point flank_position(cover_scene& s)
+// True when the threat at from sees a pixel of the npc's body centered on pos, as the npc's script tests it.
+bool edge_seen(cover_scene& s, point from, point pos)
 {
-    const auto npc = s.npc->position();
-    const auto v = Vector2d(s.threat->position() - npc);
-    const auto a0 = std::atan2(v.y(), v.x());
+    static cover_point finder;
+    return !finder.hidden_at(s.w, from, {pos, axis_toward(from - pos)}, body);
+}
+
+// True when the threat at from sees a pixel of the npc where it stands or at its canonical, either of which makes
+// it leave.
+bool flanked_from(cover_scene& s, point from)
+{
+    return edge_seen(s, from, s.npc->position()) || edge_seen(s, from, s.status().canonical);
+}
+
+// Replaces out with the points of path's segments, a px apart.
+void path_points(ArrayView<const point> path, Array<point>& out)
+{
+    arrayClear(out);
+    arrayAppend(out, path.front());
+    for (auto k = 1u; k < path.size(); k++)
+    {
+        const auto d = Vector2d(path[k] - path[k-1]);
+        const auto n = (uint32_t)Math::ceil(d.length());
+        for (auto j = 1u; j <= n; j++)
+            arrayAppend(out, path[k-1] + Vector2i(Math::round(d*j/n)));
+    }
+}
+
+double path_length(ArrayView<const point> path)
+{
+    auto len = 0.;
+    for (auto k = 1u; k < path.size(); k++)
+        len += Vector2d(path[k] - path[k-1]).length();
+    return len;
+}
+
+// The threat's path to where flanked_from(), true from no point farther than a tile from its end. It ends half a
+// tile past where flanked_from() first holds, on its way to a spot 2 to 5 tiles from the npc or a tile center.
+path_search_result flank_route(cover_scene& s)
+{
+    const auto npc = s.npc->position(), from = s.threat->position();
+    const auto size = Vector2ui(s.threat->bbox_size);
     const auto lo = 2*(int)tile_size_xy, hi = (int)((TILE_MAX_DIM - 3)*tile_size_xy);
+    Array<point> pts;
+    const auto route_to = [&](point p) -> Optional<path_search_result> {
+        const auto px = Vector3i(p).xy();
+        if (p.chunk3() != ch || (px < Vector2i{lo}).any() || (px > Vector2i{hi}).any())
+            return {};
+        if (!passable(s.w, p, body) || !flanked_from(s, p))
+            return {};
+        const auto toward = s.A.Dijkstra<0, false>(s.w, from, p, chunk_size_xy, size, Search::without_critters());
+        if (!toward.is_found())
+            return {};
+        path_points(toward.path(), pts);
+        auto first = 0u;
+        while (first < pts.size() && !flanked_from(s, pts[first]))
+            first++;
+        if (first == 0 || first == pts.size())
+            return {};
+        const auto end = pts[Math::min(first + half_tile<uint32_t>, (uint32_t)pts.size() - 1)];
+        auto route = s.A.Dijkstra<0, false>(s.w, from, end, chunk_size_xy, size, Search::without_critters());
+        if (!route.is_found() || !flanked_from(s, end))
+            return {};
+        path_points(route.path(), pts);
+        auto ok = true;
+        for (const auto& x : pts)
+            ok &= point::distance(x, end) <= tile_size_xy || !flanked_from(s, x);
+        if (!ok)
+            return {};
+        return move(route);
+    };
+    const auto v = Vector2d(from - npc);
+    const auto a0 = std::atan2(v.y(), v.x());
     for (const auto r : { 5., 4., 3., 2. })
         for (const auto k : { 2, 6, 3, 5, 4, 1, 7 })
         {
             const auto a = a0 + k * Math::Constants<double>::pi() / 4;
             const auto p = npc + Vector2i(Math::round(Vector2d{std::cos(a), std::sin(a)} * r * tile_size_xy));
-            const auto px = Vector3i(p).xy();
-            if (p.chunk3() != ch || (px < Vector2i{lo}).any() || (px > Vector2i{hi}).any())
-                continue;
-            if (passable(s.w, p, body) && s.seen_from(p, npc))
-                return p;
+            if (auto route = route_to(p))
+                return move(*route);
         }
-    fm_abort("no flank position");
+    for (auto y = 2u; y <= TILE_MAX_DIM - 3; y++)
+        for (auto x = 2u; x <= TILE_MAX_DIM - 3; x++)
+            if (auto route = route_to(point{ch, {x, y}, {}}))
+                return move(*route);
+    fm_abort("no flank route");
 }
 
-// cover_scene with 64 px blocks around its wall, the npc held hidden. The threat moves 16 times to where it sees
-// the npc, which must hide again within 4 s, with under 0.25 s retreating and under 2 s in the threat's view.
+// cover_scene with 64 px blocks around its wall. 16 times, the threat walks a flank_route(), and from the update
+// it first sees a pixel of the hidden npc, the npc must hide again within 1.25 times its shortest walk there.
 void test_cover_script_rehides()
 {
+    using walk_result = critter::walk_result;
     cover_scene s{point{ch, {10, 8}, {}}};
     const local_coords blocks[] = { {3, 3}, {8, 3}, {12, 3}, {3, 8}, {12, 8}, {3, 12}, {8, 12}, {12, 12} };
     for (const auto tile : blocks)
@@ -2450,26 +2518,58 @@ void test_cover_script_rehides()
     s.step_until(state::hidden);
     for (auto i = 0u; i < 16; i++)
     {
-        const auto threat_pos = flank_position(s);
-        s.move_threat(threat_pos);
-        auto updates = 0u, retreating = 0u, seen = 0u;
-        const auto step = [&] {
+        auto route = flank_route(s);
+        const auto end = route.path().back();
+        const auto route_len = path_length(route.path());
+        critter_walk walk{move(route)};
+        auto arrived = false, flanked = false;
+        auto walked = 0u, updates = 0u, hidden_after = 0u, retreating = 0u, seen = 0u;
+        point flanked_at;
+        for (auto frames = 0u; ; frames++)
+        {
+            fm_assert(frames < 60*s.fps);
+            if (!arrived)
+            {
+                auto ti = s.threat->index();
+                const auto r = walk.update(s.threat, ti, s.frame);
+                fm_assert(r == walk_result::none || r == walk_result::arrived);
+                arrived = r == walk_result::arrived;
+                walked++;
+            }
+            if (!flanked && flanked_from(s, s.threat->position()))
+            {
+                flanked = true;
+                flanked_at = s.npc->position();
+                fm_assert(point::distance(s.threat->position(), end) <= tile_size_xy);
+            }
+            const auto was_hidden = s.status().st == state::hidden;
             s.step();
+            const auto t = s.status();
+            if (!flanked)
+            {
+                fm_assert(t.st == state::hidden);
+                continue;
+            }
             updates++;
-            const auto st = s.status().st;
-            retreating += st == state::find_retreat || st == state::retreat;
-            seen += s.seen_from(threat_pos, s.npc->position());
-            return st;
-        };
-        const auto st = step();
-        fm_assert(st != state::hidden);
-        while (step() != state::hidden)
-            fm_assert(updates < 4*s.fps);
-        fm_assert(retreating < s.fps/4);
-        fm_assert(seen < 2*s.fps);
+            retreating += t.st == state::find_retreat || t.st == state::retreat;
+            seen += edge_seen(s, s.threat->position(), s.npc->position());
+            const auto hides = t.st == state::hidden && s.npc->position() == t.cover;
+            if (hides && !was_hidden)
+                hidden_after = updates;
+            if (arrived && hides)
+                break;
+        }
         const auto cover = s.status().cover;
-        fm_assert(s.npc->position() == cover);
-        fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, cover, body, s.npc->id));
+        const auto shortest = s.A.Dijkstra<0, false>(s.w, flanked_at, cover, chunk_size_xy, body,
+                                                     Search::without_critters());
+        fm_assert(shortest.is_found());
+        // The threat and the npc are made alike, so they walk as fast.
+        const auto px_per_update = route_len / walked;
+        const auto limit = 1.25 * path_length(shortest.path()) / px_per_update;
+        fm_assert(hidden_after <= limit + 5);
+        fm_assert(retreating < s.fps/4);
+        fm_assert(seen < s.fps/6);
+        fm_assert(cant_be_shot_at(s.w, end, s.threat->id, cover, body, s.npc->id));
     }
 }
 
