@@ -12,6 +12,15 @@ struct critter;
 struct cover_script_options
 {
     enum class hold_phase : uint8_t { none, hidden, exposed, };
+    // The spots a search keeps of those it skips. With each value, it also keeps what the values before keep.
+    enum class fallback : uint8_t {
+        none,
+        // The first spot whose cover has no peek spot.
+        no_peek,
+        // The first spot the threat would see after walking threat_reach px. The critter hides there only when no
+        // no_peek spot still hides it.
+        in_reach,
+    };
 
     // hidden or exposed: stay in that phase once there, and its wait never runs out. send_to_cover
     // and send_to_peek set it to the phase they send the critter to.
@@ -32,6 +41,9 @@ struct cover_script_options
     uint32_t threat_reach = 2*(uint32_t)tile_size_xy;
     // The search skips spots whose cover has no peek spot.
     bool needs_peek = true;
+    // When the search ends with no other cover, the critter hides at a kept spot. If one is kept while the threat
+    // sees the critter, the critter retreats while the search goes on, once per search.
+    fallback last_resort = fallback::in_reach;
 
     // The script's searches' cover_query::max_cover_end_dist. 0 with threat_reach, as their move ignores it.
     uint32_t listed_cover_end_dist() const { return threat_reach ? 0 : max_cover_end_dist; }
