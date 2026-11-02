@@ -89,9 +89,10 @@ struct cover_point
     /// True when threat sees no pixel of a body of body_size centered on s.pos, tested as find_cover_point
     /// tests its spots.
     bool hidden_at(world& w, point threat, const cover_spot& s, Vector2ui body_size);
-    /// q.pos, flush against a blocker along axis, moved along its face as find_cover_point moves the spots it
-    /// accepts. Reads q's pos, body_size, threat, octants and max_cover_end_dist.
-    point move_to_cover_end(world& w, const cover_query& q, Vector2i axis, const Search::pred& pred);
+    /// q.pos, flush against a blocker along axis, moved along its face as find_cover_point moves its spots for q.
+    /// The result is hidden from each point of also_from too, or is q.pos.
+    point move_to_cover_end(world& w, const cover_query& q, Vector2i axis, const Search::pred& pred,
+                            ArrayView<const point> also_from = {});
 
     cover_point();
     ~cover_point() noexcept;

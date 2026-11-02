@@ -58,10 +58,7 @@ constexpr local_coords map_player_tiles[] = {
     {14, 5}, {6, 6}, {8, 14}, {9, 8}, {2, 8}, {6, 12}, {8, 2}, {8, 9}, {13, 13}, {3, 9},
     {2, 13}, {10, 6}, {2, 2}, {6, 8}, {13, 2}, {7, 12}, {12, 11}, {4, 3}, {3, 12},
 };
-// Moves 11 on repeat moves 3 to 10. After moves 7 and 9, the npc hides in the corner of the L at
-// (8, 7), against its west wall, and peeks along its north wall away from the corner. After move
-// 7, a walk along the west wall runs into the north wall one way and stays hidden for
-// max_peek_dist the other.
+// Moves 11 on repeat moves 3 to 10.
 constexpr uint32_t map_moves = 10, short_map_moves = 3;
 // A player tile nearer the npc than this is skipped, since the player's body could stand in the
 // npc's way.
@@ -69,10 +66,9 @@ constexpr uint32_t map_min_player_dist = 2*tile_size_xy;
 
 // What cover_ai_test's "Other cover spots" box lists once its search has reached every tile: the
 // spots of one search over its default radius, 1024 px, around the tile c stands on and from
-// threat. Its default octants are the script's. max_cover_end_dist is the panel's, which the
-// "Move spots to cover's end" box sets.
+// threat. Its default octants and max_cover_end_dist are the script's.
 void overlay_spots(critter& c, point threat, Array<cover_spot>& out,
-                   uint32_t max_cover_end_dist = cover_script_options{}.max_cover_end_dist)
+                   uint32_t max_cover_end_dist = cover_script_options{}.listed_cover_end_dist())
 {
     const auto s = get_cover_script_status(c);
     fm_assert(s && s->has_query);
@@ -250,9 +246,8 @@ task app::scene_cover_ai()
 
     // The next arrow beside the cover combobox, then clicks on peek spots' dots, each followed by a
     // click on the first listed spot's dot, then the next arrow and the previous one. After each,
-    // the npc goes on as from cover it found itself. The search moves every spot to one of the
-    // wall's two ends, so no two spots share a peek spot until "Move spots to cover's end" is
-    // unticked, further down.
+    // the npc goes on as from cover it found itself. With threat_reach, the search lists spots where
+    // place() put them, so spots along one face share a peek spot.
     {
         const auto npc_at = [&] { return w.find_object(npc_id)->position(); };
         const auto hidden_at = [&](point p) {
@@ -298,6 +293,7 @@ task app::scene_cover_ai()
         auto n_targets = 1u;
         Optional<cover_spot> nearest;
         point other_peek;
+        auto first_shares = false;
         for (const auto& x : overlay)
         {
             const auto q = find_cover_peek(*w.find_object<critter>(npc_id), x);
@@ -306,9 +302,11 @@ task app::scene_cover_ai()
             if (!nearest || point::distance_squared(x.pos, q->pos) < point::distance_squared(nearest->pos, q->pos))
                 nearest = x;
             other_peek = q->pos;
+            first_shares |= x.pos == first;
         }
+        // The npc hides at first at the click, so the panel peeks from first if first shares the peek spot.
         if (nearest)
-            targets[n_targets++] = {other_peek, nearest->pos};
+            targets[n_targets++] = {other_peek, first_shares ? first : nearest->pos};
         for (auto t = 0u; t < n_targets; t++)
         {
             const auto [peek, cover] = targets[t];
@@ -789,7 +787,7 @@ task app::scene_cover_ai_map()
         q.pos = center;
         q.threat = from;
         q.radius = 16*tile_size_xy;
-        q.max_cover_end_dist = cover_script_options{}.max_cover_end_dist;
+        q.max_cover_end_dist = cover_script_options{}.listed_cover_end_dist();
         Array<cover_spot> listed_spots;
         list_cover_spots(C, q, listed_spots);
         const auto before = press(10);
