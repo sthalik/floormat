@@ -35,8 +35,9 @@ struct cover_script_status
     // it looks for a path to a spot farther from the threat, a few paths per update.
     enum class state : uint8_t { seek, to_cover, hidden, to_peek, exposed, retreat, search, find_retreat, };
 
-    // The cover the critter hides at, peeks from or walks to, when has_cover.
-    point cover;
+    // The cover the critter hides at, peeks from or walks to, when has_cover. canonical is the spot found for
+    // it, from where cover lies along their face as far as the threat alone, without its turns, sees no pixel.
+    point cover, canonical;
     // The last spot find_peek_pos found, when has_peek. Taking new cover clears has_peek.
     point peek;
     // When has_peek, the ends of the last ray from the threat to the gun at peek that was clear:
@@ -45,9 +46,9 @@ struct cover_script_status
     // When has_query, the last finished search's query, found or not. Its radius is cut to a tile
     // past the spot found.
     cover_query query = {};
-    // Since the script started: finished searches for cover, rays cast from the threat, and
-    // Dijkstra searches, those of a retreat included.
-    uint32_t searches = 0, rays = 0, paths = 0;
+    // Since the script started: finished searches for cover, rays cast from the threat, tests of the body at
+    // a spot against the threat, and Dijkstra searches, those of a retreat included.
+    uint32_t searches = 0, rays = 0, body_checks = 0, paths = 0;
     // While a search runs, in state::search or during a retreat, the number of tiles tried out of search_tiles.
     uint32_t search_tile = 0, search_tiles = 0;
     // In state::find_retreat, the next of retreat_spots spots, and this pass's spots with no path. The
@@ -83,18 +84,16 @@ void list_cover_spots(critter& c, Array<cover_spot>& out);
 // Empty when c runs another script or none.
 cover_point_result list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
 
-// The peek spot the script would step out to from s, with the threat where it stands now. Empty
-// when c runs another script or none, the threat is gone, or no direction from s has one within
-// the script's max_peek_dist.
+// The peek spot the script steps out to after send_to_cover(c, s), with the threat where it stands now. Empty
+// when c runs another script or none, the threat is gone, or no direction has one within max_peek_dist.
 Optional<cover_peek> find_cover_peek(critter& c, const cover_spot& s);
 
-// Walks c along a Dijkstra path to s, to hide there for hidden_time. An options.hold other than none
-// becomes hidden. False, with the script unchanged, when c runs another script or none, or no path
-// leads to s.
+// Walks c along a Dijkstra path to hide for hidden_time at s moved to its cover's end, as cover is from canonical.
+// An options.hold other than none becomes hidden. False, changing nothing, with another script, none, or no path.
 bool send_to_cover(critter& c, const cover_spot& s);
 
 // As send_to_cover, but to find_cover_peek's spot for s, to be exposed there for exposed_time and
-// then hide at s. An options.hold other than none becomes exposed. False also when the threat is
+// then hide. An options.hold other than none becomes exposed. False also when the threat is
 // gone or s has no peek spot.
 bool send_to_peek(critter& c, const cover_spot& s);
 
