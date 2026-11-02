@@ -1544,12 +1544,13 @@ bptr<scenery> wall_in_east_cover(world& w)
     return south;
 }
 
-// For scenes with wall_in_east_cover. threat_reach would skip walled-in spots before their path search, which the
-// tests count.
+// For scenes with wall_in_east_cover. needs_peek and threat_reach would skip walled-in spots before their path
+// search, which the tests count.
 cover_script_options walled_in_options()
 {
     auto o = cover_script_options{};
     o.threat_reach = 0;
+    o.needs_peek = false;
     return o;
 }
 
@@ -1862,9 +1863,12 @@ void test_cover_script_search_every_move(point hidden)
     {
         cover_scene s;
         auto o = cover_script_options{.search_every_move = every};
-        // Without this, each search would test its spot from where the threat can walk.
+        // Without these, each search would cast peek_spot's rays and test its spot from where the threat can walk.
         if (every)
+        {
             o.threat_reach = 0;
+            o.needs_peek = false;
+        }
         set_cover_script_options(*s.npc, o);
         s.step_until(state::hidden);
         // Without threat_reach, cover_end slides the spot past hidden.
@@ -2487,6 +2491,38 @@ bool seen_within(cover_scene& s, point pos, int r)
     return false;
 }
 
+// Replaces cover_scene's wall with one 448 px long, centered 2 tiles west of it.
+void add_long_wall(cover_scene& s)
+{
+    s.w[ch].remove_object(*s.wall, s.wall->index());
+    add_blocker(s.w, {5, 8}, {16, 240}, {0, -104});
+    add_blocker(s.w, {5, 8}, {16, 240}, {0, 104});
+    rebuild(s.w);
+}
+
+// With needs_peek, the npc skips the spots near add_long_wall's middle, which have no peek spot, and hides nearer
+// an end. When the option is turned off during the search, the npc hides at the middle.
+void test_cover_script_needs_peek(bool turned_off)
+{
+    cover_scene s;
+    add_long_wall(s);
+    auto o = cover_script_options{};
+    // cover_end would move a spot at the middle to the wall's end, which has a peek spot.
+    o.max_cover_end_dist = 0;
+    set_cover_script_options(*s.npc, o);
+    if (turned_off)
+    {
+        s.step();
+        fm_assert(s.status().st == state::search);
+        o.needs_peek = false;
+        set_cover_script_options(*s.npc, o);
+    }
+    s.step_until(state::hidden);
+    const auto t = s.status();
+    fm_assert(s.npc->position() == t.cover);
+    fm_assert(turned_off != !!find_cover_peek(*s.npc, {t.canonical, {1, 0}}));
+}
+
 // The threat stands 56 px east of cover_scene's wall and the npc as far west of it, with a 64 px block 4 tiles
 // west of the npc. With arms, walls run 2 tiles east from the wall's ends. Returns where the npc hides.
 point threat_reach_hides(bool reach, bool arms)
@@ -2501,6 +2537,8 @@ point threat_reach_hides(bool reach, bool arms)
     }
     rebuild(s.w);
     auto o = cover_script_options{};
+    // The wall hides the gun of an npc behind the block from the threat.
+    o.needs_peek = false;
     if (!reach)
         o.threat_reach = 0;
     set_cover_script_options(*s.npc, o);
@@ -2648,6 +2686,8 @@ void Test::test_cover_point()
     fm_assert(c.hidden == hidden);
     fm_assert((Vector3i(c.peek).y() - Vector3i(c.hidden).y())*side.y() < 0);
     test_cover_script_rehides();
+    test_cover_script_needs_peek(false);
+    test_cover_script_needs_peek(true);
     test_cover_script_threat_reach_skips();
     test_cover_script_threat_reach_wall();
     test_cover_script_cover_end_reach(true);
