@@ -22,11 +22,17 @@ struct cover_script_options
     // cover_query::octants of the script's searches. With 3, a cover spot must also hide the critter
     // from the threat turned 11.25° either way about it.
     uint8_t octants = 3;
-    // cover_query::max_cover_end_dist of the script's searches.
+    // How far in px the critter's cover may lie from its spot, along their face.
     uint32_t max_cover_end_dist = 5*(uint32_t)tile_size_xy;
     // The div_size of the grids the script searches and casts rays in, which make_cover_script sets.
     // Options built from {} set it back to 8.
     uint32_t div_size = 8;
+    // In px. Spots and their cover must also hide the critter from where the threat can walk within this
+    // distance. 0 tests only where it stands.
+    uint32_t threat_reach = 2*(uint32_t)tile_size_xy;
+
+    // The script's searches' cover_query::max_cover_end_dist. 0 with threat_reach, as their move ignores it.
+    uint32_t listed_cover_end_dist() const { return threat_reach ? 0 : max_cover_end_dist; }
 };
 
 struct cover_script_status

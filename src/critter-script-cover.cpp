@@ -15,6 +15,7 @@
 #include "timer.hpp"
 #include "world.hpp"
 #include "entity/name-of.hpp"
+#include "compat/floor-divmod.hpp"
 #include "compat/function2.hpp"
 #include <algorithm>
 #include <cr/GrowableArray.h>
@@ -40,6 +41,8 @@ constexpr uint32_t path_slack = 5*(uint32_t)tile_size_xy;
 // TODO: each critter has its own limits, so n critters searching in different chunks can do n
 // octant fills in one frame.
 constexpr uint32_t search_tiles_per_update = 32, search_fills_per_update = 1, search_paths_per_update = 1;
+// A spot's tests before its path take up to half a millisecond among dense scenery.
+constexpr uint32_t search_spots_per_update = 1;
 constexpr uint32_t retreat_paths_per_update = 4, retreat_rays_per_update = 256, retreat_passable_per_update = 512;
 constexpr int max_peek_dist = 2*tile_size_xy;
 // A spot with no path costs a Dijkstra search that runs out its whole max_dist, so a search for
@@ -128,7 +131,9 @@ private:
     bool holds() const;
     bool sees(critter& c, point from, point to);
     bool sees_gun(critter& c, point pos, point threat);
-    bool hidden_at(critter& c, point threat, point pos);
+    bool hidden_at(critter& c, point threat, point pos, Vector2i axis);
+    ArrayView<const point> reach_positions(critter& c, point threat);
+    bool hidden_from_reach(critter& c, point threat, point pos, Vector2i axis);
     point cover_end(critter& c, const cover_spot& s, point threat);
     void refresh_cover(critter& c);
     Vector2i across() const;
@@ -172,6 +177,14 @@ private:
     // were listed with the threat at tile_threat.
     Array<cover_spot> tile_spots;
     point tile_threat;
+    // reach_positions() for the threat at reach_from while reach_known, which each update clears. The others
+    // are its fill's scratch.
+    Array<point> reach;
+    Array<uint16_t> reach_dist;
+    Array<uint8_t> reach_open;
+    Array<uint64_t> reach_heap;
+    point reach_from;
+    bool reach_known = false;
     // How far from search_from the path searches that put spots in unreachable could reach, and
     // reach_pass_gen()'s value once the last of them ended.
     uint32_t unreachable_reach = 0;
@@ -264,6 +277,7 @@ void cover_script::on_update(const bptr<critter>& c, size_t& i, const Ns& dt)
     }
     // do_clear deletes the script, so the clock starts after it.
     auto t = Time::now();
+    reach_known = false;
     update(c, i, dt);
     // threat_pos is where the threat stood at the last check or search, and in seek c checks
     // nothing. A retreat ends in seek with c facing away from a threat that may not have moved.
@@ -375,6 +389,7 @@ void cover_script::set_options(critter& c, const cover_script_options& o)
     using hold_phase = cover_script_options::hold_phase;
     const auto old = options.hold;
     options = o;
+    reach_known = false;
     if (search_tiles_left && (st == state::search || st == state::find_retreat || st == state::retreat))
         restart_search(c);
     if (o.hold == old)
@@ -407,23 +422,149 @@ bool cover_script::sees_gun(critter& c, point pos, point threat)
 }
 
 // True when threat sees no pixel of c's body centered on pos, flush against a blocker along axis.
-bool cover_script::hidden_at(critter& c, point threat, point pos)
+bool cover_script::hidden_at(critter& c, point threat, point pos, Vector2i axis)
 {
     body_checks++;
     return finder.hidden_at(c.world(), threat, {pos, axis}, Vector2ui(c.bbox_size));
 }
 
-// s moved along its face as far as threat sees no pixel of c there.
+// threat, then the centers of the cells of its walking pass grid that a Dijkstra fill from its cell reaches within
+// options.threat_reach px and that border a cell the fill doesn't reach.
+ArrayView<const point> cover_script::reach_positions(critter& c, point threat)
+{
+    if (reach_known && reach_from == threat)
+        return reach;
+    reach_known = true;
+    reach_from = threat;
+    arrayClear(reach);
+    arrayAppend(reach, threat);
+    auto& w = c.world();
+    const auto obj = w.find_object(threat_id);
+    const auto R = (int)options.threat_reach;
+    if (!R || !obj)
+        return reach;
+    fm_assert(R < (uint16_t)-1);
+
+    const auto bbox = Math::max((uint32_t)obj->bbox_size.x(), (uint32_t)obj->bbox_size.y());
+    auto& pool = A.pool_registry().pass_pool(Pass::Params{astar::default_div_size, bbox, pass_mode::pass});
+    pool.maybe_mark_stale_all(w);
+    const auto div = (int)pool.params().div_size(), dc = (int)pool.params().div_count;
+    // A cell farther than n from the threat's cell lies over R px away.
+    const auto n = R/div + 1, side = 2*n + 1;
+    const auto count = (uint32_t)(side*side);
+    const auto g = Vector3i(threat).xy();
+    const auto cell_of = [div](int px) { return floor_div(px + half_tile<int>, div); };
+    const auto origin = Vector2i{cell_of(g.x()), cell_of(g.y())} - Vector2i{n};
+    const auto z = threat.chunk3().z;
+    if (arrayCapacity(reach_dist) < count)
+        arrayReserve(reach_dist, count + count/2);
+    if (arrayCapacity(reach_open) < count)
+        arrayReserve(reach_open, count + count/2);
+    arrayResize(reach_dist, NoInit, count);
+    arrayResize(reach_open, NoInit, count);
+
+    Optional<Pass::Grid> grid;
+    chunk_coords_ grid_ch;
+    bool looked = false;
+    for (auto y = 0; y < side; y++)
+        for (auto x = 0; x < side; x++)
+        {
+            const auto cell = origin + Vector2i{x, y};
+            const auto ch = Vector2i{floor_div(cell.x(), dc), floor_div(cell.y(), dc)};
+            const auto cc = chunk_coords_{(int16_t)ch.x(), (int16_t)ch.y(), z};
+            if (!looked || cc != grid_ch)
+            {
+                looked = true;
+                grid_ch = cc;
+                grid = {};
+                if (auto* p = w.at(cc))
+                {
+                    grid.emplace(pool[*p]);
+                    grid->build_if_stale();
+                }
+            }
+            const auto local = Vector2ui(cell - ch*dc);
+            const auto i = (uint32_t)(y*side + x);
+            reach_open[i] = grid && grid->bit(Pass::Grid::get_bitmask_index(local.x(), local.y(), (uint32_t)dc));
+            reach_dist[i] = (uint16_t)-1;
+        }
+
+    const auto diag = (int)(div*Math::sqrt(2.) + .5);
+    const auto open = [&](int x, int y) {
+        return x >= 0 && y >= 0 && x < side && y < side && reach_open[y*side + x];
+    };
+    arrayClear(reach_heap);
+    // A bit is coarser than a point, so the threat's own cell is reached whatever its bit.
+    reach_dist[n*side + n] = 0;
+    arrayAppend(reach_heap, (uint64_t)(n*side + n));
+    while (!reach_heap.isEmpty())
+    {
+        std::pop_heap(reach_heap.begin(), reach_heap.end(), std::greater<>{});
+        const auto key = reach_heap.back();
+        arrayRemoveSuffix(reach_heap, 1);
+        const auto d = (int)(key >> 32), i = (int)(uint32_t)key;
+        if (d > reach_dist[i])
+            continue;
+        const auto x = i % side, y = i / side;
+        for (auto dy = -1; dy <= 1; dy++)
+            for (auto dx = -1; dx <= 1; dx++)
+            {
+                if (!dx && !dy || !open(x + dx, y + dy))
+                    continue;
+                // A diagonal step needs both cells beside it, as the body would clip their corners.
+                if (dx && dy && (!open(x + dx, y) || !open(x, y + dy)))
+                    continue;
+                const auto nd = d + (dx && dy ? diag : div);
+                const auto j = (y + dy)*side + x + dx;
+                if (nd > R || nd >= reach_dist[j])
+                    continue;
+                reach_dist[j] = (uint16_t)nd;
+                arrayAppend(reach_heap, (uint64_t)nd << 32 | (uint32_t)j);
+                std::push_heap(reach_heap.begin(), reach_heap.end(), std::greater<>{});
+            }
+    }
+
+    // A ray from inside the reached cells to a body outside them leaves through a border cell, which sees the
+    // body as well, to within a cell.
+    const auto reached = [&](int x, int y) {
+        return x >= 0 && y >= 0 && x < side && y < side && reach_dist[y*side + x] <= R;
+    };
+    for (auto y = 0; y < side; y++)
+        for (auto x = 0; x < side; x++)
+        {
+            if (!reached(x, y))
+                continue;
+            bool border = false;
+            for (auto dy = -1; dy <= 1; dy++)
+                for (auto dx = -1; dx <= 1; dx++)
+                    border |= !reached(x + dx, y + dy);
+            if (border)
+                arrayAppend(reach, threat + ((origin + Vector2i{x, y})*div + Vector2i{div/2 - half_tile<int>} - g));
+        }
+    return reach;
+}
+
+// True when no point of reach_positions() for threat sees a pixel of c's body centered on pos, flush along axis.
+bool cover_script::hidden_from_reach(critter& c, point threat, point pos, Vector2i axis)
+{
+    for (const auto& t : reach_positions(c, threat))
+        if (!hidden_at(c, t, pos, axis))
+            return false;
+    return true;
+}
+
+// s moved along its face as far as no point of reach_positions() for threat sees a pixel of c there.
 point cover_script::cover_end(critter& c, const cover_spot& s, point threat)
 {
     const cover_query q{s.pos, Vector2ui(c.bbox_size), threat, 0, 0, options.max_cover_end_dist};
-    return finder.move_to_cover_end(c.world(), q, s.axis, blocks_all_but(c.id));
+    const auto from = q.max_cover_end_dist ? reach_positions(c, threat).exceptPrefix(1) : ArrayView<const point>{};
+    return finder.move_to_cover_end(c.world(), q, s.axis, blocks_all_but(c.id), from);
 }
 
 // cover_end() of canonical in place of a cover the threat at threat_pos sees.
 void cover_script::refresh_cover(critter& c)
 {
-    if (cover != canonical && !hidden_at(c, threat_pos, cover))
+    if (cover != canonical && !hidden_at(c, threat_pos, cover, axis))
         cover = cover_end(c, {canonical, axis}, threat_pos);
 }
 
@@ -520,14 +661,14 @@ void cover_script::search_step(critter& c)
     const auto base = point{search_from.coord(), {}} - search_from;
     const auto body = Vector2ui(c.bbox_size);
     const auto pred = blocks_all_but(c.id);
-    auto fills = search_fills_per_update, paths_left = search_paths_per_update;
+    auto fills = search_fills_per_update, paths_left = search_paths_per_update, spots_left = search_spots_per_update;
     for (auto n = 0u; n < search_tiles_per_update; n++)
     {
         if (!tile_listed)
         {
             const auto mid = base + tiles[search_tile]*tile_size_xy;
             const cover_query q{search_from, body, threat_pos, search_radius, options.octants,
-                                options.max_cover_end_dist,
+                                options.listed_cover_end_dist(),
                                 Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}, fills};
             const auto r = finder.find_cover_point(w, A.pool_registry(), Cover::Params{options.div_size}, q, pred, true);
             tile_lists++;
@@ -546,12 +687,8 @@ void cover_script::search_step(critter& c)
         for (; tile_spot < tile_spots.size(); tile_spot++)
         {
             const auto s = tile_spots[tile_spot];
-            if (s.pos == here)
-            {
-                end_search(c, reachable_cover{s, cover_end(c, s, threat_pos), {}});
-                return;
-            }
-            if (joins_unreachable(c, s.pos))
+            const auto at_spot = s.pos == here;
+            if (!at_spot && joins_unreachable(c, s.pos))
             {
                 // A tile listed again lists its unreachable spots again.
                 bool known = false;
@@ -561,16 +698,19 @@ void cover_script::search_step(critter& c)
                     arrayAppend(unreachable, s.pos);
                 continue;
             }
-            if (!paths_left)
+            if (!spots_left || !at_spot && !paths_left)
                 return;
-            paths_left--;
+            spots_left--;
+            if (options.threat_reach && !hidden_from_reach(c, threat_pos, s.pos, s.axis))
+                continue;
             // A path to s.pos could pass end and come back.
             const auto end = cover_end(c, s, threat_pos);
-            if (end == here)
+            if (at_spot || end == here)
             {
                 end_search(c, reachable_cover{s, end, {}});
                 return;
             }
+            paths_left--;
             // TODO: the path may lead toward the threat. Avoiding it needs A.Dijkstra predicate changes and maybe
             // a path to the threat, or another measure of how close the path comes to it.
             if (auto path = path_to(c, end); path.is_found())
@@ -610,7 +750,7 @@ void cover_script::end_search(critter& c, Optional<reachable_cover> r)
     const auto radius = r ? Math::min(search_radius, point::distance(search_from, r->spot.pos) + (uint32_t)tile_size_xy)
                           : search_radius;
     query = {search_from, Vector2ui(c.bbox_size), threat_pos, radius, options.octants,
-             options.max_cover_end_dist};
+             options.listed_cover_end_dist()};
     has_query = true;
     searches++;
     if (!r)
@@ -898,9 +1038,9 @@ void cover_script::follow_threat(critter& c)
 void cover_script::check_hidden(critter& c, point threat)
 {
     threat_pos = threat;
-    if (!hidden_at(c, threat, canonical))
+    if (!hidden_at(c, threat, canonical, axis))
         flee(c);
-    else if (cover != canonical && !hidden_at(c, threat, cover))
+    else if (cover != canonical && !hidden_at(c, threat, cover, axis))
     {
         cover = cover_end(c, {canonical, axis}, threat);
         walk = critter_walk{cover};
@@ -913,7 +1053,7 @@ void cover_script::check_hidden(critter& c, point threat)
 void cover_script::check_exposed(critter& c, point threat)
 {
     threat_pos = threat;
-    if (!hidden_at(c, threat, canonical))
+    if (!hidden_at(c, threat, canonical, axis))
     {
         flee(c);
         return;
@@ -931,12 +1071,12 @@ void cover_script::check_walk(critter& c)
         return;
     const auto pos = threat->position();
     threat_pos = pos;
-    if (!hidden_at(c, pos, canonical))
+    if (!hidden_at(c, pos, canonical, axis))
     {
         flee(c);
         return;
     }
-    if (st == state::to_cover && cover != canonical && !hidden_at(c, pos, cover))
+    if (st == state::to_cover && cover != canonical && !hidden_at(c, pos, cover, axis))
     {
         cover = cover_end(c, {canonical, axis}, pos);
         if (walk.is_line())
@@ -1194,6 +1334,7 @@ Optional<cover_peek> cover_script::peek_for(critter& c, const cover_spot& s)
     const auto threat = c.world().find_object(threat_id);
     if (!threat)
         return {};
+    reach_known = false;
     // sees() counts every ray, and the counters leave this out.
     const auto n = rays;
     const auto p = peek_spot(c, cover_end(c, s, threat->position()), s.axis, threat->position());
@@ -1206,6 +1347,7 @@ Optional<cover_peek> cover_script::peek_for(critter& c, const cover_spot& s)
 bool cover_script::send_to(critter& c, const cover_spot& s, bool peek)
 {
     const auto threat = c.world().find_object(threat_id);
+    reach_known = false;
     const auto end = threat ? cover_end(c, s, threat->position()) : s.pos;
     Optional<cover_peek> p;
     if (peek)
