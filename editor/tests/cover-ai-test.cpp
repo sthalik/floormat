@@ -56,8 +56,8 @@ struct spot_state
     bool has_peek = false;
 };
 
-struct counts { uint32_t searches = 0, rays = 0, paths = 0; };
-struct per_second { float searches = 0, rays = 0, paths = 0; };
+struct counts { uint32_t num_searches = 0, num_rays = 0, num_dijkstra_calls = 0; };
+struct per_second { float num_searches = 0, num_rays = 0, num_dijkstra_calls = 0; };
 
 void print_coord(auto&& buf, point pt)
 {
@@ -166,8 +166,8 @@ struct cover_ai_test final : base_test
     point start_pos, search_center, spots_player;
     object_id threat = 0, script_list_npc = 0;
     uint64_t search_pass_gen = 0, script_list_pass_gen = 0;
-    uint32_t next_tile = 0, search_radius = 0, search_max_cover_end_dist = 0, tiles_radius = 0, script_list_searches = 0;
-    uint32_t search_octant = 0, search_div = 0, dropped_spots = 0;
+    uint32_t next_tile = 0, search_radius = 0, search_max_cover_end_dist = 0, tiles_radius = 0;
+    uint32_t search_octant = 0, search_div = 0, dropped_spots = 0, script_list_num_searches = 0;
     Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
     fill_count fills_before_update, search_fills;
     cover_script_status logged;
@@ -473,7 +473,8 @@ uint32_t cover_ai_test::toggle_move_to_end()
 ArrayView<const cover_spot> cover_ai_test::script_spots(app& a, critter& c, const cover_script_status& s)
 {
     const auto gen = a.main().world().pass_gen();
-    if (!has_script_list || script_list_npc != c.id || script_list_searches != s.searches || script_list_pass_gen != gen)
+    if (!has_script_list || script_list_npc != c.id || script_list_num_searches != s.num_searches ||
+        script_list_pass_gen != gen)
     {
         const auto f0 = fills(a);
         auto t = Time::now();
@@ -483,7 +484,7 @@ ArrayView<const cover_spot> cover_ai_test::script_spots(app& a, critter& c, cons
         fm_debug("cover-ai: cover list: %u spots, %.1f us, %u octant fills in %.1f us", (uint32_t)script_list.size(),
                  us(dt), f.n - f0.n, us(f.time - f0.time));
         script_list_npc = c.id;
-        script_list_searches = s.searches;
+        script_list_num_searches = s.num_searches;
         script_list_pass_gen = gen;
         has_script_list = true;
     }
@@ -571,7 +572,7 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
 
 void cover_ai_test::update_rates(const cover_script_status& s)
 {
-    const counts now{s.searches, s.rays, s.paths};
+    const counts now{s.num_searches, s.num_rays, s.num_dijkstra_calls};
     if (!has_snapshot)
     {
         snapshot = now;
@@ -584,9 +585,9 @@ void cover_ai_test::update_rates(const cover_script_status& s)
         return;
     const auto secs = Time::to_seconds(dt);
     rates = {
-        .searches = (float)(now.searches - snapshot.searches) / secs,
-        .rays = (float)(now.rays - snapshot.rays) / secs,
-        .paths = (float)(now.paths - snapshot.paths) / secs,
+        .num_searches = (float)(now.num_searches - snapshot.num_searches) / secs,
+        .num_rays = (float)(now.num_rays - snapshot.num_rays) / secs,
+        .num_dijkstra_calls = (float)(now.num_dijkstra_calls - snapshot.num_dijkstra_calls) / secs,
     };
     snapshot = now;
     snapshot_time = clock;
@@ -641,7 +642,7 @@ void cover_ai_test::update_pre(app& a, const Ns&)
 void cover_ai_test::log_script(app& a, const critter& c, const cover_script_status& s)
 {
     const auto& l = logged;
-    if (c.id == logged_npc && s.searches == l.searches && s.has_cover == l.has_cover && s.cover == l.cover &&
+    if (c.id == logged_npc && s.num_searches == l.num_searches &&s.has_cover == l.has_cover && s.cover == l.cover &&
         s.has_peek == l.has_peek && s.peek == l.peek)
         return;
     logged = s;
@@ -651,7 +652,7 @@ void cover_ai_test::log_script(app& a, const critter& c, const cover_script_stat
     print_spot(cover, s.has_cover, s.cover);
     print_spot(peek, s.has_peek, s.peek);
     fm_debug("cover-ai: search %u, %s, cover %s, peek %s: script update %.1f us, %u octant fills in %.1f us",
-             s.searches, state_names[(size_t)s.st], cover, peek, us(s.last_update), f.n - fills_before_update.n,
+             s.num_searches, state_names[(size_t)s.st], cover, peek, us(s.last_update), f.n - fills_before_update.n,
              us(f.time - fills_before_update.time));
 }
 
@@ -940,11 +941,11 @@ void cover_ai_test::draw_ui(app& a, float)
         text(!c ? "no npc" : !s ? "no cover script" : state_names[(size_t)s->st]);
 
         do_column("progress");
-        if (s && (s->st == state::search || s->st == state::retreat && s->search_tile < s->search_tiles))
-            snformat(buf, "tile {} of {}", s->search_tile, s->search_tiles);
+        if (s && (s->st == state::search || s->st == state::retreat && s->search_tile < s->num_search_tiles))
+            snformat(buf, "tile {} of {}", s->search_tile, s->num_search_tiles);
         else if (s && s->st == state::find_retreat)
-            snformat(buf, "spot {} of {}, pass {}, {} without a path", s->retreat_spot, s->retreat_spots,
-                     s->retreat_all ? 2 : 1, s->retreat_failed);
+            snformat(buf, "spot {} of {}, pass {}, {} without a path", s->retreat_spot, s->num_retreat_spots,
+                     s->retreat_all ? 2 : 1, s->num_failed_retreat_dijkstra_calls);
         else
             snformat(buf, "-");
         text(buf);
@@ -1014,9 +1015,9 @@ void cover_ai_test::draw_ui(app& a, float)
             snformat(buf, "{:.1f}", (double)value);
             text(buf);
         };
-        rate_row("searches/s", rates.searches);
-        rate_row("rays/s", rates.rays);
-        rate_row("paths/s", rates.paths);
+        rate_row("searches/s", rates.num_searches);
+        rate_row("rays/s", rates.num_rays);
+        rate_row("Dijkstra searches/s", rates.num_dijkstra_calls);
     }
 }
 
