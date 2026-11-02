@@ -36,14 +36,25 @@ constexpr uint32_t retreat_radius = 5*(uint32_t)tile_size_xy;
 constexpr int min_retreat_gain = 3*tile_size_xy;
 constexpr uint32_t search_radius = 2*chunk_size_xy;
 constexpr uint32_t path_slack = 5*(uint32_t)tile_size_xy;
-// The work a search for cover may do in one update. Counts, not time, so that the npc behaves the
-// same on every machine.
+// The work a search for cover or a retreat may do in one update. Counts, not time, so that the npc
+// behaves the same on every machine.
 // TODO: each critter has its own limits, so n critters searching in different chunks can do n
 // octant fills in one frame.
-constexpr uint32_t search_tiles_per_update = 32, search_fills_per_update = 1, search_paths_per_update = 1;
-// A spot's tests before its path take up to half a millisecond among dense scenery.
-constexpr uint32_t search_spots_per_update = 1;
-constexpr uint32_t retreat_paths_per_update = 4, retreat_rays_per_update = 256, retreat_passable_per_update = 512;
+// Tiles of search_tiles(), each listed by one find_cover_point call over the tile's area.
+constexpr uint32_t search_tiles_per_update = 32;
+// An octant fill computes how far a shot travels from each cell of a chunk's cover grid along one of 32
+// directions. A stale grid's rebuild counts as one. A rebuild and a fill took 0.66 ms at div 8.
+constexpr uint32_t search_octant_fills_per_update = 1;
+// path_to calls, each one Dijkstra search. One that found a path took up to 0.71 ms among dense scenery.
+constexpr uint32_t search_dijkstra_calls_per_update = 1;
+// Listed spots tested with hidden_from_reach, cover_end and peek_spot before their path. One spot's
+// tests took up to half a millisecond among dense scenery.
+constexpr uint32_t search_spots_tested_per_update = 1;
+constexpr uint32_t retreat_dijkstra_calls_per_update = 4;
+// sees() calls, each one ray from the threat to a spot's center.
+constexpr uint32_t retreat_rays_per_update = 256;
+// Search::is_passable calls for c's body at a spot, each an R-tree search.
+constexpr uint32_t retreat_is_passable_calls_per_update = 512;
 constexpr int max_peek_dist = 2*tile_size_xy;
 // A spot with no path costs a Dijkstra search that runs out its whole max_dist, so a search for
 // cover or a retreat stops after this many of them.
@@ -679,7 +690,8 @@ void cover_script::search_step(critter& c)
     const auto base = point{search_from.coord(), {}} - search_from;
     const auto body = Vector2ui(c.bbox_size);
     const auto pred = blocks_all_but(c.id);
-    auto fills = search_fills_per_update, paths_left = search_paths_per_update, spots_left = search_spots_per_update;
+    auto fills = search_octant_fills_per_update, dijkstra_left = search_dijkstra_calls_per_update;
+    auto spots_left = search_spots_tested_per_update;
     for (auto n = 0u; n < search_tiles_per_update; n++)
     {
         if (!tile_listed)
@@ -716,7 +728,7 @@ void cover_script::search_step(critter& c)
                     arrayAppend(unreachable, s.pos);
                 continue;
             }
-            if (!spots_left || !at_spot && !paths_left)
+            if (!spots_left || !at_spot && !dijkstra_left)
                 return;
             spots_left--;
             if (options.threat_reach && !hidden_from_reach(c, threat_pos, s.pos, s.axis))
@@ -738,7 +750,7 @@ void cover_script::search_step(critter& c)
                 end_search(c, reachable_cover{s, end, {}});
                 return;
             }
-            paths_left--;
+            dijkstra_left--;
             // TODO: the path may lead toward the threat. Avoiding it needs A.Dijkstra predicate changes and maybe
             // a path to the threat, or another measure of how close the path comes to it.
             if (auto path = path_to(c, end); path.is_found())
@@ -964,8 +976,8 @@ void cover_script::retreat_step(critter& c)
     const auto here = Math::sqrt((double)point::distance_squared(from, threat_pos));
     const auto body = Vector2i(c.bbox_size);
     const auto pred = blocks_all_but(c.id);
-    auto paths_left = retreat_paths_per_update, rays_left = retreat_rays_per_update;
-    auto passable_left = retreat_passable_per_update;
+    auto dijkstra_left = retreat_dijkstra_calls_per_update, rays_left = retreat_rays_per_update;
+    auto passable_left = retreat_is_passable_calls_per_update;
     for (;;)
     {
         if (retreat_next == retreat_spots.size() || retreat_failed == max_failed_paths || !retreat_all && !retreat_rays)
@@ -1006,7 +1018,7 @@ void cover_script::retreat_step(critter& c)
             retreat_next++;
             continue;
         }
-        if (!paths_left)
+        if (!dijkstra_left)
             return;
         if (!retreat_all)
         {
@@ -1020,7 +1032,7 @@ void cover_script::retreat_step(critter& c)
                 continue;
             }
         }
-        paths_left--;
+        dijkstra_left--;
         s.done = true;
         retreat_next++;
         if (auto path = path_to(c, to); path.is_found())
