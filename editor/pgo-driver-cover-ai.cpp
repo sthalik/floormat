@@ -686,6 +686,7 @@ task app::scene_cover_ai_map()
         arrayAppend(covers, cover);
 
         uint32_t n_spots, n_peeks = 0;
+        bool peeks = false;
         Ns box_time;
         {
             base_test::Value v;
@@ -704,29 +705,36 @@ task app::scene_cover_ai_map()
             for (const auto& x : spots)
             {
                 fm_assert(!sees(player, x.pos));
-                n_peeks += !!find_cover_peek(C, x);
+                const auto peek = !!find_cover_peek(C, x);
+                n_peeks += peek;
+                peeks |= peek && x.pos == cover;
             }
         }
 
-        deadline = _driver->scene_dt + max_dt;
-        for (;;)
+        const auto [cx, cy] = print(cover);
+        const auto [tx, ty] = print(player);
+        // Without a peek spot, step_out hides the npc again for each hidden_time.
+        if (!peeks)
         {
-            if (const auto s = status(); s.st == state::exposed && npc_pos() == s.peek)
-                break;
-            if (_driver->scene_dt >= deadline)
-            {
-                const auto [x, y] = print(cover);
-                fm_abort("cover-ai-map: move %u: the npc doesn't peek from cover (%d, %d)", k, x, y);
-            }
-            co_yield {};
+            fm_debug("cover-ai-map: move %u, player (%d, %d): cover (%d, %d) has no peek spot, %u spots listed, "
+                     "%u with peek spots, whole search %.0f us", k, tx, ty, cx, cy, n_spots, n_peeks,
+                     (double)Time::to_milliseconds(box_time)*1e3);
         }
+        else
         {
+            deadline = _driver->scene_dt + max_dt;
+            for (;;)
+            {
+                if (const auto s = status(); s.st == state::exposed && npc_pos() == s.peek)
+                    break;
+                if (_driver->scene_dt >= deadline)
+                    fm_abort("cover-ai-map: move %u: the npc doesn't peek from cover (%d, %d)", k, cx, cy);
+                co_yield {};
+            }
             const auto s = status();
             fm_assert_equal(player, s.gun_ray_from);
             fm_assert(sees(player, s.gun));
-            const auto [cx, cy] = print(cover);
             const auto [px, py] = print(s.peek);
-            const auto [tx, ty] = print(player);
             fm_debug("cover-ai-map: move %u, player (%d, %d): cover (%d, %d), peek (%d, %d), %u spots listed, "
                      "%u with peek spots, whole search %.0f us", k, tx, ty, cx, cy, px, py, n_spots, n_peeks,
                      (double)Time::to_milliseconds(box_time)*1e3);
