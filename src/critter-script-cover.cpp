@@ -47,9 +47,12 @@ constexpr uint32_t search_tiles_per_update = 32;
 constexpr uint32_t search_octant_fills_per_update = 1;
 // path_to calls, each one Dijkstra search. One that found a path took up to 0.71 ms among dense scenery.
 constexpr uint32_t search_dijkstra_calls_per_update = 1;
-// Listed spots tested with hidden_from_reach, cover_end and peek_spot before their path. One spot's
-// tests took up to half a millisecond among dense scenery.
+// Listed spots that hidden_from_reach doesn't reject, each then tested with cover_end and peek_spot before its
+// path. One spot's tests took up to half a millisecond among dense scenery.
 constexpr uint32_t search_spots_tested_per_update = 1;
+// hidden_at calls made by hidden_from_reach, each up to 6 microseconds among dense scenery. Rejecting a spot
+// may take a single call, so a spot that hidden_from_reach rejects counts against this cap only.
+constexpr uint32_t search_body_checks_per_update = 64;
 constexpr uint32_t retreat_dijkstra_calls_per_update = 4;
 // sees() calls, each one ray from the threat to a spot's center.
 constexpr uint32_t retreat_rays_per_update = 256;
@@ -692,6 +695,7 @@ void cover_script::search_step(critter& c)
     const auto pred = blocks_all_but(c.id);
     auto fills = search_octant_fills_per_update, dijkstra_left = search_dijkstra_calls_per_update;
     auto spots_left = search_spots_tested_per_update;
+    const auto checks_at_start = body_checks;
     for (auto n = 0u; n < search_tiles_per_update; n++)
     {
         if (!tile_listed)
@@ -728,15 +732,16 @@ void cover_script::search_step(critter& c)
                     arrayAppend(unreachable, s.pos);
                 continue;
             }
-            if (!spots_left || !at_spot && !dijkstra_left)
+            const auto num_checks = body_checks - checks_at_start;
+            if (!spots_left || num_checks >= search_body_checks_per_update || !at_spot && !dijkstra_left)
                 return;
-            spots_left--;
             if (options.threat_reach && !hidden_from_reach(c, threat_pos, s.pos, s.axis))
             {
                 if (options.last_resort >= fallback::in_reach && !in_reach)
                     in_reach = s;
                 continue;
             }
+            spots_left--;
             // A path to s.pos could pass end and come back.
             const auto end = cover_end(c, s, threat_pos);
             if (options.needs_peek && !peek_spot(c, end, s.axis, threat_pos))
