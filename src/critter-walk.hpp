@@ -17,6 +17,8 @@ public:
     // Spends dt walking. walk_result::none until the walk ends.
     walk_result update(const bptr<critter>& c, size_t& i, const Ns& dt);
     point dest() const;
+    // True for a walk built from a point, which goes there in a straight line.
+    bool straight() const;
 
 private:
     enum class walk_mode : uint8_t { none, line, path, smoothed, };

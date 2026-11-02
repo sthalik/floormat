@@ -29,6 +29,7 @@ critter_walk::critter_walk(path_search_result pathʹ) :
 }
 
 point critter_walk::dest() const { return _dest; }
+bool critter_walk::straight() const { return mode == walk_mode::line; }
 
 auto critter_walk::update(const bptr<critter>& c, size_t& i, const Ns& dt) -> walk_result
 {
