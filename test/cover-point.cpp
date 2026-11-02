@@ -869,10 +869,11 @@ void cover_scene::step_until(cover_script_status::state st)
 uint32_t cover_scene::finish_search()
 {
     using state = cover_script_status::state;
-    const auto searches = status().searches;
+    const auto num_searches = status().num_searches;
     const auto searching = [&] {
         const auto t = status();
-        return t.st == state::search || t.st == state::find_retreat || t.st == state::retreat && t.searches == searches;
+        return t.st == state::search || t.st == state::find_retreat ||
+               t.st == state::retreat && t.num_searches == num_searches;
     };
     auto retreat_updates = 0u;
     for (auto frames = 0u; searching(); frames++)
@@ -880,21 +881,22 @@ uint32_t cover_scene::finish_search()
         fm_assert(frames < 60*fps);
         const auto t0 = status();
         step();
-        const auto paths = status().paths - t0.paths;
+        const auto num_dijkstra_calls = status().num_dijkstra_calls - t0.num_dijkstra_calls;
         if (t0.st == state::find_retreat)
         {
             retreat_updates++;
-            fm_assert(paths <= 4);
-            fm_assert(t0.retreat_spots > 0 && t0.retreat_spot <= t0.retreat_spots && t0.retreat_failed <= 8);
+            fm_assert(num_dijkstra_calls <= 4);
+            fm_assert(t0.num_retreat_spots > 0 && t0.retreat_spot <= t0.num_retreat_spots);
+            fm_assert(t0.num_failed_retreat_dijkstra_calls <= 8);
             // The panel's progress only moves forward, except when the threat's octant changes.
             const auto t = status();
-            fm_assert(t.retreat_restarts - t0.retreat_restarts <= 1);
-            if (t.st == state::find_retreat && t.retreat_restarts == t0.retreat_restarts)
+            fm_assert(t.num_retreat_restarts - t0.num_retreat_restarts <= 1);
+            if (t.st == state::find_retreat && t.num_retreat_restarts == t0.num_retreat_restarts)
                 fm_assert(t.retreat_all && !t0.retreat_all || t.retreat_all == t0.retreat_all &&
                           t.retreat_spot > t0.retreat_spot);
         }
         else
-            fm_assert(paths <= 1);
+            fm_assert(num_dijkstra_calls <= 1);
     }
     return retreat_updates;
 }
@@ -1061,7 +1063,7 @@ void test_cover_script_threat_walks_along_wall(bool search_every_move)
     const auto peek_offset = Vector3i(peek).xy() - Vector3i(hidden).xy();
     fm_assert(peek_offset.x() == 0 && peek_offset.y() != 0);
     const auto side = peek_offset.y() > 0 ? 1 : -1;
-    const auto searches = s.status().searches;
+    const auto num_searches = s.status().num_searches;
 
     // next_stop() returned after a second at peek.
     const auto left = s.fps;
@@ -1083,7 +1085,7 @@ void test_cover_script_threat_walks_along_wall(bool search_every_move)
         }
         farthest = Math::max(farthest, past);
         fm_assert(frames <= left + amplitude + 2);
-        fm_assert(search_every_move || s.status().searches == searches);
+        fm_assert(search_every_move || s.status().num_searches == num_searches);
     }
     fm_assert(farthest > 0);
 }
@@ -1278,7 +1280,7 @@ void test_cover_script_faces_threat()
     {
         s.step();
         fm_assert(s.npc->position() == peek && s.npc->r == r1);
-        fm_assert_equal(t0.rays, s.status().rays);
+        fm_assert_equal(t0.num_rays, s.status().num_rays);
     }
 
     const point threat_pos{ch, {7, 9}, {21, -19}};
@@ -1292,9 +1294,9 @@ void test_cover_script_faces_threat()
     {
         s.step();
         const auto t = s.status();
-        fm_assert_equal(t0.searches, t.searches);
-        fm_assert_equal(t0.rays + 1, t.rays);
-        fm_assert_equal(t0.body_checks + 1, t.body_checks);
+        fm_assert_equal(t0.num_searches, t.num_searches);
+        fm_assert_equal(t0.num_rays + 1, t.num_rays);
+        fm_assert_equal(t0.num_body_checks + 1, t.num_body_checks);
         if (s.npc->position() != peek)
             break;
         fm_assert(s.npc->r == r2);
@@ -1319,12 +1321,12 @@ void test_cover_script_hidden_checks(point hidden)
     fm_assert(s.npc->position() == hidden);
     const auto t0 = s.status();
     fm_assert(t0.has_cover && t0.cover == hidden && !t0.has_peek);
-    fm_assert_equal(1u, t0.searches);
-    fm_assert_equal(1u, t0.paths);
+    fm_assert_equal(1u, t0.num_searches);
+    fm_assert_equal(1u, t0.num_dijkstra_calls);
     for (auto k = 0u; k < 10; k++)
     {
         s.step();
-        fm_assert_equal(t0.body_checks, s.status().body_checks);
+        fm_assert_equal(t0.num_body_checks, s.status().num_body_checks);
     }
     for (auto k = 1u; k <= 15; k++)
     {
@@ -1332,10 +1334,10 @@ void test_cover_script_hidden_checks(point hidden)
         s.step();
         const auto t = s.status();
         fm_assert(s.npc->position() == hidden && t.st == state::hidden);
-        fm_assert_equal(1u, t.searches);
-        fm_assert_equal(t0.rays, t.rays);
-        fm_assert_equal(t0.body_checks + 2*k, t.body_checks);
-        fm_assert_equal(1u, t.paths);
+        fm_assert_equal(1u, t.num_searches);
+        fm_assert_equal(t0.num_rays, t.num_rays);
+        fm_assert_equal(t0.num_body_checks + 2*k, t.num_body_checks);
+        fm_assert_equal(1u, t.num_dijkstra_calls);
     }
 
     const point threat_pos{ch, {2, 4}, {}};
@@ -1344,9 +1346,9 @@ void test_cover_script_hidden_checks(point hidden)
     s.step();
     s.finish_search();
     const auto t = s.status();
-    fm_assert_equal(2u, t.searches);
+    fm_assert_equal(2u, t.num_searches);
     // the retreat's and the search's
-    fm_assert_equal(3u, t.paths);
+    fm_assert_equal(3u, t.num_dijkstra_calls);
     fm_assert(t.st == state::to_cover && t.cover != hidden);
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == t.cover);
@@ -1493,7 +1495,7 @@ void test_cover_script_flanked(point hidden, point peek)
     fm_assert(s.status().st == state::retreat);
     s.finish_search();
     const auto t = s.status();
-    fm_assert_equal(t0.searches + 1, t.searches);
+    fm_assert_equal(t0.num_searches + 1, t.num_searches);
     fm_assert(t.st == state::to_cover && Vector3i(t.cover).x() > Vector3i(hidden).x());
     fm_assert(s.npc->position() != peek);
     const auto cover = t.cover;
@@ -1505,7 +1507,7 @@ void test_cover_script_flanked(point hidden, point peek)
         s.step();
     }
     fm_assert(s.npc->position() == cover);
-    fm_assert_equal(t0.searches + 1, s.status().searches);
+    fm_assert_equal(t0.num_searches + 1, s.status().num_searches);
     fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, cover, body, s.npc->id));
 }
 
@@ -1527,7 +1529,7 @@ void test_cover_script_flanked_retreat(point peek)
     s.finish_search();
     fm_assert(s.status().st == state::retreat);
     s.step_until(state::seek);
-    fm_assert_equal(t0.searches + 1, s.status().searches);
+    fm_assert_equal(t0.num_searches + 1, s.status().num_searches);
     const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, threat_pos)); };
     fm_assert(dist(s.npc->position()) - dist(peek) > 3*tile_size_xy);
 }
@@ -1545,7 +1547,7 @@ bptr<scenery> wall_in_east_cover(world& w)
     return south;
 }
 
-// For scenes with wall_in_east_cover. needs_peek and threat_reach would skip walled-in spots before their path
+// For scenes with wall_in_east_cover. needs_peek and threat_reach would skip walled-in spots before their Dijkstra
 // search, which the tests count.
 cover_script_options walled_in_options()
 {
@@ -1581,12 +1583,12 @@ void test_cover_script_flanked_searches_from_retreat_end(point peek)
     fm_assert(r.found && walled_in(r.pos));
     s.step();
     s.finish_search();
-    fm_assert_equal(t0.searches + 1, s.status().searches);
+    fm_assert_equal(t0.num_searches + 1, s.status().num_searches);
     fm_assert(s.npc->position() != peek);
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
     // the retreat's and the cover's
-    fm_assert_equal(t0.paths + 2, t1.paths);
+    fm_assert_equal(t0.num_dijkstra_calls + 2, t1.num_dijkstra_calls);
     fm_assert(Vector3i(t1.cover).x() - (int)body.x()/2 >= 510);
     s.step_until(t1.cover);
     fm_assert(s.status().st == state::hidden);
@@ -1606,12 +1608,12 @@ void test_cover_script_seek_no_path()
                         cover_script_options{}.octants);
     fm_assert(r.found && walled_in(r.pos));
     s.step();
-    fm_assert(s.status().paths - t0.paths <= 1);
+    fm_assert(s.status().num_dijkstra_calls - t0.num_dijkstra_calls <= 1);
     s.finish_search();
     const auto t1 = s.status();
-    fm_assert_equal(t0.searches + 1, t1.searches);
+    fm_assert_equal(t0.num_searches + 1, t1.num_searches);
     fm_assert(t1.st == state::to_cover);
-    fm_assert_equal(t0.paths + 3, t1.paths);
+    fm_assert_equal(t0.num_dijkstra_calls + 3, t1.num_dijkstra_calls);
     fm_assert(Vector3i(t1.cover).x() - (int)body.x()/2 >= 510);
     s.step_until(t1.cover);
     fm_assert(s.status().st == state::hidden);
@@ -1636,7 +1638,7 @@ void test_cover_script_no_path_ties()
     s.finish_search();
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
-    fm_assert_equal(t0.paths + 2, t1.paths);
+    fm_assert_equal(t0.num_dijkstra_calls + 2, t1.num_dijkstra_calls);
     fm_assert(Vector3i(t1.cover).x() - (int)body.x()/2 >= 510);
 }
 
@@ -1653,13 +1655,13 @@ no_path_search start_no_path_search(cover_scene& s)
     set_cover_script_options(*s.npc, walled_in_options());
     const auto before = s.status();
     auto south = wall_in_east_cover(s.w);
-    for (auto frames = 0u; s.status().paths == before.paths; frames++)
+    for (auto frames = 0u; s.status().num_dijkstra_calls == before.num_dijkstra_calls; frames++)
     {
         fm_assert(frames < 60*s.fps);
         s.step();
         fm_assert(s.status().st == state::search);
     }
-    fm_assert_equal(before.paths + 1, s.status().paths);
+    fm_assert_equal(before.num_dijkstra_calls + 1, s.status().num_dijkstra_calls);
     return { before, move(south) };
 }
 
@@ -1673,17 +1675,19 @@ void test_cover_script_no_path_threat_moves(point to, bool same_octant)
     fm_assert(same_octant == (nearest_octant(Vector2(to - start)) == nearest_octant(Vector2(west - start))));
     const auto t0 = start_no_path_search(s).before;
     (void)start_no_path_search(still);
-    const auto lists = s.status().tile_lists, still_lists = still.status().tile_lists;
+    const auto num_calls = s.status().num_find_cover_point_calls;
+    const auto still_num_calls = still.status().num_find_cover_point_calls;
     s.move_threat(to);
     s.step();
     still.step();
     if (same_octant)
-        fm_assert_equal(still.status().tile_lists - still_lists + 1, s.status().tile_lists - lists);
+        fm_assert_equal(still.status().num_find_cover_point_calls - still_num_calls + 1,
+                        s.status().num_find_cover_point_calls - num_calls);
     s.finish_search();
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
-    // Each walled-in spot gets one path search.
-    fm_assert_equal(t0.paths + 3, t1.paths);
+    // Each walled-in spot gets one Dijkstra search.
+    fm_assert_equal(t0.num_dijkstra_calls + 3, t1.num_dijkstra_calls);
     fm_assert(Vector3i(t1.cover).x() - (int)body.x()/2 >= 510);
     fm_assert(!s.seen_from(to, t1.cover));
 }
@@ -1723,7 +1727,7 @@ void test_cover_script_no_path_far_change()
     s.finish_search();
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
-    fm_assert_equal(t0.paths + 3, t1.paths);
+    fm_assert_equal(t0.num_dijkstra_calls + 3, t1.num_dijkstra_calls);
     fm_assert(Vector3i(t1.cover).x() - (int)body.x()/2 >= 510);
 }
 
@@ -1739,7 +1743,7 @@ void test_cover_script_walk_checks(point hidden)
     {
         s.step();
         fm_assert(s.status().st == state::to_cover);
-        fm_assert_equal(t0.body_checks, s.status().body_checks);
+        fm_assert_equal(t0.num_body_checks, s.status().num_body_checks);
     }
     for (auto k = 1u; k <= 15; k++)
     {
@@ -1747,9 +1751,9 @@ void test_cover_script_walk_checks(point hidden)
         s.step();
         const auto t = s.status();
         fm_assert(t.st == state::to_cover && t.cover == hidden);
-        fm_assert_equal(1u, t.searches);
-        fm_assert_equal(t0.rays, t.rays);
-        fm_assert_equal(t0.body_checks + 2*k, t.body_checks);
+        fm_assert_equal(1u, t.num_searches);
+        fm_assert_equal(t0.num_rays, t.num_rays);
+        fm_assert_equal(t0.num_body_checks + 2*k, t.num_body_checks);
     }
 
     const point threat_pos{ch, {2, 8}, {}};
@@ -1758,7 +1762,7 @@ void test_cover_script_walk_checks(point hidden)
     s.step();
     s.finish_search();
     const auto t = s.status();
-    fm_assert_equal(2u, t.searches);
+    fm_assert_equal(2u, t.num_searches);
     fm_assert(t.st == state::to_cover && t.cover != hidden);
     for (auto frames = 0u; s.status().st != state::hidden; frames++)
     {
@@ -1789,9 +1793,9 @@ void test_cover_script_peek_walk_checks(point hidden, point peek)
     fm_assert(s.seen_from(threat0, peek));
     s.step();
     const auto t = s.status();
-    fm_assert_equal(t0.searches, t.searches);
-    fm_assert_equal(t0.rays + 1, t.rays);
-    fm_assert_equal(t0.body_checks + 1, t.body_checks);
+    fm_assert_equal(t0.num_searches, t.num_searches);
+    fm_assert_equal(t0.num_rays + 1, t.num_rays);
+    fm_assert_equal(t0.num_body_checks + 1, t.num_body_checks);
     fm_assert(t.st == state::to_peek && t.peek == peek);
 
     const auto threat1 = s.threat->position() - Vector2i{0, 32*side};
@@ -1799,7 +1803,7 @@ void test_cover_script_peek_walk_checks(point hidden, point peek)
     fm_assert(!s.seen_from(threat1, peek));
     s.step();
     const auto t1 = s.status();
-    fm_assert_equal(t0.searches, t1.searches);
+    fm_assert_equal(t0.num_searches, t1.num_searches);
     fm_assert(t1.st == state::to_peek && t1.has_peek);
     fm_assert((Vector3i(t1.peek).y() - Vector3i(peek).y())*side > 0);
     fm_assert(s.seen_from(threat1, t1.peek));
@@ -1810,7 +1814,7 @@ void test_cover_script_peek_walk_checks(point hidden, point peek)
     s.step();
     s.finish_search();
     const auto t2 = s.status();
-    fm_assert_equal(t0.searches + 1, t2.searches);
+    fm_assert_equal(t0.num_searches + 1, t2.num_searches);
     fm_assert(t2.st == state::to_cover && t2.cover != hidden);
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == t2.cover);
@@ -1838,7 +1842,7 @@ void test_cover_script_peek_again_flanked(point hidden, point peek)
     fm_assert(!s.seen_from(threat1, peek) && !s.seen_from(threat1, hidden));
     s.step();
     const auto t1 = s.status();
-    fm_assert_equal(t0.searches, t1.searches);
+    fm_assert_equal(t0.num_searches, t1.num_searches);
     fm_assert(t1.st == state::to_peek && t1.has_peek);
     fm_assert((Vector3i(t1.peek).y() - Vector3i(peek).y())*side > 0);
 
@@ -1848,7 +1852,7 @@ void test_cover_script_peek_again_flanked(point hidden, point peek)
     s.step();
     s.finish_search();
     const auto t2 = s.status();
-    fm_assert_equal(t0.searches + 1, t2.searches);
+    fm_assert_equal(t0.num_searches + 1, t2.num_searches);
     fm_assert(t2.st == state::to_cover && t2.cover != hidden);
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == t2.cover);
@@ -1882,9 +1886,9 @@ void test_cover_script_search_every_move(point hidden)
             s.step();
             const auto t = s.status();
             fm_assert(s.npc->position() == spot && t.st == state::hidden);
-            fm_assert_equal(t0.searches + (every ? k : 0), t.searches);
-            fm_assert_equal(t0.rays, t.rays);
-            fm_assert_equal(t0.body_checks + (every ? 0 : 2*k), t.body_checks);
+            fm_assert_equal(t0.num_searches + (every ? k : 0), t.num_searches);
+            fm_assert_equal(t0.num_rays, t.num_rays);
+            fm_assert_equal(t0.num_body_checks + (every ? 0 : 2*k), t.num_body_checks);
             fm_assert(t.last_update <= t.max_update && t.max_update <= t.total_update);
         }
         fm_assert(s.status().total_update > t0.total_update);
@@ -1912,7 +1916,7 @@ void test_cover_script_retreat(point hidden)
     s.finish_search();
     fm_assert(s.status().st == state::retreat);
     s.step_until(state::seek);
-    fm_assert_equal(t0.searches + 1, s.status().searches);
+    fm_assert_equal(t0.num_searches + 1, s.status().num_searches);
     const auto spot = s.npc->position();
     fm_assert(point::distance_squared(spot, hidden) <= (uint64_t)(radius*radius));
     const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, threat_pos)); };
@@ -1955,8 +1959,8 @@ void close_in_retreat(world& w, point hidden)
     }
 }
 
-// As test_cover_script_retreat, with close_in_retreat's walls. None of the 6 spots has a path, so at 4 paths
-// per update the retreat takes the flank's update and at least one more.
+// As test_cover_script_retreat, with close_in_retreat's walls. None of the 6 spots has a path, so at 4 Dijkstra
+// searches per update the retreat takes the flank's update and at least one more.
 void test_cover_script_retreat_closed_in(point hidden)
 {
     cover_scene s;
@@ -1970,13 +1974,13 @@ void test_cover_script_retreat_closed_in(point hidden)
     fm_assert(s.seen_from(threat_pos, hidden));
     s.step();
     fm_assert(s.status().st == state::find_retreat);
-    fm_assert_equal(t0.paths + 4, s.status().paths);
+    fm_assert_equal(t0.num_dijkstra_calls + 4, s.status().num_dijkstra_calls);
     const auto retreat_updates = s.finish_search();
     const auto t1 = s.status();
     fm_assert(t1.st == state::retreat || t1.st == state::seek);
     fm_assert(retreat_updates >= 1);
     s.step_until(state::seek);
-    fm_assert_equal(t0.searches + 1, s.status().searches);
+    fm_assert_equal(t0.num_searches + 1, s.status().num_searches);
 }
 
 // test_cover_script_retreat_closed_in's scene, up to the flank's update, in which 4 of the 6 enclosed spots
@@ -1990,7 +1994,7 @@ cover_script_status flank_closed_in(cover_scene& s, point hidden, point threat_p
     s.step();
     const auto t = s.status();
     fm_assert(t.st == state::find_retreat);
-    fm_assert_equal(4u, t.retreat_failed);
+    fm_assert_equal(4u, t.num_failed_retreat_dijkstra_calls);
     return t;
 }
 
@@ -2005,10 +2009,10 @@ void test_cover_script_retreat_restart(point hidden)
         s.move_threat(threat_pos + Vector2i{1, 0});
         s.step();
         const auto t1 = s.status();
-        // The 2 enclosed spots left, then a path.
-        fm_assert(t1.st == state::retreat && t1.retreat_restarts == t0.retreat_restarts);
-        fm_assert_equal(t0.paths + 3, t1.paths);
-        fm_assert_equal(6u, t1.retreat_failed);
+        // The 2 enclosed spots left, then a spot with a path.
+        fm_assert(t1.st == state::retreat && t1.num_retreat_restarts == t0.num_retreat_restarts);
+        fm_assert_equal(t0.num_dijkstra_calls + 3, t1.num_dijkstra_calls);
+        fm_assert_equal(6u, t1.num_failed_retreat_dijkstra_calls);
     }
 
     cover_scene s;
@@ -2017,10 +2021,10 @@ void test_cover_script_retreat_restart(point hidden)
     s.move_threat(moved);
     s.step();
     const auto t2 = s.status();
-    fm_assert_equal(t1.retreat_restarts + 1, t2.retreat_restarts);
-    // One path: the 4 spots without one stay done.
+    fm_assert_equal(t1.num_retreat_restarts + 1, t2.num_retreat_restarts);
+    // One Dijkstra search, since the 4 spots without a path stay done.
     fm_assert(t2.st == state::retreat);
-    fm_assert_equal(t1.paths + 1, t2.paths);
+    fm_assert_equal(t1.num_dijkstra_calls + 1, t2.num_dijkstra_calls);
     s.step_until(state::seek);
     const auto spot = s.npc->position();
     // (12, 204) is the first spot test_cover_script_retreat's npc finds, and the first of the enclosure.
@@ -2053,8 +2057,8 @@ void test_cover_script_retreat_circling_threat(point hidden)
     }
     const auto t = s.status();
     fm_assert(t.st == state::retreat && t.retreat_all);
-    fm_assert_equal(t0.retreat_restarts + updates, t.retreat_restarts);
-    fm_assert_equal(t0.paths + 1, t.paths);
+    fm_assert_equal(t0.num_retreat_restarts + updates, t.num_retreat_restarts);
+    fm_assert_equal(t0.num_dijkstra_calls + 1, t.num_dijkstra_calls);
 }
 
 // As test_cover_script_retreat_circling_threat, from the npc's search for cover at hidden. The search restarts
@@ -2072,7 +2076,7 @@ void test_cover_script_search_circling_threat(point hidden, bool far_block)
     const auto t0 = s.status();
     // Without the block the search ends during the retreat walk, or after it with the npc standing.
     const auto ended = [&] {
-        return far_block ? s.status().st == state::to_cover : s.status().searches != t0.searches;
+        return far_block ? s.status().st == state::to_cover : s.status().num_searches != t0.num_searches;
     };
     auto walked = false;
     for (auto updates = 0u; !ended(); updates++)
@@ -2086,11 +2090,11 @@ void test_cover_script_search_circling_threat(point hidden, bool far_block)
         fm_assert(ended() || st == state::search || st == state::find_retreat || st == state::retreat);
     }
     fm_assert(walked);
-    fm_assert_equal(t0.searches + 1, s.status().searches);
+    fm_assert_equal(t0.num_searches + 1, s.status().num_searches);
     if (far_block)
         fm_assert(point::distance(s.status().cover, block) < 2*(uint32_t)tile_size_xy);
     else
-        fm_assert_equal(s.status().search_tiles, s.status().search_tile);
+        fm_assert_equal(s.status().num_search_tiles, s.status().search_tile);
 }
 
 // As test_cover_script_retreat, with a block 7 tiles south of hidden that hides a spot from tile (7, 1). The npc
@@ -2126,7 +2130,7 @@ void test_cover_script_retreat_finds_cover(point hidden, bool near_threat)
     fm_assert(point::distance(t.cover, hidden) > 5*(uint32_t)tile_size_xy);
     fm_assert(point::distance(t.cover, block) < 2*(uint32_t)tile_size_xy);
     fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, t.cover, body, s.npc->id));
-    fm_assert_equal(t0.searches + 1, t.searches);
+    fm_assert_equal(t0.num_searches + 1, t.num_searches);
 }
 
 // As test_cover_script_retreat, with a block put in the way of the npc's retreat walk. The npc looks for a
@@ -2152,9 +2156,9 @@ void test_cover_script_retreat_blocked(point hidden)
     const auto t0 = s.status();
     s.step_until(state::find_retreat);
     const auto t1 = s.status();
-    fm_assert_equal(t0.retreat_restarts + 1, t1.retreat_restarts);
+    fm_assert_equal(t0.num_retreat_restarts + 1, t1.num_retreat_restarts);
     s.step_until(state::retreat);
-    fm_assert(s.status().paths > t1.paths);
+    fm_assert(s.status().num_dijkstra_calls > t1.num_dijkstra_calls);
 
     // Each retreat walk is longer than min_retreat_gain, so stopping this soon means a block.
     block_ahead();
@@ -2170,7 +2174,7 @@ void test_cover_script_retreat_blocked(point hidden)
         fm_assert(s.status().st == state::search);
         s.step();
     }
-    fm_assert_equal(t1.retreat_restarts, s.status().retreat_restarts);
+    fm_assert_equal(t1.num_retreat_restarts, s.status().num_retreat_restarts);
 }
 
 // As test_cover_script_retreat. The threat moves mid-walk to where it sees the walk's end, still over 3 tiles
@@ -2194,8 +2198,8 @@ void test_cover_script_retreat_end_seen(point hidden)
         s.move_threat(moved);
         s.step();
         const auto t = s.status();
-        fm_assert_equal(t0.retreat_restarts + 1, t.retreat_restarts);
-        fm_assert(t.paths - t0.paths <= 4);
+        fm_assert_equal(t0.num_retreat_restarts + 1, t.num_retreat_restarts);
+        fm_assert(t.num_dijkstra_calls - t0.num_dijkstra_calls <= 4);
         return from;
     };
     point spot;
@@ -2225,7 +2229,7 @@ void test_cover_script_retreat_end_seen(point hidden)
         s.step();
         const auto t = s.status();
         fm_assert(t.st != state::find_retreat);
-        fm_assert_equal(t1.retreat_restarts, t.retreat_restarts);
+        fm_assert_equal(t1.num_retreat_restarts, t.num_retreat_restarts);
     }
 }
 
@@ -2264,13 +2268,13 @@ void test_cover_script_far_cover(bool turned)
     {
         fm_assert(updates < 2000);
         fm_assert(npc->position() == npc_pos);
-        const auto fills = pool.octant_fills(), paths = status().paths;
+        const auto fills = pool.octant_fills(), num_dijkstra_calls = status().num_dijkstra_calls;
         if (turned && updates <= 2)
             move_threat(updates == 2 ? point{ch, {12, 1}, {}} : threat->position() - Vector2i{0, 1});
         step();
         const auto t = status();
         fm_assert(pool.octant_fills() - fills <= 1);
-        fm_assert(t.paths - paths <= 1);
+        fm_assert(t.num_dijkstra_calls - num_dijkstra_calls <= 1);
         if (t.st != state::search)
             break;
         if (turned && updates == 2)
@@ -2364,10 +2368,10 @@ void test_cover_script_orders(point hidden)
     fm_assert(spots[0].pos == s.status().canonical);
     const auto other = spots[spots.size() - 1], first = spots[0];
 
-    const auto rays = s.status().rays;
+    const auto num_rays = s.status().num_rays;
     const auto p = find_cover_peek(*s.npc, other);
     fm_assert(p);
-    fm_assert_equal(rays, s.status().rays);
+    fm_assert_equal(num_rays, s.status().num_rays);
 
     fm_assert(send_to_cover(*s.npc, other));
     const auto other_end = s.status().cover;
@@ -2698,14 +2702,14 @@ bool moves_during_search(cover_scene& s, bool may_retreat)
     const auto t0 = s.status();
     const auto start = s.npc->position();
     auto moved = false, retreated = false;
-    for (auto frames = 0u; s.status().searches == t0.searches; frames++)
+    for (auto frames = 0u; s.status().num_searches == t0.num_searches; frames++)
     {
         fm_assert(frames < 60*s.fps);
         s.step();
         const auto t = s.status();
         const auto retreating = t.st == state::find_retreat || t.st == state::retreat;
         fm_assert(may_retreat || !retreating);
-        retreated |= retreating && t.search_tile < t.search_tiles;
+        retreated |= retreating && t.search_tile < t.num_search_tiles;
         moved |= s.npc->position() != start;
     }
     fm_assert(retreated == may_retreat);

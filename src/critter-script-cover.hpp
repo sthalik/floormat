@@ -52,7 +52,7 @@ struct cover_script_options
 struct cover_script_status
 {
     // search: standing while it looks for cover, a few tiles per update. find_retreat: standing while
-    // it looks for a path to a spot farther from the threat, a few paths per update.
+    // it looks for a path to a spot farther from the threat, a few Dijkstra searches per update.
     enum class state : uint8_t { seek, to_cover, hidden, to_peek, exposed, retreat, search, find_retreat, };
 
     // The cover the critter hides at, peeks from or walks to, when has_cover. canonical is the spot found for
@@ -68,19 +68,19 @@ struct cover_script_status
     cover_query query = {};
     // Since the script started: finished searches for cover, rays cast from the threat, tests of the body at
     // a spot against the threat, and Dijkstra searches, those of a retreat included.
-    uint32_t searches = 0, rays = 0, body_checks = 0, paths = 0;
-    // While a search runs, in state::search or during a retreat, the number of tiles tried out of search_tiles.
-    uint32_t search_tile = 0, search_tiles = 0;
-    // In state::find_retreat, the next of retreat_spots spots, and this pass's spots with no path. The
-    // second pass, retreat_all, also tries spots a ray from the threat reaches.
-    uint32_t retreat_spot = 0, retreat_spots = 0, retreat_failed = 0;
+    uint32_t num_searches = 0, num_rays = 0, num_body_checks = 0, num_dijkstra_calls = 0;
+    // While a search runs, in state::search or during a retreat, the number of tiles tried out of num_search_tiles.
+    uint32_t search_tile = 0, num_search_tiles = 0;
+    // In state::find_retreat, the next of num_retreat_spots spots, and this pass's path_to calls that found no
+    // path. The second pass, retreat_all, also tries spots a ray from the threat reaches.
+    uint32_t retreat_spot = 0, num_retreat_spots = 0, num_failed_retreat_dijkstra_calls = 0;
     bool retreat_all = false;
     // Since the script started, the times find_retreat went back to its first spot because the threat
     // moved to another octant of the cover grid, seen from the critter, or a retreat walk was blocked or flanked.
-    uint32_t retreat_restarts = 0;
+    uint32_t num_retreat_restarts = 0;
     // Since the script started, the searches' find_cover_point calls, each for one tile. A tile gets
     // another call when the threat moved since its list was made, or when the call ran out of fills.
-    uint32_t tile_lists = 0;
+    uint32_t num_find_cover_point_calls = 0;
     Ns last_update, max_update, total_update;
     state st = state::seek;
     bool has_cover = false, has_peek = false, has_query = false;
