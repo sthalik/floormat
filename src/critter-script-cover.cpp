@@ -705,6 +705,8 @@ void cover_script::search_step(critter& c)
                 continue;
             // A path to s.pos could pass end and come back.
             const auto end = cover_end(c, s, threat_pos);
+            if (options.needs_peek && !peek_spot(c, end, s.axis, threat_pos))
+                continue;
             if (at_spot || end == here)
             {
                 end_search(c, reachable_cover{s, end, {}});

@@ -857,6 +857,8 @@ void cover_ai_test::draw_ui(app& a, float)
         options.threat_reach = reach ? cover_script_options{}.threat_reach : 0;
         apply_options();
     }
+    if (ImGui::Checkbox("Only cover with a peek spot", &options.needs_peek))
+        apply_options();
 
     bool only_seen = !options.search_every_move;
     if (ImGui::Checkbox("Search only when seen", &only_seen))
