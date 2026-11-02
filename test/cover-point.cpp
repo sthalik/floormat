@@ -2374,6 +2374,66 @@ void test_cover_script_orders(point hidden)
     fm_assert(!send_to_peek(*s.npc, other));
 }
 
+// A spot 2 to 5 tiles from the npc, between tile centers 2 and 13 on both axes, from which a ray reaches the npc's
+// center. Bearings from the npc are tried every 45°, turned from the threat's by 90° first and by 45° last.
+point flank_position(cover_scene& s)
+{
+    const auto npc = s.npc->position();
+    const auto v = Vector2d(s.threat->position() - npc);
+    const auto a0 = std::atan2(v.y(), v.x());
+    const auto lo = 2*(int)tile_size_xy, hi = (int)((TILE_MAX_DIM - 3)*tile_size_xy);
+    for (const auto r : { 5., 4., 3., 2. })
+        for (const auto k : { 2, 6, 3, 5, 4, 1, 7 })
+        {
+            const auto a = a0 + k * Math::Constants<double>::pi() / 4;
+            const auto p = npc + Vector2i(Math::round(Vector2d{std::cos(a), std::sin(a)} * r * tile_size_xy));
+            const auto px = Vector3i(p).xy();
+            if (p.chunk3() != ch || (px < Vector2i{lo}).any() || (px > Vector2i{hi}).any())
+                continue;
+            if (passable(s.w, p, body) && s.seen_from(p, npc))
+                return p;
+        }
+    fm_abort("no flank position");
+}
+
+// cover_scene with 64 px blocks around its wall, the npc held hidden. The threat moves 16 times to where it sees
+// the npc, which must hide again within 4 s, with under 0.25 s retreating and under 2 s in the threat's view.
+void test_cover_script_rehides()
+{
+    cover_scene s{point{ch, {10, 8}, {}}};
+    const local_coords blocks[] = { {3, 3}, {8, 3}, {12, 3}, {3, 8}, {12, 8}, {3, 12}, {8, 12}, {12, 12} };
+    for (const auto tile : blocks)
+        add_blocker(s.w, tile, {64, 64});
+    rebuild(s.w);
+    auto o = cover_script_options{};
+    o.hold = cover_script_options::hold_phase::hidden;
+    set_cover_script_options(*s.npc, o);
+    s.step_until(state::hidden);
+    for (auto i = 0u; i < 16; i++)
+    {
+        const auto threat_pos = flank_position(s);
+        s.move_threat(threat_pos);
+        auto updates = 0u, retreating = 0u, seen = 0u;
+        const auto step = [&] {
+            s.step();
+            updates++;
+            const auto st = s.status().st;
+            retreating += st == state::find_retreat || st == state::retreat;
+            seen += s.seen_from(threat_pos, s.npc->position());
+            return st;
+        };
+        const auto st = step();
+        fm_assert(st != state::hidden);
+        while (step() != state::hidden)
+            fm_assert(updates < 4*s.fps);
+        fm_assert(retreating < s.fps/4);
+        fm_assert(seen < 2*s.fps);
+        const auto cover = s.status().cover;
+        fm_assert(s.npc->position() == cover);
+        fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, cover, body, s.npc->id));
+    }
+}
+
 } // namespace
 
 void Test::test_cover_point()
@@ -2480,6 +2540,7 @@ void Test::test_cover_point()
     const auto c = test_cover_script(hidden + side*((int)body.y() + 1));
     fm_assert(c.hidden == hidden);
     fm_assert((Vector3i(c.peek).y() - Vector3i(c.hidden).y())*side.y() < 0);
+    test_cover_script_rehides();
 }
 
 } // namespace floormat
