@@ -503,7 +503,7 @@ Optional<uint32_t> cover_ai_test::step_cover(app& a, bool back)
     const auto list = script_spots(a, *c, *s);
     const auto n = (uint32_t)list.size();
     auto from = 0u;
-    while (from < n && !(s->has_cover && list[from].pos == s->cover))
+    while (from < n && !(s->has_cover && list[from].pos == s->canonical))
         from++;
     const auto listed = from < n;
     if (!listed)
@@ -558,9 +558,9 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
         {
             if (i == k || !spot_states[i].has_peek || spot_states[i].peek.pos != pt)
                 continue;
-            if (s->has_cover && spots[k].pos == s->cover)
+            if (s->has_cover && spots[k].pos == s->canonical)
                 break;
-            if (s->has_cover && spots[i].pos == s->cover ||
+            if (s->has_cover && spots[i].pos == s->canonical ||
                 point::distance_squared(spots[i].pos, pt) < point::distance_squared(spots[k].pos, pt))
                 k = i;
         }
@@ -776,7 +776,7 @@ void cover_ai_test::draw_cover_picker(app& a)
         list = script_spots(a, *c, *s);
     auto cur = (uint32_t)-1;
     for (auto i = 0u; i < list.size(); i++)
-        if (s->has_cover && list[i].pos == s->cover)
+        if (s->has_cover && list[i].pos == s->canonical)
         {
             cur = i;
             break;

@@ -245,7 +245,7 @@ task app::scene_cover_ai()
         fm_assert(v.u32 >= 1);
         overlay_spots(*w.find_object<critter>(npc_id), ensure_player_character(w)->position(), overlay);
         fm_assert_equal(v.u32, (uint32_t)overlay.size());
-        fm_assert(listed(overlay, status().cover));
+        fm_assert(listed(overlay, status().canonical));
     }
 
     // The next arrow beside the cover combobox, then clicks on peek spots' dots, each followed by a
@@ -257,13 +257,13 @@ task app::scene_cover_ai()
         const auto npc_at = [&] { return w.find_object(npc_id)->position(); };
         const auto hidden_at = [&](point p) {
             const auto s = status();
-            return s.st == state::hidden && s.cover == p && npc_at() == p;
+            return s.st == state::hidden && s.canonical == p && npc_at() == s.cover;
         };
         const auto exposed_at = [&](point p) {
             const auto s = status();
             return s.st == state::exposed && s.has_peek && s.peek == p && npc_at() == p;
         };
-        const auto first = stops[0].pos;
+        const auto first = status().canonical;
         deadline = _driver->scene_dt + max_dt;
         while (!hidden_at(first))
         {
@@ -277,7 +277,7 @@ task app::scene_cover_ai()
         list_cover_spots(*w.find_object<critter>(npc_id), spots);
         fm_assert(v.u32 > 0 && v.u32 < spots.size());
         const auto switched = spots[v.u32];
-        fm_assert_equal(switched.pos, status().cover);
+        fm_assert_equal(switched.pos, status().canonical);
         const auto p = find_cover_peek(*w.find_object<critter>(npc_id), switched);
         fm_assert(p);
         // hidden, out and back, as at cover it found itself
@@ -317,7 +317,7 @@ task app::scene_cover_ai()
             {
                 const auto s = status();
                 fm_assert(s.st == state::to_peek);
-                fm_assert(s.cover == cover && s.has_peek && s.peek == peek);
+                fm_assert(s.canonical == cover && s.has_peek && s.peek == peek);
             }
             deadline = _driver->scene_dt + max_dt;
             while (!exposed_at(peek))
@@ -336,7 +336,7 @@ task app::scene_cover_ai()
             set_cursor_at(first);
             co_await click_at_cursor(mouse_button_left);
             fm_assert(status().st == state::to_cover);
-            fm_assert_equal(first, status().cover);
+            fm_assert_equal(first, status().canonical);
             deadline = _driver->scene_dt + max_dt;
             while (!hidden_at(first))
             {
@@ -350,11 +350,11 @@ task app::scene_cover_ai()
         const auto next = press(4);
         fm_assert(next.type == base_test::ValueType::u32);
         fm_assert_equal(v.u32, next.u32);
-        fm_assert_equal(switched.pos, status().cover);
+        fm_assert_equal(switched.pos, status().canonical);
         const auto prev = press(5);
         fm_assert(prev.type == base_test::ValueType::u32);
         fm_assert_equal(first, spots[prev.u32].pos);
-        fm_assert_equal(first, status().cover);
+        fm_assert_equal(first, status().canonical);
         deadline = _driver->scene_dt + max_dt;
         while (!hidden_at(first))
         {
@@ -442,7 +442,7 @@ task app::scene_cover_ai()
             {
                 const auto s = status();
                 fm_assert(s.st == state::to_peek);
-                fm_assert(s.cover == cover && s.has_peek && s.peek == peek);
+                fm_assert(s.canonical == cover && s.has_peek && s.peek == peek);
             }
             deadline = _driver->scene_dt + max_dt;
             while (!exposed_at(peek))
@@ -701,13 +701,14 @@ task app::scene_cover_ai_map()
             Array<cover_spot> spots;
             overlay_spots(C, player, spots);
             fm_assert_equal(n_spots, (uint32_t)spots.size());
-            fm_assert(listed(spots, cover));
+            const auto canonical = status().canonical;
+            fm_assert(listed(spots, canonical));
             for (const auto& x : spots)
             {
                 fm_assert(!sees(player, x.pos));
                 const auto peek = !!find_cover_peek(C, x);
                 n_peeks += peek;
-                peeks |= peek && x.pos == cover;
+                peeks |= peek && x.pos == canonical;
             }
         }
 

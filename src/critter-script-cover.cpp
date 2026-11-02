@@ -90,8 +90,8 @@ const Array<Vector2i>& search_tiles()
 }
 
 // Takes cover from a critter and steps out of it and back, each phase lasting until its wait runs
-// out. A retreat starts only when rays from the threat, cast after it moves, show that it sees the
-// critter or its cover. Only updates that start with the critter standing spend the wait.
+// out. A retreat starts only when a test after the threat moves shows that it sees a pixel of the
+// critter at canonical. Only updates that start with the critter standing spend the wait.
 struct cover_script final : critter_script
 {
     using state = cover_script_status::state;
@@ -115,8 +115,8 @@ struct cover_script final : critter_script
 
 private:
     struct retreat_spot { Vector2i offset; bool done; };
-    // path is empty when c stands on spot.
-    struct reachable_cover { cover_spot spot; path_search_result path; };
+    // end is cover_end() of spot, and path leads there. path is empty when c stands on spot or end.
+    struct reachable_cover { cover_spot spot; point end; path_search_result path; };
     // What end_search does with cover: hide there for hidden_time, for the wait left with relocate, or peek
     // from it with follow. Without cover, seek waits and the others retreat.
     enum class search_then : uint8_t { seek, relocate, follow, };
@@ -128,6 +128,9 @@ private:
     bool holds() const;
     bool sees(critter& c, point from, point to);
     bool sees_gun(critter& c, point pos, point threat);
+    bool hidden_at(critter& c, point threat, point pos);
+    point cover_end(critter& c, const cover_spot& s, point threat);
+    void refresh_cover(critter& c);
     Vector2i across() const;
     bool start_search(critter& c, search_then next);
     void begin_search(critter& c, search_then next);
@@ -141,7 +144,7 @@ private:
     void begin_retreat(critter& c);
     void retreat_step(critter& c);
     bool walk_to(critter& c, point to, state then);
-    void walk_to_cover(path_search_result path);
+    void walk_to_cover(critter& c, path_search_result path);
     void retry_later();
     void seek(const bptr<critter>& c);
     void follow_threat(critter& c);
@@ -151,7 +154,7 @@ private:
     bool check_retreat(critter& c);
     void peek_again(critter& c);
     void step_out(const bptr<critter>& c);
-    void leave_peek();
+    void leave_peek(critter& c);
     void take_cover(const bptr<critter>& c);
     void walk_update(const bptr<critter>& c, size_t& i, const Ns& dt);
     void face_threat(critter& c, size_t i, point threat);
@@ -192,12 +195,13 @@ private:
     bool retreat_all = false;
     search_then then = search_then::seek;
     bool tile_listed = false;
-    // threat_pos is where the threat stood at the last check or search.
-    point cover, threat_pos, peek_pos, gun_pos, gun_ray_from;
+    // canonical is the spot the search found, and cover where c hides, canonical moved along its face as far as
+    // the threat alone sees no pixel of c. threat_pos is where the threat stood at the last check or search.
+    point cover, canonical, threat_pos, peek_pos, gun_pos, gun_ray_from;
     Vector2i axis;
     Ns wait{}, last_update{}, max_update{}, total_update{};
     object_id threat_id;
-    uint32_t searches = 0, rays = 0, paths = 0, tile_lists = 0;
+    uint32_t searches = 0, rays = 0, body_checks = 0, paths = 0, tile_lists = 0;
     Optional<int> gun_offset;
     state st = state::seek;
     uint8_t replans = 0;
@@ -220,8 +224,9 @@ cover_script::cover_script(astar& A, object_id threat, uint32_t div_size, Option
 cover_script_status cover_script::status() const
 {
     return {
-        .cover = cover, .peek = peek_pos, .gun = gun_pos,
-        .gun_ray_from = gun_ray_from, .query = query, .searches = searches, .rays = rays, .paths = paths,
+        .cover = cover, .canonical = canonical, .peek = peek_pos, .gun = gun_pos,
+        .gun_ray_from = gun_ray_from, .query = query, .searches = searches, .rays = rays, .body_checks = body_checks,
+        .paths = paths,
         .search_tile = search_tile, .search_tiles = (uint32_t)search_tiles().size(),
         .retreat_spot = retreat_next, .retreat_spots = (uint32_t)retreat_spots.size(), .retreat_failed = retreat_failed,
         .retreat_all = retreat_all, .retreat_restarts = retreat_restarts, .tile_lists = tile_lists,
@@ -306,7 +311,7 @@ void cover_script::update(const bptr<critter>& c, size_t& i, const Ns& dt)
             if (st == state::hidden)
                 step_out(c);
             else
-                leave_peek();
+                leave_peek(*c);
             return;
         }
         if (const auto threat = c->world().find_object(threat_id); !threat)
@@ -399,6 +404,27 @@ bool cover_script::sees_gun(critter& c, point pos, point threat)
     gun_pos = gun;
     gun_ray_from = threat;
     return true;
+}
+
+// True when threat sees no pixel of c's body centered on pos, flush against a blocker along axis.
+bool cover_script::hidden_at(critter& c, point threat, point pos)
+{
+    body_checks++;
+    return finder.hidden_at(c.world(), threat, {pos, axis}, Vector2ui(c.bbox_size));
+}
+
+// s moved along its face as far as threat sees no pixel of c there.
+point cover_script::cover_end(critter& c, const cover_spot& s, point threat)
+{
+    const cover_query q{s.pos, Vector2ui(c.bbox_size), threat, 0, 0, options.max_cover_end_dist};
+    return finder.move_to_cover_end(c.world(), q, s.axis, blocks_all_but(c.id));
+}
+
+// cover_end() of canonical in place of a cover the threat at threat_pos sees.
+void cover_script::refresh_cover(critter& c)
+{
+    if (cover != canonical && !hidden_at(c, threat_pos, cover))
+        cover = cover_end(c, {canonical, axis}, threat_pos);
 }
 
 Vector2i cover_script::across() const { return across_of(axis); }
@@ -522,7 +548,7 @@ void cover_script::search_step(critter& c)
             const auto s = tile_spots[tile_spot];
             if (s.pos == here)
             {
-                end_search(c, reachable_cover{s, {}});
+                end_search(c, reachable_cover{s, cover_end(c, s, threat_pos), {}});
                 return;
             }
             if (joins_unreachable(c, s.pos))
@@ -538,15 +564,23 @@ void cover_script::search_step(critter& c)
             if (!paths_left)
                 return;
             paths_left--;
-            // TODO: the path may lead toward the threat. Avoiding it needs A.Dijkstra predicate changes and maybe
-            // a path to the threat, or another measure of how close the path comes to it.
-            if (auto path = path_to(c, s.pos); path.is_found())
+            // A path to s.pos could pass end and come back.
+            const auto end = cover_end(c, s, threat_pos);
+            if (end == here)
             {
-                end_search(c, reachable_cover{s, move(path)});
+                end_search(c, reachable_cover{s, end, {}});
                 return;
             }
+            // TODO: the path may lead toward the threat. Avoiding it needs A.Dijkstra predicate changes and maybe
+            // a path to the threat, or another measure of how close the path comes to it.
+            if (auto path = path_to(c, end); path.is_found())
+            {
+                end_search(c, reachable_cover{s, end, move(path)});
+                return;
+            }
+            // c can walk straight from s.pos to end, so s.pos has no path either.
             arrayAppend(unreachable, s.pos);
-            const auto reach = path_reach(here, s.pos) + point::distance(here, search_from);
+            const auto reach = path_reach(here, end) + point::distance(here, search_from);
             unreachable_reach = Math::max(unreachable_reach, reach);
             search_pass_gen = reach_pass_gen(c);
             if (++failed_paths == max_failed_paths)
@@ -589,17 +623,18 @@ void cover_script::end_search(critter& c, Optional<reachable_cover> r)
             begin_retreat(c);
         return;
     }
-    cover = r->spot.pos;
+    canonical = r->spot.pos;
     axis = r->spot.axis;
+    cover = r->end;
     has_cover = true;
     has_peek = false;
     switch (then)
     {
     case search_then::relocate:
-        walk_to_cover(move(r->path));
+        walk_to_cover(c, move(r->path));
         return;
     case search_then::seek:
-        walk_to_cover(move(r->path));
+        walk_to_cover(c, move(r->path));
         wait = time_in(state::hidden);
         return;
     case search_then::follow:
@@ -610,7 +645,7 @@ void cover_script::end_search(critter& c, Optional<reachable_cover> r)
         }
         else
         {
-            walk_to_cover(move(r->path));
+            walk_to_cover(c, move(r->path));
             wait = time_in(state::hidden);
         }
         return;
@@ -828,15 +863,18 @@ bool cover_script::walk_to(critter& c, point to, state then)
     return true;
 }
 
-// walk_to(c, cover, state::hidden) along end_search's path, which is empty when c stands on cover.
-void cover_script::walk_to_cover(path_search_result path)
+// Walks c along end_search's path to cover, or straight there from canonical, where the path is empty.
+void cover_script::walk_to_cover(critter& c, path_search_result path)
 {
-    if (!path.is_found())
+    if (path.is_found())
+        walk = critter_walk{move(path)};
+    else if (c.position() != cover)
+        walk = critter_walk{cover};
+    else
     {
         st = state::hidden;
         return;
     }
-    walk = critter_walk{move(path)};
     st = state::to_cover;
 }
 
@@ -855,21 +893,27 @@ void cover_script::follow_threat(critter& c)
     begin_search(c, st == state::hidden ? search_then::relocate : search_then::follow);
 }
 
-// c flees when a ray from `threat`, which stands elsewhere than at the last check, reaches its body's
-// center. One ray keeps the cost per move low, so a threat that sees only an edge is ignored.
+// c flees when `threat`, which stands elsewhere than at the last check, sees a pixel of c at canonical. If it
+// sees one only at cover, c walks to a new cover_end().
 void cover_script::check_hidden(critter& c, point threat)
 {
     threat_pos = threat;
-    if (sees(c, threat, c.position()))
+    if (!hidden_at(c, threat, canonical))
         flee(c);
+    else if (cover != canonical && !hidden_at(c, threat, cover))
+    {
+        cover = cover_end(c, {canonical, axis}, threat);
+        walk = critter_walk{cover};
+        st = state::to_cover;
+    }
 }
 
-// Rays from `threat`, which stands elsewhere than at the last check, to c's cover and its gun. A
-// seen cover makes c stop peeking and flee. A blocked gun ray sends c to a new peek spot.
+// A ray from `threat`, which stands elsewhere than at the last check, to c's gun. A pixel of c at canonical
+// seen makes c stop peeking and flee. A blocked gun ray sends c to a new peek spot.
 void cover_script::check_exposed(critter& c, point threat)
 {
     threat_pos = threat;
-    if (sees(c, threat, cover))
+    if (!hidden_at(c, threat, canonical))
     {
         flee(c);
         return;
@@ -878,8 +922,8 @@ void cover_script::check_exposed(critter& c, point threat)
         peek_again(c);
 }
 
-// The checks of a walk update in which the threat stands elsewhere than at the last check. A seen
-// cover stops the walk and c flees. A blocked ray to the gun at the peek spot sends c to a new one.
+// The checks of a walk update in which the threat stands elsewhere than at the last check, as in check_hidden.
+// A blocked ray to the gun at the peek spot sends c to a new one.
 void cover_script::check_walk(critter& c)
 {
     const auto threat = c.world().find_object(threat_id);
@@ -887,10 +931,16 @@ void cover_script::check_walk(critter& c)
         return;
     const auto pos = threat->position();
     threat_pos = pos;
-    if (sees(c, pos, cover))
+    if (!hidden_at(c, pos, canonical))
     {
         flee(c);
         return;
+    }
+    if (st == state::to_cover && cover != canonical && !hidden_at(c, pos, cover))
+    {
+        cover = cover_end(c, {canonical, axis}, pos);
+        if (walk.straight())
+            walk = critter_walk{cover};
     }
     if (st == state::to_peek && !sees_gun(c, walk.dest(), pos))
         peek_again(c);
@@ -927,8 +977,10 @@ void cover_script::peek_again(critter& c)
     {
         if (!walk_to(c, *p, state::exposed))
             retry_later();
+        return;
     }
-    else if (walk_to(c, cover, state::hidden))
+    refresh_cover(c);
+    if (walk_to(c, cover, state::hidden))
         wait = time_in(state::hidden);
     else
         retry_later();
@@ -948,10 +1000,11 @@ void cover_script::step_out(const bptr<critter>& c)
         wait = hidden_time;
 }
 
-// Ends c's time out. c stands on the line from its cover that find_peek_pos checked clear, and
-// walks straight back.
-void cover_script::leave_peek()
+// Ends c's time out with a straight walk back, along the line from cover that find_peek_pos checked
+// clear unless refresh_cover moves cover.
+void cover_script::leave_peek(critter& c)
 {
+    refresh_cover(c);
     walk = critter_walk{cover};
     st = state::to_cover;
     wait = time_in(state::hidden);
@@ -962,6 +1015,7 @@ void cover_script::leave_peek()
 // run into the blocker. With no path, c seeks after retry_time.
 void cover_script::take_cover(const bptr<critter>& c)
 {
+    refresh_cover(*c);
     if (walk_to(*c, cover, state::hidden))
         wait = time_in(state::hidden);
     else
@@ -976,7 +1030,9 @@ void cover_script::walk_update(const bptr<critter>& c, size_t& i, const Ns& dt)
     if (ret == walk_result::arrived)
     {
         replans = 0;
-        if (st == state::to_cover)
+        if (st == state::to_cover && c->position() != cover)
+            walk = critter_walk{cover};
+        else if (st == state::to_cover)
             st = state::hidden;
         else if (st == state::retreat && search_tiles_left)
         {
@@ -1140,7 +1196,7 @@ Optional<cover_peek> cover_script::peek_for(critter& c, const cover_spot& s)
         return {};
     // sees() counts every ray, and the counters leave this out.
     const auto n = rays;
-    const auto p = peek_spot(c, s.pos, s.axis, threat->position());
+    const auto p = peek_spot(c, cover_end(c, s, threat->position()), s.axis, threat->position());
     rays = n;
     return p;
 }
@@ -1150,16 +1206,17 @@ Optional<cover_peek> cover_script::peek_for(critter& c, const cover_spot& s)
 bool cover_script::send_to(critter& c, const cover_spot& s, bool peek)
 {
     const auto threat = c.world().find_object(threat_id);
+    const auto end = threat ? cover_end(c, s, threat->position()) : s.pos;
     Optional<cover_peek> p;
     if (peek)
     {
         if (!threat)
             return false;
-        p = peek_spot(c, s.pos, s.axis, threat->position());
+        p = peek_spot(c, end, s.axis, threat->position());
         if (!p)
             return false;
     }
-    const auto to = p ? p->pos : s.pos;
+    const auto to = p ? p->pos : end;
     const auto here = c.position() == to;
     path_search_result path;
     if (!here)
@@ -1168,7 +1225,8 @@ bool cover_script::send_to(critter& c, const cover_spot& s, bool peek)
         if (!path.is_found())
             return false;
     }
-    cover = s.pos;
+    canonical = s.pos;
+    cover = end;
     axis = s.axis;
     has_cover = true;
     replans = 0;
