@@ -2473,6 +2473,8 @@ void test_cover_script_rehides()
     }
 }
 
+using fallback = cover_script_options::fallback;
+
 void move_npc(cover_scene& s, point pos)
 {
     auto i = s.npc->index();
@@ -2577,6 +2579,86 @@ void test_cover_script_cover_end_reach(bool reach)
     const auto pos = s.npc->position();
     fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
     fm_assert(reach != seen_within(s, pos, 2*tile_size_xy));
+}
+
+// Replaces cover_scene's wall with one 584 px long, 56 px west of a threat at tile (6, 8). The wall hides the gun
+// of an npc behind it within max_peek_dist of any spot there, so no spot has a peek spot.
+void add_longer_wall(cover_scene& s)
+{
+    s.w[ch].remove_object(*s.wall, s.wall->index());
+    for (const auto y : { (uint8_t)5, (uint8_t)8, (uint8_t)11 })
+        add_blocker(s.w, {5, y}, {16, 200});
+    rebuild(s.w);
+}
+
+// Steps until the npc's search ends, and returns whether the npc moved before. With may_retreat, the npc must
+// retreat while the search runs, and without it never.
+bool moves_during_search(cover_scene& s, bool may_retreat)
+{
+    const auto t0 = s.status();
+    const auto start = s.npc->position();
+    auto moved = false, retreated = false;
+    for (auto frames = 0u; s.status().searches == t0.searches; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.step();
+        const auto t = s.status();
+        const auto retreating = t.st == state::find_retreat || t.st == state::retreat;
+        fm_assert(may_retreat || !retreating);
+        retreated |= retreating && t.search_tile < t.search_tiles;
+        moved |= s.npc->position() != start;
+    }
+    fm_assert(retreated == may_retreat);
+    return moved;
+}
+
+// No spot behind add_longer_wall's wall has a peek spot. With no_peek, the npc hides behind it when the search
+// ends, and with none it seeks again. The threat doesn't see the npc where it starts, so it doesn't retreat.
+void test_cover_script_last_resort_no_peek(fallback last_resort)
+{
+    cover_scene s{point{ch, {6, 8}, {}}};
+    add_longer_wall(s);
+    set_cover_script_options(*s.npc, {.last_resort = last_resort});
+    fm_assert(!moves_during_search(s, false));
+    fm_assert(s.status().st == (last_resort == fallback::none ? state::seek : state::to_cover));
+    if (last_resort == fallback::none)
+        return;
+    s.step_until(state::hidden);
+    const auto pos = s.npc->position();
+    fm_assert(Vector3i(pos).x() + (int)body.x()/2 == 312);
+    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
+}
+
+// As test_cover_script_last_resort_no_peek, the npc starting where the threat sees it. It retreats once the search
+// keeps a spot with no peek spot, and moves before the search ends. It hides at that spot afterwards.
+void test_cover_script_last_resort_seen()
+{
+    cover_scene s{point{ch, {6, 8}, {}}};
+    add_longer_wall(s);
+    move_npc(s, point{ch, {8, 8}, {}});
+    fm_assert(s.seen_from(s.threat->position(), s.npc->position()));
+    fm_assert(moves_during_search(s, true));
+    fm_assert(s.status().st == state::to_cover);
+    s.step_until(state::hidden);
+    const auto pos = s.npc->position();
+    fm_assert(Vector3i(pos).x() + (int)body.x()/2 == 312);
+    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
+}
+
+// The threat stands 56 px east of cover_scene's wall and can walk around either end within threat_reach. With
+// in_reach, the npc hides behind the wall when the search ends, and with no_peek it seeks again.
+void test_cover_script_last_resort_in_reach(fallback last_resort)
+{
+    cover_scene s{point{ch, {8, 8}, {}}};
+    set_cover_script_options(*s.npc, {.last_resort = last_resort});
+    fm_assert(!moves_during_search(s, false));
+    fm_assert(s.status().st == (last_resort == fallback::in_reach ? state::to_cover : state::seek));
+    if (last_resort != fallback::in_reach)
+        return;
+    s.step_until(state::hidden);
+    const auto pos = s.npc->position();
+    fm_assert(point::distance(pos, point{ch, {7, 8}, {}}) < tile_size_xy);
+    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
 }
 
 } // namespace
@@ -2692,6 +2774,11 @@ void Test::test_cover_point()
     test_cover_script_threat_reach_wall();
     test_cover_script_cover_end_reach(true);
     test_cover_script_cover_end_reach(false);
+    test_cover_script_last_resort_no_peek(fallback::none);
+    test_cover_script_last_resort_no_peek(fallback::no_peek);
+    test_cover_script_last_resort_seen();
+    test_cover_script_last_resort_in_reach(fallback::no_peek);
+    test_cover_script_last_resort_in_reach(fallback::in_reach);
 }
 
 } // namespace floormat

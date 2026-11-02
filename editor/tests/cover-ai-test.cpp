@@ -859,6 +859,19 @@ void cover_ai_test::draw_ui(app& a, float)
     }
     if (ImGui::Checkbox("Only cover with a peek spot", &options.needs_peek))
         apply_options();
+    using fallback = cover_script_options::fallback;
+    text("If no cover passes, take one");
+    auto last = (int)options.last_resort;
+    auto changed = ImGui::RadioButton("never", &last, (int)fallback::none);
+    ImGui::SameLine();
+    changed |= ImGui::RadioButton("without a peek spot", &last, (int)fallback::no_peek);
+    ImGui::SameLine();
+    changed |= ImGui::RadioButton("or seen in 2 tiles", &last, (int)fallback::in_reach);
+    if (changed)
+    {
+        options.last_resort = (fallback)last;
+        apply_options();
+    }
 
     bool only_seen = !options.search_every_move;
     if (ImGui::Checkbox("Search only when seen", &only_seen))
