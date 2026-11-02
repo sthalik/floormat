@@ -90,12 +90,6 @@ template<typename T> void reserve_scratch(Array<T>& A, size_t count)
         arrayReserve(A, count + count/2);
 }
 
-Vector2i axis_toward(Vector2i v)
-{
-    return Math::abs(v.x()) >= Math::abs(v.y()) ? Vector2i{v.x() > 0 ? 1 : -1, 0}
-                                                : Vector2i{0, v.y() > 0 ? 1 : -1};
-}
-
 slope_range slopes_of(const square_box& b)
 {
     return { { b.a0, b.a0 > 0 ? b.d1 : b.d0 }, { b.a1, b.a1 > 0 ? b.d0 : b.d1 } };
@@ -318,6 +312,12 @@ Vector2i spot_tests::move_spot_to_cover_end(Vector2i pos, Vector2i axis, Vector2
 }
 
 } // namespace
+
+Vector2i axis_toward(Vector2i v)
+{
+    return Math::abs(v.x()) >= Math::abs(v.y()) ? Vector2i{v.x() > 0 ? 1 : -1, 0}
+                                                : Vector2i{0, v.y() > 0 ? 1 : -1};
+}
 
 // A bearing halfway between octants k and k + 1 takes k + 1, mod Cover::octant_count, since
 // floor(x + 1/2) rounds a half up.

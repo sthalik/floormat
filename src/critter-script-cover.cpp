@@ -92,9 +92,8 @@ const Array<Vector2i>& search_tiles()
     return tiles;
 }
 
-// Takes cover from a critter and steps out of it and back, each phase lasting until its wait runs
-// out. A retreat starts only when a test after the threat moves shows that it sees a pixel of the
-// critter at canonical. Only updates that start with the critter standing spend the wait.
+// Takes cover from a critter and steps out of it and back, each phase lasting until its wait runs out.
+// Only updates that start with the critter standing spend the wait.
 struct cover_script final : critter_script
 {
     using state = cover_script_status::state;
@@ -142,6 +141,7 @@ private:
     void flee(critter& c);
     void restart_search(critter& c);
     void search_step(critter& c);
+    Optional<reachable_cover> take_last_resort(critter& c);
     void end_search(critter& c, Optional<reachable_cover> r);
     bool joins_unreachable(critter& c, point to);
     uint64_t reach_pass_gen(critter& c) const;
@@ -177,6 +177,8 @@ private:
     // were listed with the threat at tile_threat.
     Array<cover_spot> tile_spots;
     point tile_threat;
+    // The first spots the search skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
+    Optional<cover_spot> peekless, in_reach;
     // reach_positions() for the threat at reach_from while reach_known, which each update clears. The others
     // are its fill's scratch.
     Array<point> reach;
@@ -207,6 +209,8 @@ private:
     uint32_t retreat_rays = 0;
     bool retreat_all = false;
     search_then then = search_then::seek;
+    // A retreat started since start_search, so a kept last_resort spot starts no other.
+    bool search_retreated = false;
     bool tile_listed = false;
     // canonical is the spot the search found, and cover where c hides, canonical moved along its face as far as
     // the threat alone sees no pixel of c. threat_pos is where the threat stood at the last check or search.
@@ -301,6 +305,10 @@ void cover_script::update(const bptr<critter>& c, size_t& i, const Ns& dt)
         return;
     case state::search:
         search_step(*c);
+        // This runs after search_step, so cover found in this update needs no retreat.
+        if (st == state::search && (peekless || in_reach) && !search_retreated &&
+            !hidden_at(*c, threat_pos, c->position(), axis_toward(threat_pos - c->position())))
+            begin_retreat(*c);
         go_on(c, i, dt);
         return;
     case state::to_cover:
@@ -583,6 +591,9 @@ bool cover_script::start_search(critter& c, search_then next)
     st = state::search;
     then = next;
     failed_paths = 0;
+    peekless = {};
+    in_reach = {};
+    search_retreated = false;
     arrayClear(unreachable);
     unreachable_reach = 0;
     search_pass_gen = 0;
@@ -631,6 +642,7 @@ void cover_script::restart_search(critter& c)
 // a path that found none calls restart_search.
 void cover_script::search_step(critter& c)
 {
+    using fallback = cover_script_options::fallback;
     auto& w = c.world();
     const auto threat = w.find_object(threat_id);
     if (!threat)
@@ -657,6 +669,12 @@ void cover_script::search_step(critter& c)
         tile_listed = false;
 
     const auto& tiles = search_tiles();
+    // With a spot kept for last_resort, the search ends an update after its last spot, which may have used its path.
+    if (search_tile == tiles.size() || failed_paths == max_failed_paths)
+    {
+        end_search(c, take_last_resort(c));
+        return;
+    }
     // the offset of search_from's tile's center, so that each area is a tile of the world
     const auto base = point{search_from.coord(), {}} - search_from;
     const auto body = Vector2ui(c.bbox_size);
@@ -702,11 +720,19 @@ void cover_script::search_step(critter& c)
                 return;
             spots_left--;
             if (options.threat_reach && !hidden_from_reach(c, threat_pos, s.pos, s.axis))
+            {
+                if (options.last_resort >= fallback::in_reach && !in_reach)
+                    in_reach = s;
                 continue;
+            }
             // A path to s.pos could pass end and come back.
             const auto end = cover_end(c, s, threat_pos);
             if (options.needs_peek && !peek_spot(c, end, s.axis, threat_pos))
+            {
+                if (options.last_resort >= fallback::no_peek && !peekless)
+                    peekless = s;
                 continue;
+            }
             if (at_spot || end == here)
             {
                 end_search(c, reachable_cover{s, end, {}});
@@ -727,7 +753,8 @@ void cover_script::search_step(critter& c)
             search_pass_gen = reach_pass_gen(c);
             if (++failed_paths == max_failed_paths)
             {
-                end_search(c, {});
+                if (!peekless && !in_reach)
+                    end_search(c, {});
                 return;
             }
         }
@@ -737,10 +764,34 @@ void cover_script::search_step(critter& c)
         search_tiles_left--;
         if (search_tile == tiles.size())
         {
-            end_search(c, {});
+            if (!peekless && !in_reach)
+                end_search(c, {});
             return;
         }
     }
+}
+
+// peekless if the threat at threat_pos and where it can walk still see none of c there, else in_reach if the threat
+// alone doesn't, with its cover_end() and a path there. Clears both. At most one path search, as in search_step.
+auto cover_script::take_last_resort(critter& c) -> Optional<reachable_cover>
+{
+    Optional<cover_spot> spot;
+    if (peekless && hidden_from_reach(c, threat_pos, peekless->pos, peekless->axis))
+        spot = peekless;
+    else if (in_reach && hidden_at(c, threat_pos, in_reach->pos, in_reach->axis))
+        spot = in_reach;
+    peekless = {};
+    in_reach = {};
+    if (!spot)
+        return {};
+    const auto s = *spot;
+    const auto here = c.position();
+    const auto end = cover_end(c, s, threat_pos);
+    if (s.pos == here || end == here)
+        return reachable_cover{s, end, {}};
+    if (auto path = path_to(c, end); path.is_found())
+        return reachable_cover{s, end, move(path)};
+    return {};
 }
 
 // Takes r's cover, or without it goes on with the retreat c walks, or retreats or waits as `then` says.
@@ -885,6 +936,7 @@ void cover_script::begin_retreat(critter& c)
     st = state::find_retreat;
     // A search still running then ends without starting another retreat.
     then = search_then::seek;
+    search_retreated = true;
     replans = 0;
 }
 
