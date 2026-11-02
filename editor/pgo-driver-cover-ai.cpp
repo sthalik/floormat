@@ -671,7 +671,7 @@ task app::scene_cover_ai_map()
                 const auto [tx, ty] = print(player);
                 fm_abort("cover-ai-map: move %u, player (%d, %d): the npc doesn't hide at a new spot: "
                          "state %u at (%d, %d), cover (%d, %d), has_cover %d, searches %u",
-                         k, tx, ty, (unsigned)s.st, x, y, cx, cy, (int)s.has_cover, s.searches);
+                         k, tx, ty, (unsigned)s.st, x, y, cx, cy, (int)s.has_cover, s.num_searches);
             }
             co_yield {};
         }
