@@ -287,7 +287,7 @@ bool cover_ai_test::spots_stale(app& a) const
     const auto player = w.find_object(threat);
     return !player || nearest_octant(Vector2(player->position() - search_center)) != search_octant ||
            w.pass_gen() != search_pass_gen || search_radius != (uint32_t)radius_tiles*tile_size_xy ||
-           search_octants != options.octants || search_max_cover_end_dist != options.max_cover_end_dist ||
+           search_octants != options.octants || search_max_cover_end_dist != options.listed_cover_end_dist() ||
            search_div != options.div_size;
 }
 
@@ -313,7 +313,7 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
     search_pass_gen = w.pass_gen();
     search_radius = r;
     search_octants = options.octants;
-    search_max_cover_end_dist = options.max_cover_end_dist;
+    search_max_cover_end_dist = options.listed_cover_end_dist();
     search_div = options.div_size;
     next_tile = 0;
     search_time = Ns{};
@@ -851,6 +851,12 @@ void cover_ai_test::draw_ui(app& a, float)
     bool to_end = options.max_cover_end_dist != 0;
     if (ImGui::Checkbox("Move spots to cover's end", &to_end))
         (void)toggle_move_to_end();
+    bool reach = options.threat_reach != 0;
+    if (ImGui::Checkbox("Hide from where the player can walk in 2 tiles", &reach))
+    {
+        options.threat_reach = reach ? cover_script_options{}.threat_reach : 0;
+        apply_options();
+    }
 
     bool only_seen = !options.search_every_move;
     if (ImGui::Checkbox("Search only when seen", &only_seen))

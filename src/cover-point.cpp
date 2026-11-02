@@ -698,12 +698,35 @@ bool cover_point::hidden_at(world& w, point threat, const cover_spot& s, Vector2
     return X.hidden_from(X.T, X.P, s.axis, I.rects);
 }
 
-point cover_point::move_to_cover_end(world& w, const cover_query& q, Vector2i axis, const Search::pred& pred)
+point cover_point::move_to_cover_end(world& w, const cover_query& q, Vector2i axis, const Search::pred& pred,
+                                     ArrayView<const point> also_from)
 {
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     auto& I = *impl;
     spot_tests X{w, q, pred, I.runs, I.turned_rects, I.end_rects};
-    return X.to_point(X.move_spot_to_cover_end(X.P, axis, Math::abs(Vector2i{axis.y(), axis.x()})));
+    const auto across = Math::abs(Vector2i{axis.y(), axis.x()});
+    const auto end = X.move_spot_to_cover_end(X.P, axis, across);
+    const auto hidden_from_all = [&](Vector2i pos) {
+        for (const auto& t : also_from)
+            if (!X.hidden_from(Vector3i(t).xy(), pos, axis, I.rects))
+                return false;
+        return true;
+    };
+    if (end == X.P || hidden_from_all(end))
+        return X.to_point(end);
+    // Assumes the stretch nearer q.pos stays hidden, as the move does.
+    const auto len = Math::abs(end.x() - X.P.x()) + Math::abs(end.y() - X.P.y());
+    const auto dir = (end - X.P)/len;
+    auto a = 0, b = len;
+    while (b - a > 1)
+    {
+        const auto mid = (a + b)/2;
+        if (X.end_test(X.P + dir*mid, axis, across) == end_step::hidden && hidden_from_all(X.P + dir*mid))
+            a = mid;
+        else
+            b = mid;
+    }
+    return X.to_point(X.P + dir*a);
 }
 
 } // namespace floormat
