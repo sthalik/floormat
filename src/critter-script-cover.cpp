@@ -145,7 +145,7 @@ private:
     ArrayView<const point> reach_positions(critter& c, point threat);
     bool hidden_from_reach(critter& c, point threat, point pos, Vector2i axis);
     point cover_end(critter& c, const cover_spot& s, point threat);
-    void refresh_cover(critter& c);
+    bool refresh_cover(critter& c);
     Vector2i across() const;
     bool start_search(critter& c, search_then next);
     void begin_search(critter& c, search_then next);
@@ -585,11 +585,13 @@ point cover_script::cover_end(critter& c, const cover_spot& s, point threat)
     return finder.move_to_cover_end(c.world(), q, s.axis, blocks_all_but(c.id), from);
 }
 
-// cover_end() of canonical in place of a cover the threat at threat_pos sees.
-void cover_script::refresh_cover(critter& c)
+// Replaces a cover the threat at threat_pos sees with cover_end() of canonical, and returns whether it did.
+bool cover_script::refresh_cover(critter& c)
 {
-    if (cover != canonical && !hidden_at(c, threat_pos, cover, axis))
-        cover = cover_end(c, {canonical, axis}, threat_pos);
+    if (cover == canonical || hidden_at(c, threat_pos, cover, axis))
+        return false;
+    cover = cover_end(c, {canonical, axis}, threat_pos);
+    return true;
 }
 
 Vector2i cover_script::across() const { return across_of(axis); }
@@ -1127,9 +1129,8 @@ void cover_script::check_hidden(critter& c, point threat)
     threat_pos = threat;
     if (!hidden_at(c, threat, canonical, axis))
         flee(c);
-    else if (cover != canonical && !hidden_at(c, threat, cover, axis))
+    else if (refresh_cover(c))
     {
-        cover = cover_end(c, {canonical, axis}, threat);
         walk = critter_walk{cover};
         st = state::to_cover;
     }
@@ -1163,12 +1164,8 @@ void cover_script::check_walk(critter& c)
         flee(c);
         return;
     }
-    if (st == state::to_cover && cover != canonical && !hidden_at(c, pos, cover, axis))
-    {
-        cover = cover_end(c, {canonical, axis}, pos);
-        if (walk.is_line())
-            walk = critter_walk{cover};
-    }
+    if (st == state::to_cover && refresh_cover(c) && walk.is_line())
+        walk = critter_walk{cover};
     if (st == state::to_peek && !sees_gun(c, walk.dest(), pos))
         peek_again(c);
 }
