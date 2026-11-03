@@ -564,9 +564,7 @@ const SpriteAtlas::Sprite* sprite::raw() const { return _s; }
 sprite_atlas::sprite_atlas()
     : _atlas{InPlaceInit}
 {
-    // layer_width and layer_height stay 0 until first add() resolves them against the
-    // live GL context — ctor runs during loader singleton static-init,
-    // before the GL context exists.
+    // The first add() sets the layer size, because this runs during static init, before a GL context exists.
 }
 
 sprite_atlas::sprite_atlas(uint16_t layer_width, uint16_t layer_height)
