@@ -69,8 +69,8 @@ struct cover_script_status
     // Since the script started: finished searches for cover, rays cast from the threat, tests of the body at
     // a spot against the threat, and Dijkstra searches, those of a retreat included.
     uint32_t num_searches = 0, num_rays = 0, num_body_checks = 0, num_dijkstra_calls = 0;
-    // While a search runs, in state::search or during a retreat, the number of tiles tried out of num_search_tiles.
-    uint32_t search_tile = 0, num_search_tiles = 0;
+    // The tiles a search may still pass, 0 when none runs, and the number it tried out of num_search_tiles.
+    uint32_t search_tiles_left = 0, search_tile = 0, num_search_tiles = 0;
     // In state::find_retreat, the next of num_retreat_spots spots, and this pass's path_to calls that found no
     // path. The second pass, retreat_all, also tries spots a ray from the threat reaches.
     uint32_t retreat_spot = 0, num_retreat_spots = 0, num_failed_retreat_dijkstra_calls = 0;
