@@ -161,7 +161,7 @@ void test_sprites()
         auto size = img.size();
         // Skip sprites larger than the bitfield limit — a handful of F2
         // worldmap/splash PNGs exceed 1024 in either dimension.
-        if ((uint32_t)size.max() > SpriteAtlas::max_texture_xy)
+        if ((uint32_t)size.max() > SpriteAtlas::max_sprite_xy)
             continue;
         auto* sprite = SpriteAtlas::alloc_sprite(atlas, (uint32_t)size.x(), (uint32_t)size.y());
         SpriteAtlas::upload_sprite(atlas, *sprite, img);

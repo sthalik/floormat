@@ -17,8 +17,8 @@ void two_shelves_in_same_class_do_not_overlap()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
-    auto s1 = alloc_new_shelf(a, 32).p;
-    auto s2 = alloc_new_shelf(a, 32).p;
+    auto s1 = alloc_new_shelf(a, 32);
+    auto s2 = alloc_new_shelf(a, 32);
     fm_assert(s1 != s2);
     fm_assert(s1->y != s2->y);
 }
@@ -44,7 +44,7 @@ void sprites_of_differing_sizes_create_distinct_height_classes()
     fm_assert(a.height_classes.size() == 3);
 }
 
-void alloc_more_layers_count_at_16bit_boundary()
+void get_next_layer_count_at_16bit_boundary()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
@@ -53,7 +53,7 @@ void alloc_more_layers_count_at_16bit_boundary()
     // At cur=43690+ the function hits its fm_assert guarding against uint16_t
     // overflow of the returned value — we can't catch that from a test, but
     // the boundary value above breaks if anyone alters the formula.
-    fm_assert(alloc_more_layers_count(43689, a) == 65535);
+    fm_assert(get_next_layer_count(43689, a) == 65535);
 }
 
 // Fill a buffer with a deterministic-but-varied RGBA8 pattern so round-trip
@@ -106,7 +106,7 @@ void realloc_preserves_uploaded_pixels()
     upload_sprite(a, *s, view);
     auto before = a.texture_layer_count;
 
-    realloc_atlas(a, Math::max<uint16_t>(1, a.texture_layer_count) * 4); // force a grow-blit
+    grow_texture(a, Math::max<uint16_t>(1, a.texture_layer_count) * 4); // force a grow-blit
     fm_assert(a.texture_layer_count > before);
 
     // Read back from the same (unchanged) coordinates after grow.
@@ -269,10 +269,10 @@ void sprites_do_not_overlap_pairwise()
 void max_dimension_sprite_stores_without_truncation()
 {
     Atlas a;
-    a.layer_width = a.layer_height = max_texture_xy;   // 1024 — matches the 10-bit storage cap
-    Sprite* s = alloc_sprite(a, max_texture_xy, max_texture_xy);
-    fm_assert((uint32_t)s->width + 1 == max_texture_xy);
-    fm_assert((uint32_t)s->height + 1 == max_texture_xy);
+    a.layer_width = a.layer_height = max_sprite_xy;   // 1024 — matches the 10-bit storage cap
+    Sprite* s = alloc_sprite(a, max_sprite_xy, max_sprite_xy);
+    fm_assert((uint32_t)s->width_minus1 + 1 == max_sprite_xy);
+    fm_assert((uint32_t)s->height_minus1 + 1 == max_sprite_xy);
 }
 
 void tallest_layer_stores_y_without_truncation()
@@ -309,7 +309,7 @@ void test_sprite_atlas()
     two_shelves_in_same_class_do_not_overlap();
     exhausting_a_layer_creates_another_layer();
     sprites_of_differing_sizes_create_distinct_height_classes();
-    alloc_more_layers_count_at_16bit_boundary();
+    get_next_layer_count_at_16bit_boundary();
     upload_and_readback_is_lossless();
     realloc_preserves_uploaded_pixels();
     texcoords_encode_expected_corners();
