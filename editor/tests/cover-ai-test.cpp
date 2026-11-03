@@ -941,7 +941,7 @@ void cover_ai_test::draw_ui(app& a, float)
         text(!c ? "no npc" : !s ? "no cover script" : state_names[(size_t)s->st]);
 
         do_column("progress");
-        if (s && (s->st == state::search || s->st == state::retreat && s->search_tile < s->num_search_tiles))
+        if (s && (s->st == state::search || s->st == state::retreat && s->search_tiles_left))
             snformat(buf, "tile {} of {}", s->search_tile, s->num_search_tiles);
         else if (s && s->st == state::find_retreat)
             snformat(buf, "spot {} of {}, pass {}, {} without a path", s->retreat_spot, s->num_retreat_spots,
