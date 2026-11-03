@@ -144,10 +144,10 @@ void test_sprites()
     Array<String> files = walk_directory_tree(env);
     fm_assert(files.size() > 0);
 
-    // layer_size matches max_texture_xy in sprite-atlas-impl.hpp — the
-    // 10-bit Sprite::width/height storage caps individual sprites at 1024.
     SpriteAtlas::Atlas atlas;
-    atlas.layer_size = (uint16_t)Math::min<unsigned>(SpriteAtlas::max_layer_size, SpriteAtlas::max_2d_texture_size());
+    const auto max_size = SpriteAtlas::max_2d_texture_size();
+    atlas.layer_width = (uint16_t)Math::min<unsigned>(SpriteAtlas::max_layer_width, max_size);
+    atlas.layer_height = (uint16_t)Math::min<unsigned>(SpriteAtlas::max_layer_height, max_size);
 
     uint32_t png_count = 0, alloc_count = 0;
     for (const String& path : files)

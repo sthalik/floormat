@@ -20,7 +20,7 @@ struct Shelf
 {
     Array<Pointer<Sprite>> sprites {};
     // next_x needs 15 bits: it represents one-past-end and must reach
-    // layer_size (up to 16384, the runtime cap on 14-bit Sprite::x). A
+    // layer_width (up to 16384, the runtime cap on 14-bit Sprite::x). A
     // 14-bit next_x truncates 16384 to 0 and re-allocates from x=0,
     // causing every sprite past the shelf-full boundary to collide with
     // the first sprite on the same shelf.
@@ -58,7 +58,7 @@ struct Atlas
     Array<PendingSprite> pending {};
     Array<char> staging {};
     GL::Texture2DArray texture{NoCreate};
-    uint16_t layer_size = 0;
+    uint16_t layer_width = 0, layer_height = 0;
     // layers the packer may use; the texture grows to it before its next upload
     uint16_t n_layers = 0;
     uint16_t texture_layers = 0;

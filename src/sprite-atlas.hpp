@@ -33,7 +33,7 @@ class sprite_atlas
 {
 public:
     explicit sprite_atlas();
-    explicit sprite_atlas(uint16_t layer_size);
+    explicit sprite_atlas(uint16_t layer_width, uint16_t layer_height);
     ~sprite_atlas() noexcept;
 
     sprite_atlas(const sprite_atlas&) = delete;
@@ -41,7 +41,8 @@ public:
     sprite_atlas(sprite_atlas&&) noexcept;
     sprite_atlas& operator=(sprite_atlas&&) noexcept;
 
-    uint16_t layer_size() const;
+    uint16_t layer_width() const;
+    uint16_t layer_height() const;
     uint16_t n_layers() const;
 
     sprite add(const ImageView2D& pixels, bool allow_rotate = true);
@@ -57,7 +58,7 @@ public:
 
     GL::AbstractTexture& texture();
 
-    // Release the GL texture and bookkeeping. layer_size is preserved.
+    // Release the GL texture and bookkeeping. layer_width and layer_height are preserved.
     void reset();
 
     // Debug: dump each atlas layer (or slabs of layers) to PNG files at
