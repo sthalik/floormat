@@ -146,7 +146,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
                 const uint32_t fw = (uint32_t)f.size.x();
                 const uint32_t fh = (uint32_t)f.size.y();
                 fm_soft_assert(fw > 0 && fh > 0);
-                fm_soft_assert(fw <= SpriteAtlas::max_texture_xy && fh <= SpriteAtlas::max_texture_xy);
+                fm_soft_assert(fw <= SpriteAtlas::max_sprite_xy && fh <= SpriteAtlas::max_sprite_xy);
                 const uint32_t ox = (uint32_t)f.offset.x(), oy = (uint32_t)f.offset.y();
                 // Subtraction form keeps offset+size from wrapping past the texture.
                 fm_soft_assert(ox <= full_width && fw <= full_width - ox);

@@ -42,13 +42,13 @@ uint32_t max_2d_texture_size()
     return (uint32_t)size.x();
 }
 
-uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A)
+uint16_t get_next_layer_count(uint16_t layer_count, const Atlas& A)
 {
     // Growth policy: double while VRAM footprint is modest, switch to 1.5x
     // once the atlas crosses 1 GiB
-    uint64_t cur_bytes = (uint64_t)cur_layers * (uint32_t)A.layer_width * (uint32_t)A.layer_height * 4;
+    uint64_t cur_bytes = (uint64_t)layer_count * (uint32_t)A.layer_width * (uint32_t)A.layer_height * 4;
     constexpr uint64_t gibibyte = 1024*1024*1024;
-    if (cur_layers == 0)
+    if (layer_count == 0)
     {
 #if 1
         return 1;
@@ -65,34 +65,34 @@ uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A)
     }
     else if (cur_bytes >= gibibyte)
     {
-        auto new_size = (uint32_t)std::ceil((float)cur_layers*1.5f) + 1;
+        auto new_size = (uint32_t)std::ceil((float)layer_count*1.5f) + 1;
         fm_assert(new_size == (uint32_t)(uint16_t)new_size);
         return (uint16_t)new_size;
     }
     else
     {
-        fm_debug_assert(cur_layers && (cur_layers & cur_layers-1) == 0);
-        auto x = (uint32_t)cur_layers * 2;
+        fm_debug_assert(layer_count && (layer_count & layer_count-1) == 0);
+        auto x = (uint32_t)layer_count * 2;
         fm_assert(x == (uint16_t)x);
         return (uint16_t)x;
     }
 }
 
-void realloc_atlas(Atlas& atlas, uint16_t new_n_layers)
+void grow_texture(Atlas& atlas, uint16_t new_layer_count)
 {
     fm_assert(atlas.layer_width > 0 && atlas.layer_height > 0);
-    fm_assert(new_n_layers > atlas.texture_layer_count && new_n_layers >= atlas.layers.size());
+    fm_assert(new_layer_count > atlas.texture_layer_count && new_layer_count >= atlas.layers.size());
 
     const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
     // layers packed since the last upload exist only on the CPU side
-    auto used_layers = Math::min((Int)atlas.layers.size(), (Int)atlas.texture_layer_count);
+    auto copied_layer_count = Math::min((Int)atlas.layers.size(), (Int)atlas.texture_layer_count);
 
     // glTexStorage3D is immutable, so growth is reallocate-and-copy:
     // allocate a fresh Texture2DArray with the bigger layer count, then move
     // the old contents over.
     GL::Texture2DArray new_texture;
     new_texture.setStorage(1, GL::TextureFormat::RGBA8,
-                           {layer_size, (Int)new_n_layers})
+                           {layer_size, (Int)new_layer_count})
                .setMagnificationFilter(GL::SamplerFilter::Nearest)
                .setMinificationFilter(GL::SamplerFilter::Linear)
                .setWrapping(GL::SamplerWrapping::ClampToEdge);
@@ -102,16 +102,16 @@ void realloc_atlas(Atlas& atlas, uint16_t new_n_layers)
     GL::Framebuffer dst_fb{rect};
 
     // clear the newly added slices to magenta
-    for (Int i = used_layers; i < (Int)new_n_layers; i++)
+    for (Int i = copied_layer_count; i < (Int)new_layer_count; i++)
     {
         dst_fb.attachTextureLayer(attachment, new_texture, 0, i);
         dst_fb.clearColor(0, Color4{1.f, 0.f, 1.f, 1.f});
     }
 
-    if (used_layers > 0)
+    if (copied_layer_count > 0)
     {
         GL::Framebuffer src_fb{rect};
-        for (Int i = 0; i < used_layers; i++)
+        for (Int i = 0; i < copied_layer_count; i++)
         {
             src_fb.attachTextureLayer(attachment, atlas.texture, 0, i);
             dst_fb.attachTextureLayer(attachment, new_texture, 0, i);
@@ -120,7 +120,7 @@ void realloc_atlas(Atlas& atlas, uint16_t new_n_layers)
     }
 
     atlas.texture = move(new_texture);
-    atlas.texture_layer_count = new_n_layers;
+    atlas.texture_layer_count = new_layer_count;
 }
 
 void ensure_texture(Atlas& atlas)
@@ -132,8 +132,8 @@ void ensure_texture(Atlas& atlas)
     fm_assert(max_size >= atlas.layer_width && max_size >= atlas.layer_height);
     auto layer_count = atlas.texture_layer_count;
     while (layer_count < atlas.layers.size())
-        layer_count = alloc_more_layers_count(layer_count, atlas);
-    realloc_atlas(atlas, layer_count);
+        layer_count = get_next_layer_count(layer_count, atlas);
+    grow_texture(atlas, layer_count);
 }
 
 void free_atlas(Atlas& atlas)
@@ -146,9 +146,9 @@ void free_atlas(Atlas& atlas)
     atlas.texture_layer_count = 0;
 }
 
-Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
+Shelf* alloc_new_shelf(Atlas& atlas, uint32_t height)
 {
-    fm_assert(height > 0 && height <= max_texture_xy);
+    fm_assert(height > 0 && height <= max_sprite_xy);
 
     const uint32_t q_height = quantize_height(height);
     fm_debug_assert((uint16_t)q_height == q_height);
@@ -189,7 +189,6 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
     arrayReserve(L.shelves, 16);
     Shelf* shelf_ptr = &*arrayAppend(L.shelves, InPlaceInit, InPlaceInit, Shelf {
         .y = L.next_y,
-        .height_class = q_height - 1,
         .next_x = 0,
         .layer = layer_idx,
     });
@@ -197,10 +196,10 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
     arrayReserve(hc.shelves, 16);
     arrayAppend(hc.shelves, shelf_ptr);
 
-    return { shelf_ptr, layer_idx };
+    return shelf_ptr;
 }
 
-static Atlas::ShelfPair find_shelf_with_space(Atlas& atlas, uint32_t w, uint32_t h)
+static Shelf* find_shelf_with_space(Atlas& atlas, uint32_t w, uint32_t h)
 {
     const uint32_t q_height = quantize_height(h);
 
@@ -208,61 +207,58 @@ static Atlas::ShelfPair find_shelf_with_space(Atlas& atlas, uint32_t w, uint32_t
     auto* it = std::lower_bound(hcs.data(), hcs.data() + hcs.size(), q_height,
                                 [](const Pointer<HeightClass>& p, uint32_t hh) { return p->height < hh; });
     if (it == hcs.data() + hcs.size() || (*it)->height != q_height)
-        return { nullptr, 0 };
+        return nullptr;
 
     for (auto* sh : (*it)->shelves)
         if (atlas.layer_width - (uint32_t)sh->next_x >= w)
-            return { sh, (uint32_t)sh->layer };
+            return sh;
 
-    return { nullptr, 0 };
+    return nullptr;
 }
 
-static Atlas::ShelfPair get_shelf(Atlas& atlas, uint32_t w, uint32_t h, bool& is_rotated)
+static Shelf* get_shelf(Atlas& atlas, uint32_t w, uint32_t h, bool& is_rotated)
 {
-    if (auto fit = find_shelf_with_space(atlas, w, h); fit.p)
-        return fit;
-    if (auto fit = find_shelf_with_space(atlas, h, w); fit.p)
+    if (auto* shelf = find_shelf_with_space(atlas, w, h))
+        return shelf;
+    if (auto* shelf = find_shelf_with_space(atlas, h, w))
     {
         is_rotated = !is_rotated;
-        return fit;
+        return shelf;
     }
-    auto fit = alloc_new_shelf(atlas, h);
-    return fit;
+    return alloc_new_shelf(atlas, h);
 }
 
 Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate)
 {
     fm_assert(w > 0 && h > 0);
-    fm_assert(w <= max_texture_xy && h <= max_texture_xy);
+    fm_assert(w <= max_sprite_xy && h <= max_sprite_xy);
     fm_assert(Math::max(w, h) <= Math::min<uint32_t>(atlas.layer_width, atlas.layer_height));
 
-    Atlas::ShelfPair fit{};
+    Shelf* shelf;
     bool is_rotated;
 #if 1
     if (!allow_rotate) [[unlikely]]
     {
         is_rotated = false;
-        fit = find_shelf_with_space(atlas, w, h);
-        if (!fit.p)
-            fit = alloc_new_shelf(atlas, h);
+        shelf = find_shelf_with_space(atlas, w, h);
+        if (!shelf)
+            shelf = alloc_new_shelf(atlas, h);
     }
     else
     {
         const auto [min, max] = Math::minmax(w, h);
-        fit = get_shelf(atlas, max, min, is_rotated = h > w);
+        shelf = get_shelf(atlas, max, min, is_rotated = h > w);
     }
 #else
     // debug force-rotating all sprites
     (void)allow_rotate;
-    fit = find_shelf_with_space(atlas, h, w);
-    if (!fit.p)
-        fit = alloc_new_shelf(atlas, w);
+    shelf = find_shelf_with_space(atlas, h, w);
+    if (!shelf)
+        shelf = alloc_new_shelf(atlas, w);
     is_rotated = true;
 #endif
-    fm_debug_assert(fit.p);
+    fm_debug_assert(shelf);
 
-    Shelf* shelf = fit.p;
-    const uint32_t layer_idx = fit.index;
     const uint32_t slot_w = is_rotated ? h : w;
     uint32_t x = shelf->next_x;
     shelf->next_x = (uint32_t)(x + slot_w);
@@ -270,9 +266,9 @@ Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate)
     auto& sp = arrayAppend(shelf->sprites, InPlaceInit, InPlaceInit, Sprite {
         .x = x,
         .y = shelf->y,
-        .layer = layer_idx,
-        .width = w - 1,
-        .height = h - 1,
+        .layer = shelf->layer,
+        .width_minus1 = w - 1,
+        .height_minus1 = h - 1,
         .is_rotated = is_rotated,
     });
     return &*sp;
@@ -280,18 +276,16 @@ Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate)
 
 static Vector2ui slot_size(const Sprite& sprite)
 {
-    // Sprite stores width/height as `size - 1` of the ORIGINAL dims so 1024
-    // fits in 10 bits.
-    const uint32_t orig_w = (uint32_t)sprite.width + 1;
-    const uint32_t orig_h = (uint32_t)sprite.height + 1;
+    const uint32_t orig_w = (uint32_t)sprite.width_minus1 + 1;
+    const uint32_t orig_h = (uint32_t)sprite.height_minus1 + 1;
     return sprite.is_rotated ? Vector2ui{orig_h, orig_w} : Vector2ui{orig_w, orig_h};
 }
 
 // Writes the sprite's pixels to dst tightly packed, in the slot's orientation.
 static void copy_to_slot(char* dst, const Sprite& sprite, const ImageView2D& pixels)
 {
-    const uint32_t orig_w = (uint32_t)sprite.width + 1;
-    const uint32_t orig_h = (uint32_t)sprite.height + 1;
+    const uint32_t orig_w = (uint32_t)sprite.width_minus1 + 1;
+    const uint32_t orig_h = (uint32_t)sprite.height_minus1 + 1;
     fm_assert((uint32_t)pixels.size().x() == orig_w);
     fm_assert((uint32_t)pixels.size().y() == orig_h);
 
@@ -370,8 +364,9 @@ void flush(Atlas& atlas)
     for (auto i = 0u; i < (uint32_t)atlas.pending.size(); i++)
     {
         const auto& p = atlas.pending[i];
-        const auto end = i + 1 < atlas.pending.size() ? (size_t)atlas.pending[i + 1].offset : atlas.staging.size();
-        upload_slot(atlas, *p.sprite, p.format, atlas.staging.slice(p.offset, end));
+        const auto end = i + 1 < atlas.pending.size() ? (size_t)atlas.pending[i + 1].staging_offset
+                                                       : atlas.staging.size();
+        upload_slot(atlas, *p.sprite, p.format, atlas.staging.slice(p.staging_offset, end));
     }
     // Keeps the capacity stage_sprite() reserved, so the next add() doesn't allocate it again.
     arrayClear(atlas.pending);
@@ -382,8 +377,8 @@ std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& s
                                              Vector2ui sub_offset, Vector2ui sub_size,
                                              bool mirror)
 {
-    const auto full_w = (uint32_t)sprite.width + 1;
-    const auto full_h = (uint32_t)sprite.height + 1;
+    const auto full_w = (uint32_t)sprite.width_minus1 + 1;
+    const auto full_h = (uint32_t)sprite.height_minus1 + 1;
     fm_assert(sub_size.x() > 0 && sub_size.y() > 0);
     fm_assert(sub_offset.x() + sub_size.x() <= full_w);
     fm_assert(sub_offset.y() + sub_size.y() <= full_h);
@@ -448,8 +443,8 @@ std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& s
 
 std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sprite, bool mirror)
 {
-    const auto full_w = (uint32_t)sprite.width + 1;
-    const auto full_h = (uint32_t)sprite.height + 1;
+    const auto full_w = (uint32_t)sprite.width_minus1 + 1;
+    const auto full_h = (uint32_t)sprite.height_minus1 + 1;
     return texcoords_for_subrect(atlas, sprite, {0, 0}, {full_w, full_h}, mirror);
 }
 
@@ -505,12 +500,12 @@ void dump_atlas(Atlas& atlas, StringView out_path)
 
 void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path)
 {
-    // sprite.width/height are always the ORIGINAL dims. When the packer
+    // sprite.width_minus1/height_minus1 always describe the ORIGINAL dims. When the packer
     // stores the sprite rotated, the atlas slot is transposed
     // (slot_w = orig_h, slot_h = orig_w); read the slot and un-rotate
     // before writing so the output matches what the caller expects.
-    const uint32_t orig_w = (uint32_t)sprite.width + 1;
-    const uint32_t orig_h = (uint32_t)sprite.height + 1;
+    const uint32_t orig_w = (uint32_t)sprite.width_minus1 + 1;
+    const uint32_t orig_h = (uint32_t)sprite.height_minus1 + 1;
     const bool rotated = sprite.is_rotated != 0;
     const uint32_t slot_w = rotated ? orig_h : orig_w;
     const uint32_t slot_h = rotated ? orig_w : orig_h;
@@ -561,8 +556,8 @@ sprite::sprite(const SpriteAtlas::Sprite* s) : _s{s} { fm_assert(_s); }
 uint32_t sprite::x() const           { return (uint32_t)_s->x; }
 uint32_t sprite::y() const           { return (uint32_t)_s->y; }
 uint32_t sprite::layer() const       { return (uint32_t)_s->layer; }
-uint32_t sprite::width() const       { return (uint32_t)_s->width + 1; }
-uint32_t sprite::height() const      { return (uint32_t)_s->height + 1; }
+uint32_t sprite::width() const       { return (uint32_t)_s->width_minus1 + 1; }
+uint32_t sprite::height() const      { return (uint32_t)_s->height_minus1 + 1; }
 bool     sprite::is_rotated() const  { return _s->is_rotated != 0; }
 const SpriteAtlas::Sprite* sprite::raw() const { return _s; }
 
