@@ -16,7 +16,7 @@ namespace {
 void two_shelves_in_same_class_do_not_overlap()
 {
     Atlas a;
-    a.layer_size = 256;
+    a.layer_width = a.layer_height = 256;
     auto s1 = alloc_new_shelf(a, 32).p;
     auto s2 = alloc_new_shelf(a, 32).p;
     fm_assert(s1 != s2);
@@ -26,7 +26,7 @@ void two_shelves_in_same_class_do_not_overlap()
 void exhausting_a_layer_creates_another_layer()
 {
     Atlas a;
-    a.layer_size = 256;
+    a.layer_width = a.layer_height = 256;
     // Layer is 256 tall; shelves of height 64 take 64 pixels each.
     // 4 shelves fit in one layer (256 / 64 = 4); the 5th must land in a new one.
     for (int i = 0; i < 5; i++)
@@ -37,7 +37,7 @@ void exhausting_a_layer_creates_another_layer()
 void sprites_of_differing_sizes_create_distinct_height_classes()
 {
     Atlas a;
-    a.layer_size = 256;
+    a.layer_width = a.layer_height = 256;
     alloc_sprite(a, 100, 10);  // quantized height 16
     alloc_sprite(a, 100, 20);  // quantized height 24
     alloc_sprite(a, 100, 40);  // quantized height 40
@@ -47,7 +47,7 @@ void sprites_of_differing_sizes_create_distinct_height_classes()
 void alloc_more_layers_count_at_16bit_boundary()
 {
     Atlas a;
-    a.layer_size = 256;
+    a.layer_width = a.layer_height = 256;
     // cur=43689 is the largest uint16_t input to the 1.5x branch whose result
     // still fits in uint16_t: ceil(43689 * 1.5) + 1 == 65535.
     // At cur=43690+ the function hits its fm_assert guarding against uint16_t
@@ -73,7 +73,7 @@ void fill_pattern(unsigned char* dst, uint32_t w, uint32_t h)
 void upload_and_readback_is_lossless()
 {
     Atlas a;
-    a.layer_size = 256;
+    a.layer_width = a.layer_height = 256;
     constexpr uint32_t w = 4, h = 4;
     unsigned char src[w * h * 4];
     fill_pattern(src, w, h);
@@ -96,7 +96,7 @@ void upload_and_readback_is_lossless()
 void realloc_preserves_uploaded_pixels()
 {
     Atlas a;
-    a.layer_size = 256;
+    a.layer_width = a.layer_height = 256;
     constexpr uint32_t w = 4, h = 4;
     unsigned char src[w * h * 4];
     fill_pattern(src, w, h);
@@ -123,20 +123,21 @@ void realloc_preserves_uploaded_pixels()
 void texcoords_encode_expected_corners()
 {
     Atlas a;
-    a.layer_size = 256;
+    a.layer_width = 256;
+    a.layer_height = 512;
     constexpr uint32_t w = 30, h = 40;
     Sprite* s = alloc_sprite(a, w, h, false);
 
     // texcoords_for_sprite uses direct positional UV (no 1-y flip) because
     // sub-rect atlas uploads place PNG row 0 at GL texel y=sprite.y+h-1 (top
     // of the sub-region in GL bottom-up). Expected UVs:
-    //   u in [(x+0.5)/ls, (x+w-0.5)/ls]
-    //   v in [(y+0.5)/ls, (y+h-0.5)/ls]
-    const auto ls = (float)a.layer_size;
-    const float ul = ((float)s->x + 0.5f) / ls;
-    const float ur = ((float)s->x + (float)w - 0.5f) / ls;
-    const float vl = ((float)s->y + 0.5f) / ls;
-    const float vh = ((float)s->y + (float)h - 0.5f) / ls;
+    //   u in [(x+0.5)/lw, (x+w-0.5)/lw]
+    //   v in [(y+0.5)/lh, (y+h-0.5)/lh]
+    const auto lw = (float)a.layer_width, lh = (float)a.layer_height;
+    const float ul = ((float)s->x + 0.5f) / lw;
+    const float ur = ((float)s->x + (float)w - 0.5f) / lw;
+    const float vl = ((float)s->y + 0.5f) / lh;
+    const float vh = ((float)s->y + (float)h - 0.5f) / lh;
     const float layer = (float)s->layer;
 
     const auto coords = texcoords_for_sprite(a, *s, /*mirror=*/ false);
@@ -160,7 +161,7 @@ void texcoords_encode_expected_corners()
 // them, a rotated sprite transposed.
 void staged_adds_reach_texture()
 {
-    sprite_atlas atlas{64};
+    sprite_atlas atlas{64, 64};
     // 40x40 leaves no room for a second shelf in a 64 px layer, so each takes a new layer
     constexpr uint32_t n = 3, w = 40, h = 40, rw = 7, rh = 11;
     Array<unsigned char> src[n + 1];
@@ -199,7 +200,7 @@ void staged_adds_reach_texture()
 
 void wrapper_accessors_roundtrip_values()
 {
-    sprite_atlas atlas{256};
+    sprite_atlas atlas{256, 256};
     constexpr uint32_t w = 31, h = 47;
     unsigned char buf[w * h * 4]{};
     Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, buf};
@@ -207,8 +208,8 @@ void wrapper_accessors_roundtrip_values()
     auto s = atlas.add(view, false);
     fm_assert(s.width() == w);
     fm_assert(s.height() == h);
-    fm_assert(s.x() < atlas.layer_size());
-    fm_assert(s.y() < atlas.layer_size());
+    fm_assert(s.x() < atlas.layer_width());
+    fm_assert(s.y() < atlas.layer_height());
     fm_assert(s.layer() < atlas.n_layers());
     fm_assert(!s.is_rotated());
 }
@@ -216,7 +217,7 @@ void wrapper_accessors_roundtrip_values()
 void free_atlas_clears_state_and_allows_reuse()
 {
     Atlas a;
-    a.layer_size = 256;
+    a.layer_width = a.layer_height = 256;
     alloc_sprite(a, 10, 10);
     alloc_sprite(a, 20, 30);
     alloc_sprite(a, 40, 60);
@@ -228,7 +229,7 @@ void free_atlas_clears_state_and_allows_reuse()
     fm_assert(a.n_layers == 0);
     fm_assert(a.layers.size() == 0);
     fm_assert(a.height_classes.size() == 0);
-    fm_assert(a.layer_size == 256); // layer_size preserved
+    fm_assert(a.layer_width == 256 && a.layer_height == 256);
 
     // Fresh batch must work.
     Sprite* s = alloc_sprite(a, 8, 8);
@@ -239,7 +240,7 @@ void free_atlas_clears_state_and_allows_reuse()
 void sprites_do_not_overlap_pairwise()
 {
     Atlas a;
-    a.layer_size = 256;
+    a.layer_width = a.layer_height = 256;
     constexpr uint32_t N = 40;
     struct R { uint32_t x, y, layer, w, h; };
     R rects[N];
@@ -268,10 +269,33 @@ void sprites_do_not_overlap_pairwise()
 void max_dimension_sprite_stores_without_truncation()
 {
     Atlas a;
-    a.layer_size = max_texture_xy;   // 1024 — matches the 10-bit storage cap
+    a.layer_width = a.layer_height = max_texture_xy;   // 1024 — matches the 10-bit storage cap
     Sprite* s = alloc_sprite(a, max_texture_xy, max_texture_xy);
     fm_assert((uint32_t)s->width + 1 == max_texture_xy);
     fm_assert((uint32_t)s->height + 1 == max_texture_xy);
+}
+
+void tallest_layer_stores_y_without_truncation()
+{
+    Atlas a;
+    a.layer_width = 64;
+    a.layer_height = max_layer_height;
+    constexpr uint32_t w = 64, h = 16, N = max_layer_height / h;
+    const Sprite* sprites[N];
+    for (uint32_t i = 0; i < N; i++)
+        sprites[i] = alloc_sprite(a, w, h, false);
+
+    Array<bool> used{ValueInit, (size_t)a.layers.size() * max_layer_height};
+    for (const auto* s : sprites)
+    {
+        fm_assert(s->y + h <= max_layer_height);
+        for (uint32_t y = (uint32_t)s->y; y < s->y + h; y++)
+        {
+            auto& u = used[(uint32_t)s->layer * max_layer_height + y];
+            fm_assert(!u);
+            u = true;
+        }
+    }
 }
 
 } // namespace
@@ -294,6 +318,7 @@ void test_sprite_atlas()
     free_atlas_clears_state_and_allows_reuse();
     sprites_do_not_overlap_pairwise();
     max_dimension_sprite_stores_without_truncation();
+    tallest_layer_stores_y_without_truncation();
 }
 
 } // namespace floormat::Test
