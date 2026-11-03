@@ -91,9 +91,6 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
     return pos + Vector2i(Math::round(Vector2{-f.y(), f.x()} * ((float)dist / f.length())));
 }
 
-// The direction along the face of the blocker a cover spot with this axis is flush against.
-Vector2i across_of(Vector2i axis) { return Math::abs(Vector2i{axis.y(), axis.x()}); }
-
 // A query's pos lies up to half a tile from its tile's center on each axis, so the list reaches a
 // tile past search_radius.
 const Array<Vector2i>& search_tiles()
