@@ -190,6 +190,8 @@ private:
     // The spots of the search's tile search_tile, once tile_listed, of which tile_spot is next. They
     // were listed with the threat at tile_threat.
     Array<cover_spot> tile_spots;
+    // The spots of tile search_tile that search_step skipped, which a tile listed again skips without testing.
+    Array<cover_spot> tile_skipped;
     point tile_threat;
     // The first spots the search skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
     Optional<cover_spot> peekless, in_reach;
@@ -650,6 +652,7 @@ void cover_script::restart_search(critter& c)
     }
     search_octant = nearest_octant(Vector2(threat_pos - search_from));
     tile_listed = false;
+    arrayClear(tile_skipped);
 }
 
 // One update's work of the search: up to max_search_tiles_per_update tiles in search_tiles() order,
@@ -717,6 +720,8 @@ void cover_script::search_step(critter& c)
                 arrayReserve(tile_spots, count + count/2);
             arrayClear(tile_spots);
             arrayAppend(tile_spots, r.spots);
+            if (arrayCapacity(tile_skipped) < tile_skipped.size() + count)
+                arrayReserve(tile_skipped, tile_skipped.size() + count);
             tile_spot = 0;
             tile_listed = true;
             tile_threat = threat_pos;
@@ -724,6 +729,11 @@ void cover_script::search_step(critter& c)
         for (; tile_spot < tile_spots.size(); tile_spot++)
         {
             const auto s = tile_spots[tile_spot];
+            bool skipped = false;
+            for (const auto& x : tile_skipped)
+                skipped |= x.pos == s.pos && x.axis == s.axis;
+            if (skipped)
+                continue;
             const auto at_spot = s.pos == here;
             if (!at_spot && joins_unreachable(c, s.pos))
             {
@@ -743,6 +753,7 @@ void cover_script::search_step(critter& c)
             {
                 if (options.last_resort >= fallback::in_reach && !in_reach)
                     in_reach = s;
+                arrayAppend(tile_skipped, s);
                 continue;
             }
             peek_spot_searches_left--;
@@ -752,6 +763,7 @@ void cover_script::search_step(critter& c)
             {
                 if (options.last_resort >= fallback::no_peek && !peekless)
                     peekless = s;
+                arrayAppend(tile_skipped, s);
                 continue;
             }
             if (at_spot || end == here)
@@ -780,6 +792,7 @@ void cover_script::search_step(critter& c)
             }
         }
         tile_listed = false;
+        arrayClear(tile_skipped);
         search_tile++;
         fm_debug_assert(search_tiles_left);
         search_tiles_left--;

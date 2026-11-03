@@ -2765,6 +2765,27 @@ void test_cover_script_last_resort_in_reach(fallback last_resort)
     fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
 }
 
+// As test_cover_script_last_resort_no_peek with no_peek, the threat walking 1 px per update north and back over
+// 4 px. The search still ends, and the npc hides behind the wall.
+void test_cover_script_last_resort_walking_threat()
+{
+    cover_scene s{point{ch, {6, 8}, {}}};
+    add_longer_wall(s);
+    set_cover_script_options(*s.npc, {.last_resort = fallback::no_peek});
+    const auto num_searches = s.status().num_searches;
+    for (auto frames = 0u; s.status().num_searches == num_searches; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.move_threat(s.threat->position() + Vector2i{0, frames % 8 < 4 ? -1 : 1});
+        s.step();
+    }
+    fm_assert(s.status().st == state::to_cover);
+    s.step_until(state::hidden);
+    const auto pos = s.npc->position();
+    fm_assert(Vector3i(pos).x() + (int)body.x()/2 == 312);
+    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
+}
+
 } // namespace
 
 void Test::test_cover_point()
@@ -2883,6 +2904,7 @@ void Test::test_cover_point()
     test_cover_script_last_resort_seen();
     test_cover_script_last_resort_in_reach(fallback::no_peek);
     test_cover_script_last_resort_in_reach(fallback::in_reach);
+    test_cover_script_last_resort_walking_threat();
 }
 
 } // namespace floormat
