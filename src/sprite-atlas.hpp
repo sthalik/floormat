@@ -43,7 +43,7 @@ public:
 
     uint16_t layer_width() const;
     uint16_t layer_height() const;
-    uint16_t n_layers() const;
+    uint16_t layer_count() const;
 
     sprite add(const ImageView2D& pixels, bool allow_rotate = true);
 

@@ -81,11 +81,11 @@ uint16_t alloc_more_layers_count(uint16_t cur_layers, const Atlas& A)
 void realloc_atlas(Atlas& atlas, uint16_t new_n_layers)
 {
     fm_assert(atlas.layer_width > 0 && atlas.layer_height > 0);
-    fm_assert(new_n_layers > atlas.texture_layers && new_n_layers >= atlas.n_layers);
+    fm_assert(new_n_layers > atlas.texture_layer_count && new_n_layers >= atlas.layers.size());
 
     const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
     // layers packed since the last upload exist only on the CPU side
-    auto used_layers = Math::min((Int)atlas.layers.size(), (Int)atlas.texture_layers);
+    auto used_layers = Math::min((Int)atlas.layers.size(), (Int)atlas.texture_layer_count);
 
     // glTexStorage3D is immutable, so growth is reallocate-and-copy:
     // allocate a fresh Texture2DArray with the bigger layer count, then move
@@ -120,33 +120,30 @@ void realloc_atlas(Atlas& atlas, uint16_t new_n_layers)
     }
 
     atlas.texture = move(new_texture);
-    atlas.n_layers = atlas.texture_layers = new_n_layers;
+    atlas.texture_layer_count = new_n_layers;
 }
 
 void ensure_texture(Atlas& atlas)
 {
-    if (atlas.texture_layers >= atlas.n_layers)
+    if (atlas.texture_layer_count >= atlas.layers.size())
         return;
     // Without a context add() sized layers to max_layer_width and max_layer_height, which this GPU must hold.
     const auto max_size = max_2d_texture_size();
     fm_assert(max_size >= atlas.layer_width && max_size >= atlas.layer_height);
-    realloc_atlas(atlas, atlas.n_layers);
+    auto layer_count = atlas.texture_layer_count;
+    while (layer_count < atlas.layers.size())
+        layer_count = alloc_more_layers_count(layer_count, atlas);
+    realloc_atlas(atlas, layer_count);
 }
 
 void free_atlas(Atlas& atlas)
 {
-    // Reset to the same shape Atlas{} would have: texture back to NoCreate
-    // (the assignment destroys the old GL object), bookkeeping arrays
-    // emptied, n_layers reset so any future alloc_new_shelf rebootstraps
-    // via realloc_atlas. layer_width and layer_height are deliberately preserved — the caller
-    // configured them and may want to reuse the same atlas for another batch.
     atlas.texture = GL::Texture2DArray{NoCreate};
     atlas.layers = {};
     atlas.height_classes = {};
     atlas.pending = {};
     atlas.staging = {};
-    atlas.n_layers = 0;
-    atlas.texture_layers = 0;
+    atlas.texture_layer_count = 0;
 }
 
 Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
@@ -181,8 +178,6 @@ Atlas::ShelfPair alloc_new_shelf(Atlas& atlas, uint32_t height)
     if (layer_idx == (uint32_t)-1)
     {
         // No layer has room — must create a new Layer.
-        if (atlas.layers.size() >= atlas.n_layers)
-            atlas.n_layers = alloc_more_layers_count(atlas.n_layers, atlas);
         arrayReserve(atlas.layers, 16);
         arrayAppend(atlas.layers, InPlaceInit);
         layer_idx = (uint32_t)(atlas.layers.size() - 1);
@@ -460,7 +455,7 @@ std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sp
 
 void dump_atlas(Atlas& atlas, StringView out_path)
 {
-    fm_assert(atlas.n_layers > 0);
+    fm_assert(!atlas.layers.isEmpty());
     flush(atlas);
 
     // stb's image-write encoders count bytes in an `int`, so a file past 2 GB of raw pixels
@@ -472,7 +467,7 @@ void dump_atlas(Atlas& atlas, StringView out_path)
     const auto base = split.first();
     const auto ext = split.second();
     const auto w = (Int)atlas.layer_width, h = (Int)atlas.layer_height;
-    const auto n = (Int)atlas.n_layers;
+    const auto n = (Int)atlas.texture_layer_count;
     const Int layers_per_chunk = Math::max<Int>(1,
         (Int)(pixels_per_chunk / (uint64_t(w) * uint64_t(h))));
 
@@ -592,7 +587,7 @@ sprite_atlas& sprite_atlas::operator=(sprite_atlas&&) noexcept = default;
 
 uint16_t sprite_atlas::layer_width() const  { return _atlas->layer_width; }
 uint16_t sprite_atlas::layer_height() const { return _atlas->layer_height; }
-uint16_t sprite_atlas::n_layers() const     { return _atlas->n_layers; }
+uint16_t sprite_atlas::layer_count() const  { return (uint16_t)_atlas->layers.size(); }
 SpriteAtlas::Atlas* sprite_atlas::raw() { return _atlas.get(); }
 const SpriteAtlas::Atlas* sprite_atlas::raw() const { return _atlas.get(); }
 
@@ -635,7 +630,7 @@ std::array<Vector3, 4> sprite_atlas::texcoords_for(sprite s,
 
 GL::AbstractTexture& sprite_atlas::texture()
 {
-    if (!_atlas->pending.isEmpty() || _atlas->texture_layers < _atlas->n_layers) [[unlikely]]
+    if (!_atlas->pending.isEmpty() || _atlas->texture_layer_count < _atlas->layers.size()) [[unlikely]]
         SpriteAtlas::flush(*_atlas);
     return _atlas->texture;
 }

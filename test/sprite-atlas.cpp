@@ -104,10 +104,10 @@ void realloc_preserves_uploaded_pixels()
 
     Sprite* s = alloc_sprite(a, w, h);
     upload_sprite(a, *s, view);
-    auto before = a.n_layers;
+    auto before = a.texture_layer_count;
 
-    realloc_atlas(a, Math::max<uint16_t>(1, a.n_layers) * 4); // force a grow-blit
-    fm_assert(a.n_layers > before);
+    realloc_atlas(a, Math::max<uint16_t>(1, a.texture_layer_count) * 4); // force a grow-blit
+    fm_assert(a.texture_layer_count > before);
 
     // Read back from the same (unchanged) coordinates after grow.
     auto img = a.texture.subImage(0,
@@ -180,6 +180,7 @@ void staged_adds_reach_texture()
     fm_assert(sprites[n-1]->layer == n-1);
 
     auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
+    fm_assert(atlas.layer_count() == n && tex.imageSize(0).z() == 4);
     // The flush in texture() empties both but keeps what stage_sprite() reserved.
     fm_assert(atlas.raw()->staging.isEmpty() && arrayCapacity(atlas.raw()->staging) >= 1 << 20);
     fm_assert(atlas.raw()->pending.isEmpty() && arrayCapacity(atlas.raw()->pending) >= 64);
@@ -210,7 +211,7 @@ void wrapper_accessors_roundtrip_values()
     fm_assert(s.height() == h);
     fm_assert(s.x() < atlas.layer_width());
     fm_assert(s.y() < atlas.layer_height());
-    fm_assert(s.layer() < atlas.n_layers());
+    fm_assert(s.layer() < atlas.layer_count());
     fm_assert(!s.is_rotated());
 }
 
@@ -221,12 +222,11 @@ void free_atlas_clears_state_and_allows_reuse()
     alloc_sprite(a, 10, 10);
     alloc_sprite(a, 20, 30);
     alloc_sprite(a, 40, 60);
-    fm_assert(a.n_layers > 0);
     fm_assert(a.layers.size() > 0);
     fm_assert(a.height_classes.size() > 0);
 
     free_atlas(a);
-    fm_assert(a.n_layers == 0);
+    fm_assert(a.texture_layer_count == 0);
     fm_assert(a.layers.size() == 0);
     fm_assert(a.height_classes.size() == 0);
     fm_assert(a.layer_width == 256 && a.layer_height == 256);
@@ -234,7 +234,7 @@ void free_atlas_clears_state_and_allows_reuse()
     // Fresh batch must work.
     Sprite* s = alloc_sprite(a, 8, 8);
     fm_assert(s != nullptr);
-    fm_assert(a.n_layers > 0);
+    fm_assert(a.layers.size() > 0);
 }
 
 void sprites_do_not_overlap_pairwise()
