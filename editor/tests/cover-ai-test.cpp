@@ -144,7 +144,7 @@ struct cover_ai_test final : base_test
     uint32_t seen_spots(app& a, const critter& c);
     void search_spots(app& a, critter& c, bool limited);
     Optional<uint32_t> search_tile(app& a, critter& c, point player, uint32_t max_fills);
-    bool player_sees(app& a, const critter& c, point pt);
+    bool player_sees(app& a, const critter& c, const cover_spot& s);
     bool send(critter& c, const cover_spot& s, bool peek);
     uint32_t toggle_hold();
     uint32_t toggle_move_to_end();
@@ -157,6 +157,7 @@ struct cover_ai_test final : base_test
 
     weak_bptr<critter> npc;
     rc::raycast_result_s ray;
+    cover_point finder;
     Array<cover_spot> spots, tile_spots, script_list;
     Array<spot_state> spot_states;
     // The tiles of the overlay's search, as offsets from search_center, nearest first.
@@ -335,7 +336,7 @@ void cover_ai_test::drop_seen_spots(app& a, const critter& c)
     spots_player = player->position();
     auto n = 0u;
     for (auto i = 0u; i < spots.size(); i++)
-        if (!player_sees(a, c, spots[i].pos))
+        if (!player_sees(a, c, spots[i]))
         {
             spots[n] = spots[i];
             spot_states[n++] = spot_states[i];
@@ -350,7 +351,7 @@ uint32_t cover_ai_test::seen_spots(app& a, const critter& c)
 {
     auto n = 0u;
     for (const auto& x : spots)
-        n += player_sees(a, c, x.pos);
+        n += player_sees(a, c, x);
     return n;
 }
 
@@ -425,15 +426,14 @@ void cover_ai_test::search_spots(app& a, critter& c, bool limited)
                  us(search_fills.time)*1e-3);
 }
 
-// The ray the script's check_hidden casts, from the player to pt.
-bool cover_ai_test::player_sees(app& a, const critter& c, point pt)
+// True when the player sees a pixel of c's body at s, as the script's check_hidden tests canonical.
+bool cover_ai_test::player_sees(app& a, const critter& c, const cover_spot& s)
 {
-    auto& m = a.main();
-    const auto player = m.world().find_object(threat);
+    auto& w = a.main().world();
+    const auto player = w.find_object(threat);
     if (!player)
         return false;
-    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through});
-    return raycast(m.world(), player->position(), pt, c.id, pool, Search::without_critters()).success;
+    return !finder.hidden_at(w, player->position(), s, Vector2ui(c.bbox_size));
 }
 
 // The script moves its hold to the phase of an order, and options follows, so that apply_options
@@ -517,7 +517,7 @@ Optional<uint32_t> cover_ai_test::step_cover(app& a, bool back)
     for (auto j = 0u; j < n; j++)
     {
         const auto k = back ? (from + n - 1 - j) % n : (from + 1 + j) % n;
-        if (listed && k == from || player_sees(a, *c, list[k].pos))
+        if (listed && k == from || player_sees(a, *c, list[k]))
             continue;
         if (send(*c, list[k], false))
             return k;
