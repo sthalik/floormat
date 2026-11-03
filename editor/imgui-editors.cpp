@@ -78,29 +78,72 @@ void select_tile(scenery_editor& ed, const scenery_& sc) { ed.select_tile(sc); }
 void select_tile(vobj_editor& vo, const vobj_& sc) { vo.select_tile(sc); }
 void select_tile(wall_editor& wa, const wall_cell& sc) { wa.select_atlas(sc.atlas); }
 
-// Emits ImGui::Image with the thumbnail appropriate for the atlas type.
-// Anim atlases still own their own Texture2DArray; wall atlases live in the
-// shared sprite_atlas and render via per-sprite Texture2D. UVs differ because
-// the per-sprite blit targets a fresh Texture2D covering just that sprite
-// (bottom-up GL storage → ImGui needs Y-flipped uv0/uv1).
-void palette_image(editor& e, ImVec2 img_size, const auto&, anim_atlas& atlas)
+void palette_image(editor& e, sprite s, ImVec2 size)
+{
+    ImGui::Dummy(size);
+    if (!ImGui::IsItemVisible())
+        return;
+    const auto t = e.palette_texture(s);
+    const auto& uv = t.uv;
+    const ImVec2 min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
+    ImGui::GetWindowDrawList()->AddImageQuad((ImTextureID)t.id, min, {max.x, min.y}, max, {min.x, max.y},
+                                             {uv[0].x(), uv[0].y()}, {uv[1].x(), uv[1].y()},
+                                             {uv[2].x(), uv[2].y()}, {uv[3].x(), uv[3].y()});
+}
+
+// Behaves like ImGui::ImageButtonEx but draws the image into channel 1 of `splitter`, which the caller must have
+// split, so frames and images each merge into a few draw commands. Leaves channel 0 current.
+bool palette_image_button(editor& e, sprite s, const char* str_id, ImVec2 image_size, ImDrawListSplitter& splitter)
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems)
+        return false;
+
+    const auto& style = ImGui::GetStyle();
+    const ImVec2 padding = style.FramePadding, pos = window->DC.CursorPos;
+    const ImRect bb(pos, {pos.x + image_size.x + padding.x * 2, pos.y + image_size.y + padding.y * 2});
+    const ImGuiID id = window->GetID(str_id);
+    ImGui::ItemSize(bb);
+    if (!ImGui::ItemAdd(bb, id))
+        return false;
+
+    bool hovered, held;
+    const bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+    const ImU32 col = ImGui::GetColorU32(held && hovered ? ImGuiCol_ButtonActive
+                                         : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+    ImGui::RenderNavCursor(bb, id);
+    ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
+
+    const auto t = e.palette_texture(s);
+    const auto& uv = t.uv;
+    const ImVec2 min{bb.Min.x + padding.x, bb.Min.y + padding.y}, max{bb.Max.x - padding.x, bb.Max.y - padding.y};
+    splitter.SetCurrentChannel(window->DrawList, 1);
+    window->DrawList->AddImageQuad((ImTextureID)t.id, min, {max.x, min.y}, max, {min.x, max.y},
+                                   {uv[0].x(), uv[0].y()}, {uv[1].x(), uv[1].y()},
+                                   {uv[2].x(), uv[2].y()}, {uv[3].x(), uv[3].y()});
+    splitter.SetCurrentChannel(window->DrawList, 0);
+    return pressed;
+}
+
+void palette_thumbnail(editor& e, ImVec2 img_size, const auto&, anim_atlas& atlas)
 {
     const auto r = atlas.first_rotation();
     const auto& g = atlas.group(r);
     const auto* sp = g.sprites.isEmpty() ? nullptr : g.sprites[0];
     if (!sp)
         return;
-    ImGui::Image(e.palette_texture(sprite{sp}).id(), img_size, {0.f,1.f}, {1.f,0.f});
+    palette_image(e, sprite{sp}, img_size);
 }
 
-void palette_image(editor& e, ImVec2 img_size, const wall_cell&, wall_atlas& atlas)
+void palette_thumbnail(editor& e, ImVec2 img_size, const wall_cell&, wall_atlas& atlas)
 {
     if (const sprite* s = canonical_wall_sprite(atlas)) [[likely]]
-        ImGui::Image(e.palette_texture(*s).id(), img_size, {0.f, 1.f}, {1.f, 0.f});
+        palette_image(e, *s, img_size);
 }
 
 
-void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas, Vector2 dpi)
+void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas,
+                                 Vector2 dpi, ImDrawListSplitter& splitter)
 {
     const auto b = push_id("tile-pane");
 
@@ -156,9 +199,7 @@ void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, 
 
             snformat(buf, "##item_{}", i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-            ImGui::ImageButton(buf, e.palette_texture(sprites[i]).id(),
-                               ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]),
-                               {0.f, 1.f}, {1.f, 0.f});
+            palette_image_button(e, sprites[i], buf, ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]), splitter);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 ed.select_tile(atlas, i);
             else
@@ -222,7 +263,7 @@ void impl_draw_editor_scenery_pane(editor& e, T& ed, Vector2 dpi)
             const ImVec2 img_size = {size[0]*c, size[1]*c+style.CellPadding.y + 0.5f};
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + Math::max(0.f, .5f*(thumbnail_width - img_size.x)));
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + .5f*Math::max(0.f, row_height - img_size.y));
-            palette_image(e, img_size, scenery, atlas);
+            palette_thumbnail(e, img_size, scenery, atlas);
             click_event();
         }
         if (ImGui::TableSetColumnIndex(1))
@@ -319,8 +360,14 @@ void app::draw_editor_pane(float main_menu_height)
             if (auto b3 = begin_list_box("##atlases", {-FLT_MIN, -1}))
             {
                 if (ed)
+                {
+                    static ImDrawListSplitter splitter;
+                    auto* draw_list = ImGui::GetWindowDrawList();
+                    splitter.Split(draw_list, 2);
                     for (const auto& [k, v] : *ed)
-                        draw_editor_tile_pane_atlas(*_editor, *ed, k, v.atlas, dpi);
+                        draw_editor_tile_pane_atlas(*_editor, *ed, k, v.atlas, dpi, splitter);
+                    splitter.Merge(draw_list);
+                }
                 else if (sc)
                     impl_draw_editor_scenery_pane<scenery_editor>(*_editor, *sc, dpi);
                 else if (vo)

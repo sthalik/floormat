@@ -213,6 +213,7 @@ void app::draw()
         draw_cursor();
     draw_ui();
     render_menu();
+    _editor->clear_imgui_palette_cache();
 
     M->texture_unit_cache().output_stats();
 }
