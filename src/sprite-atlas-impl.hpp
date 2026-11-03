@@ -59,9 +59,7 @@ struct Atlas
     Array<char> staging {};
     GL::Texture2DArray texture{NoCreate};
     uint16_t layer_width = 0, layer_height = 0;
-    // layers the packer may use; the texture grows to it before its next upload
-    uint16_t n_layers = 0;
-    uint16_t texture_layers = 0;
+    uint16_t texture_layer_count = 0;
 
     struct ShelfPair { Shelf* p; uint32_t index; };
 };

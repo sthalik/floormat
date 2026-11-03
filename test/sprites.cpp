@@ -171,7 +171,7 @@ void test_sprites()
     DBG << "sprites: walked" << files.size()
         << "pngs" << png_count
         << "allocated" << alloc_count
-        << "layers" << atlas.n_layers;
+        << "layers" << atlas.texture_layer_count;
 
     if (!atlas.layers.isEmpty())
     {
