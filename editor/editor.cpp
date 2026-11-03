@@ -8,8 +8,12 @@
 #include "src/sprite-atlas.hpp"
 #include "loader/loader.hpp"
 #include <gtl/phmap.hpp>
+#include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
+#include <mg/Context.h>
+#include <mg/Extensions.h>
 #include <mg/Range.h>
+#include <mg/Texture.h>
 #include <mg/TextureFormat.h>
 #include <mg/TextureArray.h>
 #include <mg/PixelFormat.h>
@@ -18,9 +22,11 @@
 
 namespace floormat {
 
-struct editor::palette_cache
+struct editor::imgui_palette_cache
 {
-    gtl::flat_hash_map<const SpriteAtlas::Sprite*, GL::Texture2D> textures;
+    gtl::flat_hash_map<const SpriteAtlas::Sprite*, GL::Texture2D> sprite_copies;
+    Array<GL::Texture2D> layer_views, retired_views;
+    UnsignedInt atlas_id = 0;
 };
 
 void editor::on_release()
@@ -206,17 +212,53 @@ editor_mode editor::mode() const noexcept { return _mode; }
 void editor::set_mode(editor_mode mode)
 {
     _mode = mode;
-    _palette_cache->textures.clear();
+    _imgui_palette_cache->sprite_copies.clear();
     on_release();
 }
 
-GL::Texture2D& editor::palette_texture(sprite s)
+void editor::clear_imgui_palette_cache()
 {
-    auto& textures = _palette_cache->textures;
-    auto it = textures.find(s.raw());
-    if (it == textures.end())
+    auto& c = *_imgui_palette_cache;
+    arrayClear(c.retired_views);
+    if (!c.layer_views.isEmpty() && loader.atlas().texture().id() != c.atlas_id)
+        arrayClear(c.layer_views);
+}
+
+palette_texture_ref editor::palette_texture(sprite s)
+{
+    auto& c = *_imgui_palette_cache;
+    if (GL::Context::current().isExtensionSupported<GL::Extensions::ARB::texture_view>())
     {
-        Hash::set_open_addressing_load_factor(textures, textures.size()+1);
+        auto& atlas = loader.atlas();
+        auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
+        if (tex.id() != c.atlas_id) [[unlikely]]
+        {
+            // This frame's draw commands still name the old views.
+            for (auto& v : c.layer_views)
+                if (v.id())
+                    arrayAppend(c.retired_views, move(v));
+            arrayClear(c.layer_views);
+            c.atlas_id = tex.id();
+        }
+        if (s.layer() >= c.layer_views.size()) [[unlikely]]
+            arrayResize(c.layer_views, DirectInit, atlas.layer_count(), NoCreate);
+        auto& view = c.layer_views[s.layer()];
+        if (!view.id()) [[unlikely]]
+        {
+            view = GL::Texture2D::view(tex, GL::TextureFormat::RGBA8, 0, 1, (Int)s.layer());
+            view.setMinificationFilter(GL::SamplerFilter::Nearest)
+                .setMagnificationFilter(GL::SamplerFilter::Nearest)
+                .setWrapping(GL::SamplerWrapping::ClampToEdge);
+        }
+        const auto tc = atlas.texcoords_for(s, false);
+        return { view.id(), {{ tc[3].xy(), tc[1].xy(), tc[0].xy(), tc[2].xy() }} };
+    }
+
+    auto& copies = c.sprite_copies;
+    auto it = copies.find(s.raw());
+    if (it == copies.end())
+    {
+        Hash::set_open_addressing_load_factor(copies, copies.size()+1);
 
         // sprite::width/height always report the ORIGINAL dims. When the
         // packer stored the sprite rotated, the atlas slot is transposed
@@ -263,9 +305,9 @@ GL::Texture2D& editor::palette_texture(sprite s)
             dst.setSubImage(0, {}, view);
         }
 
-        it = textures.insert({s.raw(), move(dst)}).first;
+        it = copies.insert({s.raw(), move(dst)}).first;
     }
-    return it->second;
+    return { it->second.id(), {{ {0, 1}, {1, 1}, {1, 0}, {0, 0} }} };
 }
 
 const ground_editor* editor::current_ground_editor() const noexcept
