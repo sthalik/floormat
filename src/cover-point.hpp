@@ -73,6 +73,9 @@ uint32_t nearest_octant(Vector2 v);
 /// The unit vector along v's longer axis, pointing the way v does. x wins a tie, and a zero v gives {-1, 0}.
 Vector2i axis_toward(Vector2i v);
 
+/// The direction along the face of the blocker a cover spot with this axis is flush against.
+Vector2i across_of(Vector2i axis);
+
 /// Replaces out with the offsets, in tiles, of the tiles whose nearest point lies within radius px
 /// of a tile's center, nearest first, then by y and x.
 void nearest_tiles(uint32_t radius, Array<Vector2i>& out);
