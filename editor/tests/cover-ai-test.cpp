@@ -166,7 +166,8 @@ struct cover_ai_test final : base_test
     point start_pos, search_center, spots_player;
     object_id threat = 0, script_list_npc = 0;
     uint64_t search_pass_gen = 0, script_list_pass_gen = 0;
-    uint32_t next_tile = 0, search_radius = 0, search_max_cover_end_dist = 0, tiles_radius = 0;
+    uint32_t next_tile = 0, search_radius = 0, search_listed_cover_end_dist = 0, tiles_radius = 0;
+    uint32_t search_max_cover_end_dist = 0, search_threat_reach = 0;
     uint32_t search_octant = 0, search_div = 0, dropped_spots = 0, script_list_num_searches = 0;
     Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
     fill_count fills_before_update, search_fills;
@@ -287,8 +288,9 @@ bool cover_ai_test::spots_stale(app& a) const
     const auto player = w.find_object(threat);
     return !player || nearest_octant(Vector2(player->position() - search_center)) != search_octant ||
            w.pass_gen() != search_pass_gen || search_radius != (uint32_t)radius_tiles*tile_size_xy ||
-           search_octants != options.octants || search_max_cover_end_dist != options.listed_cover_end_dist() ||
-           search_div != options.div_size;
+           search_octants != options.octants || search_listed_cover_end_dist != options.listed_cover_end_dist() ||
+           search_max_cover_end_dist != options.max_cover_end_dist ||
+           search_threat_reach != options.threat_reach || search_div != options.div_size;
 }
 
 // Starts the overlay's search over, around the center of the tile c stands on, so that each tile
@@ -313,7 +315,9 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
     search_pass_gen = w.pass_gen();
     search_radius = r;
     search_octants = options.octants;
-    search_max_cover_end_dist = options.listed_cover_end_dist();
+    search_listed_cover_end_dist = options.listed_cover_end_dist();
+    search_max_cover_end_dist = options.max_cover_end_dist;
+    search_threat_reach = options.threat_reach;
     search_div = options.div_size;
     next_tile = 0;
     search_time = Ns{};
@@ -358,7 +362,8 @@ Optional<uint32_t> cover_ai_test::search_tile(app& a, critter& c, point player, 
     auto t = Time::now();
     const auto mid = tiles[next_tile]*tile_size_xy;
     const cover_query q{search_center, Vector2ui(c.bbox_size), player, search_radius, search_octants,
-                        search_max_cover_end_dist, Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}},
+                        search_listed_cover_end_dist,
+                        Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}},
                         max_fills};
     const auto r = list_cover_spots(c, q, tile_spots);
     const auto f = fills(a);
