@@ -238,7 +238,7 @@ bool spot_tests::hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array
     collect_rects(threat, Math::min(threat, pos - ext_lo) - Vector2i{1}, Math::max(threat, pos + ext_hi) + Vector2i{1},
                   rects);
     const auto seen_along = [&](Vector2i ax) {
-        const auto ac = Math::abs(Vector2i{ax.y(), ax.x()});
+        const auto ac = across_of(ax);
         const auto body = body_at(pos, ax, ac, threat);
         build_runs(body, ax, ac, rects);
         return !hidden(body);
@@ -319,6 +319,8 @@ Vector2i axis_toward(Vector2i v)
                                                 : Vector2i{0, v.y() > 0 ? 1 : -1};
 }
 
+Vector2i across_of(Vector2i axis) { return Math::abs(Vector2i{axis.y(), axis.x()}); }
+
 // A bearing halfway between octants k and k + 1 takes k + 1, mod Cover::octant_count, since
 // floor(x + 1/2) rounds a half up.
 uint32_t nearest_octant(Vector2 v)
@@ -384,10 +386,9 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
 
     const auto ds = (int)cover_pool.params().div_size;
     const auto dc = chunk_size_xy / (uint32_t)ds;
-    const auto P = Vector3i(q.pos).xy(), T = Vector3i(q.threat).xy();
-    const auto body_lo = Vector2i(q.body_size / 2u), body_hi = Vector2i(q.body_size) - body_lo;
     const auto R = (int)q.radius;
     spot_tests X{w, q, pred, runs, turned_rects, end_rects};
+    const auto &P = X.P, &T = X.T, &body_lo = X.body_lo, &body_hi = X.body_hi;
     const auto to_point = [&](Vector2i px) { return X.to_point(px); };
 
     // cell n spans px n*ds - half_tile up to the next one, so cells line up with chunk edges
@@ -580,7 +581,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
         return ret;
 
     const auto min_size = (int)Math::min(q.body_size.x(), q.body_size.y());
-    const auto step_px = Math::max(1, min_size/2);
+    const auto step_px = X.step_px;
     const auto max_push = (int)Math::ceil(against * Math::sqrt(2.f)) + min_size;
     // The candidate nearest a spot may be filtered out, so a shift reaches two cells.
     const auto range = 2*ds;
@@ -644,7 +645,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
     for (const auto& cand : cands)
     {
         const auto axis = axis_toward(T - cand.center);
-        const auto across = Math::abs(Vector2i{axis.y(), axis.x()});
+        const auto across = across_of(axis);
         auto p = place(cand.center, axis);
         if (!p)
             continue;
@@ -704,7 +705,7 @@ point cover_point::move_to_cover_end(world& w, const cover_query& q, Vector2i ax
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     auto& I = *impl;
     spot_tests X{w, q, pred, I.runs, I.turned_rects, I.end_rects};
-    const auto across = Math::abs(Vector2i{axis.y(), axis.x()});
+    const auto across = across_of(axis);
     const auto end = X.move_spot_to_cover_end(X.P, axis, across);
     const auto hidden_from_all = [&](Vector2i pos) {
         for (const auto& t : also_from)
