@@ -209,7 +209,7 @@ private:
     uint64_t search_pass_gen = 0;
     uint32_t search_tile = 0, tile_spot = 0, num_failed_dijkstra_calls = 0, search_octant = 0;
     // Tiles the search may still pass, from 3/2 of search_tiles().size(), and 0 once it ended. A restart sends
-    // search_tile to 0 only while a whole scan fits, so a threat that keeps moving can't keep the search near c.
+    // search_tile to 0 only while more than a scan fits, so a moving threat can't keep the search near c.
     uint32_t search_tiles_left = 0;
     // Where the search's tiles and the threat's octant are measured from. The last restart to tile 0 set it to c's
     // position, or during a retreat walk to the walk's end, so that cover back toward the threat comes later.
@@ -261,7 +261,8 @@ cover_script_status cover_script::status() const
         .cover = cover, .canonical = canonical, .peek = peek_pos, .gun = gun_pos,
         .gun_ray_from = gun_ray_from, .query = query, .num_searches = num_searches, .num_rays = num_rays,
         .num_body_checks = num_body_checks, .num_dijkstra_calls = num_dijkstra_calls,
-        .search_tile = search_tile, .num_search_tiles = (uint32_t)search_tiles().size(),
+        .search_tiles_left = search_tiles_left, .search_tile = search_tile,
+        .num_search_tiles = (uint32_t)search_tiles().size(),
         .retreat_spot = retreat_next, .num_retreat_spots = (uint32_t)retreat_spots.size(),
         .num_failed_retreat_dijkstra_calls = num_failed_retreat_dijkstra_calls, .retreat_all = retreat_all,
         .num_retreat_restarts = num_retreat_restarts, .num_find_cover_point_calls = num_find_cover_point_calls,
@@ -642,7 +643,7 @@ void cover_script::flee(critter& c)
 // walks. unreachable_reach grows by search_from's move, to hold every chunk those Dijkstra searches could cross.
 void cover_script::restart_search(critter& c)
 {
-    if (search_tiles_left >= search_tiles().size())
+    if (search_tiles_left > search_tiles().size())
     {
         const auto from = st == state::retreat ? walk.dest() : c.position();
         if (!unreachable.isEmpty())
