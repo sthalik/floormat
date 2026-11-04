@@ -77,7 +77,6 @@ public:
     fm_DISABLE_MOVE_COPY(Pool);
 
     [[nodiscard]] Grid operator[](chunk& c);
-    [[nodiscard]] Grid wrap(detail::grid::CoverGrid* g) const noexcept;
 
     void maybe_mark_stale_all(const world& w);
     void build_if_stale_all();

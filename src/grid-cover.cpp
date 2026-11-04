@@ -800,11 +800,6 @@ Grid Pool::operator[](chunk& c)
     return Grid{detail::grid::pool_subscript(pool, c)};
 }
 
-Grid Pool::wrap(detail::grid::CoverGrid* g) const noexcept
-{
-    return Grid{g};
-}
-
 void Pool::maybe_mark_stale_all(const world& w)
 {
     if (!pool->update_checked_pass_gen(w))
