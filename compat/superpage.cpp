@@ -34,12 +34,12 @@ namespace {
 
 // Circuit breaker: after the first failure, skip the large-page path entirely.
 // SeLockMemoryPrivilege missing, hugepage pool empty, etc. don't change mid-run.
-volatile uint8_t large_failed = 0;
+volatile u8 large_failed = 0;
 
-[[maybe_unused]] constexpr size_t LARGE_PAGE_FALLBACK = 2u << 20;   // 2 MiB - typical x86_64 large page
-[[maybe_unused]] constexpr size_t SMALL_PAGE_FALLBACK = 4u << 10;   // 4 KiB - last-resort rounding
+[[maybe_unused]] constexpr usize LARGE_PAGE_FALLBACK = 2u << 20;   // 2 MiB - typical x86_64 large page
+[[maybe_unused]] constexpr usize SMALL_PAGE_FALLBACK = 4u << 10;   // 4 KiB - last-resort rounding
 
-inline size_t round_up(size_t bytes, size_t page) noexcept
+inline usize round_up(usize bytes, usize page) noexcept
 {
     return (bytes + page - 1) & ~(page - 1);
 }
@@ -50,13 +50,13 @@ inline size_t round_up(size_t bytes, size_t page) noexcept
 }
 
 #ifdef _WIN32
-struct large_pages { size_t page; DWORD err; };
+struct large_pages { usize page; DWORD err; };
 
 // err is 0 when the OS reports no large-page support.
 large_pages windows_enable_large_pages() noexcept
 {
     static const large_pages result = []() -> large_pages {
-        size_t page = GetLargePageMinimum();
+        usize page = GetLargePageMinimum();
         if (page == 0)
             return {};
         HANDLE tok = nullptr;
@@ -84,7 +84,7 @@ large_pages windows_enable_large_pages() noexcept
 int freebsd_psind_2m() noexcept
 {
     static const int result = [] {
-        size_t sizes[8];
+        usize sizes[8];
         int n = getpagesizes(sizes, 8);
         for (int i = 1; i < n; i++)
             if (sizes[i] == LARGE_PAGE_FALLBACK)
@@ -95,9 +95,9 @@ int freebsd_psind_2m() noexcept
 }
 #endif
 
-struct raw_alloc { void* ptr; size_t size; bool used_large; };
+struct raw_alloc { void* ptr; usize size; bool used_large; };
 
-raw_alloc alloc_impl(size_t bytes) noexcept
+raw_alloc alloc_impl(usize bytes) noexcept
 {
     fm_assert(bytes > 0);
 
@@ -108,7 +108,7 @@ raw_alloc alloc_impl(size_t bytes) noexcept
         DWORD err;
         if (const auto lp = windows_enable_large_pages(); lp.page > 0)
         {
-            size_t sz = round_up(bytes, lp.page);
+            usize sz = round_up(bytes, lp.page);
             void* p = VirtualAlloc(nullptr, sz,
                                    MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES,
                                    PAGE_READWRITE);
@@ -132,20 +132,20 @@ raw_alloc alloc_impl(size_t bytes) noexcept
         warn_small_pages(what, why);
         atomic_store(&large_failed, 1, memory_order::relaxed);
     }
-    size_t sz = round_up(bytes, SMALL_PAGE_FALLBACK);
+    usize sz = round_up(bytes, SMALL_PAGE_FALLBACK);
     void* p = VirtualAlloc(nullptr, sz, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     fm_assert(p);
     return { p, sz, false };
 
 #else
-    size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    usize page = (usize)sysconf(_SC_PAGESIZE);
     if (page == 0)
         page = SMALL_PAGE_FALLBACK;
 
 #  if defined __linux__ && defined MAP_HUGETLB
     if (!atomic_load(&large_failed, memory_order::relaxed))
     {
-        size_t sz = round_up(bytes, LARGE_PAGE_FALLBACK);
+        usize sz = round_up(bytes, LARGE_PAGE_FALLBACK);
         int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB;
 #    ifdef MAP_HUGE_2MB
         flags |= MAP_HUGE_2MB;
@@ -159,7 +159,7 @@ raw_alloc alloc_impl(size_t bytes) noexcept
 #    endif
         atomic_store(&large_failed, 1, memory_order::relaxed);
     }
-    size_t sz = round_up(bytes, page);
+    usize sz = round_up(bytes, page);
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     fm_assert(p != MAP_FAILED);
@@ -178,7 +178,7 @@ raw_alloc alloc_impl(size_t bytes) noexcept
     {
         if (int psind = freebsd_psind_2m(); psind > 0)
         {
-            size_t sz = round_up(bytes, LARGE_PAGE_FALLBACK);
+            usize sz = round_up(bytes, LARGE_PAGE_FALLBACK);
             // HARD can defragment forever. NOWAIT fails as soon as memory is fragmented.
             int fd = shm_create_largepage(SHM_ANON, O_RDWR, psind, SHM_LARGEPAGE_ALLOC_DEFAULT, 0);
             if (fd >= 0)
@@ -195,7 +195,7 @@ raw_alloc alloc_impl(size_t bytes) noexcept
     }
 #    endif
     // MAP_ALIGNED_SUPER gets superpages only if a free 2 MiB block exists.
-    size_t sz = round_up(bytes, page);
+    usize sz = round_up(bytes, page);
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS | MAP_ALIGNED_SUPER, -1, 0);
     if (p == MAP_FAILED)
@@ -213,7 +213,7 @@ raw_alloc alloc_impl(size_t bytes) noexcept
 #    ifdef VM_FLAGS_SUPERPAGE_SIZE_2MB
     if (!atomic_load(&large_failed, memory_order::relaxed))
     {
-        size_t large_sz = round_up(bytes, LARGE_PAGE_FALLBACK);
+        usize large_sz = round_up(bytes, LARGE_PAGE_FALLBACK);
         mach_vm_address_t addr = 0;
         kern_return_t kr = mach_vm_allocate(
             mach_task_self(), &addr, large_sz,
@@ -224,7 +224,7 @@ raw_alloc alloc_impl(size_t bytes) noexcept
         atomic_store(&large_failed, 1, memory_order::relaxed);
     }
 #    endif
-    size_t sz = round_up(bytes, page);
+    usize sz = round_up(bytes, page);
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     fm_assert(p != MAP_FAILED);
@@ -232,7 +232,7 @@ raw_alloc alloc_impl(size_t bytes) noexcept
 
 #  else
     // generic POSIX: plain anonymous mmap, zero-page-backed on demand.
-    size_t sz = round_up(bytes, page);
+    usize sz = round_up(bytes, page);
     void* p = mmap(nullptr, sz, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     fm_assert(p != MAP_FAILED);
@@ -243,11 +243,11 @@ raw_alloc alloc_impl(size_t bytes) noexcept
 
 } // namespace
 
-superpage_alloc_t superpage_alloc(size_t bytes) noexcept
+superpage_alloc_t superpage_alloc(usize bytes) noexcept
 {
     const auto a = alloc_impl(bytes);
-    fm_assert(a.size == (size_t)(uint32_t)a.size);
-    return { a.ptr, (uint32_t)a.size, a.used_large };
+    fm_assert(a.size == (usize)(u32)a.size);
+    return { a.ptr, (u32)a.size, a.used_large };
 }
 
 void superpage_free(superpage_alloc_t a) noexcept

@@ -34,7 +34,7 @@ namespace {
 struct resolution : Vector2i { using Vector2i::Vector2i; };
 constexpr inline int max_image_dimension = 4096;
 
-const Direction& get_direction(const wall_atlas_def& atlas, size_t i)
+const Direction& get_direction(const wall_atlas_def& atlas, usize i)
 {
     fm_assert(atlas.direction_mask[i]);
     auto idx = atlas.direction_map[i];
@@ -64,7 +64,7 @@ Debug& operator<<(Debug& dbg, resolution res)
     return dbg;
 }
 
-template<size_t N> constexpr bool any_bit_of(const std::array<bool, N>& array)
+template<usize N> constexpr bool any_bit_of(const std::array<bool, N>& array)
 {
     for (auto x : array)
         if (x)
@@ -97,22 +97,22 @@ bool save_image(state st)
     fm_assert(st.new_atlas.frames.isEmpty());
     arrayReserve(st.new_atlas.frames, 64);
 
-    uint32_t max_height = 0;
+    u32 max_height = 0;
     for (const auto& group : st.groups)
     {
         const auto expected_size = wall_atlas::expected_size(st.new_atlas.header.depth, group.G);
         max_height = std::max(max_height, expected_size.y());
     }
     fm_assert(max_height > 0);
-    fm_assert(max_height == (uint32_t)iTILE_SIZE.z()); // todo?
+    fm_assert(max_height == (u32)iTILE_SIZE.z()); // todo?
 
-    uint32_t xpos = 0;
+    u32 xpos = 0;
     Vector2ui max;
     for (auto& group : st.groups)
     {
         const auto size = wall_atlas::expected_size(st.new_atlas.header.depth, group.G);
         const auto width = size.x(), height = size.y();
-        uint32_t ypos = 0;
+        u32 ypos = 0;
         bool started = false;
         for (auto& frame : group.frames)
         {
@@ -174,14 +174,14 @@ bool save_json(state st)
     return true;
 }
 
-bool do_group(state st, size_t i, size_t j, Group& new_group)
+bool do_group(state st, usize i, usize j, Group& new_group)
 {
     const auto group_name = Direction::groups[j].name;
     const wall_atlas_def& old_atlas = st.old_atlas;
     wall_atlas_def& new_atlas = st.new_atlas;
-    const auto& old_dir = get_direction(old_atlas, (size_t)i);
+    const auto& old_dir = get_direction(old_atlas, (usize)i);
     const auto& old_group = old_dir.group(j);
-    //auto& new_dir = get_direction(new_atlas, (size_t)i);
+    //auto& new_dir = get_direction(new_atlas, (usize)i);
     const auto dir_name = wall_atlas::directions[i].name;
 
     const auto path = Path::join({ st.opts.input_dir, dir_name, group_name });
@@ -190,16 +190,16 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
     DBG << "    group" << quoted2(group_name);
     fm_debug_assert(expected_size > Vector2ui{0});
     fm_assert(Math::max(expected_size.x(), expected_size.y()) < max_image_dimension);
-    fm_assert((size_t)st.groups.at(j).G == j);
+    fm_assert((usize)st.groups.at(j).G == j);
 
     auto& frames = [&]() -> auto&& {
         for (auto& g : st.groups)
-            if ((size_t)g.G == j)
+            if ((usize)g.G == j)
                 return g.frames;
         fm_abort("can't find ground '%d'", (int)j);
     }();
 
-    uint32_t count = 0, start = st.n_frames;
+    u32 count = 0, start = st.n_frames;
     new_group = old_group;
     new_group.is_defined = true;
     new_group.pixel_size = Vector2ui(expected_size);
@@ -270,7 +270,7 @@ bool do_group(state st, size_t i, size_t j, Group& new_group)
     return true;
 }
 
-bool do_direction(state& st, size_t i)
+bool do_direction(state& st, usize i)
 {
     const auto name = wall_atlas::directions[i].name;
     auto& atlas = st.new_atlas;
@@ -281,10 +281,10 @@ bool do_direction(state& st, size_t i)
     fm_assert(!atlas.direction_mask[i]);
     fm_assert(!atlas.direction_map[i]);
     const auto dir_idx = atlas.direction_array.size();
-    fm_assert(dir_idx == (uint8_t)dir_idx);
+    fm_assert(dir_idx == (u8)dir_idx);
 
     atlas.direction_mask[i] = true;
-    atlas.direction_map[i] = DirArrayIndex{(uint8_t)dir_idx};
+    atlas.direction_map[i] = DirArrayIndex{(u8)dir_idx};
 
     auto dir = Direction{};
 
@@ -293,7 +293,7 @@ bool do_direction(state& st, size_t i)
         const auto& old_group = old_dir.*ptr;
         if (!old_group.is_defined)
             continue;
-        if (!do_group(st, i, (size_t)tag, dir.*ptr))
+        if (!do_group(st, i, (usize)tag, dir.*ptr))
             return false;
     }
 
@@ -408,7 +408,7 @@ int main(int argc, char** argv)
     auto new_atlas = wall_atlas_def{};
     auto dest = cv::Mat4b{};
     auto error = EX_DATAERR;
-    uint32_t n_frames = 0;
+    u32 n_frames = 0;
 
     auto groups = std::vector<group>{};
     groups.reserve(Wall::Group_COUNT);

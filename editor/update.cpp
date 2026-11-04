@@ -32,7 +32,7 @@ void app::do_mouse_move(int mods)
         _editor->on_mouse_move(M->world(), *cursor.tile, mods);
 }
 
-void app::do_mouse_up_down(uint8_t button, bool is_down, int mods)
+void app::do_mouse_up_down(u8 button, bool is_down, int mods)
 {
     auto& w = M->world();
     update_cursor_tile(cursor.pixel);
@@ -92,7 +92,7 @@ void app::do_mouse_scroll(int offset)
     if (!(mods & (kmod_ctrl|kmod_shift)))
         return;
     int min_z = mods & kmod_ctrl ? chunk_z_min : Math::max(0, (int)chunk_z_min);
-    _z_level = (int8_t)Math::clamp(_z_level + offset, min_z, (int)chunk_z_max);
+    _z_level = (i8)Math::clamp(_z_level + offset, min_z, (int)chunk_z_max);
     update_cursor_tile(cursor.pixel);
 }
 
@@ -241,7 +241,7 @@ void app::update_world(Ns dt)
                 auto size = l.size();
                 for (auto i = 0u; i < size; i++)
                 {
-                    auto index = size_t{i};
+                    auto index = usize{i};
                     T& e = l[i];
                     if (e.last_frame_no == frame_no) [[unlikely]]
                         continue;
@@ -293,9 +293,9 @@ void app::set_cursor()
     if (!cursor.in_imgui)
     {
         if ([[maybe_unused]] auto* cl = find_clickable_scenery(cursor.pixel))
-            M->set_cursor(uint32_t(Cursor::Hand));
+            M->set_cursor(u32(Cursor::Hand));
         else
-            M->set_cursor(uint32_t(Cursor::Arrow));
+            M->set_cursor(u32(Cursor::Arrow));
     }
     else
         set_cursor_from_imgui();

@@ -20,7 +20,7 @@
 #else
 #pragma GCC system_header
 #endif
-consteval auto operator""uz(unsigned long long int x) { return ::floormat::size_t(x); }
+consteval auto operator""uz(unsigned long long int x) { return ::floormat::usize(x); }
 #endif
 
 namespace Corrade::Containers::Literals {}

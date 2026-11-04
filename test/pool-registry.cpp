@@ -51,7 +51,7 @@ void test_pass_pool_snapped_params()
 
 void test_cover_pool_per_div()
 {
-    constexpr auto N = (uint32_t)std::bit_width(Cover::max_div_size);
+    constexpr auto N = (u32)std::bit_width(Cover::max_div_size);
     Grid::GridRegistry reg;
     Cover::Pool* pools[N];
     for (auto i = 0u; i < N; i++)

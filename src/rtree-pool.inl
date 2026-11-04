@@ -26,7 +26,7 @@ template<typename T> void rtree_pool<T>::unpoison([[maybe_unused]] node_u* n) no
 #endif
 }
 
-template<typename T> size_t rtree_pool<T>::alive_count() const { return live_count; }
+template<typename T> usize rtree_pool<T>::alive_count() const { return live_count; }
 
 template<typename T> rtree_pool<T>::~rtree_pool() noexcept
 {
@@ -58,7 +58,7 @@ noexcept(noexcept(T{std::declval<Xs>()...}))
 
     if (!free_list)
     {
-        constexpr uint32_t alloc_batch = 1024;
+        constexpr u32 alloc_batch = 1024;
 
         for (auto i = 0u; i < alloc_batch-1; i++)
         {

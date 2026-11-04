@@ -25,8 +25,8 @@ struct pending_s
 struct result_s
 {
     BitArray bits;
-    uint32_t div_count = 0;
-    uint32_t div_size = 0;
+    u32 div_count = 0;
+    u32 div_size = 0;
     chunk_coords_ c;
     bool exists : 1 = false;
 };
@@ -75,7 +75,7 @@ void grid_test::draw_overlay(app& a)
     for (int j = 0; j < dc; j++)
         for (int i = 0; i < dc; i++)
         {
-            auto index = (uint32_t)j * (uint32_t)dc + (uint32_t)i;
+            auto index = (u32)j * (u32)dc + (u32)i;
             if (result.bits[index])
                 continue;
             auto pt = point{result.c, intra_coord{ds * Vector2i{i, j} + Vector2i{ds/2}}};

@@ -32,32 +32,32 @@ constexpr Range2Di get_value(Vector2i sz, Vector2ui div, rotation r)
 {
     const int offset_W = iTILE_SIZE2.x()/(int)div.x(), offset_N = iTILE_SIZE2.y()/(int)div.y();
 
-    const auto rʹ = (uint8_t)r;
-    [[assume(rʹ <= (uint8_t)rotation_COUNT)]];
+    const auto rʹ = (u8)r;
+    [[assume(rʹ <= (u8)rotation_COUNT)]];
 
     switch (rʹ)
     {
-    case (uint8_t)rotation::N: {
+    case (u8)rotation::N: {
         auto min_N = Vector2i(-sz.x()/2,                        -offset_N - sz.y()/2            );
         auto max_N = Vector2i(min_N.x() + sz.x(),               sz.y() - sz.y()/2               );
         return {min_N, max_N};
     }
-    case (uint8_t)rotation::S: {
+    case (u8)rotation::S: {
         auto min_S = Vector2i(-sz.x()/2,                        -sz.y()                         );
         auto max_S = Vector2i(min_S.x() + sz.x(),               offset_N + sz.y() - sz.y()/2    );
         return {min_S, max_S};
     }
-    case (uint8_t)rotation::W: {
+    case (u8)rotation::W: {
         auto min_W = Vector2i(-offset_W - sz.x()/2,             -sz.y()/2                       );
         auto max_W = Vector2i(sz.x() - sz.x()/2,                min_W.y() + sz.y()              );
         return {min_W, max_W};
     }
-    case (uint8_t)rotation::E: {
+    case (u8)rotation::E: {
         auto min_E = Vector2i(-sz.x()/2,                        -sz.y()/2                       );
         auto max_E = Vector2i(offset_W + sz.x() - sz.x()/2,     min_E.y() + sz.y()              );
         return {min_E, max_E};
     }
-    case (uint8_t)rotation_COUNT: {
+    case (u8)rotation_COUNT: {
         auto min_C = Vector2i(-sz.x()/2,                        -sz.y()/2                       );
         auto max_C = min_C + Vector2i(sz);
         return {min_C, max_C};
@@ -133,7 +133,7 @@ constexpr bool test_offsets2()
 struct neighbors final
 {
     std::array<global_coords, 5> data;
-    uint8_t size = 0;
+    u8 size = 0;
 };
 
 auto neighbor_tile_bbox(Vector2i coord, Vector2i own_size, Vector2ui div, rotation r) -> Range2D
@@ -284,7 +284,7 @@ void test_bbox()
         constexpr auto ch = chunk_coords_{};
         auto w = world();
         auto& c = w[ch];
-        constexpr size_t K = 8;
+        constexpr usize K = 8;
         const auto wall = tile_image_proto{metal2, 0};
         c[{0,   0  }].wall_north() = wall;
         c[{0,   0  }].wall_west() = wall;
@@ -355,13 +355,13 @@ void test_bbox()
 
 constexpr auto pull_ch = chunk_coords_{0, 0, 0};
 constexpr auto pull_bbox = Vector2ui{32};
-constexpr uint32_t pull_max_dist = 4096;
+constexpr u32 pull_max_dist = 4096;
 
 world make_pull_world()
 {
     auto w = world();
-    for (int16_t j = -1; j <= 1; j++)
-        for (int16_t i = -1; i <= 1; i++)
+    for (i16 j = -1; j <= 1; j++)
+        for (i16 i = -1; i <= 1; i++)
             (void)w[chunk_coords_{i, j, 0}];
     return w;
 }
@@ -449,7 +449,7 @@ void test_string_pull_wall()
     auto A = astar{};
     auto w = make_pull_world();
     const auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, 0};
-    for (uint8_t x = 4; x <= 9; x++)
+    for (u8 x = 4; x <= 9; x++)
         w[pull_ch][{x, 6}].wall_north() = wall;
     w[pull_ch].mark_modified();
 
@@ -531,27 +531,27 @@ void test_string_pull_last_visible()
     fm_assert(sp[1].pt - origin == mid);
 }
 
-void test_string_pull_random(uint32_t cell)
+void test_string_pull_random(u32 cell)
 {
-    uint64_t state = 0x9e3779b97f4a7c15;
-    const auto rnd = [&](uint32_t n) {
+    u64 state = 0x9e3779b97f4a7c15;
+    const auto rnd = [&](u32 n) {
         state ^= state << 13; state ^= state >> 7; state ^= state << 17;
-        return (uint32_t)(state % n);
+        return (u32)(state % n);
     };
     auto A = astar{};
-    uint32_t found = 0;
+    u32 found = 0;
     for (auto k = 0u; k < 32; k++)
     {
         // odd, so corners are rounded outward
         const auto size = Vector2ui{k % 2 ? 27u : pull_bbox.x()};
         auto w = make_pull_world();
         for (auto i = 0u; i < 14; i++)
-            add_pillar(w, {(uint8_t)(2 + rnd(12)), (uint8_t)rnd(16)},
-                       {(uint8_t)(2 + 2*rnd(40)), (uint8_t)(2 + 2*rnd(40))},
-                       {(int8_t)((int)rnd(41) - 20), (int8_t)((int)rnd(41) - 20)});
+            add_pillar(w, {(u8)(2 + rnd(12)), (u8)rnd(16)},
+                       {(u8)(2 + 2*rnd(40)), (u8)(2 + 2*rnd(40))},
+                       {(i8)((int)rnd(41) - 20), (i8)((int)rnd(41) - 20)});
         w[pull_ch].mark_modified();
-        const auto from = point{pull_ch, {1, (uint8_t)rnd(16)}, {(int8_t)((int)rnd(41) - 20), (int8_t)((int)rnd(41) - 20)}};
-        const auto to = point{pull_ch, {14, (uint8_t)rnd(16)}, {(int8_t)((int)rnd(41) - 20), (int8_t)((int)rnd(41) - 20)}};
+        const auto from = point{pull_ch, {1, (u8)rnd(16)}, {(i8)((int)rnd(41) - 20), (i8)((int)rnd(41) - 20)}};
+        const auto to = point{pull_ch, {14, (u8)rnd(16)}, {(i8)((int)rnd(41) - 20), (i8)((int)rnd(41) - 20)}};
         auto pool = Pass::Pool{Pass::Params{cell, size.x(), pass_mode::pass}, without_critters()};
         auto res = A.Dijkstra(w, pool, from, to, pull_max_dist, size, without_critters());
         if (!res.is_found())
@@ -565,7 +565,7 @@ void test_string_pull_random(uint32_t cell)
 struct pillar { Vector2ub size; Vector2b offset; local_coords tile = {8, 8}; };
 
 void check_seed_search(std::initializer_list<pillar> pillars, Vector2b from_offset, local_coords to_tile, bool found,
-                       uint32_t bbox = pull_bbox.x(), local_coords from_tile = {8, 8}, Vector2b to_offset = {})
+                       u32 bbox = pull_bbox.x(), local_coords from_tile = {8, 8}, Vector2b to_offset = {})
 {
     auto A = astar{};
     auto w = make_pull_world();

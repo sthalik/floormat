@@ -8,16 +8,16 @@ namespace floormat {
 
 namespace {
 
-struct item { uint32_t value; };
+struct item { u32 value; };
 
-struct alignas(64) counter { volatile uint64_t value = 0; };
+struct alignas(64) counter { volatile u64 value = 0; };
 
 using chase_lev = ChaseLevDeque<item>;
 
-void process(const item* x, uint32_t work)
+void process(const item* x, u32 work)
 {
-    uint32_t v = x->value;
-    for (uint32_t i = 0; i < work; ++i)
+    u32 v = x->value;
+    for (u32 i = 0; i < work; ++i)
     {
         v = v * 0x9e3779b1u + 1;
         benchmark::DoNotOptimize(v);
@@ -28,7 +28,7 @@ void process(const item* x, uint32_t work)
 template<typename D>
 void Deque_PushTake(benchmark::State& state)
 {
-    const auto n = (uint32_t)state.range(0);
+    const auto n = (u32)state.range(0);
     std::vector<item> items(n);
     ChaseLevBufferPool pool;
     D d{pool};
@@ -36,7 +36,7 @@ void Deque_PushTake(benchmark::State& state)
     {
         for (auto& x : items)
             d.push(&x);
-        for (uint32_t i = 0; i < n; ++i)
+        for (u32 i = 0; i < n; ++i)
             benchmark::DoNotOptimize(d.take());
     }
     state.SetItemsProcessed(state.iterations() * n);
@@ -46,7 +46,7 @@ BENCHMARK_TEMPLATE(Deque_PushTake, chase_lev)->ArgName("n")->Arg(1)->Arg(256)->U
 template<typename D>
 void Deque_Grow(benchmark::State& state)
 {
-    const auto n = (uint32_t)state.range(0);
+    const auto n = (u32)state.range(0);
     std::vector<item> items(n);
     ChaseLevBufferPool pool;
     for (auto _ : state)
@@ -54,7 +54,7 @@ void Deque_Grow(benchmark::State& state)
         D d{pool, 1};
         for (auto& x : items)
             d.push(&x);
-        for (uint32_t i = 0; i < n; ++i)
+        for (u32 i = 0; i < n; ++i)
             benchmark::DoNotOptimize(d.take());
     }
     state.SetItemsProcessed(state.iterations() * n);
@@ -65,18 +65,18 @@ BENCHMARK_TEMPLATE(Deque_Grow, chase_lev)->ArgName("n")->Arg(65536)->Unit(benchm
 template<typename D>
 void Deque_Steal(benchmark::State& state)
 {
-    const auto thieves = (uint32_t)state.range(0), n = (uint32_t)state.range(1), work = (uint32_t)state.range(2);
+    const auto thieves = (u32)state.range(0), n = (u32)state.range(1), work = (u32)state.range(2);
     std::vector<item> items(n);
     std::vector<counter> stolen(thieves);
     ChaseLevBufferPool pool;
     D d{pool};
-    volatile uint8_t stop = 0;
+    volatile u8 stop = 0;
 
     std::vector<std::thread> threads;
     threads.reserve(thieves);
-    for (uint32_t i = 0; i < thieves; ++i)
+    for (u32 i = 0; i < thieves; ++i)
         threads.emplace_back([&, i] {
-            uint64_t k = 0;
+            u64 k = 0;
             while (!atomic_load(&stop, memory_order::relaxed))
             {
                 if (item* x = d.steal())
@@ -89,7 +89,7 @@ void Deque_Steal(benchmark::State& state)
             }
         });
 
-    uint64_t pushed = 0, taken = 0;
+    u64 pushed = 0, taken = 0;
     for (auto _ : state)
     {
         for (auto& x : items)
@@ -102,7 +102,7 @@ void Deque_Steal(benchmark::State& state)
         }
         for (;;)
         {
-            uint64_t sum = taken;
+            u64 sum = taken;
             for (auto& c : stolen)
                 sum += atomic_load(&c.value, memory_order::acquire);
             if (sum == pushed)
@@ -111,7 +111,7 @@ void Deque_Steal(benchmark::State& state)
         }
     }
 
-    atomic_store(&stop, uint8_t{1}, memory_order::relaxed);
+    atomic_store(&stop, u8{1}, memory_order::relaxed);
     for (auto& t : threads)
         t.join();
     state.SetItemsProcessed(state.iterations() * n);

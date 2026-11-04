@@ -3,11 +3,11 @@
 
 namespace floormat::Wall {
 
-enum class Group_ : uint8_t { wall, side, top, corner, /*pillar,*/ COUNT };
+enum class Group_ : u8 { wall, side, top, corner, /*pillar,*/ COUNT };
 
-enum class Direction_ : uint8_t { N, W, COUNT };
+enum class Direction_ : u8 { N, W, COUNT };
 
-constexpr inline auto Direction_COUNT = (size_t)Wall::Direction_::COUNT;
-constexpr inline auto Group_COUNT = (size_t)Wall::Group_::COUNT;
+constexpr inline auto Direction_COUNT = (usize)Wall::Direction_::COUNT;
+constexpr inline auto Group_COUNT = (usize)Wall::Group_::COUNT;
 
 } // namespace floormat::Wall

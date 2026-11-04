@@ -3,12 +3,12 @@
 
 namespace floormat::detail {
 
-template<typename Type, size_t Count>
+template<typename Type, usize Count>
 std::array<Type, Count> constexpr iota_array_()
 {
-    static_assert( size_t(Type(Count)) == Count );
+    static_assert( usize(Type(Count)) == Count );
     std::array<Type, Count> ret;
-    for (size_t i = 0; i < Count; i++)
+    for (usize i = 0; i < Count; i++)
         ret[i] = Type(i);
     return ret;
 }
@@ -17,7 +17,7 @@ std::array<Type, Count> constexpr iota_array_()
 
 namespace floormat {
 
-template<typename Type, size_t Count>
+template<typename Type, usize Count>
 constexpr inline std::array<Type, Count> iota_array = detail::iota_array_<Type, Count>();
 
 } // namespace floormat

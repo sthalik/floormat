@@ -21,7 +21,7 @@ constexpr auto rotation_symmetry(rotation r)
     };
 
     fm_assert(r < rotation_COUNT);
-    auto idx = (size_t)r / 2;
+    auto idx = (usize)r / 2;
     const auto sym = rotation_symmetries[idx];
     return sym;
 }
@@ -31,7 +31,7 @@ constexpr Math::Vector2<T> rotate_point(Math::Vector2<T> rect, rotation r_old, r
 {
     static_assert(std::is_signed_v<T>);
     fm_assert(r_old < rotation_COUNT && r_new < rotation_COUNT);
-    // the mirror below is a multiply by -1, and -128 wraps back to itself in int8_t
+    // the mirror below is a multiply by -1, and -128 wraps back to itself in i8
     rect = Math::max(rect, Math::Vector2<T>{T(-limits<T>::max)});
     auto [m_offset0, i_offset0, i_size0] = rotation_symmetry(r_old);
     auto offset0_ = rect * Math::Vector2<T>(m_offset0);
@@ -50,7 +50,7 @@ constexpr Pair<Vector2b, Vector2b> rotate_offset(Vector2b offset, Vector2b bbox_
     const auto off = Vector2i(rotate_point(offset, r_old, r_new));
     const auto offʹ = Math::clamp(off, -half_tile<Vector2i>, half_tile<Vector2i> - Vector2i{1});
     const auto bb = Vector2i(rotate_point(bbox_offset, r_old, r_new)) + off - offʹ;
-    return { Vector2b(offʹ), Vector2b(Math::min(bb, Vector2i{limits<int8_t>::max})) };
+    return { Vector2b(offʹ), Vector2b(Math::min(bb, Vector2i{limits<i8>::max})) };
 }
 
 constexpr Vector2ub rotate_size(Vector2ub size0, rotation r_old, rotation r_new)

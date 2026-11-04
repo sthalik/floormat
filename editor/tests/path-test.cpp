@@ -31,7 +31,7 @@ struct path_test final : base_test
     struct pending_s
     {
         point from, to;
-        uint32_t max_dist;
+        u32 max_dist;
         Vector2ui own_size;
     } pending = {};
 
@@ -41,7 +41,7 @@ struct path_test final : base_test
         Optional<path_search_result> res;
         astar::string_pull_result pull;
         float search_time = 0, pull_time = 0;
-        uint32_t nodes = 0;
+        u32 nodes = 0;
         bool pulled = false;
     } result;
     bool has_result : 1 = false, has_pending : 1 = false;
@@ -69,7 +69,7 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
         {
             auto pt0 = C->position();
             auto vec = Math::abs((pt->coord() - pt0.coord())) * iTILE_SIZE2 * 2 + chunk_size<Vector2i> * 1;
-            auto dist = (uint32_t)vec.length();
+            auto dist = (u32)vec.length();
 
             has_pending = true;
             pending = { .from = pt0, .to = *pt,

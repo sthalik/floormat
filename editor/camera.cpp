@@ -88,9 +88,9 @@ object_id app::get_object_colliding_with_cursor(bool virtual_objects)
             auto t0 = Vector2(pt - point{ch, {}, {}});
             auto t1 = t0+Vector2(1e-4f);
             object_id ret = 0;
-            const auto pick = [&](uint64_t data, const rect_type& rect) {
+            const auto pick = [&](u64 data, const rect_type& rect) {
                 [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
-                if (x.type == (uint64_t)collision_type::geometry)
+                if (x.type == (u64)collision_type::geometry)
                     return true;
                 Vector2 min{rect.m_min}, max{rect.m_max};
                 if (t0 >= min && t0 < max)

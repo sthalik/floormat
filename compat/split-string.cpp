@@ -117,7 +117,7 @@ split_string_view split_string_on_any_substring_without_empty_parts(StringView s
 
 ArrayView<StringView> split_string_into(ArrayView<StringView> out, split_string_view range)
 {
-    uint32_t i = 0;
+    u32 i = 0;
     for (StringView token : range)
     {
         fm_assert(i < out.size());
@@ -128,10 +128,10 @@ ArrayView<StringView> split_string_into(ArrayView<StringView> out, split_string_
 
 // _parts is default-initialized first by declaration order, then written through here.
 split_array::split_array(split_string_view range):
-    _size{(uint32_t)split_string_into({_parts, max_size}, range).size()}
+    _size{(u32)split_string_into({_parts, max_size}, range).size()}
 {}
 
-uint32_t split_array::size() const noexcept { return _size; }
+u32 split_array::size() const noexcept { return _size; }
 bool split_array::isEmpty() const noexcept { return _size == 0; }
 const StringView* split_array::data() const noexcept { return _parts; }
 const StringView* split_array::begin() const noexcept { return _parts; }

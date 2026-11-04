@@ -29,15 +29,15 @@ bool is_separator(char c)
 
 #ifdef _WIN32
 
-size_t component_length(StringView s)
+usize component_length(StringView s)
 {
-    size_t i = 0;
+    usize i = 0;
     while (i < s.size() && !is_separator(s[i]))
         i++;
     return i;
 }
 
-size_t share_length(StringView s)
+usize share_length(StringView s)
 {
     const auto server = component_length(s);
     if (server == 0 || server == s.size())
@@ -80,9 +80,9 @@ String fail(StringView what)
 
 #endif
 
-size_t root_length(StringView pathname)
+usize root_length(StringView pathname)
 {
-    size_t n = 0;
+    usize n = 0;
 #ifdef _WIN32
     if (pathname.size() >= 4 && is_separator(pathname[0]) && is_separator(pathname[1]) &&
         (pathname[2] == '?' || pathname[2] == '.') && is_separator(pathname[3]))
@@ -112,10 +112,10 @@ size_t root_length(StringView pathname)
 Pair<StringView, StringView> split_pathname(StringView pathname)
 {
     const auto root = root_length(pathname);
-    size_t tail = pathname.size();
+    usize tail = pathname.size();
     while (tail > root && !is_separator(pathname[tail - 1]))
         tail--;
-    size_t head = tail;
+    usize head = tail;
     while (head > root && is_separator(pathname[head - 1]))
         head--;
     return {pathname.prefix(head), pathname.exceptPrefix(tail)};

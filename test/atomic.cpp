@@ -21,12 +21,12 @@ void run_threads(int count, F&& fn)
     fm_assert(count <= num_threads);
 
     for (int i = 0; i < count; ++i)
-        threads[(uint32_t)i] = std::thread([&, i] {
+        threads[(u32)i] = std::thread([&, i] {
             start_gun.arrive_and_wait();
             fn(i);
         });
     for (int i = 0; i < count; ++i)
-        threads[(uint32_t)i].join();
+        threads[(u32)i].join();
 }
 
 template<typename T>
@@ -98,7 +98,7 @@ constexpr int iterations = 10'000;
 
 void test_fetch_add_contention()
 {
-    volatile int32_t counter = 0;
+    volatile i32 counter = 0;
     run_threads(num_threads, [&](int) {
         for (int j = 0; j < iterations; ++j)
             atomic_fetch_add(&counter, 1, memory_order::relaxed);
@@ -108,21 +108,21 @@ void test_fetch_add_contention()
 
 void test_cas_contention()
 {
-    volatile uint64_t counter = 0;
+    volatile u64 counter = 0;
     run_threads(num_threads, [&](int) {
         for (int j = 0; j < iterations; ++j)
         {
-            uint64_t expected = atomic_load(&counter, memory_order::relaxed);
+            u64 expected = atomic_load(&counter, memory_order::relaxed);
             while (!atomic_compare_exchange_weak(&counter, expected, expected + 1, memory_order::relaxed))
                 cpu_relax();
         }
     });
-    fm_assert(atomic_load(&counter) == uint64_t{num_threads} * iterations);
+    fm_assert(atomic_load(&counter) == u64{num_threads} * iterations);
 }
 
 void test_fetch_sub_contention()
 {
-    volatile int64_t counter = int64_t{num_threads} * iterations;
+    volatile i64 counter = i64{num_threads} * iterations;
     run_threads(num_threads, [&](int) {
         for (int j = 0; j < iterations; ++j)
             atomic_fetch_sub(&counter, 1, memory_order::acq_rel);
@@ -134,9 +134,9 @@ void test_bitwise_contention()
 {
     // Each thread owns one bit and flips it repeatedly. A non-atomic RMW
     // loses other threads' flips, which shows up as a wrong owned bit.
-    volatile uint64_t bits = 0;
+    volatile u64 bits = 0;
     run_threads(64, [&](int i) {
-        const uint64_t bit = uint64_t{1} << i;
+        const u64 bit = u64{1} << i;
         for (int j = 0; j < iterations; ++j)
         {
             fm_assert(!(atomic_fetch_or(&bits, bit) & bit));
@@ -146,14 +146,14 @@ void test_bitwise_contention()
         }
         atomic_fetch_or(&bits, bit);
     });
-    fm_assert(atomic_load(&bits) == ~uint64_t{0});
+    fm_assert(atomic_load(&bits) == ~u64{0});
 }
 
 void test_release_acquire()
 {
     constexpr int rounds = 10'000;
     int payload = 0;           // not atomic, published by the flag
-    volatile uint8_t turn = 0; // 0: producer's turn, 1: consumer's turn
+    volatile u8 turn = 0; // 0: producer's turn, 1: consumer's turn
 
     run_threads(2, [&](int i) {
         if (i == 0)
@@ -218,7 +218,7 @@ void test_atomic_flag()
 
 void test_wrapper_contention()
 {
-    Atomic<int32_t> counter;
+    Atomic<i32> counter;
     run_threads(num_threads, [&](int) {
         for (int j = 0; j < iterations; ++j)
             counter.fetch_add(1, memory_order::relaxed);
@@ -247,14 +247,14 @@ void test_atomic_flag_contention()
 
 void Test::test_atomic()
 {
-    test_semantics<int8_t>();
-    test_semantics<uint8_t>();
-    test_semantics<int16_t>();
-    test_semantics<uint16_t>();
-    test_semantics<int32_t>();
-    test_semantics<uint32_t>();
-    test_semantics<int64_t>();
-    test_semantics<uint64_t>();
+    test_semantics<i8>();
+    test_semantics<u8>();
+    test_semantics<i16>();
+    test_semantics<u16>();
+    test_semantics<i32>();
+    test_semantics<u32>();
+    test_semantics<i64>();
+    test_semantics<u64>();
     test_fence();
 
     test_fetch_add_contention();
@@ -263,14 +263,14 @@ void Test::test_atomic()
     test_bitwise_contention();
     test_release_acquire();
 
-    test_wrapper_semantics<int8_t>();
-    test_wrapper_semantics<uint8_t>();
-    test_wrapper_semantics<int16_t>();
-    test_wrapper_semantics<uint16_t>();
-    test_wrapper_semantics<int32_t>();
-    test_wrapper_semantics<uint32_t>();
-    test_wrapper_semantics<int64_t>();
-    test_wrapper_semantics<uint64_t>();
+    test_wrapper_semantics<i8>();
+    test_wrapper_semantics<u8>();
+    test_wrapper_semantics<i16>();
+    test_wrapper_semantics<u16>();
+    test_wrapper_semantics<i32>();
+    test_wrapper_semantics<u32>();
+    test_wrapper_semantics<i64>();
+    test_wrapper_semantics<u64>();
     test_atomic_flag();
     test_wrapper_contention();
     test_atomic_flag_contention();

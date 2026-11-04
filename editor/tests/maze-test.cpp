@@ -35,7 +35,7 @@ struct maze_test final : base_test
     void build(app& a);
     void solve(app& a);
 
-    uint64_t seed = 1;
+    u64 seed = 1;
     Optional<mazes::route> route;
 };
 
@@ -83,7 +83,7 @@ base_test::Value maze_test::advance(app& a, Value v)
 
 void maze_test::draw_ui(app& a, float)
 {
-    constexpr uint64_t step = 1;
+    constexpr u64 step = 1;
     char buf[32];
     const auto label_width = ImGui::CalcTextSize("MMMM").x;
     ImGui::NewLine();

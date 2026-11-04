@@ -11,18 +11,18 @@ namespace floormat::Grid::Pass { class Pool; }
 // PGO driver; each runs its own searches.
 namespace floormat::mazes {
 
-enum class kind : uint8_t { rooms, braid, prim, COUNT };
+enum class kind : u8 { rooms, braid, prim, COUNT };
 
-constexpr inline uint8_t bbox_size = 32;
-constexpr inline uint32_t map_tiles = 8*TILE_MAX_DIM;
+constexpr inline u8 bbox_size = 32;
+constexpr inline u32 map_tiles = 8*TILE_MAX_DIM;
 // The last chunk holds only the east and south seal.
-constexpr inline int16_t map_chunks = (int16_t)(map_tiles/TILE_MAX_DIM + 1);
+constexpr inline i16 map_chunks = (i16)(map_tiles/TILE_MAX_DIM + 1);
 
 struct route
 {
     point from, to;
-    uint32_t max_dist;
-    uint32_t bfs_tiles;
+    u32 max_dist;
+    u32 bfs_tiles;
 };
 
 StringView name(kind k);
@@ -31,14 +31,14 @@ StringView name(kind k);
 route build(world& w, kind k, chunk_coords_ origin, Grid::Pass::Pool& pool);
 
 #ifdef FM_NO_DEBUG3
-constexpr inline uint32_t exit_cells = 80;
+constexpr inline u32 exit_cells = 80;
 #else
-constexpr inline uint32_t exit_cells = 24;
+constexpr inline u32 exit_cells = 24;
 #endif
 
 // Destroys every object but `keep` on tiles [0, 2*cells]² and the square outside the exit.
 // `pool` must be the one Dijkstra reads for the walker's bbox.
-route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
+route replace(world& w, chunk_coords_ origin, u32 cells, u64 seed,
               Grid::Pass::Pool& pool, object_id keep);
 
 } // namespace floormat::mazes

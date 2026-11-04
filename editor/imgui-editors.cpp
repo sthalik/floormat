@@ -176,7 +176,7 @@ void draw_ground_palette_atlas(editor& e, ground_editor& ed, StringView name, co
             push_style_color(ImGuiCol_ButtonHovered, color_hover),
         };
         const bool perm_selected = ed.is_permutation_selected(atlas);
-        constexpr size_t per_row = 8;
+        constexpr usize per_row = 8;
         const auto sprites = atlas->raw_sprite_array();
         for (auto i = 0uz; i < N; i++)
         {

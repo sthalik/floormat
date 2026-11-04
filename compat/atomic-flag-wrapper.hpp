@@ -6,7 +6,7 @@ namespace floormat {
 
 class AtomicFlag final
 {
-    volatile uint8_t state = 0;
+    volatile u8 state = 0;
 
 public:
     constexpr AtomicFlag() noexcept = default;

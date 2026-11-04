@@ -62,7 +62,7 @@ void app::inspector_window_title(char(&buf)[140], const object& obj)
     std::snprintf(buf, sizeof buf, "%s###%s", buf3, buf2);
 }
 
-void app::entity_friendly_name(char* buf, size_t len, const object& obj)
+void app::entity_friendly_name(char* buf, usize len, const object& obj)
 {
     switch (obj.type())
     {

@@ -13,7 +13,7 @@
 namespace floormat::meow_hash {
 namespace {
 
-CORRADE_ALWAYS_INLINE size_t hash(void* __restrict buf, size_t size)
+CORRADE_ALWAYS_INLINE usize hash(void* __restrict buf, usize size)
 {
 #ifndef FM_NO_DEBUG
     if (size % 16 != 0) [[unlikely]]
@@ -28,17 +28,17 @@ CORRADE_ALWAYS_INLINE size_t hash(void* __restrict buf, size_t size)
 
 } // namespace
 
-size_t hash_buf(const void* __restrict buf, size_t size) noexcept
+usize hash_buf(const void* __restrict buf, usize size) noexcept
 {
     return hash(const_cast<void*>(buf), size);
 }
 
-size_t hash_int(uint32_t x) noexcept
+usize hash_int(u32 x) noexcept
 {
     return hash(&x, sizeof x);
 }
 
-size_t hash_int(uint64_t x) noexcept
+usize hash_int(u64 x) noexcept
 {
     return hash(&x, sizeof x);
 }

@@ -38,10 +38,10 @@ ArrayView<const void> loader_impl::font() noexcept
         auto res = Utility::Resource{"fonts"}.getRaw("default-imgui-font");
         if (res.size() < 5)
             fm_abort("can't find font resource 'default-imgui-font'");
-        auto size = (uint32_t)(uint8_t)res[0] << 24 | (uint32_t)(uint8_t)res[1] << 16
-                  | (uint32_t)(uint8_t)res[2] << 8  | (uint32_t)(uint8_t)res[3];
+        auto size = (u32)(u8)res[0] << 24 | (u32)(u8)res[1] << 16
+                  | (u32)(u8)res[2] << 8  | (u32)(u8)res[3];
         font_buf = Array<char>{NoInit, size};
-        if (!inflate_zlib(font_buf.data(), size, res.data() + 4, (uint32_t)res.size() - 4))
+        if (!inflate_zlib(font_buf.data(), size, res.data() + 4, (u32)res.size() - 4))
             fm_abort("can't inflate font resource");
     }
     return font_buf;

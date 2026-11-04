@@ -20,7 +20,7 @@ constexpr inline bool is_fu2_function<fu2::detail::function<Config, Property>> =
 
 template<typename T, typename U> constexpr inline bool same_signature = false;
 template<bool C1, bool C2, bool Const, bool Volatile, ref_qualifier Ref, bool Noexcept,
-         size_t Capacity1, size_t Alignment1, size_t Capacity2, size_t Alignment2, typename R, typename... Args>
+         usize Capacity1, usize Alignment1, usize Capacity2, usize Alignment2, typename R, typename... Args>
 constexpr inline bool same_signature<function<C1, Const, Volatile, Ref, Noexcept, Capacity1, Alignment1, R, Args...>,
                                      function<C2, Const, Volatile, Ref, Noexcept, Capacity2, Alignment2, R, Args...>> = true;
 
@@ -71,7 +71,7 @@ template<typename R, typename T>
 constexpr inline bool reference_converts_from_temporary = __reference_converts_from_temporary(R, T);
 #endif
 
-template<typename F, typename Self, typename Call, bool Copyable, bool Noexcept, typename R, size_t Capacity, size_t Alignment, typename... Args>
+template<typename F, typename Self, typename Call, bool Copyable, bool Noexcept, typename R, usize Capacity, usize Alignment, typename... Args>
 concept fits = !same_signature<std::remove_cvref_t<F>, Self> &&
                !is_fu2_function<std::remove_cvref_t<F>> &&
                sizeof(std::decay_t<F>) <= Capacity &&
@@ -224,16 +224,16 @@ struct invoker
     [[noreturn]] static R invoke_empty(storage_ptr, param<Args>...) noexcept { fm_abort("called an empty inplace_function"); }
 };
 
-template<bool Copyable, bool Const, bool Volatile, ref_qualifier Ref, bool Noexcept, size_t Capacity, size_t Alignment, typename R, typename... Args>
+template<bool Copyable, bool Const, bool Volatile, ref_qualifier Ref, bool Noexcept, usize Capacity, usize Alignment, typename R, typename... Args>
 class function final
 {
     static_assert(Capacity > 0);
 
-    template<bool, bool, bool, ref_qualifier, bool, size_t, size_t, typename, typename...> friend class function;
+    template<bool, bool, bool, ref_qualifier, bool, usize, usize, typename, typename...> friend class function;
 
     using invoker_type = invoker<Const, Volatile, Ref, Noexcept, R, Args...>;
     template<typename F> using callable = typename invoker_type::template callable<F>;
-    template<bool C, size_t Cap, size_t Al> using similar = function<C, Const, Volatile, Ref, Noexcept, Cap, Al, R, Args...>;
+    template<bool C, usize Cap, usize Al> using similar = function<C, Const, Volatile, Ref, Noexcept, Cap, Al, R, Args...>;
 
     // Outside the vtable, so that a call loads one pointer.
     typename invoker_type::fn* _invoke = &invoker_type::invoke_empty;
@@ -325,9 +325,9 @@ class function final
 
     // A temporary aligned to its size rounded up to a power of two, up to 64, sits in one cache line,
     // so moving a target through it never splits a line or a page.
-    static consteval size_t local_alignment() noexcept
+    static consteval usize local_alignment() noexcept
     {
-        size_t a = alignof(function);
+        usize a = alignof(function);
         while (a < sizeof(function) && a < 64)
             a *= 2;
         return a;
@@ -379,14 +379,14 @@ public:
 
     constexpr function(function&& other) noexcept: _invoke{other._invoke}, _vt{other._vt} { relocate(other); }
 
-    template<bool C, size_t Cap, size_t Al>
+    template<bool C, usize Cap, usize Al>
     requires (Cap <= Capacity && Al <= Alignment && (C || !Copyable))
     constexpr function(similar<C, Cap, Al>&& other) noexcept: _invoke{other._invoke}, _vt{other._vt} { relocate(other); }
 
     constexpr function(const function& other) requires Copyable { copy_from(other); }
     function(const function&) requires (!Copyable) = delete;
 
-    template<size_t Cap, size_t Al>
+    template<usize Cap, usize Al>
     requires (Cap <= Capacity && Al <= Alignment)
     constexpr function(const similar<true, Cap, Al>& other) { copy_from(other); }
 
@@ -396,7 +396,7 @@ public:
         return *this;
     }
 
-    template<bool C, size_t Cap, size_t Al>
+    template<bool C, usize Cap, usize Al>
     requires (Cap <= Capacity && Al <= Alignment && (C || !Copyable))
     constexpr function& operator=(similar<C, Cap, Al>&& other) noexcept
     {
@@ -411,7 +411,7 @@ public:
     }
     function& operator=(const function&) requires (!Copyable) = delete;
 
-    template<size_t Cap, size_t Al>
+    template<usize Cap, usize Al>
     requires (Cap <= Capacity && Al <= Alignment)
     constexpr function& operator=(const similar<true, Cap, Al>& other)
     {

@@ -81,11 +81,11 @@ void test_rotation_order_4()
     // the CCW rotation permutation {1,3,0,2} has order 4:
     // applying it twice gives {3,2,1,0} (reverse), not identity.
     // applying it four times gives identity.
-    constexpr uint8_t perm[4] = {1, 3, 0, 2};
-    uint8_t cur[4] = {0, 1, 2, 3};
+    constexpr u8 perm[4] = {1, 3, 0, 2};
+    u8 cur[4] = {0, 1, 2, 3};
 
     // apply once
-    uint8_t tmp[4];
+    u8 tmp[4];
     for (unsigned i = 0; i < 4; i++) tmp[i] = cur[perm[i]];
     for (unsigned i = 0; i < 4; i++) cur[i] = tmp[i];
     // {1, 3, 0, 2} — not identity

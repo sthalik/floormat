@@ -66,7 +66,7 @@ void ground_editor::clear_selection()
     _selection_mode = sel_none;
 }
 
-void ground_editor::select_tile(const bptr<ground_atlas>& atlas, size_t variant)
+void ground_editor::select_tile(const bptr<ground_atlas>& atlas, usize variant)
 {
     fm_assert(atlas);
     clear_selection();
@@ -82,7 +82,7 @@ void ground_editor::select_tile_permutation(const bptr<ground_atlas>& atlas)
     *_permutation = { atlas, {} };
 }
 
-bool ground_editor::is_tile_selected(const bptr<ground_atlas>& atlas, size_t variant) const
+bool ground_editor::is_tile_selected(const bptr<ground_atlas>& atlas, usize variant) const
 {
     return atlas && _selection_mode == sel_tile && _selected_tile &&
            atlas == _selected_tile.atlas && variant == _selected_tile.variant;
@@ -122,7 +122,7 @@ void fisher_yates(T begin, T end)
     const auto N = std::distance(begin, end);
     for (auto i = N-1; i >= 1; i--)
     {
-        const auto j = (decltype(i))(Random::next(g) % (uint64_t)(i+1));
+        const auto j = (decltype(i))(Random::next(g) % (u64)(i+1));
         swap(begin[i], begin[j]);
     }
 }
@@ -132,16 +132,16 @@ void fisher_yates(T begin, T end)
 tile_image_proto ground_editor::get_selected_perm()
 {
     auto& [atlas, vec] = *_permutation;
-    static_assert(sizeof(uint32_t) >= sizeof(variant_t));
-    const auto N = (uint32_t)atlas->num_tiles();
-    fm_assert(N == (uint32_t)(variant_t)N);
+    static_assert(sizeof(u32) >= sizeof(variant_t));
+    const auto N = (u32)atlas->num_tiles();
+    fm_assert(N == (u32)(variant_t)N);
     if (N == 0)
         return {};
     arrayReserve(vec, N);
     if (vec.isEmpty())
     {
         arrayResize(vec, NoInit, N);
-        for (uint32_t i = 0; i < N; i++)
+        for (u32 i = 0; i < N; i++)
             vec[i] = (variant_t)i;
         fisher_yates(vec.begin(), vec.end());
     }

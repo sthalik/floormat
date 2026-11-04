@@ -17,7 +17,7 @@ namespace {
 
 bool gl_context = false;
 
-enum class gl_use : uint8_t { none, required, };
+enum class gl_use : u8 { none, required, };
 
 struct test_entry
 {
@@ -111,7 +111,7 @@ constexpr test_entry test_list[] = {
 
 struct options
 {
-    uint32_t repeat;
+    u32 repeat;
     bool no_gl;
     Array<test_entry> tests;
 };
@@ -130,7 +130,7 @@ struct App final : private FM_APPLICATION
 
 private:
     Array<test_entry> tests;
-    uint32_t repeat;
+    u32 repeat;
 };
 
 App::App(const Arguments& arguments, options&& opts):
@@ -222,7 +222,7 @@ bool name_matches(StringView name, StringView arg)
     name = name.exceptPrefix("test_"_s);
     if (name.size() != arg.size())
         return false;
-    for (auto i = 0u; i < (uint32_t)name.size(); i++)
+    for (auto i = 0u; i < (u32)name.size(); i++)
         if (arg[i] != name[i] && !(arg[i] == '-' && name[i] == '_'))
             return false;
     return true;
@@ -230,11 +230,11 @@ bool name_matches(StringView name, StringView arg)
 
 Array<test_entry> select_tests(const Corrade::Utility::Arguments& args)
 {
-    constexpr auto list_size = (uint32_t)array_size(test_list);
+    constexpr auto list_size = (u32)array_size(test_list);
     Array<test_entry> tests;
     arrayReserve(tests, list_size);
     bool seen[list_size] = {};
-    const auto count = (uint32_t)args.arrayValueCount("tests");
+    const auto count = (u32)args.arrayValueCount("tests");
     bool all = count == 0;
 
     for (auto i = 0u; i < count; i++)
@@ -284,11 +284,11 @@ options parse_cmdline(int argc, char** argv)
         })
         .parse(argc, argv);
     const auto str = args.value<StringView>("repeat");
-    uint32_t value = 0;
+    u32 value = 0;
     int n = 0;
     // same digit guard as editor/app.cpp parse_uint
     if (str.isEmpty() || str[0] < '0' || str[0] > '9' ||
-        std::sscanf(str.data(), "%u%n", &value, &n) != 1 || (size_t)n != str.size() || value == 0)
+        std::sscanf(str.data(), "%u%n", &value, &n) != 1 || (usize)n != str.size() || value == 0)
     {
         ERR_nospace << "invalid --repeat argument '" << str << "': should be a positive number";
         std::exit(EX_USAGE);

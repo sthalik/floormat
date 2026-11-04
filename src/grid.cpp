@@ -11,13 +11,13 @@ namespace floormat::detail::grid {
 
 namespace {
 constinit Spinlock g_build_seq_lock;
-uint64_t g_build_seq = 0;
+u64 g_build_seq = 0;
 
 constinit Spinlock g_slot_lock;
-constinit Array<uint32_t> g_free_slots;
-uint32_t g_slot_count = 0;
+constinit Array<u32> g_free_slots;
+u32 g_slot_count = 0;
 
-uint32_t take_slot_index()
+u32 take_slot_index()
 {
     Locker<Spinlock> guard{g_slot_lock};
     if (!g_free_slots.isEmpty())
@@ -29,14 +29,14 @@ uint32_t take_slot_index()
     return g_slot_count++;
 }
 
-void put_slot_index(uint32_t i)
+void put_slot_index(u32 i)
 {
     Locker<Spinlock> guard{g_slot_lock};
     arrayAppend(g_free_slots, i);
 }
 } // namespace
 
-uint64_t GridBase::next_build_no()
+u64 GridBase::next_build_no()
 {
     Locker<Spinlock> guard{g_build_seq_lock};
     return ++g_build_seq;
@@ -87,31 +87,31 @@ void GridBase::maybe_mark_stale()
         mark_stale();
 }
 
-uint32_t GridBase::pack_bit_index(uint32_t i, uint32_t j, uint32_t div_count)
+u32 GridBase::pack_bit_index(u32 i, u32 j, u32 div_count)
 {
     return j * div_count + i;
 }
 
-uint32_t GridBase::pack_bit_index_from_coord(intra_coord posʹ, uint32_t div_count)
+u32 GridBase::pack_bit_index_from_coord(intra_coord posʹ, u32 div_count)
 {
-    const auto pos = Vector2ui(Vector2i(posʹ)) >> (uint32_t)(std::countr_zero(chunk_size_xy) - std::countr_zero(div_count)); // xxx todo assumes power of two chunk size
+    const auto pos = Vector2ui(Vector2i(posʹ)) >> (u32)(std::countr_zero(chunk_size_xy) - std::countr_zero(div_count)); // xxx todo assumes power of two chunk size
     // per-axis: an out-of-range x with a small y still packs below div_count²
     fm_debug3_assert(pos.x() < div_count && pos.y() < div_count);
     return pack_bit_index(pos.x(), pos.y(), div_count);
 }
 
-Range2D GridBase::coord_range_from_div(uint32_t x, uint32_t y, uint32_t div_size, uint32_t bbox_size)
+Range2D GridBase::coord_range_from_div(u32 x, u32 y, u32 div_size, u32 bbox_size)
 {
     const auto bbox = Vector2(bbox_size);
-    const auto pos = intra_coord{Vector2i{(int32_t)x, (int32_t)y} * (int32_t)div_size + Vector2i{(int32_t)(div_size / 2)}};
+    const auto pos = intra_coord{Vector2i{(i32)x, (i32)y} * (i32)div_size + Vector2i{(i32)(div_size / 2)}};
     auto min = Vector2(pos.center_shifted()) - Vector2((float)(bbox_size / 2));
     auto max = min + bbox;
     return { min, max };
 }
 
-std::pair<uint32_t, uint8_t> GridBase::byte_and_mask(uint32_t bit_index)
+std::pair<u32, u8> GridBase::byte_and_mask(u32 bit_index)
 {
-    return { bit_index >> 3, uint8_t(1u << (bit_index & 7)) };
+    return { bit_index >> 3, u8(1u << (bit_index & 7)) };
 }
 
 GridBase* free_list::take()
@@ -133,9 +133,9 @@ void free_list::put(GridBase* p)
 
 bool free_list::is_empty() const { return !list; }
 
-uint32_t free_list::size() const
+u32 free_list::size() const
 {
-    uint32_t n = 0;
+    u32 n = 0;
     for (auto* p = list; p; p = p->next)
         n++;
     return n;
@@ -163,9 +163,9 @@ PoolBase::~PoolBase() noexcept
 
 void PoolBase::attach(chunk& c, GridBase* g)
 {
-    fm_debug_assert(g->c == &c && g->live_index == (uint32_t)-1);
+    fm_debug_assert(g->c == &c && g->live_index == (u32)-1);
     g->pool = this;
-    g->live_index = (uint32_t)live.size();
+    g->live_index = (u32)live.size();
     arrayAppend(live, g);
     if (!c._grid_slots)
         c._grid_slots.emplace();
@@ -183,7 +183,7 @@ void PoolBase::release(GridBase* g) noexcept
     live[g->live_index] = last;
     last->live_index = g->live_index;
     arrayRemoveSuffix(live);
-    g->live_index = (uint32_t)-1;
+    g->live_index = (u32)-1;
     g->c = nullptr;
     freelist.put(g);
 }
@@ -219,29 +219,29 @@ void cascade_mark_neighbors_stale(
             g->mark_stale();
 }
 
-bool BitView::read(uint32_t i) const
+bool BitView::read(u32 i) const
 {
     auto [byte, mask] = GridBase::byte_and_mask(i);
     return data[byte] & mask;
 }
 
-void BitView::set(uint32_t i)
+void BitView::set(u32 i)
 {
     auto [byte, mask] = GridBase::byte_and_mask(i);
     data[byte] |= mask;
 }
 
-void BitView::reset(uint32_t i)
+void BitView::reset(u32 i)
 {
     auto [byte, mask] = GridBase::byte_and_mask(i);
-    data[byte] &= uint8_t(~mask);
+    data[byte] &= u8(~mask);
 }
 
-void BitView::write(uint32_t i, bool value)
+void BitView::write(u32 i, bool value)
 {
     auto [byte_idx, mask] = GridBase::byte_and_mask(i);
     auto& byte = data[byte_idx];
-    byte = uint8_t((byte & ~mask) | (uint8_t(value) << (i & 7)));
+    byte = u8((byte & ~mask) | (u8(value) << (i & 7)));
 }
 
 } // namespace floormat::detail::grid

@@ -15,21 +15,21 @@ public:
     explicit critter_walk(path_search_result path);
 
     // Spends dt walking. walk_result::none until the walk ends.
-    walk_result update(const bptr<critter>& c, size_t& i, const Ns& dt);
+    walk_result update(const bptr<critter>& c, usize& i, const Ns& dt);
     point dest() const;
     // True for a walk built from a point, which goes there in a straight line.
     bool straight() const;
 
 private:
-    enum class walk_mode : uint8_t { none, line, path, smoothed, };
+    enum class walk_mode : u8 { none, line, path, smoothed, };
 
-    walk_result walk_line(const bptr<critter>& c, size_t& i, const Ns& dt);
-    walk_result walk_path(const bptr<critter>& c, size_t& i, const Ns& dt);
-    walk_result walk_smoothed(const bptr<critter>& c, size_t& i, const Ns& dt);
+    walk_result walk_line(const bptr<critter>& c, usize& i, const Ns& dt);
+    walk_result walk_path(const bptr<critter>& c, usize& i, const Ns& dt);
+    walk_result walk_smoothed(const bptr<critter>& c, usize& i, const Ns& dt);
 
     point _dest;
     path_search_result path;
-    uint32_t path_index = -1u;
+    u32 path_index = -1u;
     walk_mode mode = walk_mode::none;
 };
 

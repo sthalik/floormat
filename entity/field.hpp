@@ -8,22 +8,22 @@
 #include <tuple>
 
 namespace floormat::entities::detail {
-template<typename Obj, typename Type, typename Default, size_t I, typename... Fs> struct find_reader;
+template<typename Obj, typename Type, typename Default, usize I, typename... Fs> struct find_reader;
 
-template<typename Obj, typename Type, typename Default, size_t I> struct find_reader<Obj, Type, Default, I> {
+template<typename Obj, typename Type, typename Default, usize I> struct find_reader<Obj, Type, Default, I> {
     using type = Default;
-    static constexpr size_t index = I;
+    static constexpr usize index = I;
 };
 
-template<typename Obj, typename Type, typename Default, size_t I, typename F, typename... Fs>
+template<typename Obj, typename Type, typename Default, usize I, typename F, typename... Fs>
 struct find_reader<Obj, Type, Default, I, F, Fs...> {
     using type = typename find_reader<Obj, Type, Default, I+1, Fs...>::type;
-    static constexpr size_t index = find_reader<Obj, Type, Default, I+1, Fs...>::index;
+    static constexpr usize index = find_reader<Obj, Type, Default, I+1, Fs...>::index;
 };
 
-template<typename Obj, typename Type, typename Default, size_t I, typename F, typename... Fs>
+template<typename Obj, typename Type, typename Default, usize I, typename F, typename... Fs>
 requires FieldReader<F, Obj, Type>
-struct find_reader<Obj, Type, Default, I, F, Fs...> { using type = F; static constexpr size_t index = I; };
+struct find_reader<Obj, Type, Default, I, F, Fs...> { using type = F; static constexpr usize index = I; };
 
 } // namespace floormat::entities::detail
 
@@ -36,14 +36,14 @@ struct entity_field : entity_field_base<Obj, Type> {
 private:
     static constexpr auto default_predicate = constantly(field_status::enabled);
     static constexpr auto default_c_range   = constantly(constraints::range<Type>{});
-    static constexpr auto default_c_length  = constantly(constraints::max_length{size_t(-1)});
+    static constexpr auto default_c_length  = constantly(constraints::max_length{usize(-1)});
     using default_predicate_t = std::decay_t<decltype(default_predicate)>;
     using default_c_range_t   = std::decay_t<decltype(default_c_range)>;
     using default_c_length_t  = std::decay_t<decltype(default_c_length)>;
     using c_predicate = detail::find_reader<Obj, field_status, default_predicate_t, 0, Ts...>;
     using c_range  = detail::find_reader<Obj, constraints::range<Type>, default_c_range_t, 0, Ts...>;
     using c_length = detail::find_reader<Obj, constraints::max_length, default_c_length_t, 0, Ts...>;
-    static constexpr size_t good_arguments =
+    static constexpr usize good_arguments =
         unsigned(c_predicate::index != sizeof...(Ts)) +
         unsigned(c_range::index != sizeof...(Ts)) +
         unsigned(c_length::index != sizeof...(Ts));

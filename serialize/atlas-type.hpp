@@ -1,7 +1,7 @@
 #pragma once
 
 namespace floormat::Serialize {
-    enum class atlas_type : uint8_t
+    enum class atlas_type : u8
     {
         none, ground, wall, anim, vobj, COUNT,
     };

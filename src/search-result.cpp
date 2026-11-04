@@ -96,7 +96,7 @@ auto path_search_result::smoothings() const -> ArrayView<const waypoint>
     return { _node->smoothings.data(), _node->smoothings.size() };
 }
 
-size_t path_search_result::size() const
+usize path_search_result::size() const
 {
     return _node ? _node->vec.size() : 0;
 }
@@ -113,14 +113,14 @@ path_search_result::operator bool() const
 
 path_search_result::node::node() noexcept = default;
 float path_search_result::time() const { return _time; }
-uint32_t path_search_result::cost() const { return _cost; }
-void path_search_result::set_cost(uint32_t value) { _cost = value; }
+u32 path_search_result::cost() const { return _cost; }
+void path_search_result::set_cost(u32 value) { _cost = value; }
 void path_search_result::set_time(float time) { _time = time; }
 bool path_search_result::is_found() const { return _found; }
 void path_search_result::set_found(bool value) { _found = value; }
-uint32_t path_search_result::distance() const { return _distance; }
-void path_search_result::set_distance(uint32_t dist) { _distance = dist; }
-uint32_t path_search_result::div_size() const { return _div_size; }
-void path_search_result::set_div_size(uint32_t value) { _div_size = value; }
+u32 path_search_result::distance() const { return _distance; }
+void path_search_result::set_distance(u32 dist) { _distance = dist; }
+u32 path_search_result::div_size() const { return _div_size; }
+void path_search_result::set_div_size(u32 value) { _div_size = value; }
 
 } // namespace floormat

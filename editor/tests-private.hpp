@@ -12,7 +12,7 @@ namespace floormat::tests {
 
 // A fast drag delivers several mouse-move events in one frame, and each is a distinct ray. The
 // test used to keep only the last of them.
-constexpr inline uint32_t max_pending_rays = 16;
+constexpr inline u32 max_pending_rays = 16;
 
 struct base_test
 {
@@ -27,24 +27,24 @@ struct base_test
     virtual void update_pre(app& a, const Ns& dt) = 0;
     virtual void update_post(app& a, const Ns& dt) = 0;
 
-    enum class ValueType : uint8_t { none, ptr, usize, intptr, uintptr, i64, u64, i32, u32, f, b, ai32, au32, af };
+    enum class ValueType : u8 { none, ptr, usize, intptr, uintptr, i64, u64, i32, u32, f, b, ai32, au32, af };
     struct monostate {};
 
     struct Value {
         union {
             struct monostate empty = {};
             void* ptr;
-            size_t usize;
-            intptr_t intptr;
-            uintptr_t uintptr;
-            int64_t i64;
-            uint64_t u64;
-            int32_t i32;
-            uint32_t u32;
+            floormat::usize usize;
+            iptr intptr;
+            uptr uintptr;
+            floormat::i64 i64;
+            floormat::u64 u64;
+            floormat::i32 i32;
+            floormat::u32 u32;
             float f;
             bool b;
-            int32_t ai32[4];
-            uint32_t au32[4];
+            floormat::i32 ai32[4];
+            floormat::u32 au32[4];
             float af[4];
         };
 
@@ -70,7 +70,7 @@ protected:
     base_test();
 };
 
-enum class Test : uint32_t {
+enum class Test : u32 {
     //todo add a speedometer overlay test
     none, path, raycast, grid, walk, hole, cover, maze, cover_ai, COUNT,
 };

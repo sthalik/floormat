@@ -34,10 +34,10 @@ using Wall::Direction_;
 struct HoleData
 {
     Range2D pos;
-    Math::Range1D<uint8_t> z;
+    Math::Range1D<u8> z;
 };
 
-enum class HoleRegion : uint8_t { Wall, Corner };
+enum class HoleRegion : u8 { Wall, Corner };
 
 ArrayView<HoleData> find_wall_holes_in_world_coords(Array<HoleData>& output, chunk& c, local_coords tile_pos, bool IsWest, HoleRegion region)
 {
@@ -63,7 +63,7 @@ ArrayView<HoleData> find_wall_holes_in_world_coords(Array<HoleData>& output, chu
 
     if (wall_bb)
     {
-        c.get_all_holes_in_bbox([&](Math::Range2D<float> bb, Math::Range1D<uint8_t> z) {
+        c.get_all_holes_in_bbox([&](Math::Range2D<float> bb, Math::Range1D<u8> z) {
             arrayAppend(output, { bb, z });
         }, c, wall_bb->first(), wall_bb->second(), can_see_through_mask);
     }
@@ -107,8 +107,8 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
 
     for (auto hole : holes)
     {
-        hole.z.max() = Math::min(hole.z.max(), uint8_t{tile_size_z});
-        hole.z.min() = Math::min({hole.z.min(), uint8_t{tile_size_z}, hole.z.max()});
+        hole.z.max() = Math::min(hole.z.max(), u8{tile_size_z});
+        hole.z.min() = Math::min({hole.z.min(), u8{tile_size_z}, hole.z.max()});
 
         fm_debug2_assert(hole.pos.min().x() <= hole.pos.max().x());
         fm_debug2_assert(hole.pos.min().y() <= hole.pos.max().y());
@@ -137,7 +137,7 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
                 arrayAppend(next_wall_fragments, f);
             }
 #if 0
-            if (frags.s != (uint8_t)-1)
+            if (frags.s != (u8)-1)
                 for (auto i = 0u; i < frags.size; i++)
                     DBG << "good frag" << i << frags.array[i].min() << frags.array[i].max();
 #endif
@@ -184,11 +184,11 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
 }
 
 template<Group_ G, bool IsWest>
-constexpr int32_t depth_offset_for_group(uint32_t depth)
+constexpr i32 depth_offset_for_group(u32 depth)
 {
     (void)depth;
     static_assert(G < Group_::COUNT);
-    int32_t part_offset = 0;
+    i32 part_offset = 0;
     switch (G)
     {
     case Group_::top:
@@ -202,10 +202,10 @@ constexpr int32_t depth_offset_for_group(uint32_t depth)
     return ret;
 }
 
-uint32_t variant_index(uint32_t frame_count, global_coords coord, variant_t variant, bool is_west)
+u32 variant_index(u32 frame_count, global_coords coord, variant_t variant, bool is_west)
 {
     if (variant == (variant_t)-1)
-        variant = (variant_t)(Vector2ui(coord.raw()).sum() + uint32_t{is_west});
+        variant = (variant_t)(Vector2ui(coord.raw()).sum() + u32{is_west});
     return variant % frame_count;
 }
 
@@ -217,17 +217,17 @@ constinit Array<WallFragment> corner_fragdata; // todo thread safety
 template<Group_ G, bool IsWest>
 void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                   SpriteList& wsl,
-                  global_coords coord, uint32_t tile, ArrayView<const WallFragment> fragments)
+                  global_coords coord, u32 tile, ArrayView<const WallFragment> fragments)
 {
     constexpr auto D = IsWest ? Direction_::W : Direction_::N;
     const auto& dir = A.calc_direction(D);
-    static_assert(Wall::Direction::groups[(size_t)G].tag == G);
-    constexpr auto member = Wall::Direction::groups[(size_t)G].member;
+    static_assert(Wall::Direction::groups[(usize)G].tag == G);
+    constexpr auto member = Wall::Direction::groups[(usize)G].member;
     const auto& group = dir.*member;
     if (!group.is_defined)
         return;
 
-    const uint32_t k = tile*2 + IsWest;
+    const u32 k = tile*2 + IsWest;
     const auto variant_2 = W.variants[k];
     const auto pos = local_coords{tile};
     const auto center = Vector3(point{c.coord(), pos, {}});
@@ -265,7 +265,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
             {
                 const auto frames = A.frames(dir.top);
                 const auto sprites = A.sprites(dir.top);
-                const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
+                const auto v2 = variant_index((u32)frames.size(), coord, variant_2, IsWest);
                 const auto& frame = frames[v2];
                 const auto& sp = sprites[v2];
                 fm_assert(frame.size.x() == Depth);
@@ -294,7 +294,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                         {-X,          -Y,          frag_top_z},
                     }};
                     Quads::vertexes v;
-                    for (uint8_t j = 0; j < 4; j++)
+                    for (u8 j = 0; j < 4; j++)
                     {
                         const auto k = Quads::ccw_order[j];
                         v[j] = {quad[k] + center, texcoords[k], depth[k]};
@@ -314,7 +314,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
             {
                 const auto frames = A.frames(dir.corner);
                 const auto sprites = A.sprites(dir.corner);
-                const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
+                const auto v2 = variant_index((u32)frames.size(), coord, variant_2, IsWest);
                 const auto& frame = frames[v2];
                 const auto& sp = sprites[v2];
                 for (const auto& frag : corner_frags)
@@ -375,7 +375,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
     {
         const auto frames = A.frames(group);
         const auto sprites = A.sprites(group);
-        const auto v2 = variant_index((uint32_t)frames.size(), coord, variant_2, IsWest);
+        const auto v2 = variant_index((u32)frames.size(), coord, variant_2, IsWest);
         const auto& frame = frames[v2];
         const auto& sp = sprites[v2];
         const auto depth_offset = depth_offset_for_group<G, IsWest>(A.depth());
@@ -525,7 +525,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                     };
 
                 Quads::vertexes v;
-                for (uint8_t j = 0; j < 4; j++)
+                for (u8 j = 0; j < 4; j++)
                 {
                     const auto k = Quads::ccw_order[j];
                     v[j] = {quad[k] + center, texcoords[k], depth[k]};
@@ -539,7 +539,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
 }
 
 template<bool IsWest>
-void do_wall_tile(chunk& c, chunk::wall_stuff& W, SpriteList& wsl, global_coords coord, uint32_t k)
+void do_wall_tile(chunk& c, chunk::wall_stuff& W, SpriteList& wsl, global_coords coord, u32 k)
 {
     auto* Aʹ = W.atlases[k*2 + IsWest].get();
     if (!Aʹ)
@@ -565,7 +565,7 @@ void chunk::ensure_wall_mesh(SpriteBatch& sb)
         _walls_modified = false;
         wall_static_mesh.clear();
         auto& W = *_walls;
-        for (uint32_t k = TILE_COUNT; k--; ) // front-to-back, so early-Z rejects more fragments
+        for (u32 k = TILE_COUNT; k--; ) // front-to-back, so early-Z rejects more fragments
         {
             const auto coord = global_coords{_coord, local_coords{k}};
 

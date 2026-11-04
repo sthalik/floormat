@@ -10,11 +10,11 @@ namespace floormat::detail {
 
 namespace {
 
-constexpr uint32_t side_bits  = 9;
-constexpr uint32_t outer_bits = chunk_coord_bits - side_bits;
-constexpr uint32_t z_bits     = 4;
+constexpr u32 side_bits  = 9;
+constexpr u32 outer_bits = chunk_coord_bits - side_bits;
+constexpr u32 z_bits     = 4;
 // chunk 0 sits at the centre of its page, so a world around the origin takes one page
-constexpr uint32_t chunk_bias = (1u << (chunk_coord_bits - 1)) + (1u << (side_bits - 1));
+constexpr u32 chunk_bias = (1u << (chunk_coord_bits - 1)) + (1u << (side_bits - 1));
 
 using table = multi_level_table<chunk*, chunk_table_params>;
 static_assert(table::dims == 3);
@@ -33,7 +33,7 @@ struct mlt_coord_traits<chunk_coords_, detail::chunk_table_params>
 {
     static constexpr mlt_coords coords(chunk_coords_ ch) noexcept
     {
-        return {{ uint16_t(uint32_t(ch.x) + detail::chunk_bias), uint16_t(uint32_t(ch.y) + detail::chunk_bias), uint32_t(ch.z - chunk_z_min) }};
+        return {{ u16(u32(ch.x) + detail::chunk_bias), u16(u32(ch.y) + detail::chunk_bias), u32(ch.z - chunk_z_min) }};
     }
 };
 
@@ -78,19 +78,19 @@ std::array<chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) noexcept
 
 std::array<const chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) const noexcept
 {
-    constexpr uint32_t side = 1u << side_bits;
+    constexpr u32 side = 1u << side_bits;
     std::array<const chunk*, 8> ret;
     // Away from a page's edges all 8 neighbors share ch0's page, so one lookup finds them, and a
     // missing page holds none. lx - 1 < side - 2 holds for lx in [1, side - 2], and for lx == 0 the
-    // uint32_t subtraction wraps, so the edge takes the slow path. Likewise for ly.
-    const auto lx = (uint32_t(ch0.x) + chunk_bias) & (side - 1), ly = (uint32_t(ch0.y) + chunk_bias) & (side - 1);
+    // u32 subtraction wraps, so the edge takes the slow path. Likewise for ly.
+    const auto lx = (u32(ch0.x) + chunk_bias) & (side - 1), ly = (u32(ch0.y) + chunk_bias) & (side - 1);
     if (lx - 1 < side - 2 && ly - 1 < side - 2) [[likely]]
     {
         const auto* s = _table.find(ch0);
         for (auto i = 0u; i < 8; i++)
         {
             const auto off = world::neighbor_offsets[i];
-            ret[i] = s ? s[int32_t{off.y()} * int32_t{side} + off.x()] : nullptr;
+            ret[i] = s ? s[i32{off.y()} * i32{side} + off.x()] : nullptr;
         }
     }
     else

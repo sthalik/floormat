@@ -156,7 +156,7 @@ void world::clear()
 
 void world::collect(bool force, bool quiet)
 {
-    size_t len0 = 0, deleted = 0;
+    usize len0 = 0, deleted = 0;
     chunk* c = _head;
     while (c)
     {
@@ -174,9 +174,9 @@ void world::collect(bool force, bool quiet)
         fm_debug("world: collected %zu/%zu chunks", deleted, len0);
 }
 
-size_t world::size() const noexcept
+usize world::size() const noexcept
 {
-    size_t n = 0;
+    usize n = 0;
     for (const chunk* c = _head; c; c = c->_next)
         n++;
     return n;
@@ -258,12 +258,12 @@ void world::set_object_counter(object_id value)
 
 void world::throw_on_wrong_object_type(object_id id, object_type actual, object_type expected)
 {
-    fm_throw("object {} has wrong object type {}, should be {}", id, (size_t)actual, (size_t)expected);
+    fm_throw("object {} has wrong object type {}, should be {}", id, (usize)actual, (usize)expected);
 }
 
 void world::throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected)
 {
-    fm_throw("object {} has wrong scenery type {}, should be {}", id, (size_t)actual, (size_t)expected);
+    fm_throw("object {} has wrong scenery type {}, should be {}", id, (usize)actual, (usize)expected);
 }
 
 void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector2b offset)
@@ -300,7 +300,7 @@ void world::check_objects_in_sync() const
 {
 #ifndef FM_NO_DEBUG3
     // the count catches an object that chunk::remove_object() left in no chunk
-    uint64_t count = 0;
+    u64 count = 0;
     for (const auto& c : chunks())
         for (const object& e : c.objects())
         {
@@ -390,10 +390,10 @@ bptr<critter> world::ensure_player_character(object_id& id)
     return ensure_player_character(id, make_player_proto());
 }
 
-uint64_t world::frame_no() const { return _current_frame; }
-uint64_t world::increment_frame_no() { return _current_frame++; }
-uint64_t world::next_pass_gen() noexcept { return ++_pass_gen; }
-uint64_t world::pass_gen() const noexcept { return _pass_gen; }
+u64 world::frame_no() const { return _current_frame; }
+u64 world::increment_frame_no() { return _current_frame++; }
+u64 world::next_pass_gen() noexcept { return ++_pass_gen; }
+u64 world::pass_gen() const noexcept { return _pass_gen; }
 
 bptr<critter> world::ensure_player_character(object_id& id_, critter_proto p)
 {

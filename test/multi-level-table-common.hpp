@@ -16,9 +16,9 @@
 namespace floormat {
 
 template<mlt_params P>
-struct mlt_coord_traits<std::array<uint32_t, 3>, P>
+struct mlt_coord_traits<std::array<u32, 3>, P>
 {
-    static constexpr mlt_coords coords(const std::array<uint32_t, 3>& c) noexcept { return {{ c[0], c[1], c[2] }}; }
+    static constexpr mlt_coords coords(const std::array<u32, 3>& c) noexcept { return {{ c[0], c[1], c[2] }}; }
 };
 
 } // namespace floormat
@@ -27,16 +27,16 @@ namespace floormat::mlt_test {
 
 struct tracked
 {
-    static constexpr uint64_t act_flag = uint64_t{1} << 63;
-    static constexpr uint32_t key_bits = 40;
-    static uint32_t live;
-    static void (*hook)(uint32_t action, uint64_t key);
-    static void (*on_destroy)(uint64_t v);
+    static constexpr u64 act_flag = u64{1} << 63;
+    static constexpr u32 key_bits = 40;
+    static u32 live;
+    static void (*hook)(u32 action, u64 key);
+    static void (*on_destroy)(u64 v);
 
-    uint64_t v = 0;
+    u64 v = 0;
 
     tracked() noexcept = default;
-    explicit tracked(uint64_t v) noexcept : v{v} { live++; }
+    explicit tracked(u64 v) noexcept : v{v} { live++; }
     tracked(tracked&& other) noexcept : v{std::exchange(other.v, 0)} {}
     tracked& operator=(tracked&& other) noexcept
     {
@@ -56,7 +56,7 @@ struct tracked
         if (on_destroy)
             on_destroy(x);
         if (x & act_flag)
-            hook(uint32_t(x >> 61) & 3, x & ((uint64_t{1} << key_bits) - 1));
+            hook(u32(x >> 61) & 3, x & ((u64{1} << key_bits) - 1));
     }
 };
 
@@ -64,22 +64,22 @@ void test_bit_tables();
 void test_plane_tables();
 void test_space_tables();
 
-enum : uint32_t { act_erase, act_insert, act_clear, };
+enum : u32 { act_erase, act_insert, act_clear, };
 
 static_assert(!std::is_copy_constructible_v<tracked> && !std::is_copy_assignable_v<tracked>);
 
 // A value whose destructor calls tracked::hook. Bits 61..62 hold the action, 0..39 the key.
 // The tag in between keeps values unique.
-constexpr uint64_t act(uint32_t action, uint64_t key, uint64_t tag = 0)
+constexpr u64 act(u32 action, u64 key, u64 tag = 0)
 {
     fm_assert(!(key >> tracked::key_bits) && !(tag >> (61 - tracked::key_bits)));
-    return tracked::act_flag | uint64_t{action} << 61 | tag << tracked::key_bits | key;
+    return tracked::act_flag | u64{action} << 61 | tag << tracked::key_bits | key;
 }
 
 template<typename Table> Table* target = nullptr;
 
 template<typename Table>
-void act_on(uint32_t action, uint64_t key)
+void act_on(u32 action, u64 key)
 {
     Table& t = *target<Table>;
     switch (action)
@@ -281,7 +281,7 @@ constexpr inline mlt_params space_large_params = mlt_params{
     .free_empty = true,
 }.validate();
 
-using coord3 = std::array<uint32_t, 3>;
+using coord3 = std::array<u32, 3>;
 
 template<typename Table> constexpr inline mlt_params params_of = {};
 template<typename T, mlt_params P> constexpr inline mlt_params params_of<multi_level_table<T, P>> = P;
@@ -291,23 +291,23 @@ template<typename T, mlt_params P> constexpr inline mlt_params params_of<multi_l
 template<mlt_params P>
 struct key_layout
 {
-    uint8_t dim[64] = {}, bit[64] = {};
+    u8 dim[64] = {}, bit[64] = {};
 
     consteval key_layout()
     {
-        uint32_t below[3] = { P.dim_bits(0), P.dim_bits(1), P.dim_bits(2) };
-        uint32_t b = P.key_bits();
-        for (uint32_t i = 0; i < P.depth(); i++)
+        u32 below[3] = { P.dim_bits(0), P.dim_bits(1), P.dim_bits(2) };
+        u32 b = P.key_bits();
+        for (u32 i = 0; i < P.depth(); i++)
         {
             const mlt_bits& level = P.levels[i].bits;
-            for (uint32_t d = level.dims; d-- > 0; )
+            for (u32 d = level.dims; d-- > 0; )
             {
                 below[d] -= level.dim[d];
-                for (uint32_t j = level.dim[d]; j-- > 0; )
+                for (u32 j = level.dim[d]; j-- > 0; )
                 {
                     b--;
-                    dim[b] = uint8_t(d);
-                    bit[b] = uint8_t(below[d] + j);
+                    dim[b] = u8(d);
+                    bit[b] = u8(below[d] + j);
                 }
             }
         }
@@ -318,22 +318,22 @@ struct key_layout
 template<mlt_params P> constexpr inline key_layout<P> layout_of{};
 
 template<mlt_params P>
-constexpr uint64_t test_pack(coord3 c)
+constexpr u64 test_pack(coord3 c)
 {
-    constexpr uint32_t key_bits = P.key_bits();
-    uint64_t k = 0;
-    for (uint32_t b = 0; b < key_bits; b++)
-        k |= uint64_t{c[layout_of<P>.dim[b]] >> layout_of<P>.bit[b] & 1} << b;
+    constexpr u32 key_bits = P.key_bits();
+    u64 k = 0;
+    for (u32 b = 0; b < key_bits; b++)
+        k |= u64{c[layout_of<P>.dim[b]] >> layout_of<P>.bit[b] & 1} << b;
     return k;
 }
 
 template<mlt_params P>
-constexpr coord3 test_unpack(uint64_t k)
+constexpr coord3 test_unpack(u64 k)
 {
-    constexpr uint32_t key_bits = P.key_bits();
+    constexpr u32 key_bits = P.key_bits();
     coord3 c = {};
-    for (uint32_t b = 0; b < key_bits; b++)
-        c[layout_of<P>.dim[b]] |= uint32_t(k >> b & 1) << layout_of<P>.bit[b];
+    for (u32 b = 0; b < key_bits; b++)
+        c[layout_of<P>.dim[b]] |= u32(k >> b & 1) << layout_of<P>.bit[b];
     return c;
 }
 
@@ -353,7 +353,7 @@ consteval coord3 box_bits(mlt_params P)
 }
 
 template<typename Table, typename F>
-decltype(auto) at_coords(uint64_t k, F&& f)
+decltype(auto) at_coords(u64 k, F&& f)
 {
     const coord3 c = test_unpack<params_of<Table>>(k);
     fm_assert(test_pack<params_of<Table>>(c) == k);
@@ -362,24 +362,24 @@ decltype(auto) at_coords(uint64_t k, F&& f)
 }
 
 template<typename Table>
-constexpr bool packs_to(coord3 c, uint64_t k)
+constexpr bool packs_to(coord3 c, u64 k)
 {
     return Table::pack(c) == k && test_pack<params_of<Table>>(c) == k && test_unpack<params_of<Table>>(k) == c;
 }
 
-using chunk_like_table = multi_level_table<uint64_t, chunk_like_params>;
+using chunk_like_table = multi_level_table<u64, chunk_like_params>;
 using id_like_table = multi_level_table<tracked, id_like_params>;
-using split_table = multi_level_table<uint32_t, split_params>;
-using flat_table = multi_level_table<uint16_t, flat_params>;
-using deep_table = multi_level_table<uint64_t, deep_params>;
+using split_table = multi_level_table<u32, split_params>;
+using flat_table = multi_level_table<u16, flat_params>;
+using deep_table = multi_level_table<u64, deep_params>;
 using deep_tracked_table = multi_level_table<tracked, deep_params>;
 using no_pages_table = multi_level_table<tracked, no_pages_params>;
 using one_split_table = multi_level_table<tracked, one_split_params>;
-using one_entry_table = multi_level_table<uint64_t, one_entry_params>;
-using wide_table = multi_level_table<uint8_t, wide_params>;
+using one_entry_table = multi_level_table<u64, one_entry_params>;
+using wide_table = multi_level_table<u8, wide_params>;
 using bit_page_table = multi_level_table<tracked, bit_page_params>;
 using bit_flat_table = multi_level_table<tracked, bit_flat_params>;
-using bit_flat_int_table = multi_level_table<uint32_t, bit_flat_params>;
+using bit_flat_int_table = multi_level_table<u32, bit_flat_params>;
 using bit_pair_table = multi_level_table<tracked, bit_pair_params>;
 using bit_split_table = multi_level_table<tracked, bit_split_params>;
 using bit_triple_table = multi_level_table<tracked, bit_triple_params>;
@@ -397,10 +397,10 @@ using plane_no_y_table = multi_level_table<tracked, plane_no_y_params>;
 using plane_zero_table = multi_level_table<tracked, plane_zero_params>;
 using plane_zero_free_table = multi_level_table<tracked, plane_zero_free_params>;
 using plane_no_pages_table = multi_level_table<tracked, plane_no_pages_params>;
-using plane_wide_table = multi_level_table<uint8_t, plane_wide_params>;
+using plane_wide_table = multi_level_table<u8, plane_wide_params>;
 using space_free_table = multi_level_table<tracked, space_free_params>;
 using space_deep_table = multi_level_table<tracked, space_deep_params>;
-using space_deep_int_table = multi_level_table<uint32_t, space_deep_params>;
+using space_deep_int_table = multi_level_table<u32, space_deep_params>;
 using space_zero_free_table = multi_level_table<tracked, space_zero_free_params>;
 using space_no_pages_table = multi_level_table<tracked, space_no_pages_params>;
 using space_one_entry_table = multi_level_table<tracked, space_one_entry_params>;
@@ -412,17 +412,17 @@ constexpr bool move_only = !std::is_copy_constructible_v<Table> && !std::is_copy
                            std::is_nothrow_move_constructible_v<Table> && std::is_nothrow_move_assignable_v<Table>;
 
 template<typename Table>
-constexpr size_t top_bytes = sizeof(typename decltype(std::declval<const Table&>().raw_top())::Type) << Table::top_bits;
+constexpr usize top_bytes = sizeof(typename decltype(std::declval<const Table&>().raw_top())::Type) << Table::top_bits;
 
 template<typename Table>
-bool present(const Table& t, uint64_t key)
+bool present(const Table& t, u64 key)
 {
     const auto* s = t.find(key);
     return s && *s;
 }
 
-template<uint32_t zero_bits, typename Top>
-const auto& ref_at(const Top& top, uint64_t ti, uint64_t zi)
+template<u32 zero_bits, typename Top>
+const auto& ref_at(const Top& top, u64 ti, u64 zi)
 {
     if constexpr (zero_bits > 0)
     {
@@ -439,37 +439,37 @@ const auto& ref_at(const Top& top, uint64_t ti, uint64_t zi)
 }
 
 template<typename T, mlt_params P, typename Visit>
-uint64_t check_layers(const multi_level_table<T, P>& t, Visit&& visit)
+u64 check_layers(const multi_level_table<T, P>& t, Visit&& visit)
 {
     using Table = multi_level_table<T, P>;
     const auto top = t.raw_top();
-    uint64_t total = 0;
+    u64 total = 0;
 
     if constexpr (!Table::has_pages)
     {
-        for (uint32_t k = 0; k < top.size(); k++)
+        for (u32 k = 0; k < top.size(); k++)
             if (detail_mlt::occupied(top[k]))
             {
-                visit(uint64_t{k}, top[k]);
+                visit(u64{k}, top[k]);
                 total++;
             }
     }
     else
     {
-        constexpr uint32_t page_bits = Table::page_bits, zero_bits = Table::zero_bits;
-        constexpr uint32_t page_size = 1u << page_bits, zero_mask = (1u << zero_bits) - 1;
+        constexpr u32 page_bits = Table::page_bits, zero_bits = Table::zero_bits;
+        constexpr u32 page_size = 1u << page_bits, zero_mask = (1u << zero_bits) - 1;
 
         const auto pages = t.raw_pages();
-        for (uint32_t i = 0; i < pages.size(); i++)
+        for (u32 i = 0; i < pages.size(); i++)
         {
             const auto& rec = pages[i];
             fm_assert(rec.page && rec.page != t.raw_spare().page);
             fm_assert(detail_mlt::page_of(ref_at<zero_bits>(top, rec.top_index, rec.zero_index)) == rec.page);
-            for (uint32_t j = 0; j < i; j++)
+            for (u32 j = 0; j < i; j++)
                 fm_assert(pages[j].page != rec.page);
-            const uint64_t base = (uint64_t{rec.top_index} << zero_bits | rec.zero_index) << page_bits;
-            uint32_t n = 0;
-            for (uint32_t k = 0; k < page_size; k++)
+            const u64 base = (u64{rec.top_index} << zero_bits | rec.zero_index) << page_bits;
+            u32 n = 0;
+            for (u32 k = 0; k < page_size; k++)
                 if (detail_mlt::occupied(rec.page[k]))
                 {
                     visit(base | k, rec.page[k]);
@@ -483,7 +483,7 @@ uint64_t check_layers(const multi_level_table<T, P>& t, Visit&& visit)
             fm_assert(total == t.size());
 
         // with the checks above, every page in the top is in the directory once
-        uint32_t num_refs = 0;
+        u32 num_refs = 0;
         for (const auto& e : top)
         {
             if constexpr (zero_bits > 0)
@@ -493,8 +493,8 @@ uint64_t check_layers(const multi_level_table<T, P>& t, Visit&& visit)
                 if (e.side)
                 {
                     fm_assert(!detail_mlt::page_of(e.side[0]));
-                    uint32_t side_refs = 0;
-                    for (uint32_t z = 1; z <= zero_mask; z++)
+                    u32 side_refs = 0;
+                    for (u32 z = 1; z <= zero_mask; z++)
                         if (detail_mlt::page_of(e.side[z]))
                             side_refs++;
                     if constexpr (P.free_empty)
@@ -508,7 +508,7 @@ uint64_t check_layers(const multi_level_table<T, P>& t, Visit&& visit)
         fm_assert(num_refs == pages.size());
 
         if (const T* spare = t.raw_spare().page)
-            for (uint32_t k = 0; k < page_size; k++)
+            for (u32 k = 0; k < page_size; k++)
                 fm_assert(!detail_mlt::occupied(spare[k]));
     }
     return total;
@@ -516,14 +516,14 @@ uint64_t check_layers(const multi_level_table<T, P>& t, Visit&& visit)
 
 #if fm_ASAN
 template<typename U>
-void check_heap_array(const U* p, uint32_t n)
+void check_heap_array(const U* p, u32 n)
 {
-    const size_t bytes = size_t{n} * sizeof(U);
+    const usize bytes = usize{n} * sizeof(U);
     fm_assert(!__asan_region_is_poisoned(const_cast<U*>(p), bytes));
     // p + bytes can be the next chunk's first byte, which ASan doesn't always poison.
     // new[] puts an array cookie before p when U has a non-trivial destructor.
     void* begin = nullptr;
-    size_t size = 0;
+    usize size = 0;
     const char* kind = __asan_locate_address(const_cast<U*>(p), nullptr, 0, &begin, &size);
     fm_assert(kind && !std::strcmp(kind, "heap"));
     fm_assert(static_cast<const char*>(begin) + size == reinterpret_cast<const char*>(p) + bytes);
@@ -554,7 +554,7 @@ void check_heap_layers(const multi_level_table<T, P>& t)
 #endif
 
 template<typename T, mlt_params P>
-void check_layout(const multi_level_table<T, P>& t, size_t top_size_bytes, ArrayView<const uint64_t> keys)
+void check_layout(const multi_level_table<T, P>& t, usize top_size_bytes, ArrayView<const u64> keys)
 {
     using Table = multi_level_table<T, P>;
     const auto top = t.raw_top();
@@ -565,21 +565,21 @@ void check_layout(const multi_level_table<T, P>& t, size_t top_size_bytes, Array
     else
         fm_assert(!t.raw_top_alloc().ptr);
 
-    (void)check_layers(t, [](uint64_t, const T&) {});
+    (void)check_layers(t, [](u64, const T&) {});
 #if fm_ASAN
     check_heap_layers(t);
 #endif
 
     if constexpr (!Table::has_pages)
     {
-        for (uint64_t k : keys)
+        for (u64 k : keys)
             fm_assert(t.find(k) == &top[k] && top[k]);
     }
     else
     {
-        constexpr uint32_t page_bits = Table::page_bits, zero_bits = Table::zero_bits;
-        constexpr uint64_t page_mask = (uint64_t{1} << page_bits) - 1, zero_mask = (uint64_t{1} << zero_bits) - 1;
-        for (uint64_t k : keys)
+        constexpr u32 page_bits = Table::page_bits, zero_bits = Table::zero_bits;
+        constexpr u64 page_mask = (u64{1} << page_bits) - 1, zero_mask = (u64{1} << zero_bits) - 1;
+        for (u64 k : keys)
         {
             const T* s = t.find(k);
             fm_assert(s && *s);
@@ -589,9 +589,9 @@ void check_layout(const multi_level_table<T, P>& t, size_t top_size_bytes, Array
     }
 }
 
-enum class key_mode : uint8_t { uniform, walk, };
+enum class key_mode : u8 { uniform, walk, };
 
-enum class walk_type : uint8_t
+enum class walk_type : u8
 {
     none, simple, levy_flight, persistent, kinetic_growth, true_self_avoiding, loop_erased, vertex_reinforced,
     elephant, resetting, random_environment, excited, langton_ant, rotor_router, internal_dla, eden, retrace,
@@ -600,29 +600,29 @@ enum class walk_type : uint8_t
 
 struct random_params
 {
-    uint64_t seed = 0;
-    uint32_t ops = 0;
-    uint32_t top_size_bytes = 0;
+    u64 seed = 0;
+    u32 ops = 0;
+    u32 top_size_bytes = 0;
     key_mode mode = key_mode::uniform;
     walk_type walk = walk_type::none;
-    uint32_t walkers = 1;
-    uint32_t windows = 0, window_size = 0;
+    u32 walkers = 1;
+    u32 windows = 0, window_size = 0;
     bool hooks = false;
-    uint32_t check_every = 1024, clear_every = 20000, move_every = 5000;
-    uint32_t live_cap = (uint32_t)-1, page_cap = (uint32_t)-1;
+    u32 check_every = 1024, clear_every = 20000, move_every = 5000;
+    u32 live_cap = (u32)-1, page_cap = (u32)-1;
 };
 
-inline uint32_t below(Random::xoshiro256starstar& rng, uint32_t n)
+inline u32 below(Random::xoshiro256starstar& rng, u32 n)
 {
-    return uint32_t((Random::next(rng) >> 32) * n >> 32);
+    return u32((Random::next(rng) >> 32) * n >> 32);
 }
 
-constexpr uint64_t low_mask(uint32_t bits)
+constexpr u64 low_mask(u32 bits)
 {
-    return bits ? ~uint64_t{0} >> (64 - bits) : 0;
+    return bits ? ~u64{0} >> (64 - bits) : 0;
 }
 
-constexpr uint64_t mix64(uint64_t x)
+constexpr u64 mix64(u64 x)
 {
     x = (x ^ x >> 30) * 0xbf58476d1ce4e5b9;
     x = (x ^ x >> 27) * 0x94d049bb133111eb;
@@ -636,66 +636,66 @@ class random_run
     using T = std::remove_cvref_t<decltype(*std::declval<const Table&>().find(0))>;
     static constexpr bool is_tracked = std::is_same_v<T, tracked>;
     static constexpr bool free_empty = requires (const Table& t) { t.size(); };
-    static constexpr uint32_t page_bits = Table::page_bits, zero_bits = Table::zero_bits;
-    static constexpr uint64_t zero_mask = (uint64_t{1} << zero_bits) - 1;
-    static constexpr uint64_t key_mask = ~uint64_t{0} >> (64 - Table::key_bits);
-    static constexpr uint64_t walk_budget = 256;
-    static constexpr uint32_t dims = Table::dims, dirs = 2 * dims;
+    static constexpr u32 page_bits = Table::page_bits, zero_bits = Table::zero_bits;
+    static constexpr u64 zero_mask = (u64{1} << zero_bits) - 1;
+    static constexpr u64 key_mask = ~u64{0} >> (64 - Table::key_bits);
+    static constexpr u64 walk_budget = 256;
+    static constexpr u32 dims = Table::dims, dirs = 2 * dims;
     static constexpr coord3 site_bits = coord_bits(params_of<Table>), box = box_bits(params_of<Table>);
     // On a 1D table Langton's ant walks a grid folded into the key, x in the low half of its bits.
-    static constexpr uint32_t ant_x_bits = dims == 1 ? Table::key_bits / 2 : site_bits[0];
-    static constexpr uint32_t ant_y_bits = dims == 1 ? Table::key_bits - ant_x_bits : site_bits[1];
+    static constexpr u32 ant_x_bits = dims == 1 ? Table::key_bits / 2 : site_bits[0];
+    static constexpr u32 ant_y_bits = dims == 1 ? Table::key_bits - ant_x_bits : site_bits[1];
 
-    using point = std::array<uint64_t, 3>;
-    struct entry { uint64_t v; const T* slot; uint32_t pos; };
+    using point = std::array<u64, 3>;
+    struct entry { u64 v; const T* slot; u32 pos; };
     // path holds key << 1 | owned. Only the walker that inserted a key erases it.
     struct walker
     {
         point at = {};
-        uint32_t leg = 0;
+        u32 leg = 0;
         bool returning = false;
-        Array<uint64_t> path;
+        Array<u64> path;
     };
 
     static inline random_run* current = nullptr;
 
     const random_params& p;
     Random::xoshiro256starstar rng;
-    uint64_t serial = 0;
-    gtl::flat_hash_map<uint64_t, entry> ref;
-    Array<uint64_t> keys;
-    gtl::flat_hash_map<uint64_t, uint32_t> buckets;
-    gtl::flat_hash_map<uint64_t, uint32_t> sides;
+    u64 serial = 0;
+    gtl::flat_hash_map<u64, entry> ref;
+    Array<u64> keys;
+    gtl::flat_hash_map<u64, u32> buckets;
+    gtl::flat_hash_map<u64, u32> sides;
     bool spare = false;
     // clear() destroys each value as its scan reaches it, so a hook sees the values
     // not reached yet still present. The table stays a subset of ref.
-    uint32_t clearing = 0;
+    u32 clearing = 0;
     // value -> key of each tracked value in the table. Destructors update it, so it stays exact
     // while ref is stale during clear().
-    gtl::flat_hash_map<uint64_t, uint64_t> where;
-    uint32_t destroyed = 0;
-    Array<uint64_t> bases;
-    uint32_t walk_pos = 0;
+    gtl::flat_hash_map<u64, u64> where;
+    u32 destroyed = 0;
+    Array<u64> bases;
+    u32 walk_pos = 0;
     point at = {}, home = {};
-    uint32_t heading = 0, leg = 0;
+    u32 heading = 0, leg = 0;
     bool returning = false;
-    Array<uint8_t> steps;
-    Array<uint64_t> path, perimeter;
-    gtl::flat_hash_map<uint64_t, uint32_t> per_site;
+    Array<u8> steps;
+    Array<u64> path, perimeter;
+    gtl::flat_hash_map<u64, u32> per_site;
     Array<walker> walkers;
     // one bit per key: set while some walker owns the key, so the table must hold it
-    Array<uint64_t> shadow, seen;
+    Array<u64> shadow, seen;
     Table t;
 
-    static uint64_t value_of(const T& x)
+    static u64 value_of(const T& x)
     {
         if constexpr (is_tracked)
             return x.v;
         else
-            return uint64_t{x};
+            return u64{x};
     }
 
-    const T* table_find(uint64_t k) const
+    const T* table_find(u64 k) const
     {
         if constexpr (Table::dims == 1)
             return t.find(k);
@@ -707,7 +707,7 @@ class random_run
         }
     }
 
-    bool table_insert(uint64_t k, T value)
+    bool table_insert(u64 k, T value)
     {
         if constexpr (Table::dims == 1)
             return t.insert(k, move(value));
@@ -715,7 +715,7 @@ class random_run
             return at_coords<Table>(k, [&](auto... c) { return t.insert(c..., move(value)); });
     }
 
-    T table_erase(uint64_t k)
+    T table_erase(u64 k)
     {
         if constexpr (Table::dims == 1)
             return t.erase(k);
@@ -723,7 +723,7 @@ class random_run
             return at_coords<Table>(k, [&](auto... c) { return t.erase(c...); });
     }
 
-    static void hook(uint32_t action, uint64_t key)
+    static void hook(u32 action, u64 key)
     {
         random_run& r = *current;
         switch (action)
@@ -741,19 +741,19 @@ class random_run
         }
     }
 
-    static void on_destroy(uint64_t v)
+    static void on_destroy(u64 v)
     {
         random_run& r = *current;
         if (const auto it = r.where.find(v); it != r.where.end())
         {
-            const uint64_t k = it->second;
+            const u64 k = it->second;
             r.where.erase(it);
             r.check_bucket(k);
         }
         fm_assert(r.where.size() == tracked::live);
         if constexpr (free_empty)
             fm_assert(r.t.size() == tracked::live);
-        const uint64_t cost = (uint64_t{1} << Table::top_bits) + (uint64_t{r.t.page_count()} << page_bits);
+        const u64 cost = (u64{1} << Table::top_bits) + (u64{r.t.page_count()} << page_bits);
         if (++r.destroyed * walk_budget >= cost)
         {
             r.destroyed = 0;
@@ -761,20 +761,20 @@ class random_run
         }
     }
 
-    void check_bucket(uint64_t k)
+    void check_bucket(u64 k)
     {
         const auto top = t.raw_top();
         if constexpr (!Table::has_pages)
             fm_assert(!top[k]);
         else if constexpr (page_bits <= 10)
         {
-            const uint64_t ti = k >> (page_bits + zero_bits), zi = k >> page_bits & zero_mask;
+            const u64 ti = k >> (page_bits + zero_bits), zi = k >> page_bits & zero_mask;
             const auto& e = top[ti];
             if constexpr (zero_bits > 0)
                 if (e.side)
                 {
-                    uint32_t side_refs = 0;
-                    for (uint32_t z = 1; z <= zero_mask; z++)
+                    u32 side_refs = 0;
+                    for (u32 z = 1; z <= zero_mask; z++)
                         if (detail_mlt::page_of(e.side[z]))
                             side_refs++;
                     if constexpr (free_empty)
@@ -789,9 +789,9 @@ class random_run
             const T* page = ref ? detail_mlt::page_of(*ref) : nullptr;
             if (!page)
                 return;
-            const uint64_t base = k >> page_bits << page_bits;
-            uint32_t n = 0;
-            for (uint32_t i = 0; i < 1u << page_bits; i++)
+            const u64 base = k >> page_bits << page_bits;
+            u32 n = 0;
+            for (u32 i = 0; i < 1u << page_bits; i++)
                 if (page[i])
                 {
                     const auto it = where.find(value_of(page[i]));
@@ -806,7 +806,7 @@ class random_run
     // No other tracked value is outside the table while one is destroyed.
     void check_where(bool keys)
     {
-        const uint64_t n = check_layers(t, [&](uint64_t k, const T& x) {
+        const u64 n = check_layers(t, [&](u64 k, const T& x) {
             if (!keys)
                 return;
             const auto it = where.find(value_of(x));
@@ -815,10 +815,10 @@ class random_run
         fm_assert(n == where.size() && n == tracked::live);
     }
 
-    uint64_t next_plain()
+    u64 next_plain()
     {
-        const uint64_t v = ++serial;
-        if constexpr (!is_tracked && sizeof(T) < sizeof(uint64_t))
+        const u64 v = ++serial;
+        if constexpr (!is_tracked && sizeof(T) < sizeof(u64))
         {
             fm_assert(v <= limits<T>::max);
             static_assert(std::is_integral_v<T>);
@@ -826,52 +826,52 @@ class random_run
         return v;
     }
 
-    uint64_t window_key(uint32_t i) const
+    u64 window_key(u32 i) const
     {
         return bases[i / p.window_size] + i % p.window_size;
     }
 
     void make_bases()
     {
-        const uint32_t w = p.window_size;
+        const u32 w = p.window_size;
         fm_assert(p.windows >= 2 && w > 0);
         if constexpr (Table::has_pages)
             fm_assert(w <= 1u << (page_bits - 1));
-        const uint64_t last = key_mask - (w - 1);
+        const u64 last = key_mask - (w - 1);
         arrayReserve(bases, p.windows);
-        arrayAppend(bases, uint64_t{0});
+        arrayAppend(bases, u64{0});
         arrayAppend(bases, last);
-        for (uint32_t i = 2; i < p.windows; i++)
+        for (u32 i = 2; i < p.windows; i++)
         {
-            const uint32_t shift = page_bits + (i % 2 ? zero_bits : 0);
-            const uint64_t b = i == 2 ? uint64_t{1} << shift : (Random::next(rng) & key_mask) >> shift << shift;
-            const uint64_t base = b < w / 2 ? 0 : b - w / 2;
+            const u32 shift = page_bits + (i % 2 ? zero_bits : 0);
+            const u64 b = i == 2 ? u64{1} << shift : (Random::next(rng) & key_mask) >> shift << shift;
+            const u64 base = b < w / 2 ? 0 : b - w / 2;
             arrayAppend(bases, base < last ? base : last);
         }
     }
 
-    uint64_t present_key()
+    u64 present_key()
     {
-        return keys[below(rng, (uint32_t)keys.size())];
+        return keys[below(rng, (u32)keys.size())];
     }
 
-    uint64_t fresh_key()
+    u64 fresh_key()
     {
         if (p.mode == key_mode::walk)
             return window_key(below(rng, p.windows * p.window_size));
         return Random::next(rng) & key_mask;
     }
 
-    uint64_t pick_key(bool ins)
+    u64 pick_key(bool ins)
     {
         if (p.mode == key_mode::walk)
         {
-            const uint32_t n = p.windows * p.window_size;
-            const uint64_t r = Random::next(rng);
+            const u32 n = p.windows * p.window_size;
+            const u64 r = Random::next(rng);
             if (r % 64 == 0)
-                walk_pos = uint32_t((r >> 32) * n >> 32);
+                walk_pos = u32((r >> 32) * n >> 32);
             else
-                walk_pos = (walk_pos + n - 8 + uint32_t(r >> 8) % 17) % n;
+                walk_pos = (walk_pos + n - 8 + u32(r >> 8) % 17) % n;
             return window_key(walk_pos);
         }
         if constexpr (Table::key_bits > 16)
@@ -880,24 +880,24 @@ class random_run
         return fresh_key();
     }
 
-    uint64_t make_value(uint64_t k)
+    u64 make_value(u64 k)
     {
         if constexpr (is_tracked)
             if (p.hooks && Random::next(rng) % 8 == 0)
             {
-                const uint64_t r = Random::next(rng);
-                const uint32_t action = r % 64 == 0 ? act_clear : r >> 6 & 1 ? act_erase : act_insert;
-                const uint64_t which = r >> 7 & 7;
-                const uint64_t key = which == 0 ? k : which < 4 && !keys.isEmpty() ? present_key() : fresh_key();
-                return act(action, key, serial++ & ((uint64_t{1} << (61 - tracked::key_bits)) - 1));
+                const u64 r = Random::next(rng);
+                const u32 action = r % 64 == 0 ? act_clear : r >> 6 & 1 ? act_erase : act_insert;
+                const u64 which = r >> 7 & 7;
+                const u64 key = which == 0 ? k : which < 4 && !keys.isEmpty() ? present_key() : fresh_key();
+                return act(action, key, serial++ & ((u64{1} << (61 - tracked::key_bits)) - 1));
             }
         return next_plain();
     }
 
-    void ref_add(uint64_t k, uint64_t v, const T* slot)
+    void ref_add(u64 k, u64 v, const T* slot)
     {
         fm_assert(slot);
-        const bool added = ref.try_emplace(k, entry{v, slot, (uint32_t)keys.size()}).second;
+        const bool added = ref.try_emplace(k, entry{v, slot, (u32)keys.size()}).second;
         fm_assert(added);
         arrayAppend(keys, k);
         if constexpr (Table::has_pages)
@@ -913,11 +913,11 @@ class random_run
         }
     }
 
-    void ref_remove(uint64_t k)
+    void ref_remove(u64 k)
     {
         const auto it = ref.find(k);
         fm_assert(it != ref.end());
-        const uint32_t i = it->second.pos, last = (uint32_t)keys.size() - 1;
+        const u32 i = it->second.pos, last = (u32)keys.size() - 1;
         ref.erase(it);
         if (i != last)
         {
@@ -956,7 +956,7 @@ class random_run
     }
 
     // a failed insert destroys the value after insert() returns, and its hook may change ref
-    void insert(uint64_t k, uint64_t v)
+    void insert(u64 k, u64 v)
     {
         const bool before = ref.contains(k);
         const bool ok = table_insert(k, T(v));
@@ -977,9 +977,9 @@ class random_run
         }
     }
 
-    void erase(uint64_t k)
+    void erase(u64 k)
     {
-        uint64_t expected = 0;
+        u64 expected = 0;
         if (const auto it = ref.find(k); it != ref.end())
         {
             expected = it->second.v;
@@ -1002,7 +1002,7 @@ class random_run
         if constexpr (free_empty && !std::is_trivially_destructible_v<T>)
             spare = spare || had_pages;
         ref_clear();
-        for (uint64_t& x : shadow)
+        for (u64& x : shadow)
             x = 0;
         for (walker& w : walkers)
         {
@@ -1011,7 +1011,7 @@ class random_run
         }
     }
 
-    void check_key(uint64_t k) const
+    void check_key(u64 k) const
     {
         const T* s = table_find(k);
         if (const auto it = ref.find(k); it != ref.end())
@@ -1022,30 +1022,30 @@ class random_run
 
     void check_absent()
     {
-        const auto absent = [&](uint64_t k) {
+        const auto absent = [&](u64 k) {
             if (!ref.contains(k))
                 fm_assert(!present(t, k));
         };
         if (p.mode == key_mode::walk)
         {
-            for (uint32_t i = 0; i < p.windows * p.window_size; i++)
+            for (u32 i = 0; i < p.windows * p.window_size; i++)
                 absent(window_key(i));
         }
         else if constexpr (Table::key_bits <= 18)
         {
-            for (uint64_t k = 0; k <= key_mask; k++)
+            for (u64 k = 0; k <= key_mask; k++)
                 absent(k);
         }
         else
         {
-            for (uint64_t k : keys)
+            for (u64 k : keys)
             {
                 if (k > 0)
                     absent(k - 1);
                 if (k < key_mask)
                     absent(k + 1);
             }
-            for (uint32_t i = 0; i < 256; i++)
+            for (u32 i = 0; i < 256; i++)
                 absent(Random::next(rng) & key_mask);
         }
     }
@@ -1053,15 +1053,15 @@ class random_run
     void check()
     {
         const auto top = t.raw_top();
-        uint64_t n = 0;
-        const auto visit = [&](uint64_t k, const T& x) {
+        u64 n = 0;
+        const auto visit = [&](u64 k, const T& x) {
             const auto it = ref.find(k);
             fm_assert(it != ref.end() && it->second.v == value_of(x) && it->second.slot == &x);
             n++;
         };
         if constexpr (!Table::has_pages)
         {
-            for (uint32_t k = 0; k < top.size(); k++)
+            for (u32 k = 0; k < top.size(); k++)
                 if (top[k])
                     visit(k, top[k]);
         }
@@ -1070,9 +1070,9 @@ class random_run
             fm_assert(t.page_count() == buckets.size());
             for (const auto& rec : t.raw_pages())
             {
-                const uint64_t bucket = uint64_t{rec.top_index} << zero_bits | rec.zero_index;
-                uint32_t live = 0;
-                for (uint32_t i = 0; i < 1u << page_bits; i++)
+                const u64 bucket = u64{rec.top_index} << zero_bits | rec.zero_index;
+                u32 live = 0;
+                for (u32 i = 0; i < 1u << page_bits; i++)
                     if (rec.page[i])
                     {
                         visit(bucket << page_bits | i, rec.page[i]);
@@ -1083,8 +1083,8 @@ class random_run
             }
             if constexpr (zero_bits > 0)
             {
-                uint32_t num_sides = 0;
-                for (uint32_t i = 0; i < top.size(); i++)
+                u32 num_sides = 0;
+                for (u32 i = 0; i < top.size(); i++)
                     if (top[i].side)
                     {
                         const auto s = sides.find(i);
@@ -1116,13 +1116,13 @@ class random_run
             check_owners();
     }
 
-    bool phase_insert(uint32_t op)
+    bool phase_insert(u32 op)
     {
-        const uint32_t insert_fifths = op / 2000 % 2 ? 1 : 4;
+        const u32 insert_fifths = op / 2000 % 2 ? 1 : 4;
         return Random::next(rng) % 5 < insert_fifths && keys.size() < p.live_cap;
     }
 
-    void touch(uint64_t k, bool ins)
+    void touch(u64 k, bool ins)
     {
         if (ins)
             insert(k, make_value(k));
@@ -1135,7 +1135,7 @@ class random_run
     {
         while (!keys.isEmpty())
         {
-            const uint64_t k = present_key();
+            const u64 k = present_key();
             erase(k);
             check_key(k);
         }
@@ -1150,15 +1150,15 @@ class random_run
         }
     }
 
-    uint64_t key_at(const point& s) const
+    u64 key_at(const point& s) const
     {
         if constexpr (dims == 1)
             return s[0];
         else
-            return test_pack<params_of<Table>>({uint32_t(s[0]), uint32_t(s[1]), uint32_t(s[2])});
+            return test_pack<params_of<Table>>({u32(s[0]), u32(s[1]), u32(s[2])});
     }
 
-    point point_of(uint64_t k) const
+    point point_of(u64 k) const
     {
         if constexpr (dims == 1)
             return {k, 0, 0};
@@ -1169,19 +1169,19 @@ class random_run
         }
     }
 
-    static point moved(point s, uint32_t dir, uint64_t n = 1)
+    static point moved(point s, u32 dir, u64 n = 1)
     {
-        const uint32_t d = dir / 2;
+        const u32 d = dir / 2;
         s[d] = (dir & 1 ? s[d] - n : s[d] + n) & low_mask(site_bits[d]);
         return s;
     }
 
-    static uint64_t torus_distance(const point& a, const point& b)
+    static u64 torus_distance(const point& a, const point& b)
     {
-        uint64_t n = 0;
-        for (uint32_t d = 0; d < dims; d++)
+        u64 n = 0;
+        for (u32 d = 0; d < dims; d++)
         {
-            const uint64_t m = low_mask(site_bits[d]), x = (a[d] - b[d]) & m, y = (b[d] - a[d]) & m;
+            const u64 m = low_mask(site_bits[d]), x = (a[d] - b[d]) & m, y = (b[d] - a[d]) & m;
             n += x < y ? x : y;
         }
         return n;
@@ -1190,7 +1190,7 @@ class random_run
     point random_point()
     {
         point s = {};
-        for (uint32_t d = 0; d < dims; d++)
+        for (u32 d = 0; d < dims; d++)
             s[d] = Random::next(rng) & low_mask(site_bits[d]);
         return s;
     }
@@ -1198,33 +1198,33 @@ class random_run
     point page_corner()
     {
         point s = random_point();
-        for (uint32_t d = 0; d < dims; d++)
+        for (u32 d = 0; d < dims; d++)
             s[d] &= ~low_mask(box[d]);
         return s;
     }
 
-    uint32_t pick_weighted(const uint32_t (&w)[6])
+    u32 pick_weighted(const u32 (&w)[6])
     {
-        uint32_t sum = 0, i = 0;
-        for (uint32_t dir = 0; dir < dirs; dir++)
+        u32 sum = 0, i = 0;
+        for (u32 dir = 0; dir < dirs; dir++)
             sum += w[dir];
-        for (uint32_t r = below(rng, sum); r >= w[i]; i++)
+        for (u32 r = below(rng, sum); r >= w[i]; i++)
             r -= w[i];
         return i;
     }
 
-    uint32_t visits(uint64_t k) const
+    u32 visits(u64 k) const
     {
         const auto it = per_site.find(k);
         return it != per_site.end() ? it->second : 0;
     }
 
-    uint32_t grow_cap() const
+    u32 grow_cap() const
     {
         if constexpr (dims == 1)
             return 24;
         else
-            return key_mask / 4 < 256 ? uint32_t(key_mask / 4 + 1) : 256;
+            return key_mask / 4 < 256 ? u32(key_mask / 4 + 1) : 256;
     }
 
     void walk_begin()
@@ -1237,8 +1237,8 @@ class random_run
         else if (p.walk == walk_type::retrace)
         {
             fm_assert(Table::key_bits <= 20 && p.walkers > 0);
-            shadow = Array<uint64_t>{ValueInit, size_t(key_mask >> 6) + 1};
-            seen = Array<uint64_t>{ValueInit, size_t(key_mask >> 6) + 1};
+            shadow = Array<u64>{ValueInit, usize(key_mask >> 6) + 1};
+            seen = Array<u64>{ValueInit, usize(key_mask >> 6) + 1};
             walkers = Array<walker>{ValueInit, p.walkers};
             for (walker& w : walkers)
                 w.at = random_point();
@@ -1253,8 +1253,8 @@ class random_run
             touch(key_at(at), true);
             return;
         }
-        uint32_t open[6], n = 0;
-        for (uint32_t dir = 0; dir < dirs; dir++)
+        u32 open[6], n = 0;
+        for (u32 dir = 0; dir < dirs; dir++)
             if (!ref.contains(key_at(moved(at, dir))))
                 open[n++] = dir;
         if (!n)
@@ -1276,13 +1276,13 @@ class random_run
             touch(key_at(at), true);
         }
         at = moved(at, below(rng, dirs));
-        const uint64_t k = key_at(at);
+        const u64 k = key_at(at);
         if (const auto it = per_site.find(k); it != per_site.end())
         {
-            const uint32_t keep = it->second + 1;
+            const u32 keep = it->second + 1;
             while (path.size() > keep)
             {
-                const uint64_t j = path.back();
+                const u64 j = path.back();
                 arrayRemoveSuffix(path, 1);
                 per_site.erase(j);
                 touch(j, false);
@@ -1290,7 +1290,7 @@ class random_run
         }
         else
         {
-            per_site[k] = (uint32_t)path.size();
+            per_site[k] = (u32)path.size();
             arrayAppend(path, k);
             touch(k, true);
         }
@@ -1298,11 +1298,11 @@ class random_run
 
     void langton_ant_step()
     {
-        const uint64_t k = dims == 1 ? at[0] | at[1] << ant_x_bits : key_at(at);
+        const u64 k = dims == 1 ? at[0] | at[1] << ant_x_bits : key_at(at);
         const bool black = ref.contains(k);
         heading = (heading + (black ? 3 : 1)) % 4;
         touch(k, !black);
-        const uint32_t d = heading % 2;
+        const u32 d = heading % 2;
         at[d] = (heading & 2 ? at[d] - 1 : at[d] + 1) & low_mask(d ? ant_y_bits : ant_x_bits);
     }
 
@@ -1334,8 +1334,8 @@ class random_run
         }
         else
         {
-            const uint32_t i = below(rng, (uint32_t)perimeter.size());
-            const uint64_t k = perimeter[i];
+            const u32 i = below(rng, (u32)perimeter.size());
+            const u64 k = perimeter[i];
             per_site.erase(k);
             if (i + 1 != perimeter.size())
             {
@@ -1347,27 +1347,27 @@ class random_run
         }
         if (!ref.contains(key_at(at)))
             touch(key_at(at), true);
-        for (uint32_t dir = 0; dir < dirs; dir++)
+        for (u32 dir = 0; dir < dirs; dir++)
         {
-            const uint64_t k = key_at(moved(at, dir));
-            if (!ref.contains(k) && per_site.try_emplace(k, (uint32_t)perimeter.size()).second)
+            const u64 k = key_at(moved(at, dir));
+            if (!ref.contains(k) && per_site.try_emplace(k, (u32)perimeter.size()).second)
                 arrayAppend(perimeter, k);
         }
     }
 
-    static bool bit(const Array<uint64_t>& a, uint64_t k)
+    static bool bit(const Array<u64>& a, u64 k)
     {
         return (a[k >> 6] >> (k & 63) & 1) != 0;
     }
 
-    static void flip(Array<uint64_t>& a, uint64_t k)
+    static void flip(Array<u64>& a, u64 k)
     {
-        a[k >> 6] ^= uint64_t{1} << (k & 63);
+        a[k >> 6] ^= u64{1} << (k & 63);
     }
 
     void retrace_visit(walker& w)
     {
-        const uint64_t k = key_at(w.at);
+        const u64 k = key_at(w.at);
         const bool own = !bit(shadow, k);
         fm_assert(own == !ref.contains(k));
         if (own)
@@ -1377,12 +1377,12 @@ class random_run
         }
         else
             check_key(k);
-        arrayAppend(w.path, k << 1 | uint64_t{own});
+        arrayAppend(w.path, k << 1 | u64{own});
     }
 
     void retrace_back(walker& w)
     {
-        const uint64_t e = w.path.back(), k = e >> 1;
+        const u64 e = w.path.back(), k = e >> 1;
         arrayRemoveSuffix(w.path, 1);
         if (e & 1)
         {
@@ -1400,7 +1400,7 @@ class random_run
 
     void retrace_step()
     {
-        walker& w = walkers[below(rng, (uint32_t)walkers.size())];
+        walker& w = walkers[below(rng, (u32)walkers.size())];
         if (w.returning)
         {
             retrace_back(w);
@@ -1416,7 +1416,7 @@ class random_run
         {
             w.leg = 64 + below(rng, 961);
             if (walkers.size() > 1 && below(rng, 4) == 0)
-                w.at = walkers[below(rng, (uint32_t)walkers.size())].at;
+                w.at = walkers[below(rng, (u32)walkers.size())].at;
             retrace_visit(w);
         }
         w.at = moved(w.at, below(rng, dirs));
@@ -1426,14 +1426,14 @@ class random_run
 
     void retrace_finish()
     {
-        Array<uint32_t> busy;
+        Array<u32> busy;
         arrayReserve(busy, walkers.size());
-        for (uint32_t i = 0; i < walkers.size(); i++)
+        for (u32 i = 0; i < walkers.size(); i++)
             if (!walkers[i].path.isEmpty())
                 arrayAppend(busy, i);
         while (!busy.isEmpty())
         {
-            const uint32_t i = below(rng, (uint32_t)busy.size());
+            const u32 i = below(rng, (u32)busy.size());
             walker& w = walkers[busy[i]];
             retrace_back(w);
             if (w.path.isEmpty())
@@ -1443,23 +1443,23 @@ class random_run
             }
         }
         fm_assert(keys.isEmpty());
-        for (uint64_t x : shadow)
+        for (u64 x : shadow)
             fm_assert(!x);
         drain();
     }
 
     void check_owners()
     {
-        for (uint64_t k = 0; k <= key_mask; k++)
+        for (u64 k = 0; k <= key_mask; k++)
             fm_assert(bit(shadow, k) == ref.contains(k));
-        for (uint64_t& x : seen)
+        for (u64& x : seen)
             x = 0;
-        uint64_t owned = 0;
+        u64 owned = 0;
         for (const walker& w : walkers)
-            for (uint64_t e : w.path)
+            for (u64 e : w.path)
                 if (e & 1)
                 {
-                    const uint64_t k = e >> 1;
+                    const u64 k = e >> 1;
                     fm_assert(bit(shadow, k) && !bit(seen, k));
                     flip(seen, k);
                     owned++;
@@ -1467,7 +1467,7 @@ class random_run
         fm_assert(owned == keys.size());
     }
 
-    void walk_step(uint32_t op)
+    void walk_step(u32 op)
     {
         switch (p.walk)
         {
@@ -1478,9 +1478,9 @@ class random_run
             break;
         case walk_type::levy_flight: {
             // Pr(length >= l) = l^-1.5
-            const uint32_t dir = below(rng, dirs);
+            const u32 dir = below(rng, dirs);
             const double u = double((Random::next(rng) >> 11) + 1) * 0x1p-53;
-            at = moved(at, dir, uint64_t(std::pow(u, -1 / 1.5)));
+            at = moved(at, dir, u64(std::pow(u, -1 / 1.5)));
             break;
         }
         case walk_type::persistent:
@@ -1492,10 +1492,10 @@ class random_run
             kinetic_growth_step();
             return;
         case walk_type::true_self_avoiding: {
-            uint32_t w[6] = {};
-            for (uint32_t dir = 0; dir < dirs; dir++)
+            u32 w[6] = {};
+            for (u32 dir = 0; dir < dirs; dir++)
             {
-                const uint32_t n = visits(key_at(moved(at, dir)));
+                const u32 n = visits(key_at(moved(at, dir)));
                 w[dir] = 1u << (20 - (n < 20 ? n : 20));
             }
             at = moved(at, pick_weighted(w));
@@ -1506,8 +1506,8 @@ class random_run
             loop_erased_step();
             return;
         case walk_type::vertex_reinforced: {
-            uint32_t w[6] = {};
-            for (uint32_t dir = 0; dir < dirs; dir++)
+            u32 w[6] = {};
+            for (u32 dir = 0; dir < dirs; dir++)
                 w[dir] = 1 + visits(key_at(moved(at, dir)));
             at = moved(at, pick_weighted(w));
             per_site[key_at(at)]++;
@@ -1515,14 +1515,14 @@ class random_run
             return;
         }
         case walk_type::elephant: {
-            uint32_t dir = below(rng, dirs);
+            u32 dir = below(rng, dirs);
             if (!steps.isEmpty())
             {
-                const uint32_t past = steps[below(rng, (uint32_t)steps.size())];
-                const uint32_t other = below(rng, dirs - 1);
+                const u32 past = steps[below(rng, (u32)steps.size())];
+                const u32 other = below(rng, dirs - 1);
                 dir = below(rng, 10) < 9 ? past : other + (other >= past);
             }
-            arrayAppend(steps, uint8_t(dir));
+            arrayAppend(steps, u8(dir));
             at = moved(at, dir);
             break;
         }
@@ -1531,13 +1531,13 @@ class random_run
                 at = home;
             else
                 at = moved(at, below(rng, dirs));
-            const uint32_t insert_fifths = torus_distance(at, home) <= 3 ? 4 : 1;
+            const u32 insert_fifths = torus_distance(at, home) <= 3 ? 4 : 1;
             touch(key_at(at), Random::next(rng) % 5 < insert_fifths && keys.size() < p.live_cap);
             return;
         }
         case walk_type::random_environment: {
             // each site's bias is 4:1 up or down per dimension, with E[log ratio] = 0
-            const uint32_t d = below(rng, dims);
+            const u32 d = below(rng, dims);
             const bool up = (mix64(key_at(at) ^ p.seed) >> d & 1) != 0;
             const bool plus = below(rng, 5) < (up ? 4u : 1u);
             at = moved(at, d * 2 + !plus);
@@ -1545,7 +1545,7 @@ class random_run
         }
         case walk_type::excited: {
             const bool first = per_site.try_emplace(key_at(at), 1u).second;
-            uint32_t dir = below(rng, dirs);
+            u32 dir = below(rng, dirs);
             if (first && dir == 1 && (Random::next(rng) & 1))
                 dir = 0;
             at = moved(at, dir);
@@ -1555,8 +1555,8 @@ class random_run
             langton_ant_step();
             return;
         case walk_type::rotor_router: {
-            const uint64_t k = key_at(at);
-            const auto it = per_site.try_emplace(k, uint32_t(mix64(k ^ p.seed) % dirs)).first;
+            const u64 k = key_at(at);
+            const auto it = per_site.try_emplace(k, u32(mix64(k ^ p.seed) % dirs)).first;
             it->second = (it->second + 1) % dirs;
             at = moved(at, it->second);
             break;
@@ -1571,8 +1571,8 @@ class random_run
             retrace_step();
             return;
         case walk_type::page_corner_drift: {
-            const uint32_t d = below(rng, dims);
-            const uint64_t m = low_mask(box[d]), o = at[d] & m;
+            const u32 d = below(rng, dims);
+            const u64 m = low_mask(box[d]), o = at[d] & m;
             bool minus = (Random::next(rng) & 1) != 0;
             if (o != 0 && o != m && below(rng, 4) != 0)
                 minus = o <= m - o;
@@ -1595,14 +1595,14 @@ public:
             make_bases();
         if (p.walk != walk_type::none)
             walk_begin();
-        for (uint32_t op = 1; op <= p.ops; op++)
+        for (u32 op = 1; op <= p.ops; op++)
         {
             if (p.walk != walk_type::none)
                 walk_step(op);
             else
             {
                 const bool ins = phase_insert(op);
-                const uint64_t k = pick_key(ins);
+                const u64 k = pick_key(ins);
                 if (ins)
                     insert(k, make_value(k));
                 else
@@ -1633,12 +1633,12 @@ public:
 template<typename Table>
 void check_random(const random_params& p)
 {
-    static_assert(top_bytes<Table> == (size_t)(uint32_t)top_bytes<Table>);
+    static_assert(top_bytes<Table> == (usize)(u32)top_bytes<Table>);
     random_run<Table>{p}.run();
 }
 
 template<typename Table>
-void check_walk(uint64_t seed, walk_type walk, uint32_t ops = 3000)
+void check_walk(u64 seed, walk_type walk, u32 ops = 3000)
 {
     check_random<Table>({.seed = seed, .ops = ops, .top_size_bytes = top_bytes<Table>, .walk = walk,
                          .hooks = walk != walk_type::retrace, .check_every = 500, .move_every = 1000});
@@ -1646,28 +1646,28 @@ void check_walk(uint64_t seed, walk_type walk, uint32_t ops = 3000)
 
 // each walker makes about two round trips
 template<typename Table>
-void check_retrace(uint64_t seed, uint32_t walkers)
+void check_retrace(u64 seed, u32 walkers)
 {
     check_random<Table>({.seed = seed, .ops = walkers * 2200, .top_size_bytes = top_bytes<Table>,
                          .walk = walk_type::retrace, .walkers = walkers, .check_every = 500, .move_every = 1000});
 }
 
-constexpr random_params with(uint64_t seed, uint32_t top_size_bytes)
+constexpr random_params with(u64 seed, u32 top_size_bytes)
 {
     return { .seed = seed, .ops = 8000, .top_size_bytes = top_size_bytes, .hooks = true,
              .check_every = 512, .clear_every = 2000, .move_every = 1000 };
 }
 
 template<typename Table>
-void check_fill_block(uint64_t block, Random::xoshiro256starstar& rng)
+void check_fill_block(u64 block, Random::xoshiro256starstar& rng)
 {
     using T = std::remove_cvref_t<decltype(*std::declval<const Table&>().find(0))>;
     constexpr bool free_empty = requires (const Table& t) { t.size(); };
-    constexpr uint32_t bits = Table::has_pages ? Table::page_bits : Table::key_bits;
-    constexpr uint32_t n = 1u << bits, zero_bits = Table::zero_bits;
-    constexpr uint64_t last_block = (uint64_t{1} << (Table::key_bits - bits)) - 1;
-    const uint64_t base = block << bits;
-    const auto value = [](uint64_t k) {
+    constexpr u32 bits = Table::has_pages ? Table::page_bits : Table::key_bits;
+    constexpr u32 n = 1u << bits, zero_bits = Table::zero_bits;
+    constexpr u64 last_block = (u64{1} << (Table::key_bits - bits)) - 1;
+    const u64 base = block << bits;
+    const auto value = [](u64 k) {
         if constexpr (std::is_same_v<T, tracked>)
             return tracked{k + 1};
         else
@@ -1682,33 +1682,33 @@ void check_fill_block(uint64_t block, Random::xoshiro256starstar& rng)
         else
             return coord3{};
     }();
-    const auto key_of = [&](uint32_t i) -> uint64_t {
+    const auto key_of = [&](u32 i) -> u64 {
         if constexpr (Table::dims == 1)
             return base | i;
         else
         {
             coord3 c = origin;
-            for (uint32_t d = 0, shift = 0; d < Table::dims; shift += box[d], d++)
+            for (u32 d = 0, shift = 0; d < Table::dims; shift += box[d], d++)
                 c[d] += i >> shift & ((1u << box[d]) - 1);
             return test_pack<params_of<Table>>(c);
         }
     };
-    const auto insert = [&](uint64_t k) {
+    const auto insert = [&](u64 k) {
         if constexpr (Table::dims == 1)
             return t.insert(k, value(k));
         else
             return at_coords<Table>(k, [&](auto... c) { return t.insert(c..., value(k)); });
     };
-    const auto erase = [&](uint64_t k) {
+    const auto erase = [&](u64 k) {
         if constexpr (Table::dims == 1)
             return t.erase(k);
         else
             return at_coords<Table>(k, [&](auto... c) { return t.erase(c...); });
     };
 
-    for (uint32_t i = 0; i < n; i++)
+    for (u32 i = 0; i < n; i++)
         fm_assert(insert(key_of(i)));
-    const uint64_t found = check_layers(t, [&](uint64_t k, const T&) { fm_assert(k >> bits == block); });
+    const u64 found = check_layers(t, [&](u64 k, const T&) { fm_assert(k >> bits == block); });
     fm_assert(found == n);
     if (block > 0)
         fm_assert(!present(t, base - 1) && !present(t, base - n));
@@ -1721,7 +1721,7 @@ void check_fill_block(uint64_t block, Random::xoshiro256starstar& rng)
             const T* s = at_coords<Table>(test_pack<params_of<Table>>(c), [&](auto... xs) { return t.find(xs...); });
             fm_assert(!s || !*s);
         };
-        for (uint32_t d = 0; d < Table::dims; d++)
+        for (u32 d = 0; d < Table::dims; d++)
         {
             coord3 c = origin;
             if (origin[d] > 0)
@@ -1729,7 +1729,7 @@ void check_fill_block(uint64_t block, Random::xoshiro256starstar& rng)
                 c[d] = origin[d] - 1;
                 absent(c);
             }
-            if ((uint64_t{origin[d]} + (uint64_t{1} << box[d])) >> dim_bits[d] == 0)
+            if ((u64{origin[d]} + (u64{1} << box[d])) >> dim_bits[d] == 0)
             {
                 c[d] = origin[d] + (1u << box[d]);
                 absent(c);
@@ -1738,7 +1738,7 @@ void check_fill_block(uint64_t block, Random::xoshiro256starstar& rng)
     }
 
     [[maybe_unused]] const T* page = nullptr;
-    [[maybe_unused]] uint32_t ti = 0, zi = 0;
+    [[maybe_unused]] u32 ti = 0, zi = 0;
     if constexpr (Table::has_pages)
     {
         fm_assert(t.page_count() == 1);
@@ -1746,24 +1746,24 @@ void check_fill_block(uint64_t block, Random::xoshiro256starstar& rng)
         page = rec.page;
         ti = rec.top_index;
         zi = rec.zero_index;
-        fm_assert((uint64_t{ti} << zero_bits | zi) == block);
+        fm_assert((u64{ti} << zero_bits | zi) == block);
         const auto top = t.raw_top();
         if constexpr (zero_bits > 0)
-            for (uint32_t i = 0; i < top.size(); i++)
+            for (u32 i = 0; i < top.size(); i++)
                 fm_assert(!top[i].side == (i != ti || !zi));
         if constexpr (free_empty)
             fm_assert(ref_at<zero_bits>(top, ti, zi).live == n && t.size() == n);
     }
 
-    Array<uint32_t> order{NoInit, n};
-    for (uint32_t i = 0; i < n; i++)
+    Array<u32> order{NoInit, n};
+    for (u32 i = 0; i < n; i++)
     {
-        const uint32_t j = below(rng, i + 1);
+        const u32 j = below(rng, i + 1);
         if (j != i)
             order[i] = order[j];
         order[j] = i;
     }
-    for (uint32_t i = 0; i < n; i++)
+    for (u32 i = 0; i < n; i++)
     {
         const T got = erase(key_of(order[i]));
         fm_assert(got);
@@ -1773,7 +1773,7 @@ void check_fill_block(uint64_t block, Random::xoshiro256starstar& rng)
                 fm_assert(ref_at<zero_bits>(t.raw_top(), ti, zi).live == n - i - 1);
         }
     }
-    fm_assert(check_layers(t, [](uint64_t, const T&) {}) == 0);
+    fm_assert(check_layers(t, [](u64, const T&) {}) == 0);
     if constexpr (Table::has_pages)
     {
         if constexpr (free_empty)
@@ -1789,10 +1789,10 @@ void check_fill_block(uint64_t block, Random::xoshiro256starstar& rng)
 }
 
 template<typename Table>
-void check_fill(uint64_t seed)
+void check_fill(u64 seed)
 {
-    constexpr uint32_t bits = Table::has_pages ? Table::page_bits : Table::key_bits;
-    constexpr uint64_t last_block = (uint64_t{1} << (Table::key_bits - bits)) - 1;
+    constexpr u32 bits = Table::has_pages ? Table::page_bits : Table::key_bits;
+    constexpr u64 last_block = (u64{1} << (Table::key_bits - bits)) - 1;
     Random::xoshiro256starstar rng;
     Random::seed(rng, seed);
     check_fill_block<Table>(0, rng);
@@ -1804,22 +1804,22 @@ void check_fill(uint64_t seed)
 }
 
 template<typename Table>
-void check_pack(uint64_t seed)
+void check_pack(u64 seed)
 {
     constexpr coord3 box = box_bits(params_of<Table>), dim_bits = coord_bits(params_of<Table>);
-    constexpr uint32_t block_bits = Table::has_pages ? Table::page_bits : Table::key_bits;
-    constexpr uint64_t block_mask = (uint64_t{1} << block_bits) - 1;
-    constexpr uint64_t key_mask = ~uint64_t{0} >> (64 - Table::key_bits);
-    gtl::flat_hash_map<uint64_t, coord3> block_high;
-    const auto check_key = [&](uint64_t k) {
+    constexpr u32 block_bits = Table::has_pages ? Table::page_bits : Table::key_bits;
+    constexpr u64 block_mask = (u64{1} << block_bits) - 1;
+    constexpr u64 key_mask = ~u64{0} >> (64 - Table::key_bits);
+    gtl::flat_hash_map<u64, coord3> block_high;
+    const auto check_key = [&](u64 k) {
         const coord3 c = test_unpack<params_of<Table>>(k);
         coord3 high = {};
-        uint64_t slot = 0;
-        for (uint32_t d = 0, shift = 0; d < 3; shift += box[d], d++)
+        u64 slot = 0;
+        for (u32 d = 0, shift = 0; d < 3; shift += box[d], d++)
         {
-            fm_assert(!(uint64_t{c[d]} >> dim_bits[d]));
-            slot |= (uint64_t{c[d]} & ((uint64_t{1} << box[d]) - 1)) << shift;
-            high[d] = uint32_t(uint64_t{c[d]} >> box[d]);
+            fm_assert(!(u64{c[d]} >> dim_bits[d]));
+            slot |= (u64{c[d]} & ((u64{1} << box[d]) - 1)) << shift;
+            high[d] = u32(u64{c[d]} >> box[d]);
         }
         fm_assert(slot == (k & block_mask));
         fm_assert(block_high.try_emplace(k >> block_bits, high).first->second == high);
@@ -1827,21 +1827,21 @@ void check_pack(uint64_t seed)
     };
     if constexpr (Table::key_bits <= 16)
     {
-        for (uint64_t k = 0; k <= key_mask; k++)
+        for (u64 k = 0; k <= key_mask; k++)
             check_key(k);
     }
     else
     {
         Random::xoshiro256starstar rng;
         Random::seed(rng, seed);
-        for (uint32_t i = 0; i < 4096; i++)
+        for (u32 i = 0; i < 4096; i++)
             check_key(Random::next(rng) & key_mask);
-        for (uint32_t m = 0; m < 1u << Table::dims; m++)
+        for (u32 m = 0; m < 1u << Table::dims; m++)
         {
             coord3 c = {};
-            for (uint32_t d = 0; d < Table::dims; d++)
+            for (u32 d = 0; d < Table::dims; d++)
                 if (m >> d & 1)
-                    c[d] = uint32_t((uint64_t{1} << dim_bits[d]) - 1);
+                    c[d] = u32((u64{1} << dim_bits[d]) - 1);
             check_key(test_pack<params_of<Table>>(c));
         }
     }

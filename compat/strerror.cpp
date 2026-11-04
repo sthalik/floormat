@@ -36,7 +36,7 @@ StringView get_error_string(ArrayView<char> buf)
 }
 
 #ifdef _WIN32
-StringView get_win32_error_string(ArrayView<char> buf, uint32_t error)
+StringView get_win32_error_string(ArrayView<char> buf, u32 error)
 {
     DWORD n = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error,
                              MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), buf.data(), (DWORD)buf.size(), nullptr);
@@ -45,7 +45,7 @@ StringView get_win32_error_string(ArrayView<char> buf, uint32_t error)
     if (n > 0)
     {
         buf[n] = '\0';
-        return { buf.data(), (size_t)n };
+        return { buf.data(), (usize)n };
     }
     return "Unknown error"_s;
 }

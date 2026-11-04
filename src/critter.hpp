@@ -9,7 +9,7 @@ class anim_atlas;
 class world;
 struct critter_script;
 
-constexpr uint32_t anim_speed_unit = 1u << 16;
+constexpr u32 anim_speed_unit = 1u << 16;
 
 struct critter_proto : object_proto
 {
@@ -32,8 +32,8 @@ struct critter final : object
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
-    void update(const bptr<object>& ptr, size_t& i, const Ns& dt) override;
-    void update_movement(size_t& i, const Ns& dt, rotation r);
+    void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
+    void update_movement(usize& i, const Ns& dt, rotation r);
 
     struct move_result
     {
@@ -42,22 +42,22 @@ struct critter final : object
         bool displaced = false;
     };
 
-    enum class walk_result : uint8_t { none, arrived, blocked, displaced, };
+    enum class walk_result : u8 { none, arrived, blocked, displaced, };
 
     /// Walks from any position to dest along an axis until the rest is diagonal, then diagonally,
     /// for direct walks without A*. It stops before the first blocked step, and time short of the
     /// next step stays in delta. On arrival all unspent time goes back in dt.
-    [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& dest);
+    [[nodiscard]] move_result move_toward(usize& i, Ns& dt, const point& dest);
 
     /// Walks the Bresenham pixels of the segment from `from` to dest, for segments of a smoothed
     /// path. The critter must stand on one of them, else it neither moves nor turns and the result
     /// has displaced and blocked set. It stops at the last step its box reaches, and time short of
     /// one step stays in delta.
-    [[nodiscard]] move_result move_toward(size_t& i, Ns& dt, const point& from, const point& dest);
+    [[nodiscard]] move_result move_toward(usize& i, Ns& dt, const point& from, const point& dest);
 
     Vector2ui circumscribed_bbox_size() const;
 
-    int32_t depth_offset() const override;
+    i32 depth_offset() const override;
 
     void init_script(const bptr<object>& ptr) override;
     void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r) override;
@@ -72,7 +72,7 @@ struct critter final : object
     String name;
     float speed = 1;
     float anim_speed = 1;
-    uint32_t anim_progress = 0;
+    u32 anim_progress = 0;
     /// Written when the walk script ends. none while it runs, or when it was interrupted.
     walk_result last_walk = walk_result::none;
 
@@ -94,13 +94,13 @@ struct critter final : object
     union move_u
     {
         move_s bits;
-        uint8_t val = 0;
+        u8 val = 0;
     };
 
     union
     {
         move_s moves;
-        uint8_t moves_ = 0;
+        u8 moves_ = 0;
     };
 
 private:

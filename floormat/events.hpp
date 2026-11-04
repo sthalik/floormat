@@ -17,7 +17,7 @@ struct mouse_button_event final {
     Vector2 position;
     int mods = 0;
     mouse_button button = mouse_button_none;
-    uint8_t click_count = 0;
+    u8 click_count = 0;
     bool is_primary : 1 = false;
 };
 
@@ -41,13 +41,13 @@ struct text_input_event final {
 
 struct text_editing_event final {
     StringView text;
-    int32_t start = 0, length = 0;
+    i32 start = 0, length = 0;
 };
 
 struct key_event final {
     int key  = 0;
     int mods = 0;
-    uint8_t is_repeated = false;
+    u8 is_repeated = false;
 };
 
 union alignas(alignof(void*)) any_event {

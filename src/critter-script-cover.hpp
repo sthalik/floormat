@@ -11,9 +11,9 @@ struct critter;
 
 struct cover_script_options
 {
-    enum class hold_phase : uint8_t { none, hidden, exposed, };
+    enum class hold_phase : u8 { none, hidden, exposed, };
     // The spots a search keeps of those it skips. With each value, it also keeps what the values before keep.
-    enum class fallback : uint8_t {
+    enum class fallback : u8 {
         none,
         // The first spot whose cover has no peek spot.
         no_peek,
@@ -30,15 +30,15 @@ struct cover_script_options
     bool search_every_move = false;
     // cover_query::octants of the script's searches. With 3, a cover spot must also hide the critter
     // from the threat turned 11.25° either way about it.
-    uint8_t octants = 3;
+    u8 octants = 3;
     // How far in px the critter's cover may lie from its spot, along their face.
-    uint32_t max_cover_end_dist = 5*(uint32_t)tile_size_xy;
+    u32 max_cover_end_dist = 5*(u32)tile_size_xy;
     // The div_size of the grids the script searches and casts rays in, which make_cover_script sets.
     // Options built from {} set it back to 8.
-    uint32_t div_size = 8;
+    u32 div_size = 8;
     // In px. Spots and their cover must also hide the critter from where the threat can walk within this
     // distance. 0 tests only where it stands.
-    uint32_t threat_reach = 2*(uint32_t)tile_size_xy;
+    u32 threat_reach = 2*(u32)tile_size_xy;
     // The search skips spots whose cover has no peek spot.
     bool needs_peek = true;
     // When the search ends with no other cover, the critter hides at a kept spot. If one is kept while the threat
@@ -46,14 +46,14 @@ struct cover_script_options
     fallback last_resort = fallback::in_reach;
 
     // The script's searches' cover_query::max_cover_end_dist. 0 with threat_reach, as their move ignores it.
-    uint32_t listed_cover_end_dist() const { return threat_reach ? 0 : max_cover_end_dist; }
+    u32 listed_cover_end_dist() const { return threat_reach ? 0 : max_cover_end_dist; }
 };
 
 struct cover_script_status
 {
     // search: standing while it looks for cover, a few tiles per update. find_retreat: standing while
     // it looks for a path to a spot farther from the threat, a few Dijkstra searches per update.
-    enum class state : uint8_t { seek, to_cover, hidden, to_peek, exposed, retreat, search, find_retreat, };
+    enum class state : u8 { seek, to_cover, hidden, to_peek, exposed, retreat, search, find_retreat, };
 
     // The cover the critter hides at, peeks from or walks to, when has_cover. canonical is the spot found for
     // it, from where cover lies along their face as far as the threat alone, without its turns, sees no pixel.
@@ -68,19 +68,19 @@ struct cover_script_status
     cover_query query = {};
     // Since the script started: finished searches for cover, rays cast from the threat, tests of the body at
     // a spot against the threat, and Dijkstra searches, those of a retreat included.
-    uint32_t num_searches = 0, num_rays = 0, num_body_checks = 0, num_dijkstra_calls = 0;
+    u32 num_searches = 0, num_rays = 0, num_body_checks = 0, num_dijkstra_calls = 0;
     // The tiles a search may still pass, 0 when none runs, and the number it tried out of num_search_tiles.
-    uint32_t search_tiles_left = 0, search_tile = 0, num_search_tiles = 0;
+    u32 search_tiles_left = 0, search_tile = 0, num_search_tiles = 0;
     // In state::find_retreat, the next of num_retreat_spots spots, and this pass's path_to calls that found no
     // path. The second pass, retreat_all, also tries spots a ray from the threat reaches.
-    uint32_t retreat_spot = 0, num_retreat_spots = 0, num_failed_retreat_dijkstra_calls = 0;
+    u32 retreat_spot = 0, num_retreat_spots = 0, num_failed_retreat_dijkstra_calls = 0;
     bool retreat_all = false;
     // Since the script started, the times find_retreat went back to its first spot because the threat
     // moved to another octant of the cover grid, seen from the critter, or a retreat walk was blocked or flanked.
-    uint32_t num_retreat_restarts = 0;
+    u32 num_retreat_restarts = 0;
     // Since the script started, the searches' find_cover_point calls, each for one tile. A tile gets
     // another call when the threat moved since its list was made, or when the call ran out of fills.
-    uint32_t num_find_cover_point_calls = 0;
+    u32 num_find_cover_point_calls = 0;
     Ns last_update, max_update, total_update;
     state st = state::seek;
     bool has_cover = false, has_peek = false, has_query = false;

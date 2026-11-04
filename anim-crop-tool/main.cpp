@@ -25,7 +25,7 @@ namespace {
 struct options
 {
     String input_dir, input_file, output_dir;
-    size_t nframes = 0;
+    usize nframes = 0;
     anim_scale scale;
 };
 
@@ -187,7 +187,7 @@ bool load_directory(anim_group& group, options& opts, anim_atlas_& atlas)
         return false;
     }
 
-    arrayReserve(group.frames, (size_t)max-1);
+    arrayReserve(group.frames, (usize)max-1);
     arrayResize(group.frames, 0);
     for (unsigned i = 1; i < max; i++)
     {

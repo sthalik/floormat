@@ -213,8 +213,8 @@ void test_tuc_eviction()
             fm_assert(u > 0);
             fm_assert_equal(u, tuc.bind(t));
         }
-    fm_assert(tuc.stats().cache_miss > (size_t)N);
-    fm_assert(tuc.stats().cache_hit >= 3*(size_t)N);
+    fm_assert(tuc.stats().cache_miss > (usize)N);
+    fm_assert(tuc.stats().cache_hit >= 3*(usize)N);
 }
 } // namespace
 

@@ -111,7 +111,7 @@ String app::resolve_load_game_path(StringView name)
     return path;
 }
 
-void app::driver_save_world(uint32_t scene_number, StringView scene_name, bool is_post)
+void app::driver_save_world(u32 scene_number, StringView scene_name, bool is_post)
 {
     if (!ensure_directory(StringView{driver_save_dir}))
         return;

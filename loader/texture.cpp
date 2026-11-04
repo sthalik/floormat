@@ -15,7 +15,7 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
 {
     ensure_plugins();
 
-    constexpr size_t max_extension_length = 16;
+    constexpr usize max_extension_length = 16;
     const auto N = prefix.size();
     if (N > 0) [[likely]]
         fm_assert(prefix[N-1] == '/');

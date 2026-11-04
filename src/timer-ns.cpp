@@ -55,7 +55,7 @@ Debug& operator<<(Debug& dbg, const Ns& val)
         precision = 0;
     }
     if (!precision)
-        dbg << (uint64_t)x << Debug::nospace << unit;
+        dbg << (u64)x << Debug::nospace << unit;
     else
         dbg << fraction((float)x, precision) << Debug::nospace << unit;
 

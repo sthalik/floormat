@@ -603,7 +603,7 @@ void app::do_lightmap_test()
     for (int j = y - ns; j < y + ns; j++)
         for (int i = x - ns; i < x + ns; i++)
         {
-            auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
+            auto c = chunk_coords_{(i16)i, (i16)j, z};
             if (auto* chunk = w.at(c))
             {
                 auto offset = Vector2(Vector2i(c.x, c.y) - Vector2i(x, y));
@@ -617,7 +617,7 @@ void app::do_lightmap_test()
     for (int j = y - ns; j < y + ns; j++)
         for (int i = x - ns; i < x + ns; i++)
         {
-            auto c = chunk_coords_{(int16_t)i, (int16_t)j, z};
+            auto c = chunk_coords_{(i16)i, (i16)j, z};
             if (auto* chunk = w.at(c))
             {
                 auto offset = Vector2(Vector2i(c.x, c.y) - Vector2i(x, y));

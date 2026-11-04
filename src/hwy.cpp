@@ -19,13 +19,13 @@ FM_SAME_LAYOUT(K32V32, value, key);
 namespace {
 
 // SupportedTargets() re-runs CPUID detection on every call.
-int8_t vectorized = -1, avx2 = -1; // todo thread safety
+i8 vectorized = -1, avx2 = -1; // todo thread safety
 
 // EMU128 and HWY_SCALAR are slower than std::sort at n >= 512; route around them.
 bool is_vectorized()
 {
     if (vectorized < 0) [[unlikely]]
-        vectorized = (hwy::SupportedTargets() & ~(int64_t)(HWY_EMU128 | HWY_SCALAR)) != 0;
+        vectorized = (hwy::SupportedTargets() & ~(i64)(HWY_EMU128 | HWY_SCALAR)) != 0;
     return vectorized;
 }
 
@@ -50,7 +50,7 @@ template<sort_order Order> struct before
     }
 };
 
-template<typename T> void fallback_sort(T* keys, uint32_t n, sort_order order)
+template<typename T> void fallback_sort(T* keys, u32 n, sort_order order)
 {
     if (order == sort_order::ascending)
         std::sort(keys, keys + n, before<sort_order::ascending>{});
@@ -58,7 +58,7 @@ template<typename T> void fallback_sort(T* keys, uint32_t n, sort_order order)
         std::sort(keys, keys + n, before<sort_order::descending>{});
 }
 
-template<typename T> void fallback_partial_sort(T* keys, uint32_t n, uint32_t k, sort_order order)
+template<typename T> void fallback_partial_sort(T* keys, u32 n, u32 k, sort_order order)
 {
     if (order == sort_order::ascending)
         std::partial_sort(keys, keys + k, keys + n, before<sort_order::ascending>{});
@@ -66,7 +66,7 @@ template<typename T> void fallback_partial_sort(T* keys, uint32_t n, uint32_t k,
         std::partial_sort(keys, keys + k, keys + n, before<sort_order::descending>{});
 }
 
-template<typename T> void fallback_select(T* keys, uint32_t n, uint32_t k, sort_order order)
+template<typename T> void fallback_select(T* keys, u32 n, u32 k, sort_order order)
 {
     if (order == sort_order::ascending)
         std::nth_element(keys, keys + k, keys + n, before<sort_order::ascending>{});
@@ -88,7 +88,7 @@ bool vqsort_avx2_or_better()
 
 // vqsort casts keys to its lane type on entry and never reads them through H, so the struct cast is safe.
 #define FM_VQSORT(T, H)                                                                                    \
-    void vqsort(T* keys, uint32_t n, sort_order order)                                                     \
+    void vqsort(T* keys, u32 n, sort_order order)                                                     \
     {                                                                                                      \
         if (!is_vectorized())                                                                              \
             return fallback_sort(keys, n, order);                                                          \
@@ -97,7 +97,7 @@ bool vqsort_avx2_or_better()
         else                                                                                               \
             hwy::VQSort((H*)keys, n, hwy::SortDescending());                                               \
     }                                                                                                      \
-    void vqsort_partial(T* keys, uint32_t n, uint32_t k, sort_order order)                                 \
+    void vqsort_partial(T* keys, u32 n, u32 k, sort_order order)                                 \
     {                                                                                                      \
         if (!is_vectorized())                                                                              \
             return fallback_partial_sort(keys, n, k, order);                                               \
@@ -106,7 +106,7 @@ bool vqsort_avx2_or_better()
         else                                                                                               \
             hwy::VQPartialSort((H*)keys, n, k, hwy::SortDescending());                                     \
     }                                                                                                      \
-    void vqselect(T* keys, uint32_t n, uint32_t k, sort_order order)                                       \
+    void vqselect(T* keys, u32 n, u32 k, sort_order order)                                       \
     {                                                                                                      \
         if (!is_vectorized())                                                                              \
             return fallback_select(keys, n, k, order);                                                     \
@@ -116,12 +116,12 @@ bool vqsort_avx2_or_better()
             hwy::VQSelect((H*)keys, n, k, hwy::SortDescending());                                          \
     }
 
-FM_VQSORT(uint16_t, uint16_t)
-FM_VQSORT(int16_t, int16_t)
-FM_VQSORT(uint32_t, uint32_t)
-FM_VQSORT(int32_t, int32_t)
-FM_VQSORT(uint64_t, uint64_t)
-FM_VQSORT(int64_t, int64_t)
+FM_VQSORT(u16, u16)
+FM_VQSORT(i16, i16)
+FM_VQSORT(u32, u32)
+FM_VQSORT(i32, i32)
+FM_VQSORT(u64, u64)
+FM_VQSORT(i64, i64)
 FM_VQSORT(float, float)
 FM_VQSORT(double, double)
 FM_VQSORT(uint128_t, hwy::uint128_t)

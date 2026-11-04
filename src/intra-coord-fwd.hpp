@@ -4,7 +4,7 @@ namespace floormat {
 
 struct intra_coord_base
 {
-    enum class Type : uint8_t { Checking, Wrapping };
+    enum class Type : u8 { Checking, Wrapping };
     static constexpr Type Checking = Type::Checking;
     static constexpr Type Wrapping = Type::Wrapping;
 

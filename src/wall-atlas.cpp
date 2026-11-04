@@ -20,9 +20,9 @@ template class basic_bptr<const wall_atlas, non_atomic_refcount>;
 
 namespace floormat::Wall {
 
-uint8_t direction_index_from_name(StringView s) noexcept(false)
+u8 direction_index_from_name(StringView s) noexcept(false)
 {
-    for (uint8_t i = 0; auto [n, _] : wall_atlas::directions)
+    for (u8 i = 0; auto [n, _] : wall_atlas::directions)
         if (n == s)
             return i;
         else
@@ -31,7 +31,7 @@ uint8_t direction_index_from_name(StringView s) noexcept(false)
     fm_throw("bad rotation name '{}'", s);
 }
 
-StringView direction_index_to_name(size_t i) noexcept(false)
+StringView direction_index_to_name(usize i) noexcept(false)
 {
     fm_soft_assert(i < array_size(wall_atlas::directions));
     return wall_atlas::directions[i].name;
@@ -41,7 +41,7 @@ void resolve_wall_rotations(Array<Wall::Direction>& array, const std::array<DirA
 {
     for (auto [dir_name, dir] : wall_atlas::directions)
     {
-        auto DAI = map[(size_t)dir];
+        auto DAI = map[(usize)dir];
         if (!DAI)
             continue;
         auto& D = array[DAI.val];
@@ -50,7 +50,7 @@ void resolve_wall_rotations(Array<Wall::Direction>& array, const std::array<DirA
             auto& G = D.*ptr;
             if (!G.is_defined)
                 continue;
-            if (G.from_rotation != (uint8_t)-1)
+            if (G.from_rotation != (u8)-1)
             {
                 const auto& DAI2 = map[G.from_rotation];
                 if (!DAI2)
@@ -58,7 +58,7 @@ void resolve_wall_rotations(Array<Wall::Direction>& array, const std::array<DirA
                              dir_name, group_name, direction_index_to_name(G.from_rotation));
                 const auto& D2 = array[DAI2.val];
                 const auto& G2 = D2.*ptr;
-                if (!G2.is_defined || G2.from_rotation != (uint8_t)-1)
+                if (!G2.is_defined || G2.from_rotation != (u8)-1)
                     fm_throw("from_rotation for '{}/{}' points to empty group '{}/{}'",
                              dir_name, group_name, direction_index_to_name(G.from_rotation), group_name);
                 G.from_rotation = DAI2.val;
@@ -107,7 +107,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
       _direction_map{def.direction_map}
 {
     //Debug{} << "make wall_atlas" << _info.name;
-    const Vector2ui img_size{(uint32_t)img.size().x(), (uint32_t)img.size().y()};
+    const Vector2ui img_size{(u32)img.size().x(), (u32)img.size().y()};
     fm_soft_assert(img.pixelSize() >= 3 && img.pixelSize() <= 4);
     fm_soft_assert(img_size.product() > 0);
     {
@@ -116,16 +116,16 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
         bool found = false;
         for (auto [dir_name, dir] : wall_atlas::directions)
         {
-            const auto* D = direction((size_t)dir);
-            fm_soft_assert(!!D == def.direction_mask[(size_t)dir]);
+            const auto* D = direction((usize)dir);
+            fm_soft_assert(!!D == def.direction_mask[(usize)dir]);
             if (!D)
                 continue;
             for (auto [group_name, gmemb, gr] : Direction::groups)
             {
                 const auto& G = D->*gmemb;
                 fm_soft_assert(G.is_defined == !!G.count);
-                fm_soft_assert(G.is_defined == (G.index != (uint32_t)-1));
-                fm_soft_assert(G.from_rotation == (uint8_t)-1 || G.is_defined);
+                fm_soft_assert(G.is_defined == (G.index != (u32)-1));
+                fm_soft_assert(G.from_rotation == (u8)-1 || G.is_defined);
                 if (!G.is_defined)
                     continue;
                 found = true;
@@ -149,7 +149,7 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
             // Only a group without from_rotation owns its frame range.
             // Mirrored directions point at the source; iterating the source
             // direction alone covers their frames.
-            if (!D.top.is_defined || D.top.from_rotation != (uint8_t)-1)
+            if (!D.top.is_defined || D.top.from_rotation != (u8)-1)
                 continue;
             const auto lo = D.top.index;
             const auto hi = lo + D.top.count;
@@ -158,19 +158,19 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
                 top_frame_mask[i] = true;
         }
 
-        const uint32_t full_height = img_size.y();
+        const u32 full_height = img_size.y();
         arrayReserve(_frame_sprites, _frame_array.size());
-        for (size_t fi = 0; fi < _frame_array.size(); fi++)
+        for (usize fi = 0; fi < _frame_array.size(); fi++)
         {
             const Frame& f = _frame_array[fi];
-            const uint32_t fw = f.size.x();
-            const uint32_t fh = f.size.y();
+            const u32 fw = f.size.x();
+            const u32 fh = f.size.y();
             // Every frame is uploaded, not just group-referenced ones, so validate
             // here. Subtraction form avoids the wrap that offset+size can hide.
             fm_soft_assert(f.offset.x() <= img_size.x() && fw <= img_size.x() - f.offset.x());
             fm_soft_assert(f.offset.y() <= full_height && fh <= full_height - f.offset.y());
             // Y-flip: Magnum bottom-up, JSON top-down. See loader/anim-traits.cpp.
-            const uint32_t mem_y_start = full_height - f.offset.y() - fh;
+            const u32 mem_y_start = full_height - f.offset.y() - fh;
             PixelStorage sub_storage = img.storage();
             sub_storage.setRowLength((Int)img_size.x())
                        .setSkip({(Int)f.offset.x(), (Int)mem_y_start, 0});
@@ -196,7 +196,7 @@ auto wall_atlas::get_Direction(Direction_ num) const -> const Direction*
 {
     fm_debug_assert(num < Direction_::COUNT);
 
-    if (auto DAI = _direction_map[(uint8_t)num])
+    if (auto DAI = _direction_map[(u8)num])
         return &_dir_array[DAI.val];
     else [[unlikely]]
         return {};
@@ -233,10 +233,10 @@ auto wall_atlas::frames(Direction_ dir, Group_ gr) const -> ArrayView<const Fram
     return { _frame_array.data() + G->index, G->count };
 }
 
-auto wall_atlas::group(Direction_ dir, Group_ gr) const -> const Group* { return group((size_t)dir, (size_t)gr); }
-auto wall_atlas::group(size_t dir, Group_ gr) const -> const Group* { return group(dir, (size_t)gr); }
+auto wall_atlas::group(Direction_ dir, Group_ gr) const -> const Group* { return group((usize)dir, (usize)gr); }
+auto wall_atlas::group(usize dir, Group_ gr) const -> const Group* { return group(dir, (usize)gr); }
 
-auto wall_atlas::group(size_t dir, size_t tag) const -> const Group*
+auto wall_atlas::group(usize dir, usize tag) const -> const Group*
 {
     fm_assert(tag < Group_COUNT);
     if (const auto* D = direction(dir))
@@ -248,19 +248,19 @@ auto wall_atlas::group(size_t dir, size_t tag) const -> const Group*
 auto wall_atlas::group(const Direction& dir, Group_ tag) -> const Group*
 {
     fm_assert(tag < Group_::COUNT);
-    const auto memfn = dir.groups[(size_t)tag].member;
+    const auto memfn = dir.groups[(usize)tag].member;
     if (const Group& ret = dir.*memfn; ret.is_defined)
         return &ret;
     else
         return {};
 }
 
-auto wall_atlas::direction(size_t dir) const -> const Direction* { return get_Direction(Direction_(dir)); }
+auto wall_atlas::direction(usize dir) const -> const Direction* { return get_Direction(Direction_(dir)); }
 auto wall_atlas::direction(Direction_ dir) const -> const Direction* { return get_Direction(dir); }
 
 auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
 {
-    if (auto dai = _direction_map[(size_t)dir]) [[likely]]
+    if (auto dai = _direction_map[(usize)dir]) [[likely]]
         return _dir_array[dai.val];
     CORRADE_ASSUME(dir < Direction_::COUNT);
     Direction_ other;
@@ -271,12 +271,12 @@ auto wall_atlas::calc_direction(Direction_ dir) const -> const Direction&
     default: other = Direction_::COUNT;
     }
     if (other != Direction_::COUNT)
-        if (auto dai = _direction_map[(size_t)other])
+        if (auto dai = _direction_map[(usize)other])
             return _dir_array[dai.val];
     fm_abort("wall_atlas: can't find direction '%d'", (int)dir);
 }
 
-uint8_t wall_atlas::direction_count() const { return (uint8_t)_dir_array.size(); }
+u8 wall_atlas::direction_count() const { return (u8)_dir_array.size(); }
 auto wall_atlas::raw_frame_array() const -> ArrayView<const Frame> { return _frame_array; }
 auto wall_atlas::raw_sprite_array() const -> ArrayView<const sprite> { return _frame_sprites; }
 unsigned wall_atlas::depth() const { return _info.depth; }
@@ -296,11 +296,11 @@ Vector2ui wall_atlas::image_size() const
 
 namespace floormat::Wall {
 
-const Group& Direction::group(Group_ i) const { return group((size_t)i); }
-Group& Direction::group(Group_ i) { return group((size_t)i); }
-Group& Direction::group(size_t i) { return non_const(std::as_const(*this).group(i)); }
+const Group& Direction::group(Group_ i) const { return group((usize)i); }
+Group& Direction::group(Group_ i) { return group((usize)i); }
+Group& Direction::group(usize i) { return non_const(std::as_const(*this).group(i)); }
 
-const Group& Direction::group(size_t i) const
+const Group& Direction::group(usize i) const
 {
     fm_assert(i < Group_COUNT);
     auto ptr = groups[i].member;
@@ -311,7 +311,7 @@ bool Frame::operator==(const Frame&) const noexcept = default;
 bool Direction::operator==(const Direction&) const noexcept = default;
 bool Info::operator==(const Info&) const noexcept = default;
 bool DirArrayIndex::operator==(const DirArrayIndex&) const noexcept = default;
-DirArrayIndex::operator bool() const { return val != (uint8_t)-1; }
+DirArrayIndex::operator bool() const { return val != (u8)-1; }
 bool Group::operator==(const Group&) const noexcept = default;
 
 } // namespace floormat::Wall

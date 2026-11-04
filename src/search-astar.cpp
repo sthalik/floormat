@@ -31,24 +31,24 @@ namespace floormat {
 
 struct astar::visited
 {
-    uint32_t dist = (uint32_t)-1;
-    uint32_t prev = (uint32_t)-1;
+    u32 dist = (u32)-1;
+    u32 prev = (u32)-1;
     point pt;
 };
 
 struct astar::frontier
 {
-    uint32_t node = (uint32_t)-1;
-    uint32_t f_score = (uint32_t)-1;
-    uint32_t g_score = (uint32_t)-1;
+    u32 node = (u32)-1;
+    u32 f_score = (u32)-1;
+    u32 g_score = (u32)-1;
 };
 
 // A lattice point the goal's seed search reached, `cost` px from `to` through the nodes head,
 // where the search reached it, to tail.
 struct astar::goal_seed
 {
-    uint32_t cost = (uint32_t)-1;
-    uint32_t head = (uint32_t)-1, tail = (uint32_t)-1;
+    u32 cost = (u32)-1;
+    u32 head = (u32)-1, tail = (u32)-1;
 };
 
 // One bucket per f modulo mask + 1, LIFO within a bucket. Pops in f order only while
@@ -57,9 +57,9 @@ struct astar::bucket_queue
 {
     // B[i].size() is the capacity. arrayRemoveSuffix() doesn't inline, so pop() would be a call.
     Array<frontier>* B;
-    uint32_t* sizes;
-    uint32_t mask;
-    uint32_t cur = 0, hi = 0, count = 0;
+    u32* sizes;
+    u32 mask;
+    u32 cur = 0, hi = 0, count = 0;
 
     bool empty() const { return count == 0; }
 
@@ -68,7 +68,7 @@ struct astar::bucket_queue
         arrayResize(b, NoInit, Math::max(b.size()*2, 64uz));
     }
 
-    CORRADE_ALWAYS_INLINE void push(uint32_t id, uint32_t f, uint32_t g)
+    CORRADE_ALWAYS_INLINE void push(u32 id, u32 f, u32 g)
     {
         if (count == 0)
             cur = hi = f;
@@ -108,7 +108,7 @@ namespace {
 
 void simplify_path(ArrayView<const point> src, Array<point>& dest)
 {
-    const auto size = (uint32_t)src.size();
+    const auto size = (u32)src.size();
     fm_assert(size > 0);
 
     arrayAppend(dest, src[0]);
@@ -132,7 +132,7 @@ void simplify_path(ArrayView<const point> src, Array<point>& dest)
         arrayAppend(dest, src.back());
 }
 
-struct segment_steps { Vector2i step; uint32_t count; };
+struct segment_steps { Vector2i step; u32 count; };
 
 // A run of steps of s px. The seed and the edge to the goal are a step of their own.
 segment_steps steps_of_segment(point a, point b, int s)
@@ -143,21 +143,21 @@ segment_steps steps_of_segment(point a, point b, int s)
     if (len == 0)
         return { {}, 0 };
     if (d.x() % s == 0 && d.y() % s == 0 && (ad.x() == 0 || ad.y() == 0 || ad.x() == ad.y()))
-        return { d / (len / s), (uint32_t)(len / s) };
+        return { d / (len / s), (u32)(len / s) };
     return { d, 1 };
 }
 
-int8_t calc_turn(point a, point b, point c)
+i8 calc_turn(point a, point b, point c)
 {
     const auto u = b - a, v = c - b;
-    const auto x = (int64_t)u.x() * v.y() - (int64_t)u.y() * v.x();
-    return (int8_t)((x > 0) - (x < 0));
+    const auto x = (i64)u.x() * v.y() - (i64)u.y() * v.x();
+    return (i8)((x > 0) - (x < 0));
 }
 
 bool same_ray(Vector2i a, Vector2i b)
 {
-    return (int64_t)a.x() * b.y() == (int64_t)a.y() * b.x()
-           && (int64_t)a.x() * b.x() + (int64_t)a.y() * b.y() > 0;
+    return (i64)a.x() * b.y() == (i64)a.y() * b.x()
+           && (i64)a.x() * b.x() + (i64)a.y() * b.y() > 0;
 }
 
 // Han's order: the smaller angle from ref, and on the same ray, the farther one.
@@ -169,8 +169,8 @@ struct corner_pick
 
     static double angle_of(Vector2i ref, Vector2i v)
     {
-        const auto cross = (double)((int64_t)ref.x() * v.y() - (int64_t)ref.y() * v.x());
-        const auto dot = (double)((int64_t)ref.x() * v.x() + (int64_t)ref.y() * v.y());
+        const auto cross = (double)((i64)ref.x() * v.y() - (i64)ref.y() * v.x());
+        const auto dot = (double)((i64)ref.x() * v.x() + (i64)ref.y() * v.y());
         return std::atan2(std::abs(cross), dot);
     }
 
@@ -179,14 +179,14 @@ struct corner_pick
         if (!found)
             return true;
         if (same_ray(v, vec))
-            return (int64_t)v.x() * v.x() + (int64_t)v.y() * v.y() > (int64_t)vec.x() * vec.x() + (int64_t)vec.y() * vec.y();
+            return (i64)v.x() * v.x() + (i64)v.y() * v.y() > (i64)vec.x() * vec.x() + (i64)vec.y() * vec.y();
         return a < angle;
     }
 };
 
-struct dir_step { Vector2i vec, dir; uint32_t len, window_mask; };
+struct dir_step { Vector2i vec, dir; u32 len, window_mask; };
 
-constexpr uint32_t window_mask(int dx, int dy)
+constexpr u32 window_mask(int dx, int dy)
 {
     const auto bit = [](int x, int y) { return 1u << ((y + 1)*3 + x + 1); };
     return bit(dx, dy) | (dx && dy ? bit(dx, 0) | bit(0, dy) : 0u);
@@ -219,12 +219,12 @@ std::array<dir_step, 8> make_directions(const Search::octile& oct)
 
 void set_result_from_idx(path_search_result& result,
                          Array<point>& temp_nodes, const Array<visited>& nodes,
-                         point from, const uint32_t idx)
+                         point from, const u32 idx)
 {
-    fm_assert(idx != (uint32_t)-1);
+    fm_assert(idx != (u32)-1);
 
-    uint32_t len = 0;
-    for (auto i = idx; i != (uint32_t)-1; i = nodes[i].prev)
+    u32 len = 0;
+    for (auto i = idx; i != (u32)-1; i = nodes[i].prev)
         len++;
 
     const auto& to_node = nodes[idx];
@@ -235,7 +235,7 @@ void set_result_from_idx(path_search_result& result,
     arrayClear(result.raw_path());
     arrayReserve(result.raw_path(), len + 2);
 
-    for (auto i = idx; i != (uint32_t)-1; i = nodes[i].prev)
+    for (auto i = idx; i != (u32)-1; i = nodes[i].prev)
         arrayAppend(temp_nodes, nodes[i].pt);
     arrayAppend(temp_nodes, from);
 
@@ -245,11 +245,11 @@ void set_result_from_idx(path_search_result& result,
 }
 
 // A pop's 3x3 window. When all 8 neighbours lie in the pop's chunk, chunk_idx is that chunk's
-// index and tile_idx the pop's cell in the cache, else chunk_idx is (uint32_t)-1.
+// index and tile_idx the pop's cell in the cache, else chunk_idx is (u32)-1.
 struct neighbourhood
 {
-    uint32_t window;
-    uint32_t chunk_idx, tile_idx;
+    u32 window;
+    u32 chunk_idx, tile_idx;
     Vector2i pix;
 };
 
@@ -257,17 +257,17 @@ struct neighbourhood
 
 // One bitmap pointer per chunk of the cache rectangle. Nothing marks a grid stale
 // during a search, so a pointer stays valid until it ends. Null: not resolved. Pointer value 1:
-// no chunk, so `(uintptr_t)b > 1` tests for a bitmap in one comparison.
+// no chunk, so `(uptr)b > 1` tests for a bitmap in one comparison.
 struct astar::chunk_bitmaps
 {
     world& w;
     Grid::Pass::Pool& pool;
     Search::cache& cache;
     const astar::pred& p;
-    const uint8_t** bits;
-    uint32_t div_size, div_shift, div_count;
+    const u8** bits;
+    u32 div_size, div_shift, div_count;
 
-    CORRADE_ALWAYS_INLINE bool test_bit(const uint8_t* b, Vector2ui pix) const
+    CORRADE_ALWAYS_INLINE bool test_bit(const u8* b, Vector2ui pix) const
     {
         fm_debug3_assert(pix.x() < chunk_size_xy && pix.y() < chunk_size_xy);
         const auto pos = pix >> div_shift;
@@ -275,29 +275,29 @@ struct astar::chunk_bitmaps
         return b[i >> 3] & (1u << (i & 7));
     }
 
-    CORRADE_ALWAYS_INLINE bool test_bit(const uint8_t* b, point pt) const
+    CORRADE_ALWAYS_INLINE bool test_bit(const u8* b, point pt) const
     {
         return test_bit(b, Vector2ui(Vector2i(intra_coord{pt})));
     }
 
     // Only while bits[chunk_idx] is null: the clear drops the chunk's nodes.
-    CORRADE_NEVER_INLINE const uint8_t* resolve(point pt, size_t chunk_idx)
+    CORRADE_NEVER_INLINE const u8* resolve(point pt, usize chunk_idx)
     {
-        cache.clear_chunk((uint32_t)chunk_idx);
+        cache.clear_chunk((u32)chunk_idx);
         auto* c = w.at(pt.chunk3());
         if (!c)
-            return bits[chunk_idx] = std::bit_cast<const uint8_t*>(uintptr_t{1});
+            return bits[chunk_idx] = std::bit_cast<const u8*>(uptr{1});
         auto grid = pool[*c];
         grid.build_if_stale();
         return bits[chunk_idx] = grid.bits().data;
     }
 
-    CORRADE_NEVER_INLINE bool is_passable_slow(point pt, size_t chunk_idx)
+    CORRADE_NEVER_INLINE bool is_passable_slow(point pt, usize chunk_idx)
     {
         const auto* b = bits[chunk_idx];
         if (!b)
             b = resolve(pt, chunk_idx);
-        if ((uintptr_t)b > 1)
+        if ((uptr)b > 1)
             return test_bit(b, pt);
         return cache.is_passable_for_bbox(w, pool, pt, p);
     }
@@ -305,7 +305,7 @@ struct astar::chunk_bitmaps
     // Next to the chunk edge, the neighbours lie in up to three other chunks. 0 while one of
     // them is unresolved or missing: resolving it here could build a grid that no move reads,
     // and a missing chunk's cells take the world test.
-    CORRADE_NEVER_INLINE uint32_t window_edge(point pt, Vector2i pix)
+    CORRADE_NEVER_INLINE u32 window_edge(point pt, Vector2i pix)
     {
         constexpr int cs = (int)chunk_size_xy;
         const auto step = (int)div_size;
@@ -319,14 +319,14 @@ struct astar::chunk_bitmaps
             chunk[k] = ch + off;
             pos[k] = Vector2ui(q - off*cs);
         }
-        uint32_t win = 0;
+        u32 win = 0;
         for (int r = 0; r < 3; r++)
             for (int c = 0; c < 3; c++)
             {
                 const auto* b = bits[cache.get_chunk_index({chunk[c].x(), chunk[r].y()})];
-                if ((uintptr_t)b <= 1)
+                if ((uptr)b <= 1)
                     return 0;
-                win |= (uint32_t)test_bit(b, Vector2ui{pos[c].x(), pos[r].y()}) << (r*3 + c);
+                win |= (u32)test_bit(b, Vector2ui{pos[c].x(), pos[r].y()}) << (r*3 + c);
             }
         return win;
     }
@@ -337,43 +337,43 @@ struct astar::chunk_bitmaps
         constexpr int cs = (int)chunk_size_xy;
         const auto step = (int)div_size;
         const auto pix = Vector2i(intra_coord{pt});
-        if ((uint32_t)(pix.x() - step) >= (uint32_t)(cs - 2*step) || (uint32_t)(pix.y() - step) >= (uint32_t)(cs - 2*step)) [[unlikely]]
-            return { window_edge(pt, pix), (uint32_t)-1, 0, pix };
+        if ((u32)(pix.x() - step) >= (u32)(cs - 2*step) || (u32)(pix.y() - step) >= (u32)(cs - 2*step)) [[unlikely]]
+            return { window_edge(pt, pix), (u32)-1, 0, pix };
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
         const auto tile_idx = cache.get_tile_index(intra_coord{pt});
         const auto* b = bits[chunk_idx];
-        if ((uintptr_t)b <= 1) [[unlikely]]
+        if ((uptr)b <= 1) [[unlikely]]
         {
             if (!b)
                 b = resolve(pt, chunk_idx);
-            if ((uintptr_t)b <= 1)
+            if ((uptr)b <= 1)
                 return { 0, chunk_idx, tile_idx, pix };
         }
-        uint32_t win = 0;
-        // A row is one uint64_t. A narrower one would read past the last row.
-        if (constexpr uint32_t row_cells = 64; div_count == row_cells) [[likely]]
+        u32 win = 0;
+        // A row is one u64. A narrower one would read past the last row.
+        if (constexpr u32 row_cells = 64; div_count == row_cells) [[likely]]
         {
-            const auto cell = Vector2ui(pix) / (uint32_t)(cs/row_cells);
+            const auto cell = Vector2ui(pix) / (u32)(cs/row_cells);
             fm_debug3_assert(cell.x() - 1 < div_count - 2 && cell.y() - 1 < div_count - 2);
-            for (uint32_t r = 0; r < 3; r++)
+            for (u32 r = 0; r < 3; r++)
             {
-                uint64_t row;
+                u64 row;
                 std::memcpy(&row, b + (cell.y() - 1 + r)*(row_cells/8), sizeof row);
                 if constexpr (std::endian::native == std::endian::big)
                     row = std::byteswap(row);
-                win |= (uint32_t)((row >> (cell.x() - 1)) & 7) << r*3;
+                win |= (u32)((row >> (cell.x() - 1)) & 7) << r*3;
             }
         }
         else
             for (int r = 0; r < 3; r++)
                 for (int c = 0; c < 3; c++)
-                    win |= (uint32_t)test_bit(b, Vector2ui(pix + Vector2i{c - 1, r - 1}*step)) << (r*3 + c);
+                    win |= (u32)test_bit(b, Vector2ui(pix + Vector2i{c - 1, r - 1}*step)) << (r*3 + c);
         return { win, chunk_idx, tile_idx, pix };
     }
 
-    CORRADE_ALWAYS_INLINE bool is_passable(point pt, size_t chunk_idx)
+    CORRADE_ALWAYS_INLINE bool is_passable(point pt, usize chunk_idx)
     {
-        if (const auto* b = bits[chunk_idx]; (uintptr_t)b > 1) [[likely]]
+        if (const auto* b = bits[chunk_idx]; (uptr)b > 1) [[likely]]
             return test_bit(b, pt);
         return is_passable_slow(pt, chunk_idx);
     }
@@ -383,7 +383,7 @@ struct astar::chunk_bitmaps
         return is_passable(pt, cache.get_chunk_index(Vector2i(pt.chunk())));
     }
 
-    CORRADE_ALWAYS_INLINE bool is_passable_diag(point a, point b, Vector2i vec, size_t b_chunk_idx)
+    CORRADE_ALWAYS_INLINE bool is_passable_diag(point a, point b, Vector2i vec, usize b_chunk_idx)
     {
         return is_passable(b, b_chunk_idx)
             && is_passable(a + Vector2i{vec.x(), 0})
@@ -423,14 +423,14 @@ struct astar::endpoint
 struct astar::closest
 {
     visited to_node;
-    uint64_t closest_dist_sq = (uint64_t)-1;
-    uint32_t closest_idx = (uint32_t)-1;
+    u64 closest_dist_sq = (u64)-1;
+    u32 closest_idx = (u32)-1;
 };
 
 namespace {
 
 // Not arrayResize(): a growable array's header puts every fourth node across a cache line.
-CORRADE_NEVER_INLINE void grow_nodes(Array<visited>& nodes, uint32_t count)
+CORRADE_NEVER_INLINE void grow_nodes(Array<visited>& nodes, u32 count)
 {
     auto a = Array<visited>{NoInit, Math::max(nodes.size()*2, 64uz)};
     Utility::copy(nodes.prefix(count), a.prefix(count));
@@ -439,7 +439,7 @@ CORRADE_NEVER_INLINE void grow_nodes(Array<visited>& nodes, uint32_t count)
 
 // nodes.size() is the capacity and `count` the size. arrayAppend() would call arrayGrowBy()
 // out of line for every node.
-CORRADE_ALWAYS_INLINE uint32_t append_node(Array<visited>& nodes, uint32_t& count, const visited& node)
+CORRADE_ALWAYS_INLINE u32 append_node(Array<visited>& nodes, u32& count, const visited& node)
 {
     if (count == nodes.size()) [[unlikely]]
         grow_nodes(nodes, count);
@@ -447,7 +447,7 @@ CORRADE_ALWAYS_INLINE uint32_t append_node(Array<visited>& nodes, uint32_t& coun
     return count++;
 }
 
-void print_push(uint32_t dist, point pt)
+void print_push(u32 dist, point pt)
 {
     DBG_nospace << " path:" << dist
                 << " pos:" << Vector3i(pt.coord())
@@ -457,11 +457,11 @@ void print_push(uint32_t dist, point pt)
 template<bool IsDiagonal, int Debug>
 CORRADE_ALWAYS_INLINE
 void do_dir(chunk_bitmaps& bm, Search::cache& cache,
-            Array<visited>& nodes, uint32_t& node_count, bucket_queue& Q,
+            Array<visited>& nodes, u32& node_count, bucket_queue& Q,
             dir_step dirs, Search::octile oct,
             Vector2i goal_delta, point cur_pt,
-            uint32_t cur_idx, uint32_t cur_dist,
-            uint32_t max_dist, const neighbourhood& cells)
+            u32 cur_idx, u32 cur_dist,
+            u32 max_dist, const neighbourhood& cells)
 {
     const auto [vec, dir, len, mask] = dirs;
     const auto window = cells.window;
@@ -471,18 +471,18 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
 
     const auto dist = cur_dist + len;
     // Equals new_pt - to: both branches below put new_pt at cur_pt's pixel + vec.
-    uint32_t f_score = dist + oct(goal_delta + vec);
+    u32 f_score = dist + oct(goal_delta + vec);
     if (f_score >= max_dist) [[unlikely]]
         return;
 
-    const bool same_chunk = cells.chunk_idx != (uint32_t)-1;
+    const bool same_chunk = cells.chunk_idx != (u32)-1;
     point new_pt;
-    uint32_t chunk_idx, tile_idx;
+    u32 chunk_idx, tile_idx;
     if (same_chunk) [[likely]]
     {
         // The cache's cells are one step wide.
         chunk_idx = cells.chunk_idx;
-        tile_idx = (uint32_t)((ptrdiff_t)cells.tile_idx + (ptrdiff_t)dir.y() * cache.div_count_ + dir.x());
+        tile_idx = (u32)((isize)cells.tile_idx + (isize)dir.y() * cache.div_count_ + dir.x());
     }
     else
     {
@@ -499,7 +499,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     // An empty cell's dist is -1, above any path's.
     if (slot.dist <= dist)
         return;
-    fm_debug3_assert(slot.index == (uint32_t)-1 || nodes[slot.index].dist == slot.dist);
+    fm_debug3_assert(slot.index == (u32)-1 || nodes[slot.index].dist == slot.dist);
     auto new_idx = slot.index;
 
     if (same_chunk) [[likely]]
@@ -517,7 +517,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             return;
     }
 
-    if (new_idx == (uint32_t)-1)
+    if (new_idx == (u32)-1)
     {
         new_idx = append_node(nodes, node_count, visited{
             .dist = dist,
@@ -541,7 +541,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     Q.push(new_idx, f_score, dist);
 };
 
-void print_closest(point cur, point to, uint32_t dist)
+void print_closest(point cur, point to, u32 dist)
 {
     DBG_nospace << "closest node"
                 << " px:" << point::distance(cur, to) << " path:" << dist
@@ -553,9 +553,9 @@ void print_result(const path_search_result& result, point from, point to)
     auto d0_ =
         Vector2i(Math::abs(from.coord() - to.coord())) * iTILE_SIZE2
         + Vector2i(Math::abs(Vector2i(from.offset()) - Vector2i(to.offset())));
-    auto d0 = (uint32_t)d0_.length();
+    auto d0 = (u32)d0_.length();
     char buf[128];
-    size_t len = 0;
+    usize len = 0;
     const auto time = result.time() * 1e3f;
     const auto d = result.cost();
     if (result.is_found())
@@ -567,7 +567,7 @@ void print_result(const path_search_result& result, point from, point to)
     {
         // dist == 0 is legitimate: the {0,0} seed costs nothing when the
         // start lies on the node lattice, and it can remain the closest node
-        fm_assert(d != (uint32_t)-1);
+        fm_assert(d != (u32)-1);
         len = snformat(buf, "Dijkstra: no path found in {:.2f} ms "
                             "closest:{} len:{} len0:{} ratio:{:.4}\n",
                        time, result.distance(), d, d0,
@@ -586,7 +586,7 @@ constexpr inline int seed_search_radius = 2*tile_size_xy;
 // A goal touching a collider on its high side has a free node up to two cells less 2 px
 // away on that axis, as a cell's bit needs every position in the cell free.
 constexpr int goal_radius(int step) { return 2*step - 2; }
-constexpr uint64_t goal_thres_sq(int step) { return 2 * (uint64_t)goal_radius(step) * (uint64_t)goal_radius(step); }
+constexpr u64 goal_thres_sq(int step) { return 2 * (u64)goal_radius(step) * (u64)goal_radius(step); }
 constexpr int goal_seed_radius(int step) { return seed_search_radius + step - 1; }
 
 bool can_reach_goal(chunk_bitmaps& bm, const endpoint& start, const endpoint& goal)
@@ -610,7 +610,7 @@ bool can_reach_goal(chunk_bitmaps& bm, const endpoint& start, const endpoint& go
     return false;
 }
 
-constexpr inline uint32_t enclosed_goal_pops = 1u << 15;
+constexpr inline u32 enclosed_goal_pops = 1u << 15;
 
 // True when no search node can reach the goal. Floods set cells from those can_reach_goal()
 // accepts, by A*'s steps, which test the same cells in either direction. Gives up at a node,
@@ -619,7 +619,7 @@ constexpr inline uint32_t enclosed_goal_pops = 1u << 15;
 // doesn't start from.
 bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goal, Array<point>& cells)
 {
-    constexpr uint32_t max_cells = 128, mark = (uint32_t)-2;
+    constexpr u32 max_cells = 128, mark = (u32)-2;
     auto& cache = bm.cache;
     const auto step = (int)bm.div_size;
     const auto from = start.pt, to = goal.pt;
@@ -632,12 +632,12 @@ bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goa
         return false;
 
     // false: give up
-    const auto add = [&](point pt, uint32_t chunk_idx) {
+    const auto add = [&](point pt, u32 chunk_idx) {
         auto& c = cache.at(chunk_idx, cache.get_tile_index(intra_coord{pt}));
         if (c.dist == mark)
             return true;
         const auto off = Vector2ui(Vector2i(pt.chunk()) - cache.start - Vector2i{1});
-        if (c.index != (uint32_t)-1 || near_from(pt) || cells.size() == max_cells
+        if (c.index != (u32)-1 || near_from(pt) || cells.size() == max_cells
             || off.x() >= cache.size.x() - 2 || off.y() >= cache.size.y() - 2)
             return false;
         c.dist = mark;
@@ -679,9 +679,9 @@ bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goa
             }
         }
     }
-    // A mark left behind would turn away a node of dist (uint32_t)-2.
+    // A mark left behind would turn away a node of dist (u32)-2.
     for (const auto pt : cells)
-        cache.at(cache.get_chunk_index(Vector2i(pt.chunk())), cache.get_tile_index(intra_coord{pt})).dist = (uint32_t)-1;
+        cache.at(cache.get_chunk_index(Vector2i(pt.chunk())), cache.get_tile_index(intra_coord{pt})).dist = (u32)-1;
     arrayClear(cells);
     return enclosed;
 }
@@ -694,7 +694,7 @@ bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goa
 struct astar::seed_search
 {
     static constexpr int R = seed_search_radius, W = 2*R + 1;
-    static constexpr uint32_t free = 1, reached = 2, dir_shift = 2, g_shift = 5;
+    static constexpr u32 free = 1, reached = 2, dir_shift = 2, g_shift = 5;
 
     astar& a;
     chunk_bitmaps& bm;
@@ -706,8 +706,8 @@ struct astar::seed_search
     int step = (int)bm.div_size;
     Vector2i phase{};
 
-    static uint32_t index(Vector2i d) { return (uint32_t)((d.y() + R)*W + d.x() + R); }
-    static Vector2i delta(uint32_t i) { return Vector2i{(int)(i % W), (int)(i / W)} - Vector2i{R}; }
+    static u32 index(Vector2i d) { return (u32)((d.y() + R)*W + d.x() + R); }
+    static Vector2i delta(u32 i) { return Vector2i{(int)(i % W), (int)(i / W)} - Vector2i{R}; }
 
     bool is_free(Vector2i d) const { return a.seed_search_state.data()[index(d)] & free; }
 
@@ -720,7 +720,7 @@ struct astar::seed_search
         return s;
     }
 
-    uint32_t node_at(point s) const
+    u32 node_at(point s) const
     {
         auto& cache = bm.cache;
         return cache.lookup_index(cache.get_chunk_index(Vector2i(s.chunk())), cache.get_tile_index(intra_coord{s}));
@@ -728,20 +728,20 @@ struct astar::seed_search
 
     // Rounded once: (g >> shift) + oct(pt, s) can be 1 below oct(s, to), which a goal seed's
     // cost must not be.
-    uint32_t seed_dist(uint32_t g, point pt, point s) const
+    u32 seed_dist(u32 g, point pt, point s) const
     {
         const auto d = Vector2ui{Math::abs(s - pt)};
         const auto mn = Math::min(d.x(), d.y()), mx = Math::max(d.x(), d.y());
         return (g + oct.axial*mx + (oct.diag - oct.axial)*mn) >> oct.shift;
     }
 
-    uint32_t g_at(point pt) const
+    u32 g_at(point pt) const
     {
         const auto d = pt - source.pt;
         if (Math::abs(d.x()) > R || Math::abs(d.y()) > R)
-            return (uint32_t)-1;
+            return (u32)-1;
         const auto s = a.seed_search_state.data()[index(d)];
-        return s & reached ? s >> g_shift : (uint32_t)-1;
+        return s & reached ? s >> g_shift : (u32)-1;
     }
 
     // pt and every turn on the way back to `source`, which is left out.
@@ -750,7 +750,7 @@ struct astar::seed_search
     {
         const auto* const state = a.seed_search_state.data();
         auto d = pt - source.pt;
-        auto dir = (uint32_t)-1;
+        auto dir = (u32)-1;
         while (!d.isZero())
         {
             const auto s = state[index(d)];
@@ -767,12 +767,12 @@ struct astar::seed_search
 
     // Returns the node at pt, linked back to `source`, -1 at `source`. These nodes are never in
     // the cache or the queue.
-    uint32_t add_path(point pt)
+    u32 add_path(point pt)
     {
-        auto head = (uint32_t)-1, tail = head;
-        for_each_turn(pt, [&](point q, uint32_t g) {
-            const auto n = append_node(a.nodes, a.node_count, { .dist = g >> oct.shift, .prev = (uint32_t)-1, .pt = q, });
-            if (tail == (uint32_t)-1)
+        auto head = (u32)-1, tail = head;
+        for_each_turn(pt, [&](point q, u32 g) {
+            const auto n = append_node(a.nodes, a.node_count, { .dist = g >> oct.shift, .prev = (u32)-1, .pt = q, });
+            if (tail == (u32)-1)
                 head = n;
             else
                 a.nodes[tail].prev = n;
@@ -782,12 +782,12 @@ struct astar::seed_search
     }
 
     // The same nodes linked the other way, tail reached through head.
-    goal_seed add_goal_path(point pt, uint32_t cost)
+    goal_seed add_goal_path(point pt, u32 cost)
     {
         auto gs = goal_seed{ .cost = cost, };
-        for_each_turn(pt, [&](point q, uint32_t) {
+        for_each_turn(pt, [&](point q, u32) {
             const auto n = append_node(a.nodes, a.node_count, { .prev = gs.tail, .pt = q, });
-            if (gs.head == (uint32_t)-1)
+            if (gs.head == (u32)-1)
                 gs.head = n;
             gs.tail = n;
         });
@@ -815,10 +815,10 @@ struct astar::seed_search
         });
 
         auto& state = a.seed_search_state;
-        constexpr auto size = (uint32_t)W*W;
-        fm_assert((uint64_t)size * oct.diag < 1u << (32 - g_shift));
+        constexpr auto size = (u32)W*W;
+        fm_assert((u64)size * oct.diag < 1u << (32 - g_shift));
         if (state.size() < size)
-            state = Array<uint32_t>{NoInit, size};
+            state = Array<u32>{NoInit, size};
         fill(state.prefix(size), free);
         // rect_intersects is strict: the box at d overlaps r when
         // r.min - own_hi < source.center + d < r.max + own_lo on both axes
@@ -874,13 +874,13 @@ struct astar::seed_search
     }
 
     // Leaves the seeds it added or lowered in temp_nodes, as lattice points, and returns how many.
-    CORRADE_NEVER_INLINE uint32_t run()
+    CORRADE_NEVER_INLINE u32 run()
     {
         auto& nodes = a.nodes;
         auto& cache = bm.cache;
         auto& seed_from = a.temp_nodes;
         arrayClear(seed_from);
-        flood([&](point pt, uint32_t g) {
+        flood([&](point pt, u32 g) {
             const auto s = lattice_point(pt);
             // Also resolves s's chunk, which the lookup below needs.
             const bool passable = bm.is_passable(s);
@@ -889,8 +889,8 @@ struct astar::seed_search
             const auto chunk_idx = cache.get_chunk_index(Vector2i(s.chunk()));
             const auto tile_idx = cache.get_tile_index(intra_coord{s});
             const auto idx = cache.lookup_index(chunk_idx, tile_idx);
-            if (idx == (uint32_t)-1)
-                cache.add_index(chunk_idx, tile_idx, append_node(nodes, a.node_count, { .dist = dist, .prev = (uint32_t)-1, .pt = s, }), dist);
+            if (idx == (u32)-1)
+                cache.add_index(chunk_idx, tile_idx, append_node(nodes, a.node_count, { .dist = dist, .prev = (u32)-1, .pt = s, }), dist);
             else if (dist < nodes[idx].dist)
                 nodes[idx].dist = cache.at(chunk_idx, tile_idx).dist = dist;
             else
@@ -899,7 +899,7 @@ struct astar::seed_search
         });
 
         // A seed lowered twice was appended twice. Its dist is the later position's.
-        uint32_t count = 0;
+        u32 count = 0;
         for (auto i = 0u; i < seed_from.size(); i++)
         {
             const auto pt = seed_from[i];
@@ -923,22 +923,22 @@ struct astar::seed_search
         auto* const seed_index = a.goal_seed_index.data();
         const auto n = a.goal_seed_n;
         const auto off = a.goal_seed_off;
-        fill(a.goal_seed_index.prefix(n*n), (uint32_t)-1);
+        fill(a.goal_seed_index.prefix(n*n), (u32)-1);
         arrayClear(seeds);
         arrayReserve(seeds, 16);
         arrayClear(seed_from);
-        flood([&](point pt, uint32_t g) {
+        flood([&](point pt, u32 g) {
             const auto s = lattice_point(pt);
             // Also resolves s's chunk, which node_at() in run_goal_seed_search() needs.
             const bool passable = bm.is_passable(s);
             fm_debug_assert(passable);
             const auto cost = seed_dist(g, pt, s);
             const auto rel = Vector2ui(s - source.pt + off);
-            fm_debug_assert(rel.x() < n*(uint32_t)step && rel.y() < n*(uint32_t)step);
+            fm_debug_assert(rel.x() < n*(u32)step && rel.y() < n*(u32)step);
             auto& slot = seed_index[(rel.y() >> oct.shift)*n + (rel.x() >> oct.shift)];
-            if (slot == (uint32_t)-1)
+            if (slot == (u32)-1)
             {
-                slot = (uint32_t)seeds.size();
+                slot = (u32)seeds.size();
                 arrayAppend(seeds, goal_seed{ .cost = cost, });
                 arrayAppend(seed_from, pt);
             }
@@ -974,7 +974,7 @@ astar::astar() :
 
 astar::~astar() noexcept = default;
 
-void astar::reserve(size_t capacity)
+void astar::reserve(usize capacity)
 {
     if (nodes.size() < capacity)
         nodes = Array<visited>{NoInit, capacity};
@@ -985,19 +985,19 @@ Grid::GridRegistry& astar::pool_registry() { return *_pool_registry; }
 
 template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
-                                   uint32_t max_dist, Vector2ui own_size,
+                                   u32 max_dist, Vector2ui own_size,
                                    const pred& p)
 {
     auto& pool = _pool_registry->pass_pool(default_pool_params(own_size));
     return Dijkstra<Debug, FindClosestOnFailure>(w, pool, from, to, max_dist, own_size, p);
 }
 
-auto astar::make_queue(uint32_t bucket_count) -> bucket_queue
+auto astar::make_queue(u32 bucket_count) -> bucket_queue
 {
     if (buckets.size() < bucket_count)
         arrayResize(buckets, bucket_count);
     if (bucket_sizes.size() < bucket_count)
-        bucket_sizes = Array<uint32_t>{ValueInit, bucket_count};
+        bucket_sizes = Array<u32>{ValueInit, bucket_count};
     else
         fill(bucket_sizes.prefix(bucket_count), 0u);
     return bucket_queue{ .B = buckets.data(), .sizes = bucket_sizes.data(), .mask = bucket_count - 1, };
@@ -1007,9 +1007,9 @@ auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p) -> chu
 {
     auto& cache = *_cache;
     const auto params = pool.params();
-    const auto nchunks = (size_t)cache.size.product();
+    const auto nchunks = (usize)cache.size.product();
     if (chunk_bits.size() < nchunks)
-        chunk_bits = Array<const uint8_t*>{ValueInit, nchunks};
+        chunk_bits = Array<const u8*>{ValueInit, nchunks};
     else
         fill(chunk_bits.prefix(nchunks), nullptr);
 
@@ -1017,12 +1017,12 @@ auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p) -> chu
         .w = w, .pool = pool, .cache = cache, .p = p,
         .bits = chunk_bits.data(),
         .div_size = params.div_size(),
-        .div_shift = (uint32_t)std::countr_zero(params.div_size()), // xxx todo assumes power of two chunk size
+        .div_shift = (u32)std::countr_zero(params.div_size()), // xxx todo assumes power of two chunk size
         .div_count = params.div_count,
     };
 }
 
-bool astar::seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, uint32_t max_dist)
+bool astar::seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist)
 {
     constexpr Vector2i seed_offsets[9] = {
         {  0,  0 },
@@ -1055,10 +1055,10 @@ bool astar::seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start,
         // bm.is_passable() also resolves pt's chunk, which add_index() needs.
         if (bm.is_passable(pt, chunk_idx) && start.is_passable_to(pt, bm.p))
         {
-            auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
+            auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (u32)-1, .pt = pt, });
             cache.add_index(chunk_idx, tile_idx, idx, dist);
             seeded = true;
-            uint32_t f_score = dist + oct(pt, to);
+            u32 f_score = dist + oct(pt, to);
             if (dist < max_dist && f_score < max_dist)
                 Q.push(idx, f_score, dist);
         }
@@ -1066,17 +1066,17 @@ bool astar::seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start,
     return seeded;
 }
 
-visited astar::run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, uint32_t max_dist)
+visited astar::run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist)
 {
     auto search = seed_search{ .a = *this, .bm = bm, .Q = Q, .source = start, .origin = point{start.pt.coord(), {}}, };
     const auto oct = search.oct;
     const auto count = search.run();
     auto link = visited{ .dist = max_dist, .pt = to, };
-    if (const auto g = search.g_at(to); g != (uint32_t)-1 && (g >> oct.shift) < link.dist)
+    if (const auto g = search.g_at(to); g != (u32)-1 && (g >> oct.shift) < link.dist)
         link = { .dist = g >> oct.shift, .prev = search.add_path(to), .pt = to, };
     if (count > 0)
     {
-        auto f_lo = (uint32_t)-1, f_hi = 0u;
+        auto f_lo = (u32)-1, f_hi = 0u;
         for (auto i = 0u; i < count; i++)
         {
             const auto& n = nodes[search.node_at(temp_nodes[i])];
@@ -1107,24 +1107,24 @@ visited astar::run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const en
     const auto origin = point{start.pt.coord(), {}};
     const auto radius = goal_seed_radius(step);
     const auto to_rel = goal.pt - origin;
-    goal_seed_n = (uint32_t)((2*radius + step - 1) / step + 1);
+    goal_seed_n = (u32)((2*radius + step - 1) / step + 1);
     goal_seed_off = to_rel - Vector2i{floor_div(to_rel.x() - radius, step),
                                       floor_div(to_rel.y() - radius, step)} * step;
     if (goal_seed_index.size() < goal_seed_n*goal_seed_n)
-        goal_seed_index = Array<uint32_t>{NoInit, goal_seed_n*goal_seed_n};
+        goal_seed_index = Array<u32>{NoInit, goal_seed_n*goal_seed_n};
 
     auto search = seed_search{ .a = *this, .bm = bm, .Q = Q, .source = goal, .origin = origin, };
     search.run_goal();
     auto link = visited{ .pt = goal.pt, };
-    if (const auto g = search.g_at(start.pt); g != (uint32_t)-1)
+    if (const auto g = search.g_at(start.pt); g != (u32)-1)
         link = { .dist = g >> search.oct.shift, .prev = search.add_goal_path(start.pt, 0).tail, .pt = goal.pt, };
     // Nodes exist only once the main loop has emptied. Their dists are final then, except where
     // f reached max_dist, and cost >= h keeps those at max_dist or more.
     for (const auto& gs : goal_seeds)
     {
-        fm_debug_assert(gs.head != (uint32_t)-1);
+        fm_debug_assert(gs.head != (u32)-1);
         const auto idx = search.node_at(search.lattice_point(nodes[gs.head].pt));
-        if (idx == (uint32_t)-1)
+        if (idx == (u32)-1)
             continue;
         nodes[gs.head].prev = idx;
         if (const auto d = nodes[idx].dist + gs.cost; d < link.dist)
@@ -1135,7 +1135,7 @@ visited astar::run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const en
 
 template<int Debug, bool FindClosestOnFailure>
 auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal,
-                         uint32_t max_dist, closest best, uint32_t max_pops) -> closest
+                         u32 max_dist, closest best, u32 max_pops) -> closest
 {
     auto& cache = bm.cache;
     const auto step = (int)bm.div_size;
@@ -1145,10 +1145,10 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
     const auto seed_off = goal_seed_off;
     const auto seed_n = goal_seed_n;
     // A resume can add goal seeds. With none, a span of 0 fails every range check.
-    const auto goal_seed_span = goal_seeds.isEmpty() ? 0u : seed_n * (uint32_t)step;
+    const auto goal_seed_span = goal_seeds.isEmpty() ? 0u : seed_n * (u32)step;
     const auto goal_seed_thres_sq = goal_seeds.isEmpty()
                                     ? goal_thres_sq(step)
-                                    : Math::max(goal_thres_sq(step), 2 * (uint64_t)goal_seed_radius(step) * (uint64_t)goal_seed_radius(step));
+                                    : Math::max(goal_thres_sq(step), 2 * (u64)goal_seed_radius(step) * (u64)goal_seed_radius(step));
     // a copy: read through `goal`, it would be reloaded after every call
     const auto to = goal.pt;
     // copies: `best` is passed by pointer, so a store to a node could change its fields
@@ -1167,7 +1167,7 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
             break;
         const auto cur_idx = front.node;
         point cur_pt;
-        uint32_t cur_dist;
+        u32 cur_dist;
         auto& n = nodes[cur_idx];
         if (front.g_score > n.dist)
             continue;
@@ -1205,7 +1205,7 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
             if (rel.x() < goal_seed_span && rel.y() < goal_seed_span)
             {
                 const auto slot = goal_seed_index.data()[(rel.y() >> oct.shift)*seed_n + (rel.x() >> oct.shift)];
-                if (slot != (uint32_t)-1)
+                if (slot != (u32)-1)
                 {
                     const auto& gs = goal_seeds.data()[slot];
                     if (const auto new_dist = cur_dist + gs.cost; new_dist < to_node.dist)
@@ -1232,7 +1232,7 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
 }
 
 template<int Debug>
-path_search_result astar::make_result(const closest& best, point from, point to, uint32_t max_dist, float time)
+path_search_result astar::make_result(const closest& best, point from, point to, u32 max_dist, float time)
 {
     path_search_result result;
     result.set_div_size(_cache->div_size_);
@@ -1244,7 +1244,7 @@ path_search_result astar::make_result(const closest& best, point from, point to,
         result.set_distance(0);
         set_result_from_idx(result, temp_nodes, nodes, from, idx);
     }
-    else if (best.closest_idx != (uint32_t)-1)
+    else if (best.closest_idx != (u32)-1)
     {
         result.set_found(false);
         result.set_distance(point::distance(nodes[best.closest_idx].pt, to));
@@ -1261,7 +1261,7 @@ path_search_result astar::make_result(const closest& best, point from, point to,
 
 template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point from, const point to,
-                                   uint32_t max_dist, Vector2ui own_size,
+                                   u32 max_dist, Vector2ui own_size,
                                    const pred& p)
 {
     reserve(initial_capacity);
@@ -1343,7 +1343,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             return {};
     }
 
-    best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, near_goal ? enclosed_goal_pops : (uint32_t)-1);
+    best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, near_goal ? enclosed_goal_pops : (u32)-1);
     if constexpr (!FindClosestOnFailure)
     {
         // Every queued f is below max_dist, so with no path, only max_pops stops the loop early.
@@ -1351,7 +1351,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         {
             if (bm.is_passable(to) && goal_enclosed(bm, start, goal, temp_nodes))
                 return make_result<Debug>(best, from, to, max_dist, elapsed());
-            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, (uint32_t)-1);
+            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, (u32)-1);
         }
     }
 
@@ -1367,28 +1367,28 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             if (const auto link = run_seed_search(bm, Q, start, to, max_dist); link.dist < best.to_node.dist)
                 best.to_node = link;
         if (!Q.empty())
-            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, (uint32_t)-1);
+            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, (u32)-1);
     }
 
     return make_result<Debug>(best, from, to, max_dist, elapsed());
 }
 
-template path_search_result astar::Dijkstra<0, true>(world&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<1, true>(world&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<2, true>(world&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<3, true>(world&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<0, true>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<1, true>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<2, true>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<3, true>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<0, false>(world&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<1, false>(world&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<2, false>(world&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<3, false>(world&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<0, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<1, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<2, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<3, false>(world&, Grid::Pass::Pool&, point, point, uint32_t, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<0, true>(world&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<1, true>(world&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<2, true>(world&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<3, true>(world&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<0, true>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<1, true>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<2, true>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<3, true>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<0, false>(world&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<1, false>(world&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<2, false>(world&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<3, false>(world&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<0, false>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<1, false>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<2, false>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
+template path_search_result astar::Dijkstra<3, false>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
 
 auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p) -> string_pull_result
 {
@@ -1398,7 +1398,7 @@ auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
 auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,
                         Vector2ui own_size, const pred& p) -> string_pull_result
 {
-    uint32_t corners_added = 0, los_checks = 0;
+    u32 corners_added = 0, los_checks = 0;
     auto& sp = result.smoothings();
     arrayClear(sp);
     const auto& raw = result.raw_path();
@@ -1420,7 +1420,7 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
         for (auto t = 1u; t <= count; t++)
             arrayAppend(P, raw[j] + step * (int)t);
     }
-    const auto n = (uint32_t)P.size();
+    const auto n = (u32)P.size();
 
     struct los_result { corner_pick best; bool blocked; };
 
@@ -1435,8 +1435,8 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
         los_checks++;
         find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, &pool, [&](const swept_collider_result& r) {
             res.blocked = true;
-            const auto x0 = (int32_t)Math::floor(r.rect.min().x() - own_hi.x()), x1 = (int32_t)Math::ceil(r.rect.max().x() + own_lo.x());
-            const auto y0 = (int32_t)Math::floor(r.rect.min().y() - own_hi.y()), y1 = (int32_t)Math::ceil(r.rect.max().y() + own_lo.y());
+            const auto x0 = (i32)Math::floor(r.rect.min().x() - own_hi.x()), x1 = (i32)Math::ceil(r.rect.max().x() + own_lo.x());
+            const auto y0 = (i32)Math::floor(r.rect.min().y() - own_hi.y()), y1 = (i32)Math::ceil(r.rect.max().y() + own_lo.y());
             for (const auto c : { Vector2i{x0, y0}, Vector2i{x1, y0}, Vector2i{x0, y1}, Vector2i{x1, y1} })
             {
                 const auto v = c - o;
@@ -1460,12 +1460,12 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
     };
 
     arrayAppend(sp, path_search_result::waypoint{ P[0], 0 });
-    int8_t turn = 0;
+    i8 turn = 0;
     // Algorithm 1 was written for grid cells. The bound keeps a cycle on rects from hanging.
     auto budget = 8*n + 64;
-    uint32_t seg = 0, seg_last = n > 2 ? steps_of_segment(raw[0], raw[1], cell).count : 0;
+    u32 seg = 0, seg_last = n > 2 ? steps_of_segment(raw[0], raw[1], cell).count : 0;
 
-    for (uint32_t i = 2; i < n; )
+    for (u32 i = 2; i < n; )
     {
         if (!budget--)
             return give_up();
@@ -1517,7 +1517,7 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
             i++;
     }
 
-    const auto last = (uint32_t)raw.size() - 1;
+    const auto last = (u32)raw.size() - 1;
     if (sp.back().pt != P[n-1])
         arrayAppend(sp, path_search_result::waypoint{ P[n-1], last });
     else

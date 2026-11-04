@@ -49,13 +49,13 @@ struct direction_triple
 
 direction_triple read_all_directions(const json& jroot)
 {
-    size_t count = 0;
+    usize count = 0;
     for (auto [str, _] : wall_atlas::directions)
         if (jroot.contains(str))
             count++;
     direction_triple ret = { Array<Direction>{ValueInit, count}, {}, {}, };
     auto& [array, map, mask] = ret;
-    for (uint8_t i = 0, pos = 0; i < array_size(wall_atlas::directions); i++)
+    for (u8 i = 0, pos = 0; i < array_size(wall_atlas::directions); i++)
     {
         auto [str, dir] = wall_atlas::directions[i];
         if (jroot.contains(str))
@@ -76,7 +76,7 @@ bool wall_atlas_def::operator==(const wall_atlas_def& other) const noexcept
         return false;
     if (direction_array.size() != other.direction_array.size())
         return false;
-    for (uint8_t i = 0; i < array_size(direction_map); i++)
+    for (u8 i = 0; i < array_size(direction_map); i++)
     {
         auto i1 = direction_map[i], i2 = other.direction_map[i];
         if (!i1 != !i2)
@@ -126,7 +126,7 @@ void wall_atlas_def::serialize(StringView filename, const Info& header,
     write_all_frames(jroot, frames);
 
     for (const auto [name_, dir] : wall_atlas::directions)
-        if (auto idx = dir_map[(size_t)dir])
+        if (auto idx = dir_map[(usize)dir])
         {
             const auto& dir = dir_array[idx.val];
             if (is_direction_defined(dir))
@@ -202,8 +202,8 @@ Group read_group_metadata(const json& jgroup)
         fm_soft_assert(count >= 0);
         if (has_count)
         {
-            val.index = (uint32_t)index;
-            val.count = (uint32_t)count;
+            val.index = (u32)index;
+            val.count = (u32)count;
         }
     }
 
@@ -220,7 +220,7 @@ Group read_group_metadata(const json& jgroup)
 
 Direction read_direction_metadata(const json& jroot, Direction_ dir)
 {
-    const auto sʹ = direction_index_to_name((size_t)dir);
+    const auto sʹ = direction_index_to_name((usize)dir);
     fm_assert(sʹ.size() == 1);
     std::string_view s = {sʹ.data(), sʹ.size()};
     fm_assert(s.size() == 1);
@@ -248,7 +248,7 @@ Info read_info_header(const json& jroot)
     fm_soft_assert(jroot.contains(("name")));
     fm_soft_assert(jroot.contains(("depth")));
     // read signed first to catch nlohmann's negative→huge-unsigned wrap, as in serialize/anim.cpp
-    const int64_t d = jroot["depth"];
+    const i64 d = jroot["depth"];
     // a deeper wall reaches past chunk_collision_bounds
     fm_soft_assert(d > 0 && d <= 0x100);
     Info val = {std::string{jroot["name"]}, (unsigned)d};
@@ -273,7 +273,7 @@ void write_group_metadata(json& jgroup, const Group& val)
     fm_assert(jgroup.is_null());
     fm_assert(val.is_defined);
 
-    if (val.index != (uint32_t)-1)
+    if (val.index != (u32)-1)
         jgroup["offset"] = val.index;
     else
         jgroup["offset"] = -1;
@@ -281,7 +281,7 @@ void write_group_metadata(json& jgroup, const Group& val)
     jgroup["count"] = val.count;
     jgroup["pixel-size"] = val.pixel_size;
     jgroup["mirrored"] = val.mirrored;
-    if (val.from_rotation != (uint8_t )-1)
+    if (val.from_rotation != (u8 )-1)
         jgroup["from-rotation"] = direction_index_to_name(val.from_rotation);
 }
 
@@ -307,7 +307,7 @@ void write_all_directions(json& jroot, const wall_atlas& a)
 {
     for (auto [name, i] : wall_atlas::directions)
     {
-        if (const auto* dir = a.direction((size_t)i))
+        if (const auto* dir = a.direction((usize)i))
         {
             auto jdir = json{};
             write_direction_metadata(jdir, *dir);

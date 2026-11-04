@@ -21,7 +21,7 @@ static_assert(std::ranges::sized_range<split_array>);
 // elsewhere means the view was rebuilt instead of sliced out of the input.
 void compare(split_string_view range, ArrayView<const StringView> expected)
 {
-    uint32_t i = 0;
+    u32 i = 0;
     for (StringView token : range)
     {
         fm_assert(i < expected.size());
@@ -32,11 +32,11 @@ void compare(split_string_view range, ArrayView<const StringView> expected)
     fm_assert(i == expected.size());
 }
 
-struct part { uint32_t offset, size; };
+struct part { u32 offset, size; };
 
 void compare(split_string_view range, StringView str, ArrayView<const part> expected)
 {
-    uint32_t i = 0;
+    u32 i = 0;
     for (StringView token : range)
     {
         fm_assert(i < expected.size());
@@ -156,7 +156,7 @@ void test_ranges()
     fm_assert(std::ranges::distance(split_string_without_empty_parts(str, ',')) == 4);
     fm_assert(std::ranges::equal(split_string_without_empty_parts(str, ','), expected));
 
-    uint32_t n = 0;
+    u32 n = 0;
     for (StringView token : split_string(str, ',')
                           | std::views::filter([](StringView s) { return s.size() > 1; })
                           | std::views::take(2))
@@ -179,7 +179,7 @@ void test_split_array()
     // Indexing is through the ArrayView conversion rather than a member operator[].
     const ArrayView<const StringView> view = arr;
     constexpr part expected[] = { {0, 1}, {2, 2}, {6, 3} };
-    for (uint32_t i = 0; i < array_size(expected); i++)
+    for (u32 i = 0; i < array_size(expected); i++)
     {
         fm_assert(view[i].data() == str.data() + expected[i].offset);
         fm_assert(view[i].size() == expected[i].size);
@@ -195,8 +195,8 @@ void test_split_array()
 void test_split_array_full()
 {
     char buf[split_array::max_size * 2];
-    uint32_t n = 0;
-    for (uint32_t i = 0; i < split_array::max_size; i++)
+    u32 n = 0;
+    for (u32 i = 0; i < split_array::max_size; i++)
     {
         if (i > 0)
             buf[n++] = ',';
@@ -238,8 +238,8 @@ void test_alignment_sweep()
     char buf[139];
     for (auto& c : buf)
         c = 'a';
-    for (uint32_t len = 1; len <= array_size(buf); len++)
-        for (uint32_t at = 0; at < len; at++)
+    for (u32 len = 1; len <= array_size(buf); len++)
+        for (u32 at = 0; at < len; at++)
         {
             buf[at] = ',';
             const StringView str{buf, len};
@@ -252,8 +252,8 @@ void test_alignment_sweep()
 void test_long_input()
 {
     char buf[199];
-    uint32_t n = 0;
-    for (uint32_t i = 0; i < 100; i++)
+    u32 n = 0;
+    for (u32 i = 0; i < 100; i++)
     {
         if (i > 0)
             buf[n++] = ',';
@@ -432,8 +432,8 @@ void test_substring_alignment_sweep()
     char buf[71];
     for (auto& c : buf)
         c = 'a';
-    for (uint32_t len = 3; len <= array_size(buf); len++)
-        for (uint32_t at = 0; at + 3 <= len; at++)
+    for (u32 len = 3; len <= array_size(buf); len++)
+        for (u32 at = 0; at + 3 <= len; at++)
         {
             buf[at] = 'b'; buf[at+1] = 'c'; buf[at+2] = 'd';
             const StringView str{buf, len};

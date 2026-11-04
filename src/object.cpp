@@ -54,7 +54,7 @@ object::~object() noexcept
     const_cast<object_id&>(id) = 0;
 }
 
-size_t object::index() const
+usize object::index() const
 {
     return chunk().objects().index_of(*this);
 }
@@ -77,7 +77,7 @@ bool object::can_rotate(rotation new_r)
     return can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size);
 }
 
-void object::rotate(size_t, rotation new_r)
+void object::rotate(usize, rotation new_r)
 {
     fm_assert(atlas->check_rotation(new_r));
     const auto [offset_, bbox_offset_] = !is_dynamic() ? rotate_offset(offset, bbox_offset, r, new_r)
@@ -120,12 +120,12 @@ bool object::can_move_to(Vector2i delta)
     return can_move_to(delta, coord, offset, bbox_offset, bbox_size);
 }
 
-void object::teleport_to(size_t& i, point pt, rotation new_r)
+void object::teleport_to(usize& i, point pt, rotation new_r)
 {
     teleport_to(i, pt.coord(), pt.offset(), new_r);
 }
 
-void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rotation new_r)
+void object::teleport_to(usize& i, global_coords coord_, Vector2b offset_, rotation new_r)
 {
     if (new_r == rotation_COUNT)
         new_r = r;
@@ -177,7 +177,7 @@ void object::teleport_to(size_t& i, global_coords coord_, Vector2b offset_, rota
     }
 }
 
-bool object::move_to(size_t& i, Vector2i delta, rotation new_r)
+bool object::move_to(usize& i, Vector2i delta, rotation new_r)
 {
     if (!can_rotate(new_r))
         return false;
@@ -191,31 +191,31 @@ bool object::move_to(Magnum::Vector2i delta)
     return move_to(i, delta, r);
 }
 
-Ns object::fraction_to_ns(uint32_t fraction)
+Ns object::fraction_to_ns(u32 fraction)
 {
-    constexpr auto max = uint64_t{limits<uint32_t>::max};
+    constexpr auto max = u64{limits<u32>::max};
     static_assert(Ns{max} * Second.stamp != Ns{}); // check for overflow
-    return uint64_t{fraction} * Second / max;
+    return u64{fraction} * Second / max;
 }
 
-uint32_t object::ns_to_delta(const Ns& time)
+u32 object::ns_to_delta(const Ns& time)
 {
-    return (uint32_t)Math::min(time.stamp, uint64_t{limits<uint32_t>::max});
+    return (u32)Math::min(time.stamp, u64{limits<u32>::max});
 }
 
-Ns object::alloc_ticks(const Ns& dt, uint32_t delta, Ns frame, float speed)
+Ns object::alloc_ticks(const Ns& dt, u32 delta, Ns frame, float speed)
 {
     fm_assert(frame.stamp > 0);
     if (speed <= 0) [[unlikely]]
         return Ns{};
-    constexpr auto max_from_dt = double(uint64_t{1} << 53);
+    constexpr auto max_from_dt = double(u64{1} << 53);
     auto from_dt = double(dt.stamp) * double(speed);
     if (from_dt > max_from_dt) [[unlikely]]
     {
         //fm_warn_once("alloc_ticks: dt * speed over 2^53 ns, clamped");
         from_dt = max_from_dt;
     }
-    auto ticks = Ns(uint64_t(from_dt)) + Ns{delta};
+    auto ticks = Ns(u64(from_dt)) + Ns{delta};
     if (ticks.stamp >> 12 >= frame.stamp) [[unlikely]]
     {
         //fm_warn_once("alloc_ticks: %llu ns reach 4096 frames of %llu ns, clamped",
@@ -225,17 +225,17 @@ Ns object::alloc_ticks(const Ns& dt, uint32_t delta, Ns frame, float speed)
     return ticks;
 }
 
-Ns object::frame_duration(uint32_t hz)
+Ns object::frame_duration(u32 hz)
 {
     // Above alloc_ticks()'s 2^53 + 2^32 - 1 ns.
-    constexpr auto never = uint64_t{1} << 54;
-    return Ns{hz ? Math::max(Second.stamp / hz, uint64_t{1}) : never};
+    constexpr auto never = u64{1} << 54;
+    return Ns{hz ? Math::max(Second.stamp / hz, u64{1}) : never};
 }
 
-uint32_t object::alloc_frame_time(const Ns& dt, uint32_t& delta, Ns frame, float speed)
+u32 object::alloc_frame_time(const Ns& dt, u32& delta, Ns frame, float speed)
 {
     const auto ticks = alloc_ticks(dt, delta, frame, speed);
-    const auto nframes = (uint32_t)(ticks / frame);
+    const auto nframes = (u32)(ticks / frame);
     delta = ns_to_delta(Ns{ticks % frame});
     return nframes;
 }
@@ -300,8 +300,8 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
         c->mark_scenery_modified();
 }
 
-bool object::can_activate(size_t) const { return false; }
-bool object::activate(size_t) { return false; }
+bool object::can_activate(usize) const { return false; }
+bool object::activate(usize) { return false; }
 const class chunk& object::chunk() const { return *c; }
 const class world& object::world() const { return c->world(); }
 class chunk& object::chunk() { return *c; }

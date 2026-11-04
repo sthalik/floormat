@@ -28,31 +28,31 @@ public:
     using pred = Search::pred;
 
     // cell size of the pools searched by the overloads that take no pool
-    static constexpr uint32_t default_div_size = (uint32_t)tile_size_xy/4;
+    static constexpr u32 default_div_size = (u32)tile_size_xy/4;
 
     astar();
     ~astar() noexcept;
-    void reserve(size_t capacity);
+    void reserve(usize capacity);
 
     struct Search::cache* cache();
     Grid::GridRegistry& pool_registry();
-    uint32_t last_node_count() const { return node_count; }
+    u32 last_node_count() const { return node_count; }
 
     // todo add simple bresenham short-circuit
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, point from, point to,
-                                uint32_t max_dist, Vector2ui own_size,
+                                u32 max_dist, Vector2ui own_size,
                                 const pred& p);
 
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, Grid::Pass::Pool& pool, point from, point to,
-                                uint32_t max_dist, Vector2ui own_size,
+                                u32 max_dist, Vector2ui own_size,
                                 const pred& p);
 
     struct string_pull_result
     {
         // Corners appended, including ones a turn later removed.
-        uint32_t corners_added = 0, los_checks = 0;
+        u32 corners_added = 0, los_checks = 0;
         bool smoothed = false;
         explicit operator bool() const { return smoothed; }
     };
@@ -69,32 +69,32 @@ private:
     struct seed_search;
     struct closest;
 
-    static constexpr uint32_t initial_capacity = 1u << 17;
+    static constexpr u32 initial_capacity = 1u << 17;
 
-    bucket_queue make_queue(uint32_t bucket_count);
+    bucket_queue make_queue(u32 bucket_count);
     chunk_bitmaps make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p);
-    bool seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, uint32_t max_dist);
-    visited run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, uint32_t max_dist);
+    bool seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist);
+    visited run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist);
     visited run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, const endpoint& goal);
     template<int Debug, bool FindClosestOnFailure>
-    closest expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal, uint32_t max_dist, closest best, uint32_t max_pops);
+    closest expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal, u32 max_dist, closest best, u32 max_pops);
     template<int Debug>
-    path_search_result make_result(const closest& best, point from, point to, uint32_t max_dist, float time);
+    path_search_result make_result(const closest& best, point from, point to, u32 max_dist, float time);
 
     safe_ptr<struct Search::cache> _cache;
     safe_ptr<Grid::GridRegistry> _pool_registry;
     Array<visited> nodes;
-    uint32_t node_count = 0;
+    u32 node_count = 0;
     Array<Array<frontier>> buckets;
-    Array<uint32_t> bucket_sizes;
+    Array<u32> bucket_sizes;
     Array<point> temp_nodes;
-    Array<const uint8_t*> chunk_bits;
-    Array<uint32_t> seed_search_state;
+    Array<const u8*> chunk_bits;
+    Array<u32> seed_search_state;
     Array<Range2D> seed_rects;
     Array<goal_seed> goal_seeds;
-    Array<uint32_t> goal_seed_index;
+    Array<u32> goal_seed_index;
     Vector2i goal_seed_off;
-    uint32_t goal_seed_n = 0;
+    u32 goal_seed_n = 0;
 };
 
 } // namespace floormat

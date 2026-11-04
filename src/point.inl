@@ -15,7 +15,7 @@ constexpr point::point(Vector3i p)
         const auto [ch, r] = floor_divmod<chunk_size<int>>(p[i] + half_tile<int>);
         c[i] = ch;
         t[i] = r / tile_size_xy;
-        _offset[i] = (int8_t)(r % tile_size_xy - half_tile<int>);
+        _offset[i] = (i8)(r % tile_size_xy - half_tile<int>);
     }
 
     const auto z = floor_div<tile_size_z>(p.z());
@@ -25,28 +25,28 @@ constexpr point::point(Vector3i p)
     fm_assert(c.x() >= chunk_xy_min && c.x() <= chunk_xy_max && c.y() >= chunk_xy_min && c.y() <= chunk_xy_max
            && z >= chunk_z_min && z <= chunk_z_max);
 
-    cx = (int16_t)c.x();
-    cy = (int16_t)c.y();
-    cz = (int8_t)z;
+    cx = (i16)c.x();
+    cy = (i16)c.y();
+    cz = (i8)z;
 }
 
-constexpr uint32_t point::distance(point a, point b)
+constexpr u32 point::distance(point a, point b)
 {
     Vector2i dist = a - b;
-    return (uint32_t)Math::ceil(Math::sqrt(Vector2(dist).dot()));
+    return (u32)Math::ceil(Math::sqrt(Vector2(dist).dot()));
 }
 
-constexpr uint64_t point::distance_squared(Vector2i delta)
+constexpr u64 point::distance_squared(Vector2i delta)
 {
-    return (uint64_t)((int64_t)delta.x()*delta.x() + (int64_t)delta.y()*delta.y());
+    return (u64)((i64)delta.x()*delta.x() + (i64)delta.y()*delta.y());
 }
 
-constexpr uint64_t point::distance_squared(point a, point b) { return distance_squared(a - b); }
+constexpr u64 point::distance_squared(point a, point b) { return distance_squared(a - b); }
 
-constexpr uint32_t point::distance_l1(point a, point b)
+constexpr u32 point::distance_l1(point a, point b)
 {
     Vector2i dist = a - b;
-    return (uint32_t)Math::abs(dist).sum();
+    return (u32)Math::abs(dist).sum();
 }
 
 constexpr std::strong_ordering operator<=>(const point& p1, const point& p2)

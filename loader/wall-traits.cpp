@@ -51,8 +51,8 @@ auto wall_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
     char file_buf[fm_FILENAME_MAX], json_buf[fm_FILENAME_MAX];
     auto file = loader.make_atlas_path(file_buf, loader.WALL_TILESET_PATH, name);
     int json_size = std::snprintf(json_buf, array_size(json_buf), "%s.json", file_buf);
-    fm_soft_assert(json_size > 0 && (size_t)json_size < array_size(json_buf));
-    auto json_name = StringView{json_buf, (size_t)json_size};
+    fm_soft_assert(json_size > 0 && (usize)json_size < array_size(json_buf));
+    auto json_name = StringView{json_buf, (usize)json_size};
     auto def = wall_atlas_def::deserialize(json_name);
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.isEmpty());

@@ -14,7 +14,7 @@ namespace {
 
 using Buttons = Platform::Sdl2Application::Pointers;
 
-mouse_button pointer_to_button_mask(Buttons b) { return mouse_button((uint8_t)b); }
+mouse_button pointer_to_button_mask(Buttons b) { return mouse_button((u8)b); }
 
 any_event make_any_event(const SDL_Event& e)
 {
@@ -24,7 +24,7 @@ any_event make_any_event(const SDL_Event& e)
     return ret;
 }
 
-constexpr uint32_t ev_input_min = SDL_KEYDOWN, ev_input_max = SDL_MOUSEWHEEL;
+constexpr u32 ev_input_min = SDL_KEYDOWN, ev_input_max = SDL_MOUSEWHEEL;
 
 int SDLCALL reject_real_input(void*, SDL_Event* e)
 {
@@ -89,16 +89,16 @@ void main_impl::inject_key(int keycode, int mods, bool is_down, bool is_repeated
     e.key.timestamp = SDL_GetTicks();
     e.key.windowID = SDL_GetWindowID(window());
     e.key.state = is_down ? SDL_PRESSED : SDL_RELEASED;
-    e.key.repeat = (uint8_t)is_repeated;
+    e.key.repeat = (u8)is_repeated;
     e.key.keysym.sym = (SDL_Keycode)keycode;
     e.key.keysym.scancode = SDL_GetScancodeFromKey((SDL_Keycode)keycode);
-    e.key.keysym.mod = (uint16_t)mods;
+    e.key.keysym.mod = (u16)mods;
     queue_event(e);
 }
 
 void main_impl::inject_mouse_button(mouse_button button, Vector2i position, bool is_down)
 {
-    const auto sdl_button = [](mouse_button b) -> uint8_t
+    const auto sdl_button = [](mouse_button b) -> u8
     {
         switch (b)
         {
@@ -124,7 +124,7 @@ void main_impl::inject_mouse_button(mouse_button button, Vector2i position, bool
     queue_event(e);
 }
 
-void main_impl::inject_mouse_motion(Vector2i position, Vector2i rel, uint32_t button_mask)
+void main_impl::inject_mouse_motion(Vector2i position, Vector2i rel, u32 button_mask)
 {
     SDL_Event e{};
     e.motion.type = SDL_MOUSEMOTION;
@@ -144,8 +144,8 @@ void main_impl::inject_mouse_scroll(Vector2i position, Vector2 offset)
     e.wheel.type = SDL_MOUSEWHEEL;
     e.wheel.timestamp = SDL_GetTicks();
     e.wheel.windowID = SDL_GetWindowID(window());
-    e.wheel.x = (int32_t)offset.x();
-    e.wheel.y = (int32_t)offset.y();
+    e.wheel.x = (i32)offset.x();
+    e.wheel.y = (i32)offset.y();
     e.wheel.preciseX = offset.x();
     e.wheel.preciseY = offset.y();
     e.wheel.mouseX = position.x();
@@ -158,9 +158,9 @@ void main_impl::pointerPressEvent(PointerEvent& ev)
 {
     app.on_mouse_up_down({
         ev.position() * _virtual_scale,
-        (int)(SDL_Keymod)(uint16_t)ev.modifiers(),
+        (int)(SDL_Keymod)(u16)ev.modifiers(),
         pointer_to_button_mask(ev.pointer()),
-        uint8_t(std::min(255, ev.clickCount())),
+        u8(std::min(255, ev.clickCount())),
     }, true, {ev});
 }
 
@@ -168,9 +168,9 @@ void main_impl::pointerReleaseEvent(PointerEvent& ev)
 {
     app.on_mouse_up_down({
         ev.position() * _virtual_scale,
-        (int)(SDL_Keymod)(uint16_t)ev.modifiers(),
+        (int)(SDL_Keymod)(u16)ev.modifiers(),
         pointer_to_button_mask(ev.pointer()),
-        uint8_t(std::min(255, ev.clickCount())),
+        u8(std::min(255, ev.clickCount())),
     }, false, {ev});
 }
 
@@ -178,7 +178,7 @@ void main_impl::pointerMoveEvent(PointerMoveEvent& ev)
 {
     app.on_mouse_move({
         ev.position() * _virtual_scale,
-        (int)(SDL_Keymod)(uint16_t)ev.modifiers(),
+        (int)(SDL_Keymod)(u16)ev.modifiers(),
         pointer_to_button_mask(ev.pointers()),
         ev.isPrimary(),
     }, {ev});
@@ -188,7 +188,7 @@ void main_impl::scrollEvent(ScrollEvent& ev)
 {
     app.on_mouse_scroll({
         ev.offset(), ev.position() * _virtual_scale,
-        (int)(SDL_Keymod)(uint16_t)ev.modifiers(),
+        (int)(SDL_Keymod)(u16)ev.modifiers(),
     }, {ev});
 }
 
@@ -207,8 +207,8 @@ void main_impl::textEditingEvent(TextEditingEvent& event)
 void main_impl::keyPressEvent(KeyEvent& event)
 {
     app.on_key_up_down({
-        (int)(SDL_Keycode)(uint32_t)event.key(),
-        (int)(uint16_t)event.modifiers(),
+        (int)(SDL_Keycode)(u32)event.key(),
+        (int)(u16)event.modifiers(),
         event.isRepeated()
     }, true, {event});
 }
@@ -216,8 +216,8 @@ void main_impl::keyPressEvent(KeyEvent& event)
 void main_impl::keyReleaseEvent(KeyEvent& event)
 {
     app.on_key_up_down({
-        (int)(SDL_Keycode)(uint32_t)event.key(),
-        (int)(SDL_Keymod)(uint16_t)event.modifiers(),
+        (int)(SDL_Keycode)(u32)event.key(),
+        (int)(SDL_Keymod)(u16)event.modifiers(),
         event.isRepeated()
     }, false, {event});
 }
@@ -232,12 +232,12 @@ void main_impl::anyEvent(SDL_Event& event)
         case SDL_WINDOWEVENT_FOCUS_LOST:
             return app.on_focus_out();
         case SDL_WINDOWEVENT_FOCUS_GAINED:
-            _mouse_cursor = (uint32_t)-1;
+            _mouse_cursor = (u32)-1;
             return app.on_focus_in();
         case SDL_WINDOWEVENT_LEAVE:
             return app.on_mouse_leave();
         case SDL_WINDOWEVENT_ENTER:
-            _mouse_cursor = (uint32_t)-1;
+            _mouse_cursor = (u32)-1;
             return app.on_mouse_enter();
         default:
             return app.on_any_event(make_any_event(event));

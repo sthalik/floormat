@@ -8,7 +8,7 @@ namespace floormat::wireframe {
 
 namespace {
 
-constexpr uint32_t num_corners = 4;
+constexpr u32 num_corners = 4;
 using vertex_array = std::array<Vector3, num_corners>;
 
 void draw_closed_polyline(tile_shader& shader, const vertex_array& corners, float line_width)

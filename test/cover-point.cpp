@@ -78,9 +78,9 @@ bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Sea
     return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(size)}, pred);
 }
 
-cover_point_result find(world& w, point npc, point threat, uint32_t radius, uint32_t div_size, Vector2ui size = body,
+cover_point_result find(world& w, point npc, point threat, u32 radius, u32 div_size, Vector2ui size = body,
                         const Search::pred& pred = Search::without_critters(), bool list_spots = false,
-                        uint8_t octants = 0, uint32_t max_cover_end_dist = 0)
+                        u8 octants = 0, u32 max_cover_end_dist = 0)
 {
     static cover_point finder;
     Grid::GridRegistry pools;
@@ -118,7 +118,7 @@ bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vec
     const auto v = Vector3i(pos).xy() - T;
     const auto m = Math::abs(v.x()) >= Math::abs(v.y()) ? 0u : 1u, n = 1 - m;
     const auto sign = v[m] > 0 ? 1 : -1;
-    struct slope { int64_t a, d; };
+    struct slope { i64 a, d; };
     const auto less = [](slope x, slope y) { return x.a*y.d < y.a*x.d; };
     // Corners in doubled coordinates from the threat, so the half-pixel edges are odd integers.
     Array<slope> slopes;
@@ -133,7 +133,7 @@ bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vec
     fm_assert(slopes.size() == 4);
     const auto [bmin, bmax] = std::minmax_element(slopes.begin(), slopes.end(), less);
     const auto smin = *bmin, smax = *bmax;
-    int64_t dmax = 0;
+    i64 dmax = 0;
     for (const auto& s : slopes)
         dmax = Math::max(dmax, s.d);
     // The test worlds hold one chunk, at the origin.
@@ -169,7 +169,7 @@ bool cant_be_shot(world& w, point threat, point pos, Vector2ui size = body)
 }
 
 void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, local_coords wall_tile,
-                            Vector2ub wall_size, Vector2i axis, uint32_t radius = 3*tile_size_xy,
+                            Vector2ub wall_size, Vector2i axis, u32 radius = 3*tile_size_xy,
                             Vector2ui size = body)
 {
     auto w = world();
@@ -253,8 +253,8 @@ void test_side_wall_corner_seen(Vector2ui size = body)
     // The wall's north face is the body's south face and reaches 4 px past its east face. The pillar
     // ahead ends 6 px north of the wall, and the threat sees the body between them.
     const auto d = Vector2i(size - size/2u) - Vector2i(body/2u);
-    add_blocker(w, {6, 8}, {100, 16}, {(int8_t)(18 + d.x()), (int8_t)(32 + d.y())});
-    add_blocker(w, {7, 8}, {16, 64}, {(int8_t)(8 + d.x()), (int8_t)(-14 + d.y())});
+    add_blocker(w, {6, 8}, {100, 16}, {(i8)(18 + d.x()), (i8)(32 + d.y())});
+    add_blocker(w, {7, 8}, {16, 64}, {(i8)(8 + d.x()), (i8)(-14 + d.y())});
     rebuild(w);
 
     const point npc{ch, {7, 8}, {-12, 12}}, threat{ch, {12, 10}, {-20, -24}};
@@ -264,18 +264,18 @@ void test_side_wall_corner_seen(Vector2ui size = body)
 }
 
 // The pillar is as tall as the body, and a wall along its south end stops the body going past it.
-void test_shift_to_only_spot(int8_t pillar_dy, bool split = false, Vector2ui size = body)
+void test_shift_to_only_spot(i8 pillar_dy, bool split = false, Vector2ui size = body)
 {
     auto w = world();
     add_ground(w);
     if (split)
     {
-        add_blocker(w, {7, 8}, {16, 17}, {8, (int8_t)(pillar_dy - 4)});
-        add_blocker(w, {7, 8}, {16, 7}, {8, (int8_t)(pillar_dy + 8)});
+        add_blocker(w, {7, 8}, {16, 17}, {8, (i8)(pillar_dy - 4)});
+        add_blocker(w, {7, 8}, {16, 7}, {8, (i8)(pillar_dy + 8)});
     }
     else
-        add_blocker(w, {7, 8}, {16, (uint8_t)size.y()}, {8, pillar_dy});
-    add_blocker(w, {5, 8}, {192, 16}, {32, (int8_t)(pillar_dy + (int)(size.y() - size.y()/2) + 8)});
+        add_blocker(w, {7, 8}, {16, (u8)size.y()}, {8, pillar_dy});
+    add_blocker(w, {5, 8}, {192, 16}, {32, (i8)(pillar_dy + (int)(size.y() - size.y()/2) + 8)});
     rebuild(w);
 
     const point npc{ch, {6, 8}, {20, -4}}, threat{ch, {14, 8}, {}};
@@ -284,7 +284,7 @@ void test_shift_to_only_spot(int8_t pillar_dy, bool split = false, Vector2ui siz
     fm_assert(cant_be_shot(w, threat, r.pos, size));
 }
 
-void test_pillar_pair(uint8_t far_x, uint8_t near_h, int8_t near_dy, uint8_t far_h, int8_t far_dy, bool must_find)
+void test_pillar_pair(u8 far_x, u8 near_h, i8 near_dy, u8 far_h, i8 far_dy, bool must_find)
 {
     auto w = world();
     add_ground(w);
@@ -364,7 +364,7 @@ void test_spot_taken()
 
 // Returns the search for npc and threat with its spots listed, after checking that a search
 // without them returns the same fields. The spots are valid until the next find().
-cover_point_result find_listed(world& w, point npc, point threat, uint32_t radius)
+cover_point_result find_listed(world& w, point npc, point threat, u32 radius)
 {
     const auto r0 = find(w, npc, threat, radius, 8);
     const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters(), true);
@@ -426,7 +426,7 @@ void test_max_fills()
     rebuild(w);
 
     const point npc{ch, {4, 8}, {}}, threat{ch, {12, 8}, {}};
-    constexpr auto radius = 3*(uint32_t)tile_size_xy;
+    constexpr auto radius = 3*(u32)tile_size_xy;
     cover_point finder;
     cover_query q{npc, body, threat, radius, 3};
     const auto whole = [&] {
@@ -482,9 +482,9 @@ void test_lists_past_rejected()
 // Searches of the tiles around npc, each with its area, try the candidates of one search over
 // radius once each and together list its spots, of which there are more than min_spots. With npc on
 // a cell center, the edges of the tiles around it pass through cell centers.
-void check_lists_by_area(world& w, point npc, point threat, uint8_t octants, uint32_t max_cover_end_dist, uint32_t min_spots)
+void check_lists_by_area(world& w, point npc, point threat, u8 octants, u32 max_cover_end_dist, u32 min_spots)
 {
-    constexpr auto radius = 4*(uint32_t)tile_size_xy;
+    constexpr auto radius = 4*(u32)tile_size_xy;
     cover_point finder;
     Grid::GridRegistry pools;
     const auto search = [&](Optional<Range2Di> area) {
@@ -498,7 +498,7 @@ void check_lists_by_area(world& w, point npc, point threat, uint8_t octants, uin
 
     Array<point> tiled;
     arrayReserve(tiled, spots.size());
-    uint32_t candidates = 0;
+    u32 candidates = 0;
     constexpr auto n = (int)radius/tile_size_xy + 1;
     for (auto y = -n; y <= n; y++)
         for (auto x = -n; x <= n; x++)
@@ -517,7 +517,7 @@ void check_lists_by_area(world& w, point npc, point threat, uint8_t octants, uin
 }
 
 // Spots moved along one face end at its two ends, so there are fewer of them.
-void test_lists_by_area(uint8_t octants, uint32_t max_cover_end_dist = 0)
+void test_lists_by_area(u8 octants, u32 max_cover_end_dist = 0)
 {
     auto w = world();
     add_ground(w);
@@ -536,7 +536,7 @@ void test_lists_by_area_long_wall()
     auto w = world();
     add_ground(w);
     for (auto y = 4; y <= 11; y++)
-        add_blocker(w, {7, (uint8_t)y}, {16, 64});
+        add_blocker(w, {7, (u8)y}, {16, 64});
     rebuild(w);
     check_lists_by_area(w, point{ch, {6, 8}, {4, 4}}, point{ch, {12, 8}, {}}, 0, 2*tile_size_xy, 1);
 }
@@ -602,7 +602,7 @@ void test_octants_wall_middle()
         fm_assert(listed == hidden);
         kept += hidden;
     }
-    fm_assert_equal(kept, (uint32_t)spots3.size());
+    fm_assert_equal(kept, (u32)spots3.size());
     fm_assert(kept < spots0.size());
 }
 
@@ -635,7 +635,7 @@ void test_octants_turned_threat_sees()
 
 // True when neither the threat nor the threat turned about pos by up to octants/2 octants either
 // way hits a body centered on pos.
-bool hidden_from_turned(world& w, Vector2i threat, point pos, uint8_t octants)
+bool hidden_from_turned(world& w, Vector2i threat, point pos, u8 octants)
 {
     const auto v = Vector3i(pos).xy();
     if (!hidden_from(w, threat, pos))
@@ -650,7 +650,7 @@ bool hidden_from_turned(world& w, Vector2i threat, point pos, uint8_t octants)
 // npc west of it, 12 px north of its middle. The spot behind the wall moves north, to the nearer
 // end, up to where the body 1 px farther north is hit from the threat or a turned threat. With
 // north_leg, a wall going west from the north end stops that, and the spot moves to the south end.
-void test_moves_to_cover_end(uint8_t octants, bool north_leg)
+void test_moves_to_cover_end(u8 octants, bool north_leg)
 {
     auto w = world();
     add_ground(w);
@@ -661,7 +661,7 @@ void test_moves_to_cover_end(uint8_t octants, bool north_leg)
 
     const point npc{ch, {6, 8}, {0, -12}}, threat{ch, {12, 8}, {}};
     const auto T = Vector3i(threat).xy();
-    constexpr auto radius = 3*(uint32_t)tile_size_xy, max_cover_end_dist = 2*(uint32_t)tile_size_xy;
+    constexpr auto radius = 3*(u32)tile_size_xy, max_cover_end_dist = 2*(u32)tile_size_xy;
     const auto r0 = find(w, npc, threat, radius, 8, body, Search::without_critters(), false, octants);
     const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters(), false, octants, max_cover_end_dist);
     fm_assert(r0.found && r.found && r.axis == r0.axis && r.axis == Vector2i{1, 0});
@@ -732,7 +732,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
 
     const auto fps = npc->atlas->info().fps;
     const auto frame = Second / fps;
-    struct rest { point pos; uint32_t frames; };
+    struct rest { point pos; u32 frames; };
     Array<rest> rests;
     arrayReserve(rests, 4);
     auto last = npc->position();
@@ -758,7 +758,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
 
     const auto [hidden, peek, back, peek2] = std::array{rests[0], rests[1], rests[2], rests[3]};
     // each wait may end a frame early or late, and the walk's arrival frame counts as still
-    const auto near_2s = [&](uint32_t n) { return n + 2 >= 2*fps && n <= 2*fps + 2; };
+    const auto near_2s = [&](u32 n) { return n + 2 >= 2*fps && n <= 2*fps + 2; };
     fm_assert(near_2s(hidden.frames) && near_2s(peek.frames) && near_2s(back.frames));
     fm_assert(cant_be_shot_at(w, threat_pos, threat->id, hidden.pos, body, npc->id));
     fm_assert(back.pos == hidden.pos && peek2.pos == peek.pos);
@@ -788,7 +788,7 @@ struct cover_scene
     Grid::Pass::Pool ray_pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
     bptr<critter> threat, npc;
     bptr<scenery> wall;
-    uint32_t fps = 0;
+    u32 fps = 0;
     Ns frame;
 
     explicit cover_scene(point threat_pos = point{ch, {12, 8}, {}}, Optional<int> gun_offset = 0,
@@ -797,12 +797,12 @@ struct cover_scene
     void step();
     bool seen_from(point threat_pos, point pos);
     point next_stop();
-    uint32_t stay(uint32_t max, Vector2i threat_step = {});
+    u32 stay(u32 max, Vector2i threat_step = {});
     void move_threat(point pos);
     cover_script_status status();
     void step_until(point pos);
     void step_until(cover_script_status::state st);
-    uint32_t finish_search();
+    u32 finish_search();
 };
 
 cover_scene::cover_scene(point threat_pos, Optional<int> gun_offset, const Optional<point>& other_pos,
@@ -869,7 +869,7 @@ void cover_scene::step_until(cover_script_status::state st)
 
 // Steps while the npc searches for a retreat, or for cover, also during the retreat walk, and returns the
 // number of updates that started in state::find_retreat.
-uint32_t cover_scene::finish_search()
+u32 cover_scene::finish_search()
 {
     using state = cover_script_status::state;
     const auto num_searches = status().num_searches;
@@ -926,7 +926,7 @@ point cover_scene::next_stop()
 
 // The number of updates the npc stays where it stands, at most max. The threat moves by
 // threat_step before each one.
-uint32_t cover_scene::stay(uint32_t max, Vector2i threat_step)
+u32 cover_scene::stay(u32 max, Vector2i threat_step)
 {
     const auto pos = npc->position();
     for (auto frames = 0u; ; frames++)
@@ -1121,7 +1121,7 @@ void test_cover_script_walking_threat(point hidden)
 // the threat sees the gun at the peek spot and not with the peek 1 px shorter. gun_offset is as in
 // cover_scene.
 cover_cycle peek_with_gun(Optional<int> gun_offset, const Optional<point>& other_pos = {}, Vector2ui npc_size = body,
-                          uint32_t max_cover_end_dist = cover_script_options{}.max_cover_end_dist)
+                          u32 max_cover_end_dist = cover_script_options{}.max_cover_end_dist)
 {
     cover_scene s{point{ch, {12, 8}, {}}, gun_offset, other_pos, npc_size};
     set_cover_script_options(*s.npc, {.max_cover_end_dist = max_cover_end_dist});
@@ -1252,7 +1252,7 @@ rotation nearest_of_8(Vector2i v)
     const auto octants = std::atan2((double)v.x(), (double)-v.y()) / (Math::Constants<double>::pi()/4);
     const auto k = std::round(octants);
     fm_assert(.5 - std::abs(octants - k) >= 1./45);
-    return rotation((uint8_t)(((int)k + 8) % 8));
+    return rotation((u8)(((int)k + 8) % 8));
 }
 
 // The npc's gun is 23 px to its left, and a critter stands 1 px north of the body at hidden, so the
@@ -1921,7 +1921,7 @@ void test_cover_script_retreat(point hidden)
     s.step_until(state::seek);
     fm_assert_equal(t0.num_searches + 1, s.status().num_searches);
     const auto spot = s.npc->position();
-    fm_assert(point::distance_squared(spot, hidden) <= (uint64_t)(radius*radius));
+    fm_assert(point::distance_squared(spot, hidden) <= (u64)(radius*radius));
     const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, threat_pos)); };
     fm_assert(dist(spot) - dist(hidden) > 3*tile_size_xy);
     const auto r1 = nearest_of_8(threat_pos - spot);
@@ -1932,7 +1932,7 @@ void test_cover_script_retreat(point hidden)
     const auto r2 = nearest_of_8(beside - spot);
     fm_assert(r2 != r1);
 
-    const auto moved = [&](uint32_t frame) { return frame >= s.fps/2 && frame < s.fps/2 + 3; };
+    const auto moved = [&](u32 frame) { return frame >= s.fps/2 && frame < s.fps/2 + 3; };
     auto frames = 0u;
     for (; s.status().st == state::seek; frames++)
     {
@@ -2095,7 +2095,7 @@ void test_cover_script_search_circling_threat(point hidden, bool far_block)
     fm_assert(walked);
     fm_assert_equal(t0.num_searches + 1, s.status().num_searches);
     if (far_block)
-        fm_assert(point::distance(s.status().cover, block) < 2*(uint32_t)tile_size_xy);
+        fm_assert(point::distance(s.status().cover, block) < 2*(u32)tile_size_xy);
     else
         fm_assert_equal(s.status().num_search_tiles, s.status().search_tile);
 }
@@ -2130,8 +2130,8 @@ void test_cover_script_retreat_finds_cover(point hidden, bool near_threat)
     const auto t = s.status();
     fm_assert(walked);
     fm_assert(s.npc->position() == t.cover);
-    fm_assert(point::distance(t.cover, hidden) > 5*(uint32_t)tile_size_xy);
-    fm_assert(point::distance(t.cover, block) < 2*(uint32_t)tile_size_xy);
+    fm_assert(point::distance(t.cover, hidden) > 5*(u32)tile_size_xy);
+    fm_assert(point::distance(t.cover, block) < 2*(u32)tile_size_xy);
     fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, t.cover, body, s.npc->id));
     fm_assert_equal(t0.num_searches + 1, t.num_searches);
 }
@@ -2298,7 +2298,7 @@ void test_cover_script_far_cover(bool turned)
     }
     const auto t = status();
     fm_assert(t.st == state::to_cover && t.has_cover);
-    fm_assert(point::distance(npc_pos, t.cover) > 7*(uint32_t)tile_size_xy);
+    fm_assert(point::distance(npc_pos, t.cover) > 7*(u32)tile_size_xy);
     for (auto frames = 0u; status().st != state::hidden; frames++)
     {
         fm_assert(frames < 2000);
@@ -2329,7 +2329,7 @@ void test_cover_script_div_change()
         auto i = npc->index();
         npc->update(npc, i, frame);
     };
-    const auto fills = [&](uint32_t div) { return A.pool_registry().cover_pool(Cover::Params{div}).octant_fills(); };
+    const auto fills = [&](u32 div) { return A.pool_registry().cover_pool(Cover::Params{div}).octant_fills(); };
 
     for (auto updates = 0u; status().search_tile <= 32; updates++)
     {
@@ -2351,7 +2351,7 @@ void test_cover_script_div_change()
     fm_assert(fills(16) > 1);
     const auto t = status();
     fm_assert(t.st == state::to_cover && t.has_cover);
-    fm_assert(point::distance(npc_pos, t.cover) > 7*(uint32_t)tile_size_xy);
+    fm_assert(point::distance(npc_pos, t.cover) > 7*(u32)tile_size_xy);
     w.finish_scripts();
 }
 
@@ -2440,14 +2440,14 @@ void path_points(ArrayView<const point> path, Array<point>& out)
 {
     auto count = 1u;
     for (auto k = 1u; k < path.size(); k++)
-        count += (uint32_t)Math::ceil(Vector2d(path[k] - path[k-1]).length());
+        count += (u32)Math::ceil(Vector2d(path[k] - path[k-1]).length());
     arrayClear(out);
     arrayReserve(out, count);
     arrayAppend(out, path.front());
     for (auto k = 1u; k < path.size(); k++)
     {
         const auto d = Vector2d(path[k] - path[k-1]);
-        const auto n = (uint32_t)Math::ceil(d.length());
+        const auto n = (u32)Math::ceil(d.length());
         for (auto j = 1u; j <= n; j++)
             arrayAppend(out, path[k-1] + Vector2i(Math::round(d*j/n)));
     }
@@ -2484,7 +2484,7 @@ path_search_result flank_route(cover_scene& s)
             first++;
         if (first == 0 || first == pts.size())
             return {};
-        const auto end = pts[Math::min(first + half_tile<uint32_t>, (uint32_t)pts.size() - 1)];
+        const auto end = pts[Math::min(first + half_tile<u32>, (u32)pts.size() - 1)];
         auto route = s.A.Dijkstra<0, false>(s.w, from, end, chunk_size_xy, size, Search::without_critters());
         if (!route.is_found() || !flanked_from(s, end))
             return {};
@@ -2668,7 +2668,7 @@ void test_cover_script_threat_reach_skips()
 {
     const point wall{ch, {7, 8}, {}}, block{ch, {2, 8}, {}};
     fm_assert(point::distance(threat_reach_hides(true, false), block) < tile_size_xy);
-    fm_assert(point::distance(threat_reach_hides(false, false), wall) < 2*(uint32_t)tile_size_xy);
+    fm_assert(point::distance(threat_reach_hides(false, false), wall) < 2*(u32)tile_size_xy);
 }
 
 // With threat_reach_hides's arms, the npc hides behind the wall though a point within threat_reach px of the
@@ -2697,7 +2697,7 @@ void test_cover_script_cover_end_reach(bool reach)
 void add_longer_wall(cover_scene& s)
 {
     s.w[ch].remove_object(*s.wall, s.wall->index());
-    for (const auto y : { (uint8_t)5, (uint8_t)8, (uint8_t)11 })
+    for (const auto y : { (u8)5, (u8)8, (u8)11 })
         add_blocker(s.w, {5, y}, {16, 200});
     rebuild(s.w);
 }
@@ -2831,7 +2831,7 @@ void Test::test_cover_point()
     test_lists_by_area(3);
     test_octants_wall_middle();
     test_octants_turned_threat_sees();
-    for (const auto octants : { uint8_t{0}, uint8_t{3} })
+    for (const auto octants : { u8{0}, u8{3} })
     {
         test_moves_to_cover_end(octants, false);
         test_moves_to_cover_end(octants, true);

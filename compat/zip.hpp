@@ -5,30 +5,30 @@
 
 namespace floormat::detail_zip {
 
-template<size_t... Is> struct index_sequence {};
-template<size_t N, size_t... Is> struct make_index_sequence_ : make_index_sequence_<N-1, N-1, Is...> {};
-template<size_t... Is> struct make_index_sequence_<0, Is...> { using type = index_sequence<Is...>; };
-template<size_t N> using make_index_sequence = typename make_index_sequence_<N>::type;
+template<usize... Is> struct index_sequence {};
+template<usize N, usize... Is> struct make_index_sequence_ : make_index_sequence_<N-1, N-1, Is...> {};
+template<usize... Is> struct make_index_sequence_<0, Is...> { using type = index_sequence<Is...>; };
+template<usize N> using make_index_sequence = typename make_index_sequence_<N>::type;
 
-template<size_t I, typename T> struct leaf { T value; };
+template<usize I, typename T> struct leaf { T value; };
 
 template<typename Seq, typename... Ts> struct tuple;
-template<size_t... Is, typename... Ts> struct tuple<index_sequence<Is...>, Ts...> : leaf<Is, Ts>... {};
+template<usize... Is, typename... Ts> struct tuple<index_sequence<Is...>, Ts...> : leaf<Is, Ts>... {};
 template<typename... Ts> using tuple_t = tuple<make_index_sequence<sizeof...(Ts)>, Ts...>;
 
-template<size_t I, typename T>
+template<usize I, typename T>
 constexpr T& get_leaf(leaf<I, T>& l) noexcept
 {
     return l.value;
 }
 
-template<size_t I, typename T>
+template<usize I, typename T>
 constexpr const T& get_leaf(const leaf<I, T>& l) noexcept
 {
     return l.value;
 }
 
-template<size_t I, typename Tuple> using leaf_t = std::remove_cvref_t<decltype(get_leaf<I>(detail_range::declval<Tuple&>()))>;
+template<usize I, typename Tuple> using leaf_t = std::remove_cvref_t<decltype(get_leaf<I>(detail_range::declval<Tuple&>()))>;
 
 template<typename It>
 struct component
@@ -43,18 +43,18 @@ struct component
 };
 
 template<typename S, typename I>
-concept sized_sentinel_for = requires(const S& s, const I& i) { static_cast<size_t>(s - i); };
+concept sized_sentinel_for = requires(const S& s, const I& i) { static_cast<usize>(s - i); };
 
 template<typename V>
-constexpr size_t length(V& v) noexcept
+constexpr usize length(V& v) noexcept
 {
-    return static_cast<size_t>(detail_range::end_of(v) - detail_range::begin_of(v));
+    return static_cast<usize>(detail_range::end_of(v) - detail_range::begin_of(v));
 }
 
 template<typename V, typename... Vs>
 constexpr bool same_length(V& v, Vs&... vs) noexcept
 {
-    const size_t n = length(v);
+    const usize n = length(v);
     return (... && (length(vs) == n));
 }
 
@@ -72,16 +72,16 @@ class element
     tuple_type _its;
 
     constexpr explicit element(Its... its) noexcept;
-    template<size_t... Is> constexpr void advance(index_sequence<Is...>) noexcept;
-    template<typename... Ends, size_t... Is> constexpr bool at_end(const tuple<index_sequence<Is...>, Ends...>& ends) const noexcept;
+    template<usize... Is> constexpr void advance(index_sequence<Is...>) noexcept;
+    template<typename... Ends, usize... Is> constexpr bool at_end(const tuple<index_sequence<Is...>, Ends...>& ends) const noexcept;
 
 public:
-    template<size_t N> using component_t = component<leaf_t<N, tuple_type>>;
+    template<usize N> using component_t = component<leaf_t<N, tuple_type>>;
 
-    template<size_t N> constexpr auto get() & noexcept -> typename component_t<N>::ref;
-    template<size_t N> constexpr auto get() const& noexcept -> typename component_t<N>::const_ref;
-    template<size_t N> constexpr auto get() && noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy;
-    template<size_t N> constexpr auto get() const&& noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy;
+    template<usize N> constexpr auto get() & noexcept -> typename component_t<N>::ref;
+    template<usize N> constexpr auto get() const& noexcept -> typename component_t<N>::const_ref;
+    template<usize N> constexpr auto get() && noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy;
+    template<usize N> constexpr auto get() const&& noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy;
 };
 
 template<typename... Vs>
@@ -133,14 +133,14 @@ template<typename... Its>
 constexpr element<Its...>::element(Its... its) noexcept : _its{ {move(its)}... } {}
 
 template<typename... Its>
-template<size_t... Is>
+template<usize... Is>
 constexpr void element<Its...>::advance(index_sequence<Is...>) noexcept
 {
     (++get_leaf<Is>(_its), ...);
 }
 
 template<typename... Its>
-template<typename... Ends, size_t... Is>
+template<typename... Ends, usize... Is>
 constexpr bool element<Its...>::at_end(const tuple<index_sequence<Is...>, Ends...>& ends) const noexcept
 {
     if (!(... || (get_leaf<Is>(_its) == get_leaf<Is>(ends))))
@@ -153,28 +153,28 @@ constexpr bool element<Its...>::at_end(const tuple<index_sequence<Is...>, Ends..
 }
 
 template<typename... Its>
-template<size_t N>
+template<usize N>
 constexpr auto element<Its...>::get() & noexcept -> typename component_t<N>::ref
 {
     return *get_leaf<N>(_its);
 }
 
 template<typename... Its>
-template<size_t N>
+template<usize N>
 constexpr auto element<Its...>::get() const& noexcept -> typename component_t<N>::const_ref
 {
     return *get_leaf<N>(_its);
 }
 
 template<typename... Its>
-template<size_t N>
+template<usize N>
 constexpr auto element<Its...>::get() && noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy
 {
     return *get_leaf<N>(_its);
 }
 
 template<typename... Its>
-template<size_t N>
+template<usize N>
 constexpr auto element<Its...>::get() const&& noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy
 {
     return *get_leaf<N>(_its);
@@ -223,7 +223,7 @@ constexpr view<Rs...>::view(Rs&&... rs) noexcept((std::is_nothrow_constructible_
 template<typename... Rs>
 constexpr auto view<Rs...>::begin() noexcept -> iterator<detail_range::all_t<Rs>...>
 {
-    return [this]<size_t... Is>(index_sequence<Is...>) {
+    return [this]<usize... Is>(index_sequence<Is...>) {
         return iterator<detail_range::all_t<Rs>...>{get_leaf<Is>(_bases)...};
     }(make_index_sequence<sizeof...(Rs)>{});
 }
@@ -231,7 +231,7 @@ constexpr auto view<Rs...>::begin() noexcept -> iterator<detail_range::all_t<Rs>
 template<typename... Rs>
 constexpr auto view<Rs...>::begin() const noexcept -> iterator<const detail_range::all_t<Rs>...>
 {
-    return [this]<size_t... Is>(index_sequence<Is...>) {
+    return [this]<usize... Is>(index_sequence<Is...>) {
         return iterator<const detail_range::all_t<Rs>...>{get_leaf<Is>(_bases)...};
     }(make_index_sequence<sizeof...(Rs)>{});
 }
@@ -239,7 +239,7 @@ constexpr auto view<Rs...>::begin() const noexcept -> iterator<const detail_rang
 template<typename... Rs>
 constexpr auto view<Rs...>::end() noexcept -> sentinel<detail_range::all_t<Rs>...>
 {
-    return [this]<size_t... Is>(index_sequence<Is...>) {
+    return [this]<usize... Is>(index_sequence<Is...>) {
         return sentinel<detail_range::all_t<Rs>...>{get_leaf<Is>(_bases)...};
     }(make_index_sequence<sizeof...(Rs)>{});
 }
@@ -247,7 +247,7 @@ constexpr auto view<Rs...>::end() noexcept -> sentinel<detail_range::all_t<Rs>..
 template<typename... Rs>
 constexpr auto view<Rs...>::end() const noexcept -> sentinel<const detail_range::all_t<Rs>...>
 {
-    return [this]<size_t... Is>(index_sequence<Is...>) {
+    return [this]<usize... Is>(index_sequence<Is...>) {
         return sentinel<const detail_range::all_t<Rs>...>{get_leaf<Is>(_bases)...};
     }(make_index_sequence<sizeof...(Rs)>{});
 }

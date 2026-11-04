@@ -47,7 +47,7 @@ class world& main_impl::reset_world(class world&& w) noexcept
 
     for (auto& cʹ : _world.chunks())
         for (const auto& eʹ : cʹ.objects())
-            fm_assert_equal(uint32_t{2}, eʹ.use_count());
+            fm_assert_equal(u32{2}, eʹ.use_count());
 
     _world = move(w);
     _astar = safe_ptr<class astar>{InPlaceInit};

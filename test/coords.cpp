@@ -55,9 +55,9 @@ void test_normalize_point()
 
 void test_point()
 {
-    constexpr auto c = chunk_size<int32_t>;
+    constexpr auto c = chunk_size<i32>;
     constexpr auto t = tile_size_xy;
-    constexpr auto h = half_tile<int32_t>;
+    constexpr auto h = half_tile<i32>;
 
     constexpr auto v1 = Vector3i{-h, -h, 0};
     constexpr auto p1 = point{v1};
@@ -67,7 +67,7 @@ void test_point()
     constexpr auto p2 = point{v2};
     fm_assert_equal(v2, Vector3i{p2});
 
-    constexpr auto v3 = Vector3i{c * 128 + t * ((int32_t)TILE_MAX_DIM-1) + h - 1, c * 42 + t * 3 - h/2, tile_size_z * 10};
+    constexpr auto v3 = Vector3i{c * 128 + t * ((i32)TILE_MAX_DIM-1) + h - 1, c * 42 + t * 3 - h/2, tile_size_z * 10};
     constexpr auto p3 = point{v3};
     fm_assert_equal(v3, Vector3i{p3});
 
@@ -92,7 +92,7 @@ Vector2i camera_centered_on(Vector3i world)
 
 void test_pixel_to_point()
 {
-    constexpr int8_t z = 3;
+    constexpr i8 z = 3;
     constexpr auto zpx = z*tile_size_z;
 
     {
@@ -110,7 +110,7 @@ void test_pixel_to_point()
         {lo, lo, 0}, {hi, hi, zpx}, {lo, hi, 0}, {hi, lo, zpx}, {c + 5, -c - 7, -tile_size_z},
     };
 
-    const auto check = [](Vector2i pixel, Vector2i win, Vector2i cam, int8_t zl) {
+    const auto check = [](Vector2i pixel, Vector2i win, Vector2i cam, i8 zl) {
         // Exact in double: every term is a multiple of 1/2 below 2^30.
         const auto zp = zl*tile_size_z;
         const auto s = Vector2d(pixel - win/2 - cam) + Vector2d{0., (double)zp};
@@ -132,7 +132,7 @@ void test_pixel_to_point()
         for (auto world : centers)
         {
             const auto cam = camera_centered_on(world);
-            const auto zl = int8_t(world.z()/tile_size_z);
+            const auto zl = i8(world.z()/tile_size_z);
             fm_assert_equal(point{world}, tile_shader::pixel_to_point(win/2, win, cam, zl));
             fm_assert_equal(win/2, tile_shader::point_to_pixelʹ(world, win, cam));
             const auto half = float((world.x() + world.y()) & 1)*.5f;
@@ -148,9 +148,9 @@ void test_pixel_to_point()
     }
 }
 
-static_assert(!std::is_assignable_v<decltype((std::declval<chunk_coords_&>().x)), int16_t>);
-static_assert(!std::is_assignable_v<decltype((std::declval<chunk_coords_&>().z)), int8_t>);
-static_assert(!std::is_assignable_v<decltype((std::declval<global_coords&>().raw().x)), uint32_t>);
+static_assert(!std::is_assignable_v<decltype((std::declval<chunk_coords_&>().x)), i16>);
+static_assert(!std::is_assignable_v<decltype((std::declval<chunk_coords_&>().z)), i8>);
+static_assert(!std::is_assignable_v<decltype((std::declval<global_coords&>().raw().x)), u32>);
 static_assert(std::is_trivially_copy_constructible_v<chunk_coords_> && std::is_trivially_destructible_v<chunk_coords_>);
 static_assert(std::is_trivially_copy_constructible_v<global_coords> && std::is_trivially_destructible_v<global_coords>);
 
@@ -196,10 +196,10 @@ static_assert(test_global_coords_assign());
 #endif
 
 // a failing fm_assert is not a constant expression, which leaves the requirement unsatisfied
-template<int8_t Z> concept gc_x_carry_ok = requires {
+template<i8 Z> concept gc_x_carry_ok = requires {
     typename std::integral_constant<int, (global_coords{chunk_coords{chunk_xy_max, 0}, local_coords{15, 0}, Z} + Vector2i{1, 0}).z()>;
 };
-template<int8_t Z> concept gc_x_borrow_ok = requires {
+template<i8 Z> concept gc_x_borrow_ok = requires {
     typename std::integral_constant<int, (global_coords{chunk_coords{chunk_xy_min, 0}, local_coords{0, 0}, Z} - Vector2i{1, 0}).z()>;
 };
 static_assert(!gc_x_carry_ok<chunk_z_max> && !gc_x_borrow_ok<chunk_z_min>);

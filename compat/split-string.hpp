@@ -12,7 +12,7 @@
 
 namespace floormat {
 
-enum class split_mode : uint8_t
+enum class split_mode : u8
 {
     character,      // delim
     any_character,  // any one char of delims
@@ -54,7 +54,7 @@ public:
     using iterator_concept = std::forward_iterator_tag;
     using iterator_category = std::input_iterator_tag;
     using value_type = StringView;
-    using difference_type = ptrdiff_t;
+    using difference_type = isize;
 
     iterator() noexcept;
     StringView operator*() const noexcept;
@@ -85,17 +85,17 @@ ArrayView<StringView> split_string_into(ArrayView<StringView> out, split_string_
 class split_array
 {
 public:
-    static constexpr uint32_t max_size = 16;
+    static constexpr u32 max_size = 16;
 
 private:
     StringView _parts[max_size];
-    uint32_t _size = 0;
+    u32 _size = 0;
 
 public:
     split_array() noexcept = default;
     explicit split_array(split_string_view range);
 
-    uint32_t size() const noexcept;
+    u32 size() const noexcept;
     bool isEmpty() const noexcept;
     const StringView* data() const noexcept;
     const StringView* begin() const noexcept;

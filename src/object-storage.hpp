@@ -12,7 +12,7 @@
 namespace floormat {
 
 // none and scenery aren't classes
-constexpr inline uint32_t object_class_count = (uint32_t)object_type::COUNT - 2 + (uint32_t)scenery_type::COUNT - 1;
+constexpr inline u32 object_class_count = (u32)object_type::COUNT - 2 + (u32)scenery_type::COUNT - 1;
 
 template<typename C>
 constexpr inline bool is_object_class = is_one_of<C, generic_scenery, door_scenery, critter, light, hole>;
@@ -67,7 +67,7 @@ public:
     object_range(const bptr<object>* begin, const bptr<object>* end) noexcept;
     iterator begin() const noexcept;
     iterator end() const noexcept;
-    uint32_t size() const noexcept;
+    u32 size() const noexcept;
 };
 
 class object_list_base
@@ -78,16 +78,16 @@ protected:
     Array<bptr<object>> _items;
 
 public:
-    inline uint32_t size() const noexcept;
-    inline const bptr<object>& ptr(uint32_t i) noexcept; // non-const only: a bptr yields a mutable object
+    inline u32 size() const noexcept;
+    inline const bptr<object>& ptr(u32 i) noexcept; // non-const only: a bptr yields a mutable object
 };
 
 template<typename T>
 class object_list final : public object_list_base
 {
 public:
-    T& operator[](uint32_t i) noexcept;
-    const T& operator[](uint32_t i) const noexcept;
+    T& operator[](u32 i) noexcept;
+    const T& operator[](u32 i) const noexcept;
 
     object_range<T> range() noexcept;
     object_range<const T> range() const noexcept;
@@ -113,12 +113,12 @@ class object_storage final
     template<typename T, typename... Ts, typename Self, typename F> void for_each_list(this Self& self, F&& fn);
     object_list_base& list_for(object_type type, scenery_type sc_type) noexcept;
     const object_list_base& list_for(object_type type, scenery_type sc_type) const noexcept;
-    const object_list_base* list_at(uint32_t k) const noexcept;
-    const bptr<object>& item_at(uint32_t i) const noexcept;
+    const object_list_base* list_at(u32 k) const noexcept;
+    const bptr<object>& item_at(u32 i) const noexcept;
 
-    [[nodiscard]] size_t insert(const bptr<object>& e);
+    [[nodiscard]] usize insert(const bptr<object>& e);
     void append(const bptr<object>& e);
-    void erase(const object& e, size_t i);
+    void erase(const object& e, usize i);
     [[nodiscard]] bool sort();
     void clear();
 
@@ -137,17 +137,17 @@ public:
     template<typename T = object, typename... Ts, const_object_visitor<T, Ts...> F> void visit(const F& fn) const;
     template<typename T = object, typename... Ts, object_list_visitor<T, Ts...> F> void visit_lists(const F& fn);
 
-    uint32_t size() const noexcept;
+    u32 size() const noexcept;
     bool empty() const noexcept;
-    size_t index_of(const object& e) const;
-    const bptr<object>& ptr(const object& e, size_t i);
+    usize index_of(const object& e) const;
+    const bptr<object>& ptr(const object& e, usize i);
 
     iterator begin() noexcept;
     iterator end() noexcept;
     const_iterator begin() const noexcept;
     const_iterator end() const noexcept;
-    const bptr<object>& operator[](uint32_t i) noexcept;
-    const object& operator[](uint32_t i) const noexcept;
+    const bptr<object>& operator[](u32 i) noexcept;
+    const object& operator[](u32 i) const noexcept;
 };
 
 template<bool Const>
@@ -158,10 +158,10 @@ class object_storage::iterator_ final
     const object_storage* _s = nullptr;
     const bptr<object>* _p = nullptr;
     const bptr<object>* _end = nullptr;
-    uint32_t _k = 0;
+    u32 _k = 0;
 
     explicit iterator_(const object_storage& s) noexcept;
-    void load(uint32_t k) noexcept;
+    void load(u32 k) noexcept;
 
 public:
     iterator_() noexcept;

@@ -58,11 +58,11 @@ constexpr rotation arrows_to_dir_from_mask(unsigned mask)
 
 constexpr auto arrows_to_dir(bool left, bool right, bool up, bool down)
 {
-    constexpr auto table = map(arrows_to_dir_from_mask, iota_array<uint8_t, 16>);
-    constexpr uint8_t L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
-    constexpr uint8_t mask = L|R|U|D;
+    constexpr auto table = map(arrows_to_dir_from_mask, iota_array<u8, 16>);
+    constexpr u8 L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
+    constexpr u8 mask = L|R|U|D;
 
-    const uint8_t bits = left*L | right*R | up*U | down*D;
+    const u8 bits = left*L | right*R | up*U | down*D;
     CORRADE_ASSUME((bits & mask) == bits);
     return table.data()[bits];
 }
@@ -86,15 +86,15 @@ constexpr Vector2i rotation_to_vec(rotation r)
     };
 
     CORRADE_ASSUME(r < rotation_COUNT);
-    return array[(uint8_t)r];
+    return array[(u8)r];
 }
 
-constexpr uint8_t is_diagonal(rotation r) { return (uint8_t)r & 1; }
+constexpr u8 is_diagonal(rotation r) { return (u8)r & 1; }
 
 // floor(sqrt(x)), digit by digit
-constexpr uint64_t isqrt(uint64_t x)
+constexpr u64 isqrt(u64 x)
 {
-    uint64_t res = 0, bit = uint64_t{1} << 62;
+    u64 res = 0, bit = u64{1} << 62;
     while (bit > x)
         bit >>= 2;
     while (bit != 0)
@@ -112,22 +112,22 @@ constexpr uint64_t isqrt(uint64_t x)
 }
 
 // Returns the length of a step of a line with slope minor/major in 1/anim_speed_unit px, rounded down by under 2.
-constexpr uint32_t step_length(uint32_t minor, uint32_t major)
+constexpr u32 step_length(u32 minor, u32 major)
 {
-    const auto q = uint64_t{minor} * anim_speed_unit / major;
-    return (uint32_t)isqrt(uint64_t{anim_speed_unit} * anim_speed_unit + q * q);
+    const auto q = u64{minor} * anim_speed_unit / major;
+    return (u32)isqrt(u64{anim_speed_unit} * anim_speed_unit + q * q);
 }
 
 static_assert(step_length(0, 1) == anim_speed_unit && step_length(1, 1) == 92681);
 
-constexpr uint32_t step_length(rotation r)
+constexpr u32 step_length(rotation r)
 {
-    constexpr uint32_t lengths[2] = { step_length(0, 1), step_length(1, 1) };
+    constexpr u32 lengths[2] = { step_length(0, 1), step_length(1, 1) };
     return lengths[is_diagonal(r)];
 }
 
 // Returns floor(frame * len / anim_speed_unit) without forming frame * len, which overflows for frame_duration(0).
-constexpr Ns step_duration(Ns frame, uint32_t len)
+constexpr Ns step_duration(Ns frame, u32 len)
 {
     const auto f = frame.stamp;
     return Ns{f / anim_speed_unit * len + f % anim_speed_unit * len / anim_speed_unit};
@@ -161,25 +161,25 @@ constexpr std::array<rotation, 3> rotation_to_similar_(rotation r)
 
 constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
 {
-    constexpr auto array = map(rotation_to_similar_, iota_array<rotation, (size_t)rotation_COUNT>);
-    return array.data()[(uint8_t)r];
+    constexpr auto array = map(rotation_to_similar_, iota_array<rotation, (usize)rotation_COUNT>);
+    return array.data()[(u8)r];
 }
 
 // Keeps the box within the 3x3 chunks that Search::is_passable_() searches.
-constexpr uint64_t max_run = chunk_size_xy / 2;
+constexpr u64 max_run = chunk_size_xy / 2;
 
 struct run_s
 {
     point pos;
     rotation r;
-    uint32_t nsteps;
+    u32 nsteps;
     // whether C turns to r at pos before moving
     bool turn;
 };
 
 struct free_steps_result
 {
-    uint32_t steps;
+    u32 steps;
     // Set when the run turns and C's box, turned to r at pos, overlaps a collider other than C's own.
     bool turn_blocked;
     // For a diagonal run cut short, whether a 1 px move along x, and along y, from its last free step is blocked.
@@ -199,32 +199,32 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
         Vector2i from, d;
         // a box spans [center - lo, center + hi), as scenery_tile()
         Vector2i lo, hi;
-        int32_t nsteps;
+        i32 nsteps;
         // the first blocked step, or nsteps + 1
-        int32_t step;
+        i32 step;
         bool diagonal, turn, turn_blocked, slide_blocked[2];
     };
     state st[2];
-    auto min = Vector2i{limits<int32_t>::max}, max = Vector2i{limits<int32_t>::min};
+    auto min = Vector2i{limits<i32>::max}, max = Vector2i{limits<i32>::min};
     for (auto i = 0u; i < runs.size(); i++)
     {
         const auto& run = runs[i];
         const auto [offset, size] = run.r == C.r ? Pair<Vector2b, Vector2ub>{C.bbox_offset, C.bbox_size}
                                                  : rotate_bbox(C.bbox_offset, C.bbox_size, C.r, run.r);
         const auto from = run.pos - point{ch, {}, {}} + Vector2i(offset);
-        const auto d = rotation_to_vec(run.r), to = from + d * int32_t(run.nsteps);
+        const auto d = rotation_to_vec(run.r), to = from + d * i32(run.nsteps);
         const auto lo = Vector2i(size/2), hi = Vector2i(size) - lo;
         // can_move_to() lets an object that passes through others turn anywhere
         const bool turn = run.turn && C.pass != pass_mode::pass;
-        st[i] = { from, d, lo, hi, int32_t(run.nsteps), int32_t(run.nsteps) + 1, bool(is_diagonal(run.r)), turn, false, {} };
+        st[i] = { from, d, lo, hi, i32(run.nsteps), i32(run.nsteps) + 1, bool(is_diagonal(run.r)), turn, false, {} };
         min = Math::min(min, Math::min(from, to) - lo);
         max = Math::max(max, Math::max(from, to) + hi);
     }
 
     // Returns the first and last step whose box overlaps [r0, r1) on axis i, or first > last for none.
-    const auto steps = [](const state& s, uint32_t i, int32_t r0, int32_t r1) {
+    const auto steps = [](const state& s, u32 i, i32 r0, i32 r1) {
         const auto c = s.from[i];
-        struct { int32_t first, last; } k;
+        struct { i32 first, last; } k;
         if (s.d[i] > 0)
             k = { r0 - c - s.hi[i] + 1, r1 - c + s.lo[i] };
         else if (s.d[i] < 0)
@@ -265,7 +265,7 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
         if (x.id == self_id)
             return path_search_continue::pass;
         // is_passable_() passes rect in c's frame
-        const auto off = Vector2i(c.coord().x - ch.x, c.coord().y - ch.y) * chunk_size<int32_t>;
+        const auto off = Vector2i(c.coord().x - ch.x, c.coord().y - ch.y) * chunk_size<i32>;
         const auto r0 = Vector2i(rect.min()) + off, r1 = Vector2i(rect.max()) + off;
         for (auto i = 0u; i < runs.size(); i++)
             add(st[i], r0, r1);
@@ -279,24 +279,24 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
 
     std::array<free_steps_result, 2> ret{};
     for (auto i = 0u; i < runs.size(); i++)
-        ret[i] = { uint32_t(st[i].step - 1), st[i].turn_blocked, { st[i].slide_blocked[0], st[i].slide_blocked[1] } };
+        ret[i] = { u32(st[i].step - 1), st[i].turn_blocked, { st[i].slide_blocked[0], st[i].slide_blocked[1] } };
     return ret;
 }
 
 // step_len is in 1/anim_speed_unit px. Each step rounds down alone, so one call equals nsteps calls for 1 step.
-void advance_anim_frames(critter& C, uint32_t nsteps, uint32_t step_len, uint32_t nframes_atlas)
+void advance_anim_frames(critter& C, u32 nsteps, u32 step_len, u32 nframes_atlas)
 {
     fm_debug_assert(C.anim_speed >= 0 && C.anim_speed <= 64);
     // anim_speed_unit is a power of two, so the float product is exact and only the conversion rounds.
-    const auto speed = uint64_t(C.anim_speed * float(anim_speed_unit));
+    const auto speed = u64(C.anim_speed * float(anim_speed_unit));
     const auto adv = nsteps * (speed * step_len / anim_speed_unit);
-    const auto total = uint64_t(C.anim_progress) + adv;
-    const auto whole = uint32_t(total / anim_speed_unit);
-    C.anim_progress = uint32_t(total % anim_speed_unit);
-    C.frame = uint16_t((uint32_t(C.frame) + whole) % nframes_atlas);
+    const auto total = u64(C.anim_progress) + adv;
+    const auto whole = u32(total / anim_speed_unit);
+    C.anim_progress = u32(total % anim_speed_unit);
+    C.frame = u16((u32(C.frame) + whole) % nframes_atlas);
 }
 
-void move_steps(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
+void move_steps(usize& i, critter& C, const anim_def& info, u32 nsteps, rotation new_r, rotation visible_r)
 {
     [[maybe_unused]] const bool moved = C.move_to(i, rotation_to_vec(new_r) * int(nsteps), visible_r);
     fm_debug_assert(moved);
@@ -305,12 +305,12 @@ void move_steps(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, ro
 
 // Moves C along new_r while ticks last, sliding 1 px along x or y when a diagonal step is blocked.
 // Returns false when C is blocked or can't turn to new_r.
-bool update_movement_1(critter& C, size_t& i, const anim_def& info, Ns& ticks, const step_costs& cost, rotation new_r)
+bool update_movement_1(critter& C, usize& i, const anim_def& info, Ns& ticks, const step_costs& cost, rotation new_r)
 {
     const auto step = cost(new_r);
     for (bool turn = C.r != new_r; turn || ticks >= step; turn = false)
     {
-        const auto n = (uint32_t)Math::min(max_run, ticks / step);
+        const auto n = (u32)Math::min(max_run, ticks / step);
         const run_s run{C.position(), new_r, n, turn};
         const auto res = free_steps(C, {&run, 1})[0];
         if (turn)
@@ -332,7 +332,7 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, Ns& ticks, c
             return false;
         // Since k < n, ticks still pay for a diagonal step, and a slide costs less.
         const auto alt = rotation_to_similar(new_r);
-        const auto a1 = uint32_t(rotation_to_vec(alt.data()[1]).x() == 0);
+        const auto a1 = u32(rotation_to_vec(alt.data()[1]).x() == 0);
         rotation e;
         if (!res.slide_blocked[a1])
             e = alt.data()[1];
@@ -348,11 +348,11 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, Ns& ticks, c
 
 struct step_s
 {
-    uint32_t count;
+    u32 count;
     Vector2b direction;
 };
 
-constexpr rotation dir_from_step_mask(uint8_t val)
+constexpr rotation dir_from_step_mask(u8 val)
 {
     switch (val)
     {
@@ -372,11 +372,11 @@ constexpr rotation dir_from_step_mask(uint8_t val)
 
 constexpr rotation dir_from_step(step_s step)
 {
-    constexpr auto table = map(dir_from_step_mask, iota_array<uint8_t, 1 << 4>);
-    auto x = uint8_t(step.direction.x() + 1);
-    auto y = uint8_t(step.direction.y() + 1);
+    constexpr auto table = map(dir_from_step_mask, iota_array<u8, 1 << 4>);
+    auto x = u8(step.direction.x() + 1);
+    auto y = u8(step.direction.y() + 1);
     //fm_debug_assert((x & 3) == x && (y & 3) == y);
-    auto val = uint8_t(x << 2 | y);
+    auto val = u8(x << 2 | y);
     return table.data()[val];
 }
 
@@ -409,12 +409,12 @@ constexpr step_s next_step(point from, point to)
     const auto max_xy = Math::max(vec.x(), vec.y());
     const auto min_xy = Math::min(vec.x(), vec.y());
     // xor is 1 iff exactly one ge holds (single-axis dominant); 0 if both (x==y diagonal)
-    const uint32_t count = max_xy - min_xy * uint32_t(x_ge_y ^ y_ge_x);
+    const u32 count = max_xy - min_xy * u32(x_ge_y ^ y_ge_x);
     return { count, step };
 }
 
 // Returns the step whose pixel is px, or -1u when the line misses px.
-uint32_t step_at(const rc::bresenham_line& line, Vector2i px)
+u32 step_at(const rc::bresenham_line& line, Vector2i px)
 {
     const auto x = line.interval_bounds_to_steps(0, px.x(), px.x()), y = line.interval_bounds_to_steps(1, px.y(), px.y());
     const auto k = Math::max(x.first, y.first);
@@ -423,8 +423,8 @@ uint32_t step_at(const rc::bresenham_line& line, Vector2i px)
 
 Ns return_unspent_dt(const Ns& ticks, float speed)
 {
-    constexpr auto max_ns = double(uint64_t{1} << 53);
-    return Ns{(uint64_t)Math::min((double)ticks.stamp / (double)speed, max_ns)};
+    constexpr auto max_ns = double(u64{1} << 53);
+    return Ns{(u64)Math::min((double)ticks.stamp / (double)speed, max_ns)};
 }
 
 } // namespace
@@ -434,7 +434,7 @@ rotation nearest_rotation(Vector2i vec)
 {
     fm_debug_assert(!vec.isZero());
     const auto a = Vector2ui(Math::abs(vec));
-    const uint64_t major = Math::max(a.x(), a.y()), minor = Math::min(a.x(), a.y());
+    const u64 major = Math::max(a.x(), a.y()), minor = Math::min(a.x(), a.y());
     const bool diagonal = (minor + major) * (minor + major) > 2 * major * major;
     const bool x_major = a.x() >= a.y();
     const auto step = Vector2b{(signed char)(x_major || diagonal), (signed char)(!x_major || diagonal)};
@@ -483,13 +483,13 @@ Vector2ui critter::circumscribed_bbox_size() const
     return floormat::circumscribed_bbox_size(bbox_offset, bbox_size, r);
 }
 
-int32_t critter::depth_offset() const
+i32 critter::depth_offset() const
 {
     //return tile_shader::character_depth_offset;
     return 0;
 }
 
-void critter::update(const bptr<object>& ptrʹ, size_t& i, const Ns& dt)
+void critter::update(const bptr<object>& ptrʹ, usize& i, const Ns& dt)
 {
     fm_debug_assert(&*ptrʹ == this);
 
@@ -512,7 +512,7 @@ void critter::update(const bptr<object>& ptrʹ, size_t& i, const Ns& dt)
     }
 }
 
-void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
+void critter::update_movement(usize& i, const Ns& dt, rotation new_r)
 {
     const auto& info = atlas->info();
     const auto cost = step_costs{atlas->frame_duration()};
@@ -533,7 +533,7 @@ void critter::update_movement(size_t& i, const Ns& dt, rotation new_r)
         delta = {};
 }
 
-auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_result
+auto critter::move_toward(usize& index, Ns& dt, const point& dest) -> move_result
 {
     fm_assert(bbox_size.x() && bbox_size.y());
 
@@ -570,7 +570,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
         }
         // Up to two legs share one free_steps() query, so together they take at most max_run steps.
         run_s legs[2];
-        uint32_t nlegs = 0;
+        u32 nlegs = 0;
         auto pos = from;
         auto left = ticks;
         auto budget = max_run;
@@ -579,13 +579,13 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
             const auto step = next_step(pos, dest);
             fm_assert(step.direction != Vector2b{} && step.count > 0);
             const auto leg_r = dir_from_step(step);
-            const auto nsteps = (uint32_t)Math::min({left / cost(leg_r), uint64_t{step.count}, budget});
+            const auto nsteps = (u32)Math::min({left / cost(leg_r), u64{step.count}, budget});
             if (nsteps == 0)
                 break;
             legs[nlegs++] = { pos, leg_r, nsteps, leg_r != facing };
             if (nsteps < step.count)
                 break;
-            pos = pos + Vector2i(step.direction) * int32_t(nsteps);
+            pos = pos + Vector2i(step.direction) * i32(nsteps);
             left -= cost(leg_r) * nsteps;
             budget -= nsteps;
             facing = leg_r;
@@ -620,7 +620,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
     return { .blocked = false, .moved = moved };
 }
 
-auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point& dest) -> move_result
+auto critter::move_toward(usize& index, Ns& dt, const point& from, const point& dest) -> move_result
 {
     fm_assert(bbox_size.x() && bbox_size.y());
     fm_assert(from.chunk3().z == dest.chunk3().z);
@@ -655,7 +655,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
     auto ticks = alloc_ticks(dt, delta, frame_ns, speed);
     const auto step_len = step_length(line.minor_len(), steps);
     const auto step_cost = step_duration(frame_ns, step_len);
-    const auto n = (uint32_t)Math::min(uint64_t{steps - k}, ticks / step_cost);
+    const auto n = (u32)Math::min(u64{steps - k}, ticks / step_cost);
     if (n == 0)
     {
         dt = Ns{};

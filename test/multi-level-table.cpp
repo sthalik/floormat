@@ -12,7 +12,7 @@ namespace {
 
 // a failing validate() is not a constant expression, which leaves the requirement unsatisfied
 template<mlt_params P>
-concept valid_params = requires { typename std::integral_constant<uint32_t, P.validate().depth()>; };
+concept valid_params = requires { typename std::integral_constant<u32, P.validate().depth()>; };
 
 static_assert(valid_params<mlt_params{ .levels = { {.bits = 1}, } }>);
 static_assert(valid_params<mlt_params{ .levels = { {.bits = 1, .dynamic = true}, } }>);
@@ -45,7 +45,7 @@ static_assert(move_only<object_table>);
 static_assert(top_bytes<object_table> == 2 << 20 && sizeof(bptr<object>) << object_table::page_bits == 2 << 20);
 
 template<typename Table, typename T>
-T value_at(const Table& t, uint64_t key)
+T value_at(const Table& t, u64 key)
 {
     const auto* s = t.find(key);
     fm_assert(s);
@@ -55,9 +55,9 @@ T value_at(const Table& t, uint64_t key)
 #if fm_ASAN
 void check_heap_array_bounds()
 {
-    auto* p = new uint16_t[5]{};
+    auto* p = new u16[5]{};
     check_heap_array(p, 5);
-    fm_assert(__asan_region_is_poisoned(p, 6 * sizeof(uint16_t)));
+    fm_assert(__asan_region_is_poisoned(p, 6 * sizeof(u16)));
     fm_assert(!__asan_address_is_poisoned(p + 4));
     delete[] p;
 }
@@ -66,12 +66,12 @@ void check_heap_array_bounds()
 template<typename Table>
 struct edge_keys
 {
-    static constexpr uint64_t page = uint64_t{1} << Table::page_bits;
-    static constexpr uint64_t keys[] = { 0, page - 1, page, page + 1, (uint64_t{1} << Table::key_bits) - 1, };
+    static constexpr u64 page = u64{1} << Table::page_bits;
+    static constexpr u64 keys[] = { 0, page - 1, page, page + 1, (u64{1} << Table::key_bits) - 1, };
 };
 
 template<typename T, mlt_params P>
-void check_ints(size_t top_size_bytes, ArrayView<const uint64_t> keys)
+void check_ints(usize top_size_bytes, ArrayView<const u64> keys)
 {
     using Table = multi_level_table<T, P>;
     using L = limits<T>;
@@ -83,19 +83,19 @@ void check_ints(size_t top_size_bytes, ArrayView<const uint64_t> keys)
     }();
 
     Table t;
-    for (uint32_t i = 0; i < keys.size(); i++)
+    for (u32 i = 0; i < keys.size(); i++)
         fm_assert(t.insert(keys[i], values[i % values.size()]));
     check_layout(t, top_size_bytes, keys);
-    for (uint32_t i = 0; i < keys.size(); i++)
+    for (u32 i = 0; i < keys.size(); i++)
     {
         fm_assert(*t.find(keys[i]) == values[i % values.size()]);
         fm_assert(!t.insert(keys[i], T(1)));
     }
     const auto num_pages = t.page_count();
-    for (uint32_t i = 0; i < keys.size(); i++)
+    for (u32 i = 0; i < keys.size(); i++)
         fm_assert(t.erase(keys[i]) == values[i % values.size()]);
     fm_assert(t.page_count() == (P.free_empty ? 0 : num_pages));
-    for (uint64_t k : keys)
+    for (u64 k : keys)
         fm_assert(!present(t, k));
     check_layout(t, top_size_bytes, {});
 }
@@ -103,8 +103,8 @@ void check_ints(size_t top_size_bytes, ArrayView<const uint64_t> keys)
 void check_chunk_like()
 {
     static_assert(chunk_like_table::key_bits == 36);
-    constexpr uint64_t page = uint64_t{1} << chunk_like_table::page_bits;
-    constexpr uint64_t k0 = 0, k1 = page - 1, k2 = page, k3 = (uint64_t{1} << 36) - 1;
+    constexpr u64 page = u64{1} << chunk_like_table::page_bits;
+    constexpr u64 k0 = 0, k1 = page - 1, k2 = page, k3 = (u64{1} << 36) - 1;
 
     chunk_like_table t;
     fm_assert(!t.find(k0) && !t.find(k3));
@@ -114,13 +114,13 @@ void check_chunk_like()
     fm_assert(t.insert(k3, 19));
     fm_assert(t.page_count() == 3);
     fm_assert(!t.insert(k1, 23));
-    fm_assert((value_at<chunk_like_table, uint64_t>(t, k0)) == 11);
-    fm_assert((value_at<chunk_like_table, uint64_t>(t, k1)) == 13);
-    fm_assert((value_at<chunk_like_table, uint64_t>(t, k2)) == 17);
-    fm_assert((value_at<chunk_like_table, uint64_t>(t, k3)) == 19);
+    fm_assert((value_at<chunk_like_table, u64>(t, k0)) == 11);
+    fm_assert((value_at<chunk_like_table, u64>(t, k1)) == 13);
+    fm_assert((value_at<chunk_like_table, u64>(t, k2)) == 17);
+    fm_assert((value_at<chunk_like_table, u64>(t, k3)) == 19);
     fm_assert(!present(t, k2 + 1));
     fm_assert(!t.find(2 * page));
-    const uint64_t keys[] = { k0, k1, k2, k3 };
+    const u64 keys[] = { k0, k1, k2, k3 };
     check_layout(t, 2 << 20, keys);
 
     fm_assert(t.erase(k1) == 13);
@@ -133,15 +133,15 @@ void check_chunk_like()
     fm_assert(t.page_count() == 0);
     fm_assert(!t.find(k0) && !t.find(k2) && !t.find(k3));
     fm_assert(t.insert(k2, 29));
-    fm_assert((value_at<chunk_like_table, uint64_t>(t, k2)) == 29);
+    fm_assert((value_at<chunk_like_table, u64>(t, k2)) == 29);
 }
 
 void check_id_like()
 {
     static_assert(id_like_table::key_bits == 35);
-    constexpr uint64_t page = uint64_t{1} << id_like_table::page_bits;
-    constexpr uint64_t mask = page - 1;
-    constexpr uint64_t k0 = 1025, k1 = page + 7, k2 = (uint64_t{1} << 35) - 1, k3 = 5 * page + 3;
+    constexpr u64 page = u64{1} << id_like_table::page_bits;
+    constexpr u64 mask = page - 1;
+    constexpr u64 k0 = 1025, k1 = page + 7, k2 = (u64{1} << 35) - 1, k3 = 5 * page + 3;
 
     fm_assert(tracked::live == 0);
     {
@@ -156,7 +156,7 @@ void check_id_like()
         fm_assert(tracked::live == 3);
         fm_assert(t.size() == 3);
         fm_assert(t.find(k0)->v == 31 && t.find(k1)->v == 37 && t.find(k2)->v == 41);
-        const uint64_t keys[] = { k0, k1, k2 };
+        const u64 keys[] = { k0, k1, k2 };
         check_layout(t, 2 << 20, keys);
 
         const tracked* base1 = t.find(k1) - (k1 & mask);
@@ -212,26 +212,26 @@ void check_id_like()
 
 void check_inline_zero()
 {
-    constexpr auto key = [](uint64_t top, uint64_t z, uint64_t p) { return top << 6 | z << 4 | p; };
+    constexpr auto key = [](u64 top, u64 z, u64 p) { return top << 6 | z << 4 | p; };
     split_table t;
     fm_assert(t.insert(key(5, 0, 3), 79));
     fm_assert(!t.find(key(5, 1, 3)));
     fm_assert(t.insert(key(5, 2, 15), 83));
     fm_assert(!t.find(key(5, 1, 3)));
     fm_assert(!present(t, key(5, 2, 14)));
-    fm_assert((value_at<split_table, uint32_t>(t, key(5, 0, 3))) == 79);
-    fm_assert((value_at<split_table, uint32_t>(t, key(5, 2, 15))) == 83);
+    fm_assert((value_at<split_table, u32>(t, key(5, 0, 3))) == 79);
+    fm_assert((value_at<split_table, u32>(t, key(5, 2, 15))) == 83);
     fm_assert(t.insert(key(7, 3, 0), 89));
     fm_assert(t.page_count() == 3);
-    const uint64_t keys[] = { key(5, 0, 3), key(5, 2, 15), key(7, 3, 0) };
-    check_layout(t, size_t{16} << 3, keys);
+    const u64 keys[] = { key(5, 0, 3), key(5, 2, 15), key(7, 3, 0) };
+    check_layout(t, usize{16} << 3, keys);
     fm_assert(t.erase(key(5, 2, 15)) == 83);
     fm_assert(t.erase(key(6, 2, 1)) == 0);
     t.clear();
     fm_assert(t.page_count() == 0);
     fm_assert(!t.find(key(5, 0, 3)) && !t.find(key(5, 2, 15)) && !t.find(key(7, 3, 0)));
     fm_assert(t.insert(key(5, 2, 15), 97));
-    fm_assert((value_at<split_table, uint32_t>(t, key(5, 2, 15))) == 97);
+    fm_assert((value_at<split_table, u32>(t, key(5, 2, 15))) == 97);
 }
 
 void check_flat()
@@ -242,8 +242,8 @@ void check_flat()
     fm_assert(t.insert(0, 103));
     fm_assert(!t.insert(63, 107));
     fm_assert(*t.find(63) == 101);
-    const uint64_t keys[] = { 0, 63 };
-    check_layout(t, size_t{2} << 6, keys);
+    const u64 keys[] = { 0, 63 };
+    check_layout(t, usize{2} << 6, keys);
     fm_assert(t.erase(0) == 103);
     fm_assert(t.page_count() == 0);
     flat_table t2{move(t)};
@@ -261,8 +261,8 @@ void check_deep()
     fm_assert(t.insert(4095, 131));
     fm_assert(t.page_count() == 3);
     fm_assert(t.size() == 4);
-    const uint64_t keys[] = { 0, 31, 32, 4095 };
-    check_layout(t, size_t{16} << 7, keys);
+    const u64 keys[] = { 0, 31, 32, 4095 };
+    check_layout(t, usize{16} << 7, keys);
     fm_assert(t.erase(31) == 113);
     fm_assert(t.page_count() == 3);
     fm_assert(t.size() == 3);
@@ -270,13 +270,13 @@ void check_deep()
     fm_assert(t.page_count() == 2);
     fm_assert(t.size() == 2);
     fm_assert(!t.find(0));
-    fm_assert((value_at<deep_table, uint64_t>(t, 4095)) == 131);
+    fm_assert((value_at<deep_table, u64>(t, 4095)) == 131);
     fm_assert(t.erase(4095) == 131);
     fm_assert(t.erase(32) == 127);
     fm_assert(t.page_count() == 0);
     fm_assert(t.size() == 0);
     fm_assert(t.insert(4064, 137));
-    fm_assert((value_at<deep_table, uint64_t>(t, 4064)) == 137);
+    fm_assert((value_at<deep_table, u64>(t, 4064)) == 137);
     fm_assert(t.size() == 1);
     t.clear();
     fm_assert(t.size() == 0);
@@ -284,7 +284,7 @@ void check_deep()
 
 void check_no_pages()
 {
-    constexpr uint64_t last = (uint64_t{1} << 18) - 1;
+    constexpr u64 last = (u64{1} << 18) - 1;
     fm_assert(tracked::live == 0);
     {
         no_pages_table t;
@@ -293,7 +293,7 @@ void check_no_pages()
         fm_assert(t.insert(100, tracked{act(act_insert, 5)}));
         fm_assert(t.insert(last, tracked{149}));
         fm_assert(!present(t, 5));
-        const uint64_t keys[] = { 0, 100, last };
+        const u64 keys[] = { 0, 100, last };
         check_layout(t, 2 << 20, keys);
         fm_assert(t.erase(0).v == 139);
         fm_assert(!t.erase(0));
@@ -309,7 +309,7 @@ void check_no_pages()
 
 void check_one_split()
 {
-    constexpr auto key = [](uint64_t z, uint64_t p) { return z << 4 | p; };
+    constexpr auto key = [](u64 z, u64 p) { return z << 4 | p; };
     fm_assert(tracked::live == 0);
     {
         one_split_table t;
@@ -321,7 +321,7 @@ void check_one_split()
         fm_assert(!t.find(key(2, 0)));
         fm_assert(t.insert(key(2, 0), tracked{167}));
         fm_assert(t.page_count() == 3);
-        const uint64_t keys[] = { key(0, 3), key(1, 15), key(2, 0) };
+        const u64 keys[] = { key(0, 3), key(1, 15), key(2, 0) };
         check_layout(t, 16, keys);
         fm_assert(t.erase(key(0, 3)).v == 157);
         fm_assert(!t.erase(key(3, 1)));
@@ -330,7 +330,7 @@ void check_one_split()
 
         // destructors insert into a new side array page, and into a page clear() has passed
         // a value clear() misses dies in free_all_pages(), seen only by this hook
-        tracked::on_destroy = [](uint64_t) { (void)check_layers(*target<one_split_table>, [](uint64_t, const tracked&) {}); };
+        tracked::on_destroy = [](u64) { (void)check_layers(*target<one_split_table>, [](u64, const tracked&) {}); };
         fm_assert(t.insert(key(1, 1), tracked{act(act_insert, key(5, 2))}));
         fm_assert(t.insert(key(2, 5), tracked{act(act_insert, key(0, 2))}));
         t.clear();
@@ -347,7 +347,7 @@ void check_one_split()
 
 void check_side_free()
 {
-    constexpr auto key = [](uint64_t top, uint64_t z, uint64_t p) { return top << 6 | z << 4 | p; };
+    constexpr auto key = [](u64 top, u64 z, u64 p) { return top << 6 | z << 4 | p; };
     fm_assert(tracked::live == 0);
     {
         split_free_table t;
@@ -357,8 +357,8 @@ void check_side_free()
         fm_assert(t.insert(key(5, 2, 4), tracked{257}));
         fm_assert(t.insert(key(5, 2, 5), tracked{263}));
         fm_assert(t.page_count() == 2 && e.side && e.side[0].live == 2);
-        const uint64_t keys[] = { key(5, 1, 3), key(5, 2, 4), key(5, 2, 5) };
-        check_layout(t, size_t{24} << 3, keys);
+        const u64 keys[] = { key(5, 1, 3), key(5, 2, 4), key(5, 2, 5) };
+        check_layout(t, usize{24} << 3, keys);
 
         fm_assert(t.erase(key(5, 1, 3)).v == 251);
         fm_assert(t.page_count() == 1 && e.side && e.side[0].live == 1 && !e.side[1].page);
@@ -367,7 +367,7 @@ void check_side_free()
         fm_assert(t.erase(key(5, 2, 5)).v == 263);
         fm_assert(t.page_count() == 0 && !e.side && t.raw_spare().page);
         fm_assert(!t.find(key(5, 2, 5)) && !t.find(key(5, 1, 3)));
-        check_layout(t, size_t{24} << 3, {});
+        check_layout(t, usize{24} << 3, {});
 
         fm_assert(t.insert(key(5, 0, 1), tracked{269}));
         fm_assert(t.page_count() == 1 && !e.side);
@@ -378,15 +378,15 @@ void check_side_free()
         (void)t.erase(key(5, 3, 0));
         fm_assert(e.side && e.side[0].live == 1 && !e.side[3].page && e.side[1].page);
         fm_assert(t.find(key(5, 1, 0))->v == key(5, 1, 0) + 1);
-        const uint64_t keys2[] = { key(5, 0, 1), key(5, 1, 0) };
-        check_layout(t, size_t{24} << 3, keys2);
+        const u64 keys2[] = { key(5, 0, 1), key(5, 1, 0) };
+        check_layout(t, usize{24} << 3, keys2);
 
         // the destructor erases the other side page's last value during clear()
         fm_assert(t.insert(key(5, 2, 9), tracked{act(act_erase, key(5, 1, 0))}));
         fm_assert(e.side[0].live == 2);
         t.clear();
         fm_assert(tracked::live == 0 && t.page_count() == 0 && t.size() == 0 && !e.side);
-        check_layout(t, size_t{24} << 3, {});
+        check_layout(t, usize{24} << 3, {});
     }
     fm_assert(tracked::live == 0);
     tracked::hook = nullptr;
@@ -397,9 +397,9 @@ void check_one_entry()
     one_entry_table t;
     fm_assert(t.insert(0, 179));
     fm_assert(t.insert(31, 181));
-    const uint64_t keys[] = { 0, 31 };
+    const u64 keys[] = { 0, 31 };
     check_layout(t, 16, keys);
-    const uint64_t* page = t.raw_pages()[0].page;
+    const u64* page = t.raw_pages()[0].page;
     fm_assert(t.erase(0) == 179);
     fm_assert(t.erase(31) == 181);
     fm_assert(t.page_count() == 0 && t.raw_spare().page == page);
@@ -411,13 +411,13 @@ void check_one_entry()
 void check_wide()
 {
     static_assert(wide_table::key_bits == 64);
-    constexpr uint64_t keys[] = { 0, (uint64_t{1} << 43) - 1, uint64_t{1} << 43, uint64_t{1} << 63, ~uint64_t{0}, };
-    check_ints<uint8_t, wide_params>(size_t{16} << 21, keys);
+    constexpr u64 keys[] = { 0, (u64{1} << 43) - 1, u64{1} << 43, u64{1} << 63, ~u64{0}, };
+    check_ints<u8, wide_params>(usize{16} << 21, keys);
 }
 
 void check_perverse()
 {
-    constexpr uint64_t page = uint64_t{1} << id_like_table::page_bits;
+    constexpr u64 page = u64{1} << id_like_table::page_bits;
     fm_assert(tracked::live == 0);
     {
         id_like_table t;
@@ -441,14 +441,14 @@ void check_perverse()
         id_like_table t;
         set_target(t);
         // the destructor re-inserts after the erase that freed its page, taking the spare
-        constexpr uint64_t k = 5 * page + 3;
+        constexpr u64 k = 5 * page + 3;
         fm_assert(t.insert(k, tracked{act(act_insert, k)}));
         const tracked* base = t.find(k) - (k & (page - 1));
         (void)t.erase(k);
         fm_assert(t.find(k) && t.find(k)->v == k + 1);
         fm_assert(t.find(k) - (k & (page - 1)) == base);
         fm_assert(t.page_count() == 1 && !t.raw_spare().page);
-        const uint64_t keys[] = { k };
+        const u64 keys[] = { k };
         check_layout(t, 2 << 20, keys);
 
         fm_assert(!t.erase(k + 1));
@@ -485,12 +485,12 @@ void check_perverse()
 
 void check_spare_paths()
 {
-    constexpr uint64_t page = uint64_t{1} << id_like_table::page_bits;
+    constexpr u64 page = u64{1} << id_like_table::page_bits;
     fm_assert(tracked::live == 0);
     {
         id_like_table t;
         set_target(t);
-        constexpr uint64_t k = 2 * page + 9;
+        constexpr u64 k = 2 * page + 9;
         fm_assert(t.insert(k, tracked{227}));
         const tracked* base = t.find(k) - 9;
         // the value of a failed insert erases the occupant, whose page becomes the spare
@@ -518,7 +518,7 @@ void check_spare_paths()
         fm_assert(tracked::live == 0);
         check_layout(t, 2 << 20, {});
 
-        const uint64_t keys[] = { 7, page + 7, 2 * page + 7 };
+        const u64 keys[] = { 7, page + 7, 2 * page + 7 };
         fm_assert(t.insert(keys[0], tracked{233}));
         fm_assert(t.insert(keys[1], tracked{239}));
         fm_assert(t.insert(keys[2], tracked{241}));
@@ -540,7 +540,7 @@ template<mlt_params P>
 void check_bptr_slots()
 {
     using Table = multi_level_table<bptr<slot_obj>, P>;
-    constexpr uint64_t k = 0x165 & ((uint64_t{1} << Table::key_bits) - 1);
+    constexpr u64 k = 0x165 & ((u64{1} << Table::key_bits) - 1);
     const auto check_gone = [](const Table& t) {
         const bptr<slot_obj>* x = t.find(k);
         fm_assert(!x || !x->has_block());
@@ -563,7 +563,7 @@ void check_bptr_slots()
         fm_assert(t.insert(k, p));
         p.destroy();
         fm_assert(!t.insert(k, bptr<slot_obj>{InPlace}));
-        fm_assert(check_layers(t, [](uint64_t, const bptr<slot_obj>&) {}) == 1);
+        fm_assert(check_layers(t, [](u64, const bptr<slot_obj>&) {}) == 1);
         fm_assert(t.erase(k).has_block());
         check_gone(t);
     }
@@ -587,27 +587,27 @@ void check_bptr_slots()
 
 } // namespace
 
-uint32_t mlt_test::tracked::live = 0;
-void (*mlt_test::tracked::hook)(uint32_t action, uint64_t key) = nullptr;
-void (*mlt_test::tracked::on_destroy)(uint64_t v) = nullptr;
+u32 mlt_test::tracked::live = 0;
+void (*mlt_test::tracked::hook)(u32 action, u64 key) = nullptr;
+void (*mlt_test::tracked::on_destroy)(u64 v) = nullptr;
 
-template class multi_level_table<uint64_t, chunk_like_params>;
+template class multi_level_table<u64, chunk_like_params>;
 template class multi_level_table<tracked, id_like_params>;
-template class multi_level_table<uint32_t, split_params>;
-template class multi_level_table<uint16_t, flat_params>;
-template class multi_level_table<uint64_t, deep_params>;
+template class multi_level_table<u32, split_params>;
+template class multi_level_table<u16, flat_params>;
+template class multi_level_table<u64, deep_params>;
 template class multi_level_table<tracked, deep_params>;
-template class multi_level_table<int8_t, byte_params>;
-template class multi_level_table<uint8_t, byte_params>;
-template class multi_level_table<int16_t, short_params>;
-template class multi_level_table<uint16_t, short_params>;
-template class multi_level_table<int64_t, id_like_params>;
-template class multi_level_table<uint64_t, id_like_params>;
+template class multi_level_table<i8, byte_params>;
+template class multi_level_table<u8, byte_params>;
+template class multi_level_table<i16, short_params>;
+template class multi_level_table<u16, short_params>;
+template class multi_level_table<i64, id_like_params>;
+template class multi_level_table<u64, id_like_params>;
 template class multi_level_table<tracked, no_pages_params>;
 template class multi_level_table<tracked, one_split_params>;
 template class multi_level_table<tracked, split_free_params>;
-template class multi_level_table<uint64_t, one_entry_params>;
-template class multi_level_table<uint8_t, wide_params>;
+template class multi_level_table<u64, one_entry_params>;
+template class multi_level_table<u8, wide_params>;
 
 void Test::test_multi_level_table()
 {
@@ -619,12 +619,12 @@ void Test::test_multi_level_table()
     check_inline_zero();
     check_flat();
     check_deep();
-    check_ints<int8_t, byte_params>(2 << 20, edge_keys<multi_level_table<int8_t, byte_params>>::keys);
-    check_ints<uint8_t, byte_params>(2 << 20, edge_keys<multi_level_table<uint8_t, byte_params>>::keys);
-    check_ints<int16_t, short_params>(2 << 20, edge_keys<multi_level_table<int16_t, short_params>>::keys);
-    check_ints<uint16_t, short_params>(2 << 20, edge_keys<multi_level_table<uint16_t, short_params>>::keys);
-    check_ints<int64_t, id_like_params>(2 << 20, edge_keys<multi_level_table<int64_t, id_like_params>>::keys);
-    check_ints<uint64_t, id_like_params>(2 << 20, edge_keys<multi_level_table<uint64_t, id_like_params>>::keys);
+    check_ints<i8, byte_params>(2 << 20, edge_keys<multi_level_table<i8, byte_params>>::keys);
+    check_ints<u8, byte_params>(2 << 20, edge_keys<multi_level_table<u8, byte_params>>::keys);
+    check_ints<i16, short_params>(2 << 20, edge_keys<multi_level_table<i16, short_params>>::keys);
+    check_ints<u16, short_params>(2 << 20, edge_keys<multi_level_table<u16, short_params>>::keys);
+    check_ints<i64, id_like_params>(2 << 20, edge_keys<multi_level_table<i64, id_like_params>>::keys);
+    check_ints<u64, id_like_params>(2 << 20, edge_keys<multi_level_table<u64, id_like_params>>::keys);
     check_wide();
     check_no_pages();
     check_one_split();
@@ -650,14 +650,14 @@ void Test::test_multi_level_table()
     fm_assert(tracked::live == 0);
 
     constexpr auto walk = key_mode::walk;
-    check_random<deep_table>({.seed = 1, .ops = 30000, .top_size_bytes = size_t{16} << 7});
-    check_random<deep_tracked_table>({.seed = 2, .ops = 20000, .top_size_bytes = size_t{16} << 7, .hooks = true});
-    check_random<deep_tracked_table>({.seed = 3, .ops = 20000, .top_size_bytes = size_t{16} << 7,
+    check_random<deep_table>({.seed = 1, .ops = 30000, .top_size_bytes = usize{16} << 7});
+    check_random<deep_tracked_table>({.seed = 2, .ops = 20000, .top_size_bytes = usize{16} << 7, .hooks = true});
+    check_random<deep_tracked_table>({.seed = 3, .ops = 20000, .top_size_bytes = usize{16} << 7,
                                       .mode = walk, .windows = 6, .window_size = 16, .hooks = true});
     check_random<one_split_table>({.seed = 4, .ops = 20000, .top_size_bytes = 16, .hooks = true});
-    check_random<split_table>({.seed = 5, .ops = 20000, .top_size_bytes = size_t{16} << 3});
+    check_random<split_table>({.seed = 5, .ops = 20000, .top_size_bytes = usize{16} << 3});
     check_random<one_entry_table>({.seed = 6, .ops = 10000, .top_size_bytes = 16});
-    check_random<flat_table>({.seed = 7, .ops = 10000, .top_size_bytes = size_t{2} << 6});
+    check_random<flat_table>({.seed = 7, .ops = 10000, .top_size_bytes = usize{2} << 6});
     check_random<no_pages_table>({.seed = 8, .ops = 8000, .top_size_bytes = 2 << 20, .hooks = true, .check_every = 4000});
     check_random<no_pages_table>({.seed = 9, .ops = 8000, .top_size_bytes = 2 << 20,
                                   .mode = walk, .windows = 6, .window_size = 512, .hooks = true, .check_every = 4000});
@@ -668,11 +668,11 @@ void Test::test_multi_level_table()
     check_random<chunk_like_table>({.seed = 12, .ops = 2000, .top_size_bytes = 2 << 20, .check_every = 1000, .page_cap = 8});
     check_random<chunk_like_table>({.seed = 13, .ops = 12000, .top_size_bytes = 2 << 20,
                                     .mode = walk, .windows = 4, .window_size = 512, .check_every = 6000});
-    check_random<wide_table>({.seed = 14, .ops = 12, .top_size_bytes = size_t{16} << 21, .check_every = 12, .page_cap = 2});
-    check_random<wide_table>({.seed = 15, .ops = 200, .top_size_bytes = size_t{16} << 21,
+    check_random<wide_table>({.seed = 14, .ops = 12, .top_size_bytes = usize{16} << 21, .check_every = 12, .page_cap = 2});
+    check_random<wide_table>({.seed = 15, .ops = 200, .top_size_bytes = usize{16} << 21,
                               .mode = walk, .windows = 4, .window_size = 64, .check_every = 100});
-    check_random<split_free_table>({.seed = 33, .ops = 20000, .top_size_bytes = size_t{24} << 3, .hooks = true});
-    check_random<split_free_table>({.seed = 34, .ops = 20000, .top_size_bytes = size_t{24} << 3,
+    check_random<split_free_table>({.seed = 33, .ops = 20000, .top_size_bytes = usize{24} << 3, .hooks = true});
+    check_random<split_free_table>({.seed = 34, .ops = 20000, .top_size_bytes = usize{24} << 3,
                                     .mode = walk, .windows = 6, .window_size = 8, .hooks = true});
     fm_assert(tracked::live == 0);
 

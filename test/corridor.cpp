@@ -24,11 +24,11 @@ constexpr chunk_coords_ ch{0, 0, 0};
 
 // Walls can't stand in for the pillars: a wall collider is a strip of wall_atlas depth outside the
 // tile, so it eats into the gap and no tile-sized bbox fits at any offset.
-constexpr uint8_t pillar_x0 = 6, free_x = 7, pillar_x1 = 8;
-constexpr uint8_t start_y = 2;
+constexpr u8 pillar_x0 = 6, free_x = 7, pillar_x1 = 8;
+constexpr u8 start_y = 2;
 constexpr float speed = 10;
 // 10 px per update() at this speed, so 80 stops short of the last pillar row.
-constexpr uint32_t frames = 80;
+constexpr u32 frames = 80;
 constexpr int expect_px = 10 * tile_size_xy;
 
 void pillar(world& w, local_coords tile)
@@ -58,7 +58,7 @@ bptr<critter> add_player(world& w)
 void test_corridor_south()
 {
     auto w = world();
-    for (uint8_t y = 0; y < TILE_MAX_DIM; y++)
+    for (u8 y = 0; y < TILE_MAX_DIM; y++)
     {
         pillar(w, {pillar_x0, y});
         pillar(w, {pillar_x1, y});

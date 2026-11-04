@@ -22,7 +22,7 @@
 
 namespace floormat::tests {
 
-static_assert(array_size(tests_data::fields) <= (size_t)Test::COUNT);
+static_assert(array_size(tests_data::fields) <= (usize)Test::COUNT);
 
 Pointer<base_test> tests_data::make_test_none() { return {}; }
 
@@ -46,11 +46,11 @@ using namespace floormat::imgui;
 
 void tests_data::switch_to(Test i)
 {
-    fm_assert((size_t)i < array_size(fields));
+    fm_assert((usize)i < array_size(fields));
     current_index = Test::none;
     current_test = make_test_none();
     if (i < Test::COUNT)
-        current_test = tests_data::fields[(size_t)i].ctor();
+        current_test = tests_data::fields[(usize)i].ctor();
     if (current_test)
         current_index = i;
     // Test::none is the only one whose ctor returns null

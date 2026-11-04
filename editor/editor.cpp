@@ -93,10 +93,10 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
                     const auto [minx, maxx] = Math::minmax(drawc.x, lastc.x);
                     const auto [miny, maxy] = Math::minmax(drawc.y, lastc.y);
                     if (draw_offset[0])
-                        for (uint32_t i = minx; i <= maxx; i++)
+                        for (u32 i = minx; i <= maxx; i++)
                             on_click_(world, { i, lastc.y, nullptr }, last.btn);
                     else
-                        for (uint32_t j = miny; j <= maxy; j++)
+                        for (u32 j = miny; j <= maxy; j++)
                             on_click_(world, { lastc.x, j, nullptr }, last.btn);
                 }
                 else
@@ -267,10 +267,10 @@ palette_texture_ref editor::palette_texture(sprite s)
         // packer stored the sprite rotated, the atlas slot is transposed
         // (slot_w = orig_h, slot_h = orig_w); the read region must match
         // the slot, and we un-rotate before upload.
-        const uint32_t orig_w = s.width(), orig_h = s.height();
+        const u32 orig_w = s.width(), orig_h = s.height();
         const bool rotated = s.is_rotated();
-        const uint32_t slot_w = rotated ? orig_h : orig_w;
-        const uint32_t slot_h = rotated ? orig_w : orig_h;
+        const u32 slot_w = rotated ? orig_h : orig_w;
+        const u32 slot_h = rotated ? orig_w : orig_h;
 
         const Vector2i dst_size{(int)orig_w, (int)orig_h};
         GL::Texture2D dst;
@@ -295,14 +295,14 @@ palette_texture_ref editor::palette_texture(sprite s)
             // Invert upload_sprite's 90° CCW (loader/sprite-atlas.cpp:303):
             //   src[y_o][x_o] = slot[x_o][orig_h - 1 - y_o]
             // Both sides are GL bottom-up. RGBA8 → 4 bytes/px.
-            Array<uint32_t> unrotated{NoInit, (size_t)orig_w * (size_t)orig_h};
-            const auto* slot = reinterpret_cast<const uint32_t*>(img.data().data());
-            for (uint32_t y_o = 0; y_o < orig_h; y_o++)
+            Array<u32> unrotated{NoInit, (usize)orig_w * (usize)orig_h};
+            const auto* slot = reinterpret_cast<const u32*>(img.data().data());
+            for (u32 y_o = 0; y_o < orig_h; y_o++)
             {
-                uint32_t* dst_row = unrotated.data() + (size_t)y_o * (size_t)orig_w;
-                const uint32_t slot_col = orig_h - 1 - y_o;
-                for (uint32_t x_o = 0; x_o < orig_w; x_o++)
-                    dst_row[x_o] = slot[(size_t)x_o * slot_w + slot_col];
+                u32* dst_row = unrotated.data() + (usize)y_o * (usize)orig_w;
+                const u32 slot_col = orig_h - 1 - y_o;
+                for (u32 x_o = 0; x_o < orig_w; x_o++)
+                    dst_row[x_o] = slot[(usize)x_o * slot_w + slot_col];
             }
             const ImageView2D view{img.format(), dst_size, {unrotated.data(), unrotated.size()}};
             dst.setSubImage(0, {}, view);

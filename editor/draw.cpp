@@ -109,8 +109,8 @@ void app::draw_collision_boxes()
     using rtree_type = std::decay_t<decltype(*world[{}].rtree())>;
     using rect_type = rtree_type::Rect;
 
-    Vector2s min{limits<int16_t>::max, limits<int16_t>::max},
-             max{limits<int16_t>::min, limits<int16_t>::min};
+    Vector2s min{limits<i16>::max, limits<i16>::max},
+             max{limits<i16>::min, limits<i16>::min};
 
     for (auto ch : chunks)
     {
@@ -137,14 +137,14 @@ void app::draw_collision_boxes()
         {
             [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
 #if 0
-            if (x.tag == (uint64_t)collision_type::geometry)
+            if (x.tag == (u64)collision_type::geometry)
                 return true;
 #endif
-            if (x.type == (uint64_t)collision_type::geometry)
-                if (x.pass == (uint64_t)pass_mode::pass)
+            if (x.type == (u64)collision_type::geometry)
+                if (x.pass == (u64)pass_mode::pass)
                     if (x.id < TILE_COUNT * 3 + 1)
                         return true;
-            shader.set_tint(x.pass == (uint64_t)pass_mode::pass ? pass_tint : tint);
+            shader.set_tint(x.pass == (u64)pass_mode::pass ? pass_tint : tint);
             wireframe::draw_quad(shader, Vector2{rect.m_min}, Vector2{rect.m_max}, 3);
             return true;
         };
@@ -172,14 +172,14 @@ void app::draw_collision_boxes()
             const with_shifted_camera_offset o{shader, c_pos};
             auto t0 = Vector2(pt - point{c_pos, {}, {}});
             auto t1 = t0+Vector2(1e-4f);
-            const auto draw = [&](uint64_t data, const rect_type& rect) {
+            const auto draw = [&](u64 data, const rect_type& rect) {
                 [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
 #if 0
-                if (x.tag == (uint64_t)collision_type::geometry)
+                if (x.tag == (u64)collision_type::geometry)
                     return true;
 #endif
-                if (x.type == (uint64_t)collision_type::geometry)
-                    if (x.pass == (uint64_t)pass_mode::pass)
+                if (x.type == (u64)collision_type::geometry)
+                    if (x.pass == (u64)pass_mode::pass)
                         if (x.id < TILE_COUNT*3+1)
                             return true;
                 Vector2 start{rect.m_min}, end{rect.m_max};
@@ -227,18 +227,18 @@ clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
 
     const auto array = M->clickable_scenery();
     const auto p = *pixel;
-    uint32_t depth = 0;
+    u32 depth = 0;
 
     for (clickable& c : array)
     {
-        const uint32_t d = c.depth;
+        const u32 d = c.depth;
         if (d > depth && c.dest.contains(p))
         {
             // mirror inside the frame, before adding the frame's atlas offset
             const auto posʹ = *pixel - c.dest.min();
             const auto posʹʹ = !c.mirrored ? posʹ : Vector2i(int(c.src.sizeX()) - 1 - posʹ[0], posʹ[1]);
             const auto pos = posʹʹ + Vector2i(c.src.min());
-            size_t idx = unsigned(pos.y()) * c.stride + unsigned(pos.x());
+            usize idx = unsigned(pos.y()) * c.stride + unsigned(pos.x());
             fm_assert(c.bitmask.isEmpty() || idx < c.bitmask.size());
             if (c.bitmask.isEmpty() || c.bitmask[idx])
             {

@@ -18,7 +18,7 @@ namespace floormat {
 
 namespace {
 
-size_t bad_frame_counter = 0; // NOLINT todo thread safety
+usize bad_frame_counter = 0; // NOLINT todo thread safety
 constexpr auto clear_color = 0x222222ff_rgbaf;
 constexpr auto cornflower_blue = 0x6495edff_rgbaf;
 
@@ -38,7 +38,7 @@ void main_impl::do_update(Ns dt)
     fm_debug("%zu frame took %.1f milliseconds",
              bad_frame_counter++, (double)(dt/Milliseconds));
 
-    constexpr auto tenth_of_a_second = uint64_t(1e8);
+    constexpr auto tenth_of_a_second = u64(1e8);
     dt.stamp = Math::min(tenth_of_a_second, dt.stamp);
 
     app.update(dt);
@@ -122,7 +122,7 @@ void main_impl::drawEvent()
         std::fprintf(_frame_times_file, "%llu\n", (unsigned long long)(Time::now() - t0).stamp);
 }
 
-template<std::invocable<chunk&, int16_t, int16_t, int8_t> Function>
+template<std::invocable<chunk&, i16, i16, i8> Function>
 void main_impl::draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks)
 {
     for (auto ch : chunks)
@@ -145,9 +145,9 @@ void main_impl::draw_world() noexcept
     // Sorted here rather than there because update_world() and the editor's cursor hit test read
     // the same array and both change behaviour with its order.
     std::sort(chunks.begin(), chunks.end(), [](chunk_coords_ a, chunk_coords_ b) {
-        constexpr auto w = chunk_size<int32_t>;
-        return w * ((int32_t)a.x + a.y) + tile_size_z * a.z
-             > w * ((int32_t)b.x + b.y) + tile_size_z * b.z;
+        constexpr auto w = chunk_size<i32>;
+        return w * ((i32)a.x + a.y) + tile_size_z * a.z
+             > w * ((i32)b.x + b.y) + tile_size_z * b.z;
     });
 
     arrayResize(_clickable_scenery, 0);
@@ -169,7 +169,7 @@ void main_impl::draw_world() noexcept
         if (z_bounds.only)
         {
             _sprite_batch.clear();
-            draw_world_0([&](chunk& c, int16_t x, int16_t y, int8_t z) {
+            draw_world_0([&](chunk& c, i16 x, i16 y, i8 z) {
                 if (z != z_bounds.cur)
                     emit(c, x, y, z);
             }, chunks);
@@ -177,7 +177,7 @@ void main_impl::draw_world() noexcept
             _sprite_batch.draw(_shader, do_sort);
         }
         _sprite_batch.clear();
-        draw_world_0([&](chunk& c, int16_t x, int16_t y, int8_t z) {
+        draw_world_0([&](chunk& c, i16 x, i16 y, i8 z) {
             if (!z_bounds.only || z == z_bounds.cur)
                 emit(c, x, y, z);
         }, chunks);
@@ -187,14 +187,14 @@ void main_impl::draw_world() noexcept
 
     // Walls first, so early-Z rejects the ground behind them. A translucent wall texel
     // would hide the ground, since blending stays on and this pass writes depth.
-    draw_batches([&](chunk& c, int16_t, int16_t, int8_t) {
+    draw_batches([&](chunk& c, i16, i16, i8) {
         c.ensure_wall_mesh(_sprite_batch);
         c.ensure_ground_mesh(_sprite_batch);
     }, false);  // depth-buffered opaque pass; no painter sort needed
 
     GL::Renderer::setDepthMask(false);
 
-    draw_batches([&](chunk& c, int16_t, int16_t, int8_t) {
+    draw_batches([&](chunk& c, i16, i16, i8) {
         c.ensure_scenery_mesh(_sprite_batch, _do_render_vobjs);
         c.add_clickables(_shader, sz, _clickable_scenery, _do_render_vobjs);
     }, true);

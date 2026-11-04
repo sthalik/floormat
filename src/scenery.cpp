@@ -21,7 +21,7 @@ template class basic_bptr<const door_scenery, non_atomic_refcount>;
 
 enum object_type scenery::type() const noexcept { return object_type::scenery; } // NOLINT(*-convert-*-to-static)
 
-int32_t scenery::depth_offset() const
+i32 scenery::depth_offset() const
 {
     return atlas->group(r).depth_offset.sum(); // todo replace with an integer
 }
@@ -44,9 +44,9 @@ scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto) :
 
 // ---------- generic_scenery ----------
 
-void generic_scenery::update(const bptr<object>&, size_t&, const Ns&) {}
-bool generic_scenery::can_activate(size_t) const { return interactive; }
-bool generic_scenery::activate(size_t) { return false; }
+void generic_scenery::update(const bptr<object>&, usize&, const Ns&) {}
+bool generic_scenery::can_activate(usize) const { return interactive; }
+bool generic_scenery::activate(usize) { return false; }
 enum scenery_type generic_scenery::scenery_type() const { return scenery_type::generic; }
 
 generic_scenery::operator scenery_proto() const
@@ -72,7 +72,7 @@ generic_scenery::generic_scenery(object_id id, class chunk& c, const generic_sce
 
 enum scenery_type door_scenery::scenery_type() const { return scenery_type::door; }
 
-void door_scenery::update(const bptr<object>&, size_t&, const Ns& dt)
+void door_scenery::update(const bptr<object>&, usize&, const Ns& dt)
 {
     if (!atlas || !active)
         return;
@@ -83,7 +83,7 @@ void door_scenery::update(const bptr<object>&, size_t&, const Ns& dt)
     const auto n = (int)alloc_frame_time(dt, delta, atlas->frame_duration(), 1);
     if (n == 0)
         return;
-    const int8_t dir = closing ? 1 : -1;
+    const i8 dir = closing ? 1 : -1;
     const int fr = frame + dir*n;
     active = fr > 0 && fr < nframes-1;
     pass_mode p;
@@ -94,7 +94,7 @@ void door_scenery::update(const bptr<object>&, size_t&, const Ns& dt)
     else
         p = pass_mode::see_through;
     set_bbox(offset, bbox_offset, bbox_size, p);
-    const auto new_frame = (uint16_t)Math::clamp(fr, 0, nframes-1);
+    const auto new_frame = (u16)Math::clamp(fr, 0, nframes-1);
     //Debug{} << "frame" << new_frame << nframes-1;
     frame = new_frame;
     if (!active)
@@ -105,7 +105,7 @@ void door_scenery::update(const bptr<object>&, size_t&, const Ns& dt)
     //if ((p == pass_mode::pass) != (old_pass == pass_mode::pass)) Debug{} << "update: need reposition" << (frame == 0 ? "-1" : "1");
 }
 
-int32_t door_scenery::depth_offset() const
+i32 door_scenery::depth_offset() const
 {
     constexpr Vector2i off_closed{0, 0}, off_opened{tile_size_xy+1, 0}, off_swing{0, 0};
     const auto swing_frame = atlas->info().action_frame;
@@ -115,9 +115,9 @@ int32_t door_scenery::depth_offset() const
     return vec.sum();
 }
 
-bool door_scenery::can_activate(size_t) const { return interactive; }
+bool door_scenery::can_activate(usize) const { return interactive; }
 
-bool door_scenery::activate(size_t)
+bool door_scenery::activate(usize)
 {
     if (active)
         return false;
@@ -125,7 +125,7 @@ bool door_scenery::activate(size_t)
     fm_assert(frame == 0 || frame == nframes-1);
     closing = frame == 0;
     // The missing-atlas stand-in has 1 frame.
-    frame = (uint16_t)Math::clamp(frame + (closing ? 1 : -1), 0, nframes-1);
+    frame = (u16)Math::clamp(frame + (closing ? 1 : -1), 0, nframes-1);
     active = true;
     return true;
 }

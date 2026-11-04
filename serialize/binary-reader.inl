@@ -19,8 +19,8 @@ template<string_input_iterator It>
 template<serializable T>
 constexpr T binary_reader<It>::read() noexcept(false)
 {
-    constexpr size_t N = sizeof(T);
-    fm_soft_assert((ptrdiff_t)N <= std::distance(it, end));
+    constexpr usize N = sizeof(T);
+    fm_soft_assert((isize)N <= std::distance(it, end));
     num_bytes_read += N;
     char buf[N];
     for (auto i = 0uz; i < N; i++)
@@ -29,13 +29,13 @@ constexpr T binary_reader<It>::read() noexcept(false)
 }
 
 template<string_input_iterator It>
-template<size_t N>
+template<usize N>
 constexpr std::array<char, N> binary_reader<It>::read() noexcept(false)
 {
     std::array<char, N> array;
     if (std::is_constant_evaluated())
         array = {};
-    fm_soft_assert(N <= (size_t)std::distance(it, end));
+    fm_soft_assert(N <= (usize)std::distance(it, end));
     num_bytes_read += N;
     for (auto i = 0uz; i < N; i++)
         array[i] = *it++;
@@ -61,13 +61,13 @@ constexpr void operator<<(T& x, binary_reader<It>& reader) noexcept(false)
 }
 
 template<string_input_iterator It>
-template<size_t MAX>
+template<usize MAX>
 constexpr fixed_string<MAX> binary_reader<It>::read_asciiz_string() noexcept(false)
 {
     static_assert(MAX > 0);
 
     fixed_string<MAX> ret;
-    for (uint32_t i = 0; i < MAX && it != end; i++)
+    for (u32 i = 0; i < MAX && it != end; i++)
     {
         const char c = *it++;
         ret.buf[i] = c;
@@ -89,7 +89,7 @@ constexpr StringView binary_reader<It>::read_asciiz_string_() noexcept(false)
     {
         num_bytes_read++;
         if (*it++ == '\0')
-            return StringView{&*start, (size_t)std::distance(start, it) - 1, StringViewFlag::NullTerminated};
+            return StringView{&*start, (usize)std::distance(start, it) - 1, StringViewFlag::NullTerminated};
     }
     fm_throw("can't find string terminator");
 }

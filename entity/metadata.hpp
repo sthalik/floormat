@@ -11,7 +11,7 @@
 
 namespace floormat::entities::detail {
 
-template<typename F, typename Tuple, size_t N>
+template<typename F, typename Tuple, usize N>
 requires std::invocable<F, decltype(std::get<N>(std::declval<Tuple>()))>
 constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
 {
@@ -23,7 +23,7 @@ constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
         visit_tuple<F, Tuple, N+1>(floormat::forward<F>(fun), floormat::forward<Tuple>(tuple));
 }
 
-template<typename F, typename Tuple, size_t N>
+template<typename F, typename Tuple, usize N>
 requires std::is_invocable_r_v<bool, F, decltype(std::get<N>(std::declval<Tuple>()))>
 constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
 {
@@ -99,20 +99,20 @@ template<typename T, typename Intent>
 class entity_metadata final {
     static_assert(std::is_same_v<T, std::decay_t<T>>);
 
-    template<typename Tuple, std::size_t... Ns>
+    template<typename Tuple, usize... Ns>
     static consteval auto erased_helper(const Tuple& tuple, std::index_sequence<Ns...>);
 
 public:
     static constexpr StringView class_name = name_of<T>;
     static constexpr auto accessors = entities::entity_accessors<T, Intent>::accessors();
-    static constexpr size_t size = std::tuple_size_v<std::decay_t<decltype(accessors)>>;
+    static constexpr usize size = std::tuple_size_v<std::decay_t<decltype(accessors)>>;
     static constexpr auto erased_accessors = erased_helper(accessors, std::make_index_sequence<size>{});
 
     entity_metadata() = default;
 };
 
 template<typename T, typename Intent>
-template<typename Tuple, std::size_t... Ns>
+template<typename Tuple, usize... Ns>
 consteval auto entity_metadata<T, Intent>::erased_helper(const Tuple& tuple, std::index_sequence<Ns...>)
 {
     return std::array<entities::erased_accessor, sizeof...(Ns)> { std::get<Ns>(tuple).erased()..., };

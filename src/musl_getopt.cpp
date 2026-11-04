@@ -57,7 +57,7 @@ namespace floormat::getopt {
 
 // ---- src/misc/getopt.c -----------------------------------------------
 
-static void getopt_msg(const char *a, const char *b, const char *c, size_t l)
+static void getopt_msg(const char *a, const char *b, const char *c, usize l)
 {
     FILE *f = stderr;
     fputs(a, f)>=0

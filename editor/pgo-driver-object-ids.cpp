@@ -20,25 +20,25 @@ using pgo::task;
 
 task app::scene_object_ids()
 {
-    constexpr uint32_t num_objects = 1u << 18;
-    constexpr uint32_t per_chunk = TILE_COUNT;
-    constexpr uint32_t chunks_per_row = 32;
+    constexpr u32 num_objects = 1u << 18;
+    constexpr u32 per_chunk = TILE_COUNT;
+    constexpr u32 chunks_per_row = 32;
     // Centered on the origin, where it used to sit far outside get_draw_bounds(). Only what the
     // draw bounds cover is updated and drawn -- a screenful of lights against a quarter million in
     // the table -- and watching those go out is the only sign the scene is doing anything.
     constexpr int chunk_x0 = -(int)(chunks_per_row/2), chunk_y0 = chunk_x0;
     // Ground under the middle of the farm, which is all the draw bounds ever reach. Lights are
     // virtual, so without it the sprites hang over nothing.
-    constexpr int16_t ground_radius = 3;
+    constexpr i16 ground_radius = 3;
     // An eighth, not a quarter: the rounds are what the scene samples the table at, and this
     // doubles how many of them there are between full and empty.
-    constexpr uint32_t kill_divisor = 8, short_kill_divisor = 2;
+    constexpr u32 kill_divisor = 8, short_kill_divisor = 2;
     const auto divisor = pgo_driver_use_short_scenes() ? short_kill_divisor : kill_divisor;
 
     auto& w = M->world();
     auto ground = loader.ground_atlas("metal1");
-    for (int16_t cy = -ground_radius; cy <= ground_radius; cy++)
-        for (int16_t cx = -ground_radius; cx <= ground_radius; cx++)
+    for (i16 cy = -ground_radius; cy <= ground_radius; cy++)
+        for (i16 cx = -ground_radius; cx <= ground_radius; cx++)
         {
             auto& c = w[chunk_coords_{cx, cy, 0}];
             for (auto k = 0u; k < TILE_COUNT; k++)
@@ -57,30 +57,30 @@ task app::scene_object_ids()
     for (auto i = 0u; i < num_objects; i++)
     {
         const auto n = i / per_chunk;
-        const chunk_coords_ ch{(int16_t)(chunk_x0 + (int)(n % chunks_per_row)),
-                               (int16_t)(chunk_y0 + (int)(n / chunks_per_row)), 0};
+        const chunk_coords_ ch{(i16)(chunk_x0 + (int)(n % chunks_per_row)),
+                               (i16)(chunk_y0 + (int)(n / chunks_per_row)), 0};
         light_proto p;
         // A zero bbox keeps the object out of the RTree, which nothing here is measuring.
         p.bbox_size = {};
         live[i] = w.make_object<light>(w.make_id(), {ch, local_coords{i % per_chunk}}, p)->id;
         id1 = Math::max(id1, live[i]);
     }
-    fm_assert_equal((size_t)num_objects, (size_t)(id1 - id0 + 1));
+    fm_assert_equal((usize)num_objects, (usize)(id1 - id0 + 1));
     co_yield {};
 
-    uint64_t rng = 0x9e3779b97f4a7c15u;
+    u64 rng = 0x9e3779b97f4a7c15u;
     for (auto i = num_objects; i-- > 1; )
     {
         rng = rng*6364136223846793005u + 1442695040888963407u;
-        const auto j = (uint32_t)((rng >> 32) % (i + 1));
+        const auto j = (u32)((rng >> 32) % (i + 1));
         const auto tmp = live[i]; live[i] = live[j]; live[j] = tmp;
     }
 
-    uint32_t num_live = num_objects, rounds = 0;
+    u32 num_live = num_objects, rounds = 0;
 
     for (;;)
     {
-        uint32_t hits = 0;
+        u32 hits = 0;
         for (auto id = id0; id <= id1; id++)
             if (w.find_object(id))
                 hits++;
@@ -104,7 +104,7 @@ task app::scene_object_ids()
     }
 
     fm_debug("object_ids: %u objects, ids %zu..%zu, %u rounds, %zu lookups", num_objects,
-             (size_t)id0, (size_t)id1, rounds, (size_t)rounds * num_objects);
+             (usize)id0, (usize)id1, rounds, (usize)rounds * num_objects);
 }
 
 } // namespace floormat

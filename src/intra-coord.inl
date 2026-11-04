@@ -71,7 +71,7 @@ template<intra_coord_base::Type T> requires (T == intra_coord_base::Wrapping)
 constexpr point operator+(basic_intra_coord<T> a, Vector2i b)
 {
     const auto [chunks, pos] = floor_divmod<chunk_size<int>>(a._v + b);
-    return point{chunk_coords_{(int16_t)chunks.x(), (int16_t)chunks.y(), 0}, intra_coord{pos}};
+    return point{chunk_coords_{(i16)chunks.x(), (i16)chunks.y(), 0}, intra_coord{pos}};
 }
 
 template<intra_coord_base::Type T> requires (T == intra_coord_base::Wrapping)

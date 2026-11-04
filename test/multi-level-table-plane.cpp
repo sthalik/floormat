@@ -13,7 +13,7 @@ static_assert(packs_to<plane_deep_free_table>({0, 1, 0}, 4) && packs_to<plane_de
 static_assert(packs_to<plane_deep_free_table>({4, 0, 0}, 32) && packs_to<plane_deep_free_table>({31, 7, 0}, 255));
 static_assert(packs_to<plane_zero_table>({4, 0, 0}, 8) && packs_to<plane_zero_table>({8, 0, 0}, 16) && packs_to<plane_zero_table>({0, 2, 0}, 32));
 static_assert(packs_to<plane_wide_table>({0, 1, 0}, 1 << 16) && packs_to<plane_wide_table>({0x10000, 0, 0}, 1 << 17));
-static_assert(packs_to<plane_wide_table>({0xffffffff, 1, 0}, (uint64_t{1} << 33) - 1));
+static_assert(packs_to<plane_wide_table>({0xffffffff, 1, 0}, (u64{1} << 33) - 1));
 static_assert(packs_to<plane_large_table>({1, 0, 0}, 1) && packs_to<plane_large_table>({0, 1, 0}, 8) && packs_to<plane_large_table>({8, 0, 0}, 64));
 static_assert(packs_to<plane_large_table>({0, 8, 0}, 128) && packs_to<plane_large_table>({16, 0, 0}, 256) && packs_to<plane_large_table>({0, 16, 0}, 1024));
 static_assert(packs_to<plane_large_table>({63, 63, 0}, 4095) && top_bytes<plane_large_table> == 24 << 4);
@@ -21,21 +21,21 @@ static_assert(packs_to<plane_large_table>({63, 63, 0}, 4095) && top_bytes<plane_
 void check_plane_wide()
 {
     using Table = plane_wide_table;
-    constexpr uint32_t xs[] = { 0, 1, 0xffff, 0x10000, 0x1ffff, 0xffffffff, };
+    constexpr u32 xs[] = { 0, 1, 0xffff, 0x10000, 0x1ffff, 0xffffffff, };
     Table t;
-    uint64_t keys[12];
-    uint32_t n = 0;
-    for (uint32_t y = 0; y < 2; y++)
-        for (uint32_t x : xs)
+    u64 keys[12];
+    u32 n = 0;
+    for (u32 y = 0; y < 2; y++)
+        for (u32 x : xs)
         {
-            fm_assert(t.insert(coord3{x, y, 0}, uint8_t(n + 1)));
+            fm_assert(t.insert(coord3{x, y, 0}, u8(n + 1)));
             keys[n++] = Table::pack(coord3{x, y, 0});
         }
     fm_assert(t.page_count() == 3);
-    check_layout(t, size_t{8} << 16, keys);
+    check_layout(t, usize{8} << 16, keys);
     n = 0;
-    for (uint32_t y = 0; y < 2; y++)
-        for (uint32_t x : xs)
+    for (u32 y = 0; y < 2; y++)
+        for (u32 x : xs)
         {
             fm_assert(t.find(coord3{x, y, 0}) == t.find(keys[n]) && *t.find(coord3{x, y, 0}) == n + 1);
             fm_assert(!t.insert(coord3{x, y, 0}, 1));
@@ -44,11 +44,11 @@ void check_plane_wide()
     fm_assert(t.find(coord3{2, 1, 0}) && !*t.find(coord3{2, 1, 0}) && t.find(coord3{0xfffffffe, 0, 0}) && !*t.find(coord3{0xfffffffe, 0, 0}));
     fm_assert(!t.find(coord3{0x20000, 0, 0}) && !t.find(coord3{0xfffeffff, 1, 0}));
     n = 0;
-    for (uint32_t y = 0; y < 2; y++)
-        for (uint32_t x : xs)
+    for (u32 y = 0; y < 2; y++)
+        for (u32 x : xs)
             fm_assert(t.erase(coord3{x, y, 0}) == ++n);
     fm_assert(t.page_count() == 3);
-    check_layout(t, size_t{8} << 16, {});
+    check_layout(t, usize{8} << 16, {});
 }
 
 } // namespace
@@ -59,7 +59,7 @@ template class multi_level_table<tracked, plane_no_y_params>;
 template class multi_level_table<tracked, plane_zero_params>;
 template class multi_level_table<tracked, plane_zero_free_params>;
 template class multi_level_table<tracked, plane_no_pages_params>;
-template class multi_level_table<uint8_t, plane_wide_params>;
+template class multi_level_table<u8, plane_wide_params>;
 template class multi_level_table<tracked, plane_large_params>;
 
 void mlt_test::test_plane_tables()
@@ -85,13 +85,13 @@ void mlt_test::test_plane_tables()
     check_fill<plane_large_table>(91);
     fm_assert(tracked::live == 0);
 
-    check_random<plane_table>(with(76, size_t{8} << 3));
-    check_random<plane_deep_free_table>(with(77, size_t{16} << 5));
-    check_random<plane_no_y_table>(with(78, size_t{8} << 3));
-    check_random<plane_zero_table>(with(79, size_t{16} << 2));
-    check_random<plane_zero_free_table>(with(80, size_t{24} << 2));
-    check_random<plane_no_pages_table>(with(81, size_t{8} << 5));
-    check_random<plane_wide_table>({.seed = 82, .ops = 200, .top_size_bytes = size_t{8} << 16, .check_every = 100, .page_cap = 8});
+    check_random<plane_table>(with(76, usize{8} << 3));
+    check_random<plane_deep_free_table>(with(77, usize{16} << 5));
+    check_random<plane_no_y_table>(with(78, usize{8} << 3));
+    check_random<plane_zero_table>(with(79, usize{16} << 2));
+    check_random<plane_zero_free_table>(with(80, usize{24} << 2));
+    check_random<plane_no_pages_table>(with(81, usize{8} << 5));
+    check_random<plane_wide_table>({.seed = 82, .ops = 200, .top_size_bytes = usize{8} << 16, .check_every = 100, .page_cap = 8});
     fm_assert(tracked::live == 0);
 
     {

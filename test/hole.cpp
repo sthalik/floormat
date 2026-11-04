@@ -177,7 +177,7 @@ void test_neighbor_dirty()
 namespace floormat::Run {
 namespace {
 
-void test_walking1(StringView instance_name, Function make_dt, double accel, uint32_t max_steps)
+void test_walking1(StringView instance_name, Function make_dt, double accel, u32 max_steps)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 

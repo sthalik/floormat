@@ -34,7 +34,7 @@ void chunk::ensure_ground_mesh(SpriteBatch& sb)
             const auto& atlas = _ground->atlases[i];
             if (!atlas)
                 continue;
-            const local_coords pos{(uint8_t)i};
+            const local_coords pos{(u8)i};
             const auto center = Vector3(point{_coord, pos, {}});
             const auto quad = Quads::floor_quad(center, TILE_SIZE2);
             const auto texcoords = atlas->texcoords_for_id(_ground->variants[i] % atlas->num_tiles());

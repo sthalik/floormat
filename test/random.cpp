@@ -11,10 +11,10 @@ namespace {
 
 struct reference_values
 {
-    uint64_t seed;
-    uint64_t state[4];
-    uint64_t outputs[8];
-    uint64_t output_1000000;
+    u64 seed;
+    u64 state[4];
+    u64 outputs[8];
+    u64 output_1000000;
 };
 
 // From the C reference at prng.di.unimi.it, with s[] filled by four splitmix64 outputs.
@@ -56,11 +56,11 @@ bool same_state(const Random::xoshiro256starstar& a, const Random::xoshiro256sta
 
 // Same algorithm and return value as brent() in random/period-test.cpp.
 template<typename F>
-uint32_t brent(Random::xoshiro256starstar hare, uint32_t max_steps, F&& on_output)
+u32 brent(Random::xoshiro256starstar hare, u32 max_steps, F&& on_output)
 {
     auto tortoise = hare;
     on_output(Random::next(hare));
-    uint32_t power = 1, lambda = 1, steps = 1;
+    u32 power = 1, lambda = 1, steps = 1;
     while (!same_state(tortoise, hare))
     {
         if (steps == max_steps)
@@ -86,7 +86,7 @@ void test_zero_state()
     fm_assert(g0.s[0] == 0);
     fm_assert(g0.s[1] != 0 && g0.s[2] != 0 && g0.s[3] != 0);
     auto g = g0;
-    for (uint32_t i = 0; i < 64; i++)
+    for (u32 i = 0; i < 64; i++)
         fm_assert(Random::next(g) != 0);
 }
 
@@ -95,7 +95,7 @@ void test_default_states()
     Random::splitmix64 a;
     Random::xoshiro256starstar b;
     Random::ranlux48 c;
-    for (uint32_t i = 0; i < 1000; i++)
+    for (u32 i = 0; i < 1000; i++)
     {
         (void)Random::next(a);
         (void)Random::next(b);
@@ -108,13 +108,13 @@ void test_default_states()
     fm_assert(same_state(b, Random::xoshiro256starstar{}));
     const Random::ranlux48 d;
     fm_assert(c.i == d.i && c.c == d.c && c.n == d.n);
-    for (uint32_t i = 0; i < 12; i++)
+    for (u32 i = 0; i < 12; i++)
         fm_assert(c.x[i] == d.x[i]);
 }
 
 void test_mix()
 {
-    constexpr uint64_t pairs[][2] = {
+    constexpr u64 pairs[][2] = {
         { 0x0000000000000000, 0x0000000000000000 },
         { 0x0000000000000001, 0x071894de00d9981f },
         { 0x0000000000000002, 0xef9d98262a1b46cb },
@@ -125,23 +125,23 @@ void test_mix()
     for (const auto& [x, y] : pairs)
         fm_assert(Random::mix(x) == y);
 
-    constexpr uint32_t N = 1 << 12;
-    uint32_t flips[64][64] = {};
+    constexpr u32 N = 1 << 12;
+    u32 flips[64][64] = {};
     Random::xoshiro256starstar g;
     Random::seed(g, 0x5eed);
-    for (uint32_t k = 0; k < N; k++)
+    for (u32 k = 0; k < N; k++)
     {
-        const uint64_t x = Random::next(g), y = Random::mix(x);
-        for (uint32_t i = 0; i < 64; i++)
+        const u64 x = Random::next(g), y = Random::mix(x);
+        for (u32 i = 0; i < 64; i++)
         {
-            const uint64_t d = y ^ Random::mix(x ^ (uint64_t{1} << i));
-            for (uint32_t j = 0; j < 64; j++)
+            const u64 d = y ^ Random::mix(x ^ (u64{1} << i));
+            for (u32 j = 0; j < 64; j++)
                 flips[i][j] += d >> j & 1;
         }
     }
     // Each count is binomial(N, 1/2) with standard deviation 32. Allow 8 of them.
     for (const auto& row : flips)
-        for (uint32_t count : row)
+        for (u32 count : row)
             fm_assert(count > N/2 - N/16 && count < N/2 + N/16);
 }
 
@@ -149,51 +149,51 @@ void test_ranlux48()
 {
     {
         Random::ranlux48 g;
-        uint64_t x = 0;
-        for (uint32_t i = 0; i < 10000; i++)
+        u64 x = 0;
+        for (u32 i = 0; i < 10000; i++)
             x = Random::next(g);
         fm_assert(x == 249142670248501); // [rand.predef]
     }
 
-    constexpr uint64_t seeds[] = {
+    constexpr u64 seeds[] = {
         0, 1, 19780503, 2147483563, 2147483564, 0x9e3779b97f4a7c15, 0xffffffffffffffff,
     };
-    for (uint64_t seed : seeds)
+    for (u64 seed : seeds)
     {
         Random::ranlux48 g;
         Random::seed(g, seed);
         std::ranlux48 h{seed};
-        for (uint32_t i = 0; i < 2000; i++)
+        for (u32 i = 0; i < 2000; i++)
             fm_assert(Random::next(g) == h());
     }
 }
 
 template<typename T>
-void test_gaussian(uint64_t expected_hash)
+void test_gaussian(u64 expected_hash)
 {
     const auto cdf = [](double z) { return 0.5 * std::erfc(-z * 0.70710678118654752); };
     // Rounding z to T moves cdf(z) by at most a relative (z^2 + 1) half_ulp, from the Mills ratio.
     constexpr double half_ulp = (double)(limits<T>::epsilon / 2);
     const auto tolerance = [](double z) { return 1e-13 + (z*z + 1) * half_ulp; };
-    uint64_t hash = 0;
+    u64 hash = 0;
 
     // Powers of two reach both tail formulas. Random inputs almost never do.
-    for (uint32_t k = 0; k < 64; k++)
+    for (u32 k = 0; k < 64; k++)
     {
-        const uint64_t x = uint64_t{1} << k;
-        for (uint64_t u : { x - 1, x, x + x/3 })
+        const u64 x = u64{1} << k;
+        for (u64 u : { x - 1, x, x + x/3 })
         {
             const auto z = (double)Random::gaussian<T>(u), p = ((double)u + 0.5) * 0x1p-64;
             fm_assert(std::fabs(cdf(z) - p) <= tolerance(z) * p);
             fm_assert((double)Random::gaussian<T>(~u) == -z);
-            hash = Random::mix(hash ^ std::bit_cast<uint64_t>(z));
+            hash = Random::mix(hash ^ std::bit_cast<u64>(z));
         }
     }
 
     double last = -10;
-    for (uint32_t k = 0; k < 1 << 16; k++)
+    for (u32 k = 0; k < 1 << 16; k++)
     {
-        const uint64_t u = 0x0123456789ab + (uint64_t{k} << 48);
+        const u64 u = 0x0123456789ab + (u64{k} << 48);
         const auto z = (double)Random::gaussian<T>(u), p = ((double)u + 0.5) * 0x1p-64;
         fm_assert(z > last);
         if (p < 0.5)
@@ -202,33 +202,33 @@ void test_gaussian(uint64_t expected_hash)
     }
 
     // For |q| < 2^-30, z = sqrt(2 pi) q within a relative 2^-60.
-    for (uint32_t k = 0; k < 34; k++)
+    for (u32 k = 0; k < 34; k++)
     {
-        const uint64_t n = uint64_t{1} << k, u = (uint64_t{1} << 63) - 1 - n;
+        const u64 n = u64{1} << k, u = (u64{1} << 63) - 1 - n;
         const double q = -((double)n + 0.5) * 0x1p-64;
         fm_assert(std::fabs((double)Random::gaussian<T>(u) / (2.5066282746310002 * q) - 1) < 1e-15 + half_ulp);
     }
     last = -1;
-    for (uint64_t u = (uint64_t{1} << 63) - 1000; u != (uint64_t{1} << 63) + 1000; u++)
+    for (u64 u = (u64{1} << 63) - 1000; u != (u64{1} << 63) + 1000; u++)
     {
         const auto z = (double)Random::gaussian<T>(u);
         fm_assert(z > last);
-        fm_assert((z < 0) == (u < (uint64_t{1} << 63)));
+        fm_assert((z < 0) == (u < (u64{1} << 63)));
         last = z;
     }
 
-    constexpr uint32_t N = 1 << 18;
+    constexpr u32 N = 1 << 18;
     double sum[4] = {};
     Random::xoshiro256starstar g;
     Random::seed(g, 1);
-    for (uint32_t i = 0; i < N; i++)
+    for (u32 i = 0; i < N; i++)
     {
         const auto z = (double)Random::gaussian<T>(Random::next(g));
         sum[0] += z;
         sum[1] += z*z;
         sum[2] += z*z*z;
         sum[3] += z*z*z*z;
-        hash = Random::mix(hash ^ std::bit_cast<uint64_t>(z));
+        hash = Random::mix(hash ^ std::bit_cast<u64>(z));
     }
     // Raw moments 0, 1, 0, 3. Limits are 5 standard errors: sqrt(1/N), sqrt(2/N), sqrt(15/N), sqrt(96/N).
     fm_assert(std::fabs(sum[0] / N) < 0.0098);
@@ -239,7 +239,7 @@ void test_gaussian(uint64_t expected_hash)
     fm_assert(hash == expected_hash);
 }
 
-struct quantile { uint64_t u; double z; };
+struct quantile { u64 u; double z; };
 
 // Phi^-1((u + 1/2) / 2^64) from mpmath, rounded to double.
 // Rounding these to float gives the same values as rounding the exact quantile.
@@ -300,7 +300,7 @@ void test_random()
     test_gaussian<float>(0x9c8265a5f7ca8afe);
     test_gaussian_types();
 
-    constexpr uint32_t max_steps = 1 << 20;
+    constexpr u32 max_steps = 1 << 20;
 
     {
         Random::xoshiro256starstar g{{1, 2, 3, 4}};
@@ -313,12 +313,12 @@ void test_random()
         Random::xoshiro256starstar g;
         Random::seed(g, r.seed);
         fm_assert((g.s[0] | g.s[1] | g.s[2] | g.s[3]) != 0);
-        for (uint32_t i = 0; i < 4; i++)
+        for (u32 i = 0; i < 4; i++)
             fm_assert(g.s[i] == r.state[i]);
 
-        uint32_t n = 0;
-        uint64_t output_1000000 = 0;
-        const uint32_t lambda = brent(g, max_steps, [&](uint64_t x) {
+        u32 n = 0;
+        u64 output_1000000 = 0;
+        const u32 lambda = brent(g, max_steps, [&](u64 x) {
             if (n < 8)
                 fm_assert(x == r.outputs[n]);
             if (++n == 1000000)
