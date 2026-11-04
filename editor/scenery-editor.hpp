@@ -34,10 +34,7 @@ public:
     bool is_anything_selected() const;
     static void place_scenery(world& w, global_coords pos, const scenery_& s, app& a);
 
-    typename std::map<StringView, scenery_>::const_iterator cbegin() const noexcept;
-    typename std::map<StringView, scenery_>::const_iterator cend() const noexcept;
-    typename std::map<StringView, scenery_>::const_iterator begin() const noexcept;
-    typename std::map<StringView, scenery_>::const_iterator end() const noexcept;
+    const std::map<StringView, scenery_>& items() const noexcept;
 
 private:
     void load_atlases();

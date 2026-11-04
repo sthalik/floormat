@@ -19,10 +19,7 @@ class wall_editor
     void load_atlases();
 
 public:
-    typename std::map<StringView, wall_cell>::const_iterator cbegin() const noexcept;
-    typename std::map<StringView, wall_cell>::const_iterator cend() const noexcept;
-    typename std::map<StringView, wall_cell>::const_iterator begin() const noexcept;
-    typename std::map<StringView, wall_cell>::const_iterator end() const noexcept;
+    const std::map<StringView, wall_cell>& items() const noexcept;
 
     wall_editor();
     StringView name() const;

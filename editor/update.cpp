@@ -155,14 +155,7 @@ void app::do_set_mode(editor_mode mode)
 
 void app::do_escape()
 {
-    if (auto* ed = _editor->current_ground_editor())
-        ed->clear_selection();
-    if (auto* ed = _editor->current_wall_editor())
-        ed->clear_selection();
-    if (auto* sc = _editor->current_scenery_editor())
-        sc->clear_selection();
-    if (auto* vo = _editor->current_vobj_editor())
-        vo->clear_selection();
+    _editor->clear_selection();
     kill_popups(false);
 }
 

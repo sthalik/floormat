@@ -29,8 +29,7 @@ public:
     ~ground_editor() noexcept;
     bptr<ground_atlas> maybe_atlas(StringView str);
     bptr<ground_atlas> atlas(StringView str);
-    typename std::map<StringView, ground_cell>::const_iterator begin() const noexcept;
-    typename std::map<StringView, ground_cell>::const_iterator end() const noexcept;
+    const std::map<StringView, ground_cell>& items() const noexcept;
     StringView name() const noexcept;
 
     void clear_selection();

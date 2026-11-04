@@ -19,10 +19,7 @@ vobj_factory::~vobj_factory() noexcept = default;
 vobj_editor::vobj_editor() = default;
 void vobj_editor::select_item(const vobj_& type) { _selected = &type; }
 void vobj_editor::clear_selection() { _selected = nullptr; }
-auto vobj_editor::cbegin() const noexcept -> std::map<String, vobj_>::const_iterator { return _types.cbegin(); }
-auto vobj_editor::cend() const noexcept -> std::map<String, vobj_>::const_iterator { return _types.cend(); }
-auto vobj_editor::begin() const noexcept -> std::map<String, vobj_>::const_iterator { return _types.cbegin(); }
-auto vobj_editor::end() const noexcept -> std::map<String, vobj_>::const_iterator { return _types.cend(); }
+auto vobj_editor::items() const noexcept -> const std::map<String, vobj_>& { return _types; }
 
 auto vobj_editor::get_selected() const -> const vobj_*
 {

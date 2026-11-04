@@ -154,9 +154,8 @@ void editor::on_click_(world& world, global_coords pos, button b)
             {
             default: break;
             case button::place:
-                if (const auto& sel = mode->get_selected())
-                    if (auto& ch = world[pos.chunk3()]; ch.can_place_object(sel.proto, pos.local()))
-                        mode->place_scenery(world, pos, sel, *_app);
+                if (auto& ch = world[pos.chunk3()]; ch.can_place_object(opt.proto, pos.local()))
+                    mode->place_scenery(world, pos, opt, *_app);
                 break;
             case button::remove:
                 mode->place_scenery(world, pos, {}, *_app);
@@ -172,8 +171,7 @@ void editor::on_click_(world& world, global_coords pos, button b)
             {
             default: break;
             case button::place:
-                if (const auto* sel = mode->get_selected())
-                    mode->place_vobj(world, pos, sel, *_app);
+                mode->place_vobj(world, pos, opt, *_app);
                 break;
             case button::remove:
                 mode->place_vobj(world, pos, {}, *_app);
