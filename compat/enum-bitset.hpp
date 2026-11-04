@@ -5,19 +5,19 @@
 namespace floormat {
 
 template<typename Enum, Enum COUNT_>
-requires (std::is_enum_v<Enum> && std::is_same_v<size_t, std::common_type_t<size_t, std::underlying_type_t<Enum>>>)
+requires (std::is_enum_v<Enum> && std::is_same_v<usize, std::common_type_t<usize, std::underlying_type_t<Enum>>>)
 struct enum_bitset {
     using enum_type = Enum;
     using value_type = std::underlying_type_t<enum_type>;
 
-    static constexpr auto COUNT = size_t{value_type(COUNT_)};
+    static constexpr auto COUNT = usize{value_type(COUNT_)};
     static_assert(COUNT > 0);
 
     class reference {
-        uint64_t* word;
-        uint64_t mask;
+        u64* word;
+        u64 mask;
         friend enum_bitset;
-        constexpr reference(uint64_t& word, uint64_t mask) noexcept : word{&word}, mask{mask} {}
+        constexpr reference(u64& word, u64 mask) noexcept : word{&word}, mask{mask} {}
     public:
         constexpr reference& operator=(bool x) noexcept { *word = x ? *word | mask : *word & ~mask; return *this; }
         constexpr reference& operator=(const reference& x) noexcept { return *this = bool(x); }
@@ -25,20 +25,20 @@ struct enum_bitset {
     };
 
     constexpr enum_bitset() noexcept = default;
-    constexpr enum_bitset(uint64_t bits) noexcept { words[0] = COUNT < 64 ? bits & ((uint64_t{1} << COUNT) - 1) : bits; }
+    constexpr enum_bitset(u64 bits) noexcept { words[0] = COUNT < 64 ? bits & ((u64{1} << COUNT) - 1) : bits; }
 
     constexpr bool operator[](Enum x) const noexcept
     {
-        const auto i = size_t{value_type(x)};
+        const auto i = usize{value_type(x)};
         fm_debug_assert(i < COUNT);
         return ((words[i / 64] >> (i % 64)) & 1) != 0;
     }
 
     constexpr reference operator[](Enum x) noexcept
     {
-        const auto i = size_t{value_type(x)};
+        const auto i = usize{value_type(x)};
         fm_debug_assert(i < COUNT);
-        return {words[i / 64], uint64_t{1} << (i % 64)};
+        return {words[i / 64], u64{1} << (i % 64)};
     }
 
     constexpr void reset() noexcept
@@ -56,7 +56,7 @@ struct enum_bitset {
     }
 
 private:
-    uint64_t words[(COUNT + 63) / 64] = {};
+    u64 words[(COUNT + 63) / 64] = {};
 };
 
 } // namespace floormat

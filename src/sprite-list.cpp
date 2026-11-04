@@ -11,12 +11,12 @@ SpriteList::SpriteList()
     arrayReserve(Objects, 16);
 }
 
-uint32_t SpriteList::size() const
+u32 SpriteList::size() const
 {
-    return (uint32_t)Vertexes.size();
+    return (u32)Vertexes.size();
 }
 
-void SpriteList::reserve(uint32_t count)
+void SpriteList::reserve(u32 count)
 {
     arrayReserve(Vertexes, count);
     arrayReserve(Depths, count);

@@ -8,7 +8,7 @@ template<typename It> class element;
 template<typename V> class iterator;
 template<typename R> class view;
 
-template<size_t N, typename T> using get_t = std::conditional_t<N == 0, uint32_t, T>;
+template<usize N, typename T> using get_t = std::conditional_t<N == 0, u32, T>;
 
 template<typename It>
 class element
@@ -16,7 +16,7 @@ class element
     template<typename> friend class iterator;
 
     It _it;
-    uint32_t _index = 0;
+    u32 _index = 0;
 
     constexpr explicit element(It it) noexcept;
 
@@ -26,10 +26,10 @@ public:
     using value_type = std::remove_reference_t<reference>;
     using copy_type = std::remove_cv_t<value_type>;
 
-    template<size_t N> constexpr auto get() & noexcept -> get_t<N, value_type&>;
-    template<size_t N> constexpr auto get() const& noexcept -> get_t<N, const value_type&>;
-    template<size_t N> constexpr auto get() && noexcept(std::is_nothrow_copy_constructible_v<copy_type>) -> get_t<N, copy_type>;
-    template<size_t N> constexpr auto get() const&& noexcept(std::is_nothrow_copy_constructible_v<copy_type>) -> get_t<N, copy_type>;
+    template<usize N> constexpr auto get() & noexcept -> get_t<N, value_type&>;
+    template<usize N> constexpr auto get() const& noexcept -> get_t<N, const value_type&>;
+    template<usize N> constexpr auto get() && noexcept(std::is_nothrow_copy_constructible_v<copy_type>) -> get_t<N, copy_type>;
+    template<usize N> constexpr auto get() const&& noexcept(std::is_nothrow_copy_constructible_v<copy_type>) -> get_t<N, copy_type>;
 };
 
 // operator* returns the element stored here, so the reference dies with the iterator.
@@ -71,7 +71,7 @@ template<typename It>
 constexpr element<It>::element(It it) noexcept : _it{move(it)} {}
 
 template<typename It>
-template<size_t N>
+template<usize N>
 constexpr auto element<It>::get() & noexcept -> get_t<N, value_type&>
 {
     static_assert(N < 2);
@@ -82,7 +82,7 @@ constexpr auto element<It>::get() & noexcept -> get_t<N, value_type&>
 }
 
 template<typename It>
-template<size_t N>
+template<usize N>
 constexpr auto element<It>::get() const& noexcept -> get_t<N, const value_type&>
 {
     static_assert(N < 2);
@@ -93,7 +93,7 @@ constexpr auto element<It>::get() const& noexcept -> get_t<N, const value_type&>
 }
 
 template<typename It>
-template<size_t N>
+template<usize N>
 constexpr auto element<It>::get() && noexcept(std::is_nothrow_copy_constructible_v<copy_type>) -> get_t<N, copy_type>
 {
     static_assert(N < 2);
@@ -104,7 +104,7 @@ constexpr auto element<It>::get() && noexcept(std::is_nothrow_copy_constructible
 }
 
 template<typename It>
-template<size_t N>
+template<usize N>
 constexpr auto element<It>::get() const&& noexcept(std::is_nothrow_copy_constructible_v<copy_type>) -> get_t<N, copy_type>
 {
     static_assert(N < 2);
@@ -190,7 +190,7 @@ template<typename It>
 struct tuple_size<const floormat::detail_enumerate::element<It>> : integral_constant<size_t, 2> {};
 
 template<typename It>
-struct tuple_element<0, floormat::detail_enumerate::element<It>> { using type = floormat::uint32_t; };
+struct tuple_element<0, floormat::detail_enumerate::element<It>> { using type = floormat::u32; };
 template<typename It>
 struct tuple_element<1, floormat::detail_enumerate::element<It>> { using type = typename floormat::detail_enumerate::element<It>::value_type; };
 template<size_t I, typename It>

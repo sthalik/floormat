@@ -65,7 +65,7 @@ void test_read_groups(StringView filename)
 
     const auto atlas2 = wall_atlas_def::deserialize(path);
     fm_assert(atlas2.header == info);
-    auto idx2 = atlas2.direction_map[(size_t)Direction_::W];
+    auto idx2 = atlas2.direction_map[(usize)Direction_::W];
     fm_assert(idx2);
     const auto& dir2 = atlas2.direction_array[idx2.val];
     fm_assert(dir == dir2);
@@ -75,12 +75,12 @@ void test_from_rotation(StringView filename)
 {
     const auto path = Path::join(json_path(), filename);
     auto atlas = wall_atlas_def::deserialize(path);
-    auto DAI_n = atlas.direction_map[(size_t)Direction_::N];
-    auto DAI_w = atlas.direction_map[(size_t)Direction_::W];
+    auto DAI_n = atlas.direction_map[(usize)Direction_::N];
+    auto DAI_w = atlas.direction_map[(usize)Direction_::W];
     fm_assert(DAI_n); fm_assert(DAI_w);
     const auto& D_n = atlas.direction_array[DAI_n.val];
     const auto& D_w = atlas.direction_array[DAI_w.val];
-    constexpr auto null = (uint8_t)-1;
+    constexpr auto null = (u8)-1;
     resolve_wall_rotations(atlas.direction_array, atlas.direction_map);
     fm_assert(D_n.top.is_defined);
     fm_assert(D_n.top.from_rotation != null);
@@ -105,7 +105,7 @@ void test_from_rotation(StringView filename)
 
     fm_assert(!atlas.frames.isEmpty());
     fm_assert(atlas.frames[0].offset != frame_defaults.offset);
-    auto dir_index = atlas.direction_map[(size_t)Direction_::W];
+    auto dir_index = atlas.direction_map[(usize)Direction_::W];
     fm_assert(dir_index);
     const auto& dir = atlas.direction_array[dir_index.val];
     fm_assert(dir.side.pixel_size != group_defaults.pixel_size);

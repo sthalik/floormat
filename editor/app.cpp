@@ -44,14 +44,14 @@ bool parse_bool(StringView name, const Corrade::Utility::Arguments& args)
     std::exit(EX_USAGE);
 }
 
-uint32_t parse_uint(StringView name, const Corrade::Utility::Arguments& args)
+u32 parse_uint(StringView name, const Corrade::Utility::Arguments& args)
 {
     auto str = args.value<StringView>(name);
-    uint32_t value = 0;
+    u32 value = 0;
     int n = 0;
     // %u accepts a leading '-' and wraps, so a digit must come first
     if (str.isEmpty() || str[0] < '0' || str[0] > '9' ||
-        std::sscanf(str.data(), "%u%n", &value, &n) != 1 || (size_t)n != str.size())
+        std::sscanf(str.data(), "%u%n", &value, &n) != 1 || (usize)n != str.size())
     {
         ERR_nospace << "invalid --" << name << " argument '" << str << "': should be a number";
         std::exit(EX_USAGE);
@@ -264,7 +264,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     {
         Vector2us size;
         int n = 0, ret = std::sscanf(str.data(), "%hux%hu%n", &size.x(), &size.y(), &n);
-        if (ret != 2 || (size_t)n != str.size() || Vector2ui(size).product() == 0)
+        if (ret != 2 || (usize)n != str.size() || Vector2ui(size).product() == 0)
         {
             ERR_nospace << "invalid --geometry argument '" << str << "'";
             std::exit(EX_USAGE);

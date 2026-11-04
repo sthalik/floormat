@@ -2,7 +2,7 @@
 
 namespace floormat::getopt {
 
-enum argument_kind : uint8_t
+enum argument_kind : u8
 {
     no_argument, required_argument, optional_argument,
 };

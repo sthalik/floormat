@@ -9,7 +9,7 @@ namespace floormat::detail_Script {
 
 template<typename S, typename Obj>
 concept BaseScript =
-requires (S& script, const bptr<Obj>& obj, size_t& i, const Ns& ns)
+requires (S& script, const bptr<Obj>& obj, usize& i, const Ns& ns)
 {
     requires std::is_base_of_v<base_script, S>;
     script.on_init(obj);

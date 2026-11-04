@@ -61,7 +61,7 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     using Position = GL::Attribute<0, Vector3>;
 
 private:
-    enum Uniform : uint8_t {
+    enum Uniform : u8 {
         SamplerUniform = 0, ModeUniform = 1,
         UNIFORM_COUNT = 2
     };
@@ -81,7 +81,7 @@ private:
         "mode"_s,
     };
 
-    enum ShaderMode : uint32_t
+    enum ShaderMode : u32
     {
         DrawShadowsMode      = 0,
         BlendLightmapMode    = 2,
@@ -100,7 +100,7 @@ private:
                block_uniform_buf{GL::Buffer::TargetHint::Uniform, };
     Array<std::array<shadow_vertex, 4>> vertexes;
     Array<Quads::indexes> indexes;
-    uint32_t count = 0, capacity = 0;
+    u32 count = 0, capacity = 0;
     Framebuffer framebuffer;
     GL::Mesh occlusion_mesh{NoCreate};
     Vector4i saved_scissor; // GL_SCISSOR_BOX layout: x, y, width, height

@@ -22,7 +22,7 @@ namespace {
 
 using mazes::kind;
 
-constexpr uint32_t default_cell = 16;
+constexpr u32 default_cell = 16;
 
 struct map_world
 {
@@ -31,7 +31,7 @@ struct map_world
     Pass::Pool pool;
     mazes::route r;
 
-    map_world(kind k, uint32_t cell):
+    map_world(kind k, u32 cell):
         pool{Pass::Params{cell, mazes::bbox_size, pass_mode::pass}, Search::without_critters()},
         r{mazes::build(w, k, chunk_coords_{0, 0, 0}, pool)}
     {}
@@ -44,7 +44,7 @@ path_search_result search(map_world& s)
                                   Search::without_critters());
 }
 
-void verify(kind k, uint32_t cell, uint32_t optimum)
+void verify(kind k, u32 cell, u32 optimum)
 {
     map_world s{k, cell};
 
@@ -56,10 +56,10 @@ void verify(kind k, uint32_t cell, uint32_t optimum)
 
     auto& pool = s.pool;
     constexpr auto nch = mazes::map_chunks - 1;
-    const auto div_count = pool.params().div_count, side = div_count*(uint32_t)nch;
-    uint32_t open_cells = 0;
-    for (int16_t cy = 0; cy < nch; cy++)
-        for (int16_t cx = 0; cx < nch; cx++)
+    const auto div_count = pool.params().div_count, side = div_count*(u32)nch;
+    u32 open_cells = 0;
+    for (i16 cy = 0; cy < nch; cy++)
+        for (i16 cx = 0; cx < nch; cx++)
         {
             auto g = pool[s.w[chunk_coords_{cx, cy, 0}]];
             g.build_if_stale();
@@ -81,8 +81,8 @@ void verify(kind k, uint32_t cell, uint32_t optimum)
 
 // A world per call, as in Dijkstra<>. A static one is destroyed after bench_app's loader.destroy(),
 // and a leaked one trips the RTree pool destructor's assert that every tree came back.
-template<kind K, uint32_t Cell = default_cell>
-void bench_map(benchmark::State& state, uint32_t optimum)
+template<kind K, u32 Cell = default_cell>
+void bench_map(benchmark::State& state, u32 optimum)
 {
     static const bool verified = (verify(K, Cell, optimum), true);
     (void)verified;
@@ -118,7 +118,7 @@ void bench_sweep(benchmark::State& state)
     map_world s{K, default_cell};
     const auto res = pulled_path<K>(s);
     const auto wp = res.smoothings();
-    const auto sweep = [&](size_t i) {
+    const auto sweep = [&](usize i) {
         const auto ch = wp[i].pt.chunk3();
         const auto origin = point{ch, {}, {}};
         const auto line = rc::bresenham_line{wp[i].pt - origin, wp[i+1].pt - origin};
@@ -139,7 +139,7 @@ struct missing_chunks_world
     astar A;
     Pass::Pool pool;
     point from, to;
-    uint32_t max_dist;
+    u32 max_dist;
 
     missing_chunks_world():
         pool{Pass::Params{default_cell, mazes::bbox_size, pass_mode::pass}, Search::without_critters()}
@@ -157,15 +157,15 @@ struct missing_chunks_world
 
         // A wall on every tile edge, except inside the start chunk. The missing chunks are x -2
         // and -1 at y 0, and the maze holds x 0 from y 0 on.
-        for (int16_t cy = -1; cy <= 1; cy++)
-            for (int16_t cx = -3; cx <= 0; cx++)
+        for (i16 cy = -1; cy <= 1; cy++)
+            for (i16 cx = -3; cx <= 0; cx++)
             {
                 if ((cy == 0 && cx >= -2) || (cy == 1 && cx == 0))
                     continue;
                 const bool start = cx == -3 && cy == 0;
                 auto& c = w[chunk_coords_{cx, cy, 0}];
-                for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
-                    for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+                for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
+                    for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
                     {
                         auto t = c[local_coords{lx, ly}];
                         t.ground() = ground;
@@ -191,7 +191,7 @@ struct missing_chunks_world
     }
 };
 
-void bench_missing_chunks(benchmark::State& state, uint32_t optimum)
+void bench_missing_chunks(benchmark::State& state, u32 optimum)
 {
     missing_chunks_world s;
     {

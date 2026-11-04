@@ -289,7 +289,7 @@ void app::on_key_up_down(const key_event& event, bool is_down, const sdl2::EvKey
     else
     {
         (*keys_)[x] = is_down;
-        key_modifiers.data[size_t(x)] = mods;
+        key_modifiers.data[usize(x)] = mods;
     }
 }
 

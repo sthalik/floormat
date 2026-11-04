@@ -15,7 +15,7 @@ cache::cache() = default;
 
 cache::~cache() noexcept = default;
 
-Vector2ui cache::get_size_to_allocate(uint32_t max_dist)
+Vector2ui cache::get_size_to_allocate(u32 max_dist)
 {
     constexpr auto rounding = chunk_size<Vector2ui> - Vector2ui(1);
     auto nchunks = (Vector2ui(max_dist) + rounding) / chunk_size<Vector2ui>;
@@ -24,23 +24,23 @@ Vector2ui cache::get_size_to_allocate(uint32_t max_dist)
     return nchunks + Vector2ui(1);
 }
 
-uint32_t cache::allocate(point from, uint32_t max_dist, uint32_t div_size)
+u32 cache::allocate(point from, u32 max_dist, u32 div_size)
 {
     fm_assert(from.coord().z() == 0);
     fm_assert(div_size > 0);
     fm_assert(chunk_size_xy % div_size == 0);
     div_size_ = div_size;
     div_count_ = chunk_size_xy / div_size;
-    auto cells_per_chunk = (size_t)div_count_ * div_count_;
+    auto cells_per_chunk = (usize)div_count_ * div_count_;
     const auto chunk_bytes = cells_per_chunk * sizeof(cell);
     const auto max_chunk_count = max_size_bytes / chunk_bytes;
 
-    const auto side = 2 * (((size_t)max_dist + chunk_size_xy - 1) / chunk_size_xy) + 3;
+    const auto side = 2 * (((usize)max_dist + chunk_size_xy - 1) / chunk_size_xy) + 3;
     if (side * side > max_chunk_count) [[unlikely]]
     {
-        auto max_side = (size_t)Math::sqrt((double)max_chunk_count);
+        auto max_side = (usize)Math::sqrt((double)max_chunk_count);
         max_side -= max_side % 2 == 0;
-        const auto clamped = (uint32_t)(max_side - 3) / 2 * chunk_size_xy;
+        const auto clamped = (u32)(max_side - 3) / 2 * chunk_size_xy;
         constexpr double MiB = 1 << 20;
         fm_warn_once("search cache: max_dist %u at div %u needs %.1f MiB, over %.1f MiB; clamped to %u, %.1f MiB",
                      max_dist, div_size, (double)side * (double)side * (double)chunk_bytes / MiB,
@@ -52,7 +52,7 @@ uint32_t cache::allocate(point from, uint32_t max_dist, uint32_t div_size)
     auto off = get_size_to_allocate(max_dist);
     start = Vector2i(from.chunk()) - Vector2i(off);
     size = off * 2u + Vector2ui(1);
-    auto len = (size_t)size.product();
+    auto len = (usize)size.product();
     auto total_cells = len * cells_per_chunk;
 
     if (total_cells > cells.size())
@@ -61,7 +61,7 @@ uint32_t cache::allocate(point from, uint32_t max_dist, uint32_t div_size)
     return max_dist;
 }
 
-uint32_t cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
+u32 cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
 {
     auto off = Vector2ui(coord - start);
     fm_debug3_assert(off < size);
@@ -70,42 +70,42 @@ uint32_t cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
     return index;
 }
 
-uint32_t cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(start, size, chunk); }
+u32 cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(start, size, chunk); }
 
-uint32_t cache::get_tile_index(intra_coord posʹ) const
+u32 cache::get_tile_index(intra_coord posʹ) const
 {
-    const auto pos = Vector2ui(Vector2i(posʹ)) >> (uint32_t)std::countr_zero(div_size_); // xxx todo assumes power of two chunk size
+    const auto pos = Vector2ui(Vector2i(posʹ)) >> (u32)std::countr_zero(div_size_); // xxx todo assumes power of two chunk size
     auto idx = pos.y() * div_count_ + pos.x();
     fm_debug3_assert(idx < div_count_ * div_count_);
     return idx;
 }
 
-void cache::add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index, uint32_t dist)
+void cache::add_index(u32 chunk_index, u32 tile_index, u32 index, u32 dist)
 {
-    fm_debug3_assert(index != (uint32_t)-1);
+    fm_debug3_assert(index != (u32)-1);
     auto& c = at(chunk_index, tile_index);
-    fm_debug3_assert(c.index == (uint32_t)-1);
+    fm_debug3_assert(c.index == (u32)-1);
     c = { index, dist };
 }
 
-uint32_t cache::lookup_index(uint32_t chunk_index, uint32_t tile_index)
+u32 cache::lookup_index(u32 chunk_index, u32 tile_index)
 {
     return at(chunk_index, tile_index).index;
 }
 
-auto cache::at(uint32_t chunk_index, uint32_t tile_index) -> cell&
+auto cache::at(u32 chunk_index, u32 tile_index) -> cell&
 {
-    auto cells_per_chunk = (size_t)div_count_ * div_count_;
+    auto cells_per_chunk = (usize)div_count_ * div_count_;
     const auto i = chunk_index * cells_per_chunk + tile_index;
     fm_debug3_assert(i < cells.size());
     // Not operator[]: its bounds check stays in release builds, and do_dir() calls this per neighbour.
     return cells.data()[i];
 }
 
-void cache::clear_chunk(uint32_t chunk_index)
+void cache::clear_chunk(u32 chunk_index)
 {
-    auto cells_per_chunk = (size_t)div_count_ * div_count_;
-    fill(cells.sliceSize(chunk_index * cells_per_chunk, cells_per_chunk), cell{(uint32_t)-1, (uint32_t)-1});
+    auto cells_per_chunk = (usize)div_count_ * div_count_;
+    fill(cells.sliceSize(chunk_index * cells_per_chunk, cells_per_chunk), cell{(u32)-1, (u32)-1});
 }
 
 bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, const pred& p)

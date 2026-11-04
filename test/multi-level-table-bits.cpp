@@ -6,7 +6,7 @@ using namespace floormat::mlt_test;
 
 template class multi_level_table<tracked, bit_page_params>;
 template class multi_level_table<tracked, bit_flat_params>;
-template class multi_level_table<uint32_t, bit_flat_params>;
+template class multi_level_table<u32, bit_flat_params>;
 template class multi_level_table<tracked, bit_pair_params>;
 template class multi_level_table<tracked, bit_split_params>;
 template class multi_level_table<tracked, bit_triple_params>;

@@ -7,14 +7,14 @@ namespace floormat {
 
 namespace {
 
-constexpr auto ns_60hz = Ns{uint64_t{16666667}};
-constexpr auto ns_30hz = Ns{uint64_t{33333333}};
+constexpr auto ns_60hz = Ns{u64{16666667}};
+constexpr auto ns_30hz = Ns{u64{33333333}};
 
 // Tolerances sit 3-4x outside the error of a double-precision model of the filter, so that
 // retuning fc_min or beta doesn't mean recomputing every number here.
 constexpr float eps = 1e-6f;
 
-float run(FPS_Counter& c, Ns dt, uint32_t frames)
+float run(FPS_Counter& c, Ns dt, u32 frames)
 {
     float ret = 0;
     for (auto i = 0u; i < frames; i++)
@@ -22,16 +22,16 @@ float run(FPS_Counter& c, Ns dt, uint32_t frames)
     return ret;
 }
 
-uint64_t lcg(uint64_t& state)
+u64 lcg(u64& state)
 {
     state = (state*1103515245 + 12345) & 0x7fffffff;
     return state;
 }
 
-Ns jittered(uint64_t& state, double amplitude)
+Ns jittered(u64& state, double amplitude)
 {
     const auto frac = double(lcg(state) % 4001) / 2000. - 1.;
-    return Ns{uint64_t(double(ns_60hz.stamp) * (1 + amplitude*frac))};
+    return Ns{u64(double(ns_60hz.stamp) * (1 + amplitude*frac))};
 }
 
 void test_steady()
@@ -65,9 +65,9 @@ void test_step_up()
 // not track the frame rate. Dividing by dt made 1000 fps react 10x faster than 60.
 void test_rate_independence()
 {
-    constexpr auto measure = [](uint32_t fps) {
+    constexpr auto measure = [](u32 fps) {
         FPS_Counter c;
-        const auto fast = Ns{uint64_t{1000000000} / fps};
+        const auto fast = Ns{u64{1000000000} / fps};
         const auto slow = Ns{fast.stamp * 2};
         const auto target = (float)fps * 0.5f;
         run(c, fast, fps*3);
@@ -88,9 +88,9 @@ void test_rate_independence()
 void test_jitter()
 {
     FPS_Counter c;
-    uint64_t state = 12345;
+    u64 state = 12345;
     float lo = 1e9f, hi = 0, sum = 0;
-    uint32_t count = 0;
+    u32 count = 0;
 
     for (auto i = 0u; i < 2000; i++)
     {
@@ -121,7 +121,7 @@ void test_stall()
     c.update(200*Milliseconds);
     fm_assert(c.get() < 15);
 
-    uint32_t frames = 0;
+    u32 frames = 0;
     while (c.get() < 59 && ++frames < 60)
         c.update(ns_60hz);
     fm_assert(frames <= 20);
@@ -154,7 +154,7 @@ void test_bogus_dt()
 
     // 1 ns frames must neither divide by zero nor blow up into infinity
     FPS_Counter d;
-    run(d, Ns{uint64_t{1}}, 100);
+    run(d, Ns{u64{1}}, 100);
     fm_assert(d.get() > 0 && d.get() < 2e9f);
 }
 

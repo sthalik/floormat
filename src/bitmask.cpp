@@ -20,12 +20,12 @@
 #define FLOORMAT_BITMASK_CPP_SHARED
 namespace floormat {
 
-using u8 = uint8_t;
-using u32 = uint32_t;
+using u8 = u8;
+using u32 = u32;
 
 namespace {
 
-constexpr uint8_t amin = 32;
+constexpr u8 amin = 32;
 
 } // namespace
 
@@ -44,12 +44,12 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
     namespace hn = hwy::HWY_NAMESPACE;
     // A block's N bits and up to 7 carried ones fit in acc.
     constexpr hn::CappedTag<u8, 32> d8;
-    constexpr hn::Repartition<int8_t, decltype(d8)> di8;
-    constexpr hn::Repartition<int16_t, decltype(d8)> di16;
-    constexpr hn::Repartition<int32_t, decltype(d8)> di32;
+    constexpr hn::Repartition<i8, decltype(d8)> di8;
+    constexpr hn::Repartition<i16, decltype(d8)> di16;
+    constexpr hn::Repartition<i32, decltype(d8)> di32;
     constexpr auto N = (u32)hn::MaxLanes(d8);
     // Added to the alpha byte only. Its bit 7 becomes alpha >= amin.
-    const auto bias = hn::BitCast(d8, hn::Set(di32, std::bit_cast<int32_t>(std::array<u8, 4>{0, 0, 0, 128 - amin})));
+    const auto bias = hn::BitCast(d8, hn::Set(di32, std::bit_cast<i32>(std::array<u8, 4>{0, 0, 0, 128 - amin})));
     // Alpha is the high byte of a 32-bit pixel on little-endian, the low one on big-endian.
     constexpr auto alpha_high = [](auto v) {
         if constexpr (std::endian::native == std::endian::big)
@@ -61,17 +61,17 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 
     for (auto j = 0u; j < H; j++)
     {
-        const auto* row = src + (size_t)j * S;
+        const auto* row = src + (usize)j * S;
         const auto bitʹ = (H - j - 1)*W;
         auto* p = dest + (bitʹ >> 3);
-        uint64_t acc = 0;
+        u64 acc = 0;
         u32 have = bitʹ & 7, i = 0;
 
 #if HWY_MAX_BYTES <= 64
         if constexpr (N % 8 == 0)
             for (; i + N <= W; i += N)
             {
-                const auto* q = row + (size_t)i*4;
+                const auto* q = row + (usize)i*4;
                 const auto v0 = alpha_high(hn::BitCast(di32, hn::SaturatedAdd(hn::LoadU(d8, q + 0*N), bias)));
                 const auto v1 = alpha_high(hn::BitCast(di32, hn::SaturatedAdd(hn::LoadU(d8, q + 1*N), bias)));
                 const auto v2 = alpha_high(hn::BitCast(di32, hn::SaturatedAdd(hn::LoadU(d8, q + 2*N), bias)));
@@ -81,7 +81,7 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
                                                          hn::OrderedDemote2To(di16, v2, v3));
                 acc |= hn::BitsFromMask(di8, hn::Lt(v, hn::Zero(di8))) << have;
                 // have is in [0,7] before every block, so each block fills exactly N/8 bytes.
-                uint64_t w = 0;
+                u64 w = 0;
                 std::memcpy(&w, p, N/8);
                 // Byte k in memory takes bits 8k..8k+7 of acc.
                 if constexpr (std::endian::native == std::endian::big)
@@ -95,7 +95,7 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
 #endif
         for (; i < W; i++)
         {
-            acc |= (uint64_t)(row[(size_t)i*4 + 3] >= amin) << have;
+            acc |= (u64)(row[(usize)i*4 + 3] >= amin) << have;
             if (++have >= 8)
             {
                 *p++ |= (u8)acc;
@@ -144,7 +144,7 @@ void anim_atlas::make_bitmask_(const ImageView2D& tex, BitArray& bitmask)
     bitmask.resetAll();
 
     const auto* const src = (const unsigned char*)pixels.data();
-    const auto stride = (size_t)pixels.stride()[0];
+    const auto stride = (usize)pixels.stride()[0];
     const auto size   = pixels.size();
     const auto width  = size[1], height = size[0];
 

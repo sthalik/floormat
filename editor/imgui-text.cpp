@@ -8,20 +8,20 @@ namespace floormat::imgui {
 
 namespace {
 
-enum class kind : uint8_t { text, rect, gap };
+enum class kind : u8 { text, rect, gap };
 
 struct span
 {
-    uint32_t start;
-    uint32_t length;
+    u32 start;
+    u32 length;
     float width;
     float vert_pad;
-    uint32_t color;
+    u32 color;
     kind k;
 };
 
-constexpr uint32_t initial_buf_reserve = 256;
-constexpr uint32_t initial_spans_reserve = 16;
+constexpr u32 initial_buf_reserve = 256;
+constexpr u32 initial_spans_reserve = 16;
 
 } // namespace
 
@@ -36,7 +36,7 @@ struct text_painter_state
 
     bool has_bg = false;
     bool in_use = false;
-    uint32_t bg_color = 0;
+    u32 bg_color = 0;
     Vector2 bg_padding{0};
     Vector2 last_anchor{0};
 
@@ -103,18 +103,18 @@ text_painter& text_painter::operator=(text_painter&& other) noexcept
     return *this;
 }
 
-text_painter& text_painter::text(uint32_t color, StringView s)
+text_painter& text_painter::text(u32 color, StringView s)
 {
     const auto sz = ImGui::CalcTextSize(s.begin(), s.end());
-    const auto start = uint32_t(_->buf.size());
+    const auto start = u32(_->buf.size());
     arrayAppend(_->buf, ArrayView<const char>{s.data(), s.size()});
     arrayAppend(_->buf, '\0');
-    arrayAppend(_->spans, span{ start, uint32_t(s.size()), sz.x, 0.f, color, kind::text });
+    arrayAppend(_->spans, span{ start, u32(s.size()), sz.x, 0.f, color, kind::text });
     _->total_width += sz.x;
     return *this;
 }
 
-text_painter& text_painter::rect(uint32_t color, float width, float vert_pad)
+text_painter& text_painter::rect(u32 color, float width, float vert_pad)
 {
     arrayAppend(_->spans, span{ 0, 0, width, vert_pad, color, kind::rect });
     _->total_width += width;
@@ -123,25 +123,25 @@ text_painter& text_painter::rect(uint32_t color, float width, float vert_pad)
 
 text_painter::slot text_painter::gap(float px)
 {
-    const auto idx = uint32_t(_->spans.size());
+    const auto idx = u32(_->spans.size());
     arrayAppend(_->spans, span{ 0, 0, px, 0.f, 0, kind::gap });
     _->total_width += px;
     return slot{ idx };
 }
 
-uint32_t text_painter::format_grow(uint32_t need)
+u32 text_painter::format_grow(u32 need)
 {
-    const auto start = uint32_t(_->buf.size());
+    const auto start = u32(_->buf.size());
     arrayAppend(_->buf, NoInit, need + 1);
     return start;
 }
 
-char* text_painter::format_at(uint32_t offset) noexcept
+char* text_painter::format_at(u32 offset) noexcept
 {
     return _->buf.data() + offset;
 }
 
-void text_painter::format_finalize(uint32_t color, uint32_t start, uint32_t length)
+void text_painter::format_finalize(u32 color, u32 start, u32 length)
 {
     const char* p = _->buf.data() + start;
     const auto sz = ImGui::CalcTextSize(p, p + length);
@@ -149,7 +149,7 @@ void text_painter::format_finalize(uint32_t color, uint32_t start, uint32_t leng
     _->total_width += sz.x;
 }
 
-text_painter& text_painter::with_background(uint32_t color, Vector2 padding)
+text_painter& text_painter::with_background(u32 color, Vector2 padding)
 {
     _->has_bg = true;
     _->bg_color = color;
@@ -181,7 +181,7 @@ Math::Range2D<float> text_painter::bounds_of(slot s) const noexcept
 {
     fm_assert(s.span_index < _->spans.size());
     float x = 0;
-    for (uint32_t i = 0; i < s.span_index; ++i)
+    for (u32 i = 0; i < s.span_index; ++i)
         x += _->spans[i].width;
     const auto& sp = _->spans[s.span_index];
     const auto a = _->last_anchor;

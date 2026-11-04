@@ -41,7 +41,7 @@ bool hole_test::handle_mouse_click(app&, const mouse_button_event&, bool) { retu
 bool hole_test::handle_mouse_move(app&, const mouse_move_event&) { return false; }
 void hole_test::draw_overlay(app&) {}
 
-uint32_t to_color(Color4 val) { return ImGui::ColorConvertFloat4ToU32(ImVec4(val)); }
+u32 to_color(Color4 val) { return ImGui::ColorConvertFloat4ToU32(ImVec4(val)); }
 
 constexpr auto colors = std::array{
     0x488f31_rgbf, // rect 1
@@ -122,7 +122,7 @@ void hole_test::draw_ui(app&, float)
     }
     {
         label_left("count", buf, label_width);
-        ImGui::Text("%zu", size_t{res.size});
+        ImGui::Text("%zu", usize{res.size});
     }
     {
         label_left("found", buf, label_width);

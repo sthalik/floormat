@@ -129,7 +129,7 @@ start:
         if (hole_pass != pass_mode::pass)
         {
             auto xʹ = x;
-            xʹ.pass = (uint64_t)hole_pass;
+            xʹ.pass = (u64)hole_pass;
             filter_bbox_through_holes(rtree, holes, std::bit_cast<object_id>(xʹ), Math::intersect(bbox, hole),
                                       pass_mode((unsigned)hole_pass + 1), has_holes);
         }
@@ -151,9 +151,9 @@ start:
 Optional<Pair<Range2D, pass_mode>> chunk::find_hole_in_bbox(const Chunk_RTree& rtree, Range2D bbox, pass_mode min_pass)
 {
     Optional<Pair<Range2D, pass_mode>> ret;
-    rtree.Search(bbox.min().data(), bbox.max().data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
+    rtree.Search(bbox.min().data(), bbox.max().data(), [&](u64 data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (x.pass >= (uint64_t)min_pass /*&& x.type == (uint64_t)collision_type::none*/)
+        if (x.pass >= (u64)min_pass /*&& x.type == (u64)collision_type::none*/)
         {
             Range2D hole {
                 { r.m_min[0], r.m_min[1] },
@@ -173,9 +173,9 @@ void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_
                                   pass_through_mask mask)
 {
     const auto& rtree = *c.hole_rtree();
-    rtree.Search(bb_min.data(), bb_max.data(), [&](uint64_t data, const Chunk_RTree::Rect& r) {
+    rtree.Search(bb_min.data(), bb_max.data(), [&](u64 data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
-        if (can_pass_through_mask(mask, pass_mode(x.pass)) /*&& x.type == (uint64_t)collision_type::none*/)
+        if (can_pass_through_mask(mask, pass_mode(x.pass)) /*&& x.type == (u64)collision_type::none*/)
         {
             Vector2 hmin = {r.m_min[0], r.m_min[1]}, hmax = {r.m_max[0], r.m_max[1]};
             if (rect_intersects(hmin, hmax, bb_min, bb_max))
@@ -183,7 +183,7 @@ void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_
                 auto obj = c.world().find_object<struct hole>(x.id);
                 fm_assert(obj);
                 int zmaxʹ = (int)obj->z_offset + (int)obj->height;
-                auto zmax = (uint8_t)Math::clamp(zmaxʹ, 0, tile_size_z);
+                auto zmax = (u8)Math::clamp(zmaxʹ, 0, tile_size_z);
                 fn({hmin, hmax}, {obj->z_offset, zmax});
             }
         }
@@ -279,7 +279,7 @@ void chunk::ensure_passability() noexcept
     fm_assert(!_pass_modified);
 }
 
-uint64_t chunk::pass_gen() const noexcept { return _pass_gen; }
+u64 chunk::pass_gen() const noexcept { return _pass_gen; }
 
 bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
                               Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept

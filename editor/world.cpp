@@ -29,7 +29,7 @@ void app::populate_hole_stress_test()
         c[k].ground() = { ground, variant_t(k % ground->num_tiles()) };
 
     auto place = [&](local_coords at, Vector2b off, Vector2ub size,
-                     uint8_t z_off = 0, uint8_t ht = tile_size_z) {
+                     u8 z_off = 0, u8 ht = tile_size_z) {
         hole_proto p;
         p.z_offset    = z_off;
         p.height      = ht;
@@ -39,7 +39,7 @@ void app::populate_hole_stress_test()
         w.make_object<hole>(w.make_id(), {ch, at}, p);
     };
 
-    for (uint8_t x = 0; x < 12; x++)
+    for (u8 x = 0; x < 12; x++)
         c[{x, 1}].wall_north() = {wall, 0};
     place({0,1},  {-7*tile_size_xy/16, -tile_size_xy/2}, {tile_size_xy/8,   tile_size_xy});
     place({1,1},  {-3*tile_size_xy/8,  -tile_size_xy/2}, {tile_size_xy/4,   tile_size_xy});
@@ -55,7 +55,7 @@ void app::populate_hole_stress_test()
     place({11,1}, {-7*tile_size_xy/16, -tile_size_xy/2}, {tile_size_xy/8,   tile_size_xy});
     place({11,1}, { 7*tile_size_xy/16, -tile_size_xy/2}, {tile_size_xy/8,   tile_size_xy});
 
-    for (uint8_t x = 0; x < 10; x++)
+    for (u8 x = 0; x < 10; x++)
         c[{x, 3}].wall_north() = {wall, 0};
     place({0,3}, {0,-tile_size_xy/2}, {tile_size_xy,tile_size_xy}, 0,               tile_size_z/4);
     place({1,3}, {0,-tile_size_xy/2}, {tile_size_xy,tile_size_xy}, 0,               tile_size_z/2);
@@ -69,8 +69,8 @@ void app::populate_hole_stress_test()
     place({9,3}, {0,-tile_size_xy/2}, {tile_size_xy,tile_size_xy}, 0,               tile_size_z/4);
     place({9,3}, {0,-tile_size_xy/2}, {tile_size_xy,tile_size_xy}, 3*tile_size_z/4, tile_size_z/4);
 
-    for (uint8_t x = 0; x < 3; x++)
-        for (uint8_t y = 5; y < 8; y++) {
+    for (u8 x = 0; x < 3; x++)
+        for (u8 y = 5; y < 8; y++) {
             c[{x,y}].wall_north() = {wall, 0};
             c[{x,y}].wall_west()  = {wall, 0};
         }
@@ -84,7 +84,7 @@ void app::populate_hole_stress_test()
     place({1,7}, { 0,               tile_size_xy/4}, {tile_size_xy/2, tile_size_xy/2});
     place({2,7}, { tile_size_xy/4,  tile_size_xy/4}, {tile_size_xy/2, tile_size_xy/2});
 
-    for (uint8_t y = 0; y < 10; y++)
+    for (u8 y = 0; y < 10; y++)
         c[{13,y}].wall_west() = {wall, 0};
     place({13,0}, {-tile_size_xy/2, -7*tile_size_xy/16}, {tile_size_xy, tile_size_xy/8  });
     place({13,1}, {-tile_size_xy/2, -3*tile_size_xy/8 }, {tile_size_xy, tile_size_xy/4  });
@@ -97,7 +97,7 @@ void app::populate_hole_stress_test()
     place({13,8}, {-tile_size_xy/2,  7*tile_size_xy/16}, {tile_size_xy, tile_size_xy/8  });
     place({13,9}, {-tile_size_xy/2,  0                }, {tile_size_xy, 3*tile_size_xy/8});
 
-    for (uint8_t y = 0; y < 8; y++)
+    for (u8 y = 0; y < 8; y++)
         c[{14,y}].wall_west() = {wall, 0};
     place({14,0}, {-tile_size_xy/2,0}, {tile_size_xy,tile_size_xy}, 0,               tile_size_z/4);
     place({14,1}, {-tile_size_xy/2,0}, {tile_size_xy,tile_size_xy}, 0,               tile_size_z/2);
@@ -109,10 +109,10 @@ void app::populate_hole_stress_test()
     place({14,6}, {-tile_size_xy/2,0}, {tile_size_xy,tile_size_xy}, 2*tile_size_z/3, tile_size_z/3);
     place({14,7}, {-tile_size_xy/2,0}, {tile_size_xy,tile_size_xy}, tile_size_z/6,   2*tile_size_z/3);
 
-    for (uint8_t x = 0; x < 6; x++) {
+    for (u8 x = 0; x < 6; x++) {
         c[{x, 9}].wall_north() = {wall, 0};
         place({x, 9}, {0, -tile_size_xy/2}, {tile_size_xy, tile_size_xy},
-              uint8_t(x * tile_size_z/6), tile_size_z/6);
+              u8(x * tile_size_z/6), tile_size_z/6);
     }
 
     c[{7,9}].wall_north() = {wall, 0};
@@ -131,22 +131,22 @@ void app::populate_hole_stress_test()
     place({11,9}, { 0,              -tile_size_xy/2}, {tile_size_xy/2, tile_size_xy}, tile_size_z/3,   tile_size_z/3);
     place({11,9}, { tile_size_xy/4, -tile_size_xy/2}, {tile_size_xy/2, tile_size_xy}, 2*tile_size_z/3, tile_size_z/3);
 
-    for (uint8_t x = 0; x < 8; x++) {
+    for (u8 x = 0; x < 8; x++) {
         c[{x, 11}].wall_north() = {wall, 0};
-        auto cx = int8_t(-7*tile_size_xy/16 + x * tile_size_xy/8);
+        auto cx = i8(-7*tile_size_xy/16 + x * tile_size_xy/8);
         place({x, 11}, {cx, -tile_size_xy/2}, {tile_size_xy/4, tile_size_xy});
     }
 
-    for (uint8_t x = 8; x < 13; x++) {
+    for (u8 x = 8; x < 13; x++) {
         c[{x, 11}].wall_west() = {wall, 0};
         int step = x - 8;
         place({x, 11}, {-tile_size_xy/2, 0}, {tile_size_xy, tile_size_xy},
-              uint8_t(step * tile_size_z/6),
-              uint8_t(tile_size_z - step * tile_size_z/6));
+              u8(step * tile_size_z/6),
+              u8(tile_size_z - step * tile_size_z/6));
     }
 
-    for (uint8_t x = 4; x < 8; x++)
-        for (uint8_t y = 5; y < 8; y++) {
+    for (u8 x = 4; x < 8; x++)
+        for (u8 y = 5; y < 8; y++) {
             c[{x,y}].wall_north() = {wall, 0};
             c[{x,y}].wall_west()  = {wall, 0};
         }
@@ -198,8 +198,8 @@ void app::populate_labyrinth()
     constexpr int W = cols * 16, H = rows * 16;
     constexpr int step = 4;
 
-    for (int16_t cx = 0; cx < cols; cx++)
-        for (int16_t cy = 0; cy < rows; cy++) {
+    for (i16 cx = 0; cx < cols; cx++)
+        for (i16 cy = 0; cy < rows; cy++) {
             auto& c = w[{cx, cy, 0}];
             for (auto k = 0u; k < TILE_COUNT; k++)
                 c[k].ground() = {ground, variant_t(k % ground->num_tiles())};
@@ -207,19 +207,19 @@ void app::populate_labyrinth()
         }
 
     auto GN = [&](int gx, int gy) {
-        w[{int16_t(gx/16), int16_t(gy/16), 0}][{uint8_t(gx%16), uint8_t(gy%16)}].wall_north() = {wall, 0};
+        w[{i16(gx/16), i16(gy/16), 0}][{u8(gx%16), u8(gy%16)}].wall_north() = {wall, 0};
     };
     auto GW = [&](int gx, int gy) {
-        w[{int16_t(gx/16), int16_t(gy/16), 0}][{uint8_t(gx%16), uint8_t(gy%16)}].wall_west() = {wall, 0};
+        w[{i16(gx/16), i16(gy/16), 0}][{u8(gx%16), u8(gy%16)}].wall_west() = {wall, 0};
     };
 
     for (int x = step; x < W; x++) GN(x, 0);
     for (int x = step; x < W; x++)
-        w[{int16_t(x/16), int16_t(rows), 0}][{uint8_t(x%16), 0}].wall_north() = {wall, 0};
+        w[{i16(x/16), i16(rows), 0}][{u8(x%16), 0}].wall_north() = {wall, 0};
     for (int y = 0; y < H; y++) GW(0, y);
     for (int cy = 0; cy < rows; cy++)
         for (int y = 0; y < 16; y++)
-            w[{int16_t(cols), int16_t(cy), 0}][{0, uint8_t(y)}].wall_west() = {wall, 0};
+            w[{i16(cols), i16(cy), 0}][{0, u8(y)}].wall_west() = {wall, 0};
 
     for (int wy = step; wy < H; wy += step) {
         int gap = ((wy/step - 1) % 2 == 0) ? W - step : 0;
@@ -238,29 +238,29 @@ void app::populate_raycast_fractal()
     auto wall2  = loader.wall_atlas("concrete1", loader_policy::warn);
     auto ground = loader.ground_atlas("floor-tiles");
 
-    constexpr int16_t cmin = -10, cmax = 10;
+    constexpr i16 cmin = -10, cmax = 10;
 
-    auto hash2 = [](uint32_t x, uint32_t y) -> uint32_t {
-        uint32_t h = x * 0x9E3779B1u + y * 0x85EBCA77u;
+    auto hash2 = [](u32 x, u32 y) -> u32 {
+        u32 h = x * 0x9E3779B1u + y * 0x85EBCA77u;
         h ^= h >> 16; h *= 0xC2B2AE3Du;
         h ^= h >> 13; h *= 0x27D4EB2Du;
         h ^= h >> 16;
         return h;
     };
 
-    for (int16_t cx = cmin; cx <= cmax; cx++)
-        for (int16_t cy = cmin; cy <= cmax; cy++)
+    for (i16 cx = cmin; cx <= cmax; cx++)
+        for (i16 cy = cmin; cy <= cmax; cy++)
         {
             auto& ch = w[{cx, cy, 0}];
 
             for (auto k = 0u; k < TILE_COUNT; k++)
                 ch[k].ground() = { ground, variant_t(k % ground->num_tiles()) };
 
-            for (uint8_t lx = 0; lx < 16; lx++)
-                for (uint8_t ly = 0; ly < 16; ly++)
+            for (u8 lx = 0; lx < 16; lx++)
+                for (u8 ly = 0; ly < 16; ly++)
                 {
-                    uint32_t fx = (uint32_t)(cx + 16) * 16 + lx;
-                    uint32_t fy = (uint32_t)(cy + 16) * 16 + ly;
+                    u32 fx = (u32)(cx + 16) * 16 + lx;
+                    u32 fy = (u32)(cy + 16) * 16 + ly;
 
                     if ((hash2(fx,             fy ^ 0xA5A5u) & 0x1Fu) == 0u)
                         ch[{lx, ly}].wall_north() = { wall1, 0 };
@@ -315,20 +315,20 @@ void app::populate_l_corridor()
     constexpr chunk_coords_ ch{0, 0, 0};
     auto& c = w[ch];
 
-    constexpr uint8_t bbox_long = 255, bbox_short = tile_size_xy/2;
-    constexpr uint8_t room_x0 = 6, room_x1 = 11, room_y0 = 3, room_y1 = 10;
-    constexpr uint8_t leg_w_y = 7, leg_w_x0 = 1, leg_w_x1 = 5;
+    constexpr u8 bbox_long = 255, bbox_short = tile_size_xy/2;
+    constexpr u8 room_x0 = 6, room_x1 = 11, room_y0 = 3, room_y1 = 10;
+    constexpr u8 leg_w_y = 7, leg_w_x0 = 1, leg_w_x1 = 5;
     // Held SE slides east along the room's south wall, so the leg has to be on the east edge.
     // Centered, it would stall in the corner instead.
-    constexpr uint8_t leg_s_x = room_x1, leg_s_y0 = 11, leg_s_y1 = 14;
+    constexpr u8 leg_s_x = room_x1, leg_s_y0 = 11, leg_s_y1 = 14;
     constexpr local_coords start{3, leg_w_y};
 
     // Held NE parks the box in the room's north-east corner, 16 px from the north wall, where
     // the 255-tall rotated one would stick 111 px out. Two tiles of clearance cut into the wall
     // there receive it; a narrower cut wouldn't span the park spot, a wider one would let the
     // 255-wide box climb in.
-    constexpr uint8_t notch_x0 = room_x1-2, notch_x1 = room_x1-1;
-    constexpr uint8_t notch_y0 = room_y0-2, notch_y1 = room_y0-1;
+    constexpr u8 notch_x0 = room_x1-2, notch_x1 = room_x1-1;
+    constexpr u8 notch_y0 = room_y0-2, notch_y1 = room_y0-1;
 
     auto walkable = [&](int x, int y) {
         return x >= 0 && y >= 0 && x < (int)TILE_MAX_DIM && y < (int)TILE_MAX_DIM &&
@@ -358,7 +358,7 @@ void app::populate_l_corridor()
                 for (int dx = -1; dx <= 1; dx++)
                     touches |= walkable(x + dx, y + dy);
             if (touches)
-                w.make_scenery(w.make_id(), {ch, local_coords{(uint8_t)x, (uint8_t)y}}, scenery_proto(stool));
+                w.make_scenery(w.make_id(), {ch, local_coords{(u8)x, (u8)y}}, scenery_proto(stool));
         }
 
     auto C = ensure_player_character(w);

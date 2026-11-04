@@ -88,8 +88,8 @@ struct suite
     struct IAligned128;
     struct IBig;
 
-    static int64_t allocations();
-    static int64_t copies();
+    static i64 allocations();
+    static i64 copies();
 
     static void test1();
     static void test2();
@@ -188,7 +188,7 @@ template<typename P>
 struct suite<P>::IBig : intrusive_bptr_base<P> { char data[2048]{}; };
 
 template<typename P>
-int64_t suite<P>::allocations()
+i64 suite<P>::allocations()
 {
     if constexpr (counts_allocations<P>)
         return atomic_load(&P::allocator::total);
@@ -197,7 +197,7 @@ int64_t suite<P>::allocations()
 }
 
 template<typename P>
-int64_t suite<P>::copies()
+i64 suite<P>::copies()
 {
     if constexpr (has_stats<P>)
         return atomic_load(&P::stats::copies);
@@ -212,7 +212,7 @@ void suite<P>::test1()
     auto before = heap_snapshot<P>();
     auto total = allocations();
     auto a = bptr<IFoo>{InPlace, 1};
-    fm_assert(allocations() - total == int64_t{counts_allocations<P>});
+    fm_assert(allocations() - total == i64{counts_allocations<P>});
     fm_assert(a && a->x == 1 && a.use_count() == 1 && IFoo::alive == 1);
     auto after = heap_snapshot<P>();
     fm_assert(after.blocks == before.blocks + has_stats<P> && after.objects == before.objects + has_stats<P>);
@@ -418,7 +418,7 @@ void suite<P>::test10()
 template<typename P>
 void suite<P>::test11()
 {
-    auto aligned = [](const void* p, size_t n) { return (uintptr_t)p % n == 0; };
+    auto aligned = [](const void* p, usize n) { return (uptr)p % n == 0; };
     auto a = bptr<IAligned64>{InPlace};
     auto b = bptr<IAligned128>{InPlace};
     fm_assert(aligned(a.get(), 64) && aligned(b.get(), 128));
@@ -435,7 +435,7 @@ void suite<P>::test12()
 {
     auto total = allocations();
     auto a = bptr<IBig>{InPlace};
-    fm_assert(allocations() - total == int64_t{counts_allocations<P>});
+    fm_assert(allocations() - total == i64{counts_allocations<P>});
     if constexpr (has_weak)
     {
         auto w = weak_bptr<IBig>{a};

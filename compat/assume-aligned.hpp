@@ -4,7 +4,7 @@
 
 namespace floormat {
 
-template<size_t N, typename T>
+template<usize N, typename T>
 [[fm_always_inline]] constexpr T* assume_aligned(T* ptr)
 {
     if consteval
@@ -13,7 +13,7 @@ template<size_t N, typename T>
     }
     else
     {
-        fm_debug3_assert((uintptr_t)ptr % N == 0);
+        fm_debug3_assert((uptr)ptr % N == 0);
         return static_cast<T*>(__builtin_assume_aligned(ptr, N));
     }
 }

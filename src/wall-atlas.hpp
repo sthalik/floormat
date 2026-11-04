@@ -14,8 +14,8 @@ namespace floormat { class wall_atlas; }
 
 namespace floormat::Wall {
 
-uint8_t direction_index_from_name(StringView s) noexcept(false);
-StringView direction_index_to_name(size_t i) noexcept(false);
+u8 direction_index_from_name(StringView s) noexcept(false);
+StringView direction_index_to_name(usize i) noexcept(false);
 
 struct Frame
 {
@@ -26,9 +26,9 @@ struct Frame
 
 struct Group
 {
-    uint32_t index = (uint32_t)-1, count = 0;
+    u32 index = (u32)-1, count = 0;
     Vector2ui pixel_size;
-    uint8_t from_rotation = (uint8_t)-1;
+    u8 from_rotation = (u8)-1;
     bool mirrored     : 1 = false,
          is_defined   : 1 = false;
 
@@ -43,9 +43,9 @@ struct Direction
     Group wall{}, side{}, top{}, corner{};
 
     const Group& group(Group_ i) const;
-    const Group& group(size_t i) const;
+    const Group& group(usize i) const;
     Group& group(Group_ i);
-    Group& group(size_t i);
+    Group& group(usize i);
 
     bool operator==(const Direction&) const noexcept;
 
@@ -55,7 +55,7 @@ struct Direction
         { "top"_s,      &Direction::top,      Group_::top       },
         { "corner"_s,   &Direction::corner,   Group_::corner    },
     };
-    static_assert(array_size(groups) + /*pillar 1 */ 0 == (size_t)Group_::COUNT);
+    static_assert(array_size(groups) + /*pillar 1 */ 0 == (usize)Group_::COUNT);
 };
 
 struct Info
@@ -68,7 +68,7 @@ struct Info
 };
 
 struct DirArrayIndex {
-    uint8_t val = (uint8_t)-1;
+    u8 val = (u8)-1;
     explicit operator bool() const;
 
     bool operator==(const DirArrayIndex&) const noexcept;
@@ -128,13 +128,13 @@ public:
     void serialize(StringView filename) const;
 
     const Group* group(Direction_ dir, Group_ group) const;
-    const Group* group(size_t dir, size_t group) const;
-    const Group* group(size_t dir, Group_ tag) const;
+    const Group* group(usize dir, usize group) const;
+    const Group* group(usize dir, Group_ tag) const;
     static const Group* group(const Direction& dir, Group_ group);
-    const Direction* direction(size_t dir) const;
+    const Direction* direction(usize dir) const;
     const Direction* direction(Direction_ dir) const;
     const Direction& calc_direction(Direction_ dir) const;
-    uint8_t direction_count() const;
+    u8 direction_count() const;
     ArrayView<const Frame> frames(const Group& a) const;
     ArrayView<const Frame> frames(Direction_ dir, Group_ g) const noexcept(false);
     ArrayView<const Frame> raw_frame_array() const;

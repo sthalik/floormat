@@ -22,7 +22,7 @@ class world final
 {
 public:
     static constexpr object_id object_counter_init = 1024;
-    static constexpr size_t initial_collect_every = 64;
+    static constexpr usize initial_collect_every = 64;
 
 private:
     struct unique_id : bptr_base
@@ -37,8 +37,8 @@ private:
 
     bptr<unique_id> _unique_id;
     object_id _object_counter = object_counter_init;
-    uint64_t _current_frame = 1; // zero is special for struct object
-    uint64_t _pass_gen = 0;
+    u64 _current_frame = 1; // zero is special for struct object
+    u64 _pass_gen = 0;
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
     bool _script_finalized : 1 = false;
@@ -55,7 +55,7 @@ private:
     /// construction and on each change, and a grid is stale once a chunk in its range holds a
     /// stamp newer than its build.
     /// Monotonic uint64, so a chunk reused at a recycled address can't collide (ABA).
-    uint64_t next_pass_gen() noexcept;
+    u64 next_pass_gen() noexcept;
 
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
     [[noreturn]] static void throw_on_wrong_scenery_type(object_id id, scenery_type actual, scenery_type expected);
@@ -74,7 +74,7 @@ public:
     bool contains(chunk_coords_ c) const noexcept;
     void clear();
     void collect(bool force = false, bool quiet = false);
-    size_t size() const noexcept;
+    usize size() const noexcept;
 
     template<typename Chunk>
     class chunks_iterator
@@ -104,11 +104,11 @@ public:
 
     void serialize(StringView filename);
     static class world deserialize(StringView filename, loader_policy asset_policy) noexcept(false);
-    static void deserialize_old(world& w, ArrayView<const char> buf, uint16_t proto,
+    static void deserialize_old(world& w, ArrayView<const char> buf, u16 proto,
                                 loader_policy asset_policy) noexcept(false);
-    uint64_t frame_no() const;
-    uint64_t increment_frame_no();
-    uint64_t pass_gen() const noexcept;
+    u64 frame_no() const;
+    u64 increment_frame_no();
+    u64 pass_gen() const noexcept;
 
     template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c, Xs&&... xs) {

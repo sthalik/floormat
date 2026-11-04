@@ -60,7 +60,7 @@ void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::ra
 
     // AddEllipse would hard-code project()'s axes.
     // Sampling through project() follows any change to it.
-    constexpr uint32_t n = 48;
+    constexpr u32 n = 48;
     constexpr float step = 2.f * Math::Constants<float>::pi() / (float)n;
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     const auto from = a.point_to_pixel(r.from);

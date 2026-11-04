@@ -7,8 +7,8 @@
 
 namespace floormat::entities::erased_constraints {
 
-static_assert(sizeof(size_t) == sizeof(uintptr_t));
-static_assert(sizeof(size_t) == sizeof(ptrdiff_t));
+static_assert(sizeof(usize) == sizeof(uptr));
+static_assert(sizeof(usize) == sizeof(isize));
 
 template<typename T> Pair<T, T> range::convert() const
 {
@@ -103,41 +103,41 @@ template<typename T> Pair<T, T> range::convert() const
 
 template<typename T> using pair2 = Pair<T, T>;
 
-template pair2<uint8_t> range::convert() const;
-template pair2<uint16_t> range::convert() const;
-template pair2<uint32_t> range::convert() const;
-template pair2<uint64_t> range::convert() const;
-template pair2<int8_t> range::convert() const;
-template pair2<int16_t> range::convert() const;
-template pair2<int32_t> range::convert() const;
-template pair2<int64_t> range::convert() const;
+template pair2<u8> range::convert() const;
+template pair2<u16> range::convert() const;
+template pair2<u32> range::convert() const;
+template pair2<u64> range::convert() const;
+template pair2<i8> range::convert() const;
+template pair2<i16> range::convert() const;
+template pair2<i32> range::convert() const;
+template pair2<i64> range::convert() const;
 template pair2<float> range::convert() const;
 template pair2<Vector2ub> range::convert() const;
 template pair2<Vector2us> range::convert() const;
 template pair2<Vector2ui> range::convert() const;
-template pair2<Math::Vector2<uint64_t>> range::convert() const;
+template pair2<Math::Vector2<u64>> range::convert() const;
 template pair2<Vector2b> range::convert() const;
 template pair2<Vector2s> range::convert() const;
 template pair2<Vector2i> range::convert() const;
-template pair2<Math::Vector2<int64_t>> range::convert() const;
+template pair2<Math::Vector2<i64>> range::convert() const;
 template pair2<Vector2> range::convert() const;
 template pair2<Vector3ub> range::convert() const;
 template pair2<Vector3us> range::convert() const;
 template pair2<Vector3ui> range::convert() const;
-template pair2<Math::Vector3<uint64_t>> range::convert() const;
+template pair2<Math::Vector3<u64>> range::convert() const;
 template pair2<Vector3b> range::convert() const;
 template pair2<Vector3s> range::convert() const;
 template pair2<Vector3i> range::convert() const;
-template pair2<Math::Vector3<int64_t>> range::convert() const;
+template pair2<Math::Vector3<i64>> range::convert() const;
 template pair2<Vector3> range::convert() const;
 template pair2<Vector4ub> range::convert() const;
 template pair2<Vector4us> range::convert() const;
 template pair2<Vector4ui> range::convert() const;
-template pair2<Math::Vector4<int64_t>> range::convert() const;
+template pair2<Math::Vector4<i64>> range::convert() const;
 template pair2<Vector4b> range::convert() const;
 template pair2<Vector4s> range::convert() const;
 template pair2<Vector4i> range::convert() const;
-template pair2<Math::Vector4<uint64_t>> range::convert() const;
+template pair2<Math::Vector4<u64>> range::convert() const;
 template pair2<Vector4> range::convert() const;
 
 bool operator==(const range& a, const range& b)

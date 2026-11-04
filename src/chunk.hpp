@@ -37,8 +37,8 @@ public:
     friend class world;
     friend struct detail::grid::PoolBase;
 
-    tile_ref operator[](size_t idx) noexcept;
-    const_tile_ref operator[](size_t idx) const noexcept;
+    tile_ref operator[](usize idx) noexcept;
+    const_tile_ref operator[](usize idx) const noexcept;
     tile_ref operator[](local_coords xy) noexcept;
     const_tile_ref operator[](local_coords xy) const noexcept;
 
@@ -73,13 +73,13 @@ public:
     void ensure_alloc_ground();
     void ensure_alloc_walls();
     void ensure_ground_mesh(SpriteBatch& sb);
-    ground_atlas* ground_atlas_at(size_t i) const noexcept;
+    ground_atlas* ground_atlas_at(usize i) const noexcept;
     void ensure_wall_mesh(SpriteBatch& sb);
     void ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs);
     void add_clickables(const tile_shader& shader, Vector2i win_size, Array<clickable>& array, bool draw_vobjs);
 
     void ensure_passability() noexcept;
-    uint64_t pass_gen() const noexcept;
+    u64 pass_gen() const noexcept;
     RTree* rtree() noexcept;
     const RTree* rtree() const noexcept;
     RTree* hole_rtree() noexcept;
@@ -92,7 +92,7 @@ public:
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
     [[nodiscard]] static Optional<Pair<Range2D, pass_mode>> find_hole_in_bbox(const Chunk_RTree& rtree, Range2D bbox, pass_mode min_pass);
-    using hole_callback = const fu2::function_view<void(Math::Range2D<float> hole, Math::Range1D<uint8_t> z) const>;
+    using hole_callback = const fu2::function_view<void(Math::Range2D<float> hole, Math::Range1D<u8> z) const>;
     static void get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max, pass_through_mask mask);
 
     void on_teardown();
@@ -100,9 +100,9 @@ public:
     const object_storage& objects() const;
     object_storage& objects();
 
-    void remove_object(const object& e, size_t i);
+    void remove_object(const object& e, usize i);
     // unlike remove_object(), tears the script down and deletes the object
-    void kill_object(const object& e, size_t i, script_destroy_reason r = script_destroy_reason::kill);
+    void kill_object(const object& e, usize i, script_destroy_reason r = script_destroy_reason::kill);
     void sort_objects();
 
     struct ground_stuff
@@ -130,7 +130,7 @@ private:
     chunk* _next = nullptr;
     chunk* _prev = nullptr;
     chunk_coords_ _coord;
-    uint64_t _pass_gen;
+    u64 _pass_gen;
 
     bool _maybe_empty      : 1 = true,
          _ground_modified  : 1 = true,
@@ -141,7 +141,7 @@ private:
 
     void add_object(const bptr<object>& e);
     void add_object_pre(const bptr<object>& e);
-    [[nodiscard]] size_t add_objectʹ(const bptr<object>& e);
+    [[nodiscard]] usize add_objectʹ(const bptr<object>& e);
     void add_object_unsorted(const bptr<object>& e);
 
     struct bbox final

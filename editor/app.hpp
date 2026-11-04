@@ -19,7 +19,7 @@ namespace floormat::imgui { class text_painter_pool; }
 
 namespace floormat::pgo { struct task; struct state; struct scene; }
 
-namespace floormat::mazes { enum class kind : uint8_t; }
+namespace floormat::mazes { enum class kind : u8; }
 
 namespace floormat {
 
@@ -49,7 +49,7 @@ struct cursor_state final
 
 struct clickable;
 
-enum class Cursor: uint32_t {
+enum class Cursor: u32 {
     Arrow, TextInput, Wait, Crosshair, WaitArrow,
     ResizeNWSE, ResizeNESW, ResizeWE, ResizeNS, ResizeAll,
     No, Hand, Hidden, HiddenLocked,
@@ -125,7 +125,7 @@ private:
     void on_mouse_enter() noexcept override;
 
     void do_mouse_move(int modifiers);
-    void do_mouse_up_down(uint8_t button, bool is_down, int modifiers);
+    void do_mouse_up_down(u8 button, bool is_down, int modifiers);
     void do_mouse_scroll(int offset);
 
     void do_quicksave();
@@ -147,7 +147,7 @@ private:
     void draw_editor_pane(float main_menu_height);
     void draw_inspector();
     static void entity_inspector_name(char(&buf)[10], object_id id);
-    static void entity_friendly_name(char* buf, size_t len, const object& obj);
+    static void entity_friendly_name(char* buf, usize len, const object& obj);
     static void inspector_window_title(char(&buf)[140], const object& obj);
     bool check_inspector_exists(const popup_target& p);
     void set_cursor_from_imgui();
@@ -182,9 +182,9 @@ private:
 
     void set_key_state(key k, bool is_pressed);
     void set_modifier_state(int kmod, bool is_pressed);
-    void set_mouse_button_state(uint8_t button, bool is_pressed);
+    void set_mouse_button_state(u8 button, bool is_pressed);
     void move_cursor_to(point pt);
-    void scroll(int8_t offset);
+    void scroll(i8 offset);
     void release_all_input();
     point cursor_point();
     void set_window_size(Vector2i size);
@@ -192,7 +192,7 @@ private:
     void driver_start();
     void driver_tick(Ns dt);
     void driver_draw_overlay();
-    void driver_save_world(uint32_t scene_number, StringView scene_name, bool is_post);
+    void driver_save_world(u32 scene_number, StringView scene_name, bool is_post);
 
     void populate_hole_stress_test();
     void populate_labyrinth();
@@ -200,31 +200,31 @@ private:
     void populate_sweep_aabb_slit();
     void populate_l_corridor();
     void populate_scene_benchmark();
-    void populate_scene_benchmark_walkable(uint8_t width);
-    void populate_scene_diagonal(uint8_t half_width);
+    void populate_scene_benchmark_walkable(u8 width);
+    void populate_scene_diagonal(u8 half_width);
     void populate_scene_slide(bool dense);
     void populate_scene_maze1();
     void populate_scene_maze2();
     void populate_scene_maze3(mazes::kind k);
-    void populate_scene_grids(uint32_t num_pins = 0);
-    void add_grid_pin(uint32_t n);
+    void populate_scene_grids(u32 num_pins = 0);
+    void add_grid_pin(u32 n);
     void populate_scene_raycast_pins();
     void populate_scene_lightmap();
     void populate_scene_cover();
-    static point maze_corner(uint32_t k);
-    static point lightmap_light(uint32_t k);
+    static point maze_corner(u32 k);
+    static point lightmap_light(u32 k);
     static point maze2_start();
     static point maze2_goal();
     void populate_scene_benchmark_all_z();
     void populate_scene_clickables();
 
-    pgo::task click_at_cursor(uint8_t button);
-    pgo::task click_at(point pt, uint8_t button);
-    pgo::task press_and_hold(point pt, uint8_t button, uint32_t num_frames);
+    pgo::task click_at_cursor(u8 button);
+    pgo::task click_at(point pt, u8 button);
+    pgo::task press_and_hold(point pt, u8 button, u32 num_frames);
 
-    pgo::task inject_key_press(key k, uint32_t held_frames);
+    pgo::task inject_key_press(key k, u32 held_frames);
     pgo::task inject_click(Vector2i pos, mouse_button button);
-    pgo::task drag_along(point from, Vector2i step, uint32_t count, uint8_t button);
+    pgo::task drag_along(point from, Vector2i step, u32 count, u8 button);
     pgo::task pan_along_path(ArrayView<const point> path);
     pgo::task hold_for(Ns dt);
     pgo::task scene_modes();
@@ -267,14 +267,14 @@ private:
 
     void reserve_inspector_array();
     void add_inspector(popup_target p);
-    void erase_inspector(size_t index, ptrdiff_t count = 1);
+    void erase_inspector(usize index, isize count = 1);
     void kill_inspectors();
 
     static ArrayView<const struct pgo::scene> scenes() noexcept;
     static bool pgo_driver_use_short_scenes();
 
     Array<chunk_coords_> _chunk_bounds_array;
-    uint64_t _timestamp = 0;
+    u64 _timestamp = 0;
     floormat_main* M;
     safe_ptr<ImGuiIntegration::Context> _imgui;
     safe_ptr<tests_data_> _tests;
@@ -290,7 +290,7 @@ private:
 
     Optional<chunk_coords_> tested_light_chunk;
 
-    int8_t _z_level = 0;
+    i8 _z_level = 0;
 
     bool _pending_popup       : 1 = false;
     bool _render_bboxes       : 1 = false;

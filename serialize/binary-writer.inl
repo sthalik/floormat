@@ -8,7 +8,7 @@
 namespace floormat::Serialize {
 
 template<std::output_iterator<char> It>
-constexpr binary_writer<It>::binary_writer(It it, size_t bytes_allocated) noexcept :
+constexpr binary_writer<It>::binary_writer(It it, usize bytes_allocated) noexcept :
       it{it},
       _bytes_written{0},
       _bytes_allocated{bytes_allocated}
@@ -18,7 +18,7 @@ template<std::output_iterator<char> It>
 template<serializable T>
 constexpr void binary_writer<It>::write(T x) noexcept
 {
-    constexpr size_t N = sizeof(T);
+    constexpr usize N = sizeof(T);
     _bytes_written += N;
     fm_assert(_bytes_written <= _bytes_allocated);
     const auto buf = std::bit_cast<std::array<char, N>, T>(maybe_byteswap(x));

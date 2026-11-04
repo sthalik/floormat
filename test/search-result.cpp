@@ -16,13 +16,13 @@ struct path_search_result_pool_access<Test_PathPool> final
 {
     static const Pointer<node>& get_node(const path_search_result& p) { return p._node; }
     static const auto& get_pool() { return path_search_result::_pool; }
-    static size_t pool_size();
+    static usize pool_size();
     static void clear_pool() { path_search_result::_pool = {}; }
 };
 
-size_t path_search_result_pool_access<Test_PathPool>::pool_size()
+usize path_search_result_pool_access<Test_PathPool>::pool_size()
 {
-    size_t ret = 0;
+    usize ret = 0;
     for (const auto* pool = get_pool().get(); pool; pool = pool->_next.get())
         ret++;
     return ret;

@@ -178,9 +178,9 @@ raii_wrapper begin_child(StringView name, const ImVec2& size, int flags, int win
 
 namespace floormat::imgui::detail {
 
-const char* label_left_(StringView label, char* buf, size_t buf_len, float width);
+const char* label_left_(StringView label, char* buf, usize buf_len, float width);
 
-const char* label_left_(StringView label, char* buf, size_t buf_len, float width)
+const char* label_left_(StringView label, char* buf, usize buf_len, float width)
 {
     std::snprintf(buf, buf_len, "##%s", label.data());
     float x = ImGui::GetCursorPosX();

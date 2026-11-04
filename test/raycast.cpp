@@ -62,20 +62,20 @@ world make_world()
     tile(global_coords{{0, 2, 0}, { 9,  0}}).wall_north() = wall1;
     tile(global_coords{{0, 2, 0}, {10,  0}}).wall_north() = wall1;
 
-    for (int16_t k = -5; k <= -1; k++)
+    for (i16 k = -5; k <= -1; k++)
     {
         auto& ch = w[{-5, -5, 0}];
         for (unsigned i = 0; i < TILE_MAX_DIM; i++)
         {
-            ch[{(uint8_t)i, 0}].wall_west()  = wall1;
-            ch[{(uint8_t)i, 1}].wall_north() = wall1;
-            ch[{(uint8_t)i, 2}].wall_north() = wall2;
-            ch[{(uint8_t)i, 2}].wall_west()  = wall2;
+            ch[{(u8)i, 0}].wall_west()  = wall1;
+            ch[{(u8)i, 1}].wall_north() = wall1;
+            ch[{(u8)i, 2}].wall_north() = wall2;
+            ch[{(u8)i, 2}].wall_west()  = wall2;
         }
     }
 
-    for (int16_t i = -15; i <= 15; i++)
-        for (int16_t j = -15; j <= 15; j++)
+    for (i16 i = -15; i <= 15; i++)
+        for (i16 j = -15; j <= 15; j++)
             w[{{i, j}, 0}].mark_modified();
 
     return w;
@@ -113,7 +113,7 @@ void test_window(pass_mode hole_pass)
     constexpr auto ch = chunk_coords_{0, 0, 0};
     constexpr auto pos = global_coords{ch, {8, 8}};
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
-    const auto mid_y = (int8_t)(-tile_size_xy/2 - (int)W.atlas->info().depth/2);
+    const auto mid_y = (i8)(-tile_size_xy/2 - (int)W.atlas->info().depth/2);
 
     auto w = world();
     auto& c = w[ch];
@@ -126,13 +126,13 @@ void test_window(pass_mode hole_pass)
 
     Pass::Pool shoot{Pass::Params{8, 8, pass_mode::shoot_through}, Search::never_continue()};
     Pass::Pool walk{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
-    const auto open_at = [&](Pass::Pool& pool, int8_t x) {
+    const auto open_at = [&](Pass::Pool& pool, i8 x) {
         pool.maybe_mark_stale_all(w);
         auto g = pool[c];
         g.build_if_stale();
         return g.bit(g.get_bitmask_index_from_coord(intra_coord{pos.local(), {x, mid_y}}));
     };
-    const auto ray_passes = [&](Pass::Pool& pool, int8_t x) {
+    const auto ray_passes = [&](Pass::Pool& pool, i8 x) {
         return raycast(w, point{ch, {8, 6}, {x, 0}}, point{ch, {8, 10}, {x, 0}}, 0,
                        pool, Search::never_continue()).success;
     };
@@ -391,7 +391,7 @@ bool contains(const pillar& p, Vector2i px)
 struct supercover_hit
 {
     Vector2i pixels[2];
-    uint32_t count;
+    u32 count;
     bool orthogonal;
 };
 
@@ -483,7 +483,7 @@ void test_supercover_hits()
         Pass::Pool{Pass::Params{16, 16, pass_mode::pass}, Search::never_continue()},
     };
     const auto origin = point{ch, {}, {}};
-    uint32_t hits = 0, orthogonal_hits = 0;
+    u32 hits = 0, orthogonal_hits = 0;
 
     const auto check = [&](Vector2i from, Vector2i to) {
         const auto line = rc::bresenham_line{from, to};
@@ -532,18 +532,18 @@ void test_supercover_hits()
     check({950, 950}, {1040, 1040});
     check({1040, 950}, {950, 1040});
 
-    uint32_t seed = 0x6c8e9cf5;
-    const auto next = [&](uint32_t n) {
+    u32 seed = 0x6c8e9cf5;
+    const auto next = [&](u32 n) {
         seed = seed * 1664525u + 1013904223u;
-        return (int32_t)((seed >> 8) % n);
+        return (i32)((seed >> 8) % n);
     };
     for (auto i = 0u; i < 144; i++)
     {
         const auto from = Vector2i{next(1300) - 32, next(1300) - 32};
-        const auto& p = pillars[next((uint32_t)array_size(pillars))];
+        const auto& p = pillars[next((u32)array_size(pillars))];
         const auto size = p.max - p.min;
         const auto corner = Vector2i{next(2), next(2)} * size;
-        const auto aim = i % 3 == 1 ? p.min + Vector2i{next((uint32_t)size.x() + 7), next((uint32_t)size.y() + 7)} - Vector2i{3}
+        const auto aim = i % 3 == 1 ? p.min + Vector2i{next((u32)size.x() + 7), next((u32)size.y() + 7)} - Vector2i{3}
                                     : p.min + corner + Vector2i{next(5), next(5)} - Vector2i{2};
         const auto to = i % 3 ? aim + (aim - from) / 4 : from + Vector2i{next(601) - 300, next(601) - 300};
         check(from, to);
@@ -564,7 +564,7 @@ void Test::test_raycast()
     test_edit_in_same_frame();
     test_supercover_hits();
 
-    constexpr uint32_t sizes[][2] = {
+    constexpr u32 sizes[][2] = {
         {4, 4}, {4, 16}, {8, 8}, {8, 13}, {16, 16}, {16, 64}, {32, 32}, {64, 64},
     };
     auto w = make_world();

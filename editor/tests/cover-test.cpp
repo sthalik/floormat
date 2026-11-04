@@ -16,12 +16,12 @@ namespace {
 
 using namespace floormat::imgui;
 
-constexpr inline uint32_t default_div_size = 8;
-constexpr uint32_t div_sizes[] = { 1, 2, 4, 8, 16, 32, 64 };
+constexpr inline u32 default_div_size = 8;
+constexpr u32 div_sizes[] = { 1, 2, 4, 8, 16, 32, 64 };
 // odd, so the clicked chunk is in the middle
-constexpr uint32_t chunk_spans[] = { 1, 3, 5, 7 };
+constexpr u32 chunk_spans[] = { 1, 3, 5, 7 };
 
-struct dir_button { const char* name; uint32_t k; bool large; };
+struct dir_button { const char* name; u32 k; bool large; };
 constexpr dir_button compass_rose[3][3] = {
     {{"NW", 20, false}, {"N",  24, true},  {"NE", 28, false}},
     {{"W",  16, true},  {nullptr, 0, false}, {"E",  0,  true}},
@@ -39,7 +39,7 @@ struct cover_test final : base_test
 {
     Pointer<Pass::Pool> pass_pool;
     Pointer<Cover::Pool> pool;
-    uint32_t chunk_span = 1;
+    u32 chunk_span = 1;
 
     cover_test();
     ~cover_test() noexcept override = default;
@@ -54,9 +54,9 @@ struct cover_test final : base_test
     Value advance(app& a, Value) override;
 
     void extract(app& a, point pt);
-    void set_div_size(app& a, uint32_t div_size);
-    chunk* chunk_at(world& w, int32_t dx, int32_t dy) const;
-    void draw_chunk(app& a, chunk& c, uint32_t sk);
+    void set_div_size(app& a, u32 div_size);
+    chunk* chunk_at(world& w, i32 dx, i32 dy) const;
+    void draw_chunk(app& a, chunk& c, u32 sk);
 
     struct pending_s {
         point from;
@@ -65,10 +65,10 @@ struct cover_test final : base_test
     struct result_s
     {
         point from{};
-        uint32_t cell_idx = 0;
+        u32 cell_idx = 0;
     } result = {};
 
-    int32_t selected_octant{};
+    i32 selected_octant{};
     bool has_result : 1 = false, has_pending : 1 = false;
 };
 
@@ -125,13 +125,13 @@ bool cover_test::handle_mouse_move(app& a, const mouse_move_event& e)
     return false;
 }
 
-chunk* cover_test::chunk_at(world& w, int32_t dx, int32_t dy) const
+chunk* cover_test::chunk_at(world& w, i32 dx, i32 dy) const
 {
     const auto ch = result.from.chunk3();
-    return w.at(chunk_coords_{(int16_t)(ch.x + dx), (int16_t)(ch.y + dy), ch.z});
+    return w.at(chunk_coords_{(i16)(ch.x + dx), (i16)(ch.y + dy), ch.z});
 }
 
-void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
+void cover_test::draw_chunk(app& a, chunk& c, u32 sk)
 {
     Cover::Grid cg = (*pool)[c];
     cg.build_if_stale();
@@ -140,8 +140,8 @@ void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
 
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
     const auto ds = (int)pool->params().div_size;
-    const uint32_t dc = cg.div_count();
-    const uint32_t max_d = chunk_size_xy / pool->params().div_size;
+    const u32 dc = cg.div_count();
+    const u32 max_d = chunk_size_xy / pool->params().div_size;
 
     const auto chunk_nw = point{c.coord(), intra_coord{}};
     const auto p00 = a.point_to_pixel(chunk_nw);
@@ -150,7 +150,7 @@ void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
     const Vector2 dx = pX - p00;
     const Vector2 dy = pY - p00;
 
-    const auto rgb = [](uint16_t d, uint32_t md) -> ImU32 {
+    const auto rgb = [](u16 d, u32 md) -> ImU32 {
         const float t = md > 0 ? Math::min(float(d) / float(md), 1.f) : 0.f;
         float r, g, b;
         if (t < 0.5f)
@@ -167,11 +167,11 @@ void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
     };
     const auto blocked_color = ImGui::ColorConvertFloat4ToU32({0.5f, 0.5f, 0.5f, 0.45f});
 
-    for (uint32_t cy = 0; cy < dc; cy++)
-        for (uint32_t cx = 0; cx < dc; cx++)
+    for (u32 cy = 0; cy < dc; cy++)
+        for (u32 cx = 0; cx < dc; cx++)
         {
-            const uint32_t idx = Cover::Grid::get_cell_index(cx, cy, dc);
-            const uint16_t d = cg.distance(idx, sk);
+            const u32 idx = Cover::Grid::get_cell_index(cx, cy, dc);
+            const u16 d = cg.distance(idx, sk);
             const auto color = d == Cover::blocked ? blocked_color : rgb(d, max_d);
             const Vector2 base = p00 + dx * float(cx) + dy * float(cy);
             draw.AddQuadFilled(ImVec2(base), ImVec2(base + dx), ImVec2(base + dx + dy), ImVec2(base + dy), color);
@@ -190,10 +190,10 @@ void cover_test::draw_overlay(app& a)
 
     pool->maybe_mark_stale_all(w);
 
-    const auto sk = (uint32_t)selected_octant;
-    const auto r = (int32_t)chunk_span / 2;
-    for (int32_t dy = -r; dy <= r; dy++)
-        for (int32_t dx = -r; dx <= r; dx++)
+    const auto sk = (u32)selected_octant;
+    const auto r = (i32)chunk_span / 2;
+    for (i32 dy = -r; dy <= r; dy++)
+        for (i32 dx = -r; dx <= r; dx++)
             if (auto* ch = chunk_at(w, dx, dy))
                 draw_chunk(a, *ch, sk);
 
@@ -207,7 +207,7 @@ void cover_test::draw_overlay(app& a)
     const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 0.6f});
 
     const auto built = cg.built_octants();
-    for (uint32_t k = 0; k < Cover::octant_count; k++)
+    for (u32 k = 0; k < Cover::octant_count; k++)
     {
         if (k == sk || !(built & 1u << k) || cg.distance(result.cell_idx, k) == Cover::blocked)
             continue;
@@ -251,12 +251,12 @@ void cover_test::update_post(app& a, const Ns&)
     if (!c)
         return;
     pool->maybe_mark_stale_all(w);
-    const auto sk = (uint32_t)selected_octant;
+    const auto sk = (u32)selected_octant;
     if ((*pool)[*c].ensure_octant(sk))
         return;
-    const auto r = (int32_t)chunk_span / 2;
-    for (int32_t dy = -r; dy <= r; dy++)
-        for (int32_t dx = -r; dx <= r; dx++)
+    const auto r = (i32)chunk_span / 2;
+    for (i32 dy = -r; dy <= r; dy++)
+        for (i32 dx = -r; dx <= r; dx++)
             if (auto* ch = chunk_at(w, dx, dy); ch && ch != c)
                 if ((*pool)[*ch].ensure_octant(sk))
                     return;
@@ -269,7 +269,7 @@ base_test::Value cover_test::advance(app& a, Value)
     ret.type = ValueType::u64;
     ret.u64 = 0;
 
-    selected_octant = (int32_t)(((uint32_t)selected_octant + 1u) % Cover::octant_count);
+    selected_octant = (i32)(((u32)selected_octant + 1u) % Cover::octant_count);
     if (!has_result)
         return ret;
     auto& w = a.main().world();
@@ -304,7 +304,7 @@ void cover_test::extract(app& a, point pt)
     has_result = true;
 }
 
-void cover_test::set_div_size(app& a, uint32_t div_size)
+void cover_test::set_div_size(app& a, u32 div_size)
 {
     if (div_size == pool->params().div_size)
         return;
@@ -386,20 +386,20 @@ void cover_test::draw_ui(app& a, float)
 
         do_column("octant");
 
-        constexpr auto fmt_octant_label = [](auto&& out, uint32_t kk) {
+        constexpr auto fmt_octant_label = [](auto&& out, u32 kk) {
             const auto dir = Cover::octant_direction(kk);
             const float deg = float(Deg(Rad(std::atan2(dir.y(), dir.x()))));
             const float dd = deg < 0 ? deg + 360 : deg;
             snformat(out, "{} (k={}, {:.1f}°)", compass_names_16[kk / 2], kk, dd);
         };
 
-        fmt_octant_label(buf, (uint32_t)selected_octant);
+        fmt_octant_label(buf, (u32)selected_octant);
         text(buf);
 
         static const float label_max_w = [&] {
             char tmp[64];
             float w = 0;
-            for (uint32_t kk = 0; kk < Cover::octant_count; kk++)
+            for (u32 kk = 0; kk < Cover::octant_count; kk++)
             {
                 fmt_octant_label(tmp, kk);
                 w = Math::max(w, ImGui::CalcTextSize(tmp).x);
@@ -412,7 +412,7 @@ void cover_test::draw_ui(app& a, float)
             auto b2 = push_style_var(ImGuiStyleVar_FramePadding, {ImGui::GetStyle().FramePadding.x, 0});
 
             if (ImGui::ArrowButton("##oct_dec", ImGuiDir_Left))
-                selected_octant = (int32_t)(((uint32_t)selected_octant + Cover::octant_count - 1) % Cover::octant_count);
+                selected_octant = (i32)(((u32)selected_octant + Cover::octant_count - 1) % Cover::octant_count);
             ImGui::SameLine();
 
             int sel = selected_octant;
@@ -430,7 +430,7 @@ void cover_test::draw_ui(app& a, float)
 
             ImGui::SameLine();
             if (ImGui::ArrowButton("##oct_inc", ImGuiDir_Right))
-                selected_octant = (int32_t)(((uint32_t)selected_octant + 1u) % Cover::octant_count);
+                selected_octant = (i32)(((u32)selected_octant + 1u) % Cover::octant_count);
         }
 
         {
@@ -452,7 +452,7 @@ void cover_test::draw_ui(app& a, float)
                             ImGui::Dummy(big_sz);
                             continue;
                         }
-                        const bool is_selected = (uint32_t)selected_octant == cell.k;
+                        const bool is_selected = (u32)selected_octant == cell.k;
                         [[maybe_unused]] const raii_wrapper colors[] = {
                             is_selected ? push_style_color(ImGuiCol_Button, color_selected) : raii_wrapper{},
                             is_selected ? push_style_color(ImGuiCol_ButtonHovered, color_selected) : raii_wrapper{},
@@ -460,12 +460,12 @@ void cover_test::draw_ui(app& a, float)
                         if (cell.large)
                         {
                             if (ImGui::Button(cell.name, big_sz))
-                                selected_octant = (int32_t)cell.k;
+                                selected_octant = (i32)cell.k;
                         }
                         else
                         {
                             if (ImGui::SmallButton(cell.name))
-                                selected_octant = (int32_t)cell.k;
+                                selected_octant = (i32)cell.k;
                         }
                     }
                 }

@@ -8,7 +8,7 @@ namespace floormat {
 // child's status, standing in for execve().
 struct with_game_mode final
 {
-    enum class entry : uint8_t { already_set, added, failed };
+    enum class entry : u8 { already_set, added, failed };
 
     with_game_mode() noexcept;
 

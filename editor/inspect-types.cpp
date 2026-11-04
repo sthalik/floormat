@@ -19,10 +19,10 @@ namespace floormat::entities {
 namespace {
 
 [[maybe_unused]]
-constexpr int32_t wraparound(int32_t n, int32_t N) // for object::frame
+constexpr i32 wraparound(i32 n, i32 N) // for object::frame
 {
     fm_assert(N > 0);
-    fm_assert(N <= limits<int32_t>::max/2);
+    fm_assert(N <= limits<i32>::max/2);
     const auto ret = ((n % N) + N) % N;
     return ret;
 }
@@ -64,21 +64,21 @@ struct entity_accessors<object, inspect_intent_t> {
                         x.rotate(x.index(), r);
                 },
             },
-            E::type<uint16_t>::field{"frame"_s,
+            E::type<u16>::field{"frame"_s,
                 &object::frame,
-                [](object& x, uint16_t value) { x.frame = value; },
+                [](object& x, u16 value) { x.frame = value; },
                 [](const object& x) {
-                    return constraints::range<uint16_t>{0, !x.atlas ? uint16_t(0) : uint16_t(x.atlas->info().nframes-1)};
+                    return constraints::range<u16>{0, !x.atlas ? u16(0) : u16(x.atlas->info().nframes-1)};
                 },
             },
             E::type<Vector3i>::field{"chunk"_s,
                 [](const object& x) { return Vector3i(x.chunk().coord()); },
                 [](object& x, Vector3i cʹ) {
-                    constexpr auto cmin = Vector3i(limits<int16_t>::min, limits<int16_t>::min, chunk_z_min);
-                    constexpr auto cmax = Vector3i(limits<int16_t>::max, limits<int16_t>::max, chunk_z_max);
+                    constexpr auto cmin = Vector3i(limits<i16>::min, limits<i16>::min, chunk_z_min);
+                    constexpr auto cmax = Vector3i(limits<i16>::max, limits<i16>::max, chunk_z_max);
                     auto i  = x.index();
                     auto c  = Math::clamp(cʹ, cmin, cmax);
-                    auto ch = chunk_coords_{(int16_t)c.x(), (int16_t)c.y(), (int8_t)c.z()};
+                    auto ch = chunk_coords_{(i16)c.x(), (i16)c.y(), (i8)c.z()};
                     auto g0 = x.coord;
                     auto g  = global_coords{ch, x.coord.local()};
                     if (g0 != g)
@@ -179,15 +179,15 @@ template<> struct entity_accessors<hole, inspect_intent_t>
         using E = Entity<hole>;
         auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
         auto tuple = std::tuple{
-            E::type<uint8_t>::field{"elevation"_s,
+            E::type<u8>::field{"elevation"_s,
                 &hole::z_offset,
                 &hole::set_z_offset,
-                constantly(constraints::range<uint8_t>{0, tile_size_z}),
+                constantly(constraints::range<u8>{0, tile_size_z}),
             },
-            E::type<uint8_t>::field{"height"_s,
+            E::type<u8>::field{"height"_s,
                 &hole::height,
                 &hole::set_height,
-                constantly(constraints::range<uint8_t>{0, tile_size_z}),
+                constantly(constraints::range<u8>{0, tile_size_z}),
             },
             E::type<bool>::field{ "enabled"_s,
                 [](const hole& x) { return x.flags.enabled; },
@@ -206,17 +206,17 @@ struct has_anim_atlas<T> : std::true_type {
     static const anim_atlas& get_atlas(const object& x) { return *x.atlas; }
 };
 
-using enum_pair = std::pair<StringView, size_t>;
+using enum_pair = std::pair<StringView, usize>;
 template<typename T, typename U> struct enum_values;
 
-template<size_t N>
+template<usize N>
 struct enum_pair_array {
     std::array<enum_pair, N> array;
-    size_t size;
+    usize size;
     operator ArrayView<const enum_pair>() const noexcept { return {array.data(), size};  }
 };
 
-template<size_t N> enum_pair_array(std::array<enum_pair, N> array, size_t) -> enum_pair_array<N>;
+template<usize N> enum_pair_array(std::array<enum_pair, N> array, usize) -> enum_pair_array<N>;
 
 template<typename T, typename U>
 requires (!std::is_enum_v<T>)
@@ -228,10 +228,10 @@ struct enum_values<T, U>
 template<typename U> struct enum_values<pass_mode, U>
 {
     static constexpr auto ret = std::to_array<enum_pair>({
-        { "blocked"_s, (size_t)pass_mode::blocked, },
-        { "see-through"_s, (size_t)pass_mode::see_through, },
-        { "shoot-through"_s, (size_t)pass_mode::shoot_through, },
-        { "pass"_s, (size_t)pass_mode::pass },
+        { "blocked"_s, (usize)pass_mode::blocked, },
+        { "see-through"_s, (usize)pass_mode::see_through, },
+        { "shoot-through"_s, (usize)pass_mode::shoot_through, },
+        { "pass"_s, (usize)pass_mode::pass },
     });
     static constexpr const auto& get(const U&) { return ret; }
 };
@@ -242,7 +242,7 @@ struct enum_values<rotation, U>
 {
     static auto get(const U& x) {
         const anim_atlas& atlas = has_anim_atlas<U>::get_atlas(x);
-        std::array<enum_pair, (size_t)rotation_COUNT> array;
+        std::array<enum_pair, (usize)rotation_COUNT> array;
         constexpr std::pair<StringView, rotation> values[] = {
             { "North"_s,     rotation::N  },
             { "Northeast"_s, rotation::NE },
@@ -253,10 +253,10 @@ struct enum_values<rotation, U>
             { "West"_s,      rotation::W  },
             { "Northwest"_s, rotation::NW },
         };
-        size_t i = 0;
+        usize i = 0;
         for (auto [str, val] : values)
             if (atlas.check_rotation(val))
-                array[i++] = enum_pair{str, (size_t)val};
+                array[i++] = enum_pair{str, (usize)val};
         return enum_pair_array{array, i};
     }
 };
@@ -264,10 +264,10 @@ struct enum_values<rotation, U>
 template<typename T, typename Intent>
 bool inspect_type(T& x, Intent)
 {
-    size_t width = 0;
+    usize width = 0;
     visit_tuple([&](const auto& field) {
         const auto& name = field.name;
-        auto width_ = (size_t)ImGui::CalcTextSize(name.cbegin(), name.cend()).x;
+        auto width_ = (usize)ImGui::CalcTextSize(name.cbegin(), name.cend()).x;
         width = std::max(width, width_);
     }, entity_metadata<T, Intent>::accessors);
 
@@ -313,9 +313,9 @@ struct entity_accessors<critter, inspect_intent_t> {
 template<typename U> struct enum_values<light_falloff, U>
 {
     static constexpr auto ret = std::to_array<enum_pair>({
-        { "constant"_s, (size_t)light_falloff::constant },
-        { "linear"_s, (size_t)light_falloff::linear },
-        { "quadratic"_s, (size_t)light_falloff::quadratic },
+        { "constant"_s, (usize)light_falloff::constant },
+        { "linear"_s, (usize)light_falloff::linear },
+        { "quadratic"_s, (usize)light_falloff::quadratic },
     });
     static constexpr const auto& get(const U&) { return ret; }
 };

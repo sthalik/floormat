@@ -13,7 +13,7 @@ struct door_scenery_proto;
 
 struct scenery : object
 {
-    int32_t depth_offset() const override;
+    i32 depth_offset() const override;
     enum object_type type() const noexcept override;
     virtual enum scenery_type scenery_type() const = 0;
     virtual explicit operator scenery_proto() const; // todo make protected?
@@ -27,9 +27,9 @@ struct generic_scenery final : scenery
     bool active      : 1 = false;
     bool interactive : 1 = false;
 
-    void update(const bptr<object>& ptr, size_t& i, const Ns& dt) override;
-    bool can_activate(size_t i) const override;
-    bool activate(size_t i) override;
+    void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
+    bool can_activate(usize i) const override;
+    bool activate(usize i) override;
 
     enum scenery_type scenery_type() const override;
     explicit operator scenery_proto() const override;
@@ -46,10 +46,10 @@ struct door_scenery final : scenery
     bool active      : 1 = false;
     bool interactive : 1 = false;
 
-    void update(const bptr<object>& ptr, size_t& i, const Ns& dt) override;
+    void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
     Int depth_offset() const override;
-    bool can_activate(size_t i) const override;
-    bool activate(size_t i) override;
+    bool can_activate(usize i) const override;
+    bool activate(usize i) override;
 
     enum scenery_type scenery_type() const override;
     explicit operator scenery_proto() const override;

@@ -34,7 +34,7 @@ namespace floormat {
 
 namespace {
 
-constexpr inline int16_t bench_chunk_min = -8, bench_chunk_max = 8;
+constexpr inline i16 bench_chunk_min = -8, bench_chunk_max = 8;
 constexpr inline int diag_u0 = 0;
 using pgo::walk_chunk_min;
 using pgo::walk_chunk_max;
@@ -44,38 +44,38 @@ using pgo::walk_corridor_tile;
 // straight down one column. A tile-sized blocked object closes its own pass cell column and no
 // more, so the two sides have to overlap or a column stays open under both and the route runs
 // straight through: measured, a 3-wide baffle in a 9-wide corridor left column 5 clear.
-constexpr inline uint8_t walk_baffle_tiles = 5, walk_baffle_pitch = 8;
+constexpr inline u8 walk_baffle_tiles = 5, walk_baffle_pitch = 8;
 
 // One tile of untouched scene divides two maze cells, and it blocks the pass cells either side
 // of it as well as its own, so a pitch of p leaves p-3 passable columns. Six leaves the three a
 // diagonal step needs.
-constexpr inline uint8_t maze_pitch = 6;
-constexpr inline uint32_t maze_dim = 16;
+constexpr inline u8 maze_pitch = 6;
+constexpr inline u32 maze_dim = 16;
 constexpr inline int maze_tile0 = -(int)(maze_dim*maze_pitch)/2;
-constexpr inline uint32_t maze_seed = 0x5eed1234u;
+constexpr inline u32 maze_seed = 0x5eed1234u;
 
 // The second maze. generate_maze() is a recursive backtracker with a fixed direction bias, and
 // measured on its own output that leaves 2 junctions in 256 cells -- one snake corridor with
 // nothing to choose, so A* walks it rather than searching it. Randomized Prim plus braiding
 // leaves ~350 junctions in 1024, and start/goal are the graph diameter rather than opposite
 // corners, which doubles the nodes A* expands again.
-constexpr inline uint32_t maze2_dim = 32;
-constexpr inline uint32_t maze2_seed = 0x5eed1234u;
-constexpr inline uint32_t maze2_braid_pct = 50;
+constexpr inline u32 maze2_dim = 32;
+constexpr inline u32 maze2_seed = 0x5eed1234u;
+constexpr inline u32 maze2_braid_pct = 50;
 constexpr inline int maze2_tile0 = -(int)(maze2_dim*maze_pitch)/2;
-constexpr inline int16_t maze2_chunk_min = (int16_t)(maze2_tile0/(int)TILE_MAX_DIM);
-constexpr inline int16_t maze2_chunk_max = (int16_t)((maze2_tile0 + (int)(maze2_dim*maze_pitch))/(int)TILE_MAX_DIM);
+constexpr inline i16 maze2_chunk_min = (i16)(maze2_tile0/(int)TILE_MAX_DIM);
+constexpr inline i16 maze2_chunk_max = (i16)((maze2_tile0 + (int)(maze2_dim*maze_pitch))/(int)TILE_MAX_DIM);
 static_assert(maze2_tile0 % (int)TILE_MAX_DIM == 0); // else the chunk range above is off by one
 
-constexpr inline uint32_t grid_pin_seed = 0x9d1d5eedu;
+constexpr inline u32 grid_pin_seed = 0x9d1d5eedu;
 
 #ifdef FM_NO_DEBUG3
-constexpr inline uint32_t clickables_per_tile = 32;
+constexpr inline u32 clickables_per_tile = 32;
 #else
-constexpr inline uint32_t clickables_per_tile = 16;
+constexpr inline u32 clickables_per_tile = 16;
 #endif
-constexpr inline uint32_t clickables_seed = 0xc11c4b1eu;
-constexpr inline int16_t clickables_chunk_min = -1, clickables_chunk_max = 1;
+constexpr inline u32 clickables_seed = 0xc11c4b1eu;
+constexpr inline i16 clickables_chunk_min = -1, clickables_chunk_max = 1;
 
 // Each pattern axis below uses a period from {2,3,4,5,7} on a different linear form of the
 // tile coordinate, so the combined pattern repeats no sooner than every 420 tiles.
@@ -83,21 +83,21 @@ constexpr inline int16_t clickables_chunk_min = -1, clickables_chunk_max = 1;
 // A tile's own N/W wall strips lie *outside* it, at [T-depth, T), so only a half-extent above
 // tile_size_xy/2 reaches them; anything positive reaches the S/E neighbors'. Depth here is 32.
 constexpr inline Vector2ub hole_sizes[] = {
-    { uint8_t(7*tile_size_xy/4), uint8_t(tile_size_xy/2)   }, // own W, E and S neighbors'
-    { uint8_t(tile_size_xy/2),   uint8_t(7*tile_size_xy/4) }, // own N, E and S neighbors'
-    { uint8_t(3*tile_size_xy/2), uint8_t(3*tile_size_xy/2) }, // all four, plus the corner piece
+    { u8(7*tile_size_xy/4), u8(tile_size_xy/2)   }, // own W, E and S neighbors'
+    { u8(tile_size_xy/2),   u8(7*tile_size_xy/4) }, // own N, E and S neighbors'
+    { u8(3*tile_size_xy/2), u8(3*tile_size_xy/2) }, // all four, plus the corner piece
 };
 
-struct hole_z_profile { uint8_t z_offset, height; };
+struct hole_z_profile { u8 z_offset, height; };
 
 // A cut reaching tile_size_z lowers the wall's top cap onto the stub instead of leaving it
 // at full height, so the "eats the top" cases below look different from the rest.
 constexpr inline hole_z_profile hole_z_profiles[] = {
-    { 0,                        uint8_t(tile_size_z)   }, // full height, eats the top
-    { 0,                        uint8_t(tile_size_z/2) }, // wall left floating above the gap
-    { uint8_t(tile_size_z/2),   uint8_t(tile_size_z/2) }, // eats the top
-    { uint8_t(tile_size_z/4),   uint8_t(tile_size_z/2) }, // wall above and below
-    { uint8_t(2*tile_size_z/3), uint8_t(tile_size_z/3) }, // eats the top, reaching it exactly
+    { 0,                        u8(tile_size_z)   }, // full height, eats the top
+    { 0,                        u8(tile_size_z/2) }, // wall left floating above the gap
+    { u8(tile_size_z/2),   u8(tile_size_z/2) }, // eats the top
+    { u8(tile_size_z/4),   u8(tile_size_z/2) }, // wall above and below
+    { u8(2*tile_size_z/3), u8(tile_size_z/3) }, // eats the top, reaching it exactly
 };
 
 // The raycast scene's obstacle field. Everything the dense scene puts in a ray's way is a full
@@ -131,7 +131,7 @@ constexpr inline int pin_size = 4, grid_pin_size = 8, pin_pitch = 3*tile_size_xy
 // full length. At 1 the circle is sealed and nothing gets through.
 constexpr inline int pin_clump_deg = 15, pin_clump_r0 = chunk_size<int>/4;
 constexpr inline float pin_clump_span = .4f;
-constexpr inline uint32_t pin_clump_rings = 7, pin_clump_seed = 0xc10b5eedu;
+constexpr inline u32 pin_clump_rings = 7, pin_clump_seed = 0xc10b5eedu;
 
 constexpr inline const char* const scenery_names[] = {
     "chair1", "stool1", "drawers1", "shelf1", "table4", "door1", "control panel (wall) 1",
@@ -151,15 +151,15 @@ constexpr inline Vector4ub light_colors[] = {
 
 static_assert(array_size(light_colors) == 23);
 
-constexpr uint32_t pmod(int32_t x, int32_t m)
+constexpr u32 pmod(i32 x, i32 m)
 {
     auto r = x % m;
-    return uint32_t(r < 0 ? r + m : r);
+    return u32(r < 0 ? r + m : r);
 }
 
-uint32_t hash2(uint32_t x, uint32_t y) // same mixer as app::populate_raycast_fractal()
+u32 hash2(u32 x, u32 y) // same mixer as app::populate_raycast_fractal()
 {
-    uint32_t h = x * 0x9E3779B1u + y * 0x85EBCA77u;
+    u32 h = x * 0x9E3779B1u + y * 0x85EBCA77u;
     h ^= h >> 16; h *= 0xC2B2AE3Du;
     h ^= h >> 13; h *= 0x27D4EB2Du;
     h ^= h >> 16;
@@ -169,13 +169,13 @@ uint32_t hash2(uint32_t x, uint32_t y) // same mixer as app::populate_raycast_fr
 // The lightmap image covers neighbor_count = 4 chunks per axis and iter_bounds() centers it at
 // [x-2, x+1] (shaders/lightmap.cpp), so a 6x6 world is the smallest that gives every chunk of the
 // 3x3 testable middle a full block to render.
-constexpr inline int16_t lm_chunk_min = -3, lm_chunk_max = 2;
-constexpr inline int16_t lm_test_min = -1;
-constexpr inline uint32_t lm_test_dim = 3;
+constexpr inline i16 lm_chunk_min = -3, lm_chunk_max = 2;
+constexpr inline i16 lm_test_min = -1;
+constexpr inline u32 lm_test_dim = 3;
 
 // Wall box edges in local tiles. A north wall sits on its own tile's -y edge, so a box whose top
 // run is on row lm_box0 and bottom run on row lm_box1 encloses rows lm_box0..lm_box1-1.
-constexpr inline uint8_t lm_box0 = 2, lm_box1 = 13, lm_light_tile = 7;
+constexpr inline u8 lm_box0 = 2, lm_box1 = 13, lm_light_tile = 7;
 constexpr inline int lm_pillar_size = 12;
 
 // A 12-px stool is 3 px of the 1024-px lightmap image, too small to occlude anything. These exist
@@ -185,28 +185,28 @@ constexpr inline int lm_stool_size = 48;
 // A light reaches max_distance*16 texels: add_light() multiplies tiles by tile_size and
 // then by image_size_ratio = 1024/4096. The image is 1024 texels across 4 chunks, so past half of
 // it -- 2 chunks -- a light clips at the image edge whatever chunk it stands in.
-constexpr inline uint8_t lm_range_max = 2*TILE_MAX_DIM;
+constexpr inline u8 lm_range_max = 2*TILE_MAX_DIM;
 
 // The palette spans 2.8x in perceived brightness, so a cyan and a deep blue at the same alpha do
 // not read as the same light. light_color.a is a plain multiplier in the fragment shader; scaling
 // it by the inverse luma lands them all at a common brightness.
 constexpr inline float lm_light_luma = 130;
 
-constexpr uint8_t lm_light_alpha(Vector4ub c)
+constexpr u8 lm_light_alpha(Vector4ub c)
 {
     const auto luma = .2126f*c.x() + .7152f*c.y() + .0722f*c.z();
     const auto a = lm_light_luma*255/luma;
-    return a >= 255 ? (uint8_t)255 : (uint8_t)a;
+    return a >= 255 ? (u8)255 : (u8)a;
 }
 
 // A run of walls in local tiles. north=true is a line of north walls running +x from `at`,
 // otherwise west walls running +y. A north wall sits on its own tile's -y edge and a west wall on
 // its -x edge, so a west run at column x separates x-1 from x.
-struct lm_wall_run { Vector2ub at; uint8_t len; bool north; };
+struct lm_wall_run { Vector2ub at; u8 len; bool north; };
 
 // range is in tiles, radius in pixels. Nonzero radius makes the light an area source, which is
 // what puts a penumbra on a shadow edge. Brightness is not here -- see lm_light_alpha.
-struct lm_light_spec { Vector2ub at; uint8_t range; uint8_t radius; light_falloff falloff; };
+struct lm_light_spec { Vector2ub at; u8 range; u8 radius; light_falloff falloff; };
 
 // One chunk's lights and the obstructions they throw against. Three lights each: a fourth is a
 // third more GPU work in a scene already GPU-bound on 48 lights x 2 full-image passes.
@@ -255,7 +255,7 @@ constexpr bool lm_layouts_in_bounds()
                 return false;
         for (const auto& r : L.walls)
         {
-            const uint32_t ex = r.at.x() + (r.north ? r.len-1u : 0u),
+            const u32 ex = r.at.x() + (r.north ? r.len-1u : 0u),
                            ey = r.at.y() + (r.north ? 0u : r.len-1u);
             if (ex >= TILE_MAX_DIM || ey >= TILE_MAX_DIM)
                 return false;
@@ -296,7 +296,7 @@ scenery_proto pin_proto(int size)
 {
     auto p = loader.scenery("stool1");
     p.bbox_offset = {};
-    p.bbox_size = Vector2ub{(uint8_t)size};
+    p.bbox_size = Vector2ub{(u8)size};
     p.pass = pass_mode::blocked;
     return p;
 }
@@ -311,8 +311,8 @@ void generate_raycast_pins(world& w)
     // asymmetric chunk range to sit on.
     const auto ch0 = point::normalize_coords(point{}, Vector2i{-pin_field}).chunk3(),
                ch1 = point::normalize_coords(point{}, Vector2i{ pin_field}).chunk3();
-    for (int16_t cy = ch0.y; cy <= ch1.y; cy++)
-        for (int16_t cx = ch0.x; cx <= ch1.x; cx++)
+    for (i16 cy = ch0.y; cy <= ch1.y; cy++)
+        for (i16 cx = ch0.x; cx <= ch1.x; cx++)
         {
             auto& c = w[chunk_coords_{cx, cy, 0}];
             for (auto k = 0u; k < TILE_COUNT; k++)
@@ -335,12 +335,12 @@ void generate_raycast_pins(world& w)
     for (int y = -pin_field; y <= pin_field; y += pin_pitch)
         for (int x = -pin_field; x <= pin_field; x += pin_pitch)
         {
-            const auto h = hash2((uint32_t)x, (uint32_t)y);
+            const auto h = hash2((u32)x, (u32)y);
             put_pin({x + (int)(h % pin_pitch)/2 - pin_pitch/4,
                      y + (int)(h/pin_pitch % pin_pitch)/2 - pin_pitch/4});
         }
 
-    constexpr uint32_t num_clumps = 360/pin_clump_deg;
+    constexpr u32 num_clumps = 360/pin_clump_deg;
     constexpr float sector = 2.f * Math::Constants<float>::pi() / (float)num_clumps;
 
     for (auto k = 0u; k < num_clumps; k++)
@@ -349,9 +349,9 @@ void generate_raycast_pins(world& w)
             // Radius varies per arc so the sweep meets them at a spread of distances rather than
             // all at once. Under pin_clump_r0 a ray stops before the DDA crosses a chunk edge.
             const auto h = hash2(k*pin_clump_rings + ring, pin_clump_seed);
-            const auto r = (float)(pin_clump_r0 + (int)(h % (uint32_t)(pin_field - pin_clump_r0)));
+            const auto r = (float)(pin_clump_r0 + (int)(h % (u32)(pin_field - pin_clump_r0)));
             // Pins spaced by their own width, so the arc has no gap for a ray to pass through.
-            const auto n = (uint32_t)(r * sector*pin_clump_span / (float)pin_size) + 1;
+            const auto n = (u32)(r * sector*pin_clump_span / (float)pin_size) + 1;
             for (auto i = 0u; i < n; i++)
             {
                 const auto theta = Rad{sector*((float)k - pin_clump_span/2
@@ -367,7 +367,7 @@ void generate_raycast_pins(world& w)
     }
 }
 
-uint32_t generate_chunk(world& w, chunk_coords_ ch, const scene_assets& a, bool walls)
+u32 generate_chunk(world& w, chunk_coords_ ch, const scene_assets& a, bool walls)
 {
     auto& c = w[ch];
     const auto chunk_parity = pmod(ch.x + ch.y, 2);
@@ -376,23 +376,23 @@ uint32_t generate_chunk(world& w, chunk_coords_ ch, const scene_assets& a, bool 
     for (auto k = 0u; k < TILE_COUNT; k++)
         c[k].ground() = { ground, variant_t(k % ground->num_tiles()) };
 
-    uint32_t objects = 0;
+    u32 objects = 0;
 
-    for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
-        for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+    for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
+        for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
         {
             // Shifting by a different coprime multiple of z per axis keeps stacked Z levels
             // from being copies of each other.
-            const auto px = int32_t(ch.x)*int32_t(TILE_MAX_DIM) + lx + 7*ch.z;
-            const auto py = int32_t(ch.y)*int32_t(TILE_MAX_DIM) + ly + 11*ch.z;
+            const auto px = i32(ch.x)*i32(TILE_MAX_DIM) + lx + 7*ch.z;
+            const auto py = i32(ch.y)*i32(TILE_MAX_DIM) + ly + 11*ch.z;
             const local_coords at{lx, ly};
 
             // variant -1 picks the frame by hashing the coordinate, giving per-tile variety
             // without a fourth pattern axis to keep coprime.
             if (walls)
             {
-                c[at].wall_north() = { a.walls[hash2((uint32_t)px, (uint32_t)py) % 3], (variant_t)-1 };
-                c[at].wall_west()  = { a.walls[hash2((uint32_t)py, (uint32_t)px) % 3], (variant_t)-1 };
+                c[at].wall_north() = { a.walls[hash2((u32)px, (u32)py) % 3], (variant_t)-1 };
+                c[at].wall_west()  = { a.walls[hash2((u32)py, (u32)px) % 3], (variant_t)-1 };
             }
 
             // TILE_MAX_DIM is even, so a plain tile checkerboard runs straight through a chunk
@@ -419,7 +419,7 @@ uint32_t generate_chunk(world& w, chunk_coords_ ch, const scene_assets& a, bool 
             if (pmod(px + 2*py, 4) == 0)
             {
                 light_proto p;
-                p.color = light_colors[hash2((uint32_t)px ^ 0x5a5au, (uint32_t)py) % array_size(light_colors)];
+                p.color = light_colors[hash2((u32)px ^ 0x5a5au, (u32)py) % array_size(light_colors)];
                 // Tiles, not pixels: lightmap_shader::add_light() multiplies by tile_size.
                 // Zero would drop the light before the falloff is read.
                 p.max_distance = 3;
@@ -446,20 +446,20 @@ uint32_t generate_chunk(world& w, chunk_coords_ ch, const scene_assets& a, bool 
 // none; width 5 is the first to leave 3, the minimum for a diagonal step, since
 // A* tests its two off-axis cells too. A cell is a tile only at div_size
 // 64 -- a finer grid resolves sub-tile columns, and width 2 leaves 4*width-6 of them at 16.
-void carve_corridor(world& w, int16_t cx, uint8_t start_tile, uint8_t width, int16_t cy_min, int16_t cy_max)
+void carve_corridor(world& w, i16 cx, u8 start_tile, u8 width, i16 cy_min, i16 cy_max)
 {
     fm_assert(width > 0 && start_tile + width < TILE_MAX_DIM);
     // The scene is generated without walls so there is something to look at, so the corridor's
     // two sides are put here instead of being what is left standing after the cut.
     auto wall = loader.wall_atlas("test1", loader_policy::warn);
 
-    for (int16_t cy = cy_min; cy <= cy_max; cy++)
+    for (i16 cy = cy_min; cy <= cy_max; cy++)
     {
         auto& c = w[chunk_coords_{cx, cy, 0}];
-        for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
+        for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
         {
             c[local_coords{start_tile, ly}].wall_west() = { wall, (variant_t)-1 };
-            c[local_coords{(uint8_t)(start_tile + width), ly}].wall_west() = { wall, (variant_t)-1 };
+            c[local_coords{(u8)(start_tile + width), ly}].wall_west() = { wall, (variant_t)-1 };
         }
         // Backwards because arrayRemove() shifts the tail down.
         c.objects().visit_lists([&]<typename T>(object_list<T>& l) {
@@ -493,10 +493,10 @@ void place_slide_geometry(world& w)
 
 // Unlike carve_corridor() no side walls go back in: the L is placed afterwards and anything else
 // left standing would deflect the run.
-void clear_chunks(world& w, int16_t cmin, int16_t cmax)
+void clear_chunks(world& w, i16 cmin, i16 cmax)
 {
-    for (int16_t cy = cmin; cy <= cmax; cy++)
-        for (int16_t cx = cmin; cx <= cmax; cx++)
+    for (i16 cy = cmin; cy <= cmax; cy++)
+        for (i16 cx = cmin; cx <= cmax; cx++)
         {
             auto& c = w[chunk_coords_{cx, cy, 0}];
             for (auto k = 0u; k < TILE_COUNT; k++)
@@ -514,11 +514,11 @@ void clear_chunks(world& w, int16_t cmin, int16_t cmax)
         }
 }
 
-void fill_ground_chunks(world& w, int16_t cmin, int16_t cmax)
+void fill_ground_chunks(world& w, i16 cmin, i16 cmax)
 {
     auto ground = loader.ground_atlas("floor-tiles");
-    for (int16_t cy = cmin; cy <= cmax; cy++)
-        for (int16_t cx = cmin; cx <= cmax; cx++)
+    for (i16 cy = cmin; cy <= cmax; cy++)
+        for (i16 cx = cmin; cx <= cmax; cx++)
         {
             auto& c = w[chunk_coords_{cx, cy, 0}];
             for (auto k = 0u; k < TILE_COUNT; k++)
@@ -537,21 +537,21 @@ void fill_ground_chunks(world& w, int16_t cmin, int16_t cmax)
 // blocks the cells around every obstacle, so a cell needs its whole 3x3 tile neighborhood clear;
 // on a 45-degree band that costs two tiles of u at each edge and leaves 2*half_width-3 passable.
 // Three is the minimum a diagonal step needs, because A* tests its two off-axis cells as well.
-void carve_diagonal(world& w, int u0, uint8_t half_width, int16_t cmin, int16_t cmax)
+void carve_diagonal(world& w, int u0, u8 half_width, i16 cmin, i16 cmax)
 {
     const int h = half_width;
     constexpr int dim = (int)TILE_MAX_DIM;
 
-    for (int16_t cy = cmin; cy <= cmax; cy++)
-        for (int16_t cx = cmin; cx <= cmax; cx++)
+    for (i16 cy = cmin; cy <= cmax; cy++)
+        for (i16 cx = cmin; cx <= cmax; cx++)
         {
             auto* c = w.at(chunk_coords_{cx, cy, 0});
             if (!c)
                 continue;
             const int u_chunk = (cx - cy)*dim;
             bool hit = false;
-            for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
-                for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+            for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
+                for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
                 {
                     const int u = u_chunk + lx - ly;
                     if (u < u0 - h || u > u0 + h)
@@ -577,7 +577,7 @@ void carve_diagonal(world& w, int u0, uint8_t half_width, int16_t cmin, int16_t 
         }
 }
 
-enum maze_flag : uint8_t { maze_seen = 1 << 0, maze_open_e = 1 << 1, maze_open_s = 1 << 2 };
+enum maze_flag : u8 { maze_seen = 1 << 0, maze_open_e = 1 << 1, maze_open_s = 1 << 2 };
 
 // W, N, E, S. The DFS tries the first two first, which is what makes the maze adversarial: they
 // point away from the goal cell at (max,max), so the trunk wanders and the branches aimed at the
@@ -586,11 +586,11 @@ enum maze_flag : uint8_t { maze_seen = 1 << 0, maze_open_e = 1 << 1, maze_open_s
 constexpr inline Vector2i maze_dirs[4] = { {-1,0}, {0,-1}, {1,0}, {0,1} };
 
 // Recursive backtracker. The maze is perfect -- no loops -- so every wrong turn is a dead end.
-Array<uint8_t> generate_maze(uint32_t dim, uint32_t seed)
+Array<u8> generate_maze(u32 dim, u32 seed)
 {
-    Array<uint8_t> flags{ValueInit, dim*dim};
-    Array<uint32_t> stack{NoInit, dim*dim};
-    uint32_t top = 0;
+    Array<u8> flags{ValueInit, dim*dim};
+    Array<u32> stack{NoInit, dim*dim};
+    u32 top = 0;
 
     flags[0] = maze_seen;
     stack[top++] = 0;
@@ -601,7 +601,7 @@ Array<uint8_t> generate_maze(uint32_t dim, uint32_t seed)
         const auto i = (int)(cur % dim), j = (int)(cur / dim);
         const auto h = hash2(cur, seed);
         // Away-from-goal pair first, the hash only choosing within each pair.
-        const uint32_t order[4] = {
+        const u32 order[4] = {
             h & 1 ? 1u : 0u, h & 1 ? 0u : 1u,
             h & 2 ? 3u : 2u, h & 2 ? 2u : 3u,
         };
@@ -613,7 +613,7 @@ Array<uint8_t> generate_maze(uint32_t dim, uint32_t seed)
             const auto ni = i + d.x(), nj = j + d.y();
             if (ni < 0 || nj < 0 || ni >= (int)dim || nj >= (int)dim)
                 continue;
-            const auto next = (uint32_t)nj*dim + (uint32_t)ni;
+            const auto next = (u32)nj*dim + (u32)ni;
             if (flags[next] & maze_seen)
                 continue;
             // One bit per wall, kept on the west or north cell of the pair that shares it.
@@ -639,7 +639,7 @@ Array<uint8_t> generate_maze(uint32_t dim, uint32_t seed)
 // maze. No edge wall to preserve as in carve_corridor() -- the scene around it already blocks.
 // One bit per wall, kept on the west or north cell of the pair that shares it, so a tile between
 // two cells is open only if the owning cell says so.
-bool maze_is_open(ArrayView<const uint8_t> flags, uint32_t cells, int tile0, int gx, int gy)
+bool maze_is_open(ArrayView<const u8> flags, u32 cells, int tile0, int gx, int gy)
 {
     const int span = (int)(cells*maze_pitch);
     const int ux = gx - tile0, uy = gy - tile0;
@@ -652,13 +652,13 @@ bool maze_is_open(ArrayView<const uint8_t> flags, uint32_t cells, int tile0, int
     if (!rx && !ry) // the pillar where two wall lines cross is never open
         return false;
     if (!rx)
-        return cx > 0 && cx < (int)cells && (flags[(uint32_t)(cy*(int)cells + cx - 1)] & maze_open_e) != 0;
-    return cy > 0 && cy < (int)cells && (flags[(uint32_t)((cy-1)*(int)cells + cx)] & maze_open_s) != 0;
+        return cx > 0 && cx < (int)cells && (flags[(u32)(cy*(int)cells + cx - 1)] & maze_open_e) != 0;
+    return cy > 0 && cy < (int)cells && (flags[(u32)((cy-1)*(int)cells + cx)] & maze_open_s) != 0;
 }
 
-struct maze_neighbors { uint32_t cell[4]; uint32_t count; };
+struct maze_neighbors { u32 cell[4]; u32 count; };
 
-maze_neighbors maze_adjacent(ArrayView<const uint8_t> flags, uint32_t dim, uint32_t c)
+maze_neighbors maze_adjacent(ArrayView<const u8> flags, u32 dim, u32 c)
 {
     maze_neighbors r{};
     const auto i = c % dim, j = c / dim;
@@ -673,7 +673,7 @@ maze_neighbors maze_adjacent(ArrayView<const uint8_t> flags, uint32_t dim, uint3
     return r;
 }
 
-void maze_open_wall(ArrayView<uint8_t> flags, uint32_t dim, uint32_t a, uint32_t b)
+void maze_open_wall(ArrayView<u8> flags, u32 dim, u32 a, u32 b)
 {
     if (b == a + 1)
         flags[a] |= maze_open_e;
@@ -688,15 +688,15 @@ void maze_open_wall(ArrayView<uint8_t> flags, uint32_t dim, uint32_t a, uint32_t
 // Randomized Prim: pick uniformly from every wall on the frontier, rather than from the walls of
 // the one cell just reached. That is where the junctions come from -- a DFS always extends its
 // newest cell and so tends to lay down a single long corridor.
-Array<uint8_t> generate_maze_braid(uint32_t dim, uint32_t seed)
+Array<u8> generate_maze_braid(u32 dim, u32 seed)
 {
-    Array<uint8_t> flags{ValueInit, dim*dim};
-    struct edge { uint32_t src, dst; };
+    Array<u8> flags{ValueInit, dim*dim};
+    struct edge { u32 src, dst; };
     // A cell is pushed at most once per neighbor over the whole run, so this never overflows.
     Array<edge> frontier{NoInit, 4*dim*dim};
-    uint32_t top = 0, step = 0;
+    u32 top = 0, step = 0;
 
-    const auto push_frontier = [&](uint32_t c)
+    const auto push_frontier = [&](u32 c)
     {
         const auto i = (int)(c % dim), j = (int)(c / dim);
         for (auto k = 0u; k < 4; k++)
@@ -704,7 +704,7 @@ Array<uint8_t> generate_maze_braid(uint32_t dim, uint32_t seed)
             const auto ni = i + maze_dirs[k].x(), nj = j + maze_dirs[k].y();
             if (ni < 0 || nj < 0 || ni >= (int)dim || nj >= (int)dim)
                 continue;
-            const auto n = (uint32_t)nj*dim + (uint32_t)ni;
+            const auto n = (u32)nj*dim + (u32)ni;
             if (!(flags[n] & maze_seen))
                 frontier[top++] = { c, n };
         }
@@ -727,19 +727,19 @@ Array<uint8_t> generate_maze_braid(uint32_t dim, uint32_t seed)
 
     // A dead end costs A* one step in and one step back. Reconnecting half of them leaves real
     // alternative routes, so the frontier stays wide instead of collapsing onto a single path.
-    for (uint32_t c = 0; c < dim*dim; c++)
+    for (u32 c = 0; c < dim*dim; c++)
     {
         const auto adj = maze_adjacent(flags, dim, c);
         if (adj.count != 1 || hash2(c, seed ^ 0xb1a1du) % 100 >= maze2_braid_pct)
             continue;
-        uint32_t cand[4], num = 0;
+        u32 cand[4], num = 0;
         const auto i = (int)(c % dim), j = (int)(c / dim);
         for (auto k = 0u; k < 4; k++)
         {
             const auto ni = i + maze_dirs[k].x(), nj = j + maze_dirs[k].y();
             if (ni < 0 || nj < 0 || ni >= (int)dim || nj >= (int)dim)
                 continue;
-            const auto n = (uint32_t)nj*dim + (uint32_t)ni;
+            const auto n = (u32)nj*dim + (u32)ni;
             if (n != adj.cell[0])
                 cand[num++] = n;
         }
@@ -750,12 +750,12 @@ Array<uint8_t> generate_maze_braid(uint32_t dim, uint32_t seed)
     return flags;
 }
 
-uint32_t maze_farthest_from(ArrayView<const uint8_t> flags, uint32_t dim, uint32_t src)
+u32 maze_farthest_from(ArrayView<const u8> flags, u32 dim, u32 src)
 {
     const auto count = dim*dim;
-    Array<uint32_t> dist{ValueInit, count}; // 0 means unvisited, so src starts at 1
-    Array<uint32_t> queue{NoInit, count};
-    uint32_t head = 0, tail = 0, best = src;
+    Array<u32> dist{ValueInit, count}; // 0 means unvisited, so src starts at 1
+    Array<u32> queue{NoInit, count};
+    u32 head = 0, tail = 0, best = src;
 
     dist[src] = 1;
     queue[tail++] = src;
@@ -777,7 +777,7 @@ uint32_t maze_farthest_from(ArrayView<const uint8_t> flags, uint32_t dim, uint32
     return best;
 }
 
-struct maze2_scene { Array<uint8_t> flags; uint32_t start, goal; };
+struct maze2_scene { Array<u8> flags; u32 start, goal; };
 
 // Cheap enough to redo per call at 1024 cells, which keeps the endpoints out of file scope.
 maze2_scene generate_maze2()
@@ -791,31 +791,31 @@ maze2_scene generate_maze2()
     return { move(flags), a, b };
 }
 
-point maze2_cell_point(uint32_t cell)
+point maze2_cell_point(u32 cell)
 {
     constexpr int dim = (int)TILE_MAX_DIM;
     const int gx = maze2_tile0 + (int)(cell % maze2_dim)*maze_pitch + maze_pitch/2;
     const int gy = maze2_tile0 + (int)(cell / maze2_dim)*maze_pitch + maze_pitch/2;
     const auto lx = (int)pmod(gx, dim), ly = (int)pmod(gy, dim);
-    return point{chunk_coords_{(int16_t)((gx - lx)/dim), (int16_t)((gy - ly)/dim), 0},
-                 local_coords{(uint8_t)lx, (uint8_t)ly}, {}};
+    return point{chunk_coords_{(i16)((gx - lx)/dim), (i16)((gy - ly)/dim), 0},
+                 local_coords{(u8)lx, (u8)ly}, {}};
 }
 
 // Ground and walls, no scenery. The first maze is carved out of the benchmark scene and drags
 // 129k objects along with it; none of that is being measured here.
-void build_maze2(world& w, ArrayView<const uint8_t> flags)
+void build_maze2(world& w, ArrayView<const u8> flags)
 {
     auto ground = loader.ground_atlas("floor-tiles");
     auto wall = loader.wall_atlas("test1", loader_policy::warn);
     constexpr int dim = (int)TILE_MAX_DIM;
 
-    for (int16_t cy = maze2_chunk_min; cy <= maze2_chunk_max; cy++)
-        for (int16_t cx = maze2_chunk_min; cx <= maze2_chunk_max; cx++)
+    for (i16 cy = maze2_chunk_min; cy <= maze2_chunk_max; cy++)
+        for (i16 cx = maze2_chunk_min; cx <= maze2_chunk_max; cx++)
         {
             auto& c = w[chunk_coords_{cx, cy, 0}];
             const int x0 = cx*dim, y0 = cy*dim;
-            for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
-                for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+            for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
+                for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
                 {
                     auto t = c[local_coords{lx, ly}];
                     t.ground() = { ground, variant_t((lx + ly) % ground->num_tiles()) };
@@ -836,7 +836,7 @@ void build_maze2(world& w, ArrayView<const uint8_t> flags)
 //
 // maze_is_open() is false along the span's own edge, which seals the block. Without that seal A*
 // would leave by the nearest side and walk around the outside.
-void build_maze(world& w, ArrayView<const uint8_t> flags, uint32_t cells, int16_t cmin, int16_t cmax)
+void build_maze(world& w, ArrayView<const u8> flags, u32 cells, i16 cmin, i16 cmax)
 {
     constexpr int dim = (int)TILE_MAX_DIM;
     const int span = (int)(cells*maze_pitch);
@@ -852,16 +852,16 @@ void build_maze(world& w, ArrayView<const uint8_t> flags, uint32_t cells, int16_
         return maze_is_open(flags, cells, maze_tile0, gx, gy);
     };
 
-    for (int16_t cy = cmin; cy <= cmax; cy++)
-        for (int16_t cx = cmin; cx <= cmax; cx++)
+    for (i16 cy = cmin; cy <= cmax; cy++)
+        for (i16 cx = cmin; cx <= cmax; cx++)
         {
             auto* c = w.at(chunk_coords_{cx, cy, 0});
             if (!c)
                 continue;
             const int x0 = cx*dim, y0 = cy*dim;
             bool hit = false;
-            for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
-                for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+            for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
+                for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
                 {
                     const int gx = x0 + lx, gy = y0 + ly;
                     if (!in_maze(gx, gy))
@@ -891,29 +891,29 @@ void build_maze(world& w, ArrayView<const uint8_t> flags, uint32_t cells, int16_
 
 // The middle tile of a cell's interior. Cell 0 is at tile pitch/2, which the walls either side
 // leave passable for any pitch >= 4.
-point maze_cell_point(uint32_t i, uint32_t j)
+point maze_cell_point(u32 i, u32 j)
 {
     constexpr int dim = (int)TILE_MAX_DIM;
     const int gx = maze_tile0 + (int)i*maze_pitch + maze_pitch/2;
     const int gy = maze_tile0 + (int)j*maze_pitch + maze_pitch/2;
     const auto lx = (int)pmod(gx, dim), ly = (int)pmod(gy, dim);
-    return point{chunk_coords_{(int16_t)((gx - lx)/dim), (int16_t)((gy - ly)/dim), 0},
-                 local_coords{(uint8_t)lx, (uint8_t)ly}, {}};
+    return point{chunk_coords_{(i16)((gx - lx)/dim), (i16)((gy - ly)/dim), 0},
+                 local_coords{(u8)lx, (u8)ly}, {}};
 }
 
 void generate_scene(world& w, int z_min, int z_max, bool walls,
-                    int16_t cmin = bench_chunk_min, int16_t cmax = bench_chunk_max)
+                    i16 cmin = bench_chunk_min, i16 cmax = bench_chunk_max)
 {
     const auto a = load_assets();
     auto t = Time::now();
-    uint32_t chunks = 0, objects = 0;
+    u32 chunks = 0, objects = 0;
 
     for (int z = z_min; z <= z_max; z++)
     {
-        for (int16_t cy = cmin; cy <= cmax; cy++)
-            for (int16_t cx = cmin; cx <= cmax; cx++)
+        for (i16 cy = cmin; cy <= cmax; cy++)
+            for (i16 cx = cmin; cx <= cmax; cx++)
             {
-                objects += generate_chunk(w, {cx, cy, (int8_t)z}, a, walls);
+                objects += generate_chunk(w, {cx, cy, (i8)z}, a, walls);
                 chunks++;
             }
         if (z_min != z_max)
@@ -924,7 +924,7 @@ void generate_scene(world& w, int z_min, int z_max, bool walls,
              chunks, objects, (double)Time::to_milliseconds(t.update()));
 }
 
-void lm_pillar(world& w, chunk_coords_ ch, uint8_t lx, uint8_t ly, Vector2b off)
+void lm_pillar(world& w, chunk_coords_ ch, u8 lx, u8 ly, Vector2b off)
 {
     auto p = pin_proto(lm_pillar_size);
     p.offset = off;
@@ -938,10 +938,10 @@ void lm_place_obstructions(world& w, chunk& c, chunk_coords_ ch, const bptr<wall
                            const lm_layout& L)
 {
     for (const auto& r : L.walls)
-        for (uint8_t k = 0; k < r.len; k++)
+        for (u8 k = 0; k < r.len; k++)
         {
-            auto t = c[local_coords{(uint8_t)(r.at.x() + (r.north ? k : 0)),
-                                    (uint8_t)(r.at.y() + (r.north ? 0 : k))}];
+            auto t = c[local_coords{(u8)(r.at.x() + (r.north ? k : 0)),
+                                    (u8)(r.at.y() + (r.north ? 0 : k))}];
             if (r.north)
                 t.wall_north() = { wall, (variant_t)-1 };
             else
@@ -956,15 +956,15 @@ void lm_place_obstructions(world& w, chunk& c, chunk_coords_ ch, const bptr<wall
 // Four motifs, so one preview shows four different things the shadow pass does rather than four
 // copies of one. Which chunk gets which is a band pattern and not a hash, so they stay tellable
 // apart in the preview.
-void lm_populate_chunk(world& w, chunk_coords_ ch, const bptr<wall_atlas>& wall, uint32_t theme)
+void lm_populate_chunk(world& w, chunk_coords_ ch, const bptr<wall_atlas>& wall, u32 theme)
 {
     auto& c = w[ch];
     switch (theme)
     {
     case 0: { // a room, with a doorway the light escapes through onto whatever is outside
-        constexpr uint8_t mid = (lm_box0 + lm_box1)/2;
+        constexpr u8 mid = (lm_box0 + lm_box1)/2;
         const auto door = pmod(ch.x*5 + ch.y*3, 4);
-        for (uint8_t t = lm_box0; t < lm_box1; t++)
+        for (u8 t = lm_box0; t < lm_box1; t++)
         {
             const bool gap = t >= mid-1 && t <= mid+1;
             if (!(gap && door == 0)) c[local_coords{t, lm_box0}].wall_north() = { wall, (variant_t)-1 };
@@ -980,26 +980,26 @@ void lm_populate_chunk(world& w, chunk_coords_ ch, const bptr<wall_atlas>& wall,
         break;
     }
     case 1: // two colonnades: the light stands between them and the shadows run out in parallel
-        for (uint8_t ly = 3; ly < 14; ly++)
+        for (u8 ly = 3; ly < 14; ly++)
         {
             lm_pillar(w, ch, 4, ly, {});
             lm_pillar(w, ch, 11, ly, {});
         }
         break;
     case 2: // staggered wall runs, so the wedge from one lands on the lit gap of the next
-        for (uint8_t s = 0; s < 3; s++)
+        for (u8 s = 0; s < 3; s++)
         {
-            const uint8_t row = (uint8_t)(3 + s*5), x0 = (uint8_t)(s % 2 ? 2 : 8);
-            for (uint8_t lx = x0; lx < x0 + 6; lx++)
+            const u8 row = (u8)(3 + s*5), x0 = (u8)(s % 2 ? 2 : 8);
+            for (u8 lx = x0; lx < x0 + 6; lx++)
                 c[local_coords{lx, row}].wall_north() = { wall, (variant_t)-1 };
         }
         break;
     default: // jittered pillar field -- a fan of shadow fingers, no two the same length
-        for (uint8_t ly = 2; ly < 14; ly = (uint8_t)(ly + 3))
-            for (uint8_t lx = 2; lx < 14; lx = (uint8_t)(lx + 3))
+        for (u8 ly = 2; ly < 14; ly = (u8)(ly + 3))
+            for (u8 lx = 2; lx < 14; lx = (u8)(lx + 3))
             {
-                const auto h = hash2(lx ^ (uint32_t)(ch.x*32), ly ^ (uint32_t)(ch.y*32));
-                lm_pillar(w, ch, lx, ly, {(int8_t)(h % 33 - 16), (int8_t)(h/33 % 33 - 16)});
+                const auto h = hash2(lx ^ (u32)(ch.x*32), ly ^ (u32)(ch.y*32));
+                lm_pillar(w, ch, lx, ly, {(i8)(h % 33 - 16), (i8)(h/33 % 33 - 16)});
             }
         break;
     }
@@ -1009,10 +1009,10 @@ void generate_lightmap_scene(world& w)
 {
     const auto a = load_assets();
     const auto& wall = a.walls[0];
-    uint32_t n = 0;
+    u32 n = 0;
 
-    for (int16_t cy = lm_chunk_min; cy <= lm_chunk_max; cy++)
-        for (int16_t cx = lm_chunk_min; cx <= lm_chunk_max; cx++, n++)
+    for (i16 cy = lm_chunk_min; cy <= lm_chunk_max; cy++)
+        for (i16 cx = lm_chunk_min; cx <= lm_chunk_max; cx++, n++)
         {
             const chunk_coords_ ch{cx, cy, 0};
             auto& c = w[ch];
@@ -1021,13 +1021,13 @@ void generate_lightmap_scene(world& w)
                 c[k].ground() = { ground, variant_t(k % ground->num_tiles()) };
 
             lm_populate_chunk(w, ch, wall, pmod(cx + 2*cy, 4));
-            const auto& L = lm_layouts[pmod(3*cx + cy, (int32_t)array_size(lm_layouts))];
+            const auto& L = lm_layouts[pmod(3*cx + cy, (i32)array_size(lm_layouts))];
             lm_place_obstructions(w, c, ch, wall, L);
 
             for (auto m = 0u; m < array_size(L.lights); m++)
             {
                 const auto& spec = L.lights[m];
-                const auto k = n * (uint32_t)array_size(L.lights) + m;
+                const auto k = n * (u32)array_size(L.lights) + m;
                 light_proto p;
                 // 7 is coprime with 23, so neighboring lights never share a color -- and a pair
                 // placed to overlap gets two hues a third of the wheel apart, which is what makes
@@ -1050,27 +1050,27 @@ void generate_lightmap_scene(world& w)
         }
 }
 
-void carve_corridor_baffles(world& w, int16_t cx, uint8_t start_tile, uint8_t width,
-                            int16_t cy_min, int16_t cy_max)
+void carve_corridor_baffles(world& w, i16 cx, u8 start_tile, u8 width,
+                            i16 cy_min, i16 cy_max)
 {
     // A tile-sized collider rather than a wall run: a wall frame is 192 px tall and would hide
     // the six tile rows behind every baffle, which is what made the walled walk scene unwatchable.
     const auto proto = pin_proto(tile_size_xy);
-    const auto rows = (uint32_t)(cy_max - cy_min + 1) * TILE_MAX_DIM;
+    const auto rows = (u32)(cy_max - cy_min + 1) * TILE_MAX_DIM;
 
     // Nothing in the first or last pitch, so the critter reaches its start column and gets back to
     // the goal's without a baffle in the way.
-    for (auto row = (uint32_t)walk_baffle_pitch; row + walk_baffle_pitch < rows;
+    for (auto row = (u32)walk_baffle_pitch; row + walk_baffle_pitch < rows;
          row += walk_baffle_pitch)
     {
         const bool east = (row / walk_baffle_pitch) & 1;
-        const auto x0 = (uint8_t)(east ? start_tile + width - walk_baffle_tiles : start_tile + 1);
-        const auto ch = chunk_coords_{cx, (int16_t)(cy_min + (int)(row / TILE_MAX_DIM)), 0};
-        const auto ly = (uint8_t)(row % TILE_MAX_DIM);
-        for (uint8_t k = 0; k < walk_baffle_tiles; k++)
+        const auto x0 = (u8)(east ? start_tile + width - walk_baffle_tiles : start_tile + 1);
+        const auto ch = chunk_coords_{cx, (i16)(cy_min + (int)(row / TILE_MAX_DIM)), 0};
+        const auto ly = (u8)(row % TILE_MAX_DIM);
+        for (u8 k = 0; k < walk_baffle_tiles; k++)
         {
             auto p = proto;
-            w.make_scenery<false>(w.make_id(), global_coords{ch, local_coords{(uint8_t)(x0 + k), ly}},
+            w.make_scenery<false>(w.make_id(), global_coords{ch, local_coords{(u8)(x0 + k), ly}},
                                   move(p));
         }
         auto& c = w[ch];
@@ -1087,7 +1087,7 @@ void app::populate_scene_benchmark()
     M->reset_fps();
 }
 
-void app::populate_scene_benchmark_walkable(uint8_t width)
+void app::populate_scene_benchmark_walkable(u8 width)
 {
     auto& w = M->world();
     generate_scene(w, 0, 0, false, bench_chunk_min, walk_chunk_max);
@@ -1102,7 +1102,7 @@ void app::populate_scene_benchmark_walkable(uint8_t width)
     auto C = ensure_player_character(w);
     auto index = C->index();
     C->teleport_to(index, global_coords{chunk_coords_{0, walk_chunk_min, 0},
-                                        local_coords{(uint8_t)(walk_corridor_tile+1), 2}},
+                                        local_coords{(u8)(walk_corridor_tile+1), 2}},
                    Vector2b{}, rotation_COUNT);
     M->reset_fps();
 }
@@ -1127,7 +1127,7 @@ void app::populate_scene_slide(bool dense)
     M->reset_fps();
 }
 
-void app::populate_scene_diagonal(uint8_t half_width)
+void app::populate_scene_diagonal(u8 half_width)
 {
     auto& w = M->world();
     generate_scene(w, 0, 0, true);
@@ -1140,9 +1140,9 @@ void app::populate_scene_diagonal(uint8_t half_width)
 
 // The four corner cells in cycle order, so leg k of scene_maze1's tour runs corner k to corner
 // k+1 and the last one closes back onto the first.
-point app::maze_corner(uint32_t k)
+point app::maze_corner(u32 k)
 {
-    constexpr uint32_t last = maze_dim - 1;
+    constexpr u32 last = maze_dim - 1;
     switch (k % 4)
     {
     case 0: return maze_cell_point(0, 0);
@@ -1193,12 +1193,12 @@ point app::maze2_goal() { return maze2_cell_point(generate_maze2().goal); }
 // the 3x3 neighborhood, and a missing chunk is a different path from an empty one.
 // num_pins is for the menu entry only. The driver passes none and lays them down one at a time,
 // which is the whole point of that scene -- an empty chunk is not a cheap version of a full one.
-void app::populate_scene_grids(uint32_t num_pins)
+void app::populate_scene_grids(u32 num_pins)
 {
     auto& w = M->world();
     auto ground = loader.ground_atlas("metal1");
-    for (int16_t cy = -1; cy <= 1; cy++)
-        for (int16_t cx = -1; cx <= 1; cx++)
+    for (i16 cy = -1; cy <= 1; cy++)
+        for (i16 cx = -1; cx <= 1; cx++)
         {
             auto& c = w[chunk_coords_{cx, cy, 0}];
             for (auto k = 0u; k < TILE_COUNT; k++)
@@ -1213,7 +1213,7 @@ void app::populate_scene_grids(uint32_t num_pins)
     auto C = ensure_player_character(w);
     auto index = C->index();
     const point center{chunk_coords_{0, 0, 0},
-                       local_coords{(uint8_t)(TILE_MAX_DIM/2), (uint8_t)(TILE_MAX_DIM/2)}, {}};
+                       local_coords{(u8)(TILE_MAX_DIM/2), (u8)(TILE_MAX_DIM/2)}, {}};
     C->teleport_to(index, center.coord(), Vector2b{}, rotation_COUNT);
     M->reset_fps();
 }
@@ -1221,7 +1221,7 @@ void app::populate_scene_grids(uint32_t num_pins)
 // One more pin in the center chunk, at a hash-picked pixel. scene_grids rebuilds the grids after
 // every call, so the run walks the whole occupancy curve from empty to saturated rather than
 // sampling one point on it.
-void app::add_grid_pin(uint32_t n)
+void app::add_grid_pin(u32 n)
 {
     auto& w = M->world();
     const auto h = hash2(n, grid_pin_seed);
@@ -1247,11 +1247,11 @@ void app::populate_scene_maze1()
 
 // The k-th light of the 3x3 testable middle. Only those nine have all 16 chunks of their lightmap
 // block populated; one nearer the edge previews a quarter of empty world.
-point app::lightmap_light(uint32_t k)
+point app::lightmap_light(u32 k)
 {
     const auto i = k % (lm_test_dim*lm_test_dim);
-    const chunk_coords_ ch{(int16_t)(lm_test_min + (int)(i % lm_test_dim)),
-                           (int16_t)(lm_test_min + (int)(i / lm_test_dim)), 0};
+    const chunk_coords_ ch{(i16)(lm_test_min + (int)(i % lm_test_dim)),
+                           (i16)(lm_test_min + (int)(i / lm_test_dim)), 0};
     return { ch, local_coords{lm_light_tile, lm_light_tile}, {} };
 }
 
@@ -1289,21 +1289,21 @@ void app::populate_scene_clickables()
     auto& w = M->world();
     const scenery_proto protos[] = { loader.scenery("stool1"), loader.scenery("chair1"), };
 
-    for (int16_t cy = clickables_chunk_min; cy <= clickables_chunk_max; cy++)
-        for (int16_t cx = clickables_chunk_min; cx <= clickables_chunk_max; cx++)
+    for (i16 cy = clickables_chunk_min; cy <= clickables_chunk_max; cy++)
+        for (i16 cx = clickables_chunk_min; cx <= clickables_chunk_max; cx++)
         {
             const chunk_coords_ ch{cx, cy, 0};
             auto& c = w[ch];
-            for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
-                for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+            for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
+                for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
                 {
-                    const auto tile = hash2((uint32_t)(int32_t(cx)*int32_t(TILE_MAX_DIM) + lx),
-                                            (uint32_t)(int32_t(cy)*int32_t(TILE_MAX_DIM) + ly));
+                    const auto tile = hash2((u32)(i32(cx)*i32(TILE_MAX_DIM) + lx),
+                                            (u32)(i32(cy)*i32(TILE_MAX_DIM) + ly));
                     for (auto k = 0u; k < clickables_per_tile; k++)
                     {
                         const auto h = hash2(tile ^ clickables_seed, k);
                         auto p = protos[h & 1];
-                        p.offset = { (int8_t)((h >> 1) % 64 - 32), (int8_t)((h >> 7) % 64 - 32), };
+                        p.offset = { (i8)((h >> 1) % 64 - 32), (i8)((h >> 7) % 64 - 32), };
                         w.make_scenery<false>(w.make_id(), {ch, local_coords{lx, ly}}, move(p));
                     }
                 }

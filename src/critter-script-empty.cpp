@@ -11,7 +11,7 @@ struct empty_critter_script final : critter_script
     const void* id() const override;
 
     void on_init(const bptr<critter>& c) override;
-    void on_update(const bptr<critter>& c, size_t& i, const Ns& dt) override;
+    void on_update(const bptr<critter>& c, usize& i, const Ns& dt) override;
     void on_destroy(const bptr<critter>& c, script_destroy_reason reason) override;
     void delete_self() noexcept override;
 };
@@ -29,7 +29,7 @@ const void* empty_critter_script::id() const
 }
 
 void empty_critter_script::on_init(const bptr<critter>&) {}
-void empty_critter_script::on_update(const bptr<critter>&, size_t&, const Ns&) {}
+void empty_critter_script::on_update(const bptr<critter>&, usize&, const Ns&) {}
 void empty_critter_script::on_destroy(const bptr<critter>&, script_destroy_reason) {}
 void empty_critter_script::delete_self() noexcept { }
 

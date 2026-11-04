@@ -23,23 +23,23 @@ namespace floormat::detail::grid {
 namespace {
 // Bit n of the grid is bit (n & 7) of byte (n >> 3), as BitArray stores it. Read as
 // little-endian 64-bit words, that's bit (n & 63) of word (n >> 6) on any host.
-uint64_t load_word(const uint8_t* bits, uint32_t word)
+u64 load_word(const u8* bits, u32 word)
 {
-    uint64_t w;
+    u64 w;
     std::memcpy(&w, bits + word * sizeof w, sizeof w);
     if constexpr (std::endian::native == std::endian::big)
         w = std::byteswap(w);
     return w;
 }
 
-void store_word(uint8_t* bits, uint32_t word, uint64_t w)
+void store_word(u8* bits, u32 word, u64 w)
 {
     if constexpr (std::endian::native == std::endian::big)
         w = std::byteswap(w);
     std::memcpy(bits + word * sizeof w, &w, sizeof w);
 }
 
-void clear_word_bits(uint8_t* bits, uint32_t word, uint64_t mask)
+void clear_word_bits(u8* bits, u32 word, u64 mask)
 {
     store_word(bits, word, load_word(bits, word) & ~mask);
 }
@@ -49,25 +49,25 @@ void clear_word_bits(uint8_t* bits, uint32_t word, uint64_t mask)
 
 // Every row's span sits inside one word: rows pack whole into words (64 % div_count == 0),
 // or rows are whole words and the span doesn't cross a multiple of 64.
-void clear_rect_in_word(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi)
+void clear_rect_in_word(u8* bits, u32 div_count, u32 i_lo, u32 i_hi, u32 j_lo, u32 j_hi)
 {
     fm_debug3_assert(64 % div_count == 0 || (div_count % 64 == 0 && i_lo >> 6 == i_hi >> 6));
-    const uint64_t span = ~uint64_t{0} >> (63 - (i_hi - i_lo));
+    const u64 span = ~u64{0} >> (63 - (i_hi - i_lo));
     for (auto bit = j_lo * div_count + i_lo, end = j_hi * div_count + i_lo; bit <= end; bit += div_count)
         clear_word_bits(bits, bit >> 6, span << (bit & 63));
 }
 
 // Rows are whole words (div_count % 64 == 0). Whether the span crosses a word boundary
 // depends on the obstacle, so it's tested once here rather than per row.
-void clear_rect_whole_rows(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi)
+void clear_rect_whole_rows(u8* bits, u32 div_count, u32 i_lo, u32 i_hi, u32 j_lo, u32 j_hi)
 {
     fm_debug3_assert(div_count % 64 == 0);
     const auto w0 = i_lo >> 6, w1 = i_hi >> 6;
     if (w0 == w1)
         return clear_rect_in_word(bits, div_count, i_lo, i_hi, j_lo, j_hi);
 
-    const uint64_t m_lo = ~uint64_t{0} << (i_lo & 63);
-    const uint64_t m_hi = ~uint64_t{0} >> (63 - (i_hi & 63));
+    const u64 m_lo = ~u64{0} << (i_lo & 63);
+    const u64 m_hi = ~u64{0} >> (63 - (i_hi & 63));
     const auto words_per_row = div_count >> 6;
     for (auto row = j_lo * words_per_row, end = j_hi * words_per_row; row <= end; row += words_per_row)
     {
@@ -79,7 +79,7 @@ void clear_rect_whole_rows(uint8_t* bits, uint32_t div_count, uint32_t i_lo, uin
 }
 
 // Whole 64-bit words, so the clear_rect_*() functions never read past the end of a small grid.
-constexpr uint32_t bitmask_size(uint32_t div_count)
+constexpr u32 bitmask_size(u32 div_count)
 {
     return (div_count * div_count + 63) & ~63u;
 }
@@ -109,25 +109,25 @@ struct PassGrid : GridBase
 
     void reset_for_reuse(chunk& ch, Params new_params);
 
-    static uint32_t get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count);
-    uint32_t get_bitmask_index_from_coord(intra_coord pos) const;
-    Range2D get_coord_from_div(uint32_t x, uint32_t y) const;
+    static u32 get_bitmask_index(u32 x, u32 y, u32 div_count);
+    u32 get_bitmask_index_from_coord(intra_coord pos) const;
+    Range2D get_coord_from_div(u32 x, u32 y) const;
     bool is_all_empty() const noexcept { return all_empty; }
 
     void build_impl(chunk* self, const pred& predicate);
 };
 
-uint32_t PassGrid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
+u32 PassGrid::get_bitmask_index(u32 x, u32 y, u32 div_count)
 {
     return GridBase::pack_bit_index(x, y, div_count);
 }
 
-uint32_t PassGrid::get_bitmask_index_from_coord(intra_coord pos) const
+u32 PassGrid::get_bitmask_index_from_coord(intra_coord pos) const
 {
     return GridBase::pack_bit_index_from_coord(pos, params.div_count);
 }
 
-Range2D PassGrid::get_coord_from_div(uint32_t x, uint32_t y) const
+Range2D PassGrid::get_coord_from_div(u32 x, u32 y) const
 {
     return GridBase::coord_range_from_div(x, y, params.div_size(), params.bbox_size);
 }
@@ -136,7 +136,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
 {
     bitmask.setAll();
     fm_debug_assert(bitmask.offset() == 0);
-    uint8_t* const bits{reinterpret_cast<uint8_t*>(bitmask.data())};
+    u8* const bits{reinterpret_cast<u8*>(bitmask.data())};
 
     const auto div_countʹ = params.div_count;
     const auto div_size  = params.div_size();
@@ -168,7 +168,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
                                  chunk_size<float> - half_tile<float> + bbox_hi };
     const float inv_div = 1.f / (float)div_size; // xxx todo assumes power of two chunk size
     const int idiv_count = (int)div_countʹ;
-    const auto min_pass = (uint64_t)params.min_pass;
+    const auto min_pass = (u64)params.min_pass;
     all_empty = true;
 
     // Instantiated once per clear_rect, so the choice below is made once per build.
@@ -183,7 +183,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
             const float pmax[2] = { pmax_self[0] - off.x(), pmax_self[1] - off.y() };
             c->rtree()->Search(pmin, pmax, [&](object_id data, const auto& r) {
                 const auto x = std::bit_cast<collision_data>(data);
-                fm_debug3_assert(x.type != (uint64_t)collision_type::none);
+                fm_debug3_assert(x.type != (u64)collision_type::none);
                 if (x.pass >= min_pass)
                     return true;
                 auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
@@ -210,7 +210,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
                 if (i_lo > i_hi || j_lo > j_hi)
                     return true;
 
-                clear_rect((uint32_t)i_lo, (uint32_t)i_hi, (uint32_t)j_lo, (uint32_t)j_hi);
+                clear_rect((u32)i_lo, (u32)i_hi, (u32)j_lo, (u32)j_hi);
                 return true;
             });
         }
@@ -218,11 +218,11 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
 
     // div_count is a power of two, so it divides 64 or is a multiple of it.
     if (64 % div_countʹ == 0) [[likely]] // xxx todo assumes power of two chunk size
-        clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
+        clear_obstacles([=](u32 i_lo, u32 i_hi, u32 j_lo, u32 j_hi) {
             clear_rect_in_word(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
         });
     else
-        clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
+        clear_obstacles([=](u32 i_lo, u32 i_hi, u32 j_lo, u32 j_hi) {
             clear_rect_whole_rows(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
         });
 }
@@ -327,22 +327,22 @@ Grid::Grid(detail::grid::PassGrid* grid_, detail::grid::PassPool* pool_):
 {
 }
 
-uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
+u32 Grid::get_bitmask_index(u32 x, u32 y, u32 div_count)
 {
     return detail::grid::PassGrid::get_bitmask_index(x, y, div_count);
 }
 
-uint32_t Grid::get_bitmask_index_from_coord(intra_coord pos) const
+u32 Grid::get_bitmask_index_from_coord(intra_coord pos) const
 {
     return grid->get_bitmask_index_from_coord(pos);
 }
 
-Range2D Grid::get_coord_from_div(uint32_t x, uint32_t y) const
+Range2D Grid::get_coord_from_div(u32 x, u32 y) const
 {
     return grid->get_coord_from_div(x, y);
 }
 
-bool Grid::bit(uint32_t index) const
+bool Grid::bit(u32 index) const
 {
     return detail::grid::grid_bit_at(pool, grid, index);
 }
@@ -351,15 +351,15 @@ BitView Grid::bits() const
 {
     detail::grid::check_current(grid);
     fm_debug_assert(grid->bitmask.offset() == 0);
-    return { reinterpret_cast<uint8_t*>(grid->bitmask.data()) };
+    return { reinterpret_cast<u8*>(grid->bitmask.data()) };
 }
 
-uint32_t Grid::div_count() const
+u32 Grid::div_count() const
 {
     return grid->params.div_count;
 }
 
-uint64_t Grid::build_no() const
+u64 Grid::build_no() const
 {
     detail::grid::check_current(grid);
     return grid->build_no;
@@ -419,6 +419,6 @@ void Pool::build_if_stale_all()
 Pool::Pool(Params params, const pred& predicate): pool{new detail::grid::PassPool{params, predicate}} { }
 Pool::~Pool() noexcept { delete pool; }
 const Params& Pool::params() const { return pool->params; }
-uint32_t Pool::pooled_count() const { return pool->freelist.size(); }
+u32 Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Pass

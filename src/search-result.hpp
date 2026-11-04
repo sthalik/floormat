@@ -17,21 +17,21 @@ struct path_search_result final
         point pt;
         // The raw_path() segment whose step string pulling was at when it added the waypoint.
         // 0 for the first waypoint, raw_path().size() - 1 for the last.
-        uint32_t raw_index;
+        u32 raw_index;
     };
 
-    size_t size() const;
+    usize size() const;
     bool empty() const;
-    uint32_t cost() const;
-    void set_cost(uint32_t value);
+    u32 cost() const;
+    void set_cost(u32 value);
     float time() const;
     void set_time(float time);
     bool is_found() const;
     void set_found(bool value);
-    uint32_t distance() const;
-    void set_distance(uint32_t dist);
-    uint32_t div_size() const;
-    void set_div_size(uint32_t value);
+    u32 distance() const;
+    void set_distance(u32 dist);
+    u32 div_size() const;
+    void set_div_size(u32 value);
 
     Array<point>& raw_path();
     ArrayView<const point> path() const;
@@ -50,7 +50,7 @@ private:
 
     Pointer<node> _node;
     float _time = 0;
-    uint32_t _cost = 0, _distance = (uint32_t)-1, _div_size = 0;
+    u32 _cost = 0, _distance = (u32)-1, _div_size = 0;
     bool _found : 1 = false;
 
     static Pointer<node> _pool; // NOLINT(*-avoid-non-const-global-variables) todo thread safety

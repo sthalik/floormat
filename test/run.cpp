@@ -53,10 +53,10 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
     fm_assert(start.name);
     fm_assert(start.instance);
     fm_assert(start.rotation < rotation_COUNT);
-    expected.time.stamp = uint64_t(expected.time.stamp / start.accel);
+    expected.time.stamp = u64(expected.time.stamp / start.accel);
     fm_assert(expected.time <= max_time);
-    if (grace.distance_L1 != (uint32_t)-1) [[unlikely]]
-        fm_assert(grace.distance_L1 <= (uint32_t)chunk_size<Vector2>.length());
+    if (grace.distance_L1 != (u32)-1) [[unlikely]]
+        fm_assert(grace.distance_L1 <= (u32)chunk_size<Vector2>.length());
 
     mark_all_modified(w);
 
@@ -69,9 +69,9 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
 
     Ns time{0}, saved_time{0};
     auto last_pos = npc.position();
-    uint32_t i;
+    u32 i;
     constexpr auto max_stop_frames = 250; // todo detect collisions properly and don't rely on this
-    uint32_t frames_stopped = 0;
+    u32 frames_stopped = 0;
 
     if (!start.quiet) [[unlikely]]
         Debug{} << "**" << start.name << start.instance << colon();
@@ -164,7 +164,7 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
 
     if (expected.time != Ns{}) [[likely]]
     {
-        const auto time_diff = Ns{Math::abs((int64_t)expected.time.stamp - (int64_t)saved_time.stamp)};
+        const auto time_diff = Ns{Math::abs((i64)expected.time.stamp - (i64)saved_time.stamp)};
         if (time_diff > grace.time)
         {
             if (!start.silent) [[unlikely]]

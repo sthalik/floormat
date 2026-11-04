@@ -48,11 +48,11 @@ struct Expected
 struct Grace
 {
     Ns time = Ns{250};
-    uint32_t distance_L1 = 24;
-    uint32_t max_steps = 1'000;
+    u32 distance_L1 = 24;
+    u32 max_steps = 1'000;
     bool no_crash = false;
 
-    static constexpr uint32_t very_slow_max_steps = 120'000,
+    static constexpr u32 very_slow_max_steps = 120'000,
                               slow_max_steps      = 12'000,
                               default_max_steps   = 1'200;
 };

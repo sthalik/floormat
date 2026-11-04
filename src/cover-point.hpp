@@ -19,22 +19,22 @@ struct cover_query
     point pos;
     Vector2ui body_size;
     point threat;
-    uint32_t radius;
+    u32 radius;
     /// 0, or an odd number up to 9 of cover grid octants, centered on the bearing from a candidate to
     /// the threat, that must each hide the body, so a threat that moves a little still doesn't see it.
     /// An accepted spot must also stay hidden from the threat turned about it by up to octants/2.
-    uint8_t octants = 0;
+    u8 octants = 0;
     /// 0, or how far in px an accepted spot may move along the face it is flush against, toward the
     /// side where the body is first seen. It stops at the last px where the body is still hidden,
     /// fits and is flush.
-    uint32_t max_cover_end_dist = 0;
+    u32 max_cover_end_dist = 0;
     /// When set, only cells whose center c has area->min() <= c - pos < area->max(), in px, are
     /// candidates. Areas that tile the plane together accept the spots one search without an area
     /// does, since each candidate is judged alone. Two areas can accept the same spot.
     Optional<Range2Di> area = {};
     /// The most octant fills the call may do, a stale grid's rebuild counting as one. A read that
     /// needs one more ends the call with out_of_fills before any candidate is tried.
-    uint32_t max_fills = (uint32_t)-1;
+    u32 max_fills = (u32)-1;
 };
 
 struct cover_spot
@@ -55,12 +55,12 @@ struct cover_point_result
     /// is valid until the next find_cover_point() call.
     ArrayView<const cover_spot> spots;
     /// The number of candidates, including those never tried.
-    uint32_t candidates = 0;
+    u32 candidates = 0;
     /// The candidates pushed flush to a blocker and still seen by the threat or a turned one,
     /// among those tried before pos, or among all of them when found is false.
-    uint32_t rejected = 0;
+    u32 rejected = 0;
     /// Octant fills the call did, rebuilds included.
-    uint32_t fills = 0;
+    u32 fills = 0;
     bool found = false;
     /// The call stopped at q.max_fills and found nothing. The same query goes on from there, as the
     /// fills done stay in the grids.
@@ -68,7 +68,7 @@ struct cover_point_result
 };
 
 /// The cover grid octant whose bearing is nearest v's.
-uint32_t nearest_octant(Vector2 v);
+u32 nearest_octant(Vector2 v);
 
 /// The unit vector along v's longer axis, pointing the way v does. x wins a tie, and a zero v gives {-1, 0}.
 Vector2i axis_toward(Vector2i v);
@@ -78,7 +78,7 @@ Vector2i across_of(Vector2i axis);
 
 /// Replaces out with the offsets, in tiles, of the tiles whose nearest point lies within radius px
 /// of a tile's center, nearest first, then by y and x.
-void nearest_tiles(uint32_t radius, Array<Vector2i>& out);
+void nearest_tiles(u32 radius, Array<Vector2i>& out);
 
 struct cover_point
 {

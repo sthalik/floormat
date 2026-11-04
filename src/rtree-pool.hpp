@@ -9,7 +9,7 @@ template<typename T> struct rtree_pool final
     rtree_pool(const rtree_pool&) = delete;
     rtree_pool& operator=(const rtree_pool&) = delete;
     ~rtree_pool() noexcept;
-    size_t alive_count() const;
+    usize alive_count() const;
 
     template<typename... Xs>
     T* construct(Xs&&... args)
@@ -31,7 +31,7 @@ private:
     static void unpoison(node_u* n) noexcept;
 
     node_u* free_list = nullptr;
-    size_t live_count = 0;
+    usize live_count = 0;
 };
 
 } // namespace floormat::detail

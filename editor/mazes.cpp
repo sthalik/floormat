@@ -25,37 +25,37 @@ namespace floormat::mazes {
 
 namespace {
 
-constexpr inline uint32_t maze_pitch = 2, room_min = 4, room_spread = 5;
+constexpr inline u32 maze_pitch = 2, room_min = 4, room_spread = 5;
 
-enum : uint8_t { open_e = 1 << 0, open_s = 1 << 1 };
-enum : uint8_t { wall_w = 1 << 0, wall_n = 1 << 1 };
+enum : u8 { open_e = 1 << 0, open_s = 1 << 1 };
+enum : u8 { wall_w = 1 << 0, wall_n = 1 << 1 };
 
 struct rng
 {
-    uint64_t s;
+    u64 s;
 
     // splitmix64, then Lemire's multiply-shift onto [0, n)
-    uint32_t operator()(uint32_t n)
+    u32 operator()(u32 n)
     {
         s += 0x9e3779b97f4a7c15u;
         auto z = s;
         z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9u;
         z = (z ^ (z >> 27)) * 0x94d049bb133111ebu;
         z ^= z >> 31;
-        return (uint32_t)(((z >> 32) * n) >> 32);
+        return (u32)(((z >> 32) * n) >> 32);
     }
 };
 
 struct cell_graph
 {
-    struct adjacent { uint32_t cell[4]; uint32_t count; };
+    struct adjacent { u32 cell[4]; u32 count; };
 
-    uint32_t w, h;
-    Array<uint8_t> flags;
+    u32 w, h;
+    Array<u8> flags;
 
-    cell_graph(uint32_t w, uint32_t h): w{w}, h{h}, flags{ValueInit, w*h} {}
+    cell_graph(u32 w, u32 h): w{w}, h{h}, flags{ValueInit, w*h} {}
 
-    adjacent neighbors(uint32_t c) const
+    adjacent neighbors(u32 c) const
     {
         adjacent r{};
         const auto x = c % w, y = c / w;
@@ -71,22 +71,22 @@ struct cell_graph
     }
 
     // one bit per wall, kept on the west or north cell of the pair
-    bool is_open(uint32_t a, uint32_t b) const
+    bool is_open(u32 a, u32 b) const
     {
         const auto lo = Math::min(a, b), hi = Math::max(a, b);
         return (flags[lo] & (hi == lo + 1 ? open_e : open_s)) != 0;
     }
 
-    void connect(uint32_t a, uint32_t b)
+    void connect(u32 a, u32 b)
     {
         const auto lo = Math::min(a, b), hi = Math::max(a, b);
         flags[lo] |= hi == lo + 1 ? open_e : open_s;
     }
 
-    uint32_t degree(uint32_t c) const
+    u32 degree(u32 c) const
     {
         const auto nb = neighbors(c);
-        uint32_t n = 0;
+        u32 n = 0;
         for (auto i = 0u; i < nb.count; i++)
             n += is_open(c, nb.cell[i]);
         return n;
@@ -96,10 +96,10 @@ struct cell_graph
 void wilson(cell_graph& g, rng& r)
 {
     const auto n = g.w*g.h;
-    Array<uint8_t> in_tree{ValueInit, n};
-    Array<uint32_t> next{NoInit, n};
+    Array<u8> in_tree{ValueInit, n};
+    Array<u32> next{NoInit, n};
     in_tree[0] = 1;
-    for (uint32_t s = 0; s < n; s++)
+    for (u32 s = 0; s < n; s++)
     {
         // a revisit overwrites next[], which erases the loop
         for (auto c = s; !in_tree[c]; c = next[c])
@@ -117,13 +117,13 @@ void wilson(cell_graph& g, rng& r)
 
 void prim(cell_graph& g, rng& r)
 {
-    enum : uint8_t { unseen, queued, seen };
+    enum : u8 { unseen, queued, seen };
     const auto n = g.w*g.h;
-    Array<uint8_t> state{ValueInit, n};
-    Array<uint32_t> frontier{NoInit, n};
-    uint32_t top = 0;
+    Array<u8> state{ValueInit, n};
+    Array<u32> frontier{NoInit, n};
+    u32 top = 0;
 
-    const auto visit = [&](uint32_t c) {
+    const auto visit = [&](u32 c) {
         state[c] = seen;
         const auto nb = g.neighbors(c);
         for (auto i = 0u; i < nb.count; i++)
@@ -141,7 +141,7 @@ void prim(cell_graph& g, rng& r)
         const auto c = frontier[i];
         frontier[i] = frontier[--top];
         const auto nb = g.neighbors(c);
-        uint32_t cand[4], k = 0;
+        u32 cand[4], k = 0;
         for (auto j = 0u; j < nb.count; j++)
             if (state[nb.cell[j]] == seen)
                 cand[k++] = nb.cell[j];
@@ -155,9 +155,9 @@ void prim(cell_graph& g, rng& r)
 void growing_tree(cell_graph& g, rng& r)
 {
     const auto n = g.w*g.h;
-    Array<uint8_t> seen{ValueInit, n};
-    Array<uint32_t> active{NoInit, n};
-    uint32_t top = 0;
+    Array<u8> seen{ValueInit, n};
+    Array<u32> active{NoInit, n};
+    u32 top = 0;
     const auto start = r(n);
     seen[start] = 1;
     active[top++] = start;
@@ -166,7 +166,7 @@ void growing_tree(cell_graph& g, rng& r)
         const auto i = r(4) ? top - 1 : r(top);
         const auto c = active[i];
         const auto nb = g.neighbors(c);
-        uint32_t cand[4], k = 0;
+        u32 cand[4], k = 0;
         for (auto j = 0u; j < nb.count; j++)
             if (!seen[nb.cell[j]])
                 cand[k++] = nb.cell[j];
@@ -185,8 +185,8 @@ void growing_tree(cell_graph& g, rng& r)
 void braid(cell_graph& g, rng& r)
 {
     const auto n = g.w*g.h;
-    Array<uint32_t> order{NoInit, n};
-    for (uint32_t i = 0; i < n; i++)
+    Array<u32> order{NoInit, n};
+    for (u32 i = 0; i < n; i++)
         order[i] = i;
     for (auto i = n - 1; i > 0; i--)
         std::swap(order[i], order[r(i + 1)]);
@@ -196,7 +196,7 @@ void braid(cell_graph& g, rng& r)
         if (g.degree(c) != 1)
             continue;
         const auto nb = g.neighbors(c);
-        uint32_t closed[4], dead[4], nc = 0, nd = 0;
+        u32 closed[4], dead[4], nc = 0, nd = 0;
         for (auto k = 0u; k < nb.count; k++)
             if (!g.is_open(c, nb.cell[k]))
             {
@@ -211,20 +211,20 @@ void braid(cell_graph& g, rng& r)
 // Tiles [0, size]² so that the last row and column carry the east and south seal.
 struct wall_map
 {
-    uint32_t size;
-    Array<uint8_t> walls;
+    u32 size;
+    Array<u8> walls;
 
-    explicit wall_map(uint32_t size): size{size}, walls{ValueInit, (size+1)*(size+1)} {}
-    uint8_t& at(uint32_t x, uint32_t y) { return walls[y*(size+1) + x]; }
-    uint8_t at(uint32_t x, uint32_t y) const { return walls[y*(size+1) + x]; }
+    explicit wall_map(u32 size): size{size}, walls{ValueInit, (size+1)*(size+1)} {}
+    u8& at(u32 x, u32 y) { return walls[y*(size+1) + x]; }
+    u8 at(u32 x, u32 y) const { return walls[y*(size+1) + x]; }
 };
 
 wall_map draw_maze(const cell_graph& g)
 {
     const auto size = g.w*maze_pitch;
     wall_map m{size};
-    for (uint32_t y = 0; y <= size; y++)
-        for (uint32_t x = 0; x <= size; x++)
+    for (u32 y = 0; y <= size; y++)
+        for (u32 x = 0; x <= size; x++)
         {
             const auto cx = x / maze_pitch, cy = y / maze_pitch;
             if (x % maze_pitch == 0 && y < size)
@@ -237,9 +237,9 @@ wall_map draw_maze(const cell_graph& g)
     return m;
 }
 
-Array<uint32_t> room_lines(rng& r)
+Array<u32> room_lines(rng& r)
 {
-    Array<uint32_t> lines;
+    Array<u32> lines;
     arrayReserve(lines, map_tiles/room_min + 1);
     arrayAppend(lines, 0u);
     for (;;)
@@ -256,10 +256,10 @@ Array<uint32_t> room_lines(rng& r)
 wall_map draw_rooms(rng& r)
 {
     const auto xs = room_lines(r), ys = room_lines(r);
-    cell_graph g{(uint32_t)xs.size() - 1, (uint32_t)ys.size() - 1};
+    cell_graph g{(u32)xs.size() - 1, (u32)ys.size() - 1};
     wilson(g, r);
     // The spanning tree opens about half the walls. Opening half of the rest leaves doors in 75 %.
-    for (uint32_t c = 0; c < g.w*g.h; c++)
+    for (u32 c = 0; c < g.w*g.h; c++)
     {
         if (c % g.w + 1 < g.w && r(2))
             g.connect(c, c + 1);
@@ -268,22 +268,22 @@ wall_map draw_rooms(rng& r)
     }
 
     wall_map m{map_tiles};
-    for (uint32_t j = 0; j < g.h; j++)
-        for (uint32_t i = 0; i <= g.w; i++)
+    for (u32 j = 0; j < g.h; j++)
+        for (u32 i = 0; i <= g.w; i++)
         {
             const auto y0 = ys[j], len = ys[j+1] - y0;
             const bool door = i > 0 && i < g.w && g.is_open(j*g.w + i - 1, j*g.w + i);
-            const auto door_y = door ? y0 + 1 + r(len - 2) : (uint32_t)-1;
+            const auto door_y = door ? y0 + 1 + r(len - 2) : (u32)-1;
             for (auto y = y0; y < y0 + len; y++)
                 if (y != door_y)
                     m.at(xs[i], y) |= wall_w;
         }
-    for (uint32_t j = 0; j <= g.h; j++)
-        for (uint32_t i = 0; i < g.w; i++)
+    for (u32 j = 0; j <= g.h; j++)
+        for (u32 i = 0; i < g.w; i++)
         {
             const auto x0 = xs[i], len = xs[i+1] - x0;
             const bool door = j > 0 && j < g.h && g.is_open((j-1)*g.w + i, j*g.w + i);
-            const auto door_x = door ? x0 + 1 + r(len - 2) : (uint32_t)-1;
+            const auto door_x = door ? x0 + 1 + r(len - 2) : (u32)-1;
             for (auto x = x0; x < x0 + len; x++)
                 if (x != door_x)
                     m.at(x, ys[j]) |= wall_n;
@@ -291,14 +291,14 @@ wall_map draw_rooms(rng& r)
     return m;
 }
 
-struct far_tile { uint32_t tile, dist; };
+struct far_tile { u32 tile, dist; };
 
-far_tile farthest(const wall_map& m, uint32_t src)
+far_tile farthest(const wall_map& m, u32 src)
 {
     const auto n = m.size;
-    Array<uint32_t> dist{DirectInit, n*n, (uint32_t)-1};
-    Array<uint32_t> queue{NoInit, n*n};
-    uint32_t head = 0, tail = 0;
+    Array<u32> dist{DirectInit, n*n, (u32)-1};
+    Array<u32> queue{NoInit, n*n};
+    u32 head = 0, tail = 0;
     dist[src] = 0;
     queue[tail++] = src;
     far_tile best{src, 0};
@@ -309,8 +309,8 @@ far_tile farthest(const wall_map& m, uint32_t src)
         const auto x = t % n, y = t / n;
         if (dist[t] > best.dist)
             best = {t, dist[t]};
-        const auto visit = [&](uint32_t u) {
-            if (dist[u] != (uint32_t)-1)
+        const auto visit = [&](u32 u) {
+            if (dist[u] != (u32)-1)
                 return;
             dist[u] = dist[t] + 1;
             queue[tail++] = u;
@@ -327,12 +327,12 @@ far_tile farthest(const wall_map& m, uint32_t src)
     return best;
 }
 
-point tile_point(chunk_coords_ origin, const wall_map& m, uint32_t t)
+point tile_point(chunk_coords_ origin, const wall_map& m, u32 t)
 {
     const auto x = t % m.size, y = t / m.size;
     const auto cx = origin.x + (int)(x / TILE_MAX_DIM), cy = origin.y + (int)(y / TILE_MAX_DIM);
-    return { chunk_coords_{(int16_t)cx, (int16_t)cy, 0},
-             local_coords{(uint8_t)(x % TILE_MAX_DIM), (uint8_t)(y % TILE_MAX_DIM)}, {} };
+    return { chunk_coords_{(i16)cx, (i16)cy, 0},
+             local_coords{(u8)(x % TILE_MAX_DIM), (u8)(y % TILE_MAX_DIM)}, {} };
 }
 
 wall_map make_map(kind k, rng& r)
@@ -367,11 +367,11 @@ point open_point(world& w, Grid::Pass::Pool& pool, point centre)
     fm_abort("no open pass cell near the tile centre");
 }
 
-enum class side : uint8_t { w, e, n, s };
+enum class side : u8 { w, e, n, s };
 
 struct opening
 {
-    uint32_t cell;
+    u32 cell;
     side s;
     Vector2i outside;
 };
@@ -379,15 +379,15 @@ struct opening
 struct cell_bfs
 {
     const cell_graph& g;
-    Array<uint32_t> dist, queue;
+    Array<u32> dist, queue;
 
     explicit cell_bfs(const cell_graph& g): g{g}, dist{NoInit, g.w*g.h}, queue{NoInit, g.w*g.h} {}
 
-    void run(uint32_t src)
+    void run(u32 src)
     {
         for (auto& d : dist)
-            d = (uint32_t)-1;
-        uint32_t head = 0, tail = 0;
+            d = (u32)-1;
+        u32 head = 0, tail = 0;
         dist[src] = 0;
         queue[tail++] = src;
         while (head < tail)
@@ -395,7 +395,7 @@ struct cell_bfs
             const auto c = queue[head++];
             const auto nb = g.neighbors(c);
             for (auto i = 0u; i < nb.count; i++)
-                if (const auto u = nb.cell[i]; dist[u] == (uint32_t)-1 && g.is_open(c, u))
+                if (const auto u = nb.cell[i]; dist[u] == (u32)-1 && g.is_open(c, u))
                 {
                     dist[u] = dist[c] + 1;
                     queue[tail++] = u;
@@ -406,25 +406,25 @@ struct cell_bfs
 
 struct maze_ends
 {
-    uint32_t entrance;
+    u32 entrance;
     opening exit;
-    uint32_t dist;
+    u32 dist;
 };
 
 // A* with a consistent h expands every node with g + h < C*. Picks the border entrance and exit
 // with the most cells under that bound, counted at cell resolution.
 maze_ends pick_ends(const cell_graph& g, Search::octile oct)
 {
-    constexpr auto cell_px = maze_pitch*(uint32_t)tile_size_xy;
+    constexpr auto cell_px = maze_pitch*(u32)tile_size_xy;
     const auto n = g.w*g.h;
     Array<opening> exits;
     arrayReserve(exits, 2*(g.w + g.h));
-    for (uint32_t x = 0; x < g.w; x++)
+    for (u32 x = 0; x < g.w; x++)
     {
         arrayAppend(exits, opening{x, side::n, {(int)x, -1}});
         arrayAppend(exits, opening{(g.h-1)*g.w + x, side::s, {(int)x, (int)g.h}});
     }
-    for (uint32_t y = 0; y < g.h; y++)
+    for (u32 y = 0; y < g.h; y++)
     {
         arrayAppend(exits, opening{y*g.w, side::w, {-1, (int)y}});
         arrayAppend(exits, opening{y*g.w + g.w-1, side::e, {(int)g.w, (int)y}});
@@ -433,10 +433,10 @@ maze_ends pick_ends(const cell_graph& g, Search::octile oct)
     cell_bfs bfs{g};
     // A cell under the bound is at most as far from the entrance as the exit cell, so the count
     // of those caps the exit's score and skips the full count for most exits.
-    Array<uint32_t> at_most{NoInit, n};
+    Array<u32> at_most{NoInit, n};
     maze_ends best{};
-    uint32_t best_count = 0;
-    for (uint32_t s = 0; s < n; s++)
+    u32 best_count = 0;
+    for (u32 s = 0; s < n; s++)
     {
         const auto sx = s % g.w, sy = s / g.w;
         if (sx != 0 && sy != 0 && sx != g.w-1 && sy != g.h-1)
@@ -455,9 +455,9 @@ maze_ends pick_ends(const cell_graph& g, Search::octile oct)
             if (e.cell == s || at_most[de] < best_count)
                 continue;
             const auto C = (de + 1)*cell_px;
-            uint32_t count = 0;
-            for (uint32_t y = 0, c = 0; y < g.h; y++)
-                for (uint32_t x = 0; x < g.w; x++, c++)
+            u32 count = 0;
+            for (u32 y = 0, c = 0; y < g.h; y++)
+                for (u32 x = 0; x < g.w; x++, c++)
                 {
                     const auto delta = (Vector2i{(int)x, (int)y} - e.outside)*(int)cell_px;
                     count += bfs.dist[c]*cell_px + oct(delta) < C;
@@ -490,21 +490,21 @@ route build(world& w, kind k, chunk_coords_ origin, Grid::Pass::Pool& pool)
 {
     fm_assert(origin.z == 0);
     fm_assert(pool.params().bbox_size == bbox_size);
-    auto r = rng{0x5eed0000u + (uint32_t)k};
+    auto r = rng{0x5eed0000u + (u32)k};
     const auto m = make_map(k, r);
     const auto ground = loader.ground_atlas("floor-tiles");
     const auto wall = wall_image_proto{loader.wall_atlas("empty", loader_policy::warn), 0};
 
-    for (int16_t cy = 0; cy < map_chunks; cy++)
-        for (int16_t cx = 0; cx < map_chunks; cx++)
+    for (i16 cy = 0; cy < map_chunks; cy++)
+        for (i16 cx = 0; cx < map_chunks; cx++)
         {
-            auto& c = w[chunk_coords_{(int16_t)(origin.x + cx), (int16_t)(origin.y + cy), 0}];
-            for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
-                for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+            auto& c = w[chunk_coords_{(i16)(origin.x + cx), (i16)(origin.y + cy), 0}];
+            for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
+                for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
                 {
                     auto t = c[local_coords{lx, ly}];
                     t.ground() = { ground, variant_t((lx + ly) % ground->num_tiles()) };
-                    const auto x = (uint32_t)cx*TILE_MAX_DIM + lx, y = (uint32_t)cy*TILE_MAX_DIM + ly;
+                    const auto x = (u32)cx*TILE_MAX_DIM + lx, y = (u32)cy*TILE_MAX_DIM + ly;
                     if (x > m.size || y > m.size)
                         continue;
                     const auto bits = m.at(x, y);
@@ -530,7 +530,7 @@ route build(world& w, kind k, chunk_coords_ origin, Grid::Pass::Pool& pool)
     return { from, to, max_dist, b.dist };
 }
 
-route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
+route replace(world& w, chunk_coords_ origin, u32 cells, u64 seed,
               Grid::Pass::Pool& pool, object_id keep)
 {
     fm_assert(cells >= 2);
@@ -547,10 +547,10 @@ route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
         for (auto k = 0u; k < maze_pitch; k++)
             switch (ex.s)
             {
-            case side::w: m.at(0, y0 + k) &= (uint8_t)~wall_w; break;
-            case side::e: m.at(m.size, y0 + k) &= (uint8_t)~wall_w; break;
-            case side::n: m.at(x0 + k, 0) &= (uint8_t)~wall_n; break;
-            case side::s: m.at(x0 + k, m.size) &= (uint8_t)~wall_n; break;
+            case side::w: m.at(0, y0 + k) &= (u8)~wall_w; break;
+            case side::e: m.at(m.size, y0 + k) &= (u8)~wall_w; break;
+            case side::n: m.at(x0 + k, 0) &= (u8)~wall_n; break;
+            case side::s: m.at(x0 + k, m.size) &= (u8)~wall_n; break;
             }
     }
 
@@ -561,7 +561,7 @@ route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
     const auto c0 = floor_divmod<TILE_MAX_DIM>(tiles.min()).first();
     const auto c1 = floor_divmod<TILE_MAX_DIM>(tiles.max() - Vector2i{1}).first();
     const auto chunk_at = [&](int cx, int cy) {
-        return chunk_coords_{(int16_t)(origin.x + cx), (int16_t)(origin.y + cy), origin.z};
+        return chunk_coords_{(i16)(origin.x + cx), (i16)(origin.y + cy), origin.z};
     };
 
     {
@@ -600,8 +600,8 @@ route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
             if (!Math::intersects(chunk_rect, maze_rect) && !Math::intersects(chunk_rect, square))
                 continue;
             auto& c = w[chunk_at(cx, cy)];
-            for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
-                for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+            for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
+                for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
                 {
                     const auto t = base + Vector2i{lx, ly};
                     const bool in_maze = maze_rect.contains(t);
@@ -613,7 +613,7 @@ route replace(world& w, chunk_coords_ origin, uint32_t cells, uint64_t seed,
                     tile.wall_west() = {};
                     if (!in_maze)
                         continue;
-                    const auto bits = m.at((uint32_t)t.x(), (uint32_t)t.y());
+                    const auto bits = m.at((u32)t.x(), (u32)t.y());
                     if (bits & wall_w)
                         tile.wall_west() = wall;
                     if (bits & wall_n)

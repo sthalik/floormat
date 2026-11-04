@@ -19,9 +19,9 @@ class text_painter
     explicit text_painter(detail::text_painter_state* s) noexcept;
     friend class text_painter_pool;
 
-    uint32_t format_grow(uint32_t need);
-    char* format_at(uint32_t offset) noexcept;
-    void format_finalize(uint32_t color, uint32_t start, uint32_t length);
+    u32 format_grow(u32 need);
+    char* format_at(u32 offset) noexcept;
+    void format_finalize(u32 color, u32 start, u32 length);
 
 public:
     text_painter() = delete;
@@ -31,24 +31,24 @@ public:
     text_painter(const text_painter&) = delete;
     text_painter& operator=(const text_painter&) = delete;
 
-    struct slot { uint32_t span_index; };
+    struct slot { u32 span_index; };
 
-    text_painter& text(uint32_t color, StringView s);
-    text_painter& rect(uint32_t color, float width, float vert_pad = 0);
+    text_painter& text(u32 color, StringView s);
+    text_painter& rect(u32 color, float width, float vert_pad = 0);
     slot gap(float px);
 
     template<class... Args>
-    text_painter& format(uint32_t color, const char* fmt, const Args&... args)
+    text_painter& format(u32 color, const char* fmt, const Args&... args)
     {
         using Containers::MutableStringView;
-        const auto need = uint32_t(Utility::formatInto(MutableStringView{}, fmt, args...));
+        const auto need = u32(Utility::formatInto(MutableStringView{}, fmt, args...));
         const auto start = format_grow(need);
         Utility::formatInto(MutableStringView{format_at(start), need + 1}, fmt, args...);
         format_finalize(color, start, need);
         return *this;
     }
 
-    text_painter& with_background(uint32_t color, Vector2 padding = {});
+    text_painter& with_background(u32 color, Vector2 padding = {});
 
     Vector2 size() const noexcept;
     Vector2 total_size() const noexcept;

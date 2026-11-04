@@ -24,7 +24,7 @@ bptr<Obj> make()
         return bptr<Obj>{InPlace};
 }
 
-constexpr uint32_t block_count = 1024;
+constexpr u32 block_count = 1024;
 
 template<typename L>
 void Bptr_Copy(benchmark::State& state)
@@ -74,7 +74,7 @@ BENCHMARK_TEMPLATE(Bptr_Make, separate)->Unit(benchmark::kNanosecond);
 template<typename L>
 void Bptr_Deref_Many(benchmark::State& state)
 {
-    constexpr uint32_t count = 1 << 21;
+    constexpr u32 count = 1 << 21;
     std::vector<bptr<Obj>> ptrs(count);
     for (auto& p : ptrs)
         p = make<L>();

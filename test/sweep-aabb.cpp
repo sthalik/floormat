@@ -106,8 +106,8 @@ void test_critter_slit()
     }
 }
 
-uint32_t first_blocked_step(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
-                            uint32_t first, uint32_t last, Vector2ui size)
+u32 first_blocked_step(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                            u32 first, u32 last, Vector2ui size)
 {
     const auto free = [&](Vector2i c) {
         return Search::is_passable(w, ch, Range2D::fromSize(Vector2(c) - Vector2(size/2u), Vector2(size)));
@@ -125,7 +125,7 @@ uint32_t first_blocked_step(world& w, chunk_coords_ ch, const rc::bresenham_line
     return last + 1;
 }
 
-void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, uint32_t first, uint32_t last,
+void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, u32 first, u32 last,
                       Vector2ui size, Pass::Pool* pool)
 {
     const auto line = rc::bresenham_line{from, to};
@@ -136,7 +136,7 @@ void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, ui
                  from.x(), from.y(), to.x(), to.y(), first, last, size.x(), size.y(),
                  pool ? (int)pool->params().div_size() : 0, res.step, expected);
 
-    uint32_t nearest = last + 1, calls = 0;
+    u32 nearest = last + 1, calls = 0;
     find_swept_collider(w, ch, line, first, last, size, Search::never_continue(), pool, [&](const swept_collider_result& r) {
         fm_assert(r.has_collider && r.step >= first && r.step <= last);
         nearest = Math::min(nearest, r.step);
@@ -202,8 +202,8 @@ void test_swept_collider_line()
         check_swept_line(w, ch, {1040, 950}, {950, 1040}, 0, 90, Vector2ui{size}, nullptr);
     }
 
-    uint32_t seed = 0x2545f491;
-    const auto next = [&](uint32_t n) {
+    u32 seed = 0x2545f491;
+    const auto next = [&](u32 n) {
         seed = seed * 1664525u + 1013904223u;
         return (seed >> 8) % n;
     };
@@ -214,8 +214,8 @@ void test_swept_collider_line()
         Pass::Pool pool16{Pass::Params{16, pool_bbox, pass_mode::pass}, Search::never_continue()};
         for (auto i = 0u; i < 24; i++)
         {
-            const auto from = Vector2i{(int32_t)next(1900) - 32, (int32_t)next(1900) - 32};
-            const auto to = from + Vector2i{(int32_t)next(601) - 300, (int32_t)next(601) - 300};
+            const auto from = Vector2i{(i32)next(1900) - 32, (i32)next(1900) - 32};
+            const auto to = from + Vector2i{(i32)next(601) - 300, (i32)next(601) - 300};
             const auto steps = rc::bresenham_line{from, to}.steps();
             const auto first = next(steps + 1), last = first + next(steps - first + 1);
             check_swept_line(w, ch, from, to, first, last, size, nullptr);
@@ -231,16 +231,16 @@ void test_swept_collider_flush()
 {
     constexpr chunk_coords_ ch{0, 0, 0};
     constexpr auto from = Vector2i{301, 287};
-    constexpr uint32_t steps = 41;
+    constexpr u32 steps = 41;
     constexpr Vector2i dirs[] = { {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1} };
     for (auto size : { Vector2ui{1}, Vector2ui{4}, Vector2ui{7}, Vector2ui{24, 25} })
         for (auto d : dirs)
-            for (int32_t deeper : { 0, 1 })
+            for (i32 deeper : { 0, 1 })
             {
                 auto w = world();
                 fill_ground(w[ch]);
-                const auto box = [&](uint32_t k) {
-                    const auto min = from + d * int32_t(k) - Vector2i(size/2u);
+                const auto box = [&](u32 k) {
+                    const auto min = from + d * i32(k) - Vector2i(size/2u);
                     return Range2Di{min, min + Vector2i(size)};
                 };
                 const auto end = box(steps), mid = box(steps/2);
@@ -254,15 +254,15 @@ void test_swept_collider_flush()
                 place_rect(w, ch, mid.min() - Vector2i{5}, mid.max() + Vector2i{5}, pass_mode::pass);
                 w[ch].mark_modified();
 
-                const auto line = rc::bresenham_line{from, from + d * int32_t(steps)};
+                const auto line = rc::bresenham_line{from, from + d * i32(steps)};
                 const auto res = find_swept_collider(w, ch, line, 0, steps, size, Search::never_continue());
                 fm_assert(res.has_collider == (deeper != 0));
                 fm_assert(res.step == (deeper ? steps : steps + 1));
 
                 const auto pool_bbox = (Math::max(size.x(), size.y()) + 1) & ~1u;
                 Pass::Pool pool8{Pass::Params{8, pool_bbox, pass_mode::pass}, Search::never_continue()};
-                check_swept_line(w, ch, from, from + d * int32_t(steps), 0, steps, size, nullptr);
-                check_swept_line(w, ch, from, from + d * int32_t(steps), 0, steps, size, &pool8);
+                check_swept_line(w, ch, from, from + d * i32(steps), 0, steps, size, nullptr);
+                check_swept_line(w, ch, from, from + d * i32(steps), 0, steps, size, &pool8);
             }
 }
 

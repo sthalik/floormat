@@ -374,7 +374,7 @@ void suite<P>::test5()
 template<typename P>
 void suite<P>::test6()
 {
-    constexpr size_t size = 5;
+    constexpr usize size = 5;
     std::array<bptr<A>, size> array;
     for (auto n = 0u; n < size; n++)
     {
@@ -689,7 +689,7 @@ void suite<P>::test16()
 template<typename P>
 void suite<P>::test17()
 {
-    constexpr size_t size = 5;
+    constexpr usize size = 5;
     std::array<bptr<A>, size> array;
     std::array<int, size> model;
 
@@ -945,7 +945,7 @@ struct alignas(64) Aligned_big : bptr_base { char data[2048]{}; };
 template<typename P>
 void suite<P>::test26()
 {
-    auto aligned = [](const void* p) { return (uintptr_t)p % 64 == 0; };
+    auto aligned = [](const void* p) { return (uptr)p % 64 == 0; };
     fm_assert(aligned(bptr<Aligned>{InPlace}.get()));
     fm_assert(aligned(bptr<Aligned_big>{InPlace}.get()));
     fm_assert(aligned(bptr<Aligned>{new Aligned}.get()));
@@ -974,7 +974,7 @@ void suite<P>::test27()
 
 namespace chaos {
 
-constexpr uint32_t H = 6, W = 3, max_objs = 64, max_ops = 64, nseqs = 2000, none = (uint32_t)-1;
+constexpr u32 H = 6, W = 3, max_objs = 64, max_ops = 64, nseqs = 2000, none = (u32)-1;
 
 template<typename P> struct State;
 
@@ -986,11 +986,11 @@ struct Obj final : bptr_base
     using weak_type = std::conditional_t<P::has_weak, basic_weak_bptr<Obj, P>, no_weak>;
 
     State<P>& st;
-    uint32_t id;
+    u32 id;
     basic_bptr<Obj, P> child;
     weak_type self;
 
-    Obj(State<P>& st, uint32_t id) noexcept;
+    Obj(State<P>& st, u32 id) noexcept;
     ~Obj() noexcept override;
     fm_DISABLE_MOVE_COPY(Obj);
 };
@@ -1009,25 +1009,25 @@ struct State
     std::array<weak_ptr, W> weak;
     std::array<obj*, max_objs> raw{};
     std::array<bool, max_objs> alive{};
-    uint32_t alive_count = 0;
-    std::array<uint32_t, max_objs> died{};
-    uint32_t ndied = 0;
+    u32 alive_count = 0;
+    std::array<u32, max_objs> died{};
+    u32 ndied = 0;
 
     // Slots each object's destructor resets, destroys and clears. Reset and destroy slots are
     // disjoint, so a cascade ends the same whatever order the destructors run in.
-    std::array<uint32_t, max_objs> kill_reset{}, kill_destroy{}, kill_weak{};
+    std::array<u32, max_objs> kill_reset{}, kill_destroy{}, kill_weak{};
 
-    std::array<uint32_t, H> m_hard;
-    std::array<uint32_t, W> m_weak;
-    std::array<uint32_t, max_objs> m_child{}, m_self{}, m_count{};
+    std::array<u32, H> m_hard;
+    std::array<u32, W> m_weak;
+    std::array<u32, max_objs> m_child{}, m_self{}, m_count{};
     std::array<bool, max_objs> m_alive{}, m_inplace{};
-    uint32_t nobjs = 0;
+    u32 nobjs = 0;
 
     Random::xoshiro256starstar rng;
     const char* policy;
-    uint32_t seq, op = 0, kind = 0, sub = 0;
+    u32 seq, op = 0, kind = 0, sub = 0;
 
-    State(uint32_t seq, const char* policy) : policy{policy}, seq{seq}
+    State(u32 seq, const char* policy) : policy{policy}, seq{seq}
     {
         m_hard.fill(none);
         m_weak.fill(none);
@@ -1039,14 +1039,14 @@ struct State
         fm_abort("bptr %s chaos: '%s' at line %d, seq %u op %u kind %u.%u", policy, expr, line, seq, op, kind, sub);
     }
 
-    uint32_t rnd(uint32_t n) { return (uint32_t)(Random::next(rng) % n); }
-    bool live(uint32_t k) const { return k != none && m_alive[k]; }
-    obj* ptr(uint32_t k) const { return live(k) ? raw[k] : nullptr; }
-    uint32_t count(uint32_t k) const { return live(k) ? m_count[k] : 0u; }
+    u32 rnd(u32 n) { return (u32)(Random::next(rng) % n); }
+    bool live(u32 k) const { return k != none && m_alive[k]; }
+    obj* ptr(u32 k) const { return live(k) ? raw[k] : nullptr; }
+    u32 count(u32 k) const { return live(k) ? m_count[k] : 0u; }
 
-    uint32_t pick_live()
+    u32 pick_live()
     {
-        uint32_t n = 0;
+        u32 n = 0;
         for (auto k = 0u; k < nobjs; k++)
             n += m_alive[k];
         if (!n)
@@ -1058,7 +1058,7 @@ struct State
     }
 
     // A self-move leaves a bptr unchanged.
-    static void hard_move(uint32_t& dst, uint32_t& src)
+    static void hard_move(u32& dst, u32& src)
     {
         if (&dst != &src)
         {
@@ -1068,14 +1068,14 @@ struct State
     }
 
     // A self-move empties a weak_bptr.
-    static void weak_move(uint32_t& dst, uint32_t& src)
+    static void weak_move(u32& dst, u32& src)
     {
         auto k = &dst == &src ? none : src;
         src = none;
         dst = k;
     }
 
-    void weak_copy(uint32_t& dst, uint32_t src) const
+    void weak_copy(u32& dst, u32 src) const
     {
         if (dst != src)
             dst = live(src) ? src : none;
@@ -1092,7 +1092,7 @@ struct State
                 m_count[m_child[k]]++;
     }
 
-    void die(uint32_t k)
+    void die(u32 k)
     {
         m_alive[k] = false;
         m_child[k] = m_self[k] = none;
@@ -1119,7 +1119,7 @@ struct State
         }
     }
 
-    void created(uint32_t id)
+    void created(u32 id)
     {
         chaos_assert(id < nobjs && !alive[id]);
         alive[id] = true;
@@ -1153,7 +1153,7 @@ struct State
         }
     }
 
-    void create(uint32_t i)
+    void create(u32 i)
     {
         auto k = nobjs++;
         kill_reset[k] = rnd(3) ? none : rnd(H/2);
@@ -1191,7 +1191,7 @@ struct State
         m_hard[i] = k;
     }
 
-    void slot_child(uint32_t i, uint32_t i2)
+    void slot_child(u32 i, u32 i2)
     {
         auto k = m_hard[i];
         auto& o = *hard[i];
@@ -1221,7 +1221,7 @@ struct State
         }
     }
 
-    void obj_child(uint32_t k, uint32_t k2, uint32_t i)
+    void obj_child(u32 k, u32 k2, u32 i)
     {
         auto& o = *raw[k];
         auto& o2 = *raw[k2];
@@ -1266,7 +1266,7 @@ struct State
         }
     }
 
-    void obj_self(uint32_t k, uint32_t k2, uint32_t i, uint32_t j)
+    void obj_self(u32 k, u32 k2, u32 i, u32 j)
     {
         auto& o = *raw[k];
         auto& o2 = *raw[k2];
@@ -1312,7 +1312,7 @@ struct State
         }
     }
 
-    void weak_step(uint32_t i, uint32_t j, uint32_t j2, uint32_t k, uint32_t k2)
+    void weak_step(u32 i, u32 j, u32 j2, u32 k, u32 k2)
     {
         switch (kind)
         {
@@ -1421,7 +1421,7 @@ struct State
         check();
     }
 
-    void check_hard(const hard_ptr& p, uint32_t k) const
+    void check_hard(const hard_ptr& p, u32 k) const
     {
         chaos_assert(p.get() == ptr(k));
         chaos_assert((bool)p == live(k));
@@ -1430,7 +1430,7 @@ struct State
         chaos_assert(p.use_count() == count(k));
     }
 
-    void check_weak(const weak_ptr& w, uint32_t k) const
+    void check_weak(const weak_ptr& w, u32 k) const
     {
         chaos_assert(w.use_count() == count(k));
         chaos_assert(w.expired() == !live(k));
@@ -1440,7 +1440,7 @@ struct State
     }
 
     // A block lives while any hard or weak reference names it, even after destroy().
-    int64_t model_blocks() const
+    i64 model_blocks() const
     {
         std::array<bool, max_objs> used{};
         for (auto k : m_hard)
@@ -1456,7 +1456,7 @@ struct State
             if (m_self[k] != none)
                 used[m_self[k]] = true;
         }
-        int64_t n = 0;
+        i64 n = 0;
         for (auto k = 0u; k < nobjs; k++)
             n += used[k];
         return n;
@@ -1471,7 +1471,7 @@ struct State
         ndied = 0;
         if constexpr (has_stats<P>)
         {
-            chaos_assert(atomic_load(&P::stats::live_objects) == (int64_t)alive_count);
+            chaos_assert(atomic_load(&P::stats::live_objects) == (i64)alive_count);
             chaos_assert(atomic_load(&P::stats::live_blocks) == model_blocks());
         }
         if constexpr (counts_allocations<P>)
@@ -1481,7 +1481,7 @@ struct State
     void check()
     {
         recount();
-        uint32_t n = 0;
+        u32 n = 0;
         for (auto k = 0u; k < nobjs; k++)
         {
             chaos_assert(alive[k] == m_alive[k]);
@@ -1544,7 +1544,7 @@ struct State
 
 #undef chaos_assert
 
-template<typename P> Obj<P>::Obj(State<P>& st, uint32_t id) noexcept: st{st}, id{id} { st.created(id); }
+template<typename P> Obj<P>::Obj(State<P>& st, u32 id) noexcept: st{st}, id{id} { st.created(id); }
 template<typename P> Obj<P>::~Obj() noexcept { st.destroyed(*this); }
 
 template<typename P>
@@ -1608,7 +1608,7 @@ void test29()
     check_leaks<P>(before, "thread_counted", "test", 29, false);
 }
 
-volatile int32_t Ct_alive; // NOLINT
+volatile i32 Ct_alive; // NOLINT
 
 struct Ct : bptr_base
 {
@@ -1628,7 +1628,7 @@ void test30()
 {
     using P = atomic_counted_refcount;
     using ptr = basic_bptr<Ct, P>;
-    constexpr uint32_t nthreads = 4, rounds = 300, iters = 256;
+    constexpr u32 nthreads = 4, rounds = 300, iters = 256;
     for (auto round = 0u; round < rounds; round++)
     {
         auto before = heap_snapshot<P>(false);
@@ -1672,9 +1672,9 @@ void suite<P>::test31()
 {
     auto copies = [] {
         if constexpr (has_stats<P>)
-            return (int64_t)atomic_load(&P::stats::copies);
+            return (i64)atomic_load(&P::stats::copies);
         else
-            return (int64_t)0;
+            return (i64)0;
     };
 
     auto d = bptr<Bar>{InPlace, 31}, e = bptr<Bar>{InPlace, 37};

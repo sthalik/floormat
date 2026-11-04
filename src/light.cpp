@@ -52,7 +52,7 @@ light::light(object_id id, class chunk& c, const light_proto& proto) :
 {
 }
 
-int32_t light::depth_offset() const
+i32 light::depth_offset() const
 {
     return tile_size_xy * 4;
 }
@@ -69,7 +69,7 @@ light::operator light_proto() const
 }
 
 object_type light::type() const noexcept { return object_type::light; }
-void light::update(const bptr<object>&, size_t&, const Ns&) {}
+void light::update(const bptr<object>&, usize&, const Ns&) {}
 bool light::is_dynamic() const { return true; }
 bool light::is_virtual() const { return true; }
 

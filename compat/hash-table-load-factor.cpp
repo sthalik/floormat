@@ -9,7 +9,7 @@ namespace {
 struct Entry
 {
     float load_factor;
-    uint32_t max_capacity;
+    u32 max_capacity;
 };
 
 constexpr Entry open_addressing_load_factor_table[] = {
@@ -32,16 +32,16 @@ constexpr Entry separate_chaining_load_factor_table[] = {
     { 0.650f, 268'435'456 }, // 2^28 (Spilling to Main RAM)
 };
 
-constexpr float get_value(size_t element_count, const auto& table)
+constexpr float get_value(usize element_count, const auto& table)
 {
-    size_t i{};
+    usize i{};
 #if 0
     auto it = std::lower_bound(
         table, table + array_size(table), element_count,
-        [](const Entry a, size_t b) {
+        [](const Entry a, usize b) {
             return a.max_capacity < b;
         });
-    i = (size_t)std::distance(table, it);
+    i = (usize)std::distance(table, it);
 #else
     for (i = 0; i < array_size(table); i++)
         if (element_count <= table[i].max_capacity)
@@ -51,7 +51,7 @@ constexpr float get_value(size_t element_count, const auto& table)
     return table[i].load_factor;
 }
 
-constexpr float test(size_t element_count) {
+constexpr float test(usize element_count) {
     return get_value(element_count, open_addressing_load_factor_table);
 }
 
@@ -63,17 +63,17 @@ static_assert(test(        251) == 0.70f);
 static_assert(test( 90'000'000) == 0.40f);
 static_assert(test(100'000'000) == 0.40f);
 static_assert(test(100'000'001) == 0.40f);
-static_assert(test((size_t)-1)  == 0.40f);
+static_assert(test((usize)-1)  == 0.40f);
 
 } // namespace
 
-float open_addressing_load_factor(size_t element_count) {
+float open_addressing_load_factor(usize element_count) {
     auto ret = get_value(element_count, open_addressing_load_factor_table);
     //DBG << "open" << ret;
     return ret;
 }
 
-float separate_chaining_load_factor(size_t element_count) {
+float separate_chaining_load_factor(usize element_count) {
     auto ret = get_value(element_count, separate_chaining_load_factor_table);
     //DBG << "chaining" << ret;
     return ret;

@@ -7,7 +7,7 @@ namespace {
 
 namespace fm_debug = floormat::debug::detail;
 
-constexpr StringView names[(size_t)script_lifecycle::COUNT] =
+constexpr StringView names[(usize)script_lifecycle::COUNT] =
 {
     "no-init"_s, "initializing"_s, "created"_s, "destroying"_s, "torn-down"_s,
 };
@@ -19,7 +19,7 @@ StringView base_script::state_name(script_lifecycle x)
     if (x >= script_lifecycle::COUNT)
         fm_abort("invalid script_lifecycle value '%d'", (int)x);
     else
-        return names[(uint32_t)x];
+        return names[(u32)x];
 }
 
 void base_script::_assert_state(script_lifecycle old_state, script_lifecycle s, const char* file, int line)

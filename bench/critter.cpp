@@ -74,7 +74,7 @@ struct Expected
 struct Grace
 {
     Ns time = Ns{250};
-    uint32_t distance_L1 = 24;
+    u32 distance_L1 = 24;
     static constexpr bool no_crash = true;
 };
 
@@ -82,7 +82,7 @@ bool run_(critter& npc, const function_view<Ns() const>& make_dt,
           Start start, Expected expected, Grace grace)
 {
     constexpr auto max_time = 300*Second;
-    constexpr uint32_t max_steps = 800;
+    constexpr u32 max_steps = 800;
 
     fm_assert(grace.time != Ns{});
     fm_assert(!start.quiet | !start.verbose);
@@ -94,18 +94,18 @@ bool run_(critter& npc, const function_view<Ns() const>& make_dt,
     fm_assert(start.name);
     fm_assert(start.instance);
     fm_assert(start.rotation < rotation_COUNT);
-    expected.time.stamp = uint64_t(expected.time.stamp / start.accel);
+    expected.time.stamp = u64(expected.time.stamp / start.accel);
     fm_assert(expected.time <= max_time);
-    fm_assert(grace.distance_L1 <= (uint32_t)chunk_size<Vector2>.length());
+    fm_assert(grace.distance_L1 <= (u32)chunk_size<Vector2>.length());
 
     auto index = npc.index();
     npc.teleport_to(index, start.pt, rotation_COUNT);
 
     Ns time{0}, saved_time{0};
     auto last_pos = npc.position();
-    uint32_t i;
+    u32 i;
     constexpr auto max_stop_frames = 250; // todo detect collisions properly and don't rely on this
-    uint32_t frames_stopped = 0;
+    u32 frames_stopped = 0;
 
     if (!start.quiet) [[unlikely]]
         Debug{} << "**" << start.name << start.instance << colon();
@@ -197,7 +197,7 @@ bool run_(critter& npc, const function_view<Ns() const>& make_dt,
 
     if (expected.time != Ns{}) [[likely]]
     {
-        const auto time_diff = Ns{Math::abs((int64_t)expected.time.stamp - (int64_t)saved_time.stamp)};
+        const auto time_diff = Ns{Math::abs((i64)expected.time.stamp - (i64)saved_time.stamp)};
         if (time_diff > grace.time)
         {
             Error{ standard_error(), Debug::Flag::NoSpace }
@@ -350,7 +350,7 @@ world make_walk_world(bool wall)
     auto w = world();
     auto& c = w[{0,0,0}];
     if (wall)
-        for (uint8_t x = 4; x <= 12; x++)
+        for (u8 x = 4; x <= 12; x++)
             c[{x, 9}].wall_north() = W;
     mark_all_modified(w);
     return w;
@@ -358,9 +358,9 @@ world make_walk_world(bool wall)
 
 void Critter_walk(benchmark::State& st)
 {
-    constexpr uint32_t max_updates = 4000, stop_updates = 30;
+    constexpr u32 max_updates = 4000, stop_updates = 30;
     const bool path = st.range(0), diag = st.range(1);
-    const auto dt = Second / (uint64_t)st.range(3);
+    const auto dt = Second / (u64)st.range(3);
     // NW meets the wall mid-span. update_movement() slides W along it, move_toward() stops.
     const auto r = diag ? NW : N;
     const auto start = diag ? point{{0,0,0}, {15,15}, {-8, 8}} : point{{0,0,0}, {8,15}, {-8, 8}};
@@ -370,14 +370,14 @@ void Critter_walk(benchmark::State& st)
     auto w = make_walk_world(st.range(4));
     object_id id = 0;
     auto npc = w.ensure_player_character(id, make_proto((float)st.range(2)));
-    uint32_t updates = 0;
+    u32 updates = 0;
 
     const auto walk = [&] {
         auto index = npc->index();
         npc->teleport_to(index, start, r);
         npc->delta = 0;
         auto last = npc->position();
-        uint32_t stopped = 0;
+        u32 stopped = 0;
         for (updates = 1; updates < max_updates; updates++)
         {
             if (path)

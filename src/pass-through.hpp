@@ -4,7 +4,7 @@
 
 namespace floormat {
 
-using pass_through_mask = std::array<bool, (size_t)pass_mode::COUNT>;
+using pass_through_mask = std::array<bool, (usize)pass_mode::COUNT>;
 
 extern const pass_through_mask can_see_through_mask;
 extern const pass_through_mask can_shoot_through_mask;

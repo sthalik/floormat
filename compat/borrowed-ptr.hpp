@@ -25,12 +25,12 @@ struct intrusive_bptr_base : bptr_base
 {
     using intrusive_policy = Policy;
 
-    void* operator new(size_t) = delete;
-    void* operator new(size_t, std::align_val_t) = delete;
-    void* operator new[](size_t) = delete;
-    void* operator new[](size_t, std::align_val_t) = delete;
+    void* operator new(usize) = delete;
+    void* operator new(usize, std::align_val_t) = delete;
+    void* operator new[](usize) = delete;
+    void* operator new[](usize, std::align_val_t) = delete;
     // The deleted overloads would hide the global placement new from Corrade's containers.
-    void* operator new(size_t, void* p) noexcept { return p; }
+    void* operator new(usize, void* p) noexcept { return p; }
     void operator delete(void*, void*) noexcept {}
     // A deleted one makes the virtual destructor ill-formed.
     void operator delete(void*) noexcept { fm_abort("delete on an intrusive bptr object"); }
@@ -47,12 +47,12 @@ struct control_block : Policy::counter::block_state
     using stats = typename Policy::stats;
     template<typename X> using cell = typename counter::template cell<X>;
 
-    cell<uintptr_t> _ptr;
+    cell<uptr> _ptr;
     cell<count_type> _hard_count{1};
     cell<count_type> _soft_count{1}; // weak refs, plus one held by all hard refs together
 
-    static uintptr_t to_int(bptr_base* p) noexcept { return reinterpret_cast<uintptr_t>(p); }
-    static bptr_base* to_ptr(uintptr_t x) noexcept { return reinterpret_cast<bptr_base*>(x); }
+    static uptr to_int(bptr_base* p) noexcept { return reinterpret_cast<uptr>(p); }
+    static bptr_base* to_ptr(uptr x) noexcept { return reinterpret_cast<bptr_base*>(x); }
 
     explicit control_block(bptr_base* ptr) noexcept: _ptr{to_int(ptr)} {}
     control_block(const control_block&) = delete;
@@ -94,11 +94,11 @@ concept ControlBlock = requires(B* b, const B* cb) {
 };
 
 #if fm_ASAN
-inline void poison(const void* p, size_t size) noexcept { __asan_poison_memory_region(p, size); }
-inline void unpoison(const void* p, size_t size) noexcept { __asan_unpoison_memory_region(p, size); }
+inline void poison(const void* p, usize size) noexcept { __asan_poison_memory_region(p, size); }
+inline void unpoison(const void* p, usize size) noexcept { __asan_unpoison_memory_region(p, size); }
 #else
-inline void poison(const void*, size_t) noexcept {}
-inline void unpoison(const void*, size_t) noexcept {}
+inline void poison(const void*, usize) noexcept {}
+inline void unpoison(const void*, usize) noexcept {}
 #endif
 
 template<typename Policy>
@@ -174,8 +174,8 @@ template<typename U, typename Policy>
 struct intrusive_block final : control_block<Policy>
 {
     using block = control_block<Policy>;
-    static constexpr size_t align = alignof(U) > alignof(block) ? alignof(U) : alignof(block);
-    static constexpr size_t offset = (sizeof(block) + align - 1) & ~(align - 1);
+    static constexpr usize align = alignof(U) > alignof(block) ? alignof(U) : alignof(block);
+    static constexpr usize offset = (sizeof(block) + align - 1) & ~(align - 1);
     struct alignas(align) storage { unsigned char bytes[offset + sizeof(U)]; };
 
     intrusive_block() noexcept: block{nullptr} {}
@@ -184,7 +184,7 @@ struct intrusive_block final : control_block<Policy>
     static block* create(Ts&&... args) noexcept(noexcept(U{std::declval<Ts>()...}))
     {
         static_assert(sizeof(intrusive_block) == sizeof(block));
-        auto start = reinterpret_cast<uintptr_t>(Policy::allocator::template allocate<storage>());
+        auto start = reinterpret_cast<uptr>(Policy::allocator::template allocate<storage>());
         auto* b = ::new (reinterpret_cast<void*>(start + offset - sizeof(block))) intrusive_block;
         // Odd until the constructor returns, so bptr{this} inside it fails block_from_raw()'s check.
         Policy::counter::store(b->_ptr, (start + offset) | 1);
@@ -205,7 +205,7 @@ struct intrusive_block final : control_block<Policy>
 
     void deallocate() noexcept override
     {
-        auto start = reinterpret_cast<uintptr_t>(this) + sizeof(block) - offset;
+        auto start = reinterpret_cast<uptr>(this) + sizeof(block) - offset;
         unpoison(reinterpret_cast<void*>(start + offset), sizeof(U));
         this->~intrusive_block();
         Policy::allocator::template deallocate<storage>(reinterpret_cast<void*>(start));

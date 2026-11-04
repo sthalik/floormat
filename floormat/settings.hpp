@@ -17,7 +17,7 @@ struct fm_settings
     String log_frame_times;
     const char* const* argv = nullptr; int argc = 0;
     Magnum::Math::Vector2<int> resolution{1024, 720};
-    uint32_t fixed_framerate = 0;   // 0 = feed update() the measured frame time
+    u32 fixed_framerate = 0;   // 0 = feed update() the measured frame time
     bool driver = false;
     // Safe because driver waits are counted in frames, never in wall-clock.
     bool driver_no_swapbuffers = false;
@@ -25,7 +25,7 @@ struct fm_settings
     // cost it its PGO profile.
 #ifndef FLOORMAT_NO_PGO_DRIVER
     // Passes over the scene table. Sampling by restart instead costs more than the scene itself.
-    uint32_t driver_repeat = 1;
+    u32 driver_repeat = 1;
     // Comma-separated scene names without their "scene_" prefix. Empty with the driver on is
     // --scenes=none, which runs nothing.
     String driver_scenes;

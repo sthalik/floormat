@@ -28,10 +28,10 @@ struct point
 
     friend Debug& operator<<(Debug& dbg, const point& pt);
 
-    static constexpr uint32_t distance(point a, point b);
-    static constexpr uint64_t distance_squared(Vector2i delta);
-    static constexpr uint64_t distance_squared(point a, point b);
-    static constexpr uint32_t distance_l1(point a, point b);
+    static constexpr u32 distance(point a, point b);
+    static constexpr u64 distance_squared(Vector2i delta);
+    static constexpr u64 distance_squared(point a, point b);
+    static constexpr u32 distance_l1(point a, point b);
 
     static point normalize_coords(global_coords coord, Vector2b cur_offset, Vector2i delta);
     static point normalize_coords(point pt, Vector2i delta);
@@ -46,8 +46,8 @@ private:
     struct unchecked_t {};
     constexpr point(chunk_coords_ coord, local_coords tile, Vector2b offset, unchecked_t);
 
-    int16_t cx = 0, cy = 0;
-    int8_t cz = 0;
+    i16 cx = 0, cy = 0;
+    i8 cz = 0;
     local_coords tile;
     Vector2b _offset;
 };

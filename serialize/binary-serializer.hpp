@@ -7,14 +7,14 @@ namespace floormat::Serialize {
 
 static_assert(std::endian::native == std::endian::big || std::endian::native == std::endian::little);
 
-template<size_t N> struct make_integer;
-template<size_t N> using make_integer_t = typename make_integer<N>::type;
+template<usize N> struct make_integer;
+template<usize N> using make_integer_t = typename make_integer<N>::type;
 
 #define FM_SERIALIZE_MAKE_INTEGER(T) template<> struct make_integer<sizeof(T)> { using type = T; }
-FM_SERIALIZE_MAKE_INTEGER(uint8_t);
-FM_SERIALIZE_MAKE_INTEGER(uint16_t);
-FM_SERIALIZE_MAKE_INTEGER(uint32_t);
-FM_SERIALIZE_MAKE_INTEGER(uint64_t);
+FM_SERIALIZE_MAKE_INTEGER(u8);
+FM_SERIALIZE_MAKE_INTEGER(u16);
+FM_SERIALIZE_MAKE_INTEGER(u32);
+FM_SERIALIZE_MAKE_INTEGER(u64);
 #undef FM_SERIALIZE_MAKE_INTEGER
 
 template<typename T>

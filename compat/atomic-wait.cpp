@@ -51,7 +51,7 @@ struct alignas(64) bucket
     std::condition_variable cond;
 };
 
-constexpr uint32_t bucket_count = 64;
+constexpr u32 bucket_count = 64;
 
 // Never destroyed. A thread still waiting after main returns would hang exit in pthread_cond_destroy().
 union bucket_table
@@ -65,7 +65,7 @@ bucket_table table;
 
 bucket& bucket_for(const volatile void* p) noexcept
 {
-    return table.buckets[(uint64_t)((uintptr_t)p >> 4) * 0x9e3779b97f4a7c15u >> 58];
+    return table.buckets[(u64)((uptr)p >> 4) * 0x9e3779b97f4a7c15u >> 58];
 }
 static_assert(bucket_count == 1 << (64 - 58));
 #endif
@@ -75,14 +75,14 @@ static_assert(bucket_count == 1 << (64 - 58));
 // Off: EventCount::notify() already skips it, and this adds a fence to every notify and every sleep.
 struct alignas(64) waiter_count
 {
-    volatile uint32_t value = 0;
+    volatile u32 value = 0;
 };
 
 waiter_count waiter_counts[64];
 
-volatile uint32_t* waiters_for(const volatile void* p) noexcept
+volatile u32* waiters_for(const volatile void* p) noexcept
 {
-    return &waiter_counts[(uint64_t)((uintptr_t)p >> 4) * 0x9e3779b97f4a7c15u >> 58].value;
+    return &waiter_counts[(u64)((uptr)p >> 4) * 0x9e3779b97f4a7c15u >> 58].value;
 }
 #endif
 
@@ -132,7 +132,7 @@ template<atomic_wait_type T> void atomic_wait(const volatile T* p, std::type_ide
 #if 0
     if (atomic_load(p, o) != old)
         return;
-    volatile uint32_t* waiters = waiters_for(p);
+    volatile u32* waiters = waiters_for(p);
     atomic_fetch_add(waiters, 1u, memory_order::relaxed);
     atomic_thread_fence(memory_order::seq_cst);
 #endif
@@ -143,21 +143,21 @@ template<atomic_wait_type T> void atomic_wait(const volatile T* p, std::type_ide
         (void)ret;
         fm_debug3_assert(ret);
 #elif defined FM_WAIT_FUTEX
-        long ret = syscall(SYS_futex, addr(p), FUTEX_WAIT_PRIVATE, (long)(uint32_t)old, nullptr);
+        long ret = syscall(SYS_futex, addr(p), FUTEX_WAIT_PRIVATE, (long)(u32)old, nullptr);
         (void)ret;
         fm_debug3_assert(ret == 0 || errno == EAGAIN || errno == EINTR);
 #elif defined FM_WAIT_UMTX
         // The kernel zero-extends the u_int it reads, so a sign-extended `old` would never match.
         int ret;
         if constexpr (sizeof(T) == 4)
-            ret = _umtx_op(addr(p), UMTX_OP_WAIT_UINT_PRIVATE, (u_long)(uint32_t)old, nullptr, nullptr);
+            ret = _umtx_op(addr(p), UMTX_OP_WAIT_UINT_PRIVATE, (u_long)(u32)old, nullptr, nullptr);
         else
             ret = _umtx_op(addr(p), UMTX_OP_WAIT, (u_long)old, nullptr, nullptr);
         (void)ret;
         fm_debug3_assert(ret == 0 || errno == EINTR);
 #elif defined FM_WAIT_OS_SYNC
         // EFAULT can be transient, under memory pressure.
-        int ret = os_sync_wait_on_address(addr(p), (uint64_t)(std::make_unsigned_t<T>)old, sizeof(T), OS_SYNC_WAIT_ON_ADDRESS_NONE);
+        int ret = os_sync_wait_on_address(addr(p), (u64)(std::make_unsigned_t<T>)old, sizeof(T), OS_SYNC_WAIT_ON_ADDRESS_NONE);
         (void)ret;
         fm_debug3_assert(ret >= 0 || errno == EINTR || errno == EFAULT);
 #else

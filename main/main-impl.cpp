@@ -31,9 +31,9 @@ main_impl::~main_impl() noexcept
         std::fclose(_frame_times_file);
 }
 
-void main_impl::set_cursor(uint32_t cursor) noexcept
+void main_impl::set_cursor(u32 cursor) noexcept
 {
-    if (cursor != _mouse_cursor || _mouse_cursor == (uint32_t)-1)
+    if (cursor != _mouse_cursor || _mouse_cursor == (u32)-1)
     {
         _mouse_cursor = cursor;
         setCursor(Cursor(cursor));

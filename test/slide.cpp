@@ -20,9 +20,9 @@ namespace {
 
 constexpr Ns dt_60hz = Second / 60;
 constexpr chunk_coords_ ch{0, 0, 0};
-constexpr uint32_t settle_frames = 60, walk_frames = 60, min_slide = 16;
-constexpr uint8_t line_min = 4, line_max = 12;
-constexpr uint8_t npc_bbox = 32;
+constexpr u32 settle_frames = 60, walk_frames = 60, min_slide = 16;
+constexpr u8 line_min = 4, line_max = 12;
+constexpr u8 npc_bbox = 32;
 
 // arrows_to_dir() is screen-space: a world diagonal is one key, a world cardinal is two.
 constexpr critter::move_s key_S  {.L = true, .D = true};
@@ -49,7 +49,7 @@ constexpr slide_case along_west[] = {
     { "SW"_s, key_SW, {0,  1} },
 };
 
-Vector2i press(const bptr<critter>& C, critter::move_s k, uint32_t frames)
+Vector2i press(const bptr<critter>& C, critter::move_s k, u32 frames)
 {
     const auto before = C->position();
     C->set_keys(k.L, k.R, k.U, k.D);
@@ -89,14 +89,14 @@ void check_head_on(StringView name, const bptr<critter>& C, point flush, critter
     }
 }
 
-template<size_t N>
+template<usize N>
 void check_slides(StringView name, const bptr<critter>& C, point flush, const slide_case (&slides)[N])
 {
     for (const auto& s : slides)
     {
         place(C, flush);
         const auto d = press(C, s.keys, walk_frames);
-        if (Math::sign(d) != s.sign || (uint32_t)Math::abs(d).sum() < min_slide)
+        if (Math::sign(d) != s.sign || (u32)Math::abs(d).sum() < min_slide)
         {
             Error{standard_error()} << "!!! fatal:" << name << s.name << "slid by" << d;
             fm_assert(false);
@@ -106,14 +106,14 @@ void check_slides(StringView name, const bptr<critter>& C, point flush, const sl
 
 // A wall collider is a strip on the tile's own north/west edge (src/tile-bbox.hpp), so the
 // barrier lies on the low-coordinate side of the row or column named here.
-void wall_row(world& w, uint8_t y)
+void wall_row(world& w, u8 y)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
     for (auto x = line_min; x <= line_max; x++)
         w[ch][local_coords{x, y}].wall_north() = W;
 }
 
-void wall_col(world& w, uint8_t x)
+void wall_col(world& w, u8 x)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
     for (auto y = line_min; y <= line_max; y++)
@@ -130,7 +130,7 @@ void pillar(world& w, local_coords tile)
     w.make_scenery(w.make_id(), {ch, tile}, move(p));
 }
 
-void scenery_row(world& w, uint8_t y)
+void scenery_row(world& w, u8 y)
 {
     for (auto x = line_min; x <= line_max; x++)
         pillar(w, {x, y});
@@ -196,8 +196,8 @@ constexpr int slide_corner_x = slide_wall_x, slide_corner_y = slide_wall_y1;
 constexpr global_coords tile_at(int x, int y)
 {
     static_assert(TILE_MAX_DIM == 16);
-    return { chunk_coords_{(int16_t)(x >> 4), (int16_t)(y >> 4), 0},
-             local_coords{(uint8_t)(x & 15), (uint8_t)(y & 15)} };
+    return { chunk_coords_{(i16)(x >> 4), (i16)(y >> 4), 0},
+             local_coords{(u8)(x & 15), (u8)(y & 15)} };
 }
 
 void slide_wall_north(world& w, int x, int y)
@@ -214,9 +214,9 @@ void slide_wall_west(world& w, int x, int y)
 
 // Polls rather than running a fixed count, so the assertion does not depend on how many frames
 // the run happens to take.
-point run_until_still(const bptr<critter>& C, critter::move_s k, uint32_t max_frames)
+point run_until_still(const bptr<critter>& C, critter::move_s k, u32 max_frames)
 {
-    constexpr uint32_t poll = 8;
+    constexpr u32 poll = 8;
     C->set_keys(k.L, k.R, k.U, k.D);
     auto last = C->position();
     for (auto n = 0u; n < max_frames; n += poll)
@@ -336,7 +336,7 @@ void test_walk_to_wall_fast()
 // It must end where the same walk in 60 Hz updates does.
 void test_slide_past_wall_end()
 {
-    constexpr uint32_t frames = 120;
+    constexpr u32 frames = 120;
     auto w = world();
     wall_row(w, 9);
     auto C = add_player(w, 1.f);

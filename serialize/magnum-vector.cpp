@@ -26,7 +26,7 @@ using Math::Vector2;
 using Math::Vector3;
 using Math::Vector4;
 
-template<size_t N, typename T>
+template<usize N, typename T>
 struct vec_serializer
 {
     static void to_json(json& j, Math::Vector<N, T> val)
@@ -54,7 +54,7 @@ struct vec2_serializer
     static void to_json(json& j, Vector<2, T> val)
     {
         char buf[64];
-        using type = std::conditional_t<std::is_signed_v<T>, intmax_t, uintmax_t>;
+        using type = std::conditional_t<std::is_signed_v<T>, imax, umax>;
         constexpr auto format_string = std::is_signed_v<T> ? "%jd x %jd" : "%ju x %ju";
         snprintf(buf, sizeof(buf), format_string, (type)val[0], (type)val[1]);
         j = buf;
@@ -64,12 +64,12 @@ struct vec2_serializer
     {
         using namespace floormat;
         StringView str = j;
-        using type = std::conditional_t<std::is_signed_v<T>, intmax_t, uintmax_t>;
+        using type = std::conditional_t<std::is_signed_v<T>, imax, umax>;
         constexpr auto format_string = std::is_signed_v<T> ? "%jd x %jd%n" : "%ju x %ju%n";
         type x = 0, y = 0;
         int n = 0;
         int ret = std::sscanf(str.data(), format_string, &x, &y, &n);
-        if (ret != 2 || (size_t)n != str.size() || x != (T)x || y != (T)y)
+        if (ret != 2 || (usize)n != str.size() || x != (T)x || y != (T)y)
             throw_failed_to_parse_vector2(str);
         if constexpr(sizeof(T) < sizeof(type))
             if (x != (type)(T)x || y != (type)(T)y)
@@ -85,7 +85,7 @@ namespace nlohmann {
 
 using floormat::Serialize::vec_serializer;
 using floormat::Serialize::vec2_serializer;
-using floormat::size_t;
+using floormat::usize;
 using namespace Magnum::Math;
 
 template<size_t N, typename T>

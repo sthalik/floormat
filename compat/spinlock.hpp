@@ -6,7 +6,7 @@ namespace floormat {
 
 class Spinlock final
 {
-    volatile int32_t state = 0;
+    volatile i32 state = 0;
 
 public:
     void lock() noexcept;

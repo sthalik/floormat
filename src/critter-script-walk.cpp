@@ -31,7 +31,7 @@ critter_walk::critter_walk(path_search_result pathʹ) :
 point critter_walk::dest() const { return _dest; }
 bool critter_walk::straight() const { return mode == walk_mode::line; }
 
-auto critter_walk::update(const bptr<critter>& c, size_t& i, const Ns& dt) -> walk_result
+auto critter_walk::update(const bptr<critter>& c, usize& i, const Ns& dt) -> walk_result
 {
     fm_assert(mode != walk_mode::none);
     if (mode == walk_mode::line)
@@ -44,7 +44,7 @@ auto critter_walk::update(const bptr<critter>& c, size_t& i, const Ns& dt) -> wa
     return walk_smoothed(c, i, dt);
 }
 
-auto critter_walk::walk_line(const bptr<critter>& c, size_t& i, const Ns& dtʹ) -> walk_result
+auto critter_walk::walk_line(const bptr<critter>& c, usize& i, const Ns& dtʹ) -> walk_result
 {
     auto dt = dtʹ;
     auto res = c->move_toward(i, dt, _dest);
@@ -53,7 +53,7 @@ auto critter_walk::walk_line(const bptr<critter>& c, size_t& i, const Ns& dtʹ) 
     return c->position() == _dest ? walk_result::arrived : walk_result::none;
 }
 
-auto critter_walk::walk_path(const bptr<critter>& c, size_t& i, const Ns& dtʹ) -> walk_result
+auto critter_walk::walk_path(const bptr<critter>& c, usize& i, const Ns& dtʹ) -> walk_result
 {
     auto dt = dtʹ;
     while (dt != Ns{})
@@ -72,7 +72,7 @@ auto critter_walk::walk_path(const bptr<critter>& c, size_t& i, const Ns& dtʹ) 
     return walk_result::none;
 }
 
-auto critter_walk::walk_smoothed(const bptr<critter>& c, size_t& i, const Ns& dtʹ) -> walk_result
+auto critter_walk::walk_smoothed(const bptr<critter>& c, usize& i, const Ns& dtʹ) -> walk_result
 {
     auto dt = dtʹ;
     const auto sp = std::as_const(path).smoothings();
@@ -107,7 +107,7 @@ struct walk_script final : critter_script
     StringView name() const override;
     const void* id() const override;
     void on_init(const bptr<critter>& c) override;
-    void on_update(const bptr<critter>& c, size_t& i, const Ns& dt) override;
+    void on_update(const bptr<critter>& c, usize& i, const Ns& dt) override;
     void on_destroy(const bptr<critter>& c, script_destroy_reason reason) override;
     void delete_self() noexcept override;
 
@@ -130,7 +130,7 @@ void walk_script::on_init(const bptr<critter>& c)
     c->last_walk = walk_result::none;
 }
 
-void walk_script::on_update(const bptr<critter>& c, size_t& i, const Ns& dt)
+void walk_script::on_update(const bptr<critter>& c, usize& i, const Ns& dt)
 {
     auto ret = walk_result::none;
     if (c->maybe_stop_auto_movement())

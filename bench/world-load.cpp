@@ -19,7 +19,7 @@ String newest_save()
     String ret;
     if (!files)
         return ret;
-    int64_t newest = 0;
+    i64 newest = 0;
     for (const StringView file : *files)
     {
         if (!file.hasSuffix(".dat"_s))
@@ -69,7 +69,7 @@ void World_Load_Keep(benchmark::State& state)
     if (!setup(state, path))
         return;
     Array<world> worlds;
-    arrayReserve(worlds, (size_t)state.max_iterations);
+    arrayReserve(worlds, (usize)state.max_iterations);
 
     for (auto _ : state)
         arrayAppend(worlds, world::deserialize(path, loader_policy::warn));

@@ -8,16 +8,16 @@ namespace {
 
 using rc::bresenham_line;
 
-constexpr int32_t max_len = 24;
+constexpr i32 max_len = 24;
 
 bool test_plain_bresenham_misses()
 {
     const auto line = bresenham_line{{0, 0}, {5, 2}};
-    constexpr int32_t main_y[] = { 0, 0, 1, 1, 2, 2 };
+    constexpr i32 main_y[] = { 0, 0, 1, 1, 2, 2 };
     if (line.steps() != 5)
         return false;
     for (auto k = 0u; k <= line.steps(); k++)
-        if (line.point_at(k).x() != (int32_t)k || line.point_at(k).y() != main_y[k])
+        if (line.point_at(k).x() != (i32)k || line.point_at(k).y() != main_y[k])
             return false;
     for (auto k : { 0u, 2u, 4u })
         if (line.orthogonal_at(k).diagonal)
@@ -38,24 +38,24 @@ void check_against_incremental(Vector2i from, Vector2i to)
     const auto len = Math::abs(major), minor_len = Math::abs(minor);
     const auto major_sign = major < 0 ? -1 : 1, minor_sign = minor < 0 ? -1 : 1;
 
-    fm_assert_equal((uint32_t)len, line.steps());
+    fm_assert_equal((u32)len, line.steps());
     fm_assert(line.point_at(0) == from);
     fm_assert(line.point_at(line.steps()) == to);
 
     // err is 2*k*minor_len + len - 2*len*m, in [0, 2*len).
-    int32_t m = 0, err = len;
-    for (int32_t k = 0; k <= len; k++)
+    i32 m = 0, err = len;
+    for (i32 k = 0; k <= len; k++)
     {
-        const auto p = line.point_at((uint32_t)k);
+        const auto p = line.point_at((u32)k);
         const auto rel = y_major ? Vector2i{minor_sign*m, major_sign*k} : Vector2i{major_sign*k, minor_sign*m};
         if (p != from + rel)
             fm_abort("line (%d %d)-(%d %d) step %d: (%d %d), expected (%d %d)",
                      from.x(), from.y(), to.x(), to.y(), k, p.x(), p.y(), from.x() + rel.x(), from.y() + rel.y());
-        fm_assert_equal((uint32_t)k, line.step_of(p));
+        fm_assert_equal((u32)k, line.step_of(p));
         if (k < len)
         {
-            const auto q = line.point_at((uint32_t)k + 1);
-            const auto o = line.orthogonal_at((uint32_t)k);
+            const auto q = line.point_at((u32)k + 1);
+            const auto o = line.orthogonal_at((u32)k);
             fm_assert(o.diagonal == (p.x() != q.x() && p.y() != q.y()));
             if (o.diagonal)
             {
@@ -162,14 +162,14 @@ void check_long_line(Vector2i from, Vector2i to)
     const auto line = bresenham_line{from, to};
     const auto d = to - from;
     const bool y_major = Math::abs(d.y()) > Math::abs(d.x());
-    const int64_t len = line.steps(), minor_len = Math::abs(y_major ? d.x() : d.y());
-    fm_assert_equal(Math::abs(y_major ? d.y() : d.x()), (int32_t)len);
+    const i64 len = line.steps(), minor_len = Math::abs(y_major ? d.x() : d.y());
+    fm_assert_equal(Math::abs(y_major ? d.y() : d.x()), (i32)len);
 
-    for (int64_t k = 0; k <= len; k = k == len ? len + 1 : Math::min(k + 9973, len))
+    for (i64 k = 0; k <= len; k = k == len ? len + 1 : Math::min(k + 9973, len))
     {
-        const auto p = line.point_at((uint32_t)k);
-        fm_assert_equal((uint32_t)k, line.step_of(p));
-        const int64_t m = Math::abs(y_major ? p.x() - from.x() : p.y() - from.y());
+        const auto p = line.point_at((u32)k);
+        fm_assert_equal((u32)k, line.step_of(p));
+        const i64 m = Math::abs(y_major ? p.x() - from.x() : p.y() - from.y());
         // |m - k*minor_len/len| <= 1/2
         fm_assert(Math::abs(2*m*len - 2*k*minor_len) <= len);
         for (auto axis = 0u; axis < 2; axis++)
@@ -182,7 +182,7 @@ void check_long_line(Vector2i from, Vector2i to)
         }
         if (k < len)
         {
-            const auto q = line.point_at((uint32_t)k + 1);
+            const auto q = line.point_at((u32)k + 1);
             fm_assert(Math::abs(q.x() - p.x()) <= 1 && Math::abs(q.y() - p.y()) <= 1);
             fm_assert(Math::abs(y_major ? q.y() - p.y() : q.x() - p.x()) == 1);
         }
@@ -209,7 +209,7 @@ void Test::test_raycast_line()
                 check_interval_bounds_to_steps(from, from + d);
         }
 
-    constexpr int32_t e = 1 << 25;
+    constexpr i32 e = 1 << 25;
     check_long_line({-e, -e + 1}, {e - 1, e - 3});
     check_long_line({e - 2, -e}, {-e + 5, e - 1});
 }

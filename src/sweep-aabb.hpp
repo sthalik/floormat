@@ -15,7 +15,7 @@ namespace floormat {
 struct swept_collider_result
 {
     // The first step the box can't reach, or last_step + 1.
-    uint32_t step;
+    u32 step;
     collision_data collider;
     // In the line's frame.
     Range2D rect;
@@ -26,12 +26,12 @@ struct swept_collider_result
 // orthogonal points of each diagonal step. Pixels are in the frame of chunk ch, as for its rects. A
 // pool must be built for a bbox of at least bbox_size; its set bits are taken as free.
 swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
-                                          uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,
+                                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                                           const Search::pred& p, Grid::Pass::Pool* pool = nullptr);
 // Calls f for every collider blocking a step, in no particular order, until it returns false. A
 // collider found in several cells comes once per cell, with a step it blocks there.
 void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
-                         uint32_t first_step, uint32_t last_step, Vector2ui bbox_size,
+                         u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Grid::Pass::Pool* pool,
                          fu2::function_view<bool(const swept_collider_result&) const> f);
 

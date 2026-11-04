@@ -27,7 +27,7 @@ namespace {
 
 constexpr int dim = (int)TILE_MAX_DIM, last = 2*dim - 1;
 
-constexpr uint32_t unreached = (uint32_t)-1, max_dist = 6*chunk_size_xy;
+constexpr u32 unreached = (u32)-1, max_dist = 6*chunk_size_xy;
 
 // Every cell within this many px of a zone centre is free: the seeds and every node within the
 // search's goal_radius(), so the R-tree checks of both pass.
@@ -40,7 +40,7 @@ constexpr zone zones[] = {
     { {4, last - 5}, {3, -14} }, { {last - 5, last - 5}, {-9, -6} },
 };
 
-struct pool_size { uint32_t cell, bbox; };
+struct pool_size { u32 cell, bbox; };
 constexpr pool_size small_pools[] = { {4, 32}, {8, 32}, {16, 32}, {32, 32}, };
 // A block closes cells up to ~95 px away at 64-px cells and bbox, so this map has no random blocks.
 constexpr pool_size large_pools[] = { {16, 64}, {32, 64}, {64, 64}, };
@@ -51,14 +51,14 @@ constexpr pool_size large_pools[] = { {16, 64}, {32, 64}, {64, 64}, };
 struct lattice
 {
     int step, tile, lo, hi, n, clear_steps;
-    Array<uint8_t> free;
+    Array<u8> free;
 
     explicit lattice(int step) :
         step{step}, tile{tile_size_xy/step}, lo{-tile}, hi{(last + 1)*tile}, n{hi - lo + 1},
-        clear_steps{clear_px/step}, free{ValueInit, (size_t)(n*n)}
+        clear_steps{clear_px/step}, free{ValueInit, (usize)(n*n)}
     {}
 
-    uint32_t index(Vector2i v) const { return (uint32_t)((v.y() - lo)*n + v.x() - lo); }
+    u32 index(Vector2i v) const { return (u32)((v.y() - lo)*n + v.x() - lo); }
     bool inside(Vector2i v) const { return v.x() >= lo && v.x() <= hi && v.y() >= lo && v.y() <= hi; }
     bool at(Vector2i v) const { return inside(v) && free[index(v)]; }
     point pt(Vector2i v) const { return point{Vector3i{v*step, 0}}; }
@@ -68,8 +68,8 @@ point zone_point(zone z) { return point{Vector3i{z.tile*tile_size_xy + Vector2i(
 
 tile_ref tile_at(world& w, int x, int y)
 {
-    auto& c = w[chunk_coords_{(int16_t)(x / dim), (int16_t)(y / dim), 0}];
-    return c[local_coords{(uint8_t)(x % dim), (uint8_t)(y % dim)}];
+    auto& c = w[chunk_coords_{(i16)(x / dim), (i16)(y / dim), 0}];
+    return c[local_coords{(u8)(x % dim), (u8)(y % dim)}];
 }
 
 void add_block(world& w, int x, int y, Vector2ub size, Vector2b offset = {})
@@ -80,8 +80,8 @@ void add_block(world& w, int x, int y, Vector2ub size, Vector2b offset = {})
     p.bbox_size   = size;
     p.bbox_offset = offset;
     p.pass        = pass_mode::blocked;
-    w.make_scenery(w.make_id(), {chunk_coords_{(int16_t)(x / dim), (int16_t)(y / dim), 0},
-                                 local_coords{(uint8_t)(x % dim), (uint8_t)(y % dim)}}, move(p));
+    w.make_scenery(w.make_id(), {chunk_coords_{(i16)(x / dim), (i16)(y / dim), 0},
+                                 local_coords{(u8)(x % dim), (u8)(y % dim)}}, move(p));
 }
 
 bool near_zone(int x, int y)
@@ -138,18 +138,18 @@ void make_map(world& w, bool for_large_pools)
 
     Random::xoshiro256starstar rng;
     Random::seed(rng, 23);
-    const auto rnd = [&](uint32_t k) { return (uint32_t)(Random::next(rng) % k); };
+    const auto rnd = [&](u32 k) { return (u32)(Random::next(rng) % k); };
     for (int y = 0; y < last; y++)
         for (int x = 0; x < last; x++)
             if (!for_large_pools && !near_zone(x, y) && rnd(6) == 0)
             {
-                const auto size = Vector2ub{(uint8_t)(4 + 2*rnd(19)), (uint8_t)(4 + 2*rnd(19))};
-                const auto offset = Vector2b{(int8_t)((int)rnd(33) - 16), (int8_t)((int)rnd(33) - 16)};
+                const auto size = Vector2ub{(u8)(4 + 2*rnd(19)), (u8)(4 + 2*rnd(19))};
+                const auto offset = Vector2b{(i8)((int)rnd(33) - 16), (i8)((int)rnd(33) - 16)};
                 add_block(w, x, y, size, offset);
             }
 
-    for (int16_t j = 0; j < 2; j++)
-        for (int16_t i = 0; i < 2; i++)
+    for (i16 j = 0; j < 2; j++)
+        for (i16 i = 0; i < 2; i++)
         {
             auto& c = w[chunk_coords_{i, j, 0}];
             c.mark_passability_modified();
@@ -159,11 +159,11 @@ void make_map(world& w, bool for_large_pools)
 
 // A straight step needs its target's cell free, a diagonal one also the cells at cur + (dx, 0)
 // and cur + (0, dy), as in the search's per-cell tests.
-void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
+void reference_costs(const lattice& L, zone from, Array<u32>& dist)
 {
-    const auto oct = Search::octile{(uint32_t)L.step};
+    const auto oct = Search::octile{(u32)L.step};
     const auto step = L.step, tile = L.tile, lo = L.lo, hi = L.hi, n = L.n;
-    struct entry { uint32_t d, i; };
+    struct entry { u32 d, i; };
     constexpr auto later = [](entry a, entry b) { return a.d > b.d; };
 
     fill(arrayView(dist), unreached);
@@ -189,7 +189,7 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
         arrayRemoveSuffix(heap);
         if (d > dist[i])
             continue;
-        const auto v = Vector2i{(int)(i % (uint32_t)n) + lo, (int)(i / (uint32_t)n) + lo};
+        const auto v = Vector2i{(int)(i % (u32)n) + lo, (int)(i / (u32)n) + lo};
         fm_assert(v.x() > lo && v.x() < hi && v.y() > lo && v.y() < hi);
 
         for (int dy = -1; dy <= 1; dy++)
@@ -213,10 +213,10 @@ void reference_costs(const lattice& L, zone from, Array<uint32_t>& dist)
 
 // The search's goal_radius(): two cells less 2 px per axis. Octile from a node past it can be
 // cheaper than any route through the nodes inside it, so it decides the cost.
-uint32_t reference_cost(const lattice& L, const Array<uint32_t>& dist, zone to)
+u32 reference_cost(const lattice& L, const Array<u32>& dist, zone to)
 {
-    const auto oct = Search::octile{(uint32_t)L.step};
-    const auto goal_radius = (uint64_t)(2*L.step - 2);
+    const auto oct = Search::octile{(u32)L.step};
+    const auto goal_radius = (u64)(2*L.step - 2);
     auto best = unreached;
     for (int j = -L.clear_steps; j <= L.clear_steps; j++)
         for (int i = -L.clear_steps; i <= L.clear_steps; i++)
@@ -244,7 +244,7 @@ void check_map(bool for_large_pools, ArrayView<const pool_size> pools)
         pool.maybe_mark_stale_all(w);
 
         auto L = lattice{(int)cell};
-        auto dist = Array<uint32_t>{NoInit, (size_t)(L.n*L.n)};
+        auto dist = Array<u32>{NoInit, (usize)(L.n*L.n)};
         for (int y = L.lo; y <= L.hi; y++)
             for (int x = L.lo; x <= L.hi; x++)
                 L.free[L.index({x, y})] = A.cache()->is_passable_for_bbox(w, pool, L.pt({x, y}), pred);

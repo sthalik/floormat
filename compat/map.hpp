@@ -5,7 +5,7 @@
 
 namespace floormat::detail::map {
 
-template<typename Out, typename F, typename A, size_t... Indexes>
+template<typename Out, typename F, typename A, usize... Indexes>
 CORRADE_ALWAYS_INLINE
 constexpr auto map0(const F& fun, const A& array, std::index_sequence<Indexes...>)
 {

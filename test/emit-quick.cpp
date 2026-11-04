@@ -31,7 +31,7 @@ namespace {
 constexpr Vector2i fb_size{512, 512};
 // x+y differs in parity between the two, so one of them projects to a half pixel.
 constexpr Vector3i anchors[] = { {13, -7, 0}, {14, -7, 0} };
-constexpr uint32_t margin = 2;
+constexpr u32 margin = 2;
 // Blending is off, so the quad writes every pixel it covers, transparent texels included.
 constexpr Color4 clear_color{1, 0, 1, 1};
 constexpr Color4ub clear_color_ub{255, 0, 255, 255};
@@ -47,11 +47,11 @@ struct state
 
 // The frame's texels inside `margin` pixels of clear color, rows bottom-up as a readback returns
 // them. The atlas stores a rotated sprite transposed.
-Array<Color4ub> expected_pixels(const anim_atlas& atlas, rotation r, uint32_t frame)
+Array<Color4ub> expected_pixels(const anim_atlas& atlas, rotation r, u32 frame)
 {
     const auto& g = atlas.group(r);
     const auto& sp = *g.sprites[frame];
-    const auto w = (uint32_t)sp.width_minus1 + 1, h = (uint32_t)sp.height_minus1 + 1;
+    const auto w = (u32)sp.width_minus1 + 1, h = (u32)sp.height_minus1 + 1;
     fm_assert(Vector2ui{w, h} == atlas.frame(r, frame).size);
     const bool rotated = sp.is_rotated, mirror = !g.mirror_from.isEmpty();
     const auto sw = rotated ? h : w, sh = rotated ? w : h;
@@ -60,14 +60,14 @@ Array<Color4ub> expected_pixels(const anim_atlas& atlas, rotation r, uint32_t fr
         Image3D{PixelFormat::RGBA8Unorm});
     const auto* slot = reinterpret_cast<const Color4ub*>(img.data().data());
     const auto cw = w + 2*margin;
-    Array<Color4ub> ret{DirectInit, (size_t)cw*(h + 2*margin), clear_color_ub};
+    Array<Color4ub> ret{DirectInit, (usize)cw*(h + 2*margin), clear_color_ub};
     for (auto y = 0u; y < h; y++)
         for (auto x = 0u; x < w; x++)
             ret[(y + margin)*cw + margin + (mirror ? w-1-x : x)] = rotated ? slot[x*sw + h-1-y] : slot[y*w + x];
     return ret;
 }
 
-void test_quad(state& s, const anim_atlas& atlas, rotation r, uint32_t frame, Vector3i anchor,
+void test_quad(state& s, const anim_atlas& atlas, rotation r, u32 frame, Vector3i anchor,
                ArrayView<const Color4ub> expected)
 {
     const auto& f = atlas.frame(r, frame);
@@ -88,9 +88,9 @@ void test_quad(state& s, const anim_atlas& atlas, rotation r, uint32_t frame, Ve
     if (!std::memcmp(drawn, expected.data(), img.data().size()))
         return;
 
-    const auto w = (uint32_t)(hi.x() - lo.x()), h = (uint32_t)(hi.y() - lo.y());
-    uint32_t bad = 0, first = 0;
-    for (auto i = 0u; i < (uint32_t)expected.size(); i++)
+    const auto w = (u32)(hi.x() - lo.x()), h = (u32)(hi.y() - lo.y());
+    u32 bad = 0, first = 0;
+    for (auto i = 0u; i < (u32)expected.size(); i++)
         if (drawn[i] != expected[i] && !bad++)
             first = i;
     // Reported y down from the sprite's corner. Readback rows go bottom-up.
@@ -102,7 +102,7 @@ void test_quad(state& s, const anim_atlas& atlas, rotation r, uint32_t frame, Ve
              c.r(), c.g(), c.b(), c.a(), e.r(), e.g(), e.b(), e.a());
 }
 
-void test_frame(state& s, const anim_atlas& atlas, rotation r, uint32_t frame)
+void test_frame(state& s, const anim_atlas& atlas, rotation r, u32 frame)
 {
     const auto expected = expected_pixels(atlas, r, frame);
     for (const auto& anchor : anchors)
@@ -111,12 +111,12 @@ void test_frame(state& s, const anim_atlas& atlas, rotation r, uint32_t frame)
 
 void test_atlas(state& s, const anim_atlas& atlas)
 {
-    for (auto i = 0u; i < (uint32_t)rotation_COUNT; i++)
+    for (auto i = 0u; i < (u32)rotation_COUNT; i++)
     {
         const auto r = rotation(i);
         if (!atlas.check_rotation(r))
             continue;
-        const auto n = (uint32_t)atlas.group(r).frames.size();
+        const auto n = (u32)atlas.group(r).frames.size();
         for (auto frame = 0u; frame < n; frame++)
             test_frame(s, atlas, r, frame);
     }
@@ -137,7 +137,7 @@ void test_order(state& s)
         { {27, -5, 0}, {0, 0, 1, 1}, {  0, 0, 255, 255} },
         { {41, -3, 0}, {0, 0, 0, 1}, {  0, 0,   0, 255} },
     };
-    constexpr auto n = (uint32_t)array_size(list);
+    constexpr auto n = (u32)array_size(list);
     fm_assert(f.size == Vector2ui{32});
 
     Vector2i p0[n];
@@ -170,7 +170,7 @@ void test_order(state& s)
             for (auto i = 0u; i < n; i++)
                 if (x >= p0[i].x() && x < p0[i].x() + size.x() && y >= p0[i].y() && y < p0[i].y() + size.y())
                     expected = list[i].color;
-            const auto c = px[(uint32_t)row][(uint32_t)x];
+            const auto c = px[(u32)row][(u32)x];
             if (c != expected)
                 fm_abort("pixel (%d,%d) is %02x%02x%02x%02x, should be %02x%02x%02x%02x", x, y,
                          c.r(), c.g(), c.b(), c.a(), expected.r(), expected.g(), expected.b(), expected.a());

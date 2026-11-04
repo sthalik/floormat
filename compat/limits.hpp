@@ -10,7 +10,7 @@ requires (std::is_signed_v<T> && std::is_integral_v<T>)
 struct limits<T>
 {
     using Type = T;
-    static constexpr T min{-int64_t{1} << sizeof(T)*8-1}, max{-(min+1)};
+    static constexpr T min{-i64{1} << sizeof(T)*8-1}, max{-(min+1)};
 };
 
 template<typename T>
@@ -25,7 +25,7 @@ template<> struct limits<float>
 {
     using Type = float;
     static constexpr float max{1 << 24}, min{-max};
-    using integer_type = int32_t;
+    using integer_type = i32;
 
     static constexpr float epsilon = FLT_EPSILON;
     static constexpr float normal = FLT_MIN;
@@ -34,8 +34,8 @@ template<> struct limits<float>
 template<> struct limits<double>
 {
     using Type = double;
-    static constexpr double max = double{uint64_t{1} << 53}, min{-max};
-    using integer_type = int64_t;
+    static constexpr double max = double{u64{1} << 53}, min{-max};
+    using integer_type = i64;
 
     static constexpr double epsilon = DBL_EPSILON;
     static constexpr double normal = DBL_MIN;

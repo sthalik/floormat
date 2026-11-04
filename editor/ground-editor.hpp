@@ -33,9 +33,9 @@ public:
     StringView name() const noexcept;
 
     void clear_selection();
-    void select_tile(const bptr<ground_atlas>& atlas, size_t variant);
+    void select_tile(const bptr<ground_atlas>& atlas, usize variant);
     void select_tile_permutation(const bptr<ground_atlas>& atlas);
-    bool is_tile_selected(const bptr<ground_atlas>& atlas, size_t variant) const;
+    bool is_tile_selected(const bptr<ground_atlas>& atlas, usize variant) const;
     bool is_permutation_selected(const bptr<ground_atlas>& atlas) const;
     bool is_atlas_selected(const bptr<ground_atlas>& atlas) const;
     bool is_anything_selected() const;

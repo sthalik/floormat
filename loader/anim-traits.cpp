@@ -48,15 +48,15 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
     // Allocate the single frame in the shared sprite atlas so render-path
     // lookups succeed for any object that ended up using this placeholder
     // (e.g. missing asset with loader_policy::warn). Same pattern as loader/vobj.cpp.
-    const auto px_size = (size_t)err_tex.pixels().size()[2];
-    const auto row_stride = (size_t)size.x() * px_size;
+    const auto px_size = (usize)err_tex.pixels().size()[2];
+    const auto row_stride = (usize)size.x() * px_size;
     const auto* src_base = (const char*)err_tex.pixels().data();
     PixelStorage storage;
     storage.setRowLength((Int)size.x());
     storage.setAlignment(1);
     const ImageView2D view{storage, err_tex.format(),
                            {(Int)size.x(), (Int)size.y()},
-                           ArrayView<const void>{src_base, (size_t)size.y() * row_stride}};
+                           ArrayView<const void>{src_base, (usize)size.y() * row_stride}};
     auto sp = loader.atlas().add(view);
 
     return { .atlas = make_invalid_atlas(loader.INVALID, {}, sp.raw()), .name = loader.INVALID, };
@@ -76,7 +76,7 @@ auto anim_traits::make_invalid_atlas(StringView name, placeholder_anim_params pa
     };
     // Every rotation, so an object loaded with it keeps its facing.
     constexpr StringView rotation_names[] = { "n"_s, "ne"_s, "e"_s, "se"_s, "s"_s, "sw"_s, "w"_s, "nw"_s, };
-    static_assert(array_size(rotation_names) == (size_t)rotation_COUNT);
+    static_assert(array_size(rotation_names) == (usize)rotation_COUNT);
     auto groups = Array<anim_group>{ValueInit, array_size(rotation_names)};
     for (auto i = 0uz; i < groups.size(); i++)
         groups[i] = anim_group {
@@ -132,26 +132,26 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
 
     {
         const auto format = tex.format();
-        const auto full_width  = (uint32_t)size[1];
-        const auto full_height = (uint32_t)size[0];
+        const auto full_width  = (u32)size[1];
+        const auto full_height = (u32)size[0];
 
         for (anim_group& g : anim_info.groups)
         {
             if (!g.mirror_from.isEmpty())
                 continue;
             g.sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, g.frames.size()};
-            for (uint32_t fi = 0; fi < g.frames.size(); fi++)
+            for (u32 fi = 0; fi < g.frames.size(); fi++)
             {
                 const anim_frame& f = g.frames[fi];
-                const uint32_t fw = (uint32_t)f.size.x();
-                const uint32_t fh = (uint32_t)f.size.y();
+                const u32 fw = (u32)f.size.x();
+                const u32 fh = (u32)f.size.y();
                 fm_soft_assert(fw > 0 && fh > 0);
                 fm_soft_assert(fw <= SpriteAtlas::max_sprite_xy && fh <= SpriteAtlas::max_sprite_xy);
-                const uint32_t ox = (uint32_t)f.offset.x(), oy = (uint32_t)f.offset.y();
+                const u32 ox = (u32)f.offset.x(), oy = (u32)f.offset.y();
                 // Subtraction form keeps offset+size from wrapping past the texture.
                 fm_soft_assert(ox <= full_width && fw <= full_width - ox);
                 fm_soft_assert(oy <= full_height && fh <= full_height - oy);
-                const uint32_t mem_y_start = full_height - oy - fh;
+                const u32 mem_y_start = full_height - oy - fh;
                 PixelStorage sub_storage = tex.storage();
                 sub_storage.setRowLength((Int)full_width)
                            .setSkip({(Int)f.offset.x(), (Int)mem_y_start, 0});
@@ -170,7 +170,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
             const auto* src = std::find_if(begin, end, [&](const anim_group& x) { return x.name == g.mirror_from; });
             fm_debug_assert(src != end);
             g.sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, g.frames.size()};
-            for (uint32_t fi = 0; fi < g.frames.size(); fi++)
+            for (u32 fi = 0; fi < g.frames.size(); fi++)
             {
                 const auto* s = src->sprites[fi];
                 if (!s) continue;

@@ -14,7 +14,7 @@ struct hole_proto final : object_proto
     hole_proto& operator=(hole_proto&&) noexcept;
     bool operator==(const object_proto& proto) const override;
 
-    uint8_t height = tile_size_z, z_offset = 0;
+    u8 height = tile_size_z, z_offset = 0;
     struct Flags
     {
         bool enabled : 1 = true;
@@ -25,22 +25,22 @@ struct hole_proto final : object_proto
 
 struct hole final : object
 {
-    const uint8_t height = tile_size_z, z_offset = 0;
+    const u8 height = tile_size_z, z_offset = 0;
     const hole_proto::Flags flags;
 
     hole(object_id id, class chunk& c, const hole_proto& proto);
     ~hole() noexcept override;
 
-    int32_t depth_offset() const override;
+    i32 depth_offset() const override;
     object_type type() const noexcept override;
-    void update(const bptr<object>& ptr, size_t& i, const Ns& dt) override;
+    void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
     bool is_dynamic() const override;
     bool updates_passability() const override;
     bool updates_walls() const override;
     bool is_virtual() const override;
 
-    void set_height(uint8_t height);
-    void set_z_offset(uint8_t z);
+    void set_height(u8 height);
+    void set_z_offset(u8 z);
     void set_enabled(bool value);
 
     explicit operator hole_proto() const;

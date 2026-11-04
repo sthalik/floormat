@@ -21,13 +21,13 @@ const unsigned char src[] = {
 
 constexpr auto data_nbytes = array_size(src);
 constexpr auto size = Vector2i{21, 52};
-//static_assert(size_t{size.product()+7}/8 <= data_nbytes);
+//static_assert(usize{size.product()+7}/8 <= data_nbytes);
 
 void bitmask_test()
 {
     auto img = loader.texture("images/", "bitmask-test1"_s);
     auto bitmask = anim_atlas::make_bitmask(img);
-    fm_assert(bitmask.size() >= size_t{size.product()});
+    fm_assert(bitmask.size() >= usize{size.product()});
     fm_assert(img.pixelSize() == 4);
 //#define DO_GENERATE
 #ifdef DO_GENERATE
@@ -41,7 +41,7 @@ void bitmask_test()
     printf("\n");
     fflush(stdout);
 #endif
-    const auto len = Math::min(data_nbytes, (size_t)bitmask.size()+7 >> 3);
+    const auto len = Math::min(data_nbytes, (usize)bitmask.size()+7 >> 3);
     fm_assert(array_size(src) >= len);
     for (auto i = 0uz; i < len; i++)
     {
@@ -52,9 +52,9 @@ void bitmask_test()
 }
 
 // Mirrors amin in src/bitmask.cpp, which has internal linkage there.
-constexpr uint8_t amin = 32;
+constexpr u8 amin = 32;
 
-constexpr uint32_t pixel_hash(uint32_t x)
+constexpr u32 pixel_hash(u32 x)
 {
     x ^= x >> 16; x *= 0x7feb352du;
     x ^= x >> 15; x *= 0x846ca68bu;
@@ -64,25 +64,25 @@ constexpr uint32_t pixel_hash(uint32_t x)
 
 // RGB holds the inverse of the alpha decision, so a shuffle mask reading the wrong byte of a
 // pixel inverts every bit instead of passing.
-void fill_pixels(unsigned char* buf, uint32_t W, uint32_t H, uint32_t seed)
+void fill_pixels(unsigned char* buf, u32 W, u32 H, u32 seed)
 {
     for (auto j = 0u; j < H; j++)
         for (auto i = 0u; i < W; i++)
         {
             const auto h = pixel_hash(seed*0x9e3779b9u + j*65537u + i);
             // Half the pixels straddle amin at 29..36, the rest spread over the whole range.
-            const auto a = (uint8_t)(h & 1 ? h >> 24 : 29 + (h >> 8 & 7));
+            const auto a = (u8)(h & 1 ? h >> 24 : 29 + (h >> 8 & 7));
             auto* p = buf + (j*W + i)*4;
-            p[0] = p[1] = p[2] = (uint8_t)(a >= amin ? 0x00 : 0xff);
+            p[0] = p[1] = p[2] = (u8)(a >= amin ? 0x00 : 0xff);
             p[3] = a;
         }
 }
 
-void check_bitmask(const unsigned char* px, uint32_t W, uint32_t H)
+void check_bitmask(const unsigned char* px, u32 W, u32 H)
 {
     const ImageView2D img{PixelFormat::RGBA8Unorm, {(int)W, (int)H}, {px, W*H*4}};
     const auto bm = anim_atlas::make_bitmask(img);
-    const auto nbits = (uint32_t)bm.size();
+    const auto nbits = (u32)bm.size();
     fm_assert(nbits >= W*H);
 
     for (auto j = 0u; j < H; j++)
@@ -107,7 +107,7 @@ void bitmask_sweep_test()
     // Width covers every residue mod 32 three times, with zero, one and two whole 32-pixel blocks
     // (AVX2, AVX3) ahead of the scalar tail, and up to five 16-pixel ones (SSE4). Height covers
     // every start offset: row j begins at bit (H-j-1)*W, so eight rows walk the full cycle of W mod 8.
-    constexpr uint32_t max_w = 96, max_h = 9;
+    constexpr u32 max_w = 96, max_h = 9;
     unsigned char px[max_w*max_h*4];
 
     for (auto W = 1u; W <= max_w; W++)
@@ -122,8 +122,8 @@ void bitmask_wide_test()
 {
     // The sweep stops at 96 where anim/npc-walk.png is 3382 wide. 3391 is prime, leaves the widest
     // possible tail after 16- and 32-pixel blocks, and 3391 % 8 == 7 walks every byte offset.
-    constexpr uint32_t W = 3391, H = 64;
-    Array<unsigned char> px{NoInit, (size_t)W*H*4};
+    constexpr u32 W = 3391, H = 64;
+    Array<unsigned char> px{NoInit, (usize)W*H*4};
     fill_pixels(px.data(), W, H, 0xa5f3u);
     check_bitmask(px.data(), W, H);
 }
@@ -132,7 +132,7 @@ void bitmask_wide_test()
 
 void Test::test_bitmask()
 {
-    for (const int64_t target : hwy::SupportedAndGeneratedTargets())
+    for (const i64 target : hwy::SupportedAndGeneratedTargets())
     {
         hwy::SetSupportedTargetsForTest(target);
         bitmask_sweep_test();

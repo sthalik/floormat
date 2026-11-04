@@ -13,15 +13,15 @@ struct string_index_map final
     string_index_map& operator=(const string_index_map&) = delete;
 
     [[nodiscard]] bool empty() const noexcept;
-    [[nodiscard]] size_t size() const noexcept;
+    [[nodiscard]] usize size() const noexcept;
     [[nodiscard]] bool contains(StringView name) const;
-    [[nodiscard]] const size_t* find(StringView name) const;
-    size_t& operator[](StringView name);
+    [[nodiscard]] const usize* find(StringView name) const;
+    usize& operator[](StringView name);
     void clear();
-    void set_load_factor(size_t element_count);
+    void set_load_factor(usize element_count);
     void set_load_factor();
     // -1uz marks a name that has no backing cell
-    [[nodiscard]] bool all_indices_below(size_t limit) const;
+    [[nodiscard]] bool all_indices_below(usize limit) const;
 
 private:
     struct impl;

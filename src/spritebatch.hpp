@@ -18,12 +18,12 @@ class SpriteBatch
 {
     struct Impl;
 
-    void ensure_allocated(uint32_t count);
+    void ensure_allocated(u32 count);
 
     safe_ptr<Impl> impl;
 
 public:
-    void begin_chunk(uint32_t max_quads);
+    void begin_chunk(u32 max_quads);
     template<bool do_sort> void end_chunk();
     void clear();
     void draw(tile_shader& shader, bool do_sort = true);
@@ -31,7 +31,7 @@ public:
     // Needs no GL. Together these let a test observe the merge; without merged_order() a
     // dropped or duplicated quad is unobservable from outside.
     void sort_vertex_buffer(bool do_sort);
-    ArrayView<const uint32_t> merged_order() const;
+    ArrayView<const u32> merged_order() const;
     void unsort_vertex_buffer();
 
     static void add_clickable(const object& s, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
@@ -39,7 +39,7 @@ public:
     void emit(SpriteList& list, bool render_vobjs);
     void sort_by_depth(SpriteList& list);
 
-    void emit_quick(tile_shader& shader, const anim_atlas& atlas, rotation r, size_t frame, const Vector3& center, const Quads::depths& depth);
+    void emit_quick(tile_shader& shader, const anim_atlas& atlas, rotation r, usize frame, const Vector3& center, const Quads::depths& depth);
 
     explicit SpriteBatch();
     ~SpriteBatch() noexcept;

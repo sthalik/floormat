@@ -7,16 +7,16 @@ namespace floormat {
 
 namespace {
 
-void make_chunks(world& w, int16_t side)
+void make_chunks(world& w, i16 side)
 {
-    for (int16_t y = 0; y < side; y++)
-        for (int16_t x = 0; x < side; x++)
+    for (i16 y = 0; y < side; y++)
+        for (i16 x = 0; x < side; x++)
             w[chunk_coords_{x, y, 0}];
 }
 
 void World_Create(benchmark::State& state)
 {
-    const auto side = (int16_t)state.range(0);
+    const auto side = (i16)state.range(0);
     {
         auto w = world();
         make_chunks(w, side);
@@ -33,13 +33,13 @@ BENCHMARK(World_Create)->ArgName("side")->Arg(0)->Arg(2)->Arg(8)->Unit(benchmark
 
 void World_Create_Keep(benchmark::State& state)
 {
-    const auto side = (int16_t)state.range(0);
+    const auto side = (i16)state.range(0);
     {
         auto w = world();
         make_chunks(w, side);
     }
     Array<world> worlds;
-    arrayReserve(worlds, (size_t)state.max_iterations);
+    arrayReserve(worlds, (usize)state.max_iterations);
 
     for (auto _ : state)
         make_chunks(arrayAppend(worlds, InPlaceInit), side);

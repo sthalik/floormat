@@ -81,7 +81,7 @@ Vector2ub fix_stupid_bbox(Vector2ub bbox_size)
     return bbox_size;
 }
 
-struct string_hasher { CORRADE_ALWAYS_INLINE size_t operator()(StringView s) const { return hash_buf(s.data(), s.size()); } };
+struct string_hasher { CORRADE_ALWAYS_INLINE usize operator()(StringView s) const { return hash_buf(s.data(), s.size()); } };
 
 template<typename T> concept Number = std::is_arithmetic_v<std::remove_cvref_t<T>>;
 template<typename T> concept Enum = std::is_enum_v<std::remove_cvref_t<T>>;
@@ -90,17 +90,17 @@ template<typename T> concept Vector = Math::IsVector<std::remove_cvref_t<T>>::va
 struct buffer
 {
     Array<char> data;
-    size_t size;
+    usize size;
 
     operator ArrayView<const char>() const { return {&data[0], size}; }
     bool empty() const { return size == 0; }
     buffer() : data{nullptr}, size{0} {}
-    buffer(size_t len) : data{NoInit, len}, size{len} {}
+    buffer(usize len) : data{NoInit, len}, size{len} {}
 };
 
 struct size_counter
 {
-    size_t& size;
+    usize& size;
 
     template<typename T> requires (std::is_arithmetic_v<T> && std::is_fundamental_v<T>)
     CORRADE_ALWAYS_INLINE void operator()(T) { size += sizeof(T); }
@@ -132,18 +132,18 @@ struct object_header_s
 
 struct critter_header_s
 {
-    uint32_t& anim_progress;
+    u32& anim_progress;
 };
 
 template<typename Object, typename Proto>
 struct flag_field
 {
-    uint8_t bits;
+    u8 bits;
     bool(*getter)(const Object&);
     void(*setter)(Proto&, bool);
 };
 
-using proto_t  = uint16_t;
+using proto_t  = u16;
 
 // ---------- proto versions ----------
 // 19: see old-savegame.cpp
@@ -151,7 +151,7 @@ using proto_t  = uint16_t;
 // 21: oops, forgot the object counter
 // 22: add object::speed
 // 23: switch object::delta to 32-bit
-// 24: switch object::offset_frac from Vector2us to uint16_t
+// 24: switch object::offset_frac from Vector2us to u16
 // 25: add hole objects
 // 26: add checksum
 // 27: add light radius
@@ -161,15 +161,15 @@ using proto_t  = uint16_t;
 // 31: drop critter::offset_frac, store object::delta in ns
 static constexpr proto_t proto_version = 31;
 
-static constexpr size_t string_max          = 512;
+static constexpr usize string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
 static constexpr auto file_magic            = ".floormat.save"_s;
-static constexpr auto chunk_magic           = maybe_byteswap((uint16_t)0xadde);
-static constexpr auto object_magic          = maybe_byteswap((uint16_t)0x0bb0);
+static constexpr auto chunk_magic           = maybe_byteswap((u16)0xadde);
+static constexpr auto object_magic          = maybe_byteswap((u16)0x0bb0);
 
-using tilemeta = uint8_t;
-using atlasid  = uint32_t;
-using chunksiz = uint32_t;
+using tilemeta = u8;
+using atlasid  = u32;
+using chunksiz = u32;
 
 template<std::unsigned_integral T> static constexpr T highbit = (T{1} << sizeof(T)*8-1);
 template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
@@ -212,7 +212,7 @@ struct visitor_ : visitor_base<IsNewest>
     template<Vector T, typename F> void visit(T&& x, F&& f)
     {
         constexpr auto N = std::remove_cvref_t<T>::Size;
-        for (uint32_t i = 0; i < N; i++)
+        for (u32 i = 0; i < N; i++)
             visit(forward<T>(x).data()[i], f);
     }
 
@@ -257,7 +257,7 @@ struct visitor_ : visitor_base<IsNewest>
         {
             if constexpr(!IsWriter)
             {
-                auto delta_ = uint16_t(obj.delta >> 16);
+                auto delta_ = u16(obj.delta >> 16);
                 visit(delta_, f);
                 obj.delta = delta_ * 65536u;
             }
@@ -294,15 +294,15 @@ struct visitor_ : visitor_base<IsNewest>
         visit(coord.z, f);
     }
 
-    enum : uint8_t {
+    enum : u8 {
         flag_playable = 1 << 0,
     };
 
-    enum : uint8_t {
+    enum : u8 {
         flag_enabled = 1 << 0,
     };
 
-    enum : uint8_t {
+    enum : u8 {
         flag_active      = 1 << 0,
         flag_closing     = 1 << 1,
         flag_interactive = 1 << 2,
@@ -311,7 +311,7 @@ struct visitor_ : visitor_base<IsNewest>
     template<auto fields, typename S, typename F>
     void visit_flags(S& s, F&& f)
     {
-        uint8_t flags = 0;
+        u8 flags = 0;
         if constexpr(IsWriter)
         {
             for (const auto& x : fields)
@@ -321,8 +321,8 @@ struct visitor_ : visitor_base<IsNewest>
         else
         {
             visit(flags, f);
-            constexpr uint8_t known = [] {
-                uint8_t bits = 0;
+            constexpr u8 known = [] {
+                u8 bits = 0;
                 for (const auto& x : fields)
                     bits |= x.bits;
                 return bits;
@@ -404,7 +404,7 @@ struct visitor_ : visitor_base<IsNewest>
             else if (self.PROTO >= 24)
             {
                 // path length × 32768, and a pixel of path cost a frame
-                uint16_t offset_frac;
+                u16 offset_frac;
                 visit(offset_frac, f);
                 // a 1-frame atlas can have fps 0
                 if (const auto fps = obj.atlas->info().fps)
@@ -468,7 +468,7 @@ struct visitor_ : visitor_base<IsNewest>
     }
 };
 
-constexpr size_t vector_initial_size = 128, hash_initial_size = vector_initial_size*2;
+constexpr usize vector_initial_size = 128, hash_initial_size = vector_initial_size*2;
 
 struct writer final : visitor_<writer, true, true>
 {
@@ -490,10 +490,10 @@ struct writer final : visitor_<writer, true, true>
     const world& w;
 
     std::vector<StringView> string_array{};
-    gtl::flat_hash_map<StringView, uint32_t, string_hasher> string_map{hash_initial_size};
+    gtl::flat_hash_map<StringView, u32, string_hasher> string_map{hash_initial_size};
 
     std::vector<serialized_atlas> atlas_array{};
-    gtl::flat_hash_map<const void*, uint32_t> atlas_map{hash_initial_size};
+    gtl::flat_hash_map<const void*, u32> atlas_map{hash_initial_size};
 
     std::vector<serialized_chunk> chunk_array{};
 
@@ -543,7 +543,7 @@ struct writer final : visitor_<writer, true, true>
         case object_type::critter:
         {
             const auto& C = static_cast<const critter&>(obj);
-            uint32_t anim_progress = C.anim_progress;
+            u32 anim_progress = C.anim_progress;
             critter_header_s cr = {
                 .anim_progress = anim_progress,
             };
@@ -591,22 +591,22 @@ ok:     void();
     {
         atlas_array.reserve(vector_initial_size);
         fm_assert(atlas != nullptr);
-        auto [kv, fresh] = atlas_map.try_emplace(atlas, (uint32_t)-1);
+        auto [kv, fresh] = atlas_map.try_emplace(atlas, (u32)-1);
         if (!fresh)
         {
-            fm_debug_assert(kv->second != (uint32_t)-1);
+            fm_debug_assert(kv->second != (u32)-1);
             return kv->second;
         }
         else
         {
-            size_t len = 0;
+            usize len = 0;
             intern_atlas_(atlas, type, size_counter{len});
             fm_assert(len > 0);
 
             buffer buf{len};
             binary_writer<char*> s{&buf.data[0], buf.size};
             intern_atlas_(atlas, type, byte_writer{s});
-            auto id = (uint32_t)atlas_array.size();
+            auto id = (u32)atlas_array.size();
             fm_assert(s.bytes_written() == s.bytes_allocated());
             atlas_array.emplace_back(move(buf), atlas, type);
             kv->second = id;
@@ -628,7 +628,7 @@ ok:     void();
         string_array.reserve(vector_initial_size);
         fm_assert(!str.find('\0'));
         Hash::set_separate_chaining_load_factor(string_map, string_map.size()+1);
-        auto [pair, fresh] = string_map.try_emplace(str, (uint32_t)string_array.size());
+        auto [pair, fresh] = string_map.try_emplace(str, (u32)string_array.size());
         if (fresh)
             string_array.emplace_back(str);
         return pair->second;
@@ -636,7 +636,7 @@ ok:     void();
 
     template<typename F> void serialize_objects_(const chunk& c, F&& f)
     {
-        uint32_t count = 0;
+        u32 count = 0;
         for (const object& obj : c.objects())
         {
             if (obj.ephemeral)
@@ -655,18 +655,18 @@ ok:     void();
         }
     }
 
-    void serialize_tile_(auto&& g, uint32_t& i, auto&& f)
+    void serialize_tile_(auto&& g, u32& i, auto&& f)
     {
         using INT = std::decay_t<decltype(g(i))>;
         static_assert(std::is_unsigned_v<INT>);
         const auto a = INT{ g(i) };
         fm_assert(a == null<INT> || a < null<INT>);
-        uint_fast16_t num_idempotent = 0;
+        u32 num_idempotent = 0;
 
-        for (uint32_t j = i+1; j < TILE_COUNT; j++)
+        for (u32 j = i+1; j < TILE_COUNT; j++)
             if (a != g(j))
                 break;
-            else if ((size_t)num_idempotent + 1uz == (size_t)null<INT>)
+            else if ((usize)num_idempotent + 1uz == (usize)null<INT>)
                 break;
             else
                 num_idempotent++;
@@ -687,40 +687,40 @@ ok:     void();
     {
         const auto fn = [this](const chunk& ch, auto&& f)
         {
-            static_assert(null<uint8_t> == 127 && highbit<uint8_t> == 128);
-            static_assert(null<uint32_t> == 0x7fffffff && highbit<uint32_t> == 0x80000000);
+            static_assert(null<u8> == 127 && highbit<u8> == 128);
+            static_assert(null<u32> == 0x7fffffff && highbit<u32> == 0x80000000);
             auto magic = chunk_magic;
             visit(magic, f);
             visit(ch.coord(), f);
-            for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&](uint32_t index) {
+            for (u32 i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&](u32 index) {
                     return maybe_intern_atlas(ch[index].ground_atlas(), atlas_type::ground);
                 }, i, f);
-            for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&](uint32_t index) {
+            for (u32 i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&](u32 index) {
                     return maybe_intern_atlas(ch[index].wall_north_atlas(), atlas_type::wall);
                 }, i, f);
-            for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&](uint32_t index) {
+            for (u32 i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&](u32 index) {
                     return maybe_intern_atlas(ch[index].wall_west_atlas(), atlas_type::wall);
                 }, i, f);
-            for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&](uint32_t index) {
+            for (u32 i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&](u32 index) {
                     auto v = ch[index].ground().variant; return v == (variant_t)-1 ? null<variant_t> : v;
                 }, i, f);
-            for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&ch](uint32_t index) {
+            for (u32 i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&ch](u32 index) {
                     auto v = ch[index].wall_north().variant; return v == (variant_t)-1 ? null<variant_t> : v;
                 }, i, f);
-            for (uint32_t i = 0; i < TILE_COUNT; i++)
-                serialize_tile_([&ch](uint32_t index) {
+            for (u32 i = 0; i < TILE_COUNT; i++)
+                serialize_tile_([&ch](u32 index) {
                     auto v = ch[index].wall_west().variant; return v == (variant_t)-1 ? null<variant_t> : v;
                 }, i, f);
 
             serialize_objects_(ch, f);
         };
 
-        size_t len = 0;
+        usize len = 0;
         auto ctr = size_counter{len};
         fn(c, ctr);
         fm_assert(len > 0);
@@ -739,9 +739,9 @@ ok:     void();
             visit(c, f);
         visit(proto_version, f);
         visit(w.object_counter(), f);
-        auto nstrings = (uint32_t)string_array.size(),
-             natlases = (uint32_t)atlas_array.size(),
-             nchunks  = (uint32_t)chunk_array.size();
+        auto nstrings = (u32)string_array.size(),
+             natlases = (u32)atlas_array.size(),
+             nchunks  = (u32)chunk_array.size();
         visit(nstrings, f);
         visit(natlases, f);
         visit(nchunks, f);
@@ -750,7 +750,7 @@ ok:     void();
     void serialize_strings_()
     {
         fm_assert(string_buf.empty());
-        size_t len = 0;
+        usize len = 0;
         for (const auto& s : string_array)
             len += s.size() + 1;
         buffer buf{len};
@@ -780,11 +780,11 @@ ok:     void();
             return std::tuple{a.z, a.y, a.x} <=> std::tuple{b.z, b.y, b.x} == std::strong_ordering::less;
         });
 
-        for (uint32_t i = 0; auto& [coord, c] : chunk_array)
+        for (u32 i = 0; auto& [coord, c] : chunk_array)
             serialize_chunk_(*c, chunk_array[i++].buf);
 
         {
-            size_t len = 0;
+            usize len = 0;
             serialize_header_(size_counter{len});
             fm_assert(len > 0);
 
@@ -829,7 +829,7 @@ void world::serialize(StringView filename)
     }
 
     {
-        uint64_t crc_state = Hash::CRC64_INITIALIZER;
+        u64 crc_state = Hash::CRC64_INITIALIZER;
 
         const auto write = [&](const buffer& buf) {
             crc_state = Hash::crc64_update(crc_state, buf.data.data(), buf.size);
@@ -910,13 +910,13 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     // A critter on an fps-0 placeholder never walks, and the missing atlas's fps is unknown. A door
     // needs a closed and an open frame, and fps > 0 for update() to step between them. Other scenery
     // placeholders stay at fps 0, since is_dynamic() is fps > 0.
-    static constexpr uint32_t critter_placeholder_fps = 30;
+    static constexpr u32 critter_placeholder_fps = 30;
     static constexpr placeholder_anim_params door_placeholder_params = { .fps = 30, .nframes = 2 };
 
     std::vector<StringView> strings;
     std::vector<atlas_pair> atlases;
     object_id object_counter = world::object_counter_init;
-    uint32_t nstrings = 0, natlases = 0, nchunks = 0;
+    u32 nstrings = 0, natlases = 0, nchunks = 0;
 
     class world& w;
     loader_policy asset_policy;
@@ -951,7 +951,7 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     { atlasid id; f(id); str = get_string(id); }
 
     template<typename F> static void visit(local_coords& pt, F&& f)
-    { uint8_t i; f(i); pt = local_coords{i}; }
+    { u8 i; f(i); pt = local_coords{i}; }
 
     template<typename F> void visit(bptr<anim_atlas>& a, atlas_type type, F&& f)
     {
@@ -1006,7 +1006,7 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
                 // the real atlas, so it moves to the end that its pass mode says.
                 const auto last = sc.atlas->info().nframes - 1;
                 if (sc.frame != 0 && sc.frame != last)
-                    sc.frame = (uint16_t)(sc.pass == pass_mode::blocked ? last : 0u);
+                    sc.frame = (u16)(sc.pass == pass_mode::blocked ? last : 0u);
             }
             sc.subtype = move(p);
             goto ok;
@@ -1017,7 +1017,7 @@ ok:
         // The header leaves a scenery placeholder's frame alone. object's ctor asserts
         // frame < nframes, so the frame is clamped against the final atlas.
         if (sc.atlas->is_placeholder()) [[unlikely]]
-            sc.frame = (uint16_t)Math::min<uint32_t>(sc.frame, sc.atlas->info().nframes - 1);
+            sc.frame = (u16)Math::min<u32>(sc.frame, sc.atlas->info().nframes - 1);
         ret = w.make_scenery(h.id, coord, move(sc));
     }
 
@@ -1061,7 +1061,7 @@ ok:
         case object_type::COUNT:
             break;
         case object_type::critter: {
-            uint32_t anim_progress = 0;
+            u32 anim_progress = 0;
             critter_header_s h{
                 .anim_progress = anim_progress,
             };
@@ -1159,7 +1159,7 @@ ok:
     {
         fm_assert(strings.empty());
         strings.reserve(nstrings);
-        for (uint32_t i = 0; i < nstrings; i++)
+        for (u32 i = 0; i < nstrings; i++)
         {
             auto str = s.read_asciiz_string_();
             strings.emplace_back(str);
@@ -1168,7 +1168,7 @@ ok:
 
     void deserialize_atlases(binary_reader<const char*>& s)
     {
-        for (uint32_t i = 0; i < natlases; i++)
+        for (u32 i = 0; i < natlases; i++)
         {
             auto type = (atlas_type)s.read<std::underlying_type_t<atlas_type>>();
             atlasid id; id << s;
@@ -1181,7 +1181,7 @@ ok:
             // keeps the name, and owned here so that the loader keeps nothing.
             switch (type)
             {
-            default: fm_throw("invalid atlas_type {}", (size_t)type);
+            default: fm_throw("invalid atlas_type {}", (usize)type);
             case atlas_type::none: break;
             case atlas_type::ground:
                 ground = loader.ground_atlas(str, asset_policy);
@@ -1212,10 +1212,10 @@ ok:
         }
     }
 
-    template<typename INT> void deserialize_tile_part(auto&& g, uint32_t& i, byte_reader& r)
+    template<typename INT> void deserialize_tile_part(auto&& g, u32& i, byte_reader& r)
     {
         INT num;
-        uint32_t num_idempotent = 0;
+        u32 num_idempotent = 0;
 
         visit(num, r);
 
@@ -1227,7 +1227,7 @@ ok:
         fm_soft_assert(i + num_idempotent < TILE_COUNT);
 
         if (num != null<INT>)
-            for (uint32_t j = 0; j <= num_idempotent; j++)
+            for (u32 j = 0; j <= num_idempotent; j++)
                 g(i+j, num);
 
         i += num_idempotent;
@@ -1235,10 +1235,10 @@ ok:
 
     void deserialize_objects_(chunk& c, byte_reader& r)
     {
-        uint32_t count;
+        u32 count;
         visit(count, r);
 
-        for (uint32_t i = 0; i < count; i++)
+        for (u32 i = 0; i < count; i++)
         {
             using magic_type = std::decay_t<decltype(object_magic)>;
             magic_type magic;
@@ -1259,36 +1259,36 @@ ok:
         magic_type magic; magic << s;
         fm_soft_assert(magic == chunk_magic);
 
-        int16_t x, y;
-        int8_t z;
+        i16 x, y;
+        i8 z;
         visit(x, r);
         visit(y, r);
         visit(z, r);
         fm_soft_assert(z >= chunk_z_min && z <= chunk_z_max);
         auto& c = w[chunk_coords_{x, y, z}];
 
-        for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
+        for (u32 i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<atlasid>([&](u32 t, u32 id) {
                 c[t].ground() = { get_atlas_pair(id, atlas_type::ground).ground, (variant_t)-1 };
             }, i, r);
-        for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
+        for (u32 i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<atlasid>([&](u32 t, u32 id) {
                 c[t].wall_north() = { get_atlas_pair(id, atlas_type::wall).wall, (variant_t)-1 };
             }, i, r);
-        for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
+        for (u32 i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<atlasid>([&](u32 t, u32 id) {
                 c[t].wall_west() = { get_atlas_pair(id, atlas_type::wall).wall, (variant_t)-1 };
             }, i, r);
-        for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<variant_t>([&](uint32_t t, variant_t id) {
+        for (u32 i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<variant_t>([&](u32 t, variant_t id) {
                 c[t].ground().variant = id;
             }, i, r);
-        for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<variant_t>([&](uint32_t t, variant_t id) {
+        for (u32 i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<variant_t>([&](u32 t, variant_t id) {
                 c[t].wall_north().variant = id;
             }, i, r);
-        for (uint32_t i = 0; i < TILE_COUNT; i++)
-            deserialize_tile_part<variant_t>([&](uint32_t t, variant_t id) {
+        for (u32 i = 0; i < TILE_COUNT; i++)
+            deserialize_tile_part<variant_t>([&](u32 t, variant_t id) {
                 c[t].wall_west().variant = id;
             }, i, r);
 
@@ -1301,7 +1301,7 @@ ok:
             return;
         deserialize_strings_(s);
         deserialize_atlases(s);
-        for (uint32_t i = 0; i < nchunks; i++)
+        for (u32 i = 0; i < nchunks; i++)
             deserialize_chunk_(s);
         fm_soft_assert(object_counter);
         w.set_object_counter(object_counter);
@@ -1328,9 +1328,9 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
             fm_throw("fopen(\"{}\", \"r\"): {}", filename, get_error_string(errbuf));
         if (int ret = std::fseek(f, 0, SEEK_END); ret != 0)
             fm_throw("fseek(SEEK_END): {}", get_error_string(errbuf));
-        size_t len;
+        usize len;
         if (auto len_ = std::ftell(f); len_ >= 0)
-            len = (size_t)len_;
+            len = (usize)len_;
         else
             fm_throw("ftell: {}", get_error_string(errbuf));
         if (int ret = std::fseek(f, 0, SEEK_SET); ret != 0)
@@ -1351,12 +1351,12 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
 
     if (proto >= 26) // checksum
     {
-        const auto* const cksum_pos = buf.data.data() + buf.size - sizeof(uint64_t);
+        const auto* const cksum_pos = buf.data.data() + buf.size - sizeof(u64);
         struct crc_buf {
-            char buf[sizeof(uint64_t)];
+            char buf[sizeof(u64)];
         } crc;
-        Utility::copy(arrayView(cksum_pos, sizeof(uint64_t)), crc.buf);
-        auto old_state = maybe_byteswap(std::bit_cast<uint64_t>(crc.buf));
+        Utility::copy(arrayView(cksum_pos, sizeof(u64)), crc.buf);
+        auto old_state = maybe_byteswap(std::bit_cast<u64>(crc.buf));
         auto new_state = Hash::crc64_update(Hash::CRC64_INITIALIZER,
                                             buf.data.data(), buf.size - sizeof old_state);
         if (old_state != new_state)

@@ -22,9 +22,9 @@ struct fixture
 {
     SpriteBatch sb;
     std::vector<float> depths;      // by emission index
-    std::vector<uint32_t> run_of;   // by emission index
-    std::vector<uint32_t> rank_of;  // by emission index, ascending depth within its run
-    uint32_t nruns = 0;
+    std::vector<u32> run_of;   // by emission index
+    std::vector<u32> rank_of;  // by emission index, ascending depth within its run
+    u32 nruns = 0;
     bool ranks_defined = true;      // false once some run has a repeated depth
 
     // Emitted in descending depth, so the sort has real work to do.
@@ -50,8 +50,8 @@ struct fixture
 
     void emit_run(const std::vector<float>& run, bool do_sort)
     {
-        const auto first = (uint32_t)depths.size();
-        sb.begin_chunk((uint32_t)run.size());
+        const auto first = (u32)depths.size();
+        sb.begin_chunk((u32)run.size());
         for (float d : run)
         {
             sb.emit(dummy_quad, d);
@@ -63,10 +63,10 @@ struct fixture
 
         // Rank by ascending depth within the run. ranges::sort is not stable, so a repeated
         // depth leaves the post-sort order unspecified and ranks become meaningless.
-        std::vector<uint32_t> by_depth;
-        for (auto i = first; i < (uint32_t)depths.size(); i++)
+        std::vector<u32> by_depth;
+        for (auto i = first; i < (u32)depths.size(); i++)
             by_depth.push_back(i);
-        std::ranges::sort(by_depth, [&](uint32_t a, uint32_t b) { return depths[a] < depths[b]; });
+        std::ranges::sort(by_depth, [&](u32 a, u32 b) { return depths[a] < depths[b]; });
         for (auto i = 0u; i < by_depth.size(); i++)
         {
             rank_of[by_depth[i]] = i;
@@ -84,7 +84,7 @@ struct fixture
         fm_assert(order.size() == depths.size());
 
         std::vector<bool> seen(depths.size(), false);
-        std::vector<uint32_t> next_rank(nruns, 0);
+        std::vector<u32> next_rank(nruns, 0);
 
         for (auto i = 0uz; i < order.size(); i++)
         {
@@ -117,9 +117,9 @@ struct fixture
 
     // unsort_vertex_buffer has to restore every input the merge reads, so a second pass over
     // the same batch must reproduce the first one exactly.
-    void check_stable(bool do_sort, ArrayView<const uint32_t> order)
+    void check_stable(bool do_sort, ArrayView<const u32> order)
     {
-        const std::vector<uint32_t> first(order.begin(), order.end());
+        const std::vector<u32> first(order.begin(), order.end());
         sb.unsort_vertex_buffer();
         sb.sort_vertex_buffer(do_sort);
         const auto again = sb.merged_order();
@@ -154,12 +154,12 @@ struct fixture
 // Every strictly increasing run of length 1..max_len over {0 .. alphabet-1}. Strictly
 // increasing keeps within-run ranks well defined; ties across runs are what the merge
 // has to get right, and the k-tuple enumeration below covers those exhaustively.
-std::vector<std::vector<float>> enumerate_runs(uint32_t alphabet, uint32_t max_len)
+std::vector<std::vector<float>> enumerate_runs(u32 alphabet, u32 max_len)
 {
     std::vector<std::vector<float>> out;
-    for (uint32_t mask = 1; mask < 1u << alphabet; mask++)
+    for (u32 mask = 1; mask < 1u << alphabet; mask++)
     {
-        if ((uint32_t)std::popcount(mask) > max_len)
+        if ((u32)std::popcount(mask) > max_len)
             continue;
         std::vector<float> v;
         for (auto i = 0u; i < alphabet; i++)
@@ -170,11 +170,11 @@ std::vector<std::vector<float>> enumerate_runs(uint32_t alphabet, uint32_t max_l
     return out;
 }
 
-void test_exhaustive(uint32_t k, uint32_t alphabet, uint32_t max_len)
+void test_exhaustive(u32 k, u32 alphabet, u32 max_len)
 {
     const auto runs = enumerate_runs(alphabet, max_len);
-    const auto n = (uint32_t)runs.size();
-    std::vector<uint32_t> sel(k, 0);
+    const auto n = (u32)runs.size();
+    std::vector<u32> sel(k, 0);
     fixture f;
 
     for (;;)
@@ -183,7 +183,7 @@ void test_exhaustive(uint32_t k, uint32_t alphabet, uint32_t max_len)
             f.add_run(runs[r]);
         f.check();
 
-        uint32_t i = 0;
+        u32 i = 0;
         for (; i < k; i++)
         {
             if (++sel[i] < n)
@@ -196,12 +196,12 @@ void test_exhaustive(uint32_t k, uint32_t alphabet, uint32_t max_len)
 }
 
 // Distinct primes, so no two runs exhaust on the same iteration.
-constexpr inline uint32_t run_lengths[] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 };
+constexpr inline u32 run_lengths[] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 };
 
 // Interleaved changes the winning run on every pop, blocked on k of them.
-enum class layout : uint8_t { interleaved, blocked, one_dominant, reverse_blocked };
+enum class layout : u8 { interleaved, blocked, one_dominant, reverse_blocked };
 
-std::vector<float> make_run(layout kind, uint32_t run, uint32_t len)
+std::vector<float> make_run(layout kind, u32 run, u32 len)
 {
     std::vector<float> v;
     v.reserve(len);
@@ -219,11 +219,11 @@ std::vector<float> make_run(layout kind, uint32_t run, uint32_t len)
     return v;
 }
 
-void test_layout(layout kind, uint32_t k)
+void test_layout(layout kind, u32 k)
 {
     fixture f;
     for (auto i = 0u; i < k; i++)
-        f.add_run(make_run(kind, i, run_lengths[i % (uint32_t)std::size(run_lengths)]));
+        f.add_run(make_run(kind, i, run_lengths[i % (u32)std::size(run_lengths)]));
     f.check();
 }
 
@@ -335,8 +335,8 @@ void run_cases()
 void test_spritebatch()
 {
     // Forcing SSE4 takes the loser-tree merge. The native target takes vqsort from AVX2 up.
-    const int64_t native = hwy::SupportedTargets();
-    for (const int64_t forced : { 0LL, HWY_SSE4 })
+    const i64 native = hwy::SupportedTargets();
+    for (const i64 forced : { 0LL, HWY_SSE4 })
     {
         if (forced && (forced & native) == 0)
             continue;

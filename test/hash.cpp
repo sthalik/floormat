@@ -30,7 +30,7 @@ void test_simple()
     };
     constexpr auto size = array_size(list);
 
-    size_t hashes[size] = {};
+    usize hashes[size] = {};
     for (auto i = 0uz; i < size; i++)
         hashes[i] = hash_buf(list[i].data(), list[i].size());
 
@@ -43,18 +43,18 @@ void test_simple()
         }
 }
 
-template<int16_t CoordMax, int8_t ZMax, uint32_t MaxCollisions>
+template<i16 CoordMax, i8 ZMax, u32 MaxCollisions>
 [[nodiscard]] bool test_collisions(const char* name)
 {
-    constexpr size_t Iters = (CoordMax*2 + 1)*(CoordMax*2 + 1)*(1+ZMax); // NOLINT(*-implicit-widening-of-multiplication-result)
-    constexpr size_t BucketCount = Math::max(4096uz, size_t(Math::ceil(Iters / 0.2f)));
-    uint32_t num_collisions = 0, iters = 0;
+    constexpr usize Iters = (CoordMax*2 + 1)*(CoordMax*2 + 1)*(1+ZMax); // NOLINT(*-implicit-widening-of-multiplication-result)
+    constexpr usize BucketCount = Math::max(4096uz, usize(Math::ceil(Iters / 0.2f)));
+    u32 num_collisions = 0, iters = 0;
     auto bitset_ = Pointer<std::bitset<BucketCount>>{InPlace, false};
     auto& bitset = *bitset_;
 
-    for (int16_t j = -CoordMax; j <= CoordMax; j++)
-        for (int16_t i = -CoordMax; i <= CoordMax; i++)
-            for (int8_t k = 0; k <= ZMax; k++)
+    for (i16 j = -CoordMax; j <= CoordMax; j++)
+        for (i16 i = -CoordMax; i <= CoordMax; i++)
+            for (i8 k = 0; k <= ZMax; k++)
             {
                 auto p = global_coords{i, j, k};
                 auto h = p.hash();
@@ -71,7 +71,7 @@ template<int16_t CoordMax, int8_t ZMax, uint32_t MaxCollisions>
     fm_assert_equal(Iters, iters);
 
     constexpr auto print = [](Debug::Color c, StringView status, StringView name, StringView op,
-                              uint32_t num_collisions, uint32_t iters)
+                              u32 num_collisions, u32 iters)
     {
         if (first)
         {

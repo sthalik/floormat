@@ -13,7 +13,7 @@ namespace floormat::detail::grid {
 struct PassGrid;
 struct PassPool;
 
-constexpr uint32_t calc_div_size(uint32_t div_sizeʹ, uint32_t bbox_size)
+constexpr u32 calc_div_size(u32 div_sizeʹ, u32 bbox_size)
 {
     // caller wants cells coarser than the bbox; grid requires div_size <= bbox_size
     auto div_size = div_sizeʹ && div_sizeʹ <= bbox_size ? div_sizeʹ : bbox_size;
@@ -31,15 +31,15 @@ using BitView = detail::grid::BitView;
 
 struct Params
 {
-    uint32_t div_count;
-    uint32_t bbox_size;
+    u32 div_count;
+    u32 bbox_size;
     pass_mode min_pass;
 
     // div_size snaps down to a divisor of chunk_size_xy no larger than bbox_size
-    constexpr Params(uint32_t div_size, pass_mode min_pass): Params{div_size, div_size, min_pass} {}
-    constexpr Params(uint32_t div_size, uint32_t bbox_size, pass_mode min_pass);
+    constexpr Params(u32 div_size, pass_mode min_pass): Params{div_size, div_size, min_pass} {}
+    constexpr Params(u32 div_size, u32 bbox_size, pass_mode min_pass);
 
-    constexpr uint32_t div_size() const { return chunk_size_xy >> std::countr_zero(div_count); } // xxx todo assumes power of two chunk size
+    constexpr u32 div_size() const { return chunk_size_xy >> std::countr_zero(div_count); } // xxx todo assumes power of two chunk size
 
     [[nodiscard]] Params validate() const;
 
@@ -57,17 +57,17 @@ public:
     Grid(const Grid&) noexcept = default;
     Grid& operator=(const Grid&) & noexcept = default;
 
-    static uint32_t get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count);
-    uint32_t get_bitmask_index_from_coord(intra_coord pos) const;
+    static u32 get_bitmask_index(u32 x, u32 y, u32 div_count);
+    u32 get_bitmask_index_from_coord(intra_coord pos) const;
 
-    Range2D get_coord_from_div(uint32_t x, uint32_t y) const;
+    Range2D get_coord_from_div(u32 x, u32 y) const;
 
-    bool bit(uint32_t index) const;
+    bool bit(u32 index) const;
     BitView bits() const;
 
 
-    uint32_t div_count() const;
-    uint64_t build_no() const;
+    u32 div_count() const;
+    u64 build_no() const;
     bool is_all_empty() const;
 
     detail::grid::PassGrid* raw() const noexcept;
@@ -78,10 +78,10 @@ public:
 
     void build_if_stale();
 
-    static constexpr uint32_t min_bbox_size = 4;
+    static constexpr u32 min_bbox_size = 4;
 };
 
-constexpr Params::Params(uint32_t div_size, uint32_t bbox_size, pass_mode min_pass):
+constexpr Params::Params(u32 div_size, u32 bbox_size, pass_mode min_pass):
     bbox_size{bbox_size > Grid::min_bbox_size ? bbox_size : Grid::min_bbox_size},
     min_pass{min_pass}
 {
@@ -105,7 +105,7 @@ public:
     void build_if_stale_all();
 
     const Params& params() const;
-    uint32_t pooled_count() const;
+    u32 pooled_count() const;
 };
 
 } // namespace floormat::Grid::Pass

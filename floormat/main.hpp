@@ -63,10 +63,10 @@ struct floormat_main
 
     virtual ArrayView<const clickable> clickable_scenery() const noexcept = 0;
     virtual ArrayView<clickable> clickable_scenery() noexcept = 0;
-    virtual void set_cursor(uint32_t cursor) noexcept = 0;
+    virtual void set_cursor(u32 cursor) noexcept = 0;
 
-    virtual global_coords pixel_to_tile(Vector2i position, int8_t z_level = 0) const noexcept = 0;
-    virtual point pixel_to_point(Vector2i position, int8_t z_level = 0) const noexcept = 0;
+    virtual global_coords pixel_to_tile(Vector2i position, i8 z_level = 0) const noexcept = 0;
+    virtual point pixel_to_point(Vector2i position, i8 z_level = 0) const noexcept = 0;
 
     virtual ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept = 0;
 
@@ -89,7 +89,7 @@ struct floormat_main
 
     virtual void inject_key(int keycode, int mods, bool is_down, bool is_repeated = false) = 0;
     virtual void inject_mouse_button(mouse_button button, Vector2i position, bool is_down) = 0;
-    virtual void inject_mouse_motion(Vector2i position, Vector2i rel, uint32_t button_mask) = 0;
+    virtual void inject_mouse_motion(Vector2i position, Vector2i rel, u32 button_mask) = 0;
     virtual void inject_mouse_scroll(Vector2i position, Vector2 offset) = 0;
 
     // Applies the framebuffer rebuild directly rather than through an event, so it works while

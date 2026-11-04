@@ -44,14 +44,14 @@ bool same(uint128_t a, uint128_t b) { return a.lo == b.lo && a.hi == b.hi; }
 bool same(K64V64 a, K64V64 b) { return a.value == b.value && a.key == b.key; }
 bool same(K32V32 a, K32V32 b) { return a.value == b.value && a.key == b.key; }
 
-template<typename T> T make_key(std::mt19937& rng, uint32_t)
+template<typename T> T make_key(std::mt19937& rng, u32)
 {
     const auto r = rng() % 61;
     if (r == 0)
         return std::numeric_limits<T>::max();
     if (r == 1)
         return std::numeric_limits<T>::lowest();
-    const auto x = int32_t(rng() % 401) - 200;
+    const auto x = i32(rng() % 401) - 200;
     if constexpr (std::is_floating_point_v<T>)
     {
         if (r == 2)
@@ -64,29 +64,29 @@ template<typename T> T make_key(std::mt19937& rng, uint32_t)
         return T(x + 200);
 }
 
-template<> uint128_t make_key(std::mt19937& rng, uint32_t)
+template<> uint128_t make_key(std::mt19937& rng, u32)
 {
-    const auto lo = (uint64_t)rng() << 32 | rng() % 7;
-    const auto hi = rng() % 5 | (uint64_t)(rng() & 1) << 63;
+    const auto lo = (u64)rng() << 32 | rng() % 7;
+    const auto hi = rng() % 5 | (u64)(rng() & 1) << 63;
     return { .lo = lo, .hi = hi };
 }
 
-template<> K64V64 make_key(std::mt19937& rng, uint32_t i)
+template<> K64V64 make_key(std::mt19937& rng, u32 i)
 {
-    const auto key = rng() % 50 | (uint64_t)(rng() & 1) << 63;
+    const auto key = rng() % 50 | (u64)(rng() & 1) << 63;
     return { .value = i, .key = key };
 }
 
-template<> K32V32 make_key(std::mt19937& rng, uint32_t i)
+template<> K32V32 make_key(std::mt19937& rng, u32 i)
 {
-    const auto key = (uint32_t)(rng() % 50 | (rng() & 1) << 31);
+    const auto key = (u32)(rng() % 50 | (rng() & 1) << 31);
     return { .value = i, .key = key };
 }
 
 template<typename T>
-void check(uint32_t n)
+void check(u32 n)
 {
-    std::mt19937 rng{n * 2654435761u + (uint32_t)sizeof(T)};
+    std::mt19937 rng{n * 2654435761u + (u32)sizeof(T)};
     Array<T> input{NoInit, n};
     for (auto i = 0u; i < n; i++)
         input[i] = make_key<T>(rng, i);
@@ -142,24 +142,24 @@ void check(uint32_t n)
 
 void test_vqsort()
 {
-    const int64_t native = hwy::SupportedTargets();
+    const i64 native = hwy::SupportedTargets();
     // 0 = real dispatch; EMU128/SCALAR force the std::sort fallback path.
     // SSE4 and AVX2 find NaN with _mm_cmpunord_ps, which finite math folds away.
-    for (const int64_t forced : { 0LL, HWY_SSE4, HWY_AVX2, HWY_EMU128, HWY_SCALAR })
+    for (const i64 forced : { 0LL, HWY_SSE4, HWY_AVX2, HWY_EMU128, HWY_SCALAR })
     {
         // A forced target runs even when the CPU lacks it.
         if ((forced & (HWY_SSE4 | HWY_AVX2)) != 0 && (forced & native & HWY_TARGETS) == 0)
             continue;
         hwy::SetSupportedTargetsForTest(forced);
         vqsort_refresh_targets();
-        for (const uint32_t n : { 0u, 1u, 2u, 33u, 1000u })
+        for (const u32 n : { 0u, 1u, 2u, 33u, 1000u })
         {
-            check<uint16_t>(n);
-            check<int16_t>(n);
-            check<uint32_t>(n);
-            check<int32_t>(n);
-            check<uint64_t>(n);
-            check<int64_t>(n);
+            check<u16>(n);
+            check<i16>(n);
+            check<u32>(n);
+            check<i32>(n);
+            check<u64>(n);
+            check<i64>(n);
             check<float>(n);
             check<double>(n);
             check<uint128_t>(n);

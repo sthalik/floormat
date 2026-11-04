@@ -9,26 +9,26 @@
 
 #if FM_HASH_HAVE_MEOWHASH
 namespace floormat::meow_hash {
-size_t hash_buf(const void* __restrict buf, size_t size) noexcept;
-size_t hash_int(uint32_t x) noexcept;
-size_t hash_int(uint64_t x) noexcept;
+usize hash_buf(const void* __restrict buf, usize size) noexcept;
+usize hash_int(u32 x) noexcept;
+usize hash_int(u64 x) noexcept;
 } // namespace floormat::meow_hash
 #endif
 
 namespace floormat::xxHash {
-size_t hash_buf(const void* __restrict buf, size_t size) noexcept;
-size_t hash_int(uint32_t x) noexcept;
-size_t hash_int(uint64_t x) noexcept;
+usize hash_buf(const void* __restrict buf, usize size) noexcept;
+usize hash_int(u32 x) noexcept;
+usize hash_int(u64 x) noexcept;
 } // namespace floormat::xxHash
 
 namespace floormat::SipHash {
-size_t hash_buf(const void* __restrict buf, size_t size) noexcept;
-size_t hash_int(uint32_t x) noexcept;
-size_t hash_int(uint64_t x) noexcept;
+usize hash_buf(const void* __restrict buf, usize size) noexcept;
+usize hash_int(u32 x) noexcept;
+usize hash_int(u64 x) noexcept;
 } // namespace floormat::SipHash
 
 namespace floormat::MurmurHash {
-size_t hash_buf(const void* __restrict buf, size_t size) noexcept;
-size_t hash_int(uint32_t x) noexcept;
-size_t hash_int(uint64_t x) noexcept;
+usize hash_buf(const void* __restrict buf, usize size) noexcept;
+usize hash_int(u32 x) noexcept;
+usize hash_int(u64 x) noexcept;
 } // namespace floormat::MurmurHash

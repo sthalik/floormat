@@ -28,11 +28,11 @@ using pgo::task;
 namespace {
 
 // west walls of tiles (8, 7) to (8, 9), between the npc and the player
-constexpr uint8_t wall_x = 8, wall_y0 = 7, wall_y1 = 9;
+constexpr u8 wall_x = 8, wall_y0 = 7, wall_y1 = 9;
 constexpr local_coords npc_tile{10, 8}, threat_tile{2, 8}, moved_threat_tile{2, 12};
 // cover_ai_test's default, which its script casts rays with until the scene picks div 16
-constexpr uint32_t cover_div = cover_script_options{}.div_size;
-constexpr uint32_t cycles = 2, short_cycles = 1;
+constexpr u32 cover_div = cover_script_options{}.div_size;
+constexpr u32 cycles = 2, short_cycles = 1;
 // for each wait on the npc
 constexpr auto max_dt = Second*60;
 
@@ -59,16 +59,16 @@ constexpr local_coords map_player_tiles[] = {
     {2, 13}, {10, 6}, {2, 2}, {6, 8}, {13, 2}, {7, 12}, {12, 11}, {4, 3}, {3, 12},
 };
 // Moves 11 on repeat moves 3 to 10.
-constexpr uint32_t map_moves = 10, short_map_moves = 3;
+constexpr u32 map_moves = 10, short_map_moves = 3;
 // A player tile nearer the npc than this is skipped, since the player's body could stand in the
 // npc's way.
-constexpr uint32_t map_min_player_dist = 2*tile_size_xy;
+constexpr u32 map_min_player_dist = 2*tile_size_xy;
 
 // What cover_ai_test's "Other cover spots" box lists once its search has reached every tile: the
 // spots of one search over its default radius, 1024 px, around the tile c stands on and from
 // threat. Its default octants and max_cover_end_dist are the script's.
 void overlay_spots(critter& c, point threat, Array<cover_spot>& out,
-                   uint32_t max_cover_end_dist = cover_script_options{}.listed_cover_end_dist())
+                   u32 max_cover_end_dist = cover_script_options{}.listed_cover_end_dist())
 {
     const auto s = get_cover_script_status(c);
     fm_assert(s && s->has_query);
@@ -85,7 +85,7 @@ void overlay_spots(critter& c, point threat, Array<cover_spot>& out,
 struct shared_peek
 {
     point peek, nearest, other;
-    uint32_t n = 0;
+    u32 n = 0;
     bool tie = false;
 };
 
@@ -165,13 +165,13 @@ task app::scene_cover_ai()
     };
     teleport_player(threat_tile);
 
-    const auto press = [&](uint32_t button) {
+    const auto press = [&](u32 button) {
         base_test::Value v;
         v.type = base_test::ValueType::u32;
         v.u32 = button;
         return tests().current_test->advance(*this, v);
     };
-    const auto spawn_npc = [&](uint32_t button) {
+    const auto spawn_npc = [&](u32 button) {
         const auto v = press(button);
         fm_assert(v.type == base_test::ValueType::u64);
         fm_assert(w.find_object(v.u64));
@@ -189,7 +189,7 @@ task app::scene_cover_ai()
         npc->teleport_to(index, start, rotation_COUNT);
     }
     // update_world() only updates objects on screen.
-    center_camera_on(point{chunk_coords_{}, local_coords{wall_x, (uint8_t)(wall_y0 + 1)}, {}});
+    center_camera_on(point{chunk_coords_{}, local_coords{wall_x, (u8)(wall_y0 + 1)}, {}});
     M->reset_fps();
     co_yield {};
 
@@ -242,7 +242,7 @@ task app::scene_cover_ai()
         fm_assert(v.type == base_test::ValueType::u32);
         fm_assert(v.u32 >= 1);
         overlay_spots(*w.find_object<critter>(npc_id), ensure_player_character(w)->position(), overlay);
-        fm_assert_equal(v.u32, (uint32_t)overlay.size());
+        fm_assert_equal(v.u32, (u32)overlay.size());
         fm_assert(listed(overlay, status().canonical));
     }
 
@@ -369,7 +369,7 @@ task app::scene_cover_ai()
         {
             const auto h = press(6);
             fm_assert(h.type == base_test::ValueType::u32);
-            fm_assert_equal((uint32_t)hold_phase::hidden, h.u32);
+            fm_assert_equal((u32)hold_phase::hidden, h.u32);
         }
         const auto q = find_cover_peek(*w.find_object<critter>(npc_id), spots[prev.u32]);
         fm_assert(q);
@@ -407,7 +407,7 @@ task app::scene_cover_ai()
             const auto v = press(2);
             fm_assert(v.type == base_test::ValueType::u32);
             overlay_spots(*w.find_object<critter>(npc_id), ensure_player_character(w)->position(), unmoved, 0);
-            fm_assert_equal(v.u32, (uint32_t)unmoved.size());
+            fm_assert_equal(v.u32, (u32)unmoved.size());
         }
         const auto shared = shared_peeks(*w.find_object<critter>(npc_id), unmoved);
         const shared_peek* own_peek = nullptr;
@@ -458,7 +458,7 @@ task app::scene_cover_ai()
             fm_assert_equal(1u, e.u32);
             const auto v = press(2);
             fm_assert(v.type == base_test::ValueType::u32);
-            fm_assert_equal((uint32_t)overlay.size(), v.u32);
+            fm_assert_equal((u32)overlay.size(), v.u32);
         }
         set_cursor_at(first);
         co_await click_at_cursor(mouse_button_left);
@@ -472,10 +472,10 @@ task app::scene_cover_ai()
         {
             const auto h = press(6);
             fm_assert(h.type == base_test::ValueType::u32);
-            fm_assert_equal((uint32_t)hold_phase::none, h.u32);
+            fm_assert_equal((u32)hold_phase::none, h.u32);
         }
         fm_debug("cover-ai: switched to spot %u of %u, %u peek spots clicked; %u spots left where accepted, "
-                 "peek spots shared by %u and %u", v.u32, (uint32_t)spots.size(), n_targets, (uint32_t)unmoved.size(),
+                 "peek spots shared by %u and %u", v.u32, (u32)spots.size(), n_targets, (u32)unmoved.size(),
                  own_peek->n, near_peek->n);
     }
 
@@ -520,7 +520,7 @@ task app::scene_cover_ai()
 
     // A new div starts the box's search over, in grids no search has filled. It lists up to 32 tiles,
     // cover_ai_test's spots_tiles_per_frame, with at most one octant fill per frame.
-    uint32_t div_frames = 0, div_fills = 0;
+    u32 div_frames = 0, div_fills = 0;
     {
         base_test::Value v;
         v.type = base_test::ValueType::au32;
@@ -529,7 +529,7 @@ task app::scene_cover_ai()
         v = tests().current_test->advance(*this, v);
         fm_assert(v.type == base_test::ValueType::u32);
         fm_assert_equal(16u, v.u32);
-        uint32_t tiles = 0;
+        u32 tiles = 0;
         for (;;)
         {
             co_yield {};
@@ -576,7 +576,7 @@ task app::scene_cover_ai()
     fm_debug("cover-ai: cover (%d, %d), peek (%d, %d); after the player moved, cover (%d, %d), peek (%d, %d); "
              "div 16 spots in %u frames, %u octant fills; %u ms", cover.x(), cover.y(), peek.x(), peek.y(),
              cover2.x(), cover2.y(), peek2.x(), peek2.y(), div_frames, div_fills,
-             (uint32_t)Time::to_milliseconds(_driver->scene_dt));
+             (u32)Time::to_milliseconds(_driver->scene_dt));
 
     tests().switch_to(Test::none);
     do_key(key_mode_none);
@@ -605,8 +605,8 @@ task app::scene_cover_ai_map()
     }
 
     const auto tile_pos = [](local_coords tile) { return point{chunk_coords_{}, tile, {}}; };
-    uint32_t at = 0;
-    const auto teleport_player = [&](uint32_t k) {
+    u32 at = 0;
+    const auto teleport_player = [&](u32 k) {
         at = k;
         auto player = ensure_player_character(w);
         auto index = player->index();
@@ -686,7 +686,7 @@ task app::scene_cover_ai_map()
         }
         arrayAppend(covers, cover);
 
-        uint32_t n_spots, n_peeks = 0;
+        u32 n_spots, n_peeks = 0;
         bool peeks = false;
         Ns box_time;
         {
@@ -701,7 +701,7 @@ task app::scene_cover_ai_map()
             auto& C = *w.find_object<critter>(npc_id);
             Array<cover_spot> spots;
             overlay_spots(C, player, spots);
-            fm_assert_equal(n_spots, (uint32_t)spots.size());
+            fm_assert_equal(n_spots, (u32)spots.size());
             const auto canonical = status().canonical;
             fm_assert(listed(spots, canonical));
             for (const auto& x : spots)
@@ -750,10 +750,10 @@ task app::scene_cover_ai_map()
             fm_assert(_driver->scene_dt < deadline);
             co_yield {};
         }
-        auto next = (uint32_t)-1;
+        auto next = (u32)-1;
         for (auto j = 1u; j < array_size(map_player_tiles); j++)
         {
-            const auto i = (at + j) % (uint32_t)array_size(map_player_tiles);
+            const auto i = (at + j) % (u32)array_size(map_player_tiles);
             const auto pt = tile_pos(map_player_tiles[i]);
             if (point::distance(pt, cover) >= map_min_player_dist && sees(pt, cover))
             {
@@ -761,7 +761,7 @@ task app::scene_cover_ai_map()
                 break;
             }
         }
-        if (next == (uint32_t)-1)
+        if (next == (u32)-1)
         {
             const auto [x, y] = print(cover);
             fm_abort("cover-ai-map: move %u: no player tile sees cover (%d, %d)", k, x, y);
@@ -772,9 +772,9 @@ task app::scene_cover_ai_map()
 
     // The player moves to the nearest place, with its bearing from the box's center in the same octant,
     // that sees a listed spot. The box drops those it sees then, without starting over.
-    uint32_t dropped = 0;
+    u32 dropped = 0;
     {
-        const auto press = [&](uint32_t button) {
+        const auto press = [&](u32 button) {
             base_test::Value v;
             v.type = base_test::ValueType::u32;
             v.u32 = button;
@@ -783,7 +783,7 @@ task app::scene_cover_ai_map()
         const auto box = press(11);
         fm_assert(box.type == base_test::ValueType::ai32 && box.ai32[3]);
         const auto center = tile_pos({}) + Vector2i{box.ai32[0], box.ai32[1]};
-        const auto octant = (uint32_t)box.ai32[2];
+        const auto octant = (u32)box.ai32[2];
         const auto from = tile_pos(map_player_tiles[at]);
         auto& C = *w.find_object<critter>(npc_id);
         auto q = get_cover_script_status(C)->query;
@@ -795,11 +795,11 @@ task app::scene_cover_ai_map()
         list_cover_spots(C, q, listed_spots);
         const auto before = press(10);
         fm_assert_equal(0u, before.au32[1]);
-        fm_assert_equal(before.au32[2], (uint32_t)listed_spots.size());
-        constexpr int8_t offsets[] = { -24, -8, 8, 24, };
+        fm_assert_equal(before.au32[2], (u32)listed_spots.size());
+        constexpr i8 offsets[] = { -24, -8, 8, 24, };
         Optional<point> to;
-        for (uint8_t y = 0; y < TILE_MAX_DIM; y++)
-            for (uint8_t x = 0; x < TILE_MAX_DIM; x++)
+        for (u8 y = 0; y < TILE_MAX_DIM; y++)
+            for (u8 x = 0; x < TILE_MAX_DIM; x++)
                 for (const auto oy : offsets)
                     for (const auto ox : offsets)
                     {
@@ -836,7 +836,7 @@ task app::scene_cover_ai_map()
         distinct += j == i;
     }
     fm_debug("cover-ai-map: %u moves, %u cover spots, %u spots dropped as seen, %u ms", n_moves, distinct, dropped,
-             (uint32_t)Time::to_milliseconds(_driver->scene_dt));
+             (u32)Time::to_milliseconds(_driver->scene_dt));
 
     tests().switch_to(Test::none);
     do_key(key_mode_none);

@@ -20,10 +20,10 @@ class ChaseLevBufferPool final
 public:
     struct alignas(64) buffer
     {
-        int64_t mask;
+        i64 mask;
         buffer* next;
 
-        volatile uintptr_t& operator[](int64_t i) noexcept;
+        volatile uptr& operator[](i64 i) noexcept;
     };
 
     ChaseLevBufferPool() noexcept = default;
@@ -33,15 +33,15 @@ public:
 
     fm_DISABLE_MOVE_COPY(ChaseLevBufferPool);
 
-    buffer* get(uint32_t log2_capacity) noexcept;
+    buffer* get(u32 log2_capacity) noexcept;
     void put(buffer* b) noexcept;
 
 private:
-    static constexpr uint32_t max_log2_capacity = 62;
+    static constexpr u32 max_log2_capacity = 62;
 
-    static void push(volatile uintptr_t* head, buffer* first) noexcept;
+    static void push(volatile uptr* head, buffer* first) noexcept;
 
-    volatile uintptr_t _heads[max_log2_capacity] = {};
+    volatile uptr _heads[max_log2_capacity] = {};
 };
 
 // One owner calls push() and take(), any number of thieves call steal(). Both return nullptr
@@ -52,19 +52,19 @@ class ChaseLevDeque final
 {
     using buffer = ChaseLevBufferPool::buffer;
 
-    alignas(64) volatile int64_t _top = 0;
-    alignas(64) volatile int64_t _bottom = 0;
+    alignas(64) volatile i64 _top = 0;
+    alignas(64) volatile i64 _bottom = 0;
     // Own line: steal() loads it twice, and the owner stores to _bottom on every push and take.
-    alignas(64) volatile uintptr_t _array;
+    alignas(64) volatile uptr _array;
     ChaseLevBufferPool& _pool;
 
-    buffer* grow(buffer* a, int64_t t, int64_t b) noexcept;
+    buffer* grow(buffer* a, i64 t, i64 b) noexcept;
 
     // TSan doesn't model fences. Its builds use seq_cst and release accesses in their place.
-    void store_bottom(int64_t b) noexcept;
+    void store_bottom(i64 b) noexcept;
 
 public:
-    explicit ChaseLevDeque(ChaseLevBufferPool& pool, uint32_t log2_capacity = 8) noexcept;
+    explicit ChaseLevDeque(ChaseLevBufferPool& pool, u32 log2_capacity = 8) noexcept;
     ~ChaseLevDeque() noexcept;
 
     fm_DISABLE_MOVE_COPY(ChaseLevDeque);

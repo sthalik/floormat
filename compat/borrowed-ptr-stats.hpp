@@ -6,7 +6,7 @@ namespace floormat::bptr_policy {
 template<typename Tag>
 struct counting_stats
 {
-    static inline volatile int64_t live_blocks, live_objects, copies, releases;
+    static inline volatile i64 live_blocks, live_objects, copies, releases;
 
     static void block_allocated() noexcept { atomic_fetch_add(&live_blocks, 1, memory_order::relaxed); }
     static void block_deallocated() noexcept { atomic_fetch_sub(&live_blocks, 1, memory_order::relaxed); }

@@ -9,22 +9,22 @@ namespace floormat {
 
 namespace {
 
-constexpr auto locked_lru = (size_t)-1;
+constexpr auto locked_lru = (usize)-1;
 
 } // namespace
 
 struct texture_unit_cache::unit_data final
 {
     GL::AbstractTexture* ptr;
-    uint32_t id;
-    size_t lru_val;
+    u32 id;
+    usize lru_val;
 };
 
-int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
+i32 texture_unit_cache::bind(GL::AbstractTexture* tex)
 {
     fm_debug_assert(tex != nullptr && tex != (GL::AbstractTexture*)-1);
 
-    constexpr auto invalid = (size_t)-1;
+    constexpr auto invalid = (usize)-1;
     auto unbound_id = invalid;
 
     for (auto i = 0uz; i < unit_count; i++)
@@ -40,13 +40,13 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
                 unit.lru_val = ++lru_counter;
                 ++cache_hit_count;
                 //Debug{Debug::Flag::NoSpace} << "already bound '" << tex->label() << "' to " << i;
-                return (int32_t)i;
+                return (i32)i;
             }
             // grow_texture() move-assigns a new GL name into the same wrapper
             units[i] = {tex, tex->id(), ++lru_counter};
             tex->bind((Int)i);
             ++cache_miss_count;
-            return (int32_t)i;
+            return (i32)i;
         }
     }
 
@@ -56,7 +56,7 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
         tex->bind((Int)unbound_id);
         ++cache_miss_count;
         //Debug{Debug::Flag::NoSpace} << "binding '" << tex->label() << "' to " << unbound_id;
-        return (int32_t)unbound_id;
+        return (i32)unbound_id;
     }
     else
     {
@@ -75,7 +75,7 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
         units[min_index] = {tex, tex->id(), ++lru_counter};
         tex->bind((Int)min_index);
         //Debug{Debug::Flag::NoSpace} << "rebinding '" << tex->label() << "' to " << min_index;
-        return (int32_t)min_index;
+        return (i32)min_index;
     }
 }
 
@@ -100,7 +100,7 @@ void texture_unit_cache::invalidate()
     cache_hit_count = 0;
 }
 
-void texture_unit_cache::lock(size_t i, GL::AbstractTexture* tex)
+void texture_unit_cache::lock(usize i, GL::AbstractTexture* tex)
 {
     fm_assert(i < unit_count);
     // id stays 0: the (AbstractTexture*)-1 sentinel is rejected by bind()'s
@@ -108,7 +108,7 @@ void texture_unit_cache::lock(size_t i, GL::AbstractTexture* tex)
     units[i] = { .ptr = tex, .id = 0, .lru_val = locked_lru, };
 }
 
-void texture_unit_cache::unlock(size_t i, bool reuse_immediately)
+void texture_unit_cache::unlock(usize i, bool reuse_immediately)
 {
     fm_assert(i < unit_count);
     if (units[i].ptr == (GL::AbstractTexture*)-1)
@@ -133,7 +133,7 @@ void texture_unit_cache::output_stats()
         printf("texture-binding: hit rate %.2f%% (%zu binds total)\n", ratio*100, total);
         std::fflush(stdout);
     }
-    if (total > (size_t)1e4)
+    if (total > (usize)1e4)
     {
         cache_hit_count /= 9;
         cache_miss_count /= 9;
@@ -141,7 +141,7 @@ void texture_unit_cache::output_stats()
 #endif
 }
 
-size_t texture_unit_cache::get_unit_count()
+usize texture_unit_cache::get_unit_count()
 {
     static const auto ret = [] {
         GLint value = 0;
@@ -151,13 +151,13 @@ size_t texture_unit_cache::get_unit_count()
         //value = 16; // limit for performance testing
         return value;
     }();
-    return (size_t)ret;
+    return (usize)ret;
 }
 
-int32_t texture_unit_cache::bind(GL::AbstractTexture& x) { return bind(&x); }
-void texture_unit_cache::lock(size_t i, GL::AbstractTexture& tex) { lock(i, &tex); }
-size_t texture_unit_cache::reuse_count() const { return cache_hit_count; }
-size_t texture_unit_cache::bind_count() const { return cache_miss_count; }
+i32 texture_unit_cache::bind(GL::AbstractTexture& x) { return bind(&x); }
+void texture_unit_cache::lock(usize i, GL::AbstractTexture& tex) { lock(i, &tex); }
+usize texture_unit_cache::reuse_count() const { return cache_hit_count; }
+usize texture_unit_cache::bind_count() const { return cache_miss_count; }
 auto texture_unit_cache::stats() const -> statistics { return statistics { cache_hit_count, cache_miss_count }; }
 void texture_unit_cache::reset_stats() { cache_miss_count = cache_hit_count = 0; }
 

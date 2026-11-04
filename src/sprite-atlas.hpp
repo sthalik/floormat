@@ -18,11 +18,11 @@ public:
 
     const SpriteAtlas::Sprite* raw() const;
 
-    uint32_t x() const;
-    uint32_t y() const;
-    uint32_t layer() const;
-    uint32_t width() const;
-    uint32_t height() const;
+    u32 x() const;
+    u32 y() const;
+    u32 layer() const;
+    u32 width() const;
+    u32 height() const;
     bool is_rotated() const;
 
 private:
@@ -33,7 +33,7 @@ class sprite_atlas
 {
 public:
     explicit sprite_atlas();
-    explicit sprite_atlas(uint16_t layer_width, uint16_t layer_height);
+    explicit sprite_atlas(u16 layer_width, u16 layer_height);
     ~sprite_atlas() noexcept;
 
     sprite_atlas(const sprite_atlas&) = delete;
@@ -41,9 +41,9 @@ public:
     sprite_atlas(sprite_atlas&&) noexcept;
     sprite_atlas& operator=(sprite_atlas&&) noexcept;
 
-    uint16_t layer_width() const;
-    uint16_t layer_height() const;
-    uint16_t layer_count() const;
+    u16 layer_width() const;
+    u16 layer_height() const;
+    u16 layer_count() const;
 
     sprite add(const ImageView2D& pixels, bool allow_rotate = true);
 

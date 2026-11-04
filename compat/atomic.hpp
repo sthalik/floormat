@@ -15,8 +15,8 @@ enum class memory_order : int {
 enum class memory_order : int { relaxed = 0, acquire = 2, release = 3, acq_rel = 4, seq_cst = 5, };
 #endif
 
-// The fixed-width aliases miss some types: on macOS, uintptr_t and size_t are unsigned long
-// and uint64_t is unsigned long long.
+// The fixed-width aliases miss some types: on macOS, uptr and usize are unsigned long
+// and u64 is unsigned long long.
 template<typename T>
 concept atomic_type = std::same_as<T, signed char> || std::same_as<T, unsigned char>      ||
                       std::same_as<T, short>       || std::same_as<T, unsigned short>     ||
@@ -45,18 +45,18 @@ void atomic_thread_fence(memory_order o = memory_order::seq_cst) noexcept;
 void cpu_relax() noexcept;
 
 #if defined __linux__ && !defined FM_NO_PLATFORM_ATOMIC_WAIT
-constexpr inline uint32_t atomic_wait_sizes[] = { 4 };
+constexpr inline u32 atomic_wait_sizes[] = { 4 };
 #elif defined __FreeBSD__ && !defined FM_NO_PLATFORM_ATOMIC_WAIT && defined __LP64__
-constexpr inline uint32_t atomic_wait_sizes[] = { 4, 8 };
+constexpr inline u32 atomic_wait_sizes[] = { 4, 8 };
 #elif defined __FreeBSD__ && !defined FM_NO_PLATFORM_ATOMIC_WAIT
-constexpr inline uint32_t atomic_wait_sizes[] = { 4 };
+constexpr inline u32 atomic_wait_sizes[] = { 4 };
 #elif defined __APPLE__ && !defined FM_NO_PLATFORM_ATOMIC_WAIT && defined __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 140400
-constexpr inline uint32_t atomic_wait_sizes[] = { 4, 8 };
+constexpr inline u32 atomic_wait_sizes[] = { 4, 8 };
 #else
-constexpr inline uint32_t atomic_wait_sizes[] = { 1, 2, 4, 8 };
+constexpr inline u32 atomic_wait_sizes[] = { 1, 2, 4, 8 };
 #endif
 
-consteval bool atomic_wait_size_supported(size_t size)
+consteval bool atomic_wait_size_supported(usize size)
 {
     for (auto x : atomic_wait_sizes)
         if (x == size)

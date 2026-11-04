@@ -176,7 +176,7 @@ void test_odd_bbox_size()
 
     auto s = w.make_scenery(w.make_id(), {ch, {8, 8}}, proto({}, Vector2ub{63}));
     c.ensure_passability();
-    uint32_t n = 0;
+    u32 n = 0;
     const auto lo = Vector2{0}, hi = Vector2{(float)chunk_size_xy};
     c.rtree()->Search(lo.data(), hi.data(), [&](object_id, const chunk::RTree::Rect& r) {
         fm_assert(Vector2(r.m_min[0], r.m_min[1]) == Vector2{8*64 - 31});
@@ -202,7 +202,7 @@ void test_odd_bbox_size()
 bool has_integer_corners(const chunk::RTree::Rect& r)
 {
     for (auto x : { r.m_min[0], r.m_min[1], r.m_max[0], r.m_max[1] })
-        if (x != (float)(int32_t)x)
+        if (x != (float)(i32)x)
             return false;
     return true;
 }
@@ -217,7 +217,7 @@ Range2Di rtree_rect(chunk& c, object_id id)
         {
             fm_assert(!ret);
             fm_assert(has_integer_corners(r));
-            ret = Range2Di{{(int32_t)r.m_min[0], (int32_t)r.m_min[1]}, {(int32_t)r.m_max[0], (int32_t)r.m_max[1]}};
+            ret = Range2Di{{(i32)r.m_min[0], (i32)r.m_min[1]}, {(i32)r.m_max[0], (i32)r.m_max[1]}};
         }
         return true;
     });
@@ -274,7 +274,7 @@ void test_odd_bbox_rotation()
                         fm_assert_equal(rect0, rtree_rect(c, s->id));
                     }
                     for (auto k = 1u; k <= 4; k++)
-                        s->rotate(i, rs[((size_t)r0/2 + k) % 4]);
+                        s->rotate(i, rs[((usize)r0/2 + k) % 4]);
                     fm_assert_equal(rect0, rtree_rect(c, s->id));
                 }
 }
@@ -283,14 +283,14 @@ void test_odd_bbox_rotation()
 // offset of -128. Stored bbox offsets are clamped already, and set_bbox_() asserts that.
 void test_same_rotation()
 {
-    for (auto i = 0u; i < (uint32_t)rotation_COUNT; i++)
+    for (auto i = 0u; i < (u32)rotation_COUNT; i++)
     {
         const auto r = rotation(i);
         for (auto k = 0u; k < 1u << 16; k++)
         {
-            const auto v = Vector2b{int8_t(k & 0xff), int8_t(k >> 8)};
+            const auto v = Vector2b{i8(k & 0xff), i8(k >> 8)};
             fm_assert_equal(clamp_bbox_offset(v), rotate_point(v, r, r));
-            const auto s = Vector2ub{uint8_t(k & 0xff), uint8_t(k >> 8)};
+            const auto s = Vector2ub{u8(k & 0xff), u8(k >> 8)};
             fm_assert_equal(s, rotate_size(s, r, r));
         }
     }
@@ -368,7 +368,7 @@ void test_rtree_rect_is_bbox()
         (void)w.make_object<hole>(w.make_id(), {ch, h.tile}, hp);
     }
     c.ensure_passability();
-    uint32_t n = 0;
+    u32 n = 0;
     const auto lo = Vector2{-(float)chunk_size_xy}, hi = Vector2{2*(float)chunk_size_xy};
     c.rtree()->Search(lo.data(), hi.data(), [&](object_id, const chunk::RTree::Rect& r) {
         fm_assert(has_integer_corners(r));
@@ -413,9 +413,9 @@ void test_bbox_offset_min()
     fm_assert(!w2[pos.chunk3()].can_place_object(proto2, pos.local()));
 }
 
-uint32_t entries_at(const chunk::RTree& t, Vector2 pt)
+u32 entries_at(const chunk::RTree& t, Vector2 pt)
 {
-    uint32_t n = 0;
+    u32 n = 0;
     const auto pt2 = pt + Vector2{1e-4f};
     t.Search(pt.data(), pt2.data(), [&](object_id, const chunk::RTree::Rect&) { n++; return true; });
     return n;
@@ -498,8 +498,8 @@ void test_hole_tree()
     fm_assert(Search::is_passable_1(c, ctr - Vector2{4}, ctr + Vector2{4}, Search::without_critters()));
     fm_assert(!Search::is_passable_1(c, solid - Vector2{4}, solid + Vector2{4}, Search::without_critters()));
 
-    uint32_t found = 0;
-    chunk::get_all_holes_in_bbox([&](Math::Range2D<float>, Math::Range1D<uint8_t>) { found++; },
+    u32 found = 0;
+    chunk::get_all_holes_in_bbox([&](Math::Range2D<float>, Math::Range1D<u8>) { found++; },
                                  c, ctr - Vector2{40}, ctr + Vector2{40}, can_see_through_mask);
     fm_assert(found == 1);
 }
@@ -544,7 +544,7 @@ void test_odd_hole()
             {
                 const auto e = entry_at(c, Vector2{(float)x, (float)y} + Vector2{.5f});
                 const bool in_hole = (Vector2i{x, y} >= min).all() && (Vector2i{x, y} < max).all();
-                fm_assert(e && e->pass == (uint64_t)(in_hole ? pass_mode::see_through : pass_mode::blocked));
+                fm_assert(e && e->pass == (u64)(in_hole ? pass_mode::see_through : pass_mode::blocked));
             }
     }
 }
@@ -576,10 +576,10 @@ void test_hole_pass_modes()
         if (p == pass_mode::pass)
             fm_assert(!e);
         else
-            fm_assert(e && e->type == (uint64_t)collision_type::geometry && e->pass == (uint64_t)p);
+            fm_assert(e && e->type == (u64)collision_type::geometry && e->pass == (u64)p);
         fm_assert(passable_at(c, mid) == (p == pass_mode::pass));
         const auto s = entry_at(c, side);
-        fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
+        fm_assert(s && s->pass == (u64)pass_mode::blocked);
     }
 
     {
@@ -594,11 +594,11 @@ void test_hole_pass_modes()
         (void)w.make_object<hole>(w.make_id(), pos, hp2);
 
         const auto e = entry_at(c, mid - Vector2{8, 0});
-        fm_assert(e && e->pass == (uint64_t)pass_mode::see_through);
+        fm_assert(e && e->pass == (u64)pass_mode::see_through);
         fm_assert(!entry_at(c, mid + Vector2{8, 0}));
         fm_assert(!entry_at(c, mid + Vector2{24, 0}));
         const auto s = entry_at(c, side);
-        fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
+        fm_assert(s && s->pass == (u64)pass_mode::blocked);
     }
 
     {
@@ -617,10 +617,10 @@ void test_hole_pass_modes()
         (void)w.make_object<hole>(w.make_id(), pos, hp3);
 
         const auto e = entry_at(c, ctr);
-        fm_assert(e && e->type == (uint64_t)collision_type::scenery && e->pass == (uint64_t)pass_mode::shoot_through);
+        fm_assert(e && e->type == (u64)collision_type::scenery && e->pass == (u64)pass_mode::shoot_through);
         fm_assert(!passable_at(c, ctr));
         const auto s = entry_at(c, ctr - Vector2{12, 0});
-        fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
+        fm_assert(s && s->pass == (u64)pass_mode::blocked);
     }
 
     for (auto p : { pass_mode::see_through, pass_mode::pass })
@@ -643,10 +643,10 @@ void test_hole_pass_modes()
         if (p == pass_mode::pass)
             fm_assert(!e);
         else
-            fm_assert(e && e->type == (uint64_t)collision_type::scenery && e->pass == (uint64_t)p);
+            fm_assert(e && e->type == (u64)collision_type::scenery && e->pass == (u64)p);
         const auto s = entry_at(c, ctr - Vector2{12, 0});
-        fm_assert(s && s->type == (uint64_t)collision_type::scenery && s->pass == (uint64_t)p);
-        uint32_t pieces = 0;
+        fm_assert(s && s->type == (u64)collision_type::scenery && s->pass == (u64)p);
+        u32 pieces = 0;
         const auto min = ctr - Vector2{32}, max = ctr + Vector2{32};
         c.rtree()->Search(min.data(), max.data(), [&](object_id, const chunk::RTree::Rect&) {
             pieces++;
@@ -665,9 +665,9 @@ void test_hole_pass_modes()
         (void)w.make_object<hole>(w.make_id(), pos, hp4);
 
         const auto e = entry_at(c, ctr);
-        fm_assert(e && e->type == (uint64_t)collision_type::geometry && e->pass == (uint64_t)pass_mode::see_through);
+        fm_assert(e && e->type == (u64)collision_type::geometry && e->pass == (u64)pass_mode::see_through);
         const auto s = entry_at(c, ctr - Vector2{12, 0});
-        fm_assert(s && s->pass == (uint64_t)pass_mode::blocked);
+        fm_assert(s && s->pass == (u64)pass_mode::blocked);
     }
 }
 
@@ -744,12 +744,12 @@ void check_same(const chunk::RTree::Node* a, const chunk::RTree::Node* b)
 void test_move()
 {
     struct entry { Range2Di r; object_id data; };
-    for (uint32_t n : { 5u, 300u })
+    for (u32 n : { 5u, 300u })
     {
         Random::xoshiro256starstar rng;
         Random::seed(rng, 19);
-        const auto rnd = [&](uint32_t k) { return int32_t(Random::next(rng) % k); };
-        const auto random_rect = [&](uint32_t max_size) {
+        const auto rnd = [&](u32 k) { return i32(Random::next(rng) % k); };
+        const auto random_rect = [&](u32 max_size) {
             const auto min = Vector2i{rnd(1024), rnd(1024)};
             return Range2Di{min, min + Vector2i{1 + rnd(max_size), 1 + rnd(max_size)}};
         };
@@ -768,10 +768,10 @@ void test_move()
         }
         auto ref = t;
 
-        uint32_t in_place = 0, outside = 0;
+        u32 in_place = 0, outside = 0;
         for (auto i = 1u; i <= 20'000; i++)
         {
-            const auto id = 1 + uint32_t(rnd(n));
+            const auto id = 1 + u32(rnd(n));
             auto& e = es[id - 1];
             const auto shift = Vector2i{rnd(9) - 4, rnd(9) - 4};
             auto r1 = Range2Di{e.r.min() + shift, e.r.max() + shift};
@@ -811,7 +811,7 @@ void test_move()
                 const auto q = random_rect(256);
                 const auto qlo = Vector2(q.min()), qhi = Vector2(q.max());
                 Array<bool> seen{ValueInit, n};
-                uint32_t found = 0, expected = 0;
+                u32 found = 0, expected = 0;
                 t.Search(qlo.data(), qhi.data(), [&](object_id data, const chunk::RTree::Rect&) {
                     const auto& x = es[(data & 0xffffffff) - 1];
                     fm_assert(x.data == data && overlaps(x.r, q) && !seen[(data & 0xffffffff) - 1]);

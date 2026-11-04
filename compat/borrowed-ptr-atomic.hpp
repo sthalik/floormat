@@ -47,7 +47,7 @@ namespace floormat {
 
 struct atomic_refcount : non_atomic_refcount
 {
-    using counter = bptr_policy::atomic_counter<uint32_t>;
+    using counter = bptr_policy::atomic_counter<u32>;
 };
 
 } // namespace floormat

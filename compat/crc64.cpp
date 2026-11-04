@@ -10,7 +10,7 @@
 namespace floormat::Hash {
 namespace {
 
-alignas(64) constexpr uint64_t CRC64_TABLE[256] =
+alignas(64) constexpr u64 CRC64_TABLE[256] =
 {
     0x0000000000000000ULL, 0x42f0e1eba9ea3693ULL, 0x85e1c3d753d46d26ULL, 0xc711223cfa3e5bb5ULL,
     0x493366450e42ecdfULL, 0x0bc387aea7a8da4cULL, 0xccd2a5925d9681f9ULL, 0x8e224479f47cb76aULL,
@@ -80,9 +80,9 @@ alignas(64) constexpr uint64_t CRC64_TABLE[256] =
 
 } // namespace
 
-uint64_t crc64_update(uint64_t crc, const void* ptrʹ, const size_t count)
+u64 crc64_update(u64 crc, const void* ptrʹ, const usize count)
 {
-    const auto* ptr = static_cast<const uint8_t*>(ptrʹ);
+    const auto* ptr = static_cast<const u8*>(ptrʹ);
     const auto* endptr = ptr + count;
     while (ptr < endptr)
         crc = CRC64_TABLE[((crc >> 56) ^ (*ptr++)) & 0xFF] ^ (crc << 8);

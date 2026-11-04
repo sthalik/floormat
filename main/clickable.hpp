@@ -11,8 +11,8 @@ struct clickable final {
     Math::Range2D<int> dest;
     BitArrayView bitmask;
     object_id id;
-    uint32_t depth;
-    uint32_t stride;
+    u32 depth;
+    u32 stride;
     bool mirrored;
 };
 

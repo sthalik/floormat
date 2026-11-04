@@ -29,8 +29,8 @@ namespace {
 void test_pass_pool_promotes_and_snaps()
 {
     Grid::GridRegistry reg;
-    const auto pool = [&](uint32_t bbox) -> auto& {
-        return reg.pass_pool(Grid::Pass::Params{(uint32_t)tile_size_xy / 4, bbox, pass_mode::pass});
+    const auto pool = [&](u32 bbox) -> auto& {
+        return reg.pass_pool(Grid::Pass::Params{(u32)tile_size_xy / 4, bbox, pass_mode::pass});
     };
 
     auto& p2 = pool(2);
@@ -49,8 +49,8 @@ void test_pass_pool_promotes_and_snaps()
     fm_assert(p5.params().bbox_size == 5);
     fm_assert(&p5 != &pool(6));
 
-    auto& p64 = pool((uint32_t)tile_size_xy);
-    fm_assert(p64.params().bbox_size == (uint32_t)tile_size_xy);
+    auto& p64 = pool((u32)tile_size_xy);
+    fm_assert(p64.params().bbox_size == (u32)tile_size_xy);
 }
 
 void test_const_passable_equivalence()

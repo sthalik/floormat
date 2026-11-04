@@ -27,7 +27,7 @@ constexpr option longopts[] = {
     {},
 };
 
-enum class func : uint8_t { getopt, getopt_long, getopt_long_only, };
+enum class func : u8 { getopt, getopt_long, getopt_long_only, };
 
 // One parse. argv[0] is "prog". getopt_long() reorders argv's pointers but never writes
 // the strings they point to, so the literals are safe.

@@ -63,7 +63,7 @@ struct raycast_test final : base_test
 {
     raycast_result_s result;
     std::array<pending_s, max_pending_rays> pending;
-    uint32_t num_pending = 0;
+    u32 num_pending = 0;
     pending_s last_ray;
     bool has_last_ray = false;
     float radius = 0;
@@ -189,7 +189,7 @@ struct raycast_test final : base_test
 
                 do_column("collider");
                 std::snprintf(buf, array_size(buf), "%s @ %" PRIu64,
-                              type, uint64_t{result.collider.id});
+                              type, u64{result.collider.id});
                 { auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
                   text(buf);
                 }

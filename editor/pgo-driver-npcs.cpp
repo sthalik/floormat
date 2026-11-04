@@ -29,17 +29,17 @@ using pgo::task;
 
 namespace {
 
-constexpr int16_t room_chunks = fm_ASAN ? 2 : 8;
-constexpr uint32_t num_npcs = fm_ASAN ? 64 : 1024;
-constexpr uint32_t num_walkers = num_npcs/8, num_critters = num_npcs + num_walkers;
-constexpr uint32_t lattice_side = [] {
-    uint32_t n = 1;
+constexpr i16 room_chunks = fm_ASAN ? 2 : 8;
+constexpr u32 num_npcs = fm_ASAN ? 64 : 1024;
+constexpr u32 num_walkers = num_npcs/8, num_critters = num_npcs + num_walkers;
+constexpr u32 lattice_side = [] {
+    u32 n = 1;
     while (n*n < num_critters)
         n++;
     return n;
 }();
-constexpr uint32_t num_blockers = num_npcs*3/16, short_num_blockers = 4;
-constexpr uint8_t critter_size = 32, blocker_size = 32;
+constexpr u32 num_blockers = num_npcs*3/16, short_num_blockers = 4;
+constexpr u8 critter_size = 32, blocker_size = 32;
 constexpr float speed = 4;
 constexpr auto hold_dt = Second*20, short_hold_dt = Second, blocker_lifetime = Second*5;
 constexpr auto short_blocker_lifetime = Second/4;
@@ -61,7 +61,7 @@ struct blocker
 
 task app::scene_npcs()
 {
-    constexpr int16_t r0 = 0, r1 = room_chunks;
+    constexpr i16 r0 = 0, r1 = room_chunks;
     const auto margin = (int)Pass::Params{astar::default_div_size, critter_size, pass_mode::pass}.div_size();
 
     auto& w = M->world();
@@ -69,20 +69,20 @@ task app::scene_npcs()
     const auto depth = (int)wall->info().depth;
 
     chunk* room[room_chunks*room_chunks];
-    for (int16_t cy = r0; cy < r1; cy++)
-        for (int16_t cx = r0; cx < r1; cx++)
+    for (i16 cy = r0; cy < r1; cy++)
+        for (i16 cx = r0; cx < r1; cx++)
         {
             auto& c = w[chunk_coords_{cx, cy, 0}];
             maybe_initialize_chunk_(c.coord(), c);
             room[(cy - r0)*room_chunks + (cx - r0)] = &c;
         }
-    for (int16_t k = r0; k < r1; k++)
+    for (i16 k = r0; k < r1; k++)
     {
         auto& north = w[chunk_coords_{k, r0, 0}];
         auto& south = w[chunk_coords_{k, r1, 0}];
         auto& west = w[chunk_coords_{r0, k, 0}];
         auto& east = w[chunk_coords_{r1, k, 0}];
-        for (uint8_t i = 0; i < TILE_MAX_DIM; i++)
+        for (u8 i = 0; i < TILE_MAX_DIM; i++)
         {
             north[local_coords{i, 0}].wall_north() = { wall, (variant_t)-1 };
             south[local_coords{i, 0}].wall_north() = { wall, (variant_t)-1 };
@@ -141,7 +141,7 @@ task app::scene_npcs()
 
     object_id searcher = 0;
     const auto except_searcher = [&searcher](chunk&, collision_data data, Range2D) {
-        return data.type == (uint64_t)collision_type::scenery && data.id == searcher
+        return data.type == (u64)collision_type::scenery && data.id == searcher
                ? path_search_continue::pass : path_search_continue::blocked;
     };
     const Search::pred except_searcher_pred{except_searcher};
@@ -149,15 +149,15 @@ task app::scene_npcs()
     // Its own pool, since the registry's pools always build with without_critters().
     Pass::Pool crit_pool{Pass::Params{astar::default_div_size, critter_size, pass_mode::pass}, except_searcher_pred};
 
-    uint64_t rng = 0x9e3779b97f4a7c15u;
+    u64 rng = 0x9e3779b97f4a7c15u;
     const auto next_angle = [&rng] {
         rng = rng*6364136223846793005u + 1442695040888963407u;
         return Rad{(float)(rng >> 40) * (2*Math::Constants<float>::pi() / (float)(1u << 24))};
     };
     const auto max_dist = [](point a, point b) { return point::distance(a, b)*2; };
 
-    uint32_t frames = 0, moving = 0, walks = 0, collisions = 0, searches = 0, critter_searches = 0;
-    uint32_t not_found = 0, blockers_placed = 0;
+    u32 frames = 0, moving = 0, walks = 0, collisions = 0, searches = 0, critter_searches = 0;
+    u32 not_found = 0, blockers_placed = 0;
     bool placed = false;
 
     const auto place_blocker = [&](const path_search_result& res) {

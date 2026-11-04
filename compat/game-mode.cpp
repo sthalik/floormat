@@ -33,10 +33,10 @@ protect_fn crypt_protect_data() noexcept
     return fn;
 }
 
-wchar_t* put_hex(wchar_t* out, const BYTE* data, uint32_t size) noexcept
+wchar_t* put_hex(wchar_t* out, const BYTE* data, u32 size) noexcept
 {
     constexpr wchar_t digits[] = L"0123456789abcdef";
-    for (uint32_t i = 0; i < size; i++)
+    for (u32 i = 0; i < size; i++)
     {
         *out++ = digits[data[i] >> 4];
         *out++ = digits[data[i] & 15];
@@ -50,7 +50,7 @@ struct sha1_digest
     bool ok;
 };
 
-sha1_digest sha1(HCRYPTPROV prov, const void* data, uint32_t size) noexcept
+sha1_digest sha1(HCRYPTPROV prov, const void* data, u32 size) noexcept
 {
     sha1_digest d{};
     HCRYPTHASH hash;
@@ -63,7 +63,7 @@ sha1_digest sha1(HCRYPTPROV prov, const void* data, uint32_t size) noexcept
     return d;
 }
 
-bool set_value(HKEY key, const wchar_t* name, DWORD type, const void* data, uint32_t size) noexcept
+bool set_value(HKEY key, const wchar_t* name, DWORD type, const void* data, u32 size) noexcept
 {
     return RegSetValueExW(key, name, 0, type, (const BYTE*)data, size) == ERROR_SUCCESS;
 }
@@ -74,10 +74,10 @@ bool delete_value(HKEY key, const wchar_t* name) noexcept
     return err == ERROR_SUCCESS || err == ERROR_FILE_NOT_FOUND;
 }
 
-enum class child_state : uint8_t { missing, other, match };
+enum class child_state : u8 { missing, other, match };
 
 child_state check_child(HKEY children, const wchar_t* guid, ArrayView<wchar_t> buf,
-                        const wchar_t* path, uint32_t len) noexcept
+                        const wchar_t* path, u32 len) noexcept
 {
     HKEY key;
     if (auto err = RegOpenKeyExW(children, guid, 0, KEY_QUERY_VALUE, &key); err != ERROR_SUCCESS)
@@ -106,13 +106,13 @@ with_game_mode::with_game_mode() noexcept
 auto with_game_mode::designate() noexcept -> entry
 {
     Array<wchar_t> path{ValueInit, 32768};
-    const uint32_t len = GetModuleFileNameW(nullptr, path.data(), (DWORD)path.size());
+    const u32 len = GetModuleFileNameW(nullptr, path.data(), (DWORD)path.size());
     if (!len || len == path.size())
         return entry::failed;
     const wchar_t* sep = std::wcsrchr(path.data(), L'\\');
     if (!sep || !sep[1])
         return entry::failed;
-    const auto dir_len = uint32_t(sep - path.data()), name_len = len - dir_len - 1;
+    const auto dir_len = u32(sep - path.data()), name_len = len - dir_len - 1;
     const auto name_bytes = DWORD(name_len * sizeof(wchar_t));
 
     Array<wchar_t> lower{ValueInit, len};
@@ -128,7 +128,7 @@ auto with_game_mode::designate() noexcept -> entry
     const auto name_digest = sha1(prov, name, name_bytes);
     // Same path, same GUID, so two first launches at once write one entry. Version 8, because
     // version 5 also hashes a namespace.
-    auto guid_digest = sha1(prov, lower.data(), len * (uint32_t)sizeof(wchar_t));
+    auto guid_digest = sha1(prov, lower.data(), len * (u32)sizeof(wchar_t));
     if (!name_digest.ok || !guid_digest.ok)
         return entry::failed;
     guid_digest.bytes[6] = BYTE((guid_digest.bytes[6] & 0x0f) | 0x80);
@@ -162,7 +162,7 @@ auto with_game_mode::designate() noexcept -> entry
             return entry::failed;
     }
 
-    constexpr uint32_t guid_len = 36;
+    constexpr u32 guid_len = 36;
     Array<wchar_t> new_list{ValueInit, guid_len + 1 + list.size() + 1};
     wchar_t* const guid = new_list.data();
     {
@@ -178,12 +178,12 @@ auto with_game_mode::designate() noexcept -> entry
         *p++ = L'-';
         put_hex(p, id + 10, 6);
     }
-    uint32_t pos = guid_len + 1;
+    u32 pos = guid_len + 1;
     bool listed = false;
     Array<wchar_t> buf{ValueInit, len + 1};
     for (const wchar_t* g = list.data(); g && *g; )
     {
-        const auto n = uint32_t(std::wcslen(g) + 1);
+        const auto n = u32(std::wcslen(g) + 1);
         const auto state = check_child(children, g, buf, path.data(), len);
         if (state == child_state::match)
             return entry::already_set;
@@ -209,7 +209,7 @@ auto with_game_mode::designate() noexcept -> entry
     std::memcpy(dir.data(), path.data(), dir_len * sizeof(wchar_t));
     FILETIME now;
     GetSystemTimeAsFileTime(&now);
-    const uint64_t accessed = uint64_t{now.dwHighDateTime} << 32 | now.dwLowDateTime;
+    const u64 accessed = u64{now.dwHighDateTime} << 32 | now.dwLowDateTime;
     constexpr DWORD type = 1, revision = 1, flags = 0x11;
 
     HKEY child;
@@ -255,12 +255,12 @@ Optional<int> with_game_mode::relaunch() noexcept
         return {};
 
     Array<wchar_t> path{ValueInit, 32768};
-    const uint32_t len = GetModuleFileNameW(nullptr, path.data(), (DWORD)path.size());
+    const u32 len = GetModuleFileNameW(nullptr, path.data(), (DWORD)path.size());
     if (!len || len == path.size())
         return {};
     // CreateProcessW may write to the command line it's given.
     const wchar_t* const cmdline = GetCommandLineW();
-    const auto cmd_size = uint32_t(std::wcslen(cmdline) + 1);
+    const auto cmd_size = u32(std::wcslen(cmdline) + 1);
     Array<wchar_t> cmd{NoInit, cmd_size};
     std::memcpy(cmd.data(), cmdline, cmd_size * sizeof(wchar_t));
 

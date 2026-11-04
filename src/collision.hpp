@@ -6,12 +6,12 @@ enum class collision_type : unsigned char {
     none, object, scenery, geometry,
 };
 
-constexpr inline size_t collision_data_BITS = 60;
+constexpr inline usize collision_data_BITS = 60;
 
 struct collision_data final {
-    uint64_t type : 2;
-    uint64_t pass : 2;
-    uint64_t id   : collision_data_BITS;
+    u64 type : 2;
+    u64 pass : 2;
+    u64 id   : collision_data_BITS;
 
     bool operator==(const collision_data&) const noexcept;
 };
