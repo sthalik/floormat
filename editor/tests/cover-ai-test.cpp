@@ -98,8 +98,7 @@ void do_column(StringView name)
 
 void draw_dot(ImDrawList& draw, app& a, point pt, float radius, ImVec4 color)
 {
-    const auto px = a.point_to_pixel(pt);
-    draw.AddCircleFilled({px.x(), px.y()}, radius, ImGui::ColorConvertFloat4ToU32(color));
+    draw.AddCircleFilled(ImVec2(a.point_to_pixel(pt)), radius, ImGui::ColorConvertFloat4ToU32(color));
 }
 
 critter_proto npc_proto(point at)

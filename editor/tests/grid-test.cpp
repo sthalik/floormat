@@ -80,7 +80,7 @@ void grid_test::draw_overlay(app& a)
                 continue;
             auto pt = point{result.c, intra_coord{ds * Vector2i{i, j} + Vector2i{ds/2}}};
             auto px = a.point_to_pixel(pt);
-            draw.AddCircleFilled({px.x(), px.y()}, dot_radius, dot_color);
+            draw.AddCircleFilled(ImVec2(px), dot_radius, dot_color);
         }
 }
 

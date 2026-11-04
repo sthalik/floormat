@@ -54,6 +54,7 @@
 #include <mg/Functions.h>
 #include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
+#include <mg/ImGuiIntegration/Integration.h>
 #include <imgui_internal.h>
 
 #ifdef FLOORMAT_NO_PGO_DRIVER
@@ -1957,11 +1958,11 @@ void app::driver_draw_overlay()
                    goal_color  = ImGui::ColorConvertFloat4ToU32({0, 0,   1.f, 1});
         const auto n = (uint32_t)D.route.size();
         auto prev = point_to_pixel(D.route.front());
-        draw.AddCircle({prev.x(), prev.y()}, 9, route_color, 0, 3);
+        draw.AddCircle(ImVec2(prev), 9, route_color, 0, 3);
         for (auto i = 1u; i < n; i++)
         {
             const auto p = point_to_pixel(D.route[i]);
-            draw.AddLine({prev.x(), prev.y()}, {p.x(), p.y()}, route_color, 3);
+            draw.AddLine(ImVec2(prev), ImVec2(p), route_color, 3);
             prev = p;
         }
         // The goal is where the pan is headed and is off-screen for most of it.

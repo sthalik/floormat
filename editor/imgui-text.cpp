@@ -2,7 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/defs.hpp"
 #include <cr/GrowableArray.h>
-#include <imgui.h>
+#include <mg/ImGuiIntegration/Integration.h>
 
 namespace floormat::imgui {
 
@@ -201,7 +201,7 @@ Math::Range2D<float> text_painter::render(ImDrawList& draw, Vector2 anchor)
     {
         const Vector2 bg_min = anchor - s.bg_padding;
         const Vector2 bg_max = anchor + Vector2{s.total_width, s.font_size} + s.bg_padding;
-        draw.AddRectFilled({bg_min.x(), bg_min.y()}, {bg_max.x(), bg_max.y()}, s.bg_color);
+        draw.AddRectFilled(ImVec2(bg_min), ImVec2(bg_max), s.bg_color);
     }
 
     float x = anchor.x();

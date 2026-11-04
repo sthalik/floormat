@@ -76,8 +76,7 @@ void add_palette_image_quad(ImDrawList& draw_list, const palette_texture_ref& t,
 {
     const auto& uv = t.uv;
     draw_list.AddImageQuad((ImTextureID)t.id, min, {max.x, min.y}, max, {min.x, max.y},
-                           {uv[0].x(), uv[0].y()}, {uv[1].x(), uv[1].y()},
-                           {uv[2].x(), uv[2].y()}, {uv[3].x(), uv[3].y()});
+                           ImVec2(uv[0]), ImVec2(uv[1]), ImVec2(uv[2]), ImVec2(uv[3]));
 }
 
 void sprite_image(editor& e, sprite s, ImVec2 size)
@@ -100,7 +99,7 @@ bool sprite_image_button(editor& e, sprite s, const char* str_id, ImVec2 image_s
 
     const auto& style = ImGui::GetStyle();
     const ImVec2 padding = style.FramePadding, pos = window->DC.CursorPos;
-    const ImRect bb(pos, {pos.x + image_size.x + padding.x * 2, pos.y + image_size.y + padding.y * 2});
+    const ImRect bb(pos, pos + image_size + padding * 2);
     const ImGuiID id = window->GetID(str_id);
     ImGui::ItemSize(bb);
     if (!ImGui::ItemAdd(bb, id))
@@ -114,9 +113,8 @@ bool sprite_image_button(editor& e, sprite s, const char* str_id, ImVec2 image_s
     ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
 
     const auto t = e.palette_texture(s);
-    const ImVec2 min{bb.Min.x + padding.x, bb.Min.y + padding.y}, max{bb.Max.x - padding.x, bb.Max.y - padding.y};
     splitter.SetCurrentChannel(window->DrawList, 1);
-    add_palette_image_quad(*window->DrawList, t, min, max);
+    add_palette_image_quad(*window->DrawList, t, bb.Min + padding, bb.Max - padding);
     splitter.SetCurrentChannel(window->DrawList, 0);
     return pressed;
 }
@@ -194,8 +192,7 @@ void draw_ground_palette_atlas(editor& e, ground_editor& ed, StringView name, co
             };
 
             snformat(buf, "##item_{}", i);
-            constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-            sprite_image_button(e, sprites[i], buf, ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]), splitter);
+            sprite_image_button(e, sprites[i], buf, ImVec2(half_tile<Vector2>*dpi), splitter);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 ed.select_tile(atlas, i);
             else
@@ -371,7 +368,7 @@ void app::draw_editor_pane(float main_menu_height)
                 else if (_editor->mode() == editor_mode::tests)
                 {
                     // With no frame, an unchecked checkbox shows only its label.
-                    const auto b5 = push_style_color(ImGuiCol_FrameBg, {frame_bg.x, frame_bg.y, frame_bg.z, frame_bg.w});
+                    const auto b5 = push_style_color(ImGuiCol_FrameBg, Color4(frame_bg));
                     draw_tests_pane(width);
                 }
             }
