@@ -72,22 +72,27 @@ Vector2ui get_size(const auto&, wall_atlas& atlas)
     return {1, 1};
 }
 
-void palette_image(editor& e, sprite s, ImVec2 size)
+void add_palette_image_quad(ImDrawList& draw_list, const palette_texture_ref& t, ImVec2 min, ImVec2 max)
+{
+    const auto& uv = t.uv;
+    draw_list.AddImageQuad((ImTextureID)t.id, min, {max.x, min.y}, max, {min.x, max.y},
+                           {uv[0].x(), uv[0].y()}, {uv[1].x(), uv[1].y()},
+                           {uv[2].x(), uv[2].y()}, {uv[3].x(), uv[3].y()});
+}
+
+void sprite_image(editor& e, sprite s, ImVec2 size)
 {
     ImGui::Dummy(size);
     if (!ImGui::IsItemVisible())
         return;
     const auto t = e.palette_texture(s);
-    const auto& uv = t.uv;
     const ImVec2 min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
-    ImGui::GetWindowDrawList()->AddImageQuad((ImTextureID)t.id, min, {max.x, min.y}, max, {min.x, max.y},
-                                             {uv[0].x(), uv[0].y()}, {uv[1].x(), uv[1].y()},
-                                             {uv[2].x(), uv[2].y()}, {uv[3].x(), uv[3].y()});
+    add_palette_image_quad(*ImGui::GetWindowDrawList(), t, min, max);
 }
 
 // Behaves like ImGui::ImageButtonEx but draws the image into channel 1 of `splitter`, which the caller must have
 // split, so frames and images each merge into a few draw commands. Leaves channel 0 current.
-bool palette_image_button(editor& e, sprite s, const char* str_id, ImVec2 image_size, ImDrawListSplitter& splitter)
+bool sprite_image_button(editor& e, sprite s, const char* str_id, ImVec2 image_size, ImDrawListSplitter& splitter)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -109,12 +114,9 @@ bool palette_image_button(editor& e, sprite s, const char* str_id, ImVec2 image_
     ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
 
     const auto t = e.palette_texture(s);
-    const auto& uv = t.uv;
     const ImVec2 min{bb.Min.x + padding.x, bb.Min.y + padding.y}, max{bb.Max.x - padding.x, bb.Max.y - padding.y};
     splitter.SetCurrentChannel(window->DrawList, 1);
-    window->DrawList->AddImageQuad((ImTextureID)t.id, min, {max.x, min.y}, max, {min.x, max.y},
-                                   {uv[0].x(), uv[0].y()}, {uv[1].x(), uv[1].y()},
-                                   {uv[2].x(), uv[2].y()}, {uv[3].x(), uv[3].y()});
+    add_palette_image_quad(*window->DrawList, t, min, max);
     splitter.SetCurrentChannel(window->DrawList, 0);
     return pressed;
 }
@@ -126,13 +128,13 @@ void palette_thumbnail(editor& e, ImVec2 img_size, const auto&, anim_atlas& atla
     const auto* sp = g.sprites.isEmpty() ? nullptr : g.sprites[0];
     if (!sp)
         return;
-    palette_image(e, sprite{sp}, img_size);
+    sprite_image(e, sprite{sp}, img_size);
 }
 
 void palette_thumbnail(editor& e, ImVec2 img_size, const wall_cell&, wall_atlas& atlas)
 {
     if (const sprite* s = canonical_wall_sprite(atlas)) [[likely]]
-        palette_image(e, *s, img_size);
+        sprite_image(e, *s, img_size);
 }
 
 
@@ -193,7 +195,7 @@ void draw_ground_palette_atlas(editor& e, ground_editor& ed, StringView name, co
 
             snformat(buf, "##item_{}", i);
             constexpr ImVec2 size_2 = { TILE_SIZE[0]*.5f, TILE_SIZE[1]*.5f };
-            palette_image_button(e, sprites[i], buf, ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]), splitter);
+            sprite_image_button(e, sprites[i], buf, ImVec2(size_2.x * dpi[0], size_2.y * dpi[1]), splitter);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 ed.select_tile(atlas, i);
             else
@@ -246,15 +248,15 @@ void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
 
     for (const auto& [name, item] : ed.items())
     {
-        fm_debug_assert(get_atlas(item));
+        auto atlasʹ = get_atlas(item);
+        fm_debug_assert(atlasʹ);
+        auto& atlas = *atlasʹ;
         const auto b3 = push_id(name);
         ImGui::TableNextRow(ImGuiTableRowFlags_None, row_height);
 
         if (ImGui::TableSetColumnIndex(0))
         {
             const auto& style = ImGui::GetStyle();
-            auto atlasʹ = get_atlas(item);
-            auto& atlas = *atlasʹ;
             const auto size = Vector2(get_size(item, atlas));
             const float c = Math::min(thumbnail_width / size[0], row_height / size[1]);
             const ImVec2 img_size = {size[0]*c, size[1]*c+style.CellPadding.y + 0.5f};
@@ -280,27 +282,22 @@ void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
                 text(scenery_type_to_string(item));
                 clear_on_middle_click();
             }
-        }
-        else if constexpr (has_path_column<T>)
-        {
-            if (ImGui::TableSetColumnIndex(2))
-            {
-                text(item_path(item));
-                clear_on_middle_click();
-            }
-        }
-
-        if constexpr(has_type_and_group_columns<T>)
-        {
             if (ImGui::TableSetColumnIndex(3))
             {
-                auto& atlas = *get_atlas(item);
                 StringView group = loader.strip_prefix(atlas.name());
                 if (auto last = group.findLast('/'))
                     group = group.prefix(last.data());
                 else
                     group = {};
                 text(group);
+                clear_on_middle_click();
+            }
+        }
+        else if constexpr (has_path_column<T>)
+        {
+            if (ImGui::TableSetColumnIndex(2))
+            {
+                text(item_path(item));
                 clear_on_middle_click();
             }
         }
