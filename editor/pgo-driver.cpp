@@ -49,7 +49,6 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include <cstdio>
-#include <cstdlib>
 #include <numeric>
 #include <mg/Functions.h>
 #include <cr/GrowableArray.h>
