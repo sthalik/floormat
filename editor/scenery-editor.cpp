@@ -1,11 +1,13 @@
 #include "scenery-editor.hpp"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 #include "src/world.hpp"
 #include "src/rotation.inl"
 #include "app.hpp"
 #include "src/scenery.hpp"
 #include "compat/borrowed-ptr.inl"
+#include <cr/ArrayView.h>
 
 namespace floormat {
 
@@ -14,6 +16,16 @@ using rotation_t = std::underlying_type_t<enum rotation>;
 scenery_editor::scenery_::operator bool() const noexcept
 {
     return !!proto;
+}
+
+void scenery_editor::load_atlases()
+{
+    _atlases.clear();
+    for (const auto& s : loader.scenery_list())
+        _atlases[s.name] = {
+            .name = s.name,
+            .proto = loader.scenery(s.name, s.name == loader.INVALID ? loader_policy::ignore : loader_policy::error)
+        };
 }
 
 scenery_editor::scenery_editor() noexcept

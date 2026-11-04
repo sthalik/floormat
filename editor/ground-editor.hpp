@@ -40,7 +40,7 @@ public:
     bool is_atlas_selected(const bptr<ground_atlas>& atlas) const;
     bool is_anything_selected() const;
     tile_image_proto get_selected();
-    void place_tile(world& world, global_coords pos, const tile_image_proto& img);
+    static void place_tile(world& w, global_coords pos, const tile_image_proto& img);
     editor_snap_mode check_snap(int mods) const;
 };
 

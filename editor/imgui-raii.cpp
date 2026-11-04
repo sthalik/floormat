@@ -88,7 +88,7 @@ raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value)
     return {[]{ ImGui::PopStyleVar(); }};
 }
 
-raii_wrapper tree_node(Containers::StringView name, ImGuiTreeNodeFlags flags)
+raii_wrapper tree_node(StringView name, ImGuiTreeNodeFlags flags)
 {
     fm_assert(name.flags() & StringViewFlag::NullTerminated);
     if (ImGui::TreeNodeEx(name.data(), flags))
@@ -122,7 +122,7 @@ raii_wrapper begin_popup(StringView name, ImGuiWindowFlags flags)
         return {};
 }
 
-raii_wrapper begin_list_box(Containers::StringView name, ImVec2 size)
+raii_wrapper begin_list_box(StringView name, ImVec2 size)
 {
     fm_assert(name.flags() & StringViewFlag::NullTerminated);
     if (ImGui::BeginListBox(name.data(), size))
@@ -140,8 +140,9 @@ raii_wrapper begin_table(StringView id, int ncols, ImGuiTableFlags flags, const 
         return {};
 }
 
-raii_wrapper begin_menu(Containers::StringView name, bool enabled)
+raii_wrapper begin_menu(StringView name, bool enabled)
 {
+    fm_assert(name.flags() & StringViewFlag::NullTerminated);
     if (ImGui::BeginMenu(name.data(), enabled))
         return {&ImGui::EndMenu};
     else
@@ -156,10 +157,11 @@ raii_wrapper begin_main_menu()
         return {};
 }
 
-raii_wrapper begin_window(Containers::StringView name, bool* p_open, ImGuiWindowFlags flags)
+raii_wrapper begin_window(StringView name, bool* p_open, ImGuiWindowFlags flags)
 {
     if (name.isEmpty())
         name = "floormat editor";
+    fm_assert(name.flags() & StringViewFlag::NullTerminated);
     // Unlike the other Begin/End pairs, ImGui::End() must be called for every
     // ImGui::Begin() even when it returns false (collapsed window).
     bool visible = ImGui::Begin(name.data(), p_open, flags);
@@ -168,6 +170,7 @@ raii_wrapper begin_window(Containers::StringView name, bool* p_open, ImGuiWindow
 
 raii_wrapper begin_child(StringView name, const ImVec2& size, int flags, int window_flags)
 {
+    fm_assert(name.flags() & StringViewFlag::NullTerminated);
     return {&ImGui::EndChild, ImGui::BeginChild(name.data(), size, flags, window_flags)};
 }
 
