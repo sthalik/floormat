@@ -61,11 +61,6 @@ void app::init_imgui(Vector2i size)
     _imgui->relayout(Vector2{size}, size, size);
 }
 
-void app::render_menu()
-{
-    _imgui->drawFrame();
-}
-
 float app::draw_main_menu()
 {
     float main_menu_height = 0;
@@ -259,7 +254,6 @@ void app::draw_ui()
         draw_inspector();
     draw_z_level();
     do_popup_menu();
-    ImGui::EndFrame();
 }
 
 void app::draw_clickables()
