@@ -1,13 +1,13 @@
 #include "search-cache.hpp"
 #include "search.hpp"
-#include "grid-pool-registry.hpp"
+#include "grid-registry.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "world.hpp"
 #include "tile-defs.hpp"
 #include "compat/function2.hpp"
+#include "compat/fill.hpp"
 #include <bit>
-#include <cr/BitArrayView.h>
 
 namespace floormat::Search {
 
@@ -38,15 +38,8 @@ void cache::allocate(point from, uint32_t max_dist, uint32_t div_size)
     auto cells_per_chunk = (size_t)div_count_ * div_count_;
     auto total_cells = len * cells_per_chunk;
 
-    if (total_cells > exists.size())
-    {
-        indexes = Array<uint32_t>{NoInit, total_cells};
-        exists = BitArray{ValueInit, total_cells};
-    }
-    else
-    {
-        exists.prefix(total_cells).resetAll();
-    }
+    if (total_cells > cells.size())
+        cells = Array<cell>{NoInit, total_cells};
 }
 
 uint32_t cache::get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord)
@@ -68,24 +61,32 @@ uint32_t cache::get_tile_index(intra_coord posʹ) const
     return idx;
 }
 
-void cache::add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index)
+void cache::add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index, uint32_t dist)
 {
     fm_debug3_assert(index != (uint32_t)-1);
-    auto cells_per_chunk = (size_t)div_count_ * div_count_;
-    auto flat = chunk_index * cells_per_chunk + tile_index;
-    fm_debug3_assert(!exists[flat]);
-    exists.set(flat);
-    indexes[flat] = index;
+    auto& c = at(chunk_index, tile_index);
+    fm_debug3_assert(c.index == (uint32_t)-1);
+    c = { index, dist };
 }
 
 uint32_t cache::lookup_index(uint32_t chunk_index, uint32_t tile_index)
 {
+    return at(chunk_index, tile_index).index;
+}
+
+auto cache::at(uint32_t chunk_index, uint32_t tile_index) -> cell&
+{
     auto cells_per_chunk = (size_t)div_count_ * div_count_;
-    auto flat = chunk_index * cells_per_chunk + tile_index;
-    if (exists[flat])
-        return indexes[flat];
-    else
-        return (uint32_t)-1;
+    const auto i = chunk_index * cells_per_chunk + tile_index;
+    fm_debug3_assert(i < cells.size());
+    // Not operator[]: its bounds check stays in release builds, and do_dir() calls this per neighbour.
+    return cells.data()[i];
+}
+
+void cache::clear_chunk(uint32_t chunk_index)
+{
+    auto cells_per_chunk = (size_t)div_count_ * div_count_;
+    fill(cells.sliceSize(chunk_index * cells_per_chunk, cells_per_chunk), cell{(uint32_t)-1, (uint32_t)-1});
 }
 
 bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, const pred& p)

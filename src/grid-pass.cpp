@@ -225,10 +225,6 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
         clear_obstacles([=](uint32_t i_lo, uint32_t i_hi, uint32_t j_lo, uint32_t j_hi) {
             clear_rect_whole_rows(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
         });
-
-    for (auto i = 0u; i < 8; i++)
-        versions[i] = neighbors[i] ? neighbors[i]->pass_gen() : (uint64_t)-1;
-    versions[8] = self->pass_gen();
 }
 
 PassGrid::PassGrid(chunk& c, Params params):
@@ -324,7 +320,6 @@ Grid Pool::operator[](chunk& c)
     return Grid{detail::grid::pool_subscript(pool, c), pool};
 }
 
-Grid Pool::wrap(detail::grid::PassGrid* g) const noexcept { return Grid{g, pool}; }
 Grid::~Grid() noexcept = default;
 
 Grid::Grid(detail::grid::PassGrid* grid_, detail::grid::PassPool* pool_):
@@ -339,13 +334,11 @@ uint32_t Grid::get_bitmask_index(uint32_t x, uint32_t y, uint32_t div_count)
 
 uint32_t Grid::get_bitmask_index_from_coord(intra_coord pos) const
 {
-    detail::grid::check_versions(grid);
     return grid->get_bitmask_index_from_coord(pos);
 }
 
 Range2D Grid::get_coord_from_div(uint32_t x, uint32_t y) const
 {
-    detail::grid::check_versions(grid);
     return grid->get_coord_from_div(x, y);
 }
 
@@ -356,7 +349,7 @@ bool Grid::bit(uint32_t index) const
 
 BitView Grid::bits() const
 {
-    detail::grid::check_versions(grid);
+    detail::grid::check_current(grid);
     fm_debug_assert(grid->bitmask.offset() == 0);
     return { reinterpret_cast<uint8_t*>(grid->bitmask.data()) };
 }
@@ -368,13 +361,13 @@ uint32_t Grid::div_count() const
 
 uint64_t Grid::build_no() const
 {
-    detail::grid::check_versions(grid);
+    detail::grid::check_current(grid);
     return grid->build_no;
 }
 
 bool Grid::is_all_empty() const
 {
-    detail::grid::check_versions(grid);
+    detail::grid::check_current(grid);
     return grid->is_all_empty();
 }
 

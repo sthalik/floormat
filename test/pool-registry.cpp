@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/array-size.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include <bit>
@@ -16,15 +16,18 @@ void test_pass_pool_per_params()
     constexpr Params params[] = {
         {16, 32, pass_mode::pass},
         {16, 32, pass_mode::shoot_through},
+        {16, 32, pass_mode::see_through},
         {8, 32, pass_mode::pass},
         {1, 4, pass_mode::pass},
+        {1, 4, pass_mode::see_through},
         {16, 33, pass_mode::pass},
+        {128, 255, pass_mode::pass},
         // off the table: over direct_max_bbox
         {16, 300, pass_mode::pass},
     };
     constexpr auto N = array_size(params);
 
-    Grid::PoolRegistry reg{16};
+    Grid::GridRegistry reg;
     Pass::Pool* pools[N];
     for (auto i = 0u; i < N; i++)
     {
@@ -39,22 +42,17 @@ void test_pass_pool_per_params()
     }
 }
 
-void test_pool_for_is_pass_pool()
+void test_pass_pool_snapped_params()
 {
-    Grid::PoolRegistry reg{16};
-    for (uint32_t bbox : { 1u, 4u, 5u, 32u, 254u, 255u, 300u })
-    {
-        auto& pool = reg.pool_for(bbox);
-        fm_assert(&reg.pass_pool(pool.params()) == &pool);
-    }
+    Grid::GridRegistry reg;
     // div 16 snaps to 8 at bbox 10
-    fm_assert(&reg.pass_pool(Params{8, 10, pass_mode::pass}) == &reg.pool_for(10));
+    fm_assert(&reg.pass_pool(Params{16, 10, pass_mode::pass}) == &reg.pass_pool(Params{8, 10, pass_mode::pass}));
 }
 
 void test_cover_pool_per_div()
 {
-    constexpr auto N = (uint32_t)std::countr_zero(chunk_size_xy); // xxx todo assumes power of two chunk size
-    Grid::PoolRegistry reg{16};
+    constexpr auto N = (uint32_t)std::bit_width(Cover::max_div_size);
+    Grid::GridRegistry reg;
     Cover::Pool* pools[N];
     for (auto i = 0u; i < N; i++)
     {
@@ -73,7 +71,7 @@ void test_cover_pool_shares_pass_pool()
 {
     auto w = world();
     auto& c = w[chunk_coords_{0, 0, 0}];
-    Grid::PoolRegistry reg{16};
+    Grid::GridRegistry reg;
     auto& cover = reg.cover_pool(Cover::Params{8});
     cover.maybe_mark_stale_all(w);
     cover[c].build_if_stale();
@@ -86,7 +84,7 @@ void test_cover_pool_shares_pass_pool()
 void Test::test_pool_registry()
 {
     test_pass_pool_per_params();
-    test_pool_for_is_pass_pool();
+    test_pass_pool_snapped_params();
     test_cover_pool_per_div();
     test_cover_pool_shares_pass_pool();
 }

@@ -12,7 +12,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/tile-image.hpp"
 #include "src/grid.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/search-astar.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"
@@ -1178,7 +1178,7 @@ void app::populate_scene_maze2()
 void app::populate_scene_maze3(mazes::kind k)
 {
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pool_for(mazes::bbox_size);
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass});
     const auto r = mazes::build(w, k, {}, pool);
     auto C = ensure_player_character(w);
     auto index = C->index();

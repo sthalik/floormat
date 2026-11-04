@@ -144,10 +144,10 @@ void test_sprites()
     Array<String> files = walk_directory_tree(env);
     fm_assert(files.size() > 0);
 
-    // layer_size matches max_texture_xy in sprite-atlas-impl.hpp — the
-    // 10-bit Sprite::width/height storage caps individual sprites at 1024.
     SpriteAtlas::Atlas atlas;
-    atlas.layer_size = (uint16_t)Math::min<unsigned>(SpriteAtlas::max_layer_size, SpriteAtlas::max_2d_texture_size());
+    const auto max_size = SpriteAtlas::max_2d_texture_size();
+    atlas.layer_width = (uint16_t)Math::min<unsigned>(SpriteAtlas::max_layer_width, max_size);
+    atlas.layer_height = (uint16_t)Math::min<unsigned>(SpriteAtlas::max_layer_height, max_size);
 
     uint32_t png_count = 0, alloc_count = 0;
     for (const String& path : files)
@@ -161,7 +161,7 @@ void test_sprites()
         auto size = img.size();
         // Skip sprites larger than the bitfield limit — a handful of F2
         // worldmap/splash PNGs exceed 1024 in either dimension.
-        if ((uint32_t)size.max() > SpriteAtlas::max_texture_xy)
+        if ((uint32_t)size.max() > SpriteAtlas::max_sprite_xy)
             continue;
         auto* sprite = SpriteAtlas::alloc_sprite(atlas, (uint32_t)size.x(), (uint32_t)size.y());
         SpriteAtlas::upload_sprite(atlas, *sprite, img);
@@ -171,7 +171,7 @@ void test_sprites()
     DBG << "sprites: walked" << files.size()
         << "pngs" << png_count
         << "allocated" << alloc_count
-        << "layers" << atlas.n_layers;
+        << "layers" << atlas.texture_layer_count;
 
     if (!atlas.layers.isEmpty())
     {

@@ -1,12 +1,14 @@
 #include "search-astar.hpp"
 #include "search-octile.hpp"
 #include "search-cache.hpp"
-#include "grid-pool-registry.hpp"
+#include "grid-registry.hpp"
 #include "search-result.hpp"
 #include "search.hpp"
 #include "world.hpp"
 #include "sweep-aabb.hpp"
 #include "raycast-line.hpp"
+#include "nanosecond.hpp"
+#include "timer.hpp"
 #include "tile-defs.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
@@ -24,7 +26,6 @@
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
-#include <mg/Timeline.h>
 
 namespace floormat {
 
@@ -255,7 +256,8 @@ struct neighbourhood
 } // namespace
 
 // One bitmap pointer per chunk of the cache rectangle. Nothing marks a grid stale
-// during a search, so a pointer stays valid until it ends. Null: not resolved, or no chunk.
+// during a search, so a pointer stays valid until it ends. Null: not resolved. Pointer value 1:
+// no chunk, so `(uintptr_t)b > 1` tests for a bitmap in one comparison.
 struct astar::chunk_bitmaps
 {
     world& w;
@@ -278,11 +280,13 @@ struct astar::chunk_bitmaps
         return test_bit(b, Vector2ui(Vector2i(intra_coord{pt})));
     }
 
+    // Only while bits[chunk_idx] is null: the clear drops the chunk's nodes.
     CORRADE_NEVER_INLINE const uint8_t* resolve(point pt, size_t chunk_idx)
     {
+        cache.clear_chunk((uint32_t)chunk_idx);
         auto* c = w.at(pt.chunk3());
         if (!c)
-            return nullptr;
+            return bits[chunk_idx] = std::bit_cast<const uint8_t*>(uintptr_t{1});
         auto grid = pool[*c];
         grid.build_if_stale();
         return bits[chunk_idx] = grid.bits().data;
@@ -290,13 +294,17 @@ struct astar::chunk_bitmaps
 
     CORRADE_NEVER_INLINE bool is_passable_slow(point pt, size_t chunk_idx)
     {
-        if (const auto* b = resolve(pt, chunk_idx))
+        const auto* b = bits[chunk_idx];
+        if (!b)
+            b = resolve(pt, chunk_idx);
+        if ((uintptr_t)b > 1)
             return test_bit(b, pt);
         return cache.is_passable_for_bbox(w, pool, pt, p);
     }
 
     // Next to the chunk edge, the neighbours lie in up to three other chunks. 0 while one of
-    // their bitmaps is unresolved: resolving it here could build a grid that no move reads.
+    // them is unresolved or missing: resolving it here could build a grid that no move reads,
+    // and a missing chunk's cells take the world test.
     CORRADE_NEVER_INLINE uint32_t window_edge(point pt, Vector2i pix)
     {
         constexpr int cs = (int)chunk_size_xy;
@@ -316,7 +324,7 @@ struct astar::chunk_bitmaps
             for (int c = 0; c < 3; c++)
             {
                 const auto* b = bits[cache.get_chunk_index({chunk[c].x(), chunk[r].y()})];
-                if (!b)
+                if ((uintptr_t)b <= 1)
                     return 0;
                 win |= (uint32_t)test_bit(b, Vector2ui{pos[c].x(), pos[r].y()}) << (r*3 + c);
             }
@@ -334,9 +342,13 @@ struct astar::chunk_bitmaps
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
         const auto tile_idx = cache.get_tile_index(intra_coord{pt});
         const auto* b = bits[chunk_idx];
-        if (!b) [[unlikely]]
-            if (!(b = resolve(pt, chunk_idx)))
+        if ((uintptr_t)b <= 1) [[unlikely]]
+        {
+            if (!b)
+                b = resolve(pt, chunk_idx);
+            if ((uintptr_t)b <= 1)
                 return { 0, chunk_idx, tile_idx, pix };
+        }
         uint32_t win = 0;
         // A row is one uint64_t. A narrower one would read past the last row.
         if (constexpr uint32_t row_cells = 64; div_count == row_cells) [[likely]]
@@ -361,7 +373,7 @@ struct astar::chunk_bitmaps
 
     CORRADE_ALWAYS_INLINE bool is_passable(point pt, size_t chunk_idx)
     {
-        if (const auto* b = bits[chunk_idx]) [[likely]]
+        if (const auto* b = bits[chunk_idx]; (uintptr_t)b > 1) [[likely]]
             return test_bit(b, pt);
         return is_passable_slow(pt, chunk_idx);
     }
@@ -464,9 +476,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
         return;
 
     const bool same_chunk = cells.chunk_idx != (uint32_t)-1;
-    const auto new_pt = same_chunk ? point{cur_pt.chunk3(), intra_coord{cells.pix + vec}}
-                                   : point::normalize_coords(cur_pt, vec);
-
+    point new_pt;
     uint32_t chunk_idx, tile_idx;
     if (same_chunk) [[likely]]
     {
@@ -476,14 +486,24 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     }
     else
     {
+        const auto [off, pix] = floor_divmod<chunk_size<int>>(cells.pix + vec);
+        new_pt = point{cur_pt.chunk3() + off, intra_coord{pix}};
         chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
         tile_idx = cache.get_tile_index(intra_coord{new_pt});
+        // Resolving clears the chunk's cells, so it comes before the lookup.
+        if (!bm.bits[chunk_idx]) [[unlikely]]
+            bm.resolve(new_pt, chunk_idx);
     }
-    auto new_idx = cache.lookup_index(chunk_idx, tile_idx);
 
-    if (new_idx != (uint32_t)-1)
-        if (nodes[new_idx].dist <= dist)
-            return;
+    auto& slot = cache.at(chunk_idx, tile_idx);
+    // An empty cell's dist is -1, above any path's.
+    if (slot.dist <= dist)
+        return;
+    fm_debug3_assert(slot.index == (uint32_t)-1 || nodes[slot.index].dist == slot.dist);
+    auto new_idx = slot.index;
+
+    if (same_chunk) [[likely]]
+        new_pt = point{cur_pt.chunk3(), intra_coord{cells.pix + vec}};
 
     // A window of 0 can also mean nine blocked cells, which the per-cell tests find too.
     if (!window)
@@ -504,14 +524,16 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             .prev = cur_idx,
             .pt = new_pt,
         });
-        cache.add_index(chunk_idx, tile_idx, new_idx);
+        slot.index = new_idx;
     }
     else
     {
-        auto& n = nodes[new_idx];
+        // The cell's index is below node_count.
+        auto& n = nodes.data()[new_idx];
         n.dist = dist;
         n.prev = cur_idx;
     }
+    slot.dist = dist;
 
     if constexpr (Debug >= 3)
         print_push(dist, new_pt);
@@ -588,13 +610,87 @@ bool can_reach_goal(chunk_bitmaps& bm, const endpoint& start, const endpoint& go
     return false;
 }
 
+constexpr inline uint32_t enclosed_goal_pops = 1u << 15;
+
+// True when no search node can reach the goal. Floods set cells from those can_reach_goal()
+// accepts, by A*'s steps, which test the same cells in either direction. Gives up at a node,
+// within seed_search_radius + 2*step of `from` per axis, where the seeds lie, at the window's
+// edge, or past max_cells. Only for a goal on a set cell: other goals get goal seeds the flood
+// doesn't start from.
+bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goal, Array<point>& cells)
+{
+    constexpr uint32_t max_cells = 128, mark = (uint32_t)-2;
+    auto& cache = bm.cache;
+    const auto step = (int)bm.div_size;
+    const auto from = start.pt, to = goal.pt;
+    const auto near_from = [&](point pt) {
+        const auto d = Math::abs(pt - from);
+        return Math::max(d.x(), d.y()) <= seed_search_radius + 2*step;
+    };
+    // The start's seed search can link `to` itself.
+    if (near_from(to))
+        return false;
+
+    // false: give up
+    const auto add = [&](point pt, uint32_t chunk_idx) {
+        auto& c = cache.at(chunk_idx, cache.get_tile_index(intra_coord{pt}));
+        if (c.dist == mark)
+            return true;
+        const auto off = Vector2ui(Vector2i(pt.chunk()) - cache.start - Vector2i{1});
+        if (c.index != (uint32_t)-1 || near_from(pt) || cells.size() == max_cells
+            || off.x() >= cache.size.x() - 2 || off.y() >= cache.size.y() - 2)
+            return false;
+        c.dist = mark;
+        arrayAppend(cells, pt);
+        return true;
+    };
+
+    arrayClear(cells);
+    bool enclosed = true;
+    const auto origin = point{from.coord(), {}};
+    const auto off = to - origin;
+    const auto lo = Vector2i{floor_div(off.x(), step), floor_div(off.y(), step)} * step;
+    const auto n = goal_radius(step) / step + 2;
+    for (int j = -n; enclosed && j <= n; j++)
+        for (int i = -n; enclosed && i <= n; i++)
+        {
+            const auto pt = point::normalize_coords(origin, lo + Vector2i{i, j} * step);
+            if (point::distance_squared(pt, to) > goal_thres_sq(step))
+                continue;
+            const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
+            if (bm.is_passable(pt, chunk_idx) && goal.is_passable_to(pt, bm.p))
+                enclosed = add(pt, chunk_idx);
+        }
+    for (auto k = 0u; enclosed && k < cells.size(); k++)
+    {
+        const auto cur = cells[k];
+        for (const auto u : unit_directions)
+        {
+            const auto pt = cur + u*step;
+            const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
+            // Resolving clears the chunk's cells, so it comes before add().
+            if (!bm.is_passable(pt, chunk_idx)
+                || u.x() && u.y() && (!bm.is_passable(cur + Vector2i{u.x()*step, 0}) || !bm.is_passable(cur + Vector2i{0, u.y()*step})))
+                continue;
+            if (!add(pt, chunk_idx))
+            {
+                enclosed = false;
+                break;
+            }
+        }
+    }
+    // A mark left behind would turn away a node of dist (uint32_t)-2.
+    for (const auto pt : cells)
+        cache.at(cache.get_chunk_index(Vector2i(pt.chunk())), cache.get_tile_index(intra_coord{pt})).dist = (uint32_t)-1;
+    arrayClear(cells);
+    return enclosed;
+}
+
 } // namespace
 
-// For an end in a corridor narrower than the bbox plus a cell. Every cell along it holds a
-// blocked position, so its bit is clear wherever the lattice lies. Dijkstra over integer
-// positions up to seed_search_radius per axis from `source`, against the colliders themselves,
-// stops at every set cell it pops. cf. HPA*'s start insertion (Botea et al. 2004, "Near Optimal
-// Hierarchical Path-Finding", 3.2.1).
+// For an end in a corridor narrower than the bbox plus a cell, whose bits are all clear. Dijkstra
+// over integer positions near `source`, against the colliders, stops at every set cell it pops.
+// cf. HPA*'s start insertion (Botea et al. 2004, "Near Optimal Hierarchical Path-Finding", 3.2.1).
 struct astar::seed_search
 {
     static constexpr int R = seed_search_radius, W = 2*R + 1;
@@ -786,15 +882,17 @@ struct astar::seed_search
         arrayClear(seed_from);
         flood([&](point pt, uint32_t g) {
             const auto s = lattice_point(pt);
-            fm_debug_assert(bm.is_passable(s));
+            // Also resolves s's chunk, which the lookup below needs.
+            const bool passable = bm.is_passable(s);
+            fm_debug_assert(passable);
             const auto dist = seed_dist(g, pt, s);
             const auto chunk_idx = cache.get_chunk_index(Vector2i(s.chunk()));
             const auto tile_idx = cache.get_tile_index(intra_coord{s});
             const auto idx = cache.lookup_index(chunk_idx, tile_idx);
             if (idx == (uint32_t)-1)
-                cache.add_index(chunk_idx, tile_idx, append_node(nodes, a.node_count, { .dist = dist, .prev = (uint32_t)-1, .pt = s, }));
+                cache.add_index(chunk_idx, tile_idx, append_node(nodes, a.node_count, { .dist = dist, .prev = (uint32_t)-1, .pt = s, }), dist);
             else if (dist < nodes[idx].dist)
-                nodes[idx].dist = dist;
+                nodes[idx].dist = cache.at(chunk_idx, tile_idx).dist = dist;
             else
                 return;
             arrayAppend(seed_from, pt);
@@ -831,7 +929,9 @@ struct astar::seed_search
         arrayClear(seed_from);
         flood([&](point pt, uint32_t g) {
             const auto s = lattice_point(pt);
-            fm_debug_assert(bm.is_passable(s));
+            // Also resolves s's chunk, which node_at() in run_goal_seed_search() needs.
+            const bool passable = bm.is_passable(s);
+            fm_debug_assert(passable);
             const auto cost = seed_dist(g, pt, s);
             const auto rel = Vector2ui(s - source.pt + off);
             fm_debug_assert(rel.x() < n*(uint32_t)step && rel.y() < n*(uint32_t)step);
@@ -854,9 +954,20 @@ struct astar::seed_search
     }
 };
 
+namespace {
+
+Pass::Params default_pool_params(Vector2ui own_size)
+{
+    const auto bbox = Math::max(own_size.x(), own_size.y());
+    fm_assert(bbox > 0);
+    return {astar::default_div_size, bbox, pass_mode::pass};
+}
+
+} // namespace
+
 astar::astar() :
     _cache{InPlaceInit},
-    _pool_registry{InPlaceInit, (uint32_t)tile_size_xy/4}
+    _pool_registry{InPlaceInit}
 {
 }
 
@@ -869,14 +980,14 @@ void astar::reserve(size_t capacity)
 }
 
 Search::cache* astar::cache() { return &*_cache; }
-Grid::PoolRegistry& astar::pool_registry() { return *_pool_registry; }
+Grid::GridRegistry& astar::pool_registry() { return *_pool_registry; }
 
 template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    uint32_t max_dist, Vector2ui own_size,
                                    const pred& p)
 {
-    auto& pool = _pool_registry->pool_for(Math::max(own_size.x(), own_size.y()));
+    auto& pool = _pool_registry->pass_pool(default_pool_params(own_size));
     return Dijkstra<Debug, FindClosestOnFailure>(w, pool, from, to, max_dist, own_size, p);
 }
 
@@ -940,10 +1051,11 @@ bool astar::seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start,
         auto dist = oct(from, pt);
         // the cell bit only covers the seed itself, so sweep the bbox over the
         // from -> seed motion, as at the goal
-        if (cache.is_passable_for_bbox(bm.w, bm.pool, pt, bm.p) && start.is_passable_to(pt, bm.p))
+        // bm.is_passable() also resolves pt's chunk, which add_index() needs.
+        if (bm.is_passable(pt, chunk_idx) && start.is_passable_to(pt, bm.p))
         {
             auto idx = append_node(nodes, node_count, {.dist = dist, .prev = (uint32_t)-1, .pt = pt, });
-            cache.add_index(chunk_idx, tile_idx, idx);
+            cache.add_index(chunk_idx, tile_idx, idx, dist);
             seeded = true;
             uint32_t f_score = dist + oct(pt, to);
             if (dist < max_dist && f_score < max_dist)
@@ -1022,7 +1134,7 @@ visited astar::run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const en
 
 template<int Debug, bool FindClosestOnFailure>
 auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal,
-                         uint32_t max_dist, closest best) -> closest
+                         uint32_t max_dist, closest best, uint32_t max_pops) -> closest
 {
     auto& cache = bm.cache;
     const auto step = (int)bm.div_size;
@@ -1043,8 +1155,11 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
     auto closest_dist_sq = best.closest_dist_sq;
     auto closest_idx = best.closest_idx;
 
-    while (!Q.empty())
+    for (auto pops = 0u; !Q.empty(); pops++)
     {
+        if constexpr (!FindClosestOnFailure)
+            if (pops == max_pops && to_node.dist == max_dist) [[unlikely]]
+                break;
         const auto front = Q.pop();
         // Every later pop has f at least this one's, and f bounds any path through the node.
         if (front.f_score >= to_node.dist) [[unlikely]]
@@ -1150,9 +1265,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
 {
     reserve(initial_capacity);
 
-    Timeline timeline;
-    if constexpr(Debug > 0)
-        timeline.start();
+    const auto t0 = Debug > 0 ? Time::now() : Time{0};
+    const auto elapsed = [&] { return Debug > 0 ? Time::to_seconds(Time::now() - t0) : 0; };
 
     node_count = 0;
     arrayClear(goal_seeds);
@@ -1215,7 +1329,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
                     best.to_node = link;
                 if (best.to_node.dist == max_dist)
                     return {};
-                return make_result<Debug>(best, from, to, max_dist, timeline.currentFrameTime());
+                return make_result<Debug>(best, from, to, max_dist, elapsed());
             }
     }
 
@@ -1228,7 +1342,17 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             return {};
     }
 
-    best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best);
+    best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, near_goal ? enclosed_goal_pops : (uint32_t)-1);
+    if constexpr (!FindClosestOnFailure)
+    {
+        // Every queued f is below max_dist, so with no path, only max_pops stops the loop early.
+        if (!Q.empty() && best.to_node.dist == max_dist)
+        {
+            if (bm.is_passable(to) && goal_enclosed(bm, start, goal, temp_nodes))
+                return make_result<Debug>(best, from, to, max_dist, elapsed());
+            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, (uint32_t)-1);
+        }
+    }
 
     // Where a corridor the lattice can't enter opens into a room, the 3x3 seeds, or the nodes
     // near the goal, can all lie in the room. From a set cell, a seed search would only seed that
@@ -1242,10 +1366,10 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
             if (const auto link = run_seed_search(bm, Q, start, to, max_dist); link.dist < best.to_node.dist)
                 best.to_node = link;
         if (!Q.empty())
-            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best);
+            best = expand_nodes<Debug, FindClosestOnFailure>(bm, Q, goal, max_dist, best, (uint32_t)-1);
     }
 
-    return make_result<Debug>(best, from, to, max_dist, timeline.currentFrameTime());
+    return make_result<Debug>(best, from, to, max_dist, elapsed());
 }
 
 template path_search_result astar::Dijkstra<0, true>(world&, point, point, uint32_t, Vector2ui, const pred&);
@@ -1267,7 +1391,7 @@ template path_search_result astar::Dijkstra<3, false>(world&, Grid::Pass::Pool&,
 
 auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p) -> string_pull_result
 {
-    return string_pull(w, _pool_registry->pool_for(Math::max(own_size.x(), own_size.y())), result, own_size, p);
+    return string_pull(w, _pool_registry->pass_pool(default_pool_params(own_size)), result, own_size, p);
 }
 
 auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,

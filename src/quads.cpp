@@ -56,19 +56,13 @@ texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_)
     }};
 }
 
-// Vertex order: {0:BR, 1:TR, 2:BL, 3:TL}.
-//
-// Atlas rotation convention: 90° CCW.
-//   Original pixel (x, y) is stored at atlas-local (y, W-1-x).
-//   A W×H sprite occupies an H×W rectangle in the atlas.
-//   The pixel data must be rotated before uploading via glTexSubImage.
-//
-// UV permutations — derived from mapping each screen vertex
-// to its corresponding atlas corner after CCW rotation:
-//   normal  = {0,1,2,3}    (identity)
-//   mirror  = {2,3,0,1}    (swap L↔R pairs)
-//   rotated = {1,3,0,2}    (CCW: BR→TR, TR→TL, BL→BR, TL→BL)
-//   both    = {0,2,1,3}    (rotated, then horizontal mirror swaps i↔i^2)
+// Vertex order: {0:BR, 1:TR, 2:BL, 3:TL}. A rotated sprite is stored 90° CCW, pixel (x, y) of a
+// W×H sprite at atlas-local (y, W-1-x), so its pixels are rotated before upload. UV permutations,
+// mapping each screen vertex to its atlas corner:
+//   normal  = {0,1,2,3}
+//   mirror  = {2,3,0,1}
+//   rotated = {1,3,0,2}
+//   both    = {0,2,1,3}
 texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_, bool mirror, bool rotated)
 {
     auto pos = Vector2(pos_), size = Vector2(size_), image_size = Vector2(image_size_);

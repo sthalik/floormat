@@ -41,7 +41,7 @@ struct Params
 
     constexpr uint32_t div_size() const { return chunk_size_xy >> std::countr_zero(div_count); } // xxx todo assumes power of two chunk size
 
-    Params validate() const;
+    [[nodiscard]] Params validate() const;
 
     bool operator==(const Params&) const noexcept;
 };
@@ -99,7 +99,6 @@ public:
     fm_DISABLE_MOVE_COPY(Pool);
 
     [[nodiscard]] Grid operator[](chunk& c);
-    [[nodiscard]] Grid wrap(detail::grid::PassGrid* g) const noexcept;
 
     void maybe_mark_stale_all(const world& w);
 

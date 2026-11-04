@@ -112,14 +112,14 @@ uint32_t first_blocked_step(world& w, chunk_coords_ ch, const rc::bresenham_line
     const auto free = [&](Vector2i c) {
         return Search::is_passable(w, ch, Range2D::fromSize(Vector2(c) - Vector2(size/2u), Vector2(size)));
     };
-    if (!free(line.pixel_at(first)))
+    if (!free(line.point_at(first)))
         return first;
     for (auto t = first; t < last; t++)
     {
-        if (!free(line.pixel_at(t + 1)))
+        if (!free(line.point_at(t + 1)))
             return t + 1;
-        const auto o = line.off_axis_at(t);
-        if (o.diagonal && (!free(o.pixels[0]) || !free(o.pixels[1])))
+        const auto o = line.orthogonal_at(t);
+        if (o.diagonal && (!free(o.points[0]) || !free(o.points[1])))
             return t + 1;
     }
     return last + 1;
@@ -155,14 +155,14 @@ void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, ui
         const auto min = Vector2(c) - Vector2(size/2u);
         return rect_intersects(min, min + Vector2(size), res.rect.min(), res.rect.max());
     };
-    bool any = overlaps(line.pixel_at(res.step));
+    bool any = overlaps(line.point_at(res.step));
     if (res.step > first)
-        if (const auto o = line.off_axis_at(res.step - 1); o.diagonal)
-            any |= overlaps(o.pixels[0]) || overlaps(o.pixels[1]);
+        if (const auto o = line.orthogonal_at(res.step - 1); o.diagonal)
+            any |= overlaps(o.points[0]) || overlaps(o.points[1]);
     fm_assert(any);
 }
 
-// The step (15, 15) -> (16, 16) crosses the corner of four 4 px cells. Only its off-axis pixel
+// The step (15, 15) -> (16, 16) crosses the corner of four 4 px cells. Only its orthogonal point
 // (16, 15) is blocked, so the cells of both its pixels have their bits set.
 void test_swept_collider_cell_corner()
 {
@@ -195,7 +195,7 @@ void test_swept_collider_line()
     for (auto c : { ch, ch2, ch3 })
         w[c].mark_modified();
 
-    // through the corner of four chunks, where the off-axis pixels are in neither pixel's chunk
+    // through the corner of four chunks, where the orthogonal points are in neither end's chunk
     for (auto size : { 1u, 4u, 7u })
     {
         check_swept_line(w, ch, {950, 950}, {1040, 1040}, 0, 90, Vector2ui{size}, nullptr);
@@ -225,10 +225,8 @@ void test_swept_collider_line()
     }
 }
 
-// A box walking 41 steps ends flush against a pillar: on its leading face for a cardinal line, at its
-// leading corner for a diagonal one. Touching isn't overlap, so nothing blocks. With the pillar 1 px
-// deeper, step 41 is the first the box can't reach. A pass_mode::pass pillar across the line never
-// blocks.
+// A box walking 41 steps ends flush against a pillar, cardinal or diagonal, and isn't blocked.
+// With the pillar 1 px deeper, step 41 is blocked. A pass_mode::pass pillar never blocks.
 void test_swept_collider_flush()
 {
     constexpr chunk_coords_ ch{0, 0, 0};

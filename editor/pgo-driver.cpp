@@ -17,7 +17,7 @@
 #include "src/nanosecond.inl"
 #include "src/tile-defs.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/grid-cover.hpp"
 #include "src/tile.hpp"
 #include "src/world.hpp"
@@ -49,11 +49,11 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include <cstdio>
-#include <cstdlib>
 #include <numeric>
 #include <mg/Functions.h>
 #include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
+#include <mg/ImGuiIntegration/Integration.h>
 #include <imgui_internal.h>
 
 #ifdef FLOORMAT_NO_PGO_DRIVER
@@ -100,9 +100,12 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_grids, profile),
         FM_SCENE(scene_lightmap, profile),
         FM_SCENE(scene_cover, profile),
+        FM_SCENE(scene_cover_ai, coverage),
+        FM_SCENE(scene_cover_ai_map, coverage),
         FM_SCENE(scene_clickables, profile),
         FM_SCENE(scene_torture_flat, profile),
         FM_SCENE(scene_torture_all_z, profile),
+        FM_SCENE(scene_overlays, profile),
     };
 #undef FM_SCENE
 
@@ -785,7 +788,7 @@ task app::scene_ground_editor()
     uint32_t n = 0, a = 0;
     const auto shorten = pgo_driver_use_short_scenes();
 
-    for (const auto& [name, cell] : *ed)
+    for (const auto& [name, cell] : ed->items())
     {
         fm_assert(cell.atlas);
 
@@ -836,11 +839,12 @@ task app::scene_drag_paint()
     auto* ed = _editor->current_wall_editor();
     fm_assert(ed);
 
-    fm_assert(ed->begin() != ed->end());
-    auto atlas = ed->begin()->second.atlas;
+    fm_assert(!ed->items().empty());
+    const auto& cell = ed->items().begin()->second;
+    auto atlas = cell.atlas;
     fm_assert(atlas);
-    ed->select_atlas(atlas);
-    fm_assert(ed->is_atlas_selected(atlas));
+    ed->select_item(cell);
+    fm_assert(ed->is_item_selected(cell));
 
     // check_snap() ignores mods for walls and derives the axis from the rotation, so a north
     // wall must be dragged east and a west wall south for the run to stay on one line.
@@ -989,6 +993,91 @@ task app::scene_torture_all_z()
     do
         co_yield {};
     while (_driver->scene_dt < hold);
+}
+
+task app::hold_for(Ns dt)
+{
+    const auto t0 = _driver->scene_dt;
+    do
+        co_yield {};
+    while (_driver->scene_dt - t0 < dt);
+}
+
+task app::scene_overlays()
+{
+    constexpr auto lead_in_dt = Second*2, overlay_dt = Second;
+    const bool shorten = pgo_driver_use_short_scenes();
+    const auto lead_in = shorten ? short_hold_dt : lead_in_dt;
+    const auto hold = shorten ? short_hold_dt : overlay_dt;
+
+    fm_assert(!_render_bboxes);
+    fm_assert(!_render_clickables);
+    fm_assert(_render_vobjs);
+    fm_assert(_render_all_z_levels);
+    fm_assert_equal(0, (int)_z_level);
+
+    do_set_mode(editor_mode::none);
+    auto& w = M->world();
+    constexpr chunk_coords_ ch0{0, 0, 0}, ch1{0, 0, 1};
+    const auto place = [&](StringView name, chunk_coords_ ch, uint8_t x, uint8_t y, Vector2b offset = {}) {
+        auto proto = loader.scenery(name);
+        proto.offset = offset;
+        w.make_scenery(w.make_id(), {ch, local_coords{x, y}}, move(proto));
+    };
+    place("table1"_s, ch0, 8, 8);
+    place("stool1"_s, ch0, 9, 7);
+    w.make_object<light>(w.make_id(), {ch0, local_coords{6, 8}}, light_proto{});
+    w.make_object<hole>(w.make_id(), {ch0, local_coords{11, 8}}, hole_proto{});
+    center_camera_on(point{pgo::tile_at(8, 8), {}});
+    co_yield {};
+
+    co_await hold_for(lead_in);
+
+    do_key(key_render_collision_boxes);
+    fm_assert(_render_bboxes);
+    place("chair1"_s, ch0, 7, 8, {-20, 14});
+    co_await hold_for(hold);
+
+    do_key(key_render_clickables);
+    fm_assert(_render_clickables);
+    place("bench1"_s, ch0, 10, 9);
+    co_await hold_for(hold);
+
+    do_key(key_render_vobjs);
+    fm_assert(!_render_vobjs);
+    place("shelf1"_s, ch0, 7, 10);
+    co_await hold_for(hold);
+
+    do_key(key_render_all_z_levels);
+    fm_assert(!_render_all_z_levels);
+    auto wall = loader.wall_atlas("concrete1", loader_policy::warn);
+    auto& c1 = w[ch1];
+    c1[local_coords{8, 8}].wall_north() = { wall, (variant_t)-1 };
+    c1.mark_modified();
+    place("drawers1"_s, ch1, 8, 8);
+    co_await hold_for(hold);
+
+    // Ctrl+scroll is the only path to a Z level. The driver aborts if ctrl is still held when the
+    // scene ends, so it is released together with the scroll back.
+    set_modifier_state(kmod_ctrl, true);
+    do_mouse_scroll(1);
+    fm_assert_equal(1, (int)_z_level);
+    co_await hold_for(hold*2);
+
+    do_mouse_scroll(-1);
+    set_modifier_state(kmod_ctrl, false);
+    fm_assert_equal(0, (int)_z_level);
+    do_key(key_render_all_z_levels);
+    fm_assert(_render_all_z_levels);
+    co_await hold_for(hold);
+
+    do_key(key_render_collision_boxes);
+    do_key(key_render_clickables);
+    do_key(key_render_vobjs);
+    fm_assert(!_render_bboxes);
+    fm_assert(!_render_clickables);
+    fm_assert(_render_vobjs);
+    co_await hold_for(hold);
 }
 
 task app::scene_walk()
@@ -1380,7 +1469,7 @@ task app::scene_maze3()
     using mazes::kind;
     constexpr auto n = (uint32_t)kind::COUNT;
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pool_for(mazes::bbox_size);
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass});
     mazes::route routes[n];
     for (auto k = 0u; k < n; k++)
     {
@@ -1433,7 +1522,7 @@ task app::scene_maze_exit()
     constexpr uint8_t size = 24;
     constexpr auto bbox = Vector2ui{size};
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pool_for(size);
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, size, pass_mode::pass});
     // reset_world() spawns the player inside the footprint. A critter in a corridor blocks the
     // walk, while the search, run without_critters(), routes through it.
     auto P = ensure_player_character(w);
@@ -1737,7 +1826,7 @@ task app::scene_grids()
 
     Pass::Pool pass_raycast{raycast_params, Search::never_continue()};
     Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
-    Pass::Pool pass_critter{M->astar().pool_registry().pool_for(C->bbox_size.max()).params(), Search::never_continue()};
+    Pass::Pool pass_critter{Pass::Params{astar::default_div_size, C->bbox_size.max(), pass_mode::pass}, Search::never_continue()};
 
     // maybe_mark_stale_all() is where the version compare and the eager ensure_passability() of
     // the chunk and its neighbours live, so it does the whole per-frame discipline for us. The
@@ -1868,11 +1957,11 @@ void app::driver_draw_overlay()
                    goal_color  = ImGui::ColorConvertFloat4ToU32({0, 0,   1.f, 1});
         const auto n = (uint32_t)D.route.size();
         auto prev = point_to_pixel(D.route.front());
-        draw.AddCircle({prev.x(), prev.y()}, 9, route_color, 0, 3);
+        draw.AddCircle(ImVec2(prev), 9, route_color, 0, 3);
         for (auto i = 1u; i < n; i++)
         {
             const auto p = point_to_pixel(D.route[i]);
-            draw.AddLine({prev.x(), prev.y()}, {p.x(), p.y()}, route_color, 3);
+            draw.AddLine(ImVec2(prev), ImVec2(p), route_color, 3);
             prev = p;
         }
         // The goal is where the pan is headed and is off-screen for most of it.

@@ -2,7 +2,7 @@
 #include "shaders/shader.hpp"
 #include <array>
 #include <mg/Vector3.h>
-#include <imgui.h>
+#include <mg/ImGuiIntegration/Integration.h>
 
 namespace floormat::wireframe {
 
@@ -15,15 +15,11 @@ void draw_closed_polyline(tile_shader& shader, const vertex_array& corners, floa
 {
     const auto win = Vector2i(shader.scale());
     const auto camera = shader.camera_offsetʹ();
-    const auto tint = shader.tint();
-    const auto color = ImGui::ColorConvertFloat4ToU32({tint[0], tint[1], tint[2], tint[3]});
+    const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(shader.tint()));
 
     ImVec2 points[num_corners];
     for (auto i = 0u; i < num_corners; i++)
-    {
-        const auto pt = tile_shader::point_to_pixel(corners[i], win, camera);
-        points[i] = { pt[0], pt[1] };
-    }
+        points[i] = ImVec2(tile_shader::point_to_pixel(corners[i], win, camera));
 
     // background list, so imgui windows stay on top as they did when this was a GL draw
     ImGui::GetBackgroundDrawList()->AddPolyline(points, (int)num_corners, color,

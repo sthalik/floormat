@@ -52,6 +52,11 @@ struct entity_accessors<object, inspect_intent_t> {
                 ignored_write,
                 constantly(st::readonly),
             },
+            E::type<bool>::field{"placeholder"_s,
+                [](const object& x) { return x.atlas->is_placeholder(); },
+                ignored_write,
+                [](const object& x) { return x.atlas->is_placeholder() ? st::readonly : st::hidden; },
+            },
             E::type<rotation>::field{"rotation"_s,
                 [](const object& x) { return x.r; },
                 [](object& x, rotation r) {

@@ -42,7 +42,7 @@ int32_t texture_unit_cache::bind(GL::AbstractTexture* tex)
                 //Debug{Debug::Flag::NoSpace} << "already bound '" << tex->label() << "' to " << i;
                 return (int32_t)i;
             }
-            // realloc_atlas() move-assigns a new GL name into the same wrapper
+            // grow_texture() move-assigns a new GL name into the same wrapper
             units[i] = {tex, tex->id(), ++lru_counter};
             tex->bind((Int)i);
             ++cache_miss_count;

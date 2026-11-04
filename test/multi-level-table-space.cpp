@@ -383,11 +383,8 @@ void mlt_test::test_space_tables()
     check_chunk_table();
     check_chunk_table_layout();
     check_chunk_table_random();
-    if (Test::has_gl_context())
-    {
-        check_world_ids();
-        check_world_random_ids();
-    }
+    check_world_ids();
+    check_world_random_ids();
 }
 
 } // namespace floormat

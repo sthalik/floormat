@@ -10,7 +10,7 @@ namespace floormat {
 class world;
 class wall_atlas;
 
-class wall_editor
+class wall_editor final
 {
     std::map<StringView, wall_cell> _atlases;
     bptr<wall_atlas> _selected_atlas;
@@ -19,10 +19,7 @@ class wall_editor
     void load_atlases();
 
 public:
-    typename std::map<StringView, wall_cell>::const_iterator cbegin() const noexcept;
-    typename std::map<StringView, wall_cell>::const_iterator cend() const noexcept;
-    typename std::map<StringView, wall_cell>::const_iterator begin() const noexcept;
-    typename std::map<StringView, wall_cell>::const_iterator end() const noexcept;
+    const std::map<StringView, wall_cell>& items() const noexcept;
 
     wall_editor();
     StringView name() const;
@@ -32,12 +29,12 @@ public:
     void toggle_rotation();
 
     bptr<wall_atlas> get_selected() const; // todo not thread-safe, copies a non-atomic bptr
-    void select_atlas(const bptr<wall_atlas>& atlas);
+    void select_item(const wall_cell& cell);
     void clear_selection();
-    bool is_atlas_selected(const bptr<wall_atlas>& atlas) const;
+    bool is_item_selected(const wall_cell& cell) const;
     bool is_anything_selected() const;
 
-    void place_tile(world& w, global_coords coords, const bptr<wall_atlas>& atlas);
+    void place_wall(world& w, global_coords coords, const bptr<wall_atlas>& atlas);
     editor_snap_mode check_snap(int mods) const;
 };
 

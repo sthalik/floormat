@@ -51,7 +51,7 @@ Array<Color4ub> expected_pixels(const anim_atlas& atlas, rotation r, uint32_t fr
 {
     const auto& g = atlas.group(r);
     const auto& sp = *g.sprites[frame];
-    const auto w = (uint32_t)sp.width + 1, h = (uint32_t)sp.height + 1;
+    const auto w = (uint32_t)sp.width_minus1 + 1, h = (uint32_t)sp.height_minus1 + 1;
     fm_assert(Vector2ui{w, h} == atlas.frame(r, frame).size);
     const bool rotated = sp.is_rotated, mirror = !g.mirror_from.isEmpty();
     const auto sw = rotated ? h : w, sh = rotated ? w : h;

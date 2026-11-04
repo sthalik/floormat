@@ -145,20 +145,17 @@ void app::do_emit_timestamp()
 void app::do_set_mode(editor_mode mode)
 {
     if (mode != _editor->mode())
+    {
         kill_popups(false);
+        if (_editor->mode() == editor_mode::tests)
+            tests_leave_mode();
+    }
     _editor->set_mode(mode);
 }
 
 void app::do_escape()
 {
-    if (auto* ed = _editor->current_ground_editor())
-        ed->clear_selection();
-    if (auto* ed = _editor->current_wall_editor())
-        ed->clear_selection();
-    if (auto* sc = _editor->current_scenery_editor())
-        sc->clear_selection();
-    if (auto* vo = _editor->current_vobj_editor())
-        vo->clear_selection();
+    _editor->clear_selection();
     kill_popups(false);
 }
 

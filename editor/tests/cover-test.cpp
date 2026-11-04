@@ -17,7 +17,7 @@ namespace {
 using namespace floormat::imgui;
 
 constexpr inline uint32_t default_div_size = 8;
-constexpr uint32_t div_sizes[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256 };
+constexpr uint32_t div_sizes[] = { 1, 2, 4, 8, 16, 32, 64 };
 // odd, so the clicked chunk is in the middle
 constexpr uint32_t chunk_spans[] = { 1, 3, 5, 7 };
 
@@ -174,14 +174,7 @@ void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
             const uint16_t d = cg.distance(idx, sk);
             const auto color = d == Cover::blocked ? blocked_color : rgb(d, max_d);
             const Vector2 base = p00 + dx * float(cx) + dy * float(cy);
-            const Vector2 q1 = base + dx;
-            const Vector2 q2 = base + dx + dy;
-            const Vector2 q3 = base + dy;
-            draw.AddQuadFilled({base.x(), base.y()},
-                               {q1.x(),   q1.y()},
-                               {q2.x(),   q2.y()},
-                               {q3.x(),   q3.y()},
-                               color);
+            draw.AddQuadFilled(ImVec2(base), ImVec2(base + dx), ImVec2(base + dx + dy), ImVec2(base + dy), color);
         }
 }
 
@@ -210,7 +203,6 @@ void cover_test::draw_overlay(app& a)
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
     const auto pos = a.point_to_pixel(result.from);
 
-    constexpr float pi = Math::Constants<float>::pi();
     const auto ds = (int)pool->params().div_size;
     const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 0.6f});
 
@@ -219,31 +211,29 @@ void cover_test::draw_overlay(app& a)
     {
         if (k == sk || !(built & 1u << k) || cg.distance(result.cell_idx, k) == Cover::blocked)
             continue;
-        const auto theta = Rad{2.f * pi * float(k) / float(Cover::octant_count)};
-        const Vector2 dir{Math::cos(theta), Math::sin(theta)};
+        const auto dir = Cover::octant_direction(k);
         const auto len_px = (int)cg.distance(result.cell_idx, k) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
         const auto end_px = a.point_to_pixel(end_pt);
-        draw.AddLine({pos.x(), pos.y()}, {end_px.x(), end_px.y()}, line_color);
+        draw.AddLine(ImVec2(pos), ImVec2(end_px), line_color);
     }
 
     if (built & 1u << sk && cg.distance(result.cell_idx, sk) != Cover::blocked)
     {
-        const auto theta = Rad{2.f * pi * float(sk) / float(Cover::octant_count)};
-        const Vector2 dir{Math::cos(theta), Math::sin(theta)};
+        const auto dir = Cover::octant_direction(sk);
         const auto len_px = (int)cg.distance(result.cell_idx, sk) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
         const auto end_px = a.point_to_pixel(end_pt);
         const auto hi_color = ImGui::ColorConvertFloat4ToU32({1, 0.2f, 0.2f, 0.95f});
         constexpr float hi_thickness = 2.5f;
-        draw.AddLine({pos.x(), pos.y()}, {end_px.x(), end_px.y()}, hi_color, hi_thickness);
+        draw.AddLine(ImVec2(pos), ImVec2(end_px), hi_color, hi_thickness);
         constexpr float marker_radius = 4;
-        draw.AddCircleFilled({end_px.x(), end_px.y()}, marker_radius, hi_color);
+        draw.AddCircleFilled(ImVec2(end_px), marker_radius, hi_color);
     }
 
     const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0.5f, 0, 1});
     constexpr float dot_radius = 5;
-    draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, dot_color);
+    draw.AddCircleFilled(ImVec2(pos), dot_radius, dot_color);
 }
 
 void cover_test::update_post(app& a, const Ns&)
@@ -397,7 +387,9 @@ void cover_test::draw_ui(app& a, float)
         do_column("octant");
 
         constexpr auto fmt_octant_label = [](auto&& out, uint32_t kk) {
-            const float dd = 360.f * float(kk) / float(Cover::octant_count);
+            const auto dir = Cover::octant_direction(kk);
+            const float deg = float(Deg(Rad(std::atan2(dir.y(), dir.x()))));
+            const float dd = deg < 0 ? deg + 360 : deg;
             snformat(out, "{} (k={}, {:.1f}°)", compass_names_16[kk / 2], kk, dd);
         };
 

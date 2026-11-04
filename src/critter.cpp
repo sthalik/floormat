@@ -89,7 +89,6 @@ constexpr Vector2i rotation_to_vec(rotation r)
     return array[(uint8_t)r];
 }
 
-// Diagonals are the odd rotations. Indexing by the low bit keeps these lookups branchless.
 constexpr uint8_t is_diagonal(rotation r) { return (uint8_t)r & 1; }
 
 // floor(sqrt(x)), digit by digit
@@ -112,9 +111,7 @@ constexpr uint64_t isqrt(uint64_t x)
     return res;
 }
 
-// The length of one step of a line moving major px along one axis and minor px along the other,
-// in 1/anim_speed_unit px. Truncating minor/major and the square root leaves it under two units
-// short.
+// Returns the length of a step of a line with slope minor/major in 1/anim_speed_unit px, rounded down by under 2.
 constexpr uint32_t step_length(uint32_t minor, uint32_t major)
 {
     const auto q = uint64_t{minor} * anim_speed_unit / major;
@@ -129,9 +126,7 @@ constexpr uint32_t step_length(rotation r)
     return lengths[is_diagonal(r)];
 }
 
-// frame * len / anim_speed_unit, rounded down: the time a step len / anim_speed_unit px long takes
-// when a 1 px step takes frame. Split in two so that frame_duration(0), 2^54 ns, times len fits in
-// 64 bits.
+// Returns floor(frame * len / anim_speed_unit) without forming frame * len, which overflows for frame_duration(0).
 constexpr Ns step_duration(Ns frame, uint32_t len)
 {
     const auto f = frame.stamp;
@@ -170,41 +165,29 @@ constexpr std::array<rotation, 3> rotation_to_similar(rotation r)
     return array.data()[(uint8_t)r];
 }
 
-// Keeps a move's box within the 3x3 chunks around the critter's chunk, which is all
-// Search::is_passable_() searches.
+// Keeps the box within the 3x3 chunks that Search::is_passable_() searches.
 constexpr uint64_t max_run = chunk_size_xy / 2;
 
-// nsteps steps in direction r from pos, by C's box turned to face r.
 struct run_s
 {
     point pos;
     rotation r;
     uint32_t nsteps;
-    // whether C turns to r at pos, which can_rotate() refuses when the turned box there overlaps a
-    // collider
+    // whether C turns to r at pos before moving
     bool turn;
 };
 
 struct free_steps_result
 {
     uint32_t steps;
-    // For a run with turn set: whether the turned box at pos overlaps a collider C doesn't own.
+    // Set when the run turns and C's box, turned to r at pos, overlaps a collider other than C's own.
     bool turn_blocked;
-    // For a diagonal r stopped before nsteps: whether a 1 px move along x, and along y, from the
-    // position after the free steps is blocked.
+    // For a diagonal run cut short, whether a 1 px move along x, and along y, from its last free step is blocked.
     bool slide_blocked[2];
 };
 
-// For each run, the number of steps, up to nsteps, that the box takes before its first blocked
-// step, as find_swept_collider() over the Bresenham line gives. Step k is blocked when the box
-// holding the box at steps k - 1 and k strictly overlaps a collider C doesn't own. For a diagonal
-// step that box also holds two corner triangles the moving box never enters, but an integer rect
-// overlapping the box overlaps a whole pixel of it, which neither triangle holds. On each axis the
-// steps whose box overlaps a rect form an interval, so each rect's first blocked step follows from
-// its bounds. A 1 px move along x or y from position k sweeps a box within that of diagonal step
-// k + 1, so only the rects first blocking at that step can block it, and the same query answers
-// whether a blocked diagonal can slide. One query serves every run, so a run can start where C
-// will be after the one before it. C's own rect is skipped, so moving C doesn't change the answer.
+// For each run, returns the steps C's box takes before its first blocked step, as find_swept_collider() would.
+// C's own collider is skipped, so the answer for runs[1] still holds after C moves along runs[0].
 std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> runs)
 {
     fm_debug_assert(!runs.isEmpty() && runs.size() <= 2);
@@ -238,7 +221,7 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
         max = Math::max(max, Math::max(from, to) + hi);
     }
 
-    // The steps k, from first to last, whose box overlaps [r0, r1) on axis i.
+    // Returns the first and last step whose box overlaps [r0, r1) on axis i, or first > last for none.
     const auto steps = [](const state& s, uint32_t i, int32_t r0, int32_t r1) {
         const auto c = s.from[i];
         struct { int32_t first, last; } k;
@@ -258,12 +241,11 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
             s.turn_blocked = true;
         const auto kx = steps(s, 0, r0.x(), r1.x()), ky = steps(s, 1, r0.y(), r1.y());
         const auto k0 = Math::max(Math::max(kx.first, ky.first), 1);
-        // up to step itself, since a rect first blocking there can block a slide another one doesn't
+        // A rect first blocking at s.step itself can still block a slide that earlier rects left free.
         const auto k1 = Math::min(Math::min(kx.last, ky.last), s.step);
         if (k0 <= k1)
         {
-            // The move along x from position k0 - 1 overlaps the rect on x as step k0 does, and on
-            // y when the box at k0 - 1 does. Likewise for y.
+            // The 1 px move along x from step k0 - 1 is blocked when the box there already overlaps the rect on y.
             const bool bx = ky.first < k0, by = kx.first < k0;
             if (k0 < s.step)
             {
@@ -287,9 +269,7 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
         const auto r0 = Vector2i(rect.min()) + off, r1 = Vector2i(rect.max()) + off;
         for (auto i = 0u; i < runs.size(); i++)
             add(st[i], r0, r1);
-        // The runs after the first matter only when it is free. Its answer is final once its turn
-        // is refused, or once step 1 is blocked, every slide is blocked and no turn is left for a
-        // later rect to refuse.
+        // Later runs matter only when run 0 is free, so the search stops once no rect can change run 0's answer.
         const auto& s = st[0];
         const bool done = s.turn_blocked ||
                           s.step == 1 && !s.turn && (!s.diagonal || s.slide_blocked[0] && s.slide_blocked[1]);
@@ -303,12 +283,11 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
     return ret;
 }
 
-// step_len is in 1/anim_speed_unit px. Per step, so a batch leaves frame and anim_progress as its
-// steps taken one by one would.
+// step_len is in 1/anim_speed_unit px. Each step rounds down alone, so one call equals nsteps calls for 1 step.
 void advance_anim_frames(critter& C, uint32_t nsteps, uint32_t step_len, uint32_t nframes_atlas)
 {
     fm_debug_assert(C.anim_speed >= 0 && C.anim_speed <= 64);
-    // Scaling by a power of two is exact, so only the truncation drops anything.
+    // anim_speed_unit is a power of two, so the float product is exact and only the conversion rounds.
     const auto speed = uint64_t(C.anim_speed * float(anim_speed_unit));
     const auto adv = nsteps * (speed * step_len / anim_speed_unit);
     const auto total = uint64_t(C.anim_progress) + adv;
@@ -317,21 +296,15 @@ void advance_anim_frames(critter& C, uint32_t nsteps, uint32_t step_len, uint32_
     C.frame = uint16_t((uint32_t(C.frame) + whole) % nframes_atlas);
 }
 
-bool move_steps(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
+void move_steps(size_t& i, critter& C, const anim_def& info, uint32_t nsteps, rotation new_r, rotation visible_r)
 {
-    // move_to() can refuse the implied rotation (non-square bbox against an obstacle)
-    if (!C.move_to(i, rotation_to_vec(new_r) * int(nsteps), visible_r)) [[unlikely]]
-        return false;
-
+    [[maybe_unused]] const bool moved = C.move_to(i, rotation_to_vec(new_r) * int(nsteps), visible_r);
+    fm_debug_assert(moved);
     advance_anim_frames(C, nsteps, step_length(new_r), info.nframes);
-    return true;
 }
 
-// Moves C as stepping one pixel at a time would: a step in new_r while it is free, else for a
-// diagonal new_r a 1 px slide along rotation_to_similar(new_r)[1], else along [2], else it stops.
-// Every move needs the cost of a new_r step, and a slide pays one frame. Each pass makes one
-// query, which also decides the slide. The first pass also decides the turn to new_r, so it runs
-// even when ticks pay for no step. False if C is blocked or can't turn.
+// Moves C along new_r while ticks last, sliding 1 px along x or y when a diagonal step is blocked.
+// Returns false when C is blocked or can't turn to new_r.
 bool update_movement_1(critter& C, size_t& i, const anim_def& info, Ns& ticks, const step_costs& cost, rotation new_r)
 {
     const auto step = cost(new_r);
@@ -349,17 +322,15 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, Ns& ticks, c
         const auto k = res.steps;
         if (k > 0)
         {
-            if (!move_steps(i, C, info, k, new_r, new_r)) [[unlikely]]
-                return false;
+            move_steps(i, C, info, k, new_r, new_r);
             ticks -= step * k;
         }
         if (k == n)
             continue;
-        // Positions and colliders are whole pixels, so whatever blocked a cardinal step overlaps
-        // the box by at least 1 px across the motion and blocks both diagonal steps next to it.
+        // Coords are whole pixels, so whatever blocks a cardinal step also blocks both diagonal steps next to it.
         if (!is_diagonal(new_r))
             return false;
-        // Step k + 1 is blocked, and ticks still cover it, so they cover the cheaper slide too.
+        // Since k < n, ticks still pay for a diagonal step, and a slide costs less.
         const auto alt = rotation_to_similar(new_r);
         const auto a1 = uint32_t(rotation_to_vec(alt.data()[1]).x() == 0);
         rotation e;
@@ -369,8 +340,7 @@ bool update_movement_1(critter& C, size_t& i, const anim_def& info, Ns& ticks, c
             e = alt.data()[2];
         else
             return false;
-        if (!move_steps(i, C, info, 1, e, new_r)) [[unlikely]]
-            return false;
+        move_steps(i, C, info, 1, e, new_r);
         ticks -= cost(e);
     }
     return true;
@@ -443,24 +413,10 @@ constexpr step_s next_step(point from, point to)
     return { count, step };
 }
 
-// Diagonal when minor/major > tan 22.5° = √2 - 1, that is (minor + major)² > 2·major².
-// Integers never tie.
-rotation nearest_rotation(Vector2i vec)
-{
-    fm_debug_assert(!vec.isZero());
-    const auto a = Vector2ui(Math::abs(vec));
-    const uint64_t major = Math::max(a.x(), a.y()), minor = Math::min(a.x(), a.y());
-    const bool diagonal = (minor + major) * (minor + major) > 2 * major * major;
-    const bool x_major = a.x() >= a.y();
-    const auto step = Vector2b{(signed char)(x_major || diagonal), (signed char)(!x_major || diagonal)};
-    return dir_from_step({1, step * Vector2b(Math::sign(vec))});
-}
-
-// The step whose pixel is px, or -1u. Along the major axis one step has px's coordinate, along
-// the minor axis a range of them.
+// Returns the step whose pixel is px, or -1u when the line misses px.
 uint32_t step_at(const rc::bresenham_line& line, Vector2i px)
 {
-    const auto x = line.steps_within(0, px.x(), px.x()), y = line.steps_within(1, px.y(), px.y());
+    const auto x = line.interval_bounds_to_steps(0, px.x(), px.x()), y = line.interval_bounds_to_steps(1, px.y(), px.y());
     const auto k = Math::max(x.first, y.first);
     return k <= Math::min(x.last, y.last) ? k : -1u;
 }
@@ -472,6 +428,18 @@ Ns return_unspent_dt(const Ns& ticks, float speed)
 }
 
 } // namespace
+
+// Diagonal when minor/major > tan 22.5° = √2 - 1, that is (minor + major)² > 2·major².
+rotation nearest_rotation(Vector2i vec)
+{
+    fm_debug_assert(!vec.isZero());
+    const auto a = Vector2ui(Math::abs(vec));
+    const uint64_t major = Math::max(a.x(), a.y()), minor = Math::min(a.x(), a.y());
+    const bool diagonal = (minor + major) * (minor + major) > 2 * major * major;
+    const bool x_major = a.x() >= a.y();
+    const auto step = Vector2b{(signed char)(x_major || diagonal), (signed char)(!x_major || diagonal)};
+    return dir_from_step({1, step * Vector2b(Math::sign(vec))});
+}
 
 extern template class Script<critter, critter_script>;
 
@@ -600,8 +568,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
             delta = {};
             return { .blocked = false, .moved = moved, };
         }
-        // Both legs share one query when ticks reach the second. Together they stay within
-        // max_run, so the query's box stays within the chunks it searches.
+        // Up to two legs share one free_steps() query, so together they take at most max_run steps.
         run_s legs[2];
         uint32_t nlegs = 0;
         auto pos = from;
@@ -640,8 +607,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& dest) -> move_resu
             const auto k = res[j].steps;
             if (k > 0)
             {
-                if (!move_steps(index, *this, info, k, leg.r, leg.r))
-                    return blocked();
+                move_steps(index, *this, info, k, leg.r, leg.r);
                 ticks -= cost(leg.r) * k;
                 moved = true;
             }
@@ -725,7 +691,7 @@ auto critter::move_toward(size_t& index, Ns& dt, const point& from, const point&
     const bool done = res.has_collider || reached == steps;
     if (reached > k)
     {
-        teleport_to(index, origin + line.pixel_at(reached), new_r);
+        teleport_to(index, origin + line.point_at(reached), new_r);
         advance_anim_frames(*this, reached - k, step_len, info.nframes);
     }
 

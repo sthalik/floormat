@@ -1,11 +1,13 @@
 #include "scenery-editor.hpp"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 #include "src/world.hpp"
 #include "src/rotation.inl"
 #include "app.hpp"
 #include "src/scenery.hpp"
 #include "compat/borrowed-ptr.inl"
+#include <cr/ArrayView.h>
 
 namespace floormat {
 
@@ -14,6 +16,16 @@ using rotation_t = std::underlying_type_t<enum rotation>;
 scenery_editor::scenery_::operator bool() const noexcept
 {
     return !!proto;
+}
+
+void scenery_editor::load_atlases()
+{
+    _atlases.clear();
+    for (const auto& s : loader.scenery_list())
+        _atlases[s.name] = {
+            .name = s.name,
+            .proto = loader.scenery(s.name, s.name == loader.INVALID ? loader_policy::ignore : loader_policy::error)
+        };
 }
 
 scenery_editor::scenery_editor() noexcept
@@ -48,7 +60,7 @@ void scenery_editor::prev_rotation()
     set_rotation(_selected.proto.atlas->prev_rotation_from(_selected.proto.r));
 }
 
-void scenery_editor::select_tile(const scenery_& s)
+void scenery_editor::select_item(const scenery_& s)
 {
     const auto r = s.proto.atlas && s.proto.atlas->check_rotation(_selected.proto.r)
                    ? _selected.proto.r
@@ -82,12 +94,9 @@ bool scenery_editor::is_anything_selected() const
     return _selected.proto.atlas != nullptr;
 }
 
-auto scenery_editor::cbegin() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cbegin(); }
-auto scenery_editor::cend() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cend(); }
-auto scenery_editor::begin() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cbegin(); }
-auto scenery_editor::end() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cend(); }
+auto scenery_editor::items() const noexcept -> const std::map<StringView, scenery_>& { return _atlases; }
 
-void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s, app& a)
+void scenery_editor::place_scenery(world& w, global_coords pos, const scenery_& s, app& a)
 {
     if (!s)
     {

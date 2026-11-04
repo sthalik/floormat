@@ -4,17 +4,17 @@
 #include "grid-pass.hpp"
 #include "object.hpp"
 #include "world.hpp"
-#include "raycast.hpp"
+#include "raycast-loop.hpp"
 #include "point.inl"
+#include "nanosecond.inl"
+#include "timer.hpp"
 #include "compat/assume-aligned.hpp"
 #include "compat/function2.hpp"
 #include <bit>
-#include <cfloat>
 #include <cstring>
 #include <array>
 #include <cr/Memory.h>
 #include <mg/Functions.h>
-#include <mg/Timeline.h>
 
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wused-but-marked-unused"
@@ -28,13 +28,103 @@ namespace {
 using Cover::Params;
 using Cover::octant_count;
 
+// Octant k steps octant_steps[k] cells at a time, within 0.7° of k*11.25°, so a fill can carry a
+// distance from a cell to the cell a step away.
+constexpr std::array<Vector2b, octant_count> octant_steps = [] {
+    constexpr std::array<std::array<int8_t, 2>, 8> quadrant = {{
+        {1, 0}, {5, 1}, {5, 2}, {3, 2}, {1, 1}, {2, 3}, {2, 5}, {1, 5},
+    }};
+    std::array<Vector2b, octant_count> ret{};
+    for (uint32_t k = 0; k < octant_count; k++)
+    {
+        auto [x, y] = quadrant[k % 8];
+        for (uint32_t i = 0; i < k / 8; i++)
+        {
+            const auto x0 = x;
+            x = (int8_t)-y;
+            y = x0;
+        }
+        ret[k] = Vector2b{x, y};
+    }
+    return ret;
+}();
+
+constexpr bool is_aligned(Vector2b step)
+{
+    return step.x() == 0 || step.y() == 0 || step.x() == step.y() || step.x() == -step.y();
+}
+
 Vector2 direction_for_octant(uint32_t k)
 {
-    using namespace floormat;
-    constexpr float step = 2.f * Math::Constants<float>::pi() / (float)octant_count;
-    const auto theta = Rad{(float)k * step};
-    return {Math::cos(theta), Math::sin(theta)};
+    return Vector2{octant_steps[k]}.normalized();
 }
+
+struct crossed_cell
+{
+    int8_t x, y;
+    uint8_t major;
+};
+
+struct stepped_octant
+{
+    int8_t q, p;
+    uint8_t count;
+    // Cells the segment between the centers of a cell and the cell a step away passes through,
+    // ends left out, farthest first. Both cells meeting at a corner on the segment count.
+    std::array<crossed_cell, 8> cells;
+};
+
+constexpr stepped_octant make_stepped_octant(Vector2b step)
+{
+    const int q = step.x(), p = step.y();
+    const int aq = q < 0 ? -q : q, ap = p < 0 ? -p : p;
+    stepped_octant ret{(int8_t)q, (int8_t)p, 0, {}};
+    if (is_aligned(step))
+        return ret;
+    // In doubled coordinates the segment runs from (0, 0) to (2q, 2p) and cell (i, j) spans 2i - 1
+    // to 2i + 1 and 2j - 1 to 2j + 1. A cell within the segment's bounding box is crossed when its
+    // corners aren't all strictly on one side of the line.
+    for (int j = p < 0 ? p : 0; j <= (p < 0 ? 0 : p); j++)
+        for (int i = q < 0 ? q : 0; i <= (q < 0 ? 0 : q); i++)
+        {
+            if ((i == 0 && j == 0) || (i == q && j == p))
+                continue;
+            bool below = false, above = false;
+            for (int cy = 2*j - 1; cy <= 2*j + 1; cy += 2)
+                for (int cx = 2*i - 1; cx <= 2*i + 1; cx += 2)
+                {
+                    const int side = p*cx - q*cy;
+                    below |= side <= 0;
+                    above |= side >= 0;
+                }
+            if (!below || !above)
+                continue;
+            fm_assert(ret.count < ret.cells.size());
+            const int major = aq > ap ? (i < 0 ? -i : i) : (j < 0 ? -j : j);
+            ret.cells[ret.count++] = {(int8_t)i, (int8_t)j, (uint8_t)major};
+        }
+    for (uint32_t a = 1; a < ret.count; a++)
+        for (uint32_t b = a; b > 0 && ret.cells[b - 1].major < ret.cells[b].major; b--)
+            std::swap(ret.cells[b - 1], ret.cells[b]);
+    return ret;
+}
+
+constexpr std::array<stepped_octant, octant_count> stepped_octants = [] {
+    std::array<stepped_octant, octant_count> ret{};
+    for (uint32_t k = 0; k < octant_count; k++)
+        ret[k] = make_stepped_octant(octant_steps[k]);
+    return ret;
+}();
+
+constexpr uint32_t ring_rows = [] {
+    uint32_t n = 0;
+    for (auto s : octant_steps)
+    {
+        const auto rows = (uint32_t)(s.y() < 0 ? -s.y() : s.y()) + 1;
+        n = rows > n ? rows : n;
+    }
+    return n;
+}();
 
 constexpr std::array<uint8_t, octant_count> octant_order = {
     0, 8, 16, 24,
@@ -42,6 +132,14 @@ constexpr std::array<uint8_t, octant_count> octant_order = {
     1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15,
     17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31,
 };
+
+constexpr std::array<Vector2b, 16> ring2_offsets = {{
+    {-2, -2}, {-1, -2}, { 0, -2}, { 1, -2}, { 2, -2},
+    {-2, -1},                               { 2, -1},
+    {-2,  0},                               { 2,  0},
+    {-2,  1},                               { 2,  1},
+    {-2,  2}, {-1,  2}, { 0,  2}, { 1,  2}, { 2,  2},
+}};
 
 // fill_aligned() carries pixels in 1/fixed_one px in uint16_t. Carries saturate at UINT16_MAX,
 // which rounds to dc, the cap.
@@ -64,15 +162,17 @@ T fixed_to_units(uint32_t fixed, uint32_t div_size)
     return (T)((fixed + unit / 2) / unit);
 }
 
+// Pixels from the center of cell (cell_x, cell_y) to the first hit on the way to the center plus
+// delta, at most max_ray_px. Calls do_raycasting() itself, since raycast() reads the clock twice
+// per ray.
 float raycast_one(chunk& self,
                   uint32_t cell_x, uint32_t cell_y,
-                  uint32_t div_size, uint32_t octant,
+                  uint32_t div_size, Vector2i delta,
                   Pass::Pool& pass_pool,
                   uint32_t max_ray_px = chunk_size_xy)
 {
     fm_assert(div_size > 0);
     fm_assert(chunk_size_xy % div_size == 0);
-    fm_debug_assert(octant < octant_count);
     fm_debug_assert(cell_x < chunk_size_xy / div_size);
     fm_debug_assert(cell_y < chunk_size_xy / div_size);
 
@@ -83,12 +183,10 @@ float raycast_one(chunk& self,
     };
 
     const point from{self.coord(), intra_coord{origin_local}};
-
-    const auto dir = direction_for_octant(octant);
-    const Vector2i delta{Vector2(dir * (float)max_ray_px)};
     const point to = from + delta;
 
-    const auto r = raycast(self.world(), from, to, 0, pass_pool, Search::without_critters());
+    const auto r = rc::detail::do_raycasting<false>(nullptr, self.world(), from, to, 0, pass_pool,
+                                                    Search::without_critters(), 0);
 
     if (!r.has_result || r.success)
         return (float)max_ray_px;
@@ -101,12 +199,10 @@ bool pass_bit(const uint8_t* bits, uint32_t n)
     return bits[n >> 3] >> (n & 7) & 1;
 }
 
-// One row of a vertical or diagonal octant: a blocked cell carries 0 and stores (T)-1, and a passable
-// one is a step further than the previous row's cell at x + sx. Blocks go against sx, so a block reads
-// prev[x + sx] before the block next to it overwrites it. prev[-1] and prev[dc] must be
-// readable; the caller redoes the edge cell that reads one of them. prev starts on 64 bytes, and
-// out is a row of a plane that does. Returns false when the row doesn't split into whole vectors,
-// and touches nothing. DivSize is div_size when it's known at compile time, else 0.
+// One row of a vertical or diagonal octant: a blocked cell stores (T)-1 and carries 0, and a passable
+// one is a step further than prev[x + sx]. prev[-1] and prev[dc] must be readable, and the caller
+// redoes the edge cell that reads one. Returns false and touches nothing when the row doesn't split
+// into whole vectors.
 template<uint32_t DivSize, typename T>
 bool sweep_row_vectorized(uint16_t* prev, T* out, const uint8_t* row_bits, int32_t sx,
                           uint32_t step, uint32_t runtime_div_size)
@@ -179,6 +275,67 @@ bool sweep_row(uint16_t* prev, T* out, const uint8_t* row_bits, int32_t sx, uint
         }
 }
 
+// whole vectors, each starting on a byte of the pass grid
+bool stepped_rows_vectorize(uint32_t dc)
+{
+    namespace hn = hwy::HWY_NAMESPACE;
+    const auto N = (uint32_t)hn::Lanes(hn::ScalableTag<uint16_t>{});
+    return N % 8 == 0 && dc % N == 0;
+}
+
+// One uint16_t per cell, all ones where passable, so a vector can load from any cell.
+void expand_pass_row(uint16_t* out, const uint8_t* row_bits, uint32_t dc)
+{
+    namespace hn = hwy::HWY_NAMESPACE;
+    constexpr hn::ScalableTag<uint16_t> d;
+    const auto N = (uint32_t)hn::Lanes(d);
+    // LoadMaskBits() may read 8 bytes, which runs past the end of the grid on its last row
+    alignas(64) uint8_t bits[chunk_size_xy / 8 + 8];
+    std::memcpy(bits, row_bits, dc / 8);
+    for (uint32_t x = 0; x < dc; x += N)
+        hn::StoreU(hn::VecFromMask(d, hn::LoadMaskBits(d, bits + x / 8)), d, out + x);
+}
+
+// One row of a stepped octant, as fill_stepped() describes it. next is the row |p| back in sweep
+// order and masks[j] the pass masks of the row j back. A cell whose cell a step away is off the
+// grid reads spare cells of next and masks, so the caller redoes it.
+template<typename T>
+void sweep_stepped_row(const uint16_t* next, uint16_t* cur, const uint16_t* const* masks, T* out,
+                       const stepped_octant& o, uint32_t step, const uint16_t* stop_px,
+                       uint32_t div_size)
+{
+    namespace hn = hwy::HWY_NAMESPACE;
+    constexpr hn::ScalableTag<uint16_t> d;
+    constexpr hn::Rebind<uint8_t, decltype(d)> d8;
+    const auto N = (uint32_t)hn::Lanes(d);
+    const uint32_t dc = chunk_size_xy / div_size;
+
+    const auto vstep = hn::Set(d, (uint16_t)step);
+    const auto vone = hn::Set(d, uint16_t{1});
+    const auto vblocked = hn::Set(d, (uint16_t)(T)-1);
+    const auto half_shift = std::countr_zero(div_size * fixed_one) - 1; // xxx todo assumes power of two chunk size
+    for (uint32_t x = 0; x < dc; x += N)
+    {
+        auto px = hn::SaturatedAdd(hn::LoadU(d, next + ((ptrdiff_t)x + o.q)), vstep);
+        // farthest first, so the nearest blocked cell wins
+        for (uint32_t c = 0; c < o.count; c++)
+        {
+            const auto& cell = o.cells[c];
+            const auto* m = masks[cell.y < 0 ? -cell.y : cell.y] + ((ptrdiff_t)x + cell.x);
+            px = hn::IfThenElse(hn::MaskFromVec(hn::LoadU(d, m)), px, hn::Set(d, stop_px[c]));
+        }
+        const auto passable = hn::MaskFromVec(hn::LoadU(d, masks[0] + x));
+        px = hn::IfThenElseZero(passable, px);
+        hn::StoreU(px, d, cur + x);
+        const auto rounded = hn::ShiftRight<1>(hn::Add(hn::ShiftRightSame(px, half_shift), vone));
+        const auto units = hn::IfThenElse(passable, rounded, vblocked);
+        if constexpr (sizeof(T) == 1)
+            hn::StoreU(hn::DemoteTo(d8, units), d8, out + x);
+        else
+            hn::StoreU(units, d, out + x);
+    }
+}
+
 constexpr uint32_t line_cells = 64 / sizeof(uint16_t);
 
 uint32_t round_up(uint32_t n, uint32_t multiple)
@@ -207,8 +364,9 @@ struct CoverGrid : GridBase
     // k*plane_stride + i, so a fill writes one contiguous plane. Planes not in built_octants hold
     // stale data.
     Array<uint16_t> distances;
-    // fill_aligned()'s previous row in pixels. It starts at row[line_cells], on 64 bytes, with spare
-    // cells either side.
+    // fill_aligned()'s previous row in pixels, or fill_stepped()'s ring_rows rows of pixels and as
+    // many of pass masks. Rows are row_size() apart, starting at row[line_cells], on 64 bytes, with
+    // spare cells either side.
     Array<uint16_t> row;
     uint32_t built_octants = 0;
 
@@ -217,6 +375,10 @@ struct CoverGrid : GridBase
 
     void reset_for_reuse(chunk& ch, Params new_params);
     void apply_params();
+    // A ray reads the pass grids and RTrees of the 3×3 around the chunk, and those hold objects of
+    // the next ring out. Only maybe_mark_stale() calls this, as check_current() runs on reads.
+    bool ring2_is_current() const;
+    void maybe_mark_stale();
     template<typename T> T* octant_plane(uint32_t k);
 
     static uint32_t get_cell_index(uint32_t x, uint32_t y, uint32_t div_count);
@@ -224,14 +386,17 @@ struct CoverGrid : GridBase
 
     void build_impl(chunk* self);
     bool fill_octant(uint32_t k, chunk& self);
-    template<typename T> void fill_aligned(uint32_t k, chunk& self, const uint8_t* bits,
+    template<typename T> void fill_aligned(uint32_t k, chunk& self, const uint8_t* bits, Vector2 dir,
                                            int32_t sx, int32_t sy, float step_px);
+    template<typename T> void fill_stepped(uint32_t k, chunk& self, const uint8_t* bits);
     bool fill_next_unfilled(chunk& self);
 };
 
 struct CoverPool : Pool<CoverGrid>
 {
     Pass::Pool& pass_pool;
+    uint32_t fills = 0;
+    Ns fill_time{};
 
     CoverPool(Params p, Pass::Pool& pass_pool);
 };
@@ -259,10 +424,23 @@ void CoverGrid::build_impl(chunk* self)
     // else a rebuild serves the previous build's octants 1..31 until re-filled
     built_octants = 0;
     fill_octant(0, *self);
+}
 
-    for (auto i = 0u; i < 8; i++)
-        versions[i] = neighbors[i] ? neighbors[i]->pass_gen() : (uint64_t)-1;
-    versions[8] = self->pass_gen();
+bool CoverGrid::ring2_is_current() const
+{
+    const auto& w = c->world();
+    for (auto off : ring2_offsets)
+        if (const auto* ch = w.at(coord + off); ch && ch->pass_gen() > built_pass_gen)
+            return false;
+    return true;
+}
+
+void CoverGrid::maybe_mark_stale()
+{
+    fm_debug3_assert(c && c->world().at(coord) == c);
+
+    if (!is_stale() && (!is_current() || !ring2_is_current()))
+        mark_stale();
 }
 
 bool CoverGrid::fill_octant(uint32_t k, chunk& self)
@@ -272,11 +450,11 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
         return false;
 
     const uint32_t div_size = params.div_size;
-    auto& pass_pool = static_cast<CoverPool*>(pool)->pass_pool;
+    auto& P = *static_cast<CoverPool*>(pool);
+    auto& pass_pool = P.pass_pool;
     fm_assert(pass_pool.params().div_size() == div_size);
     pass_pool.maybe_mark_stale_all(self.world());
-    Timeline timeline;
-    timeline.start();
+    auto t = Time::now();
 
     const uint32_t dc = chunk_size_xy / div_size;
 
@@ -286,67 +464,47 @@ bool CoverGrid::fill_octant(uint32_t k, chunk& self)
     fm_debug_assert(get_cell_index(1, 1, dc) == dc + 1);
     const uint8_t* const bits = pass_grid.bits().data;
 
-    const auto dir = direction_for_octant(k);
-    const float ax = Math::abs(dir.x()), ay = Math::abs(dir.y());
-    const int32_t sx = ax < 1e-6f ? 0 : dir.x() > 0 ? 1 : -1;
-    const int32_t sy = ay < 1e-6f ? 0 : dir.y() > 0 ? 1 : -1;
-    const bool aligned = (sx == 0) || (sy == 0)
-                      || Math::abs(ax - ay) < 1e-4f;
-
-    if (aligned)
+    const auto s = octant_steps[k];
+    if (is_aligned(s))
     {
-        const float t_delta_x = ax > 1e-6f ? (float)div_size / ax : FLT_MAX;
-        const float t_delta_y = ay > 1e-6f ? (float)div_size / ay : FLT_MAX;
-        const auto step_px = sx == 0 ? t_delta_y : t_delta_x;
+        const auto dir = direction_for_octant(k);
+        const int32_t sx = s.x() > 0 ? 1 : s.x() < 0 ? -1 : 0;
+        const int32_t sy = s.y() > 0 ? 1 : s.y() < 0 ? -1 : 0;
+        const auto step_px = (float)div_size / (sx ? Math::abs(dir.x()) : Math::abs(dir.y()));
         if (narrow)
-            fill_aligned<uint8_t>(k, self, bits, sx, sy, step_px);
+            fill_aligned<uint8_t>(k, self, bits, dir, sx, sy, step_px);
         else
-            fill_aligned<uint16_t>(k, self, bits, sx, sy, step_px);
+            fill_aligned<uint16_t>(k, self, bits, dir, sx, sy, step_px);
     }
+    else if (narrow)
+        fill_stepped<uint8_t>(k, self, bits);
     else
-    {
-        const auto fill = [&]<typename T>(T* plane) {
-            for (uint32_t cy = 0; cy < dc; ++cy)
-                for (uint32_t cx = 0; cx < dc; ++cx)
-                {
-                    const auto i = get_cell_index(cx, cy, dc);
-                    if (!pass_bit(bits, i))
-                    {
-                        plane[i] = (T)-1;
-                        continue;
-                    }
-                    const auto px = raycast_one(self, cx, cy, div_size, k, pass_pool);
-                    plane[i] = fixed_to_units<T>(to_fixed(px), div_size);
-                }
-        };
-        if (narrow)
-            fill(octant_plane<uint8_t>(k));
-        else
-            fill(octant_plane<uint16_t>(k));
-    }
+        fill_stepped<uint16_t>(k, self, bits);
 
     built_octants |= (1u << k);
+    const auto dt = t.update();
+    P.fills++;
+    P.fill_time += dt;
 #if 0
     DBG << "{fill octant}" << coord << "k=" << k
-        << "took" << (int)(timeline.currentFrameDuration() * 1e6f) << "us";
+        << "took" << (int)(Time::to_milliseconds(dt) * 1e3f) << "us";
 #endif
     return true;
 }
 
 // An aligned octant steps a whole cell at a time, so a passable cell is one step further than the
-// next cell along the octant. A blocked cell carries 0, so the passable cell next to it holds one
-// step. Rows are swept starting from the edge the octant points at, and only a cell whose next one
-// is off the grid casts a ray.
+// next one along the octant. Only a cell whose next one is off the grid casts a ray.
 template<typename T>
-void CoverGrid::fill_aligned(uint32_t k, chunk& self, const uint8_t* bits,
+void CoverGrid::fill_aligned(uint32_t k, chunk& self, const uint8_t* bits, Vector2 dir,
                              int32_t sx, int32_t sy, float step_px)
 {
     const uint32_t div_size = params.div_size, dc = chunk_size_xy / div_size;
     auto& pass_pool = static_cast<CoverPool*>(pool)->pass_pool;
     T* const plane = octant_plane<T>(k);
 
+    const Vector2i delta{Vector2(dir * (float)chunk_size_xy)};
     const auto ray_fixed = [&](uint32_t x, uint32_t y) {
-        return to_fixed(raycast_one(self, x, y, div_size, k, pass_pool));
+        return to_fixed(raycast_one(self, x, y, div_size, delta, pass_pool));
     };
     // The n-th step in sweep order is the difference of rounded multiples, so a carry over any
     // run of steps is off by at most 1/fixed_one px.
@@ -415,6 +573,96 @@ void CoverGrid::fill_aligned(uint32_t k, chunk& self, const uint8_t* bits,
     }
 }
 
+// The other octants step (q, p) cells at a time, sweeping rows from the edge p points at. A passable
+// cell whose cell a step away is off the grid casts a ray. Else the nearest blocked cell that the
+// segment between their centers crosses stops it, at that cell's center along the major axis, or
+// else it is a step further than the cell a step away, which carries 0 when blocked.
+template<typename T>
+void CoverGrid::fill_stepped(uint32_t k, chunk& self, const uint8_t* bits)
+{
+    const uint32_t div_size = params.div_size, dc = chunk_size_xy / div_size;
+    auto& pass_pool = static_cast<CoverPool*>(pool)->pass_pool;
+    T* const plane = octant_plane<T>(k);
+    const auto& o = stepped_octants[k];
+    const int32_t q = o.q, p = o.p;
+    const uint32_t aq = (uint32_t)Math::abs(q), ap = (uint32_t)Math::abs(p);
+    const double len = Math::sqrt((double)(q*q + p*p));
+
+    // A ray along whole steps runs through the centers of the cells that carry its distance.
+    const auto delta = Vector2i{q, p} * (int32_t)Math::ceil(chunk_size_xy / len);
+    const auto ray_fixed = [&](uint32_t x, uint32_t y) {
+        return to_fixed(raycast_one(self, x, y, div_size, delta, pass_pool));
+    };
+    // R(n) is n/|p| steps rounded, and row n of the sweep adds R(n) - R(n - |p|), so a carry over
+    // any run of steps is off by at most 1/fixed_one px.
+    const double row_fixed = div_size * len * fixed_one / ap;
+    const auto R = [row_fixed](uint32_t n) { return (uint32_t)(n*row_fixed + .5); };
+    std::array<uint16_t, std::tuple_size_v<decltype(o.cells)>> stop_px;
+    for (uint32_t c = 0; c < o.count; c++)
+    {
+        const double major_px = o.cells[c].major * div_size * len / Math::max(aq, ap);
+        stop_px[c] = (uint16_t)Math::min((uint32_t)(major_px*fixed_one + .5), (uint32_t)UINT16_MAX);
+    }
+
+    const uint32_t slots = ap + 1, rs = row_size(dc);
+    fm_debug_assert(slots <= ring_rows);
+    uint16_t* const carries = row.data() + line_cells;
+    uint16_t* const masks = carries + ring_rows*rs;
+    const auto carry_row = [&](uint32_t n) { return carries + n % slots * rs; };
+    const auto mask_row = [&](uint32_t n) { return masks + n % slots * rs; };
+
+    const auto scalar_cell = [&](uint32_t n, uint32_t x, uint32_t y, uint32_t step) {
+        const auto i = y*dc + x;
+        // wraps past dc when x + q < 0
+        const auto nx = x + (uint32_t)q;
+        uint32_t px = 0;
+        if (pass_bit(bits, i))
+        {
+            if (n < ap || nx >= dc)
+                px = ray_fixed(x, y);
+            else
+            {
+                px = fixed_add(carry_row(n - ap)[nx], step);
+                for (auto c = (uint32_t)o.count; c-- > 0; )
+                {
+                    const auto& cell = o.cells[c];
+                    if (!pass_bit(bits, (y + (uint32_t)cell.y)*dc + x + (uint32_t)cell.x))
+                    {
+                        px = stop_px[c];
+                        break;
+                    }
+                }
+            }
+            plane[i] = fixed_to_units<T>(px, div_size);
+        }
+        else
+            plane[i] = (T)-1;
+        carry_row(n)[x] = (uint16_t)px;
+    };
+
+    const bool vectorize = stepped_rows_vectorize(dc) && aq < dc;
+    std::array<const uint16_t*, ring_rows> row_masks;
+    for (uint32_t n = 0; n < dc; n++)
+    {
+        const auto y = p > 0 ? dc - 1 - n : n;
+        const auto step = n < ap ? 0 : Math::min(R(n) - R(n - ap), (uint32_t)UINT16_MAX);
+        if (vectorize)
+            expand_pass_row(mask_row(n), bits + y*dc/8, dc);
+        if (vectorize && n >= ap)
+        {
+            for (uint32_t j = 0; j <= ap; j++)
+                row_masks[j] = mask_row(n - j);
+            sweep_stepped_row(carry_row(n - ap), carry_row(n), row_masks.data(), plane + y*dc, o, step,
+                              stop_px.data(), div_size);
+            for (uint32_t m = 0; m < aq; m++)
+                scalar_cell(n, q > 0 ? dc - 1 - m : m, y, step);
+            continue;
+        }
+        for (uint32_t x = 0; x < dc; x++)
+            scalar_cell(n, x, y, step);
+    }
+}
+
 bool CoverGrid::fill_next_unfilled(chunk& self)
 {
     for (auto k : octant_order)
@@ -448,8 +696,8 @@ void CoverGrid::apply_params()
     const auto size = octant_count * plane_stride * width / sizeof(uint16_t);
     if (distances.size() < size) [[unlikely]]
         distances = Utility::allocateAligned<uint16_t, 64>(NoInit, size);
-    if (row.size() < row_size(dc)) [[unlikely]]
-        row = Utility::allocateAligned<uint16_t, 64>(ValueInit, row_size(dc));
+    if (row.size() < 2*ring_rows*row_size(dc)) [[unlikely]]
+        row = Utility::allocateAligned<uint16_t, 64>(ValueInit, 2*ring_rows*row_size(dc));
 }
 
 template<typename T>
@@ -471,10 +719,17 @@ Params Params::validate() const
     fm_assert(chunk_size_xy % div_size == 0);
     // reads a pass pool of the same div_size, see Pass::Params::validate()
     fm_assert(div_size < chunk_size_xy);
+    fm_assert(div_size <= max_div_size);
     return *this;
 }
 
 bool Params::operator==(const Params&) const noexcept = default;
+
+Vector2 octant_direction(uint32_t k)
+{
+    fm_debug_assert(k < octant_count);
+    return detail::grid::direction_for_octant(k);
+}
 Grid::~Grid() noexcept = default;
 Grid::Grid(const Grid&) noexcept = default;
 Grid& Grid::operator=(const Grid&) & noexcept = default;
@@ -488,13 +743,11 @@ uint32_t Grid::get_cell_index(uint32_t x, uint32_t y, uint32_t div_count)
 
 uint32_t Grid::get_cell_index_from_coord(intra_coord pos) const
 {
-    detail::grid::check_versions(grid);
     return grid->get_cell_index_from_coord(pos);
 }
 
 uint16_t Grid::distance(uint32_t index, uint32_t octant) const
 {
-    detail::grid::check_versions(grid);
     fm_debug_assert(octant < octant_count);
     fm_debug_assert(index < grid->cell_count);
     fm_assert(grid->built_octants & 1u << octant);
@@ -513,6 +766,7 @@ uint64_t Grid::build_no() const { return grid->build_no; }
 Grid::operator bool() const noexcept { return grid != nullptr; }
 detail::grid::CoverGrid* Grid::raw() const noexcept { return grid; }
 
+bool Grid::is_stale() const { return grid->is_stale(); }
 void Grid::mark_stale() { grid->mark_stale(); }
 void Grid::maybe_mark_stale() { grid->maybe_mark_stale(); }
 
@@ -524,21 +778,20 @@ void Grid::build_if_stale()
 bool Grid::ensure_octant(uint32_t k)
 {
     fm_debug_assert(k < octant_count);
-    detail::grid::check_versions(grid);
     grid->build_if_stale();
     return grid->fill_octant(k, *grid->c);
 }
 
 bool Grid::fill_next_unfilled()
 {
-    detail::grid::check_versions(grid);
+    detail::grid::check_current(grid);
     grid->build_if_stale();
     return grid->fill_next_unfilled(*grid->c);
 }
 
 uint32_t Grid::built_octants() const
 {
-    detail::grid::check_versions(grid);
+    detail::grid::check_current(grid);
     return grid->built_octants;
 }
 
@@ -547,17 +800,12 @@ Grid Pool::operator[](chunk& c)
     return Grid{detail::grid::pool_subscript(pool, c)};
 }
 
-Grid Pool::wrap(detail::grid::CoverGrid* g) const noexcept
-{
-    return Grid{g};
-}
-
 void Pool::maybe_mark_stale_all(const world& w)
 {
     if (!pool->update_checked_pass_gen(w))
         return;
     for (auto* g : pool->live)
-        g->maybe_mark_stale();
+        static_cast<detail::grid::CoverGrid*>(g)->maybe_mark_stale();
 }
 
 void Pool::build_if_stale_all()
@@ -570,5 +818,7 @@ Pool::Pool(Params params, Pass::Pool& pass_pool): pool{new detail::grid::CoverPo
 Pool::~Pool() noexcept { delete pool; }
 Params Pool::params() const { return pool->params; }
 uint32_t Pool::pooled_count() const { return pool->freelist.size(); }
+uint32_t Pool::octant_fills() const { return pool->fills; }
+Ns Pool::octant_fill_time() const { return pool->fill_time; }
 
 } // namespace floormat::Grid::Cover

@@ -1415,20 +1415,38 @@ void make_cover_scene(world& w)
         rebuild_passability(w[ch]);
 }
 
+// octant_steps in src/grid-cover.cpp
+Vector2i cover_step(uint32_t k)
+{
+    constexpr Vector2i quadrant[] = { {1, 0}, {5, 1}, {5, 2}, {3, 2}, {1, 1}, {2, 3}, {2, 5}, {1, 5} };
+    auto s = quadrant[k % 8];
+    for (auto i = 0u; i < k / 8; i++)
+        s = {-s.y(), s.x()};
+    return s;
+}
+
 // direction_for_octant() in src/grid-cover.cpp
 Vector2 cover_direction(uint32_t k)
 {
-    constexpr float step = 2.f * Math::Constants<float>::pi() / (float)Cover::octant_count;
-    const auto theta = Rad{(float)k * step};
-    return {Math::cos(theta), Math::sin(theta)};
+    return Vector2{cover_step(k)}.normalized();
+}
+
+// What src/grid-cover.cpp casts its rays along: fill_aligned() along the direction, fill_stepped()
+// along whole steps.
+Vector2i cover_ray_delta(uint32_t k)
+{
+    if (k % 4 == 0)
+        return Vector2i{Vector2(cover_direction(k) * (float)chunk_size_xy)};
+    const auto s = cover_step(k);
+    return s * (int32_t)Math::ceil(chunk_size_xy / Math::sqrt((double)s.dot()));
 }
 
 // raycast_one() in src/grid-cover.cpp: pixels from the cell's center to the first hit
-float cover_ray_px(chunk& c, uint32_t x, uint32_t y, uint32_t div_size, Vector2 dir, Pass::Pool& pass_pool)
+float cover_ray_px(chunk& c, uint32_t x, uint32_t y, uint32_t div_size, Vector2i delta, Pass::Pool& pass_pool)
 {
     const auto half = (int32_t)(div_size / 2);
     const point from{c.coord(), intra_coord{Vector2i{(int32_t)(x*div_size) + half, (int32_t)(y*div_size) + half}}};
-    const point to = from + Vector2i{Vector2(dir * (float)chunk_size_xy)};
+    const point to = from + delta;
     const auto r = raycast(c.world(), from, to, 0, pass_pool, Search::without_critters());
     const auto px = !r.has_result || r.success ? (float)chunk_size_xy : Vector2(r.collision - from).length();
     return Math::min(px, (float)chunk_size_xy);
@@ -1456,8 +1474,7 @@ uint32_t cover_units(float px, uint32_t div_size)
 // What an aligned octant holds, worked out cell by cell: walk from the cell along the octant
 // until a blocked cell, adding one step per passable cell on the way, or until the edge of the
 // grid, adding the ray from the last cell. A cell m cells from that edge is S(m) - S(m-1) px
-// further than its next one, S(m) being m steps rounded. Walks stop at cells already worked
-// out, so the whole grid is O(div_count²). Pixels are in 1/cover_fixed_one px.
+// further than its next one, S(m) being m steps rounded. Pixels are in 1/cover_fixed_one px.
 Array<uint16_t> cover_aligned_reference(chunk& c, const Pass::Grid& pg, uint32_t div_size, uint32_t k,
                                         Pass::Pool& pass_pool)
 {
@@ -1504,7 +1521,8 @@ Array<uint16_t> cover_aligned_reference(chunk& c, const Pass::Grid& pg, uint32_t
                 const Vector2i q = p + Vector2i{sx, sy};
                 if (!inside(q))
                 {
-                    v = cover_fixed(cover_ray_px(c, (uint32_t)p.x(), (uint32_t)p.y(), div_size, dir, pass_pool));
+                    v = cover_fixed(cover_ray_px(c, (uint32_t)p.x(), (uint32_t)p.y(), div_size, cover_ray_delta(k),
+                                                 pass_pool));
                     break;
                 }
                 p = q;
@@ -1531,26 +1549,93 @@ Array<uint16_t> cover_aligned_reference(chunk& c, const Pass::Grid& pg, uint32_t
     return ret;
 }
 
-Array<uint16_t> cover_ray_reference(chunk& c, const Pass::Grid& pg, uint32_t div_size, uint32_t k,
-                                    Pass::Pool& pass_pool)
+// Cells the segment from a cell's center to the center of the cell a step away passes through, ends
+// left out, worked out by hand for octants 1, 2 and 3. Both cells at a corner on the segment count:
+// (5, 1)'s segment passes through the corner of (2, 0), (3, 0), (2, 1) and (3, 1). Octants 7, 6 and
+// 5 swap x and y of 1, 2 and 3, and the other quadrants turn the first one's cells.
+Array<Vector2i> cover_crossed_cells(uint32_t k)
 {
-    const auto dc = pg.div_count();
-    Array<uint16_t> ret{NoInit, dc*dc};
-    for (auto y = 0u; y < dc; y++)
-        for (auto x = 0u; x < dc; x++)
-        {
-            if (!pg.bit(Pass::Grid::get_bitmask_index(x, y, dc)))
-            {
-                ret[y*dc + x] = Cover::blocked;
-                continue;
-            }
-            const auto px = cover_ray_px(c, x, y, div_size, cover_direction(k), pass_pool);
-            ret[y*dc + x] = (uint16_t)cover_units(px, div_size);
-        }
+    static constexpr Vector2i crossed_1[] = { {1, 0}, {2, 0}, {3, 0}, {2, 1}, {3, 1}, {4, 1} };
+    static constexpr Vector2i crossed_2[] = { {1, 0}, {1, 1}, {2, 1}, {3, 1}, {4, 1}, {4, 2} };
+    static constexpr Vector2i crossed_3[] = { {1, 0}, {1, 1}, {2, 1}, {2, 2} };
+    const auto j = k % 8;
+    fm_assert(j % 4 != 0);
+    const ArrayView<const Vector2i> base = j == 1 || j == 7 ? ArrayView<const Vector2i>{crossed_1}
+                                         : j == 2 || j == 6 ? ArrayView<const Vector2i>{crossed_2}
+                                                            : ArrayView<const Vector2i>{crossed_3};
+    Array<Vector2i> ret{NoInit, base.size()};
+    for (auto i = 0u; i < base.size(); i++)
+    {
+        auto c = j > 4 ? Vector2i{base[i].y(), base[i].x()} : base[i];
+        for (auto t = 0u; t < k / 8; t++)
+            c = {-c.y(), c.x()};
+        ret[i] = c;
+    }
     return ret;
 }
 
-void check_cover_octants(world& w, Cover::Grid& g, uint32_t div_size, std::initializer_list<uint32_t> octants)
+// What an octant that steps (q, p) cells holds by the rules on fill_stepped(), worked out cell by
+// cell in its row order. The step on row n of the sweep is R(n) - R(n - |p|), R(n) being n/|p|
+// steps rounded. Pixels are in 1/cover_fixed_one px and saturate.
+Array<uint16_t> cover_stepped_reference(chunk& c, const Pass::Grid& pg, uint32_t div_size, uint32_t k,
+                                        Pass::Pool& pass_pool)
+{
+    const auto s = cover_step(k);
+    const auto crossed = cover_crossed_cells(k);
+    const int q = s.x(), p = s.y();
+    const int aq = Math::abs(q), ap = Math::abs(p), major = Math::max(aq, ap);
+    const double len = Math::sqrt((double)(q*q + p*p));
+    const double row_fixed = div_size * len * cover_fixed_one / ap;
+    const auto R = [row_fixed](int n) { return (uint32_t)(n*row_fixed + .5); };
+    const auto stop = [&](int m) {
+        const double major_px = (uint32_t)m * div_size * len / major;
+        return Math::min((uint32_t)(major_px*cover_fixed_one + .5), (uint32_t)UINT16_MAX);
+    };
+
+    const int dc = (int)pg.div_count();
+    const auto at = [dc](int x, int y) { return (uint32_t)(y*dc + x); };
+    const auto inside = [dc](int x, int y) { return x >= 0 && x < dc && y >= 0 && y < dc; };
+    const auto passable = [&](int x, int y) {
+        return pg.bit(Pass::Grid::get_bitmask_index((uint32_t)x, (uint32_t)y, (uint32_t)dc));
+    };
+
+    Array<uint32_t> px{NoInit, (size_t)(dc*dc)};
+    Array<uint16_t> ret{NoInit, (size_t)(dc*dc)};
+    for (int n = 0; n < dc; n++)
+    {
+        const int y = p > 0 ? dc - 1 - n : n;
+        for (int x = 0; x < dc; x++)
+        {
+            const auto i = at(x, y);
+            if (!passable(x, y))
+            {
+                px[i] = 0;
+                ret[i] = Cover::blocked;
+                continue;
+            }
+            uint32_t v;
+            if (!inside(x + q, y + p))
+            {
+                const auto ray = cover_ray_px(c, (uint32_t)x, (uint32_t)y, div_size, cover_ray_delta(k), pass_pool);
+                v = Math::min(cover_fixed(ray), (uint32_t)UINT16_MAX);
+            }
+            else
+            {
+                int nearest = major + 1;
+                for (auto off : crossed)
+                    if (!passable(x + off.x(), y + off.y()))
+                        nearest = Math::min(nearest, aq > ap ? Math::abs(off.x()) : Math::abs(off.y()));
+                v = nearest <= major ? stop(nearest)
+                                     : Math::min(px[at(x + q, y + p)] + R(n) - R(n - ap), (uint32_t)UINT16_MAX);
+            }
+            px[i] = v;
+            ret[i] = cover_units_fixed(v, div_size);
+        }
+    }
+    return ret;
+}
+
+void check_cover_octants(world& w, Cover::Grid& g, uint32_t div_size, ArrayView<const uint32_t> octants)
 {
     auto& c = w[COORD];
     // the params CoverPool gives its own pass pool
@@ -1567,7 +1652,7 @@ void check_cover_octants(world& w, Cover::Grid& g, uint32_t div_size, std::initi
         (void)g.ensure_octant(k);
         fm_assert(g.built_octants() & 1u << k);
         const auto expected = k % 4 == 0 ? cover_aligned_reference(c, pg, div_size, k, pass_pool)
-                                         : cover_ray_reference(c, pg, div_size, k, pass_pool);
+                                         : cover_stepped_reference(c, pg, div_size, k, pass_pool);
         for (auto i = 0u; i < dc*dc; i++)
         {
             // a passable cell is at least div_size - 1 px from a blocker, which rounds to 1
@@ -1584,7 +1669,7 @@ void check_cover_octants(world& w, Cover::Grid& g, uint32_t div_size, std::initi
 }
 
 // Every cell against the model above, then again after a wall goes up and the grid rebuilds.
-void test_cover_matches_reference(uint32_t div_size, std::initializer_list<uint32_t> octants)
+void test_cover_matches_reference(uint32_t div_size, ArrayView<const uint32_t> octants)
 {
     auto w = world();
     make_cover_scene(w);
@@ -1637,7 +1722,7 @@ void test_cover_diagonal_tracks_ray(uint32_t div_size)
         for (auto y = 0u; y + off < dc; y++)
         {
             const auto x = y + off;
-            const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_direction(k), pass_pool), div_size);
+            const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool), div_size);
             const auto d = (uint32_t)g.distance(Cover::Grid::get_cell_index(x, y, dc), k);
             if (Math::max(d, ray) - Math::min(d, ray) > 1)
             {
@@ -1648,6 +1733,75 @@ void test_cover_diagonal_tracks_ray(uint32_t div_size)
             hits += ray < dc;
         }
     fm_assert(hits >= dc / 4);
+}
+
+void test_cover_octant_directions()
+{
+    for (auto k = 0u; k < Cover::octant_count; k++)
+    {
+        const auto dir = Cover::octant_direction(k);
+        fm_assert((dir - cover_direction(k)).length() < 1e-6f);
+        const auto theta = Rad{2.f * Math::Constants<float>::pi() * (float)k / (float)Cover::octant_count};
+        const auto c = Math::cos(theta), s = Math::sin(theta);
+        const auto off = Deg{Rad{std::atan2(dir.y()*c - dir.x()*s, dir.x()*c + dir.y()*s)}};
+        fm_assert(Math::abs(float(off)) <= .7f);
+    }
+}
+
+// A stepped octant carries the rays of cells near the far edges a step at a time, along the line
+// each ray runs on. With nothing blocked in the chunk, a cell must hold its own ray to within one
+// unit.
+void test_cover_stepped_tracks_ray(uint32_t div_size, ArrayView<const uint32_t> octants)
+{
+    auto w = world();
+    for (int16_t y = -1; y <= 1; y++)
+        for (int16_t x = -1; x <= 1; x++)
+        {
+            auto& ch = w[chunk_coords_{x, y, 0}];
+            add_ground_all(ch);
+            // a tile off the chunk's edges, so none reaches into COORD
+            if (x != 0 || y != 0)
+                for (uint8_t i = 1; i + 1u < TILE_MAX_DIM; i++)
+                {
+                    ch[{i, 8}].wall_north() = wall_proto();
+                    ch[{8, i}].wall_west() = wall_proto();
+                }
+            rebuild_passability(ch);
+        }
+
+    auto& c = w[COORD];
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    pool.maybe_mark_stale_all(w);
+    Cover::Grid g = pool[c];
+    g.build_if_stale();
+
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    tick(w, pass_pool);
+    const auto dc = g.div_count();
+    const auto every = Math::max(1u, dc*dc / 1024);
+    for (auto k : octants)
+    {
+        (void)g.ensure_octant(k);
+        uint32_t hits = 0, cells = 0;
+        for (auto y = 0u; y < dc; y++)
+            for (auto x = 0u; x < dc; x++)
+            {
+                if ((x*7 + y*13) % every != 0)
+                    continue;
+                const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool), div_size);
+                const auto d = (uint32_t)g.distance(Cover::Grid::get_cell_index(x, y, dc), k);
+                if (Math::max(d, ray) - Math::min(d, ray) > 1)
+                {
+                    Error{standard_error()} << "!!! fatal: div_size" << div_size << "octant" << k << "cell" << x << y
+                                            << "distance" << d << "but the ray" << ray;
+                    fm_assert(false);
+                }
+                hits += ray < dc;
+                cells++;
+            }
+        fm_assert(hits >= cells / 4);
+    }
 }
 
 void add_blocker(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bbox_size)
@@ -1751,7 +1905,7 @@ void test_cover_blocked_cells(uint32_t div_size)
 }
 
 // The pool skips its walk while world::pass_gen() stands still. Each neighbor change below moves
-// it through a different path: chunk creation, mark_passability_modified, chunk deletion.
+// it through a different path: chunk creation, then mark_passability_modified.
 void test_cover_rebuilds_on_neighbor_change(uint32_t div_size)
 {
     auto w = world();
@@ -1778,12 +1932,51 @@ void test_cover_rebuilds_on_neighbor_change(uint32_t div_size)
     add_ground_all(e);
     rebuild_passability(e);
     fm_assert(walk() != n);
+}
 
-    clear_ground_all(e);
-    n = walk();
-    w.collect(true, true);
-    fm_assert(w.at(COORD_E) == nullptr);
-    fm_assert(walk() != n);
+// An east ray from the last column runs almost to the east neighbor's far edge, where a blocker
+// of the chunk two east overhangs. Adding that blocker changes the distance, so the grid must
+// rebuild, although the blocker's chunk isn't a neighbor.
+void test_cover_rebuilds_on_ring2_change(uint32_t div_size)
+{
+    constexpr auto E2 = chunk_coords_{2, 0, 0};
+    auto w = world();
+    for (auto ch : { COORD, COORD_E, E2 })
+        add_ground_all(w[ch]);
+    for (auto ch : { COORD, COORD_E, E2 })
+        rebuild_passability(w[ch]);
+
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    const auto dc = chunk_size_xy / div_size;
+    // a row through tile row 8, which the blocker spans
+    const auto cell = Cover::Grid::get_cell_index(dc - 1, (uint32_t)(tile_size_xy*8 + half_tile<int>) / div_size, dc);
+    const auto east = [&](Cover::Pool& p) {
+        p.maybe_mark_stale_all(w);
+        Cover::Grid g = p[w[COORD]];
+        g.build_if_stale();
+        (void)g.ensure_octant(0);
+        return (uint32_t)g.distance(cell, 0);
+    };
+    fm_assert(east(pool) == dc);
+
+    // x from 2048 - 80 to 2048 - 48 in COORD's frame
+    add_blocker(w, {E2, local_coords{0, 8}}, {-64, 0}, {32, 64});
+    rebuild_passability(w[E2]);
+    const auto face = 2*(int)chunk_size_xy - 80, center = (int)chunk_size_xy - half_tile<int> - (int)div_size/2;
+    const auto expected = (uint32_t)(2*(face - center) + (int)div_size) / (2*div_size);
+    fm_assert(expected < dc);
+    {
+        Pass::Pool fresh_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+        Cover::Pool fresh{Cover::Params{div_size}, fresh_pass_pool};
+        fm_assert(east(fresh) == expected);
+    }
+    const auto d = east(pool);
+    if (d != expected)
+    {
+        Error{standard_error()} << "!!! fatal: div_size" << div_size << "distance" << d << "but expected" << expected;
+        fm_assert(false);
+    }
 }
 
 // The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
@@ -1818,7 +2011,7 @@ void test_cover_diagonal_matches_ray(uint32_t div_size)
         for (auto y = 0u; y + off < dc; y++)
         {
             const auto x = y + off;
-            const auto ray = cover_ray_px(c, x, y, div_size, cover_direction(k), pass_pool);
+            const auto ray = cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool);
             const auto d = g.distance(Cover::Grid::get_cell_index(x, y, dc), k);
             if (Math::abs((float)d - ray / (float)div_size) > .5f + 1.f/16)
             {
@@ -1897,6 +2090,14 @@ void test_grid()
             test_hole_marker_never_blocks(ds, p);
         test_hole_still_opens_blocked_ground(ds);
     }
+    uint32_t all_octants[Cover::octant_count], stepped_octants[Cover::octant_count - 8];
+    for (auto k = 0u, n = 0u; k < Cover::octant_count; k++)
+    {
+        all_octants[k] = k;
+        if (k % 4 != 0)
+            stepped_octants[n++] = k;
+    }
+    test_cover_octant_directions();
     for (const auto ds : { 1u, 2u, 8u })
         test_cover_east_distance(ds);
     for (const auto ds : { 1u, 2u, 4u, 8u, 16u })
@@ -1905,17 +2106,22 @@ void test_grid()
         test_cover_east_rounds(ds);
         test_cover_diagonal_matches_ray(ds);
     }
+    // 4 has uint16_t planes
+    constexpr uint32_t first_steps[] = { 1u, 2u };
+    for (const auto ds : { 4u, 8u, 16u })
+        test_cover_stepped_tracks_ray(ds, ds < 8 ? ArrayView<const uint32_t>{first_steps} : stepped_octants);
     for (const auto ds : { 8u, 16u })
         test_cover_blocked_cells(ds);
     test_cover_rebuilds_on_neighbor_change(16);
-    // 128 and 256 leave rows narrower than a vector, or exactly one wide
-    const auto aligned_octants = { 0u, 4u, 8u, 12u, 16u, 20u, 24u, 28u };
+    for (const auto ds : { 8u, 16u })
+        test_cover_rebuilds_on_ring2_change(ds);
+    // Below 8, planes are uint16_t, and one octant of each step, turned and mirrored, keeps the rays few.
+    constexpr uint32_t some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan
     const auto min_size = fm_ASAN ? 16u : is_valgrind() ? 4u : 1u;
-    for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u, 256u })
+    for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u })
         if (ds >= min_size)
-            test_cover_matches_reference(ds, aligned_octants);
-    test_cover_matches_reference(32, { 0u, 1u, 6u, 13u, 20u, 22u, 31u });
+            test_cover_matches_reference(ds, ds < 8 ? ArrayView<const uint32_t>{some_octants} : all_octants);
     test_bit_matches_every_position();
 }
 

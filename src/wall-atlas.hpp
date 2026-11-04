@@ -114,6 +114,7 @@ class wall_atlas final : public bptr_base
     Info _info;
     String _path;
     std::array<DirArrayIndex, Wall::Direction_COUNT> _direction_map;
+    bool _placeholder = false;
 
     const Direction* get_Direction(Direction_ num) const;
 
@@ -122,6 +123,8 @@ public:
     wall_atlas() noexcept;
     ~wall_atlas() noexcept override;
     wall_atlas(wall_atlas_def def, String path, const ImageView2D& img);
+    // A placeholder copy of `a` named `name`. It shares a's sprites, as in ground_atlas.
+    wall_atlas(const wall_atlas& a, StringView name);
     void serialize(StringView filename) const;
 
     const Group* group(Direction_ dir, Group_ group) const;
@@ -141,6 +144,7 @@ public:
     unsigned depth() const; // todo use it in more places
     const Info& info() const;
     StringView name() const;
+    bool is_placeholder() const noexcept;
     //StringView path() const { return _path; }
 
     Vector2ui image_size() const;

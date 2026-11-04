@@ -72,16 +72,13 @@ enum rotation wall_editor::rotation() const { return _r; }
 void wall_editor::set_rotation(enum rotation r) { _r = r; }
 void wall_editor::toggle_rotation() { _r = next_rot(_r); }
 bptr<wall_atlas> wall_editor::get_selected() const { return _selected_atlas; }
-void wall_editor::select_atlas(const bptr<wall_atlas>& atlas) { _selected_atlas = atlas; }
+void wall_editor::select_item(const wall_cell& cell) { _selected_atlas = cell.atlas; }
 void wall_editor::clear_selection() { _selected_atlas = nullptr; }
-bool wall_editor::is_atlas_selected(const bptr<wall_atlas>& atlas) const { return _selected_atlas == atlas; }
+bool wall_editor::is_item_selected(const wall_cell& cell) const { return _selected_atlas == cell.atlas; }
 bool wall_editor::is_anything_selected() const { return _selected_atlas != nullptr; }
-typename std::map<StringView, wall_cell>::const_iterator wall_editor::cbegin() const noexcept { return _atlases.cbegin(); }
-typename std::map<StringView, wall_cell>::const_iterator wall_editor::cend() const noexcept { return _atlases.cend(); }
-typename std::map<StringView, wall_cell>::const_iterator wall_editor::begin() const noexcept { return _atlases.cbegin(); }
-typename std::map<StringView, wall_cell>::const_iterator wall_editor::end() const noexcept { return _atlases.cend(); }
+const std::map<StringView, wall_cell>& wall_editor::items() const noexcept { return _atlases; }
 
-void wall_editor::place_tile(world& w, global_coords coords, const bptr<wall_atlas>& atlas)
+void wall_editor::place_wall(world& w, global_coords coords, const bptr<wall_atlas>& atlas)
 {
     auto& c = w[coords.chunk3()];
     auto t = c[coords.local()];

@@ -47,6 +47,13 @@ ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
     }
 }
 
+ground_atlas::ground_atlas(const ground_atlas& a, StringView name) :
+    _def{a._def}, _path{make_path(name)}, _placeholder{true}
+{
+    _def.name = name;
+    arrayAppend(_frame_sprites, a._frame_sprites);
+}
+
 Quads::texcoords ground_atlas::texcoords_for_id(size_t i) const
 {
     fm_assert(i < num_tiles());
@@ -58,6 +65,7 @@ auto ground_atlas::raw_sprite_array() const -> ArrayView<const sprite> { return 
 size_t ground_atlas::num_tiles() const { return Vector2ui{_def.size}.product(); }
 Vector2ub ground_atlas::num_tiles2() const { return _def.size; }
 StringView ground_atlas::name() const { return _def.name; }
+bool ground_atlas::is_placeholder() const noexcept { return _placeholder || _def.name == loader_::INVALID; }
 enum pass_mode ground_atlas::pass_mode() const { return _def.pass; }
 
 String ground_atlas::make_path(StringView name)

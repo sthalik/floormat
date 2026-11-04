@@ -9,6 +9,8 @@
 #include "src/sweep-aabb.hpp"
 #include "src/point.inl"
 #include "src/world.hpp"
+#include "src/tile-image.hpp"
+#include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "compat/function2.hpp"
 #include <benchmark/benchmark.h>
@@ -129,7 +131,83 @@ void bench_sweep(benchmark::State& state)
             benchmark::DoNotOptimize(sweep(i));
 }
 
+// Prim's maze opened west at its NW cell, and `from` three chunks west of it, past two missing
+// chunks. A* expands every cell of both, since the route is many times the straight line.
+struct missing_chunks_world
+{
+    world w;
+    astar A;
+    Pass::Pool pool;
+    point from, to;
+    uint32_t max_dist;
+
+    missing_chunks_world():
+        pool{Pass::Params{default_cell, mazes::bbox_size, pass_mode::pass}, Search::without_critters()}
+    {
+        const auto r = mazes::build(w, kind::prim, chunk_coords_{0, 0, 0}, pool);
+        const auto ground = tile_image_proto{loader.ground_atlas("floor-tiles"), 0};
+        const auto wall = wall_image_proto{loader.wall_atlas("empty", loader_policy::warn), 0};
+
+        // The NW cell is tiles (0, 0) to (1, 1). build()'s `from` is the tile farthest from it.
+        auto& c0 = w[chunk_coords_{0, 0, 0}];
+        c0[local_coords{0, 0}].wall_west() = {};
+        c0[local_coords{0, 1}].wall_west() = {};
+        c0.mark_modified();
+        c0.ensure_passability();
+
+        // A wall on every tile edge, except inside the start chunk. The missing chunks are x -2
+        // and -1 at y 0, and the maze holds x 0 from y 0 on.
+        for (int16_t cy = -1; cy <= 1; cy++)
+            for (int16_t cx = -3; cx <= 0; cx++)
+            {
+                if ((cy == 0 && cx >= -2) || (cy == 1 && cx == 0))
+                    continue;
+                const bool start = cx == -3 && cy == 0;
+                auto& c = w[chunk_coords_{cx, cy, 0}];
+                for (uint8_t ly = 0; ly < TILE_MAX_DIM; ly++)
+                    for (uint8_t lx = 0; lx < TILE_MAX_DIM; lx++)
+                    {
+                        auto t = c[local_coords{lx, ly}];
+                        t.ground() = ground;
+                        if (!start || lx == 0)
+                            t.wall_west() = wall;
+                        if (!start || ly == 0)
+                            t.wall_north() = wall;
+                    }
+                c.mark_modified();
+                c.ensure_passability();
+            }
+
+        from = point{chunk_coords_{-3, 0, 0}, local_coords{8, 8}, {}};
+        to = r.from;
+        // build()'s max_dist bounds the route from the opening, and the walk to it is under 3 chunks.
+        max_dist = r.max_dist + 3*chunk_size_xy;
+    }
+
+    path_search_result search()
+    {
+        return A.Dijkstra<0, false>(w, pool, from, to, max_dist, Vector2ui{mazes::bbox_size},
+                                    Search::without_critters());
+    }
+};
+
+void bench_missing_chunks(benchmark::State& state, uint32_t optimum)
+{
+    missing_chunks_world s;
+    {
+        const auto res = s.search();
+        fm_assert(res.is_found());
+        if (res.cost() != optimum)
+            fm_abort("dijkstra-maps missing chunks: cost %u, optimum %u", res.cost(), optimum);
+    }
+    for (int i = 0; i < 2; i++)
+        s.search();
+    for (auto _ : state)
+        s.search();
+}
+
 // Optimal costs. A step is one cell, its costs as in Search::octile.
+void Dijkstra_Missing_Chunks(benchmark::State& state) { bench_missing_chunks(state, 17115); }
 void Dijkstra_Rooms(benchmark::State& state) { bench_map<kind::rooms>(state, 14397); }
 void Dijkstra_Braid(benchmark::State& state) { bench_map<kind::braid>(state, 14451); }
 void Dijkstra_Prim(benchmark::State& state) { bench_map<kind::prim>(state, 24637); }
@@ -145,6 +223,7 @@ void Swept_Collider_Prim(benchmark::State& state) { bench_sweep<kind::prim>(stat
 
 } // namespace
 
+BENCHMARK(Dijkstra_Missing_Chunks)->Unit(benchmark::kMillisecond);
 BENCHMARK(Dijkstra_Rooms)->Unit(benchmark::kMillisecond);
 BENCHMARK(Dijkstra_Braid)->Unit(benchmark::kMillisecond);
 BENCHMARK(Dijkstra_Prim)->Unit(benchmark::kMillisecond);

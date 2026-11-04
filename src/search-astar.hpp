@@ -1,11 +1,12 @@
 #pragma once
 #include "compat/safe-ptr.hpp"
 #include "search-pred.hpp"
+#include "tile-defs.hpp"
 #include <cr/Array.h>
 #include <mg/Vector2.h>
 
 namespace floormat::Search { struct cache; }
-namespace floormat::Grid { class PoolRegistry; }
+namespace floormat::Grid { class GridRegistry; }
 namespace floormat::Grid::Pass { class Pool; }
 
 namespace floormat {
@@ -26,12 +27,16 @@ public:
 
     using pred = Search::pred;
 
+    // cell size of the pools searched by the overloads that take no pool
+    static constexpr uint32_t default_div_size = (uint32_t)tile_size_xy/4;
+
     astar();
     ~astar() noexcept;
     void reserve(size_t capacity);
 
     struct Search::cache* cache();
-    Grid::PoolRegistry& pool_registry();
+    Grid::GridRegistry& pool_registry();
+    uint32_t last_node_count() const { return node_count; }
 
     // todo add simple bresenham short-circuit
     template<int Debug = 0, bool FindClosestOnFailure = true>
@@ -72,12 +77,12 @@ private:
     visited run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, uint32_t max_dist);
     visited run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, const endpoint& goal);
     template<int Debug, bool FindClosestOnFailure>
-    closest expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal, uint32_t max_dist, closest best);
+    closest expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal, uint32_t max_dist, closest best, uint32_t max_pops);
     template<int Debug>
     path_search_result make_result(const closest& best, point from, point to, uint32_t max_dist, float time);
 
     safe_ptr<struct Search::cache> _cache;
-    safe_ptr<Grid::PoolRegistry> _pool_registry;
+    safe_ptr<Grid::GridRegistry> _pool_registry;
     Array<visited> nodes;
     uint32_t node_count = 0;
     Array<Array<frontier>> buckets;

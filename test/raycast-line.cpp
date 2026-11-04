@@ -17,15 +17,15 @@ bool test_plain_bresenham_misses()
     if (line.steps() != 5)
         return false;
     for (auto k = 0u; k <= line.steps(); k++)
-        if (line.pixel_at(k).x() != (int32_t)k || line.pixel_at(k).y() != main_y[k])
+        if (line.point_at(k).x() != (int32_t)k || line.point_at(k).y() != main_y[k])
             return false;
     for (auto k : { 0u, 2u, 4u })
-        if (line.off_axis_at(k).diagonal)
+        if (line.orthogonal_at(k).diagonal)
             return false;
     // Plain Bresenham skips (1, 1) and (4, 1), which the segment crosses.
-    const auto o1 = line.off_axis_at(1), o3 = line.off_axis_at(3);
-    return o1.diagonal && o1.pixels[1].x() == 1 && o1.pixels[1].y() == 1 && o1.crossed[1] && !o1.crossed[0] &&
-           o3.diagonal && o3.pixels[0].x() == 4 && o3.pixels[0].y() == 1 && o3.crossed[0] && !o3.crossed[1];
+    const auto o1 = line.orthogonal_at(1), o3 = line.orthogonal_at(3);
+    return o1.diagonal && o1.points[1].x() == 1 && o1.points[1].y() == 1 && o1.in_supercover[1] && !o1.in_supercover[0] &&
+           o3.diagonal && o3.points[0].x() == 4 && o3.points[0].y() == 1 && o3.in_supercover[0] && !o3.in_supercover[1];
 }
 
 // Incremental Bresenham, ties away from `from` like the closed form.
@@ -39,14 +39,14 @@ void check_against_incremental(Vector2i from, Vector2i to)
     const auto major_sign = major < 0 ? -1 : 1, minor_sign = minor < 0 ? -1 : 1;
 
     fm_assert_equal((uint32_t)len, line.steps());
-    fm_assert(line.pixel_at(0) == from);
-    fm_assert(line.pixel_at(line.steps()) == to);
+    fm_assert(line.point_at(0) == from);
+    fm_assert(line.point_at(line.steps()) == to);
 
     // err is 2*k*minor_len + len - 2*len*m, in [0, 2*len).
     int32_t m = 0, err = len;
     for (int32_t k = 0; k <= len; k++)
     {
-        const auto p = line.pixel_at((uint32_t)k);
+        const auto p = line.point_at((uint32_t)k);
         const auto rel = y_major ? Vector2i{minor_sign*m, major_sign*k} : Vector2i{major_sign*k, minor_sign*m};
         if (p != from + rel)
             fm_abort("line (%d %d)-(%d %d) step %d: (%d %d), expected (%d %d)",
@@ -54,14 +54,14 @@ void check_against_incremental(Vector2i from, Vector2i to)
         fm_assert_equal((uint32_t)k, line.step_of(p));
         if (k < len)
         {
-            const auto q = line.pixel_at((uint32_t)k + 1);
-            const auto o = line.off_axis_at((uint32_t)k);
+            const auto q = line.point_at((uint32_t)k + 1);
+            const auto o = line.orthogonal_at((uint32_t)k);
             fm_assert(o.diagonal == (p.x() != q.x() && p.y() != q.y()));
             if (o.diagonal)
             {
-                fm_assert(o.pixels[0] == Vector2i(q.x(), p.y()));
-                fm_assert(o.pixels[1] == Vector2i(p.x(), q.y()));
-                fm_assert(o.crossed[0] || o.crossed[1]);
+                fm_assert(o.points[0] == Vector2i(q.x(), p.y()));
+                fm_assert(o.points[1] == Vector2i(p.x(), q.y()));
+                fm_assert(o.in_supercover[0] || o.in_supercover[1]);
             }
         }
         err += 2*minor_len;
@@ -108,13 +108,13 @@ void check_supercover(Vector2i from, Vector2i d)
     };
     for (auto k = 0u; k <= line.steps(); k++)
     {
-        mark(line.pixel_at(k));
+        mark(line.point_at(k));
         if (k == line.steps())
             break;
-        const auto o = line.off_axis_at(k);
+        const auto o = line.orthogonal_at(k);
         for (auto i = 0u; i < 2; i++)
-            if (o.diagonal && o.crossed[i])
-                mark(o.pixels[i]);
+            if (o.diagonal && o.in_supercover[i])
+                mark(o.points[i]);
     }
 
     for (auto y = lo.y(); y <= hi.y(); y++)
@@ -128,7 +128,7 @@ void check_supercover(Vector2i from, Vector2i d)
         }
 }
 
-void check_steps_within(Vector2i from, Vector2i to)
+void check_interval_bounds_to_steps(Vector2i from, Vector2i to)
 {
     const auto line = bresenham_line{from, to};
     for (auto axis = 0u; axis < 2; axis++)
@@ -140,14 +140,14 @@ void check_steps_within(Vector2i from, Vector2i to)
                 auto first = UINT32_MAX, last = 0u;
                 for (auto k = 0u; k <= line.steps(); k++)
                 {
-                    const auto c = line.pixel_at(k)[axis];
+                    const auto c = line.point_at(k)[axis];
                     if (c >= lo && c <= hi)
                     {
                         first = Math::min(first, k);
                         last = k;
                     }
                 }
-                const auto r = line.steps_within(axis, lo, hi);
+                const auto r = line.interval_bounds_to_steps(axis, lo, hi);
                 const bool ok = first == UINT32_MAX ? r.first > r.last : r.first == first && r.last == last;
                 if (!ok)
                     fm_abort("line (%d %d)-(%d %d) axis %u [%d %d]: got [%u %u], expected [%u %u]",
@@ -167,22 +167,22 @@ void check_long_line(Vector2i from, Vector2i to)
 
     for (int64_t k = 0; k <= len; k = k == len ? len + 1 : Math::min(k + 9973, len))
     {
-        const auto p = line.pixel_at((uint32_t)k);
+        const auto p = line.point_at((uint32_t)k);
         fm_assert_equal((uint32_t)k, line.step_of(p));
         const int64_t m = Math::abs(y_major ? p.x() - from.x() : p.y() - from.y());
         // |m - k*minor_len/len| <= 1/2
         fm_assert(Math::abs(2*m*len - 2*k*minor_len) <= len);
         for (auto axis = 0u; axis < 2; axis++)
         {
-            const auto r = line.steps_within(axis, p[axis], p[axis]);
+            const auto r = line.interval_bounds_to_steps(axis, p[axis], p[axis]);
             fm_assert(r.first <= k && k <= r.last);
-            fm_assert(line.pixel_at(r.first)[axis] == p[axis] && line.pixel_at(r.last)[axis] == p[axis]);
-            fm_assert(r.first == 0 || line.pixel_at(r.first - 1)[axis] != p[axis]);
-            fm_assert(r.last == len || line.pixel_at(r.last + 1)[axis] != p[axis]);
+            fm_assert(line.point_at(r.first)[axis] == p[axis] && line.point_at(r.last)[axis] == p[axis]);
+            fm_assert(r.first == 0 || line.point_at(r.first - 1)[axis] != p[axis]);
+            fm_assert(r.last == len || line.point_at(r.last + 1)[axis] != p[axis]);
         }
         if (k < len)
         {
-            const auto q = line.pixel_at((uint32_t)k + 1);
+            const auto q = line.point_at((uint32_t)k + 1);
             fm_assert(Math::abs(q.x() - p.x()) <= 1 && Math::abs(q.y() - p.y()) <= 1);
             fm_assert(Math::abs(y_major ? q.y() - p.y() : q.x() - p.x()) == 1);
         }
@@ -197,7 +197,7 @@ void Test::test_raycast_line()
 
     constexpr auto from = Vector2i{-3, 7};
     fm_assert(bresenham_line{from, from}.steps() == 0);
-    fm_assert(bresenham_line{from, from}.pixel_at(0) == from);
+    fm_assert(bresenham_line{from, from}.point_at(0) == from);
 
     for (auto dy = -max_len; dy <= max_len; dy++)
         for (auto dx = -max_len; dx <= max_len; dx++)
@@ -206,7 +206,7 @@ void Test::test_raycast_line()
             check_against_incremental(from, from + d);
             check_supercover(from, d);
             if (Math::abs(dx) <= 10 && Math::abs(dy) <= 10)
-                check_steps_within(from, from + d);
+                check_interval_bounds_to_steps(from, from + d);
         }
 
     constexpr int32_t e = 1 << 25;

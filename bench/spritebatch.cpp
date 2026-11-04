@@ -238,10 +238,8 @@ void chunk_args(benchmark::Benchmark* b)
     b->Unit(benchmark::kNanosecond);
 }
 
-// Models chunk::ensure_scenery_mesh. Each chunk closes two runs: its dynamic objects, closed by
-// end_chunk<true>, then scenery_static_mesh, already sorted. Chunk (cx, cy) spans depths
-// [(cx+cy)*W, (cx+cy+2)*W), so chunks on one anti-diagonal overlap fully and adjacent
-// anti-diagonals by half. Even runs are dynamic, odd ones static.
+// Models chunk::ensure_scenery_mesh: per chunk, an even run of dynamic objects, then an odd one of
+// sorted static scenery. Depths overlap fully along an anti-diagonal, and by half between adjacent ones.
 std::vector<std::vector<float>> make_mixed(uint32_t g, uint32_t s, uint32_t d, uint32_t seed)
 {
     constexpr float W = 1024;

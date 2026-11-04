@@ -18,10 +18,10 @@ void app::draw_fps()
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
                  {M->window_size()[0] - size.x - 3.5f*dpi[0], 3*dpi[1]}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
 #if 0
-    static auto timer = []{ Timeline t; t.start(); return t; }();
-    if (timer.currentFrameDuration() >= 2)
+    static auto timer = Time::now();
+    if (const auto now = Time::now(); now - timer >= 2*Second)
     {
-        timer.start();
+        timer = now;
         std::printf("FPS %f\n", (double)(frame_time > 1e-6f ? 1/frame_time : 0));
         std::fflush(stdout);
     }
@@ -66,8 +66,8 @@ void app::draw_z_level()
         const auto font_size = ImGui::GetCurrentContext()->FontSize+3;
         auto shadow_offset = Vector2(1, 1)/* * dpi */;
         auto px = Vector2(*cursor.pixel) + offset, px2 = px + shadow_offset;
-        draw.AddText(nullptr, font_size, {px2[0], px2[1]}, ImGui::ColorConvertFloat4ToU32({0, 0, 0, .75f}), buf);
-        draw.AddText(nullptr, font_size, {px[0], px[1]}, ImGui::ColorConvertFloat4ToU32({1, 0, 1, 1}), buf);
+        draw.AddText(nullptr, font_size, ImVec2(px2), ImGui::ColorConvertFloat4ToU32({0, 0, 0, .75f}), buf);
+        draw.AddText(nullptr, font_size, ImVec2(px), ImGui::ColorConvertFloat4ToU32({1, 0, 1, 1}), buf);
     }
 }
 

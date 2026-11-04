@@ -51,10 +51,18 @@ struct base_test
         ValueType type = ValueType::none;
     };
 
-    // The driver cannot click an ImGui widget, and cover_test's octant selector is one. Steps it
-    // and hands back the octants built so far as a bitmask. maze_test's build and solve buttons
-    // are two more: 0 presses build, anything else solve.
+    // Steps an ImGui widget the driver can't click. cover_test: the octant selector, returning the
+    // octants so far as a bitmask. maze_test: build for 0, else solve. cover_ai_test, returning u32
+    // unless noted: 0 Start and 3 Reset (npc id as u64, or none), 1 Stop, 2 "Other cover spots" with
+    // a full search (spot count), 4 and 5 next and previous cover (spot index, or none), 6 Hold
+    // (hold_phase), 7 "Move spots to cover's end" (1 when ticked), 8 "Cover div" set to au32[1] (the
+    // div), 9 the box's search as au32: tiles listed, tiles in all, octant fills, and 1 while it runs,
+    // 10 its spots as au32: seen from the player now, dropped as seen since the search started, listed,
+    // 11 its center and octant as ai32, x, y and octant, then 1 while it runs.
     virtual Value advance(app& a, Value);
+    // When the editor switches from the tests mode to another mode. Not when the test is replaced,
+    // which runs its destructor.
+    virtual void on_leave_tests_mode(app& a);
 
     virtual ~base_test() noexcept;
 
@@ -64,7 +72,7 @@ protected:
 
 enum class Test : uint32_t {
     //todo add a speedometer overlay test
-    none, path, raycast, grid, walk, hole, cover, maze, COUNT,
+    none, path, raycast, grid, walk, hole, cover, maze, cover_ai, COUNT,
 };
 
 struct tests_data final : tests_data_
@@ -81,6 +89,7 @@ struct tests_data final : tests_data_
     static Pointer<base_test> make_test_hole();
     static Pointer<base_test> make_test_cover();
     static Pointer<base_test> make_test_maze();
+    static Pointer<base_test> make_test_cover_ai();
 
     Pointer<base_test> current_test;
     Test current_index = Test::none;
@@ -101,6 +110,7 @@ struct tests_data final : tests_data_
         { "Hole"_s,         Test::hole,    make_test_hole    },
         { "Cover"_s,        Test::cover,   make_test_cover   },
         { "Maze"_s,         Test::maze,    make_test_maze    },
+        { "Cover AI"_s,     Test::cover_ai, make_test_cover_ai },
     };
 };
 

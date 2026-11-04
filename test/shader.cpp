@@ -137,7 +137,7 @@ void test_tuc_stale_binding()
     fm_assert_equal(1uz, tuc.stats().cache_hit);
     fm_assert_equal(1uz, tuc.stats().cache_miss);
 
-    // the realloc_atlas pattern from sprite-atlas.cpp: move-assigning into the
+    // the grow_texture pattern from sprite-atlas.cpp: move-assigning into the
     // same wrapper keeps the address and swaps the GL name
     tex = make_tex();
     fm_assert_equal(unit, tuc.bind(tex));

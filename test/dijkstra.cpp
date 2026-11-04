@@ -9,7 +9,7 @@
 #include "src/search-cache.hpp"
 #include "src/search.hpp"
 #include "src/grid-pass.hpp"
-#include "src/grid-pool-registry.hpp"
+#include "src/grid-registry.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "src/world.hpp"
@@ -86,7 +86,7 @@ void check_flush_goal(const char* name, uint32_t bbox, F&& setup, Vector2b goal_
 
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto& pool16 = A.pool_registry().pool_for(bbox);
+    auto& pool16 = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass});
     auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, bbox, pass_mode::pass}, pred};
 
     for (auto* pool : { &pool16, &pool8 })
@@ -197,7 +197,8 @@ void test_odd_body_corridor(uint32_t bbox)
     const auto goal = point{global_coords{flush_ch, flush_tile}, {goal_x, 0}};
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    const auto d = (int)A.pool_registry().pool_for(bbox).params().div_size();
+    const auto registry_params = Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass};
+    const auto d = (int)registry_params.div_size();
     auto exact = Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)d, bbox, pass_mode::pass}, pred};
     auto wider = Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)d, bbox + 1, pass_mode::pass}, pred};
     fm_assert(exact.params().div_size() == (uint32_t)d && wider.params().div_size() == (uint32_t)d);
@@ -222,7 +223,7 @@ void test_odd_body_corridor(uint32_t bbox)
     fm_assert(r1.is_found());
     auto r2 = A.Dijkstra<0, false>(w, from, goal, max_dist, Vector2ui(bbox), pred);
     if (!r2.is_found())
-        fm_abort("odd body corridor bbox %u: registry pool has bbox %u", bbox, A.pool_registry().pool_for(bbox).params().bbox_size);
+        fm_abort("odd body corridor bbox %u: registry pool has bbox %u", bbox, registry_params.bbox_size);
     fm_assert(r2.cost() == r1.cost());
 }
 
@@ -350,12 +351,9 @@ void check_pocket(uint32_t cell, bool boxed_goal)
     walk_to(w, C, move(r1), goal, name, cell);
 }
 
-// No search queues a seed. From the pocket with max_dist 32, the seed search first meets a set
-// cell a box width out, so every seed costs max_dist or more. Toward the pocket with max_dist 1,
-// the ring seeds around the off-lattice start lie 1 px or more away. From the pocket with
-// max_dist 4 box widths, the seeds a box width out cost less. A seed's cost plus its octile
-// distance to `open` is still at least the octile distance from `pocket` to `open`, which is
-// longer.
+// No search queues a seed. From the pocket with max_dist 32, and toward it with max_dist 1, every
+// seed costs max_dist or more. With max_dist 4 box widths some cost less, but a seed's cost plus its
+// octile distance to `open` is at least the octile distance from `pocket` to `open`, over max_dist.
 void check_seeds_past_max_dist(uint32_t cell)
 {
     constexpr uint32_t size = 32;
@@ -469,6 +467,63 @@ void check_post_field()
     walk_to(w, C, move(r1), goal, "post field", cell);
 }
 
+// The goal stands in a room 10 tiles east of the start, behind a wall 5 tiles long. The search
+// without FindClosestOnFailure stops early on a goal it proves walled off, so it stores fewer
+// nodes than the search with it, which never stops early. With `open`, a corridor one cell wide
+// leads into the room from the east, and only straight steps pass it. Both searches then find
+// the goal and store the same number of nodes.
+void check_walled_off_goal(bool open)
+{
+    constexpr uint32_t max_dist = 1536, size = 32, cell = 4;
+    constexpr auto room = local_coords{12, 8};
+    const auto from = point{global_coords{flush_ch, {2, 8}}, {}};
+    const auto goal = point{global_coords{flush_ch, room}, {}};
+    const auto corridor = point::normalize_coords(goal, {40, 0});
+    const char* const name = open ? "open room" : "closed room";
+    const auto& pred = Search::without_critters();
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+    fm_assert(pool.params().div_size() == cell);
+
+    auto w = world();
+    add_floors(w, from, max_dist, cell);
+    for (auto y = 6u; y <= 10; y++)
+        add_block(w, {room.x, (uint8_t)y}, {16, tile_size_xy}, {-40, 0});
+    add_block(w, room, {96, 16}, {0, -40});
+    add_block(w, room, {96, 16}, {0, 40});
+    if (open)
+    {
+        add_block(w, room, {16, 16}, {40, -24});
+        add_block(w, room, {16, 16}, {40, 27});
+    }
+    else
+        add_block(w, room, {16, tile_size_xy}, {40, 0});
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    fm_assert(A.cache()->is_passable_for_bbox(w, pool, goal, pred));
+    fm_assert(A.cache()->is_passable_for_bbox(w, pool, corridor, pred) == open);
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, point::normalize_coords(corridor, {0, -1}), pred));
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, point::normalize_coords(corridor, {0, (int)cell}), pred));
+
+    auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
+    const auto n1 = A.last_node_count();
+    auto r2 = A.Dijkstra<0, true>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
+    const auto n2 = A.last_node_count();
+    if (r1.is_found() != open || r2.is_found() != open)
+        fm_abort("%s: found %d, with closest %d", name, (int)r1.is_found(), (int)r2.is_found());
+    if (open ? n1 != n2 : n1 >= n2)
+        fm_abort("%s: %u nodes, with closest %u", name, n1, n2);
+    if (open)
+    {
+        fm_assert(r1.path().front() == from && r1.path().back() == goal);
+        fm_assert(r2.cost() == r1.cost());
+    }
+    else
+        fm_assert(r1.path().isEmpty());
+}
+
 } // namespace
 
 void Test::test_dijkstra()
@@ -485,7 +540,7 @@ void Test::test_dijkstra()
     constexpr auto wpos = global_coords{wch, wt};
     const auto from = point{{0, 0, 0}, {11, 9}};
     constexpr auto own_size = Vector2ui{16};
-    auto& pool = A.pool_registry().pool_for(own_size.x());
+    auto& pool = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, own_size.x(), pass_mode::pass});
 
     add_floors(w, from, max_dist, pool.params().div_size());
     auto& ch = w[wch];
@@ -601,6 +656,8 @@ void Test::test_dijkstra()
         check_corridor_goal(cell);
     }
     check_post_field();
+    check_walled_off_goal(false);
+    check_walled_off_goal(true);
 }
 
 } // namespace floormat

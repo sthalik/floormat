@@ -35,12 +35,39 @@ void anim_traits::atlas_list(Storage& s)
     s.name_map[loader.INVALID] = -1uz;
 }
 
+namespace {
+constexpr inline auto invalid_atlas_size = Vector2ui{tile_size_xy/2};
+} // namespace
+
 auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
+    constexpr auto size = invalid_atlas_size;
+    auto err_tex = loader.make_error_texture(size);
 
-    constexpr auto size = Vector2ui{tile_size_xy/2};
+    // Allocate the single frame in the shared sprite atlas so render-path
+    // lookups succeed for any object that ended up using this placeholder
+    // (e.g. missing asset with loader_policy::warn). Same pattern as loader/vobj.cpp.
+    const auto px_size = (size_t)err_tex.pixels().size()[2];
+    const auto row_stride = (size_t)size.x() * px_size;
+    const auto* src_base = (const char*)err_tex.pixels().data();
+    PixelStorage storage;
+    storage.setRowLength((Int)size.x());
+    storage.setAlignment(1);
+    const ImageView2D view{storage, err_tex.format(),
+                           {(Int)size.x(), (Int)size.y()},
+                           ArrayView<const void>{src_base, (size_t)size.y() * row_stride}};
+    auto sp = loader.atlas().add(view);
+
+    return { .atlas = make_invalid_atlas(loader.INVALID, {}, sp.raw()), .name = loader.INVALID, };
+}
+
+auto anim_traits::make_invalid_atlas(StringView name, placeholder_anim_params params, const SpriteAtlas::Sprite* sprite) -> bptr<Atlas>
+{
+    constexpr auto size = invalid_atlas_size;
     constexpr auto ground = Vector2i(size/2);
+    const auto nframes = params.nframes;
+    fm_soft_assert(nframes > 0);
 
     auto frame = anim_frame {
         .ground = ground,
@@ -54,7 +81,8 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
     for (auto i = 0uz; i < groups.size(); i++)
         groups[i] = anim_group {
             .name = rotation_names[i],
-            .frames = array({ frame }),
+            .frames = Array<anim_frame>{DirectInit, nframes, frame},
+            .sprites = Array<const SpriteAtlas::Sprite*>{DirectInit, nframes, sprite},
         };
     auto def = anim_def {
         .object_name = loader.INVALID,
@@ -62,39 +90,13 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
         .groups = move(groups),
         .pixel_size = size,
         .scale = anim_scale::fixed{size.x(), true},
-        .nframes = 1,
+        .nframes = nframes,
+        .fps = params.fps,
+        // Last frame, so door_scenery::depth_offset draws an open placeholder door at the open offset.
+        .action_frame = nframes - 1,
     };
     auto err_tex = loader.make_error_texture(size);
-
-    // Allocate the single frame in the shared sprite atlas so render-path
-    // lookups succeed for any object that ended up using this placeholder
-    // (e.g. missing asset with loader_policy::warn). Must happen before the
-    // atlas ctor consumes `def`. Same pattern as loader/vobj.cpp.
-    {
-        const auto px_size = (size_t)err_tex.pixels().size()[2];
-        const auto row_stride = (size_t)size.x() * px_size;
-        const auto* src_base = (const char*)err_tex.pixels().data();
-        PixelStorage storage;
-        storage.setRowLength((Int)size.x());
-        storage.setAlignment(1);
-        const ImageView2D view{storage, err_tex.format(),
-                               {(Int)size.x(), (Int)size.y()},
-                               ArrayView<const void>{src_base, (size_t)size.y() * row_stride}};
-        auto sp = loader.atlas().add(view);
-        for (auto& g : def.groups)
-        {
-            g.sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, 1};
-            g.sprites[0] = sp.raw();
-        }
-    }
-
-    auto atlas = bptr<class anim_atlas>{InPlace, loader.INVALID, err_tex, move(def)};
-
-    auto info = anim_cell {
-        .atlas = atlas,
-        .name = loader.INVALID,
-    };
-    return info;
+    return bptr<class anim_atlas>{InPlace, name, err_tex, move(def), true};
 }
 
 auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
@@ -144,7 +146,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
                 const uint32_t fw = (uint32_t)f.size.x();
                 const uint32_t fh = (uint32_t)f.size.y();
                 fm_soft_assert(fw > 0 && fh > 0);
-                fm_soft_assert(fw <= SpriteAtlas::max_texture_xy && fh <= SpriteAtlas::max_texture_xy);
+                fm_soft_assert(fw <= SpriteAtlas::max_sprite_xy && fh <= SpriteAtlas::max_sprite_xy);
                 const uint32_t ox = (uint32_t)f.offset.x(), oy = (uint32_t)f.offset.y();
                 // Subtraction form keeps offset+size from wrapping past the texture.
                 fm_soft_assert(ox <= full_width && fw <= full_width - ox);

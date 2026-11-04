@@ -1,6 +1,5 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
-#include "compat/array-size.hpp"
 #include "compat/format.hpp"
 #include "floormat/main.hpp"
 #include "src/search-astar.hpp"
@@ -8,12 +7,12 @@
 #include "src/grid-pass.hpp"
 #include "src/critter.hpp"
 #include "src/point.inl"
+#include "src/nanosecond.hpp"
+#include "src/timer.hpp"
 #include "shaders/shader.hpp"
 #include "../imgui-raii.hpp"
-#include <cstdio>
 #include <cr/Optional.h>
 #include <mg/Color.h>
-#include <mg/Timeline.h>
 
 namespace floormat::tests {
 
@@ -41,10 +40,12 @@ struct path_test final : base_test
         point from, to;
         Optional<path_search_result> res;
         astar::string_pull_result pull;
-        float pull_time = 0;
+        float search_time = 0, pull_time = 0;
+        uint32_t nodes = 0;
+        bool pulled = false;
     } result;
     bool has_result : 1 = false, has_pending : 1 = false;
-    bool smoothing = true;
+    bool smoothing = true, closest_on_failure = true;
 };
 
 bool path_test::handle_key(app& a, const key_event& e, bool is_down)
@@ -121,15 +122,15 @@ void path_test::draw_overlay(app& a)
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
     auto last = a.point_to_pixel(result.from);
-    draw.AddCircleFilled({last.x(), last.y()}, dot_radius, dot_color);
+    draw.AddCircleFilled(ImVec2(last), dot_radius, dot_color);
 
 
 
     for (auto pt : res.path())
     {
         auto pos = a.point_to_pixel(pt);
-        draw.AddLine({pos.x(), pos.y()}, {last.x(), last.y()}, raw_line_color, raw_line_thickness);
-        draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, raw_dot_color);
+        draw.AddLine(ImVec2(pos), ImVec2(last), raw_line_color, raw_line_thickness);
+        draw.AddCircleFilled(ImVec2(pos), dot_radius, raw_dot_color);
         last = pos;
     }
 
@@ -140,8 +141,8 @@ void path_test::draw_overlay(app& a)
         for (const auto& x : sp)
         {
             auto pos = a.point_to_pixel(x.pt);
-            draw.AddLine({pos.x(), pos.y()}, {prev.x(), prev.y()}, line_color, line_thickness);
-            draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, sp_dot_color);
+            draw.AddLine(ImVec2(pos), ImVec2(prev), line_color, line_thickness);
+            draw.AddCircleFilled(ImVec2(pos), dot_radius, sp_dot_color);
             prev = pos;
         }
     }
@@ -179,36 +180,51 @@ void path_test::update_pre(app& a, const Ns&)
     auto& astar = M.astar();
 
     result.res = {}; // return back to the pool to preserve cpu cache
-    auto res = astar.Dijkstra<1>(w, pending.from, pending.to, pending.max_dist, pending.own_size, Search::without_critters());
-    has_result = !!res;
+    const auto& p = Search::without_critters();
+    const auto t0 = Time::now();
+    auto res = closest_on_failure
+             ? astar.Dijkstra<1, true>(w, pending.from, pending.to, pending.max_dist, pending.own_size, p)
+             : astar.Dijkstra<1, false>(w, pending.from, pending.to, pending.max_dist, pending.own_size, p);
+    const auto search_time = Time::to_seconds(Time::now() - t0);
+    const auto nodes = astar.last_node_count();
+    const bool pulled = smoothing && !!res;
     astar::string_pull_result pull;
     float pull_time = 0;
-    if (has_result && smoothing)
+    if (pulled)
     {
-        Timeline timeline;
-        timeline.start();
-        pull = astar.string_pull(w, res, pending.own_size, Search::without_critters());
-        pull_time = timeline.currentFrameTime();
+        const auto t1 = Time::now();
+        pull = astar.string_pull(w, res, pending.own_size, p);
+        pull_time = Time::to_seconds(Time::now() - t1);
     }
+    has_result = true;
     result = {
         .from = pending.from,
         .to = pending.to,
-        .res = has_result ? move(res) : Optional<path_search_result>{},
+        .res = move(res),
         .pull = pull,
+        .search_time = search_time,
         .pull_time = pull_time,
+        .nodes = nodes,
+        .pulled = pulled,
     };
 }
 
 void path_test::draw_ui(app&, float)
 {
-    constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
+    constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg;
     constexpr auto colflags_1 = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
     constexpr auto colflags_0 = colflags_1 | ImGuiTableColumnFlags_WidthFixed;
+    constexpr auto green = 0x00ff00ff_rgbaf, yellow = 0xffff00ff_rgbaf, red = 0xff6060ff_rgbaf;
 
     char buf[128];
 
-    if (ImGui::Checkbox("smoothing", &smoothing) && has_result)
+    ImGui::TextWrapped("Left click searches from the player to the cursor. Right click clears.");
+
+    if (ImGui::Checkbox("Smoothing", &smoothing) && has_result)
         has_pending = true;
+    if (ImGui::Checkbox("Path to the closest point on failure", &closest_on_failure) && has_result)
+        has_pending = true;
+    ImGui::SetItemTooltip("Unticked, a failed search returns no path, and can stop early on a goal it proves walled off.");
 
     if (!has_result)
         return;
@@ -216,13 +232,12 @@ void path_test::draw_ui(app&, float)
     fm_assert(result.res);
     const auto& res = *result.res;
 
-    auto from_c = Vector3i(result.from.chunk3()), to_c = Vector3i(result.to.chunk3());
-    auto from_l = Vector2i(result.from.local()), to_l = Vector2i(result.to.local());
-    auto from_p = Vector2i(result.from.offset()), to_p = Vector2i(result.to.offset());
-
-    constexpr auto print_coord = [](auto&& buf, Vector3i c, Vector2i l, Vector2i p)
+    constexpr auto print_coord = [](auto&& buf, point pt)
     {
-        std::snprintf(buf, array_size(buf), "(ch %dx%d) <%dx%d> {%dx%d px}", c.x(), c.y(), l.x(), l.y(), p.x(), p.y());
+        const auto c = Vector3i(pt.chunk3());
+        const auto l = Vector2i(pt.local());
+        const auto o = Vector2i(pt.offset());
+        snformat(buf, "chunk ({}, {}), tile ({}, {})\noffset ({}, {}) px", c.x(), c.y(), l.x(), l.y(), o.x(), o.y());
     };
 
     constexpr auto do_column = [](StringView name)
@@ -233,97 +248,101 @@ void path_test::draw_ui(app&, float)
         ImGui::TableNextColumn();
     };
 
+    constexpr auto colored_text = [](StringView str, const Color4& color)
+    {
+        auto b = push_style_color(ImGuiCol_Text, color);
+        text(str);
+    };
+
+    // Both tables' first columns take the widest name, so their values line up.
+    const float name_width = Math::max(ImGui::CalcTextSize("corners added").x, ImGui::CalcTextSize("closest point").x);
+
+    ImGui::SeparatorText("Search");
     if (auto b1 = begin_table("##search_results", 2, table_flags))
     {
-        ImGui::TableSetupColumn("##name", colflags_0);
+        ImGui::TableSetupColumn("##name", colflags_0, name_width);
         ImGui::TableSetupColumn("##value", colflags_1 | ImGuiTableColumnFlags_WidthStretch);
 
         do_column("from");
-        print_coord(buf, from_c, from_l, from_p);
+        print_coord(buf, result.from);
         text(buf);
 
         do_column("to");
-        print_coord(buf, to_c, to_l, to_p);
+        print_coord(buf, result.to);
         text(buf);
 
-        do_column("found?");
+        do_column("result");
         if (res.is_found())
-        {
-            auto b = push_style_color(ImGuiCol_Text, 0x00ff00ff_rgbaf);
-            text("yes");
-        }
+            colored_text("found", green);
         else
         {
+            colored_text("not found", red);
+            if (res)
             {
-                auto b = push_style_color(ImGuiCol_Text, 0xff0000ff_rgbaf);
-                text("no");
-            }
-            {
-                auto b = push_style_color(ImGuiCol_Text, 0xffff00ff_rgbaf);
-                do_column("dist");
-                std::snprintf(buf, array_size(buf), "%d", (int)res.distance());
-                text(buf);
+                do_column("closest point");
+                snformat(buf, "{} px from the goal", res.distance());
+                colored_text(buf, yellow);
             }
         }
 
-        do_column("cost");
-        std::snprintf(buf, array_size(buf), "%d", (int)res.cost());
-        text(buf);
+        if (res)
+        {
+            do_column("cost");
+            snformat(buf, "{}", res.cost());
+            text(buf);
 
-        do_column("raw vertices");
-        std::snprintf(buf, array_size(buf), "%d", (int)res.path().size());
-        text(buf);
+            const auto raw = res.path();
+            float raw_len = 0;
+            for (auto i = 0uz; i + 1 < raw.size(); i++)
+                raw_len += Vector2(raw[i+1] - raw[i]).length();
+            do_column("length");
+            snformat(buf, "{:.1f} px, {} vertices", raw_len, raw.size());
+            text(buf);
+        }
 
-        const auto raw = res.path();
-        float raw_len = 0;
-        for (auto i = 0uz; i + 1 < raw.size(); i++)
-            raw_len += Vector2(raw[i+1] - raw[i]).length();
-        do_column("raw length");
-        snformat(buf, "{:.1f} px", raw_len);
+        do_column("nodes");
+        snformat(buf, "{}", result.nodes);
         text(buf);
 
         do_column("time");
-        std::snprintf(buf, array_size(buf), "%.1f ms", (double)(1000 * res.time()));
+        snformat(buf, "{:.1f} µs", (double)(1e6f * result.search_time));
+        text(buf);
+    }
+
+    if (!result.pulled)
+        return;
+
+    ImGui::SeparatorText("Smoothing");
+    if (auto b1 = begin_table("##smoothing_results", 2, table_flags))
+    {
+        ImGui::TableSetupColumn("##name", colflags_0, name_width);
+        ImGui::TableSetupColumn("##value", colflags_1 | ImGuiTableColumnFlags_WidthStretch);
+
+        do_column("result");
+        if (result.pull)
+            colored_text("smoothed", green);
+        else
+            colored_text("gave up", red);
+
+        const auto sp = res.smoothings();
+        float sp_len = 0;
+        for (auto i = 0uz; i + 1 < sp.size(); i++)
+            sp_len += Vector2(sp[i+1].pt - sp[i].pt).length();
+        do_column("length");
+        snformat(buf, "{:.1f} px, {} vertices", sp_len, sp.size());
         text(buf);
 
-        if (smoothing)
-        {
-            const auto sp = res.smoothings();
-            do_column("smoothed?");
-            if (result.pull)
-            {
-                auto b = push_style_color(ImGuiCol_Text, 0x00ff00ff_rgbaf);
-                text("yes");
-            }
-            else
-            {
-                auto b = push_style_color(ImGuiCol_Text, 0xff0000ff_rgbaf);
-                text("gave up");
-            }
+        do_column("corners added");
+        snformat(buf, "{}", result.pull.corners_added);
+        text(buf);
 
-            do_column("smoothed vertices");
-            snformat(buf, "{}", sp.size());
-            text(buf);
+        do_column("LOS checks");
+        snformat(buf, "{}", result.pull.los_checks);
+        text(buf);
 
-            float sp_len = 0;
-            for (auto i = 0uz; i + 1 < sp.size(); i++)
-                sp_len += Vector2(sp[i+1].pt - sp[i].pt).length();
-            do_column("smoothed length");
-            snformat(buf, "{:.1f} px", sp_len);
-            text(buf);
-
-            do_column("corners added");
-            snformat(buf, "{}", result.pull.corners_added);
-            text(buf);
-
-            do_column("LOS checks");
-            snformat(buf, "{}", result.pull.los_checks);
-            text(buf);
-
-            do_column("smoothing time");
-            snformat(buf, "{:.3f} ms", (double)(1000 * result.pull_time));
-            text(buf);
-        }
+        do_column("time");
+        snformat(buf, "{:.1f} µs", (double)(1e6f * result.pull_time));
+        text(buf);
     }
 }
 

@@ -102,29 +102,6 @@ private:
     void reset_world_post();
     void reset_world();
     void reset_world(class world&& w);
-    void populate_hole_stress_test();
-    void populate_labyrinth();
-    void populate_raycast_fractal();
-    void populate_sweep_aabb_slit();
-    void populate_l_corridor();
-    void populate_scene_benchmark();
-    void populate_scene_benchmark_walkable(uint8_t width);
-    void populate_scene_diagonal(uint8_t half_width);
-    void populate_scene_slide(bool dense);
-    void populate_scene_maze1();
-    void populate_scene_maze2();
-    void populate_scene_maze3(mazes::kind k);
-    void populate_scene_grids(uint32_t num_pins = 0);
-    void add_grid_pin(uint32_t n);
-    void populate_scene_raycast_pins();
-    void populate_scene_lightmap();
-    void populate_scene_cover();
-    static point maze_corner(uint32_t k);
-    static point lightmap_light(uint32_t k);
-    static point maze2_start();
-    static point maze2_goal();
-    void populate_scene_benchmark_all_z();
-    void populate_scene_clickables();
 
     void draw() override;
 
@@ -171,6 +148,7 @@ private:
     void draw_inspector();
     static void entity_inspector_name(char(&buf)[10], object_id id);
     static void entity_friendly_name(char* buf, size_t len, const object& obj);
+    static void inspector_window_title(char(&buf)[140], const object& obj);
     bool check_inspector_exists(const popup_target& p);
     void set_cursor_from_imgui();
     void draw_cursor();
@@ -183,7 +161,6 @@ private:
     void draw_z_level();
     void do_popup_menu();
     void kill_popups(bool hard);
-    void render_menu();
 
     using key_set = enum_bitset<key, key_COUNT>;
     void do_key(key k, int mods, int keycode);
@@ -211,10 +188,36 @@ private:
     void release_all_input();
     point cursor_point();
     void set_window_size(Vector2i size);
+
     void driver_start();
     void driver_tick(Ns dt);
     void driver_draw_overlay();
     void driver_save_world(uint32_t scene_number, StringView scene_name, bool is_post);
+
+    void populate_hole_stress_test();
+    void populate_labyrinth();
+    void populate_raycast_fractal();
+    void populate_sweep_aabb_slit();
+    void populate_l_corridor();
+    void populate_scene_benchmark();
+    void populate_scene_benchmark_walkable(uint8_t width);
+    void populate_scene_diagonal(uint8_t half_width);
+    void populate_scene_slide(bool dense);
+    void populate_scene_maze1();
+    void populate_scene_maze2();
+    void populate_scene_maze3(mazes::kind k);
+    void populate_scene_grids(uint32_t num_pins = 0);
+    void add_grid_pin(uint32_t n);
+    void populate_scene_raycast_pins();
+    void populate_scene_lightmap();
+    void populate_scene_cover();
+    static point maze_corner(uint32_t k);
+    static point lightmap_light(uint32_t k);
+    static point maze2_start();
+    static point maze2_goal();
+    void populate_scene_benchmark_all_z();
+    void populate_scene_clickables();
+
     pgo::task click_at_cursor(uint8_t button);
     pgo::task click_at(point pt, uint8_t button);
     pgo::task press_and_hold(point pt, uint8_t button, uint32_t num_frames);
@@ -223,6 +226,7 @@ private:
     pgo::task inject_click(Vector2i pos, mouse_button button);
     pgo::task drag_along(point from, Vector2i step, uint32_t count, uint8_t button);
     pgo::task pan_along_path(ArrayView<const point> path);
+    pgo::task hold_for(Ns dt);
     pgo::task scene_modes();
     pgo::task scene_input_events();
     pgo::task scene_popup_target();
@@ -243,9 +247,12 @@ private:
     pgo::task scene_grids();
     pgo::task scene_lightmap();
     pgo::task scene_cover();
+    pgo::task scene_cover_ai();
+    pgo::task scene_cover_ai_map();
     pgo::task scene_clickables();
     pgo::task scene_torture_flat();
     pgo::task scene_torture_all_z();
+    pgo::task scene_overlays();
 
     [[nodiscard]] bool tests_handle_key(const key_event& e, bool is_down);
     [[nodiscard]] bool tests_handle_mouse_click(const mouse_button_event& e, bool is_down);
@@ -255,6 +262,7 @@ private:
     void draw_tests_pane(float width);
     void draw_tests_overlay();
     void tests_reset_mode();
+    void tests_leave_mode();
     tests::tests_data& tests();
 
     void reserve_inspector_array();

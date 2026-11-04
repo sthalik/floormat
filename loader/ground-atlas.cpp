@@ -2,6 +2,7 @@
 #include "atlas-loader.inl"
 #include "ground-traits.hpp"
 #include "ground-cell.hpp"
+#include "src/ground-atlas.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include <mg/Vector2.h>
 
@@ -29,6 +30,11 @@ auto loader_impl::ground_atlas_list() noexcept(false) -> ArrayView<const ground_
 const ground_cell& loader_impl::invalid_ground_atlas()
 {
     return _ground_loader->get_invalid_atlas();
+}
+
+bptr<class ground_atlas> loader_impl::make_placeholder_ground_atlas(StringView name)
+{
+    return bptr<class ground_atlas>{InPlace, *invalid_ground_atlas().atlas, name};
 }
 
 const bptr<class ground_atlas>& loader_impl::ground_atlas(StringView filename, loader_policy policy) noexcept(false)

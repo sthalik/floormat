@@ -61,17 +61,12 @@ void app::init_imgui(Vector2i size)
     _imgui->relayout(Vector2{size}, size, size);
 }
 
-void app::render_menu()
-{
-    _imgui->drawFrame();
-}
-
 float app::draw_main_menu()
 {
     float main_menu_height = 0;
     if (auto b = begin_main_menu())
     {
-        if (auto b = begin_menu("File"))
+        if (auto b2 = begin_menu("File"))
         {
             bool do_new = false, do_quickload = false, do_load = false, do_quit = false;
             ImGui::MenuItem("New", nullptr, &do_new);
@@ -89,7 +84,7 @@ float app::draw_main_menu()
             else if (do_quit)
                 do_key(key_quit);
         }
-        if (auto b = begin_menu("Editor"))
+        if (auto b2 = begin_menu("Editor"))
         {
             auto mode = _editor->mode();
             using m = editor_mode;
@@ -131,8 +126,7 @@ float app::draw_main_menu()
             if (ImGui::MenuItem("Show all Z levels", "T", b_all_z_levels))
                 do_key(key_render_all_z_levels);
         }
-#if 1
-        if (auto b = begin_menu("Tests"))
+        if (auto b2 = begin_menu("Tests"))
         {
             if (ImGui::MenuItem("Text painter test", nullptr, _test_text_painter))
                 _test_text_painter = !_test_text_painter;
@@ -189,7 +183,6 @@ float app::draw_main_menu()
             if (ImGui::MenuItem("Scene torture test (all Z)"))
                 scene([this] { populate_scene_benchmark_all_z(); });
         }
-#endif
 
         main_menu_height = ImGui::GetContentRegionAvail().y;
     }
@@ -243,8 +236,6 @@ void app::draw_ui()
     driver_draw_overlay();
     const float main_menu_height = draw_main_menu();
 
-    //[[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
-
     draw_lightmap_test(main_menu_height);
     draw_load_pane(main_menu_height);
 
@@ -259,7 +250,6 @@ void app::draw_ui()
         draw_inspector();
     draw_z_level();
     do_popup_menu();
-    ImGui::EndFrame();
 }
 
 void app::draw_clickables()
@@ -270,10 +260,8 @@ void app::draw_clickables()
 
     for (const auto& x : M->clickable_scenery())
     {
-        auto dest = Math::Range2D<float>(x.dest);
-        auto min = dest.min(), max = dest.max();
-        draw.AddRect({ min.x(), min.y() }, { max.x(), max.y() },
-                     color, 0, thickness);
+        const auto dest = Math::Range2D<float>(x.dest);
+        draw.AddRect(ImVec2(dest.min()), ImVec2(dest.max()), color, 0, thickness);
     }
 
     // draw slope lines on static scenery
@@ -310,7 +298,7 @@ void app::draw_clickables()
             const Vector2 center = tile_shader::point_to_pixel(Vector3i(e.position()) + Vector3i(g.offset), win_size, camera);
             const auto start = Vector2{center.x() + left_x,  center.y() + y_at_left};
             const auto end   = Vector2{center.x() + right_x, center.y() + y_at_right};
-            draw.AddLine({start.x(), start.y()}, {end.x(), end.y()}, color, thickness);
+            draw.AddLine(ImVec2(start), ImVec2(end), color, thickness);
 
             // vertical split at the bbox NW corner (between slope line and top edge)
             const float x_nw = Math::clamp(nw.x(), left_x, right_x);
@@ -318,7 +306,7 @@ void app::draw_clickables()
             const float top_y = -float(frame.ground.y());
             const auto vsplit_start = Vector2{center.x() + x_nw, center.y() + y_at_nw};
             const auto vsplit_end   = Vector2{center.x() + x_nw, center.y() + top_y};
-            draw.AddLine({vsplit_start.x(), vsplit_start.y()}, {vsplit_end.x(), vsplit_end.y()}, color, thickness);
+            draw.AddLine(ImVec2(vsplit_start), ImVec2(vsplit_end), color, thickness);
         }
     }
 }
@@ -447,9 +435,9 @@ void app::draw_text_painter_test()
         p.text(white,  "(slot rendered by caller)"_s);
         p.render(draw, cursor);
         const auto r = p.bounds_of(x_slot);
-        draw.AddLine({r.min().x(), r.min().y()}, {r.max().x(), r.max().y()}, magenta, 1.5f);
+        draw.AddLine(ImVec2(r.min()), ImVec2(r.max()), magenta, 1.5f);
         draw.AddLine({r.min().x(), r.max().y()}, {r.max().x(), r.min().y()}, magenta, 1.5f);
-        draw.AddRect({r.min().x(), r.min().y()}, {r.max().x(), r.max().y()}, magenta, 0, 1);
+        draw.AddRect(ImVec2(r.min()), ImVec2(r.max()), magenta, 0, 1);
         cursor.y() += line_h;
     }
 
@@ -466,7 +454,7 @@ void app::draw_text_painter_test()
         p.render(draw, cursor);
         const auto rc = p.bounds_of(s_circle);
         const auto cc = (rc.min() + rc.max()) * 0.5f;
-        draw.AddCircleFilled({cc.x(), cc.y()}, 7*dpi.x(), red);
+        draw.AddCircleFilled(ImVec2(cc), 7*dpi.x(), red);
         const auto rt = p.bounds_of(s_tri);
         const auto ct = (rt.min() + rt.max()) * 0.5f;
         const float t = 7*dpi.x();
@@ -475,8 +463,7 @@ void app::draw_text_painter_test()
                                {ct.x() + t, ct.y() + t}, green);
         const auto rs = p.bounds_of(s_sqr);
         const auto cs = (rs.min() + rs.max()) * 0.5f;
-        draw.AddRectFilled({cs.x() - 7*dpi.x(), cs.y() - 7*dpi.y()},
-                           {cs.x() + 7*dpi.x(), cs.y() + 7*dpi.y()}, blue);
+        draw.AddRectFilled(ImVec2(cs - 7*dpi), ImVec2(cs + 7*dpi), blue);
         cursor.y() += line_h;
     }
 
@@ -530,8 +517,7 @@ void app::draw_text_painter_test()
         p.text(white,  "bounds() draws cyan frame around me"_s);
         p.render(draw, cursor);
         const auto bb = p.bounds();
-        draw.AddRect({bb.min().x(), bb.min().y()}, {bb.max().x(), bb.max().y()},
-                     frame_c, 0, 2);
+        draw.AddRect(ImVec2(bb.min()), ImVec2(bb.max()), frame_c, 0, 2);
         cursor.y() += line_h * 1.4f;
     }
 
@@ -569,7 +555,7 @@ void app::draw_text_painter_test()
         p.render(draw, cursor);
         const auto rd = p.bounds_of(dot_slot);
         const auto cd = (rd.min() + rd.max()) * 0.5f;
-        draw.AddCircleFilled({cd.x(), cd.y()}, 3*dpi.x(), magenta);
+        draw.AddCircleFilled(ImVec2(cd), 3*dpi.x(), magenta);
         cursor.y() += line_h * 1.4f;
     }
 
@@ -680,9 +666,8 @@ void app::draw_lightmap_test(float main_menu_height)
 
     ImGui::SetNextWindowPos(window_pos, ImGuiCond_Appearing);
 
-    if (ImGui::Begin("Lightmap", &is_open, flags))
+    if (auto b2 = begin_window("Lightmap", &is_open, flags))
         ImGui::Image(shader.accum_texture().id(), preview_size, {0, 0}, {1, 1});
-    ImGui::End();
 
     if (!is_open)
         tested_light_chunk = {};
@@ -716,12 +701,10 @@ void app::do_popup_menu()
     auto& e = *eʹ;
 
     auto b0 = push_id(SCENERY_POPUP_NAME);
-    //if (_popup_target.target != popup_target_type::scenery) {...}
 
     if (_pending_popup)
     {
         _pending_popup = false;
-        //if (type != popup_target_type::scenery) {...}
         ImGui::OpenPopup(SCENERY_POPUP_NAME.data());
     }
 
@@ -738,10 +721,8 @@ void app::do_popup_menu()
             if (!exists)
                 add_inspector(std::exchange(_popup_target, {}));
             {
-                char buf2[10], buf3[128], buf[sizeof buf2 + sizeof buf3 + 3 - 1];
-                entity_inspector_name(buf2, e.id);
-                entity_friendly_name(buf3, sizeof buf3, e);
-                std::snprintf(buf, sizeof buf, "%s###%s", buf3, buf2);
+                char buf[140];
+                inspector_window_title(buf, e);
                 ImGui::SetWindowFocus(buf);
                 ImGui::SetWindowCollapsed(buf, false);
             }
@@ -765,22 +746,19 @@ void app::kill_popups(bool hard)
 {
     const bool imgui = _imgui->context() != nullptr;
 
-    if (imgui)
-        fm_assert(_imgui->context());
-
     _pending_popup = false;
     _popup_target = {};
 
     if (hard)
         tested_light_chunk = {};
 
-    if (_imgui->context())
+    if (imgui)
         ImGui::CloseCurrentPopup();
 
     if (hard)
         kill_inspectors();
 
-    if (_imgui->context())
+    if (imgui)
         ImGui::FocusWindow(nullptr);
 }
 

@@ -8,9 +8,13 @@
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include "src/ground-atlas.hpp"
+#include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/nanosecond.inl"
 #include "loader/loader.hpp"
+#include "loader/anim-cell.hpp"
+#include "loader/ground-cell.hpp"
+#include "loader/wall-cell.hpp"
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/crc64.hpp"
@@ -90,13 +94,25 @@ chunk& Test::make_test_chunk(world& w, chunk_coords_ ch)
 
 namespace {
 
+// Each load makes placeholders of its own, so the same missing atlas comes back as a new pointer.
+template<typename Atlas>
+void match_placeholders(const bptr<Atlas>& a, bptr<Atlas>& b)
+{
+    if (a && b && a->is_placeholder() && b->is_placeholder() && a->name() == b->name())
+        b = a;
+}
+
 void assert_chunks_equal(const chunk& a, const chunk& b)
 {
     fm_assert(a.objects().size() == b.objects().size());
 
     for (auto i = 0uz; i < TILE_COUNT; i++)
     {
-        const auto &a1 = a[i], &b1 = b[i];
+        const auto a1 = tile_proto(a[i]);
+        auto b1 = tile_proto(b[i]);
+        match_placeholders(a1.ground_atlas, b1.ground_atlas);
+        match_placeholders(a1.wall_north_atlas, b1.wall_north_atlas);
+        match_placeholders(a1.wall_west_atlas, b1.wall_west_atlas);
         fm_assert(a1 == b1);
     }
 
@@ -115,14 +131,18 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
         case object_type::critter: {
             const auto& e1 = static_cast<const critter&>(ae);
             const auto& e2 = static_cast<const critter&>(be);
-            const auto p1 = critter_proto(e1), p2 = critter_proto(e2);
+            const auto p1 = critter_proto(e1);
+            auto p2 = critter_proto(e2);
+            match_placeholders(p1.atlas, p2.atlas);
             fm_assert(p1 == p2);
             break;
         }
         case object_type::scenery: {
             const auto& e1 = static_cast<const scenery&>(ae);
             const auto& e2 = static_cast<const scenery&>(be);
-            const auto p1 = scenery_proto(e1), p2 = scenery_proto(e2);
+            const auto p1 = scenery_proto(e1);
+            auto p2 = scenery_proto(e2);
+            match_placeholders(p1.atlas, p2.atlas);
             fm_assert(p1 == p2);
             break;
         }
@@ -408,7 +428,19 @@ void test_save_nan()
     check_nan_rejected(patched, *save, lid, &light::radius, lp.radius);
 }
 
-// Each critter is named after the offset_frac and delta it was saved with.
+// Each critter is named after the offset_frac and delta it was saved with. Returns how many ns its
+// delta is from that pair converted at its atlas's fps.
+double offset_frac_error(const critter& C)
+{
+    uint32_t offset_frac, delta;
+    fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
+    // delta counted (uint32_t)-1 per second. offset_frac is path length × 32768, and a
+    // pixel of path cost a frame.
+    const auto expected = delta * 1e9 / double(uint32_t(-1))
+                        + offset_frac * 1e9 / (32768 * double(C.atlas->info().fps));
+    return Math::abs(double(C.delta) - expected);
+}
+
 void check_offset_frac(StringView name, uint16_t expected_proto, uint32_t expected_count)
 {
     constexpr auto magic = ".floormat.save"_s;
@@ -424,14 +456,7 @@ void check_offset_frac(StringView name, uint16_t expected_proto, uint32_t expect
     double max_err = 0;
     for (auto& c : w.chunks())
         c.objects().visit<critter>([&](critter& C) {
-            uint32_t offset_frac, delta;
-            fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
-            // delta counted (uint32_t)-1 per second. offset_frac is path length × 32768, and a
-            // pixel of path cost a frame.
-            const auto expected = delta * 1e9 / double(uint32_t(-1))
-                                + offset_frac * 1e9 / (32768 * double(C.atlas->info().fps));
-            const auto got = double(C.delta);
-            max_err = Math::max(max_err, Math::abs(got - expected));
+            max_err = Math::max(max_err, offset_frac_error(C));
             count++;
         });
     fm_assert(count == expected_count);
@@ -445,41 +470,235 @@ void test_save_offset_frac()
     check_offset_frac("proto-30-offset-frac.dat"_s, 30, 24);
 }
 
-// A missing anim atlas loads as a stand-in with one frame and fps 0, which can't turn offset_frac
-// into time.
 void check_missing_atlas(StringView name, uint32_t expected_count)
 {
     const auto path = Path::join(loader.TEMP_PATH, Path::join("test/save"_s, name));
     const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-atlas.dat"_s);
     const auto file = Path::read(path);
     fm_assert(file);
-    constexpr auto from = "npc-walk"_s, to = "npc-gone"_s;
+    constexpr auto from = "anim/npc-walk"_s, to = "anim/npc-gone"_s;
     write_patched(patched, *file, {from.data(), from.size()}, {to.data(), to.size()});
 
     auto w = world::deserialize(patched, loader_policy::ignore);
     uint32_t count = 0;
+    double max_err = 0;
     for (auto& c : w.chunks())
         c.objects().visit<critter>([&](critter& C) {
-            fm_assert(C.atlas->info().fps == 0);
+            fm_assert(C.atlas->name() == to);
+            fm_assert(C.atlas->is_placeholder());
+            fm_assert(C.atlas->info().fps == 30);
             fm_assert(C.frame == 0);
-            uint32_t offset_frac, delta;
             // quicksave.dat's player was saved facing SE on frame 23.
             if (C.playable)
                 fm_assert(C.r == rotation::SE);
-            else
-            {
-                fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
-                fm_assert(C.delta == object::ns_to_delta(object::fraction_to_ns(delta)));
-            }
+            max_err = Math::max(max_err, offset_frac_error(C));
             count++;
         });
     fm_assert(count == expected_count);
+    fm_assert(max_err < 5);
+
+    const auto resaved = Path::join(loader.TEMP_PATH, "test/test-save-missing-atlas-2.dat"_s);
+    if (Path::exists(resaved))
+        Path::remove(resaved);
+    w.serialize(resaved);
+    auto w2 = world::deserialize(resaved, loader_policy::ignore);
+    count = 0;
+    for (auto& c : w2.chunks())
+        c.objects().visit<critter>([&](critter& C) {
+            fm_assert(C.atlas->name() == to);
+            fm_assert(C.atlas->is_placeholder());
+            fm_assert(C.atlas->info().fps == 30);
+            count++;
+        });
+    fm_assert(count == expected_count);
+    fm_assert(loader.anim_atlas(to, {}, loader_policy::ignore) == loader.invalid_anim_atlas().atlas);
 }
 
 void test_save_missing_atlas()
 {
     check_missing_atlas("proto-29-offset-frac.dat"_s, 25);
     check_missing_atlas("proto-30-offset-frac.dat"_s, 24);
+}
+
+void test_save_missing_tile_atlas()
+{
+    const auto tmp = Path::join(loader.TEMP_PATH, "test/test-save-missing-tile-atlas.dat"_s);
+    const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-tile-atlas-2.dat"_s);
+    const auto resaved = Path::join(loader.TEMP_PATH, "test/test-save-missing-tile-atlas-3.dat"_s);
+    constexpr auto ground_from = "tiles"_s, ground_to = "gone1"_s;
+    constexpr auto wall_from = "test1"_s, wall_to = "gone2"_s;
+    constexpr auto ch = chunk_coords_{2, -3, 0};
+    constexpr auto pos = local_coords{4, 5};
+
+    const auto& ground = loader.ground_atlas(ground_from);
+    const auto variant = variant_t(ground->num_tiles() - 1);
+    fm_assert(variant > 0);
+    {
+        auto w = world();
+        auto& c = w[ch];
+        c.mark_modified();
+        c[pos].ground() = { ground, variant };
+        c[pos].wall_north() = { loader.wall_atlas(wall_from), 0 };
+        c[pos].wall_west() = { loader.wall_atlas(wall_from), 0 };
+        if (Path::exists(tmp))
+            Path::remove(tmp);
+        w.serialize(tmp);
+    }
+    auto save = Path::read(tmp);
+    fm_assert(save);
+    write_patched(patched, *save, {ground_from.data(), ground_from.size()}, {ground_to.data(), ground_to.size()});
+    save = Path::read(patched);
+    fm_assert(save);
+    write_patched(patched, *save, {wall_from.data(), wall_from.size()}, {wall_to.data(), wall_to.size()});
+
+    const auto check = [&](world& w) {
+        auto t = w[ch][pos];
+        const auto G = t.ground_atlas();
+        fm_assert(G->name() == ground_to);
+        fm_assert(G->is_placeholder());
+        fm_assert(t.ground().variant == variant);
+        const auto N = t.wall_north_atlas(), W = t.wall_west_atlas();
+        fm_assert(N->name() == wall_to);
+        fm_assert(N->is_placeholder());
+        fm_assert(N == W);
+    };
+
+    auto w = world::deserialize(patched, loader_policy::ignore);
+    check(w);
+    if (Path::exists(resaved))
+        Path::remove(resaved);
+    w.serialize(resaved);
+    auto w2 = world::deserialize(resaved, loader_policy::ignore);
+    check(w2);
+    fm_assert(loader.ground_atlas(ground_to, loader_policy::ignore) == loader.invalid_ground_atlas().atlas);
+    fm_assert(loader.wall_atlas(wall_to, loader_policy::ignore) == loader.invalid_wall_atlas().atlas);
+}
+
+// `name` with its last four characters replaced, so that write_patched() can swap one for the other.
+String missing_name(StringView name)
+{
+    constexpr auto suffix = "gone"_s;
+    fm_assert(name.size() > suffix.size());
+    auto ret = String{name};
+    for (uint32_t i = 0; i < suffix.size(); i++)
+        ret[ret.size() - suffix.size() + i] = suffix[i];
+    fm_assert(ret != name);
+    return ret;
+}
+
+void test_save_missing_door_atlas()
+{
+    const auto tmp = Path::join(loader.TEMP_PATH, "test/test-save-missing-door-atlas.dat"_s);
+    const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-door-atlas-2.dat"_s);
+    const auto resaved = Path::join(loader.TEMP_PATH, "test/test-save-missing-door-atlas-3.dat"_s);
+    constexpr auto ch = chunk_coords_{2, -3, 0};
+    constexpr auto closed_pos = local_coords{4, 5}, open_pos = local_coords{6, 5}, table_pos = local_coords{8, 5};
+
+    const auto& door_proto = loader.scenery("door1");
+    const auto door_from = String{door_proto.atlas->name()};
+    const auto table_from = String{loader.scenery("table1").atlas->name()};
+    const auto door_to = missing_name(door_from), table_to = missing_name(table_from);
+    object_id closed_id = 0, open_id = 0, table_id = 0;
+    {
+        auto w = world();
+        w[ch].mark_modified();
+        auto closed = door_proto, open = door_proto;
+        closed.frame = uint16_t(door_proto.atlas->info().nframes - 1);
+        closed.pass = pass_mode::blocked;
+        open.frame = 0;
+        open.pass = pass_mode::pass;
+        closed_id = w.make_id();
+        open_id = w.make_id();
+        table_id = w.make_id();
+        w.make_scenery(closed_id, {ch, closed_pos}, move(closed));
+        w.make_scenery(open_id, {ch, open_pos}, move(open));
+        w.make_scenery(table_id, {ch, table_pos}, scenery_proto(loader.scenery("table1")));
+        if (Path::exists(tmp))
+            Path::remove(tmp);
+        w.serialize(tmp);
+    }
+    auto save = Path::read(tmp);
+    fm_assert(save);
+    write_patched(patched, *save, {door_from.data(), door_from.size()}, {door_to.data(), door_to.size()});
+    save = Path::read(patched);
+    fm_assert(save);
+    write_patched(patched, *save, {table_from.data(), table_from.size()}, {table_to.data(), table_to.size()});
+
+    const auto check = [&](world& w) {
+        const auto check_door = [&](object_id id, uint16_t frame, pass_mode pass) {
+            const auto d = w.find_object<door_scenery>(id);
+            fm_assert(d);
+            fm_assert(d->atlas->name() == door_to);
+            fm_assert(d->atlas->is_placeholder());
+            fm_assert(d->atlas->info().fps == 30);
+            fm_assert(d->atlas->info().nframes == 2);
+            fm_assert(d->frame == frame);
+            fm_assert(d->pass == pass);
+            fm_assert(d->is_dynamic());
+        };
+        check_door(closed_id, 1, pass_mode::blocked);
+        check_door(open_id, 0, pass_mode::pass);
+        const auto t = w.find_object<generic_scenery>(table_id);
+        fm_assert(t);
+        fm_assert(t->atlas->name() == table_to);
+        fm_assert(t->atlas->is_placeholder());
+        fm_assert(t->atlas->info().fps == 0);
+        fm_assert(t->atlas->info().nframes == 1);
+        fm_assert(t->frame == 0);
+        fm_assert(!t->is_dynamic());
+    };
+
+    auto w = world::deserialize(patched, loader_policy::ignore);
+    check(w);
+    if (Path::exists(resaved))
+        Path::remove(resaved);
+    w.serialize(resaved);
+    auto w2 = world::deserialize(resaved, loader_policy::ignore);
+    check(w2);
+    fm_assert(loader.anim_atlas(door_to, {}, loader_policy::ignore) == loader.invalid_anim_atlas().atlas);
+
+    {
+        const auto restored = Path::join(loader.TEMP_PATH, "test/test-save-missing-door-atlas-4.dat"_s);
+        const auto last = uint16_t(door_proto.atlas->info().nframes - 1);
+        fm_assert(last > 1);
+        auto bytes = Path::read(resaved);
+        fm_assert(bytes);
+        write_patched(restored, *bytes, {door_to.data(), door_to.size()}, {door_from.data(), door_from.size()});
+        bytes = Path::read(restored);
+        fm_assert(bytes);
+        write_patched(restored, *bytes, {table_to.data(), table_to.size()}, {table_from.data(), table_from.size()});
+        auto w3 = world::deserialize(restored, loader_policy::error);
+
+        const auto swing = [&](object_id id, uint16_t from, uint16_t to, pass_mode from_pass, pass_mode to_pass) {
+            const auto obj = w3.find_object(id);
+            const auto d = w3.find_object<door_scenery>(id);
+            fm_assert(d);
+            fm_assert(!d->atlas->is_placeholder());
+            fm_assert(d->atlas->name() == door_from);
+            fm_assert(d->frame == from && d->pass == from_pass && !d->active);
+            auto index = d->index();
+            fm_assert(d->activate(index));
+            for (uint32_t i = 0; d->active; i++)
+            {
+                fm_assert(i < 10);
+                d->update(obj, index, Second);
+            }
+            fm_assert(d->frame == to && d->pass == to_pass);
+        };
+        swing(closed_id, last, 0, pass_mode::blocked, pass_mode::pass);
+        swing(open_id, 0, last, pass_mode::pass, pass_mode::blocked);
+    }
+
+    const auto toggle =[&](object_id id, uint16_t frame, pass_mode pass) {
+        const auto obj = w.find_object(id);
+        const auto d = w.find_object<door_scenery>(id);
+        auto index = d->index();
+        fm_assert(d->activate(index));
+        d->update(obj, index, Second);
+        fm_assert(d->frame == frame && d->pass == pass && !d->active);
+    };
+    toggle(closed_id, 0, pass_mode::pass);
+    toggle(open_id, 1, pass_mode::blocked);
 }
 
 } // namespace
@@ -498,6 +717,8 @@ void Test::test_saves()
     test_save_nan();
     test_save_offset_frac();
     test_save_missing_atlas();
+    test_save_missing_tile_atlas();
+    test_save_missing_door_atlas();
 }
 
 } // namespace floormat

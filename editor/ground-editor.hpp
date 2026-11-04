@@ -29,8 +29,7 @@ public:
     ~ground_editor() noexcept;
     bptr<ground_atlas> maybe_atlas(StringView str);
     bptr<ground_atlas> atlas(StringView str);
-    typename std::map<StringView, ground_cell>::const_iterator begin() const noexcept;
-    typename std::map<StringView, ground_cell>::const_iterator end() const noexcept;
+    const std::map<StringView, ground_cell>& items() const noexcept;
     StringView name() const noexcept;
 
     void clear_selection();
@@ -41,7 +40,7 @@ public:
     bool is_atlas_selected(const bptr<ground_atlas>& atlas) const;
     bool is_anything_selected() const;
     tile_image_proto get_selected();
-    void place_tile(world& world, global_coords pos, const tile_image_proto& img);
+    static void place_tile(world& w, global_coords pos, const tile_image_proto& img);
     editor_snap_mode check_snap(int mods) const;
 };
 

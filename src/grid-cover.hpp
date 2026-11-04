@@ -4,6 +4,7 @@
 namespace floormat {
 struct local_coords;
 class chunk;
+struct Ns;
 }
 
 namespace floormat::detail::grid {
@@ -17,6 +18,10 @@ namespace floormat::Grid::Cover {
 
 inline constexpr uint32_t octant_count = 32;
 inline constexpr uint16_t blocked = (uint16_t)-1;
+constexpr inline uint32_t max_div_size = 64;
+
+// Within 0.7° of k*11.25°. Octant k's distances run along it.
+Vector2 octant_direction(uint32_t k);
 
 struct Params
 {
@@ -24,7 +29,7 @@ struct Params
 
     constexpr explicit Params(uint32_t div_size): div_size{div_size} {}
 
-    Params validate() const;
+    [[nodiscard]] Params validate() const;
     bool operator==(const Params&) const noexcept;
 };
 
@@ -51,6 +56,7 @@ public:
     explicit operator bool() const noexcept;
     detail::grid::CoverGrid* raw() const noexcept;
 
+    bool is_stale() const;
     void mark_stale();
     void maybe_mark_stale();
     void build_if_stale();
@@ -71,13 +77,15 @@ public:
     fm_DISABLE_MOVE_COPY(Pool);
 
     [[nodiscard]] Grid operator[](chunk& c);
-    [[nodiscard]] Grid wrap(detail::grid::CoverGrid* g) const noexcept;
 
     void maybe_mark_stale_all(const world& w);
     void build_if_stale_all();
 
     Params params() const;
     uint32_t pooled_count() const;
+    // since the pool was made
+    uint32_t octant_fills() const;
+    Ns octant_fill_time() const;
 };
 
 } // namespace floormat::Grid::Cover

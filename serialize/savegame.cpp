@@ -236,8 +236,13 @@ struct visitor_ : visitor_base<IsNewest>
             self.visit(obj.atlas, atlas_type::vobj, f);
             break;
         case object_type::scenery:
+            self.visit(obj.atlas, atlas_type::anim, f);
+            break;
         case object_type::critter:
             self.visit(obj.atlas, atlas_type::anim, f);
+            if constexpr(!IsWriter)
+                if (obj.atlas->is_placeholder()) [[unlikely]]
+                    obj.atlas = self.critter_placeholder(obj.atlas);
             break;
         }
         fm_debug_assert(obj.atlas);
@@ -266,9 +271,10 @@ struct visitor_ : visitor_base<IsNewest>
             if (self.PROTO < 31) [[unlikely]]
                 obj.delta = object::ns_to_delta(object::fraction_to_ns(obj.delta));
         visit(obj.frame, f);
-        // The stand-in for a missing atlas has one frame.
+        // A critter or vobj placeholder has one frame. A scenery one is clamped in read_scenery,
+        // after a door's atlas is swapped for one with two frames.
         if constexpr(!IsWriter)
-            if (obj.atlas == loader.invalid_anim_atlas().atlas) [[unlikely]]
+            if (obj.atlas->is_placeholder() && s.type != object_type::scenery) [[unlikely]]
                 obj.frame = 0;
         visit(obj.r, f);
         visit(obj.pass, f);
@@ -400,7 +406,7 @@ struct visitor_ : visitor_base<IsNewest>
                 // path length × 32768, and a pixel of path cost a frame
                 uint16_t offset_frac;
                 visit(offset_frac, f);
-                // a 1-frame atlas can have fps 0, as does the one loaded for a missing atlas
+                // a 1-frame atlas can have fps 0
                 if (const auto fps = obj.atlas->info().fps)
                     obj.delta = object::ns_to_delta(Ns{obj.delta} + (Second / fps) * (double(offset_frac) / 32768));
             }
@@ -896,7 +902,16 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     {
         void* atlas;
         atlas_type type;
+        bptr<ground_atlas> ground;
+        bptr<wall_atlas> wall;
+        bptr<anim_atlas> anim, critter_anim, door_anim;
     };
+
+    // A critter on an fps-0 placeholder never walks, and the missing atlas's fps is unknown. A door
+    // needs a closed and an open frame, and fps > 0 for update() to step between them. Other scenery
+    // placeholders stay at fps 0, since is_dynamic() is fps > 0.
+    static constexpr uint32_t critter_placeholder_fps = 30;
+    static constexpr placeholder_anim_params door_placeholder_params = { .fps = 30, .nframes = 2 };
 
     std::vector<StringView> strings;
     std::vector<atlas_pair> atlases;
@@ -907,6 +922,30 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     loader_policy asset_policy;
 
     reader(class world& w, loader_policy policy) : w{w}, asset_policy{policy} {}
+
+    atlas_pair& atlas_pair_of(const bptr<anim_atlas>& a)
+    {
+        for (auto& x : atlases)
+            if (x.anim == a)
+                return x;
+        fm_abort("placeholder '%s' isn't in the atlas table", a->name().data());
+    }
+
+    const bptr<anim_atlas>& critter_placeholder(const bptr<anim_atlas>& a)
+    {
+        auto& x = atlas_pair_of(a);
+        if (!x.critter_anim)
+            x.critter_anim = loader.make_placeholder_anim_atlas(a->name(), {.fps = critter_placeholder_fps});
+        return x.critter_anim;
+    }
+
+    const bptr<anim_atlas>& door_placeholder(const bptr<anim_atlas>& a)
+    {
+        auto& x = atlas_pair_of(a);
+        if (!x.door_anim)
+            x.door_anim = loader.make_placeholder_anim_atlas(a->name(), door_placeholder_params);
+        return x.door_anim;
+    }
 
     template<typename F> void visit(String& str, F&& f)
     { atlasid id; f(id); str = get_string(id); }
@@ -926,7 +965,7 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
         default:
             fm_throw("invalid atlas type {}", (int)type);
         case atlas_type::anim:
-            a = loader.anim_atlas(get_atlas<atlas_type::anim>(id), {}, asset_policy);
+            a = get_atlas_pair(id, atlas_type::anim).anim;
             break;
         case atlas_type::vobj:
             a = loader.vobj(get_atlas<atlas_type::vobj>(id)).atlas;
@@ -958,12 +997,27 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
         case scenery_type::door: {
             door_scenery_proto p;
             visit_scenery_proto(p, f);
+            if (sc.atlas->is_placeholder()) [[unlikely]]
+                sc.atlas = door_placeholder(sc.atlas);
+            else if (!p.active)
+            {
+                // door_scenery::activate() asserts a resting door is on frame 0 or the last one. A door
+                // saved on the 2-frame placeholder is on frame 1 when closed, which is mid-swing in
+                // the real atlas, so it moves to the end that its pass mode says.
+                const auto last = sc.atlas->info().nframes - 1;
+                if (sc.frame != 0 && sc.frame != last)
+                    sc.frame = (uint16_t)(sc.pass == pass_mode::blocked ? last : 0u);
+            }
             sc.subtype = move(p);
             goto ok;
         }
         }
         fm_throw("invalid sc_type {}", (int)sc_type);
 ok:
+        // The header leaves a scenery placeholder's frame alone. object's ctor asserts
+        // frame < nframes, so the frame is clamped against the final atlas.
+        if (sc.atlas->is_placeholder()) [[unlikely]]
+            sc.frame = (uint16_t)Math::min<uint32_t>(sc.frame, sc.atlas->info().nframes - 1);
         ret = w.make_scenery(h.id, coord, move(sc));
     }
 
@@ -1086,13 +1140,18 @@ ok:
         return strings[id];
     }
 
+    const atlas_pair& get_atlas_pair(atlasid id, atlas_type type)
+    {
+        fm_soft_assert(id < atlases.size());
+        const auto& x = atlases[id];
+        fm_soft_assert(x.type == type);
+        return x;
+    }
+
     template<atlas_type Type> StringView get_atlas(atlasid id)
     {
         using atlas_type = typename atlas_from_type<Type>::Type;
-        fm_soft_assert(id < atlases.size());
-        auto [atlas, type] = atlases[id];
-        fm_soft_assert(type == Type);
-        const auto* atlasʹ = static_cast<const atlas_type*>(atlas);
+        const auto* atlasʹ = static_cast<const atlas_type*>(get_atlas_pair(id, Type).atlas);
         return atlasʹ->name();
     }
 
@@ -1115,24 +1174,41 @@ ok:
             atlasid id; id << s;
             auto str = get_string(id);
             void* atlas = nullptr;
+            bptr<ground_atlas> ground;
+            bptr<wall_atlas> wall;
+            bptr<anim_atlas> anim;
+            // A missing atlas gets a placeholder of its own, named after it so that saving again
+            // keeps the name, and owned here so that the loader keeps nothing.
             switch (type)
             {
             default: fm_throw("invalid atlas_type {}", (size_t)type);
             case atlas_type::none: break;
             case atlas_type::ground:
-                atlas = loader.ground_atlas(str, asset_policy).get();
+                ground = loader.ground_atlas(str, asset_policy);
+                if (ground->is_placeholder()) [[unlikely]]
+                    ground = loader.make_placeholder_ground_atlas(str);
+                atlas = &*ground;
                 break;
             case atlas_type::wall:
-                atlas = loader.wall_atlas(str, asset_policy).get();
+                wall = loader.wall_atlas(str, asset_policy);
+                if (wall->is_placeholder()) [[unlikely]]
+                    wall = loader.make_placeholder_wall_atlas(str);
+                atlas = &*wall;
                 break;
             case atlas_type::anim:
-                atlas = loader.anim_atlas(str, {}, asset_policy).get();
+                anim = loader.anim_atlas(str, {}, asset_policy);
+                if (anim->is_placeholder()) [[unlikely]]
+                    anim = loader.make_placeholder_anim_atlas(str, {});
+                atlas = &*anim;
                 break;
             case atlas_type::vobj:
                 atlas = loader.vobj(str).atlas.get();
                 break;
             }
-            atlases.push_back({.atlas = atlas, .type = type });
+            atlases.push_back({
+                .atlas = atlas, .type = type,
+                .ground = move(ground), .wall = move(wall), .anim = move(anim), .critter_anim = {}, .door_anim = {},
+            });
         }
     }
 
@@ -1193,21 +1269,15 @@ ok:
 
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
-                auto name = get_atlas<atlas_type::ground>(id);
-                auto a = loader.ground_atlas(name, loader_policy::warn);
-                c[t].ground() = { move(a), (variant_t)-1 };
+                c[t].ground() = { get_atlas_pair(id, atlas_type::ground).ground, (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
-                auto name = get_atlas<atlas_type::wall>(id);
-                auto a = loader.wall_atlas(name, loader_policy::warn);
-                c[t].wall_north() = { move(a), (variant_t)-1 };
+                c[t].wall_north() = { get_atlas_pair(id, atlas_type::wall).wall, (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<atlasid>([&](uint32_t t, uint32_t id) {
-                auto name = get_atlas<atlas_type::wall>(id);
-                auto a = loader.wall_atlas(name, loader_policy::warn);
-                c[t].wall_west() = { move(a), (variant_t)-1 };
+                c[t].wall_west() = { get_atlas_pair(id, atlas_type::wall).wall, (variant_t)-1 };
             }, i, r);
         for (uint32_t i = 0; i < TILE_COUNT; i++)
             deserialize_tile_part<variant_t>([&](uint32_t t, variant_t id) {

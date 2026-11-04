@@ -4,15 +4,9 @@
 #include "src/global-coords.hpp"
 #include "src/scenery.hpp"
 #include "editor-enums.hpp"
+#include <array>
 #include <cr/Optional.h>
-#include <mg/Texture.h>
-
-namespace Magnum::GL {
-template<UnsignedInt dimensions> class TextureArray;
-typedef TextureArray<2> Texture2DArray;
-template<UnsignedInt> class Texture;
-typedef Texture<2> Texture2D;
-} // namespace Magnum::GL
+#include <mg/Vector2.h>
 
 namespace floormat {
 
@@ -27,6 +21,12 @@ class wall_editor;
 class scenery_editor;
 class vobj_editor;
 
+struct palette_texture_ref
+{
+    UnsignedInt id;
+    std::array<Vector2, 4> uv; // ImDrawList::AddImageQuad order: TL, TR, BR, BL
+};
+
 class editor final
 {
     editor_snap_mode get_snap_value(editor_snap_mode snap, int mods) const;
@@ -39,8 +39,8 @@ class editor final
     safe_ptr<scenery_editor> _scenery;
     safe_ptr<vobj_editor> _vobj;
 
-    struct palette_cache;
-    safe_ptr<palette_cache> _palette_cache;
+    struct imgui_palette_cache;
+    safe_ptr<imgui_palette_cache> _imgui_palette_cache;
 
     struct drag_pos final {
         global_coords coord, draw_coord;
@@ -57,7 +57,9 @@ public:
     editor& operator=(editor&&) noexcept;
     ~editor() noexcept;
 
-    GL::Texture2D& palette_texture(sprite s);
+    palette_texture_ref palette_texture(sprite s);
+    // Call once per frame, after drawFrame().
+    void clear_imgui_palette_cache();
 
     [[nodiscard]] editor_mode mode() const noexcept;
     void set_mode(editor_mode mode);

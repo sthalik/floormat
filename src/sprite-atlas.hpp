@@ -33,7 +33,7 @@ class sprite_atlas
 {
 public:
     explicit sprite_atlas();
-    explicit sprite_atlas(uint16_t layer_size);
+    explicit sprite_atlas(uint16_t layer_width, uint16_t layer_height);
     ~sprite_atlas() noexcept;
 
     sprite_atlas(const sprite_atlas&) = delete;
@@ -41,18 +41,16 @@ public:
     sprite_atlas(sprite_atlas&&) noexcept;
     sprite_atlas& operator=(sprite_atlas&&) noexcept;
 
-    uint16_t layer_size() const;
-    uint16_t n_layers() const;
+    uint16_t layer_width() const;
+    uint16_t layer_height() const;
+    uint16_t layer_count() const;
 
     sprite add(const ImageView2D& pixels, bool allow_rotate = true);
 
     std::array<Vector3, 4> texcoords_for(sprite s, bool mirror) const;
 
-    // Sub-rect UVs — reads a rectangle inside the sprite rather than the
-    // whole sprite. `sub_offset` and `sub_size` are in the source frame's
-    // top-down coordinates (same convention as JSON frame offsets). The
-    // overload handles the atlas's GL bottom-up storage internally.
-    // Whole-frame case is degenerate: `{0,0}, {width, height}`.
+    // UVs of a rectangle inside the sprite. `sub_offset` and `sub_size` are in the source frame's
+    // top-down coordinates, as JSON frame offsets are. The whole frame is `{0,0}, {width, height}`.
     std::array<Vector3, 4> texcoords_for(sprite s,
                                          Vector2ui sub_offset,
                                          Vector2ui sub_size,
@@ -60,7 +58,7 @@ public:
 
     GL::AbstractTexture& texture();
 
-    // Release the GL texture and bookkeeping. layer_size is preserved.
+    // Release the GL texture and bookkeeping. layer_width and layer_height are preserved.
     void reset();
 
     // Debug: dump each atlas layer (or slabs of layers) to PNG files at

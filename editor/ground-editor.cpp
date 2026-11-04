@@ -12,8 +12,7 @@
 
 namespace floormat {
 
-typename std::map<StringView, ground_cell>::const_iterator ground_editor::begin() const noexcept { return _atlases.cbegin(); }
-typename std::map<StringView, ground_cell>::const_iterator ground_editor::end() const noexcept { return _atlases.cend(); }
+const std::map<StringView, ground_cell>& ground_editor::items() const noexcept { return _atlases; }
 
 struct ground_editor::tuple
 {
@@ -114,6 +113,8 @@ bool ground_editor::is_anything_selected() const
     return _selection_mode != sel_none;
 }
 
+namespace {
+
 template<std::random_access_iterator T>
 void fisher_yates(T begin, T end)
 {
@@ -125,6 +126,8 @@ void fisher_yates(T begin, T end)
         swap(begin[i], begin[j]);
     }
 }
+
+} // namespace
 
 tile_image_proto ground_editor::get_selected_perm()
 {
@@ -163,9 +166,9 @@ tile_image_proto ground_editor::get_selected()
     }
 }
 
-void ground_editor::place_tile(world& world, global_coords pos, const tile_image_proto& img)
+void ground_editor::place_tile(world& w, global_coords pos, const tile_image_proto& img)
 {
-    auto& c = world[pos.chunk3()];
+    auto& c = w[pos.chunk3()];
     auto t = c[pos.local()];
     c.mark_ground_modified();
     t.ground() = img;
