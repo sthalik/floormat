@@ -24,8 +24,10 @@
 #include "src/tile-bbox.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
+#include "src/hwy.hpp"
 #include <mg/Functions.h>
 #include <mg/Range.h>
+#include <hwy/targets.h>
 #include <algorithm>
 #include <bit>
 
@@ -3618,26 +3620,39 @@ void test_grid()
         if (k % 4 != 0)
             stepped_octants[n++] = k;
     }
-    test_expand_pass_row();
     test_cover_octant_directions();
-    for (const auto ds : { 1u, 2u, 8u })
-        test_cover_east_distance(ds);
-    for (const auto ds : { 1u, 2u, 4u, 8u, 16u })
+    for (const i64 target : hwy::SupportedAndGeneratedTargets())
     {
-        test_cover_diagonal_tracks_ray(ds);
-        test_cover_east_rounds(ds);
-        test_cover_diagonal_matches_ray(ds);
+        hwy::SetSupportedTargetsForTest(target);
+        test_expand_pass_row();
+        for (const auto ds : { 1u, 2u, 8u })
+            test_cover_east_distance(ds);
+        for (const auto ds : { 1u, 2u, 4u, 8u, 16u })
+        {
+            test_cover_diagonal_tracks_ray(ds);
+            test_cover_east_rounds(ds);
+            test_cover_diagonal_matches_ray(ds);
+        }
+        // 4 has u16 planes
+        constexpr u32 first_steps[] = { 1u, 2u };
+        for (const auto ds : { 4u, 8u, 16u })
+        {
+            const auto octants = ds < 8 ? ArrayView<const u32>{first_steps} : stepped_octants;
+            test_cover_stepped_tracks_ray(ds, octants);
+            test_cover_stepped_blocked_cells(ds, octants);
+        }
+        for (const auto ds : { 8u, 16u })
+            test_cover_blocked_cells(ds);
+        // Below 8, planes are u16, and one octant of each step, turned and mirrored, keeps the rays few.
+        constexpr u32 some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
+        // sizes below 16 add ~17 s under ASan
+        const auto min_size = fm_ASAN ? 16u : is_valgrind() ? 4u : 1u;
+        for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u })
+            if (ds >= min_size)
+                test_cover_matches_reference(ds, ds < 8 ? ArrayView<const u32>{some_octants} : all_octants);
     }
-    // 4 has u16 planes
-    constexpr u32 first_steps[] = { 1u, 2u };
-    for (const auto ds : { 4u, 8u, 16u })
-    {
-        const auto octants = ds < 8 ? ArrayView<const u32>{first_steps} : stepped_octants;
-        test_cover_stepped_tracks_ray(ds, octants);
-        test_cover_stepped_blocked_cells(ds, octants);
-    }
-    for (const auto ds : { 8u, 16u })
-        test_cover_blocked_cells(ds);
+    hwy::SetSupportedTargetsForTest(0);
+    vqsort_refresh_targets();
     test_cover_rebuilds_on_neighbor_change(16);
     for (const auto ds : { 8u, 16u })
     {
@@ -3656,13 +3671,6 @@ void test_grid()
     test_object_grid_matches_positions(4, 7);
     test_object_grid_crowd();
     test_object_grid_rebuild();
-    // Below 8, planes are u16, and one octant of each step, turned and mirrored, keeps the rays few.
-    constexpr u32 some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
-    // sizes below 16 add ~17 s under ASan
-    const auto min_size = fm_ASAN ? 16u : is_valgrind() ? 4u : 1u;
-    for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u })
-        if (ds >= min_size)
-            test_cover_matches_reference(ds, ds < 8 ? ArrayView<const u32>{some_octants} : all_octants);
     test_bit_matches_every_position();
 }
 
