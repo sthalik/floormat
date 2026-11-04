@@ -285,6 +285,30 @@ void Cover_Horizontal(benchmark::State& state)
 
 BENCHMARK(Cover_Horizontal)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
 
+// The 24 octants that step several cells at a time. Only cells whose step leaves the grid cast a ray.
+void Cover_Stepped(benchmark::State& state)
+{
+    auto w = world();
+    make_cover_world(w);
+    auto& c = w[{0, 0, 0}];
+
+    const auto div_size = (u32)state.range(0);
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
+    Grid::Cover::Grid g = pool[c];
+
+    for (auto _ : state)
+    {
+        g.mark_stale();
+        g.build_if_stale();
+        for (auto k = 0u; k < Grid::Cover::octant_count; k++)
+            if (k % 4 != 0)
+                (void)g.ensure_octant(k);
+    }
+}
+
+BENCHMARK(Cover_Stepped)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
+
 constexpr auto cover_body = Vector2ui{24, 24};
 
 struct find_case
