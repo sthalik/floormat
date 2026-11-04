@@ -45,13 +45,20 @@ int bench_app::exec()
     if (const auto* s = getenv("FLOORMAT_HWY_TARGET"); s && *s)
     {
         i64 t = 0;
-        if (!strcmp(s, "avx2"))
+        if (!strcmp(s, "avx3_zen4"))
+            t = HWY_AVX3_ZEN4;
+        else if (!strcmp(s, "avx3"))
+            t = HWY_AVX3;
+        else if (!strcmp(s, "avx2"))
             t = HWY_AVX2;
         else if (!strcmp(s, "sse4"))
             t = HWY_SSE4;
         else
-            fm_abort("FLOORMAT_HWY_TARGET must be avx2 or sse4");
-        hwy::SetSupportedTargetsForTest(t);
+            fm_abort("FLOORMAT_HWY_TARGET must be avx3_zen4, avx3, avx2 or sse4");
+        const i64 supported =hwy::SupportedTargets() & ~(t - 1);
+        if (!(supported & t))
+            fm_abort("this CPU lacks FLOORMAT_HWY_TARGET=%s", s);
+        hwy::SetSupportedTargetsForTest(supported);
         vqsort_refresh_targets();
     }
     // Lower bits are preferred targets, so dispatch picks the lowest one compiled and supported.
