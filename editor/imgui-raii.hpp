@@ -41,6 +41,7 @@ private:
 [[nodiscard]] raii_wrapper push_style_var(ImGuiStyleVar_ var, float value);
 [[nodiscard]] raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value);
 [[nodiscard]] raii_wrapper push_id(StringView str);
+[[nodiscard]] raii_wrapper push_id(int id);
 
 void text(StringView str);
 

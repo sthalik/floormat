@@ -70,6 +70,12 @@ raii_wrapper push_id(StringView str)
     return {[]{ ImGui::PopID(); }};
 }
 
+raii_wrapper push_id(int id)
+{
+    ImGui::PushID(id);
+    return {[]{ ImGui::PopID(); }};
+}
+
 raii_wrapper push_style_var(ImGuiStyleVar_ var, float value)
 {
     ImGui::PushStyleVar(var, value);
