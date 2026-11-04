@@ -147,6 +147,7 @@ void app::draw_load_pane(float main_menu_height)
         constexpr StringView dirs[] = { save_dir ""_s, driver_save_dir ""_s };
         for (const auto& dir_name : dirs)
         {
+            const auto b2 = push_id(dir_name);
             auto dir = Path::join(loader.TEMP_PATH, dir_name);
             if (!Path::exists(dir))
                 continue;
