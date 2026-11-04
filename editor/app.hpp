@@ -102,29 +102,6 @@ private:
     void reset_world_post();
     void reset_world();
     void reset_world(class world&& w);
-    void populate_hole_stress_test();
-    void populate_labyrinth();
-    void populate_raycast_fractal();
-    void populate_sweep_aabb_slit();
-    void populate_l_corridor();
-    void populate_scene_benchmark();
-    void populate_scene_benchmark_walkable(uint8_t width);
-    void populate_scene_diagonal(uint8_t half_width);
-    void populate_scene_slide(bool dense);
-    void populate_scene_maze1();
-    void populate_scene_maze2();
-    void populate_scene_maze3(mazes::kind k);
-    void populate_scene_grids(uint32_t num_pins = 0);
-    void add_grid_pin(uint32_t n);
-    void populate_scene_raycast_pins();
-    void populate_scene_lightmap();
-    void populate_scene_cover();
-    static point maze_corner(uint32_t k);
-    static point lightmap_light(uint32_t k);
-    static point maze2_start();
-    static point maze2_goal();
-    void populate_scene_benchmark_all_z();
-    void populate_scene_clickables();
 
     void draw() override;
 
@@ -210,10 +187,36 @@ private:
     void release_all_input();
     point cursor_point();
     void set_window_size(Vector2i size);
+
     void driver_start();
     void driver_tick(Ns dt);
     void driver_draw_overlay();
     void driver_save_world(uint32_t scene_number, StringView scene_name, bool is_post);
+
+    void populate_hole_stress_test();
+    void populate_labyrinth();
+    void populate_raycast_fractal();
+    void populate_sweep_aabb_slit();
+    void populate_l_corridor();
+    void populate_scene_benchmark();
+    void populate_scene_benchmark_walkable(uint8_t width);
+    void populate_scene_diagonal(uint8_t half_width);
+    void populate_scene_slide(bool dense);
+    void populate_scene_maze1();
+    void populate_scene_maze2();
+    void populate_scene_maze3(mazes::kind k);
+    void populate_scene_grids(uint32_t num_pins = 0);
+    void add_grid_pin(uint32_t n);
+    void populate_scene_raycast_pins();
+    void populate_scene_lightmap();
+    void populate_scene_cover();
+    static point maze_corner(uint32_t k);
+    static point lightmap_light(uint32_t k);
+    static point maze2_start();
+    static point maze2_goal();
+    void populate_scene_benchmark_all_z();
+    void populate_scene_clickables();
+
     pgo::task click_at_cursor(uint8_t button);
     pgo::task click_at(point pt, uint8_t button);
     pgo::task press_and_hold(point pt, uint8_t button, uint32_t num_frames);
