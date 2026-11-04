@@ -222,6 +222,8 @@ void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
     constexpr int ncolumns = has_type_and_group_columns<T> ? 4 : has_path_column<T> ? 3 : 2;
     const auto size = ImGui::GetWindowSize();
     auto b2 = imgui::begin_table("palette-table", ncolumns, flags, size);
+    if (!b2)
+        return;
     const auto row_height = ImGui::GetCurrentContext()->FontSize + 10*dpi[1];
     constexpr auto thumbnail_width = 50;
     ImGui::TableSetupScrollFreeze(1, 1);
