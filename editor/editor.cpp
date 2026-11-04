@@ -27,6 +27,7 @@ struct editor::imgui_palette_cache
     gtl::flat_hash_map<const SpriteAtlas::Sprite*, GL::Texture2D> sprite_copies;
     Array<GL::Texture2D> layer_views, retired_views;
     UnsignedInt atlas_id = 0;
+    bool clear_requested = false;
 };
 
 void editor::on_release()
@@ -212,7 +213,7 @@ editor_mode editor::mode() const noexcept { return _mode; }
 void editor::set_mode(editor_mode mode)
 {
     _mode = mode;
-    _imgui_palette_cache->sprite_copies.clear();
+    _imgui_palette_cache->clear_requested = true;
     on_release();
 }
 
@@ -220,8 +221,12 @@ void editor::clear_imgui_palette_cache()
 {
     auto& c = *_imgui_palette_cache;
     arrayClear(c.retired_views);
-    if (!c.layer_views.isEmpty() && loader.atlas().texture().id() != c.atlas_id)
+    if (c.clear_requested || !c.layer_views.isEmpty() && loader.atlas().texture().id() != c.atlas_id)
+    {
+        c.sprite_copies.clear();
         arrayClear(c.layer_views);
+        c.clear_requested = false;
+    }
 }
 
 palette_texture_ref editor::palette_texture(sprite s)
