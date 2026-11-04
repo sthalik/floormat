@@ -392,7 +392,7 @@ target_compile_definitions(floormat-hwy PUBLIC
     VQSORT_ONLY_STATIC=1
     HWY_WANT_SSE4=1
     HWY_DISABLE_PCLMUL_AES
-    "HWY_DISABLED_TARGETS=(HWY_AVX3_DL|HWY_AVX3_SPR|HWY_AVX10_2)"
+    "HWY_DISABLED_TARGETS=(HWY_AVX3_ZEN4|HWY_AVX3_DL|HWY_AVX3_SPR|HWY_AVX10_2)"
 )
 # VQSort replaces NaN before sorting. Below AVX3 its check is _mm_cmpunord_ps(v, v), which finite math folds to false.
 fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE
