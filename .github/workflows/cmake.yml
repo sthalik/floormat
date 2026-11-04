@@ -253,7 +253,7 @@ jobs:
         export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
         valgrind --version
         xvfb-run valgrind bin/floormat-test --gl-only
-      timeout-minutes: 60
+      timeout-minutes: 180
 
     - name: Test without a GL context under memcheck
       run: |
