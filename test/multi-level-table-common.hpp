@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <gtl/phmap.hpp>
+#include <mg/Functions.h>
 #include <type_traits>
 #include <utility>
 #if fm_ASAN
@@ -640,6 +641,7 @@ class random_run
     static constexpr uint64_t zero_mask = (uint64_t{1} << zero_bits) - 1;
     static constexpr uint64_t key_mask = ~uint64_t{0} >> (64 - Table::key_bits);
     static constexpr uint64_t walk_budget = 256;
+    static constexpr uint32_t min_leg = 64, max_leg = 1024;
     static constexpr uint32_t dims = Table::dims, dirs = 2 * dims;
     static constexpr coord3 site_bits = coord_bits(params_of<Table>), box = box_bits(params_of<Table>);
     // On a 1D table Langton's ant walks a grid folded into the key, x in the low half of its bits.
@@ -838,6 +840,7 @@ class random_run
         if constexpr (Table::has_pages)
             fm_assert(w <= 1u << (page_bits - 1));
         const uint64_t last = key_mask - (w - 1);
+        arrayReserve(bases, p.windows);
         arrayAppend(bases, uint64_t{0});
         arrayAppend(bases, last);
         for (uint32_t i = 2; i < p.windows; i++)
@@ -1240,8 +1243,17 @@ class random_run
             seen = Array<uint64_t>{ValueInit, size_t(key_mask >> 6) + 1};
             walkers = Array<walker>{ValueInit, p.walkers};
             for (walker& w : walkers)
+            {
                 w.at = random_point();
+                arrayReserve(w.path, max_leg + 1);
+            }
         }
+        else if (p.walk == walk_type::elephant)
+            arrayReserve(steps, Math::max(p.ops, 16u));
+        else if (p.walk == walk_type::loop_erased)
+            arrayReserve(path, 16);
+        else if (p.walk == walk_type::eden)
+            arrayReserve(perimeter, 16);
         home = at;
     }
 
@@ -1413,7 +1425,7 @@ class random_run
         }
         if (w.path.isEmpty())
         {
-            w.leg = 64 + below(rng, 961);
+            w.leg = min_leg + below(rng, max_leg - min_leg + 1);
             if (walkers.size() > 1 && below(rng, 4) == 0)
                 w.at = walkers[below(rng, (uint32_t)walkers.size())].at;
             retrace_visit(w);
@@ -1426,6 +1438,7 @@ class random_run
     void retrace_finish()
     {
         Array<uint32_t> busy;
+        arrayReserve(busy, walkers.size());
         for (uint32_t i = 0; i < walkers.size(); i++)
             if (!walkers[i].path.isEmpty())
                 arrayAppend(busy, i);
@@ -1582,7 +1595,11 @@ class random_run
     }
 
 public:
-    explicit random_run(const random_params& p) : p{p} { Random::seed(rng, p.seed); }
+    explicit random_run(const random_params& p) : p{p}
+    {
+        Random::seed(rng, p.seed);
+        arrayReserve(keys, 16);
+    }
 
     void run()
     {

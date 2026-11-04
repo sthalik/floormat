@@ -519,8 +519,10 @@ void test_walk_smoothed()
     const auto from = point{ch, {2, 6}, {}}, to = point{ch, {12, 6}, {}};
     W.place(from);
     auto res = W.find_path(from, to, true);
+    const auto smoothed = std::as_const(res).smoothings();
     Array<point> sp;
-    for (const auto& x : std::as_const(res).smoothings())
+    arrayReserve(sp, smoothed.size());
+    for (const auto& x : smoothed)
         arrayAppend(sp, x.pt);
     fm_assert(sp.size() == 4);
     float len = 0;

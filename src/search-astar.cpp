@@ -969,6 +969,7 @@ astar::astar() :
     _cache{InPlaceInit},
     _pool_registry{InPlaceInit}
 {
+    arrayReserve(temp_nodes, 256);
 }
 
 astar::~astar() noexcept = default;

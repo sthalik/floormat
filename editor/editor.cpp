@@ -236,6 +236,7 @@ palette_texture_ref editor::palette_texture(sprite s)
         auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
         if (tex.id() != c.atlas_id) [[unlikely]]
         {
+            arrayReserve(c.retired_views, Math::max(c.retired_views.size() + c.layer_views.size(), 16uz));
             // This frame's draw commands still name the old views.
             for (auto& v : c.layer_views)
                 if (v.id())

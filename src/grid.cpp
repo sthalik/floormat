@@ -32,6 +32,7 @@ uint32_t take_slot_index()
 void put_slot_index(uint32_t i)
 {
     Locker<Spinlock> guard{g_slot_lock};
+    arrayReserve(g_free_slots, 16);
     arrayAppend(g_free_slots, i);
 }
 } // namespace
@@ -150,7 +151,10 @@ grid_slots::~grid_slots() noexcept
             g->pool->release(g);
 }
 
-PoolBase::PoolBase(): slot_index{take_slot_index()} {}
+PoolBase::PoolBase(): slot_index{take_slot_index()}
+{
+    arrayReserve(live, 16);
+}
 
 PoolBase::~PoolBase() noexcept
 {

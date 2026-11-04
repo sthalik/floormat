@@ -751,6 +751,8 @@ struct product
     combos seen;
     Array<line_cost_entry> line_costs;
 
+    product() { arrayReserve(line_costs, 16); }
+
     Ns line_cost(Vector2i vec)
     {
         for (const auto& x : line_costs)

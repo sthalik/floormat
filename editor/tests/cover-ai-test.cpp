@@ -118,6 +118,7 @@ bool can_spawn_at(world& w, point pt)
 
 struct cover_ai_test final : base_test
 {
+    cover_ai_test();
     ~cover_ai_test() noexcept override;
 
     bool handle_key(app&, const key_event&, bool) override { return false; }
@@ -182,6 +183,12 @@ struct cover_ai_test final : base_test
     bool show_spots = false;
     bool has_start : 1 = false, has_snapshot : 1 = false, has_search : 1 = false, has_script_list : 1 = false;
 };
+
+cover_ai_test::cover_ai_test()
+{
+    arrayReserve(spots, 16);
+    arrayReserve(spot_states, 16);
+}
 
 // reset_world_pre() runs finish_scripts() before tests_reset_mode() destroys the test, and
 // kill_object() would then run do_destroy_pre(), which asserts that the script is still created.

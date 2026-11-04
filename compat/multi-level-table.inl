@@ -58,6 +58,8 @@ multi_level_table<T, P>::multi_level_table() noexcept
     }
     else
         _top = new entry[top_size]{};
+    if constexpr (has_pages)
+        arrayReserve(_pages, 16);
 }
 
 template<typename T, mlt_params P>
