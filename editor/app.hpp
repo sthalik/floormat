@@ -183,7 +183,6 @@ private:
     void draw_z_level();
     void do_popup_menu();
     void kill_popups(bool hard);
-    void render_menu();
 
     using key_set = enum_bitset<key, key_COUNT>;
     void do_key(key k, int mods, int keycode);

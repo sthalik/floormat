@@ -212,7 +212,8 @@ void app::draw()
         _editor->current_vobj_editor() && _editor->current_vobj_editor()->is_anything_selected())
         draw_cursor();
     draw_ui();
-    render_menu();
+    ImGui::EndFrame();
+    _imgui->drawFrame();
     _editor->clear_imgui_palette_cache();
 
     M->texture_unit_cache().output_stats();
