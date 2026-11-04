@@ -122,6 +122,7 @@ bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vec
     const auto less = [](slope x, slope y) { return x.a*y.d < y.a*x.d; };
     // Corners in doubled coordinates from the threat, so the half-pixel edges are odd integers.
     Array<slope> slopes;
+    arrayReserve(slopes, 16);
     const auto add_box = [&](Vector2i pmin, Vector2i pmax) {
         const auto c0 = (pmin - T)*2 - Vector2i{1}, c1 = (pmax - T)*2 - Vector2i{1};
         for (const auto c : { c0, c1, Vector2i{c0.x(), c1.y()}, Vector2i{c1.x(), c0.y()} })
@@ -496,6 +497,7 @@ void check_lists_by_area(world& w, point npc, point threat, uint8_t octants, uin
     fm_assert(spots.size() > min_spots);
 
     Array<point> tiled;
+    arrayReserve(tiled, spots.size());
     uint32_t candidates = 0;
     constexpr auto n = (int)radius/tile_size_xy + 1;
     for (auto y = -n; y <= n; y++)
@@ -732,6 +734,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
     const auto frame = Second / fps;
     struct rest { point pos; uint32_t frames; };
     Array<rest> rests;
+    arrayReserve(rests, 4);
     auto last = npc->position();
     auto still = 0u;
     for (auto frames = 0u; rests.size() < 4; frames++)
@@ -2435,7 +2438,11 @@ bool flanked_from(cover_scene& s, point from)
 // Replaces out with the points of path's segments, a px apart.
 void path_points(ArrayView<const point> path, Array<point>& out)
 {
+    auto count = 1u;
+    for (auto k = 1u; k < path.size(); k++)
+        count += (uint32_t)Math::ceil(Vector2d(path[k] - path[k-1]).length());
     arrayClear(out);
+    arrayReserve(out, count);
     arrayAppend(out, path.front());
     for (auto k = 1u; k < path.size(); k++)
     {

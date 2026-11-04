@@ -10,6 +10,7 @@
 #include "src/sprite-atlas.hpp"
 #include "loader/loader.hpp"
 #include "floormat/main.hpp"
+#include <cr/GrowableArray.h>
 #include <mg/ImGuiIntegration/Context.h>
 
 namespace floormat {
@@ -31,6 +32,7 @@ app::app(fm_settings&& opts) :
     reset_camera_offset();
     M->set_render_vobjs(_render_vobjs);
     reserve_inspector_array();
+    arrayReserve(_chunk_bounds_array, 16);
     if (const auto& file = M->settings().load_game)
         load_world_file(file);
 

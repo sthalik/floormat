@@ -92,6 +92,7 @@ struct shared_peek
 Array<shared_peek> shared_peeks(critter& c, const Array<cover_spot>& spots)
 {
     Array<shared_peek> out;
+    arrayReserve(out, spots.size());
     for (const auto& x : spots)
     {
         const auto p = find_cover_peek(c, x);
@@ -203,6 +204,7 @@ task app::scene_cover_ai()
     // Each stop is 2 s, so a position held for a second is a stop rather than a walk's pause.
     const auto n_stops = 2*(pgo_driver_use_short_scenes() ? short_cycles : cycles) + 1;
     Array<stop_s> stops;
+    arrayReserve(stops, n_stops);
     stop_s cur{start, status()};
     auto still_since = _driver->scene_dt;
     const auto track = [&] {
@@ -655,6 +657,7 @@ task app::scene_cover_ai_map()
 
     const auto n_moves = pgo_driver_use_short_scenes() ? short_map_moves : map_moves;
     Array<point> covers;
+    arrayReserve(covers, n_moves + 1);
     for (auto k = 0u; ; k++)
     {
         const auto player = tile_pos(map_player_tiles[at]);

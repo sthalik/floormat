@@ -240,6 +240,7 @@ wall_map draw_maze(const cell_graph& g)
 Array<uint32_t> room_lines(rng& r)
 {
     Array<uint32_t> lines;
+    arrayReserve(lines, map_tiles/room_min + 1);
     arrayAppend(lines, 0u);
     for (;;)
     {
