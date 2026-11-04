@@ -210,21 +210,20 @@ template<typename T>
 void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
 {
     const auto b1 = push_id("palette-pane");
-
-    const auto& style = ImGui::GetStyle();
-    constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
+    constexpr ImGuiTableFlags table_flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
     constexpr int ncolumns = has_type_and_group_columns<T> ? 4 : has_path_column<T> ? 3 : 2;
-    const auto size = ImGui::GetWindowSize();
-    auto b2 = imgui::begin_table("palette-table", ncolumns, flags, size);
+    const auto window_size = ImGui::GetWindowSize();
+    auto b2 = imgui::begin_table("palette-table", ncolumns, table_flags, window_size);
     if (!b2)
         return;
+
     const auto row_height = ImGui::GetCurrentContext()->FontSize + 10*dpi[1];
     constexpr auto thumbnail_width = 50;
     ImGui::TableSetupScrollFreeze(1, 1);
-    constexpr auto colflags_ = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
-    constexpr auto colflags = colflags_ | ImGuiTableColumnFlags_WidthFixed;
+    constexpr auto colflagsʹ = ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_NoReorder | ImGuiTableColumnFlags_NoSort;
+    constexpr auto colflags = colflagsʹ | ImGuiTableColumnFlags_WidthFixed;
     ImGui::TableSetupColumn("##thumbnail", colflags, thumbnail_width);
-    ImGui::TableSetupColumn("Name", colflags_ | ImGuiTableColumnFlags_WidthStretch);
+    ImGui::TableSetupColumn("Name", colflagsʹ | ImGuiTableColumnFlags_WidthStretch);
     if constexpr(has_type_and_group_columns<T>)
     {
         const auto colwidth_type = ImGui::CalcTextSize("generic").x;
@@ -253,6 +252,7 @@ void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
 
         if (ImGui::TableSetColumnIndex(0))
         {
+            const auto& style = ImGui::GetStyle();
             auto atlasʹ = get_atlas(item);
             auto& atlas = *atlasʹ;
             const auto size = Vector2(get_size(item, atlas));
