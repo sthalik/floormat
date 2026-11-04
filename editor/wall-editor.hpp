@@ -32,9 +32,9 @@ public:
     void toggle_rotation();
 
     bptr<wall_atlas> get_selected() const; // todo not thread-safe, copies a non-atomic bptr
-    void select_atlas(const bptr<wall_atlas>& atlas);
+    void select_item(const wall_cell& cell);
     void clear_selection();
-    bool is_atlas_selected(const bptr<wall_atlas>& atlas) const;
+    bool is_item_selected(const wall_cell& cell) const;
     bool is_anything_selected() const;
 
     void place_wall(world& w, global_coords coords, const bptr<wall_atlas>& atlas);

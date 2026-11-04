@@ -840,10 +840,11 @@ task app::scene_drag_paint()
     fm_assert(ed);
 
     fm_assert(ed->begin() != ed->end());
-    auto atlas = ed->begin()->second.atlas;
+    const auto& cell = ed->begin()->second;
+    auto atlas = cell.atlas;
     fm_assert(atlas);
-    ed->select_atlas(atlas);
-    fm_assert(ed->is_atlas_selected(atlas));
+    ed->select_item(cell);
+    fm_assert(ed->is_item_selected(cell));
 
     // check_snap() ignores mods for walls and derives the axis from the rotation, so a north
     // wall must be dragged east and a west wall south for the run to stay on one line.

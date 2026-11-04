@@ -71,12 +71,6 @@ Vector2ui get_size(const auto&, wall_atlas& atlas)
         return { s->width(), s->height() };
     return {1, 1};
 }
-bool is_selected(const scenery_editor& ed, const scenery_& sc) { return ed.is_item_selected(sc); }
-bool is_selected(const vobj_editor& vo, const vobj_& sc) { return vo.is_item_selected(sc); }
-bool is_selected(const wall_editor& wa, const wall_cell& sc) {  return wa.is_atlas_selected(sc.atlas); }
-void select_item(scenery_editor& ed, const scenery_& sc) { ed.select_item(sc); }
-void select_item(vobj_editor& vo, const vobj_& sc) { vo.select_item(sc); }
-void select_item(wall_editor& wa, const wall_cell& sc) { wa.select_atlas(sc.atlas); }
 
 void palette_image(editor& e, sprite s, ImVec2 size)
 {
@@ -272,10 +266,10 @@ void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
         if (ImGui::TableSetColumnIndex(1))
         {
             constexpr ImGuiSelectableFlags flags = ImGuiSelectableFlags_SpanAllColumns;
-            bool selected = is_selected(ed, item);
+            bool selected = ed.is_item_selected(item);
             auto nameʹ = item_name(name, item);
             if (ImGui::Selectable(nameʹ.data(), &selected, flags, {0, row_height}) && selected)
-                select_item(ed, item);
+                ed.select_item(item);
             clear_on_middle_click();
         }
 
