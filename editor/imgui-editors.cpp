@@ -168,7 +168,7 @@ void draw_ground_palette_atlas(editor& e, ground_editor& ed, StringView name, co
         text({buf, len});
     };
     if (const auto flags = ImGuiTreeNodeFlags_(ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_Framed);
-        auto b = tree_node(name.data(), flags))
+        auto b2 = tree_node(name.data(), flags))
     {
         do_caption();
         [[maybe_unused]] const raii_wrapper vars[] = {
@@ -184,7 +184,7 @@ void draw_ground_palette_atlas(editor& e, ground_editor& ed, StringView name, co
             if (i > 0 && i % per_row == 0)
                 ImGui::NewLine();
 
-            [[maybe_unused]] const raii_wrapper vars[] = {
+            [[maybe_unused]] const raii_wrapper varsʹ[] = {
                 selected ? push_style_color(ImGuiCol_Button, color_selected) : raii_wrapper{},
                 selected ? push_style_color(ImGuiCol_ButtonHovered, color_selected) : raii_wrapper{},
                 perm_selected ? push_style_color(ImGuiCol_Button, color_perm_selected) : raii_wrapper{},
@@ -295,12 +295,12 @@ void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
             if (ImGui::TableSetColumnIndex(3))
             {
                 auto& atlas = *get_atlas(item);
-                StringView name = loader.strip_prefix(atlas.name());
-                if (auto last = name.findLast('/'))
-                    name = name.prefix(last.data());
+                StringView group = loader.strip_prefix(atlas.name());
+                if (auto last = group.findLast('/'))
+                    group = group.prefix(last.data());
                 else
-                    name = {};
-                text(name);
+                    group = {};
+                text(group);
                 clear_on_middle_click();
             }
         }
@@ -336,8 +336,6 @@ void app::draw_editor_pane(float main_menu_height)
         push_style_color(ImGuiCol_FrameBg, {0, 0, 0, 0}),
     };
 
-    const auto& style = ImGui::GetStyle();
-
     if (main_menu_height > 0)
     {
         constexpr auto igwf = ImGuiWindowFlags_(ImGuiWindowFlags_NoDecoration |
@@ -345,17 +343,18 @@ void app::draw_editor_pane(float main_menu_height)
                                                 ImGuiWindowFlags_NoSavedSettings);
         const auto b = push_id("editor");
 
-        float width = 425 * dpi.x();
+        const auto& style = ImGui::GetStyle();
+        const float width = 425 * dpi.x();
 
         ImGui::SetNextWindowPos({0, main_menu_height+style.WindowPadding.y});
         if (_editor->mode() != editor_mode::tests)
             ImGui::SetNextFrameWantCaptureKeyboard(false);
         ImGui::SetNextWindowSize({width, window_size.y()-main_menu_height - style.WindowPadding.y});
-        if (auto b = begin_window({}, nullptr, igwf))
+        if (auto b2 = begin_window({}, nullptr, igwf))
         {
-            const auto b2 = push_id("editor-pane");
-            const auto b2ʹ = push_id((int)_editor->mode());
-            if (auto b3 = begin_list_box("##atlases", {-FLT_MIN, -1}))
+            const auto b3 = push_id("editor-pane");
+            const auto b3ʹ = push_id((int)_editor->mode());
+            if (auto b4 = begin_list_box("##atlases", {-FLT_MIN, -1}))
             {
                 if (ed)
                 {
@@ -375,7 +374,7 @@ void app::draw_editor_pane(float main_menu_height)
                 else if (_editor->mode() == editor_mode::tests)
                 {
                     // With no frame, an unchecked checkbox shows only its label.
-                    const auto b4 = push_style_color(ImGuiCol_FrameBg, {frame_bg.x, frame_bg.y, frame_bg.z, frame_bg.w});
+                    const auto b5 = push_style_color(ImGuiCol_FrameBg, {frame_bg.x, frame_bg.y, frame_bg.z, frame_bg.w});
                     draw_tests_pane(width);
                 }
             }
