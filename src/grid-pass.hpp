@@ -99,7 +99,6 @@ public:
     fm_DISABLE_MOVE_COPY(Pool);
 
     [[nodiscard]] Grid operator[](chunk& c);
-    [[nodiscard]] Grid wrap(detail::grid::PassGrid* g) const noexcept;
 
     void maybe_mark_stale_all(const world& w);
 

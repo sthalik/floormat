@@ -320,7 +320,6 @@ Grid Pool::operator[](chunk& c)
     return Grid{detail::grid::pool_subscript(pool, c), pool};
 }
 
-Grid Pool::wrap(detail::grid::PassGrid* g) const noexcept { return Grid{g, pool}; }
 Grid::~Grid() noexcept = default;
 
 Grid::Grid(detail::grid::PassGrid* grid_, detail::grid::PassPool* pool_):
