@@ -670,9 +670,8 @@ void app::draw_lightmap_test(float main_menu_height)
 
     ImGui::SetNextWindowPos(window_pos, ImGuiCond_Appearing);
 
-    if (ImGui::Begin("Lightmap", &is_open, flags))
+    if (auto b2 = begin_window("Lightmap", &is_open, flags))
         ImGui::Image(shader.accum_texture().id(), preview_size, {0, 0}, {1, 1});
-    ImGui::End();
 
     if (!is_open)
         tested_light_chunk = {};
@@ -726,10 +725,8 @@ void app::do_popup_menu()
             if (!exists)
                 add_inspector(std::exchange(_popup_target, {}));
             {
-                char buf2[10], buf3[128], buf[sizeof buf2 + sizeof buf3 + 3 - 1];
-                entity_inspector_name(buf2, e.id);
-                entity_friendly_name(buf3, sizeof buf3, e);
-                std::snprintf(buf, sizeof buf, "%s###%s", buf3, buf2);
+                char buf[140];
+                inspector_window_title(buf, e);
                 ImGui::SetWindowFocus(buf);
                 ImGui::SetWindowCollapsed(buf, false);
             }
