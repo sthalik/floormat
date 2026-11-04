@@ -359,6 +359,7 @@ void app::draw_editor_pane(float main_menu_height)
         if (auto b = begin_window({}, nullptr, igwf))
         {
             const auto b2 = push_id("editor-pane");
+            const auto b2ʹ = push_id((int)_editor->mode());
             if (auto b3 = begin_list_box("##atlases", {-FLT_MIN, -1}))
             {
                 if (ed)
