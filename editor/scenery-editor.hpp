@@ -26,13 +26,13 @@ public:
     void next_rotation();
     void prev_rotation();
 
-    void select_tile(const scenery_& s);
+    void select_item(const scenery_& s);
     void clear_selection();
     const scenery_& get_selected() const;
     bool is_atlas_selected(const bptr<anim_atlas>& atlas) const;
     bool is_item_selected(const scenery_& s) const;
     bool is_anything_selected() const;
-    static void place_tile(world& w, global_coords pos, const scenery_& s, app& a);
+    static void place_scenery(world& w, global_coords pos, const scenery_& s, app& a);
 
     typename std::map<StringView, scenery_>::const_iterator cbegin() const noexcept;
     typename std::map<StringView, scenery_>::const_iterator cend() const noexcept;

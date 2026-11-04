@@ -81,7 +81,7 @@ typename std::map<StringView, wall_cell>::const_iterator wall_editor::cend() con
 typename std::map<StringView, wall_cell>::const_iterator wall_editor::begin() const noexcept { return _atlases.cbegin(); }
 typename std::map<StringView, wall_cell>::const_iterator wall_editor::end() const noexcept { return _atlases.cend(); }
 
-void wall_editor::place_tile(world& w, global_coords coords, const bptr<wall_atlas>& atlas)
+void wall_editor::place_wall(world& w, global_coords coords, const bptr<wall_atlas>& atlas)
 {
     auto& c = w[coords.chunk3()];
     auto t = c[coords.local()];

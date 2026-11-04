@@ -37,7 +37,7 @@ public:
     bool is_atlas_selected(const bptr<wall_atlas>& atlas) const;
     bool is_anything_selected() const;
 
-    void place_tile(world& w, global_coords coords, const bptr<wall_atlas>& atlas);
+    void place_wall(world& w, global_coords coords, const bptr<wall_atlas>& atlas);
     editor_snap_mode check_snap(int mods) const;
 };
 

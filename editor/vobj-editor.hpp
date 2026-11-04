@@ -37,7 +37,7 @@ public:
     };
     vobj_editor();
 
-    void select_tile(const vobj_& type);
+    void select_item(const vobj_& type);
     void clear_selection();
     const vobj_* get_selected() const;
 
@@ -45,7 +45,7 @@ public:
     bool is_item_selected(const vobj_& x) const;
     bool is_anything_selected() const;
 
-    static void place_tile(world& w, global_coords pos, const vobj_* x, app& a);
+    static void place_vobj(world& w, global_coords pos, const vobj_* x, app& a);
 
     typename std::map<String, vobj_>::const_iterator cbegin() const noexcept;
     typename std::map<String, vobj_>::const_iterator cend() const noexcept;

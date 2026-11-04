@@ -140,8 +140,8 @@ void editor::on_click_(world& world, global_coords pos, button b)
         {
             switch (b)
             {
-            case button::place: return mode->place_tile(world, pos, opt);
-            case button::remove: return mode->place_tile(world, pos, {});
+            case button::place: return mode->place_wall(world, pos, opt);
+            case button::remove: return mode->place_wall(world, pos, {});
             default: break;
             }
         }
@@ -156,10 +156,10 @@ void editor::on_click_(world& world, global_coords pos, button b)
             case button::place:
                 if (const auto& sel = mode->get_selected())
                     if (auto& ch = world[pos.chunk3()]; ch.can_place_object(sel.proto, pos.local()))
-                        mode->place_tile(world, pos, sel, *_app);
+                        mode->place_scenery(world, pos, sel, *_app);
                 break;
             case button::remove:
-                mode->place_tile(world, pos, {}, *_app);
+                mode->place_scenery(world, pos, {}, *_app);
                 break;
             }
         }
@@ -173,10 +173,10 @@ void editor::on_click_(world& world, global_coords pos, button b)
             default: break;
             case button::place:
                 if (const auto* sel = mode->get_selected())
-                    mode->place_tile(world, pos, sel, *_app);
+                    mode->place_vobj(world, pos, sel, *_app);
                 break;
             case button::remove:
-                mode->place_tile(world, pos, {}, *_app);
+                mode->place_vobj(world, pos, {}, *_app);
                 break;
             }
         }
