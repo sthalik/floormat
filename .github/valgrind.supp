@@ -1,0 +1,66 @@
+{
+   mesa-gallium-leaks
+   Memcheck:Leak
+   ...
+   obj:*/libgallium*.so*
+}
+
+{
+   mesa-swrast-leaks
+   Memcheck:Leak
+   ...
+   obj:*/swrast_dri.so*
+}
+
+{
+   llvm-leaks
+   Memcheck:Leak
+   ...
+   obj:*/libLLVM*.so*
+}
+
+{
+   mesa-gallium-open-memfd
+   CoreError:FdNotClosed
+   fun:memfd_create*
+   ...
+   obj:*/libgallium*.so*
+}
+
+{
+   mesa-swrast-open-memfd
+   CoreError:FdNotClosed
+   fun:memfd_create*
+   ...
+   obj:*/swrast_dri.so*
+}
+
+{
+   xcb-open-socket
+   CoreError:FdNotClosed
+   fun:socket*
+   ...
+   fun:xcb_connect*
+}
+
+{
+   dbus-open-socket
+   CoreError:FdNotClosed
+   fun:socket*
+   ...
+   obj:*/libdbus-1.so*
+}
+
+{
+   gl-dispatch-leaks
+   Memcheck:Leak
+   ...
+   obj:*/libGLdispatch.so*
+}
+
+{
+   mesa-glx-leaks
+   Memcheck:Leak
+   ...
+   obj:*/libGLX_mesa.so*
+}

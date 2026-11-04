@@ -224,6 +224,7 @@ jobs:
         --error-exitcode=99 --track-origins=yes --leak-check=full --show-leak-kinds=all
         --errors-for-leak-kinds=definite,possible --track-fds=yes --fair-sched=yes
         --num-callers=40 --keep-debuginfo=yes --gen-suppressions=all
+        --suppressions=${{github.workspace}}/.github/valgrind.supp
       # Otherwise SDL leaks what libdbus allocated.
       SDL_SHUTDOWN_DBUS_ON_QUIT: 1
 
