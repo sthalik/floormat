@@ -254,6 +254,7 @@ void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
     for (const auto& [name, item] : ed)
     {
         fm_debug_assert(get_atlas(item));
+        const auto b3 = push_id(name);
         ImGui::TableNextRow(ImGuiTableRowFlags_None, row_height);
 
         if (ImGui::TableSetColumnIndex(0))
