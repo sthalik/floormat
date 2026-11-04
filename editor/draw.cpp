@@ -84,10 +84,10 @@ void app::draw_cursor()
         {
             if (!vo->is_anything_selected())
                 shader.set_tint(inactive_color);
+            wireframe::draw_quad(shader, center, TILE_SIZE2, LINE_WIDTH);
             if (vo->is_anything_selected())
             {
                 const auto& atlas = vo->get_selected()->factory->atlas();
-                wireframe::draw_quad(shader, center, TILE_SIZE2, LINE_WIDTH);
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [sb] = M->meshes();
                 const auto pos = Vector3i(pt)*iTILE_SIZE;
@@ -208,8 +208,7 @@ void app::draw()
     if (_render_bboxes)
         draw_collision_boxes();
     if (_editor->current_ground_editor() || _editor->current_wall_editor() ||
-        _editor->current_scenery_editor() && _editor->current_scenery_editor()->is_anything_selected() ||
-        _editor->current_vobj_editor() && _editor->current_vobj_editor()->is_anything_selected())
+        _editor->current_scenery_editor() || _editor->current_vobj_editor())
         draw_cursor();
     draw_ui();
     ImGui::EndFrame();
