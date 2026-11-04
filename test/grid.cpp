@@ -1761,7 +1761,7 @@ void test_cover_stepped_tracks_ray(uint32_t div_size, ArrayView<const uint32_t> 
             add_ground_all(ch);
             // a tile off the chunk's edges, so none reaches into COORD
             if (x != 0 || y != 0)
-                for (uint8_t i = 1; i + 1 < TILE_MAX_DIM; i++)
+                for (uint8_t i = 1; i + 1u < TILE_MAX_DIM; i++)
                 {
                     ch[{i, 8}].wall_north() = wall_proto();
                     ch[{8, i}].wall_west() = wall_proto();
