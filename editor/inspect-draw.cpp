@@ -42,10 +42,7 @@ void app::draw_inspector()
 
         bool is_open = true;
         if (auto b2 = begin_window(buf, &is_open))
-        {
-            bool ret = entities::inspect_object_subtype(e);
-            (void)ret;
-        }
+            entities::inspect_object_subtype(e);
         if (!is_open)
             erase_inspector((unsigned)i);
     }

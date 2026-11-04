@@ -126,7 +126,6 @@ float app::draw_main_menu()
             if (ImGui::MenuItem("Show all Z levels", "T", b_all_z_levels))
                 do_key(key_render_all_z_levels);
         }
-#if 1
         if (auto b2 = begin_menu("Tests"))
         {
             if (ImGui::MenuItem("Text painter test", nullptr, _test_text_painter))
@@ -184,7 +183,6 @@ float app::draw_main_menu()
             if (ImGui::MenuItem("Scene torture test (all Z)"))
                 scene([this] { populate_scene_benchmark_all_z(); });
         }
-#endif
 
         main_menu_height = ImGui::GetContentRegionAvail().y;
     }
@@ -237,8 +235,6 @@ void app::draw_ui()
         draw_tests_overlay();
     driver_draw_overlay();
     const float main_menu_height = draw_main_menu();
-
-    //[[maybe_unused]] auto font = font_saver{ctx.FontSize*dpi};
 
     draw_lightmap_test(main_menu_height);
     draw_load_pane(main_menu_height);
@@ -710,12 +706,10 @@ void app::do_popup_menu()
     auto& e = *eʹ;
 
     auto b0 = push_id(SCENERY_POPUP_NAME);
-    //if (_popup_target.target != popup_target_type::scenery) {...}
 
     if (_pending_popup)
     {
         _pending_popup = false;
-        //if (type != popup_target_type::scenery) {...}
         ImGui::OpenPopup(SCENERY_POPUP_NAME.data());
     }
 
@@ -759,22 +753,19 @@ void app::kill_popups(bool hard)
 {
     const bool imgui = _imgui->context() != nullptr;
 
-    if (imgui)
-        fm_assert(_imgui->context());
-
     _pending_popup = false;
     _popup_target = {};
 
     if (hard)
         tested_light_chunk = {};
 
-    if (_imgui->context())
+    if (imgui)
         ImGui::CloseCurrentPopup();
 
     if (hard)
         kill_inspectors();
 
-    if (_imgui->context())
+    if (imgui)
         ImGui::FocusWindow(nullptr);
 }
 

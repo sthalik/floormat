@@ -12,8 +12,7 @@
 
 namespace floormat {
 
-typename std::map<StringView, ground_cell>::const_iterator ground_editor::begin() const noexcept { return _atlases.cbegin(); }
-typename std::map<StringView, ground_cell>::const_iterator ground_editor::end() const noexcept { return _atlases.cend(); }
+const std::map<StringView, ground_cell>& ground_editor::items() const noexcept { return _atlases; }
 
 struct ground_editor::tuple
 {

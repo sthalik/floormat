@@ -76,10 +76,7 @@ void wall_editor::select_item(const wall_cell& cell) { _selected_atlas = cell.at
 void wall_editor::clear_selection() { _selected_atlas = nullptr; }
 bool wall_editor::is_item_selected(const wall_cell& cell) const { return _selected_atlas == cell.atlas; }
 bool wall_editor::is_anything_selected() const { return _selected_atlas != nullptr; }
-typename std::map<StringView, wall_cell>::const_iterator wall_editor::cbegin() const noexcept { return _atlases.cbegin(); }
-typename std::map<StringView, wall_cell>::const_iterator wall_editor::cend() const noexcept { return _atlases.cend(); }
-typename std::map<StringView, wall_cell>::const_iterator wall_editor::begin() const noexcept { return _atlases.cbegin(); }
-typename std::map<StringView, wall_cell>::const_iterator wall_editor::end() const noexcept { return _atlases.cend(); }
+const std::map<StringView, wall_cell>& wall_editor::items() const noexcept { return _atlases; }
 
 void wall_editor::place_wall(world& w, global_coords coords, const bptr<wall_atlas>& atlas)
 {

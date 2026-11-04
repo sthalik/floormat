@@ -788,7 +788,7 @@ task app::scene_ground_editor()
     uint32_t n = 0, a = 0;
     const auto shorten = pgo_driver_use_short_scenes();
 
-    for (const auto& [name, cell] : *ed)
+    for (const auto& [name, cell] : ed->items())
     {
         fm_assert(cell.atlas);
 
@@ -839,8 +839,8 @@ task app::scene_drag_paint()
     auto* ed = _editor->current_wall_editor();
     fm_assert(ed);
 
-    fm_assert(ed->begin() != ed->end());
-    const auto& cell = ed->begin()->second;
+    fm_assert(!ed->items().empty());
+    const auto& cell = ed->items().begin()->second;
     auto atlas = cell.atlas;
     fm_assert(atlas);
     ed->select_item(cell);
