@@ -10,7 +10,7 @@ namespace floormat {
 class world;
 class wall_atlas;
 
-class wall_editor
+class wall_editor final
 {
     std::map<StringView, wall_cell> _atlases;
     bptr<wall_atlas> _selected_atlas;
