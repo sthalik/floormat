@@ -48,7 +48,7 @@ void scenery_editor::prev_rotation()
     set_rotation(_selected.proto.atlas->prev_rotation_from(_selected.proto.r));
 }
 
-void scenery_editor::select_tile(const scenery_& s)
+void scenery_editor::select_item(const scenery_& s)
 {
     const auto r = s.proto.atlas && s.proto.atlas->check_rotation(_selected.proto.r)
                    ? _selected.proto.r
@@ -87,7 +87,7 @@ auto scenery_editor::cend() const noexcept -> std::map<StringView, scenery_>::co
 auto scenery_editor::begin() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cbegin(); }
 auto scenery_editor::end() const noexcept -> std::map<StringView, scenery_>::const_iterator { return _atlases.cend(); }
 
-void scenery_editor::place_tile(world& w, global_coords pos, const scenery_& s, app& a)
+void scenery_editor::place_scenery(world& w, global_coords pos, const scenery_& s, app& a)
 {
     if (!s)
     {
