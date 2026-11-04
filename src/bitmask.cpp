@@ -10,6 +10,8 @@
 #ifdef __clang__
 #pragma GCC diagnostic ignored "-Wused-but-marked-unused"
 #endif
+#undef HWY_DISABLED_TARGETS
+#define HWY_DISABLED_TARGETS (HWY_AVX2 - 1)
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "src/bitmask.cpp"
 #include <hwy/foreach_target.h>
