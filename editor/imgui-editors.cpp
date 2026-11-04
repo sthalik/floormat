@@ -24,10 +24,10 @@ using namespace floormat::imgui;
 
 namespace {
 
-template<typename T> constexpr inline bool do_group_column = false;
-template<> constexpr inline bool do_group_column<scenery_editor> = true;
-template<typename T> constexpr inline bool do_path_column = false;
-template<> constexpr inline bool do_path_column<wall_editor> = true;
+template<typename T> constexpr inline bool has_type_and_group_columns = false;
+template<> constexpr inline bool has_type_and_group_columns<scenery_editor> = true;
+template<typename T> constexpr inline bool has_path_column = false;
+template<> constexpr inline bool has_path_column<wall_editor> = true;
 
 using scenery_ = scenery_editor::scenery_;
 using vobj_ = vobj_editor::vobj_;
@@ -43,10 +43,10 @@ StringView scenery_type_to_string(const scenery_& sc)
     }
 }
 
-StringView scenery_path(const wall_cell& wa) { return wa.atlas->name(); }
-StringView scenery_name(StringView, const scenery_& sc) { return sc.name; }
-StringView scenery_name(StringView, const vobj_& vobj) { return vobj.descr; }
-StringView scenery_name(StringView, const wall_cell& w) { return w.name; }
+StringView item_path(const wall_cell& wa) { return wa.atlas->name(); }
+StringView item_name(StringView, const scenery_& sc) { return sc.name; }
+StringView item_name(StringView, const vobj_& vobj) { return vobj.descr; }
+StringView item_name(StringView, const wall_cell& w) { return w.name; }
 bptr<anim_atlas> get_atlas(const scenery_& sc) { return sc.proto.atlas; }
 bptr<anim_atlas> get_atlas(const vobj_& vobj) { return vobj.factory->atlas(); }
 bptr<wall_atlas> get_atlas(const wall_cell& w) { return w.atlas; }
@@ -142,8 +142,8 @@ void palette_thumbnail(editor& e, ImVec2 img_size, const wall_cell&, wall_atlas&
 }
 
 
-void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas,
-                                 Vector2 dpi, ImDrawListSplitter& splitter)
+void draw_ground_palette_atlas(editor& e, ground_editor& ed, StringView name, const bptr<ground_atlas>& atlas,
+                               Vector2 dpi, ImDrawListSplitter& splitter)
 {
     const auto b = push_id("tile-pane");
 
@@ -155,14 +155,14 @@ void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, 
     const auto& style = ImGui::GetStyle();
     const auto N = atlas->num_tiles();
 
-    const auto click_event = [&] {
+    const auto handle_click = [&] {
         if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
             ed.select_tile_permutation(atlas);
         else if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
             ed.clear_selection();
     };
     const auto do_caption = [&] {
-        click_event();
+        handle_click();
         if (ed.is_atlas_selected(atlas))
         {
             ImGui::SameLine();
@@ -203,7 +203,7 @@ void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, 
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
                 ed.select_tile(atlas, i);
             else
-                click_event();
+                handle_click();
             ImGui::SameLine();
         }
         ImGui::NewLine();
@@ -213,15 +213,15 @@ void draw_editor_tile_pane_atlas(editor& e, ground_editor& ed, StringView name, 
 }
 
 template<typename T>
-void impl_draw_editor_scenery_pane(editor& e, T& ed, Vector2 dpi)
+void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
 {
-    const auto b1 = push_id("scenery-pane");
+    const auto b1 = push_id("palette-pane");
 
     const auto& style = ImGui::GetStyle();
     constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
-    constexpr int ncolumns = do_group_column<T> ? 4 : do_path_column<T> ? 3 : 2;
+    constexpr int ncolumns = has_type_and_group_columns<T> ? 4 : has_path_column<T> ? 3 : 2;
     const auto size = ImGui::GetWindowSize();
-    auto b2 = imgui::begin_table("scenery-table", ncolumns, flags, size);
+    auto b2 = imgui::begin_table("palette-table", ncolumns, flags, size);
     const auto row_height = ImGui::GetCurrentContext()->FontSize + 10*dpi[1];
     constexpr auto thumbnail_width = 50;
     ImGui::TableSetupScrollFreeze(1, 1);
@@ -229,90 +229,90 @@ void impl_draw_editor_scenery_pane(editor& e, T& ed, Vector2 dpi)
     constexpr auto colflags = colflags_ | ImGuiTableColumnFlags_WidthFixed;
     ImGui::TableSetupColumn("##thumbnail", colflags, thumbnail_width);
     ImGui::TableSetupColumn("Name", colflags_ | ImGuiTableColumnFlags_WidthStretch);
-    if constexpr(do_group_column<T>)
+    if constexpr(has_type_and_group_columns<T>)
     {
         const auto colwidth_type = ImGui::CalcTextSize("generic").x;
         const auto colwidth_group = ImGui::CalcTextSize("MMMMMMMMMMMMMMM").x;
         ImGui::TableSetupColumn("Type", colflags, colwidth_type);
         ImGui::TableSetupColumn("Group", colflags, colwidth_group);
     }
-    else if constexpr(do_path_column<T>)
+    else if constexpr(has_path_column<T>)
     {
         const auto colwidth_path = ImGui::CalcTextSize("/MMMMMMMMMMMMMMM").x;
         ImGui::TableSetupColumn("Path", colflags, colwidth_path);
     }
     ImGui::TableHeadersRow();
 
-    const auto click_event = [&] {
+    const auto clear_on_middle_click = [&] {
         if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
             ed.clear_selection();
     };
-    click_event();
+    clear_on_middle_click();
 
-    for (const auto& [name, scenery] : ed)
+    for (const auto& [name, item] : ed)
     {
-        fm_debug_assert(get_atlas(scenery));
+        fm_debug_assert(get_atlas(item));
         ImGui::TableNextRow(ImGuiTableRowFlags_None, row_height);
 
         if (ImGui::TableSetColumnIndex(0))
         {
-            auto atlasʹ = get_atlas(scenery);
+            auto atlasʹ = get_atlas(item);
             auto& atlas = *atlasʹ;
-            const auto size = Vector2(get_size(scenery, atlas));
+            const auto size = Vector2(get_size(item, atlas));
             const float c = Math::min(thumbnail_width / size[0], row_height / size[1]);
             const ImVec2 img_size = {size[0]*c, size[1]*c+style.CellPadding.y + 0.5f};
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + Math::max(0.f, .5f*(thumbnail_width - img_size.x)));
             ImGui::SetCursorPosY(ImGui::GetCursorPosY() + .5f*Math::max(0.f, row_height - img_size.y));
-            palette_thumbnail(e, img_size, scenery, atlas);
-            click_event();
+            palette_thumbnail(e, img_size, item, atlas);
+            clear_on_middle_click();
         }
         if (ImGui::TableSetColumnIndex(1))
         {
             constexpr ImGuiSelectableFlags flags = ImGuiSelectableFlags_SpanAllColumns;
-            bool selected = is_selected(ed, scenery);
-            auto nameʹ = scenery_name(name, scenery);
+            bool selected = is_selected(ed, item);
+            auto nameʹ = item_name(name, item);
             if (ImGui::Selectable(nameʹ.data(), &selected, flags, {0, row_height}) && selected)
-                select_tile(ed, scenery);
-            click_event();
+                select_tile(ed, item);
+            clear_on_middle_click();
         }
 
-        if constexpr(do_group_column<T>)
+        if constexpr(has_type_and_group_columns<T>)
         {
             if (ImGui::TableSetColumnIndex(2))
             {
-                text(scenery_type_to_string(scenery));
-                click_event();
+                text(scenery_type_to_string(item));
+                clear_on_middle_click();
             }
         }
-        else if constexpr (do_path_column<T>)
+        else if constexpr (has_path_column<T>)
         {
             if (ImGui::TableSetColumnIndex(2))
             {
-                text(scenery_path(scenery));
-                click_event();
+                text(item_path(item));
+                clear_on_middle_click();
             }
         }
 
-        if constexpr(do_group_column<T>)
+        if constexpr(has_type_and_group_columns<T>)
         {
             if (ImGui::TableSetColumnIndex(3))
             {
-                auto& atlas = *get_atlas(scenery);
+                auto& atlas = *get_atlas(item);
                 StringView name = loader.strip_prefix(atlas.name());
                 if (auto last = name.findLast('/'))
                     name = name.prefix(last.data());
                 else
                     name = {};
                 text(name);
-                click_event();
+                clear_on_middle_click();
             }
         }
     }
 }
 
-template void impl_draw_editor_scenery_pane(editor&, scenery_editor&, Vector2);
-template void impl_draw_editor_scenery_pane(editor&, vobj_editor&, Vector2);
-template void impl_draw_editor_scenery_pane(editor&, wall_editor&, Vector2);
+template void draw_palette_pane(editor&, scenery_editor&, Vector2);
+template void draw_palette_pane(editor&, vobj_editor&, Vector2);
+template void draw_palette_pane(editor&, wall_editor&, Vector2);
 
 } // namespace
 
@@ -365,15 +365,15 @@ void app::draw_editor_pane(float main_menu_height)
                     auto* draw_list = ImGui::GetWindowDrawList();
                     splitter.Split(draw_list, 2);
                     for (const auto& [k, v] : *ed)
-                        draw_editor_tile_pane_atlas(*_editor, *ed, k, v.atlas, dpi, splitter);
+                        draw_ground_palette_atlas(*_editor, *ed, k, v.atlas, dpi, splitter);
                     splitter.Merge(draw_list);
                 }
                 else if (sc)
-                    impl_draw_editor_scenery_pane<scenery_editor>(*_editor, *sc, dpi);
+                    draw_palette_pane<scenery_editor>(*_editor, *sc, dpi);
                 else if (vo)
-                    impl_draw_editor_scenery_pane<vobj_editor>(*_editor, *vo, dpi);
+                    draw_palette_pane<vobj_editor>(*_editor, *vo, dpi);
                 else if (wa)
-                    impl_draw_editor_scenery_pane<wall_editor>(*_editor, *wa, dpi);
+                    draw_palette_pane<wall_editor>(*_editor, *wa, dpi);
                 else if (_editor->mode() == editor_mode::tests)
                 {
                     // With no frame, an unchecked checkbox shows only its label.
