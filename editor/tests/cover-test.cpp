@@ -174,14 +174,7 @@ void cover_test::draw_chunk(app& a, chunk& c, uint32_t sk)
             const uint16_t d = cg.distance(idx, sk);
             const auto color = d == Cover::blocked ? blocked_color : rgb(d, max_d);
             const Vector2 base = p00 + dx * float(cx) + dy * float(cy);
-            const Vector2 q1 = base + dx;
-            const Vector2 q2 = base + dx + dy;
-            const Vector2 q3 = base + dy;
-            draw.AddQuadFilled({base.x(), base.y()},
-                               {q1.x(),   q1.y()},
-                               {q2.x(),   q2.y()},
-                               {q3.x(),   q3.y()},
-                               color);
+            draw.AddQuadFilled(ImVec2(base), ImVec2(base + dx), ImVec2(base + dx + dy), ImVec2(base + dy), color);
         }
 }
 
@@ -222,7 +215,7 @@ void cover_test::draw_overlay(app& a)
         const auto len_px = (int)cg.distance(result.cell_idx, k) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
         const auto end_px = a.point_to_pixel(end_pt);
-        draw.AddLine({pos.x(), pos.y()}, {end_px.x(), end_px.y()}, line_color);
+        draw.AddLine(ImVec2(pos), ImVec2(end_px), line_color);
     }
 
     if (built & 1u << sk && cg.distance(result.cell_idx, sk) != Cover::blocked)
@@ -233,14 +226,14 @@ void cover_test::draw_overlay(app& a)
         const auto end_px = a.point_to_pixel(end_pt);
         const auto hi_color = ImGui::ColorConvertFloat4ToU32({1, 0.2f, 0.2f, 0.95f});
         constexpr float hi_thickness = 2.5f;
-        draw.AddLine({pos.x(), pos.y()}, {end_px.x(), end_px.y()}, hi_color, hi_thickness);
+        draw.AddLine(ImVec2(pos), ImVec2(end_px), hi_color, hi_thickness);
         constexpr float marker_radius = 4;
-        draw.AddCircleFilled({end_px.x(), end_px.y()}, marker_radius, hi_color);
+        draw.AddCircleFilled(ImVec2(end_px), marker_radius, hi_color);
     }
 
     const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0.5f, 0, 1});
     constexpr float dot_radius = 5;
-    draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, dot_color);
+    draw.AddCircleFilled(ImVec2(pos), dot_radius, dot_color);
 }
 
 void cover_test::update_post(app& a, const Ns&)

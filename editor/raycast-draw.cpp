@@ -20,10 +20,10 @@ void draw_boxes(app& a, ImDrawList& draw, ArrayView<const detail_rc::bbox> boxes
                    p10 = a.point_to_pixel(point::normalize_coords(center, {max.x(), min.y()})),
                    p01 = a.point_to_pixel(point::normalize_coords(center, {min.x(), max.y()})),
                    p11 = a.point_to_pixel(point::normalize_coords(center, max));
-        draw.AddLine({p00.x(), p00.y()}, {p01.x(), p01.y()}, color, thickness);
-        draw.AddLine({p00.x(), p00.y()}, {p10.x(), p10.y()}, color, thickness);
-        draw.AddLine({p01.x(), p01.y()}, {p11.x(), p11.y()}, color, thickness);
-        draw.AddLine({p10.x(), p10.y()}, {p11.x(), p11.y()}, color, thickness);
+        draw.AddLine(ImVec2(p00), ImVec2(p01), color, thickness);
+        draw.AddLine(ImVec2(p00), ImVec2(p10), color, thickness);
+        draw.AddLine(ImVec2(p01), ImVec2(p11), color, thickness);
+        draw.AddLine(ImVec2(p10), ImVec2(p11), color, thickness);
     }
 }
 
@@ -48,9 +48,9 @@ void draw_raycast_line(app& a, const rc::raycast_result_s& r, float dot_size, fl
     const auto p0 = a.point_to_pixel(r.from),
                p1 = a.point_to_pixel(hit ? r.collision : r.to);
     if (radius <= 0)
-        draw.AddLine({p0.x(), p0.y()}, {p1.x(), p1.y()}, line_color(r), 2);
-    draw.AddCircleFilled({p1.x(), p1.y()}, 10*dot_size, ring_color);
-    draw.AddCircleFilled({p1.x(), p1.y()}, 7*dot_size, dot_color);
+        draw.AddLine(ImVec2(p0), ImVec2(p1), line_color(r), 2);
+    draw.AddCircleFilled(ImVec2(p1), 10*dot_size, ring_color);
+    draw.AddCircleFilled(ImVec2(p1), 7*dot_size, dot_color);
 }
 
 void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::raycast_diag_s& diag)
@@ -65,8 +65,7 @@ void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::ra
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     const auto from = a.point_to_pixel(r.from);
     const auto to_pixel = [&](Vector2 offset) {
-        const auto p = from + tile_shader::project(Vector3(offset, 0));
-        return ImVec2{p.x(), p.y()};
+        return ImVec2(from + tile_shader::project(Vector3(offset, 0)));
     };
     // diag.tmin stays 0 when nothing was hit
     const auto end = diag.dir * (r.success ? diag.V.length() : diag.tmin);

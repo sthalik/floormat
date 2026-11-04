@@ -2,7 +2,7 @@
 #include "compat/prelude.hpp"
 #include <cr/StringView.h>
 #include <mg/Magnum.h>
-#include <imgui.h>
+#include <mg/ImGuiIntegration/Integration.h>
 
 namespace floormat::imgui {
 

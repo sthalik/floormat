@@ -260,10 +260,8 @@ void app::draw_clickables()
 
     for (const auto& x : M->clickable_scenery())
     {
-        auto dest = Math::Range2D<float>(x.dest);
-        auto min = dest.min(), max = dest.max();
-        draw.AddRect({ min.x(), min.y() }, { max.x(), max.y() },
-                     color, 0, thickness);
+        const auto dest = Math::Range2D<float>(x.dest);
+        draw.AddRect(ImVec2(dest.min()), ImVec2(dest.max()), color, 0, thickness);
     }
 
     // draw slope lines on static scenery
@@ -300,7 +298,7 @@ void app::draw_clickables()
             const Vector2 center = tile_shader::point_to_pixel(Vector3i(e.position()) + Vector3i(g.offset), win_size, camera);
             const auto start = Vector2{center.x() + left_x,  center.y() + y_at_left};
             const auto end   = Vector2{center.x() + right_x, center.y() + y_at_right};
-            draw.AddLine({start.x(), start.y()}, {end.x(), end.y()}, color, thickness);
+            draw.AddLine(ImVec2(start), ImVec2(end), color, thickness);
 
             // vertical split at the bbox NW corner (between slope line and top edge)
             const float x_nw = Math::clamp(nw.x(), left_x, right_x);
@@ -308,7 +306,7 @@ void app::draw_clickables()
             const float top_y = -float(frame.ground.y());
             const auto vsplit_start = Vector2{center.x() + x_nw, center.y() + y_at_nw};
             const auto vsplit_end   = Vector2{center.x() + x_nw, center.y() + top_y};
-            draw.AddLine({vsplit_start.x(), vsplit_start.y()}, {vsplit_end.x(), vsplit_end.y()}, color, thickness);
+            draw.AddLine(ImVec2(vsplit_start), ImVec2(vsplit_end), color, thickness);
         }
     }
 }
@@ -437,9 +435,9 @@ void app::draw_text_painter_test()
         p.text(white,  "(slot rendered by caller)"_s);
         p.render(draw, cursor);
         const auto r = p.bounds_of(x_slot);
-        draw.AddLine({r.min().x(), r.min().y()}, {r.max().x(), r.max().y()}, magenta, 1.5f);
+        draw.AddLine(ImVec2(r.min()), ImVec2(r.max()), magenta, 1.5f);
         draw.AddLine({r.min().x(), r.max().y()}, {r.max().x(), r.min().y()}, magenta, 1.5f);
-        draw.AddRect({r.min().x(), r.min().y()}, {r.max().x(), r.max().y()}, magenta, 0, 1);
+        draw.AddRect(ImVec2(r.min()), ImVec2(r.max()), magenta, 0, 1);
         cursor.y() += line_h;
     }
 
@@ -456,7 +454,7 @@ void app::draw_text_painter_test()
         p.render(draw, cursor);
         const auto rc = p.bounds_of(s_circle);
         const auto cc = (rc.min() + rc.max()) * 0.5f;
-        draw.AddCircleFilled({cc.x(), cc.y()}, 7*dpi.x(), red);
+        draw.AddCircleFilled(ImVec2(cc), 7*dpi.x(), red);
         const auto rt = p.bounds_of(s_tri);
         const auto ct = (rt.min() + rt.max()) * 0.5f;
         const float t = 7*dpi.x();
@@ -465,8 +463,7 @@ void app::draw_text_painter_test()
                                {ct.x() + t, ct.y() + t}, green);
         const auto rs = p.bounds_of(s_sqr);
         const auto cs = (rs.min() + rs.max()) * 0.5f;
-        draw.AddRectFilled({cs.x() - 7*dpi.x(), cs.y() - 7*dpi.y()},
-                           {cs.x() + 7*dpi.x(), cs.y() + 7*dpi.y()}, blue);
+        draw.AddRectFilled(ImVec2(cs - 7*dpi), ImVec2(cs + 7*dpi), blue);
         cursor.y() += line_h;
     }
 
@@ -520,8 +517,7 @@ void app::draw_text_painter_test()
         p.text(white,  "bounds() draws cyan frame around me"_s);
         p.render(draw, cursor);
         const auto bb = p.bounds();
-        draw.AddRect({bb.min().x(), bb.min().y()}, {bb.max().x(), bb.max().y()},
-                     frame_c, 0, 2);
+        draw.AddRect(ImVec2(bb.min()), ImVec2(bb.max()), frame_c, 0, 2);
         cursor.y() += line_h * 1.4f;
     }
 
@@ -559,7 +555,7 @@ void app::draw_text_painter_test()
         p.render(draw, cursor);
         const auto rd = p.bounds_of(dot_slot);
         const auto cd = (rd.min() + rd.max()) * 0.5f;
-        draw.AddCircleFilled({cd.x(), cd.y()}, 3*dpi.x(), magenta);
+        draw.AddCircleFilled(ImVec2(cd), 3*dpi.x(), magenta);
         cursor.y() += line_h * 1.4f;
     }
 

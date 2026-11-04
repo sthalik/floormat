@@ -122,15 +122,15 @@ void path_test::draw_overlay(app& a)
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
     auto last = a.point_to_pixel(result.from);
-    draw.AddCircleFilled({last.x(), last.y()}, dot_radius, dot_color);
+    draw.AddCircleFilled(ImVec2(last), dot_radius, dot_color);
 
 
 
     for (auto pt : res.path())
     {
         auto pos = a.point_to_pixel(pt);
-        draw.AddLine({pos.x(), pos.y()}, {last.x(), last.y()}, raw_line_color, raw_line_thickness);
-        draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, raw_dot_color);
+        draw.AddLine(ImVec2(pos), ImVec2(last), raw_line_color, raw_line_thickness);
+        draw.AddCircleFilled(ImVec2(pos), dot_radius, raw_dot_color);
         last = pos;
     }
 
@@ -141,8 +141,8 @@ void path_test::draw_overlay(app& a)
         for (const auto& x : sp)
         {
             auto pos = a.point_to_pixel(x.pt);
-            draw.AddLine({pos.x(), pos.y()}, {prev.x(), prev.y()}, line_color, line_thickness);
-            draw.AddCircleFilled({pos.x(), pos.y()}, dot_radius, sp_dot_color);
+            draw.AddLine(ImVec2(pos), ImVec2(prev), line_color, line_thickness);
+            draw.AddCircleFilled(ImVec2(pos), dot_radius, sp_dot_color);
             prev = pos;
         }
     }

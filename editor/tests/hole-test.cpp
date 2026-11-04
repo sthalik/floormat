@@ -41,8 +41,7 @@ bool hole_test::handle_mouse_click(app&, const mouse_button_event&, bool) { retu
 bool hole_test::handle_mouse_move(app&, const mouse_move_event&) { return false; }
 void hole_test::draw_overlay(app&) {}
 
-constexpr ImVec2 to_imvec2(Vector2 val) { return {val.x(), val.y()}; }
-uint32_t to_color(Color4 val) { return ImGui::ColorConvertFloat4ToU32({ val.r(), val.g(), val.b(), val.a() }); }
+uint32_t to_color(Color4 val) { return ImGui::ColorConvertFloat4ToU32(ImVec4(val)); }
 
 constexpr auto colors = std::array{
     0x488f31_rgbf, // rect 1
@@ -78,30 +77,30 @@ void hole_test::draw_ui(app&, float)
     if (auto b1 = imgui::begin_child("Test area"_s, window_size, igcf, igwf))
     {
         const auto& win = *ImGui::GetCurrentWindow();
-        const auto min  = Vector2{win.Pos.x, win.Pos.y};
+        const auto min  = Vector2(win.Pos);
         const auto max  = min + Vector2{width};
         const auto maxʹ = max - Vector2{1};
         constexpr float mult = 2;
         const auto center = min + Vector2{width*.5f};
         ImDrawList& draw = *win.DrawList;
 
-        draw.AddRectFilled(to_imvec2(min), to_imvec2(maxʹ), bgcolor, 0, imdf); // black
-        draw.AddRect(to_imvec2(center - TILE_SIZE2*.5f*mult), to_imvec2(center + TILE_SIZE2*.5f*mult), gray, 0); // standard tile
-        draw.AddRectFilled(to_imvec2(center + Vector2(s.min())*mult), to_imvec2(center + Vector2(s.max())*mult), red); // hole
+        draw.AddRectFilled(ImVec2(min), ImVec2(maxʹ), bgcolor, 0, imdf); // black
+        draw.AddRect(ImVec2(center - TILE_SIZE2*.5f*mult), ImVec2(center + TILE_SIZE2*.5f*mult), gray, 0); // standard tile
+        draw.AddRectFilled(ImVec2(center + Vector2(s.min())*mult), ImVec2(center + Vector2(s.max())*mult), red); // hole
 
         for (auto i = 0u; i < res.size; i++)
         {
             auto r = res.array[i];
-            draw.AddRectFilled(to_imvec2(center + Vector2(r.min())*mult), to_imvec2(center + Vector2(r.max())*mult), to_color(colors[i])); // rects filled
+            draw.AddRectFilled(ImVec2(center + Vector2(r.min())*mult), ImVec2(center + Vector2(r.max())*mult), to_color(colors[i])); // rects filled
         }
 
         for (auto i = 0u; i < res.size; i++)
         {
             auto r = res.array[i];
-            draw.AddRect(to_imvec2(center + Vector2(r.min())*mult), to_imvec2(center + Vector2(r.max())*mult), blue, 0, 3); // rects
+            draw.AddRect(ImVec2(center + Vector2(r.min())*mult), ImVec2(center + Vector2(r.max())*mult), blue, 0, 3); // rects
         }
 
-        draw.AddRect(to_imvec2(center + Vector2(s.min())*mult), to_imvec2(center + Vector2(s.max())*mult), red, 0, 1); // hole
+        draw.AddRect(ImVec2(center + Vector2(s.min())*mult), ImVec2(center + Vector2(s.max())*mult), red, 0, 1); // hole
     }
 
     const auto label_width = ImGui::CalcTextSize("MMMMMM").x;

@@ -60,7 +60,7 @@ raii_wrapper::operator bool() const noexcept { return ret; }
 
 raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value)
 {
-    ImGui::PushStyleColor(var, {value[0], value[1], value[2], value[3]});
+    ImGui::PushStyleColor(var, ImVec4(value));
     return {[]{ ImGui::PopStyleColor(); }};
 }
 
@@ -84,7 +84,7 @@ raii_wrapper push_style_var(ImGuiStyleVar_ var, float value)
 
 raii_wrapper push_style_var(ImGuiStyleVar_ var, Vector2 value)
 {
-    ImGui::PushStyleVar(var, {value[0], value[1]});
+    ImGui::PushStyleVar(var, ImVec2(value));
     return {[]{ ImGui::PopStyleVar(); }};
 }
 
