@@ -66,7 +66,7 @@ float app::draw_main_menu()
     float main_menu_height = 0;
     if (auto b = begin_main_menu())
     {
-        if (auto b = begin_menu("File"))
+        if (auto b2 = begin_menu("File"))
         {
             bool do_new = false, do_quickload = false, do_load = false, do_quit = false;
             ImGui::MenuItem("New", nullptr, &do_new);
@@ -84,7 +84,7 @@ float app::draw_main_menu()
             else if (do_quit)
                 do_key(key_quit);
         }
-        if (auto b = begin_menu("Editor"))
+        if (auto b2 = begin_menu("Editor"))
         {
             auto mode = _editor->mode();
             using m = editor_mode;
@@ -127,7 +127,7 @@ float app::draw_main_menu()
                 do_key(key_render_all_z_levels);
         }
 #if 1
-        if (auto b = begin_menu("Tests"))
+        if (auto b2 = begin_menu("Tests"))
         {
             if (ImGui::MenuItem("Text painter test", nullptr, _test_text_painter))
                 _test_text_painter = !_test_text_painter;
