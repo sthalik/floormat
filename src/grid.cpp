@@ -150,7 +150,10 @@ grid_slots::~grid_slots() noexcept
             g->pool->release(g);
 }
 
-PoolBase::PoolBase(): slot_index{take_slot_index()} {}
+PoolBase::PoolBase(): slot_index{take_slot_index()}
+{
+    arrayReserve(live, 16);
+}
 
 PoolBase::~PoolBase() noexcept
 {

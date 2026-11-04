@@ -250,6 +250,9 @@ cover_script::cover_script(astar& A, object_id threat, uint32_t div_size, Option
     A{A}, threat_id{threat}, gun_offset{gun_offset}
 {
     options.div_size = div_size;
+    arrayReserve(unreachable, 16);
+    arrayReserve(reach, 16);
+    arrayReserve(reach_heap, 16);
 }
 
 cover_script_status cover_script::status() const

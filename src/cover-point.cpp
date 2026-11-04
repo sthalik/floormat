@@ -364,6 +364,10 @@ struct cover_point::Impl
 cover_point::cover_point()
 {
     arrayReserve(impl->cands, 16);
+    arrayReserve(impl->rects, 16);
+    arrayReserve(impl->runs, 16);
+    arrayReserve(impl->turned_rects, 16);
+    arrayReserve(impl->end_rects, 16);
 }
 
 cover_point::~cover_point() noexcept = default;

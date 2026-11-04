@@ -838,6 +838,7 @@ class random_run
         if constexpr (Table::has_pages)
             fm_assert(w <= 1u << (page_bits - 1));
         const uint64_t last = key_mask - (w - 1);
+        arrayReserve(bases, p.windows);
         arrayAppend(bases, uint64_t{0});
         arrayAppend(bases, last);
         for (uint32_t i = 2; i < p.windows; i++)
@@ -1426,6 +1427,7 @@ class random_run
     void retrace_finish()
     {
         Array<uint32_t> busy;
+        arrayReserve(busy, walkers.size());
         for (uint32_t i = 0; i < walkers.size(); i++)
             if (!walkers[i].path.isEmpty())
                 arrayAppend(busy, i);
