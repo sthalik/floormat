@@ -5,9 +5,9 @@ namespace floormat {
 
 inline void chase_lev_no_hooks::after_array_load() noexcept {}
 
-inline volatile uintptr_t& ChaseLevBufferPool::buffer::operator[](int64_t i) noexcept
+inline volatile uptr& ChaseLevBufferPool::buffer::operator[](i64 i) noexcept
 {
-    return reinterpret_cast<volatile uintptr_t*>(this + 1)[i & mask];
+    return reinterpret_cast<volatile uptr*>(this + 1)[i & mask];
 }
 
 inline ChaseLevBufferPool::~ChaseLevBufferPool() noexcept
@@ -21,17 +21,17 @@ inline ChaseLevBufferPool::~ChaseLevBufferPool() noexcept
         }
 }
 
-inline auto ChaseLevBufferPool::get(uint32_t log2_capacity) noexcept -> buffer*
+inline auto ChaseLevBufferPool::get(u32 log2_capacity) noexcept -> buffer*
 {
     fm_assert(log2_capacity < max_log2_capacity);
-    volatile uintptr_t* head = &_heads[log2_capacity];
+    volatile uptr* head = &_heads[log2_capacity];
     // Taking the whole list avoids ABA: a CAS from b to b->next could succeed after b was
     // taken and put back with another successor.
-    auto* b = (buffer*)atomic_exchange(head, uintptr_t{0}, memory_order::acquire);
+    auto* b = (buffer*)atomic_exchange(head, uptr{0}, memory_order::acquire);
     if (!b)
     {
-        const auto capacity = int64_t{1} << log2_capacity;
-        void* p = ::operator new(sizeof(buffer) + (size_t)capacity * sizeof(uintptr_t), std::align_val_t{alignof(buffer)});
+        const auto capacity = i64{1} << log2_capacity;
+        void* p = ::operator new(sizeof(buffer) + (usize)capacity * sizeof(uptr), std::align_val_t{alignof(buffer)});
         return new (p) buffer{capacity - 1, nullptr};
     }
     if (b->next)
@@ -45,43 +45,43 @@ inline auto ChaseLevBufferPool::get(uint32_t log2_capacity) noexcept -> buffer*
 inline void ChaseLevBufferPool::put(buffer* b) noexcept
 {
     b->next = nullptr;
-    push(&_heads[std::bit_width((uint64_t)b->mask)], b);
+    push(&_heads[std::bit_width((u64)b->mask)], b);
 }
 
-inline void ChaseLevBufferPool::push(volatile uintptr_t* head, buffer* first) noexcept
+inline void ChaseLevBufferPool::push(volatile uptr* head, buffer* first) noexcept
 {
     buffer* last = first;
     while (last->next)
         last = last->next;
-    uintptr_t h = atomic_load(head, memory_order::relaxed);
+    uptr h = atomic_load(head, memory_order::relaxed);
     do
         last->next = (buffer*)h;
-    while (!atomic_compare_exchange_weak(head, h, (uintptr_t)first, memory_order::release));
+    while (!atomic_compare_exchange_weak(head, h, (uptr)first, memory_order::release));
 }
 
 template<typename T, typename Hooks>
-auto ChaseLevDeque<T, Hooks>::grow(buffer* a, int64_t t, int64_t b) noexcept -> buffer*
+auto ChaseLevDeque<T, Hooks>::grow(buffer* a, i64 t, i64 b) noexcept -> buffer*
 {
-    buffer* n = _pool.get((uint32_t)std::bit_width((uint64_t)a->mask) + 1);
-    for (int64_t i = t; i < b; ++i)
+    buffer* n = _pool.get((u32)std::bit_width((u64)a->mask) + 1);
+    for (i64 i = t; i < b; ++i)
         atomic_store(&(*n)[i], atomic_load(&(*a)[i], memory_order::relaxed), memory_order::relaxed);
     // Release, unlike the paper's relaxed store: a thief that loads a reused n must see the
     // copy, not slots left by n's previous deque.
-    atomic_store(&_array, (uintptr_t)n, memory_order::release);
+    atomic_store(&_array, (uptr)n, memory_order::release);
     // Only after the store, since steal() takes an unchanged _array as proof that a isn't reused.
     _pool.put(a);
     return n;
 }
 
 template<typename T, typename Hooks>
-void ChaseLevDeque<T, Hooks>::store_bottom(int64_t b) noexcept
+void ChaseLevDeque<T, Hooks>::store_bottom(i64 b) noexcept
 {
     atomic_store(&_bottom, b, fm_TSAN ? memory_order::release : memory_order::relaxed);
 }
 
 template<typename T, typename Hooks>
-ChaseLevDeque<T, Hooks>::ChaseLevDeque(ChaseLevBufferPool& pool, uint32_t log2_capacity) noexcept :
-    _array{(uintptr_t)pool.get(log2_capacity)},
+ChaseLevDeque<T, Hooks>::ChaseLevDeque(ChaseLevBufferPool& pool, u32 log2_capacity) noexcept :
+    _array{(uptr)pool.get(log2_capacity)},
     _pool{pool}
 {
 }
@@ -96,12 +96,12 @@ template<typename T, typename Hooks>
 void ChaseLevDeque<T, Hooks>::push(T* x) noexcept
 {
     fm_debug_assert(x);
-    int64_t b = atomic_load(&_bottom, memory_order::relaxed);
-    int64_t t = atomic_load(&_top, memory_order::acquire);
+    i64 b = atomic_load(&_bottom, memory_order::relaxed);
+    i64 t = atomic_load(&_top, memory_order::acquire);
     auto* a = (buffer*)atomic_load(&_array, memory_order::relaxed);
     if (b - t > a->mask) [[unlikely]]
         a = grow(a, t, b);
-    atomic_store(&(*a)[b], (uintptr_t)x, memory_order::relaxed);
+    atomic_store(&(*a)[b], (uptr)x, memory_order::relaxed);
     if constexpr (!fm_TSAN)
         atomic_thread_fence(memory_order::release);
     store_bottom(b + 1);
@@ -110,10 +110,10 @@ void ChaseLevDeque<T, Hooks>::push(T* x) noexcept
 template<typename T, typename Hooks>
 T* ChaseLevDeque<T, Hooks>::take() noexcept
 {
-    int64_t b = atomic_load(&_bottom, memory_order::relaxed) - 1;
+    i64 b = atomic_load(&_bottom, memory_order::relaxed) - 1;
     auto* a = (buffer*)atomic_load(&_array, memory_order::relaxed);
     T* x = nullptr;
-    int64_t t;
+    i64 t;
     if constexpr (fm_TSAN)
     {
         atomic_store(&_bottom, b, memory_order::seq_cst);
@@ -143,7 +143,7 @@ T* ChaseLevDeque<T, Hooks>::take() noexcept
 template<typename T, typename Hooks>
 T* ChaseLevDeque<T, Hooks>::steal() noexcept
 {
-    int64_t t, b;
+    i64 t, b;
     if constexpr (fm_TSAN)
     {
         t = atomic_load(&_top, memory_order::seq_cst);
@@ -164,7 +164,7 @@ T* ChaseLevDeque<T, Hooks>::steal() noexcept
     // the _array check below after this read.
     auto* x = (T*)atomic_load(&(*a)[t], memory_order::acquire);
     // A newer _array means a may be back in the pool and refilled by another deque.
-    if (atomic_load(&_array, memory_order::relaxed) != (uintptr_t)a)
+    if (atomic_load(&_array, memory_order::relaxed) != (uptr)a)
         return nullptr;
     bool won = atomic_compare_exchange(&_top, t, t + 1, memory_order::seq_cst);
     return won ? x : nullptr;

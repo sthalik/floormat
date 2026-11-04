@@ -7,7 +7,7 @@
 namespace floormat {
 
 template<typename T = float>
-constexpr VectorTypeFor<2, T> tile_start(size_t k)
+constexpr VectorTypeFor<2, T> tile_start(usize k)
 {
     using Vec2 = VectorTypeFor<2,T>;
     const local_coords coord{k};
@@ -24,14 +24,14 @@ constexpr Pair<Vector2i, Vector2i> scenery_tile(local_coords local, Vector2b off
 }
 
 template<typename T = float>
-constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> whole_tile(size_t k)
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> whole_tile(usize k)
 {
     auto min = tile_start<T>(k);
     return { min, min + TILE_SIZE2, };
 }
 
 template<typename T = float>
-constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_north(size_t k, T wall_depth)
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_north(usize k, T wall_depth)
 {
     using Vec2 = VectorTypeFor<2,T>;
     auto min = tile_start<T>(k) - Vec2{0, wall_depth};
@@ -39,7 +39,7 @@ constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_north(size_t k, T wa
 }
 
 template<typename T = float>
-constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_west(size_t k, T wall_depth)
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_west(usize k, T wall_depth)
 {
     using Vec2 = VectorTypeFor<2,T>;
     auto min = tile_start<T>(k) - Vec2{wall_depth, 0};
@@ -48,7 +48,7 @@ constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_west(size_t k, T wal
 
 // The west and north atlases can have different depths, so the corner isn't square.
 template<typename T = float>
-constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_pillar(size_t k, T west_depth, T north_depth)
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_pillar(usize k, T west_depth, T north_depth)
 {
     using Vec2 = VectorTypeFor<2,T>;
     auto max = tile_start<T>(k);
@@ -56,7 +56,7 @@ constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_pillar(size_t k, T w
 }
 
 template<typename T = float>
-constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_corner(size_t k, T wall_depth)
+constexpr Pair<VectorTypeFor<2,T>, VectorTypeFor<2,T>> wall_corner(usize k, T wall_depth)
 {
     using Vec2 = VectorTypeFor<2,T>;
     auto min = tile_start<T>(k) - Vec2{wall_depth, wall_depth};

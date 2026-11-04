@@ -61,7 +61,7 @@ exception::exception(fmt::format_string<detail::exception_arg_t<Ts>...> str, con
                     "assertion failed: {} in {}:{}",                                \
                     ::Corrade::Containers::StringView{#__VA_ARGS__},                \
                     ::Corrade::Containers::StringView{__FILE__},                    \
-                    (::floormat::uint32_t)__LINE__                                  \
+                    (::floormat::u32)__LINE__                                  \
                 };                                                                  \
         }                                                                           \
     } while (false)

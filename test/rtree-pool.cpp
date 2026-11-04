@@ -34,7 +34,7 @@ private:
 struct Tester
 {
     Counter counter;
-    uint32_t value;
+    u32 value;
     Liveness live{};
 };
 // rtree_pool::free() writes its free-list link over counter.p

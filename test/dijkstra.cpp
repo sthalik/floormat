@@ -32,7 +32,7 @@ constexpr auto flush_tile = local_coords{8, 8};
 
 // Floor every chunk a search from `from` can test: its nodes lie within max_dist of `from`,
 // and the cells tested around them one step of `cell` px further.
-void add_floors(world& w, point from, uint32_t max_dist, uint32_t cell)
+void add_floors(world& w, point from, u32 max_dist, u32 cell)
 {
     const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
     const auto reach = Vector2i{(int)(max_dist + cell)};
@@ -69,9 +69,9 @@ void add_block(world& w, local_coords tile, Vector2ub bbox_size, Vector2b bbox_o
 // The goal's bbox touches a collider. Whether the touching coordinate falls on a pass-grid cell
 // boundary must not decide whether it's found.
 template<typename F>
-void check_flush_goal(const char* name, uint32_t bbox, F&& setup, Vector2b goal_offset, Vector2i toward, bool reachable = true)
+void check_flush_goal(const char* name, u32 bbox, F&& setup, Vector2b goal_offset, Vector2i toward, bool reachable = true)
 {
-    constexpr uint32_t max_dist = 1024;
+    constexpr u32 max_dist = 1024;
     const auto from = point{global_coords{flush_ch, {8, 12}}, {}};
     auto w = world();
     add_floors(w, from, max_dist, bbox);
@@ -110,17 +110,17 @@ void check_flush_goal(const char* name, uint32_t bbox, F&& setup, Vector2b goal_
     }
 }
 
-void test_flush_goals(uint32_t bbox)
+void test_flush_goals(u32 bbox)
 {
     const auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, 0};
     const auto depth = (int)wall.atlas->info().depth;
     const auto lo = (int)bbox/2, hi = (int)bbox - lo;
-    const auto far = (int8_t)(half_tile<int> - depth - hi);
+    const auto far = (i8)(half_tile<int> - depth - hi);
 
     check_flush_goal("wall north", bbox, [&](world& w) { w[flush_ch][flush_tile].wall_north() = wall; },
-                     {0, (int8_t)(lo - half_tile<int>)}, {0, -1});
+                     {0, (i8)(lo - half_tile<int>)}, {0, -1});
     check_flush_goal("wall west", bbox, [&](world& w) { w[flush_ch][flush_tile].wall_west() = wall; },
-                     {(int8_t)(lo - half_tile<int>), 0}, {-1, 0});
+                     {(i8)(lo - half_tile<int>), 0}, {-1, 0});
     check_flush_goal("wall south", bbox, [&](world& w) { w[flush_ch][{8, 9}].wall_north() = wall; },
                      {0, far}, {0, 1});
     check_flush_goal("wall east", bbox, [&](world& w) { w[flush_ch][{9, 8}].wall_west() = wall; },
@@ -132,13 +132,13 @@ void test_flush_goals(uint32_t bbox)
     {
         const auto south = offset.y() + (size.y() - size.y()/2) - tile_size_xy;
         check_flush_goal("odd scenery north", bbox, [&](world& w) { add_block(w, {8, 7}, size, offset); },
-                         {0, (int8_t)(south + lo)}, {0, -1});
+                         {0, (i8)(south + lo)}, {0, -1});
     }
 
     // A gap as wide as the bbox. No cell in it has its bit set, and the free nodes past its ends
     // are too far from the middle to move straight to it. Two tiles long, the goal's seed search reaches
     // them. Four tiles long, it can't.
-    const auto gap_side = Vector2ub{(uint8_t)(2*tile_size_xy - bbox), 2*tile_size_xy};
+    const auto gap_side = Vector2ub{(u8)(2*tile_size_xy - bbox), 2*tile_size_xy};
     check_flush_goal("box-wide gap", bbox, [&](world& w) {
         add_block(w, {7, 8}, gap_side);
         add_block(w, {9, 8}, gap_side);
@@ -152,16 +152,16 @@ void test_flush_goals(uint32_t bbox)
 }
 
 // The start touches a collider on its high x side, so the cell holding it is closed.
-void check_closed_start_cell(uint32_t bbox, int8_t start_x)
+void check_closed_start_cell(u32 bbox, i8 start_x)
 {
-    constexpr uint32_t max_dist = 1024;
+    constexpr u32 max_dist = 1024;
     constexpr auto start_tile = local_coords{5, 5}, block_tile = local_coords{6, 5};
     constexpr auto block_size = Vector2ub{20, tile_size_xy};
     const auto from = point{global_coords{flush_ch, start_tile}, {start_x, 0}};
     const auto goal = point{global_coords{flush_ch, {1, 5}}, {}};
     const auto block_x = (int)block_tile.x * tile_size_xy;
     const auto block_lo = (int)start_tile.x * tile_size_xy + start_x + (int)bbox/2;
-    const auto block_offset = Vector2b{(int8_t)(block_lo - block_x + block_size.x()/2), 0};
+    const auto block_offset = Vector2b{(i8)(block_lo - block_x + block_size.x()/2), 0};
 
     auto w = world();
     add_floors(w, from, max_dist, bbox);
@@ -188,20 +188,20 @@ void check_closed_start_cell(uint32_t bbox, int8_t start_x)
 
 // A corridor two tiles long, exactly as wide as the union of an odd body's boxes over one cell.
 // That cell column is the only way to the goal, and bbox + 1 closes it.
-void test_odd_body_corridor(uint32_t bbox)
+void test_odd_body_corridor(u32 bbox)
 {
-    constexpr uint32_t max_dist = 1024;
+    constexpr u32 max_dist = 1024;
     constexpr auto t = (int)tile_size_xy;
-    constexpr int8_t goal_x = -8;
+    constexpr i8 goal_x = -8;
     const auto from = point{global_coords{flush_ch, {8, 12}}, {goal_x, 0}};
     const auto goal = point{global_coords{flush_ch, flush_tile}, {goal_x, 0}};
     const auto& pred = Search::without_critters();
     auto A = astar{};
     const auto registry_params = Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass};
     const auto d = (int)registry_params.div_size();
-    auto exact = Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)d, bbox, pass_mode::pass}, pred};
-    auto wider = Grid::Pass::Pool{Grid::Pass::Params{(uint32_t)d, bbox + 1, pass_mode::pass}, pred};
-    fm_assert(exact.params().div_size() == (uint32_t)d && wider.params().div_size() == (uint32_t)d);
+    auto exact = Grid::Pass::Pool{Grid::Pass::Params{(u32)d, bbox, pass_mode::pass}, pred};
+    auto wider = Grid::Pass::Pool{Grid::Pass::Params{(u32)d, bbox + 1, pass_mode::pass}, pred};
+    fm_assert(exact.params().div_size() == (u32)d && wider.params().div_size() == (u32)d);
 
     const auto x = (int)flush_tile.x * t + goal_x;
     const auto p0 = (x + half_tile<int>) / d * d - half_tile<int>;
@@ -209,9 +209,9 @@ void test_odd_body_corridor(uint32_t bbox)
     const auto left = p0 - lo, right = p0 + d - 1 + hi;
 
     auto w = world();
-    add_floors(w, from, max_dist, (uint32_t)d);
-    add_block(w, {7, 8}, {tile_size_xy, 2*tile_size_xy}, {(int8_t)(left - (7*t + t/2)), 0});
-    add_block(w, {9, 8}, {tile_size_xy, 2*tile_size_xy}, {(int8_t)(right - (9*t - t/2)), 0});
+    add_floors(w, from, max_dist, (u32)d);
+    add_block(w, {7, 8}, {tile_size_xy, 2*tile_size_xy}, {(i8)(left - (7*t + t/2)), 0});
+    add_block(w, {9, 8}, {tile_size_xy, 2*tile_size_xy}, {(i8)(right - (9*t - t/2)), 0});
     auto& c = w[flush_ch];
     c.mark_passability_modified();
     c.ensure_passability();
@@ -231,9 +231,9 @@ void test_odd_body_corridor(uint32_t bbox)
 // then reach the far side of Search::cache's rectangle, and A* tests cells one chunk past it.
 void test_cache_margin()
 {
-    constexpr uint32_t cell = 16;
+    constexpr u32 cell = 16;
     const auto from = point{global_coords{flush_ch, {15, 8}}, {31, 0}};
-    const auto goal = [](uint8_t tx, int8_t ox) { return point{global_coords{{1, 0, 0}, {tx, 8}}, {ox, 0}}; };
+    const auto goal = [](u8 tx, i8 ox) { return point{global_coords{{1, 0, 0}, {tx, 8}}, {ox, 0}}; };
     const auto max_dist = [&](point to) { return point::distance(from, to) + 7; };
     const auto& pred = Search::without_critters();
     auto A = astar{};
@@ -242,10 +242,10 @@ void test_cache_margin()
     auto w = world();
     add_floors(w, from, max_dist(goal(TILE_MAX_DIM - 1, half_tile<int> - 1)), cell);
 
-    for (uint8_t tx = 12; tx < TILE_MAX_DIM; tx++)
+    for (u8 tx = 12; tx < TILE_MAX_DIM; tx++)
         for (int ox = -half_tile<int>; ox < half_tile<int>; ox++)
         {
-            const auto to = goal(tx, (int8_t)ox);
+            const auto to = goal(tx, (i8)ox);
             auto r = A.Dijkstra<0, false>(w, pool, from, to, max_dist(to), Vector2ui(cell), pred);
             if (!r.is_found())
                 fm_abort("cache margin: goal tile %u offset %d not found", (unsigned)tx, ox);
@@ -255,9 +255,9 @@ void test_cache_margin()
 // max_dist drops to the largest whose Search::cache rectangle fits in its max_size_bytes.
 void test_large_search_limit()
 {
-    constexpr uint32_t cell = astar::default_div_size, max_dist = 523'777;
+    constexpr u32 cell = astar::default_div_size, max_dist = 523'777;
     const auto from = point{global_coords{flush_ch, flush_tile}, {}};
-    uint32_t clamped;
+    u32 clamped;
     {
         auto c = Search::cache{};
         clamped = c.allocate(from, max_dist, cell);
@@ -270,7 +270,7 @@ void test_large_search_limit()
     auto w = world();
     auto A = astar{};
     const auto& pred = Search::without_critters();
-    const auto search = [&](Vector2i off, uint32_t dist) {
+    const auto search = [&](Vector2i off, u32 dist) {
         return A.Dijkstra<0, false>(w, from, from + off, dist, Vector2ui{cell}, pred);
     };
     const auto near = Vector2i{97, 53};
@@ -282,19 +282,19 @@ void test_large_search_limit()
     fm_assert(!search({(int)clamped + tile_size_xy, 0}, max_dist).is_found());
 }
 
-void add_pocket(world& w, point pt, uint32_t size, int open)
+void add_pocket(world& w, point pt, u32 size, int open)
 {
     constexpr int t = 16;
     fm_assert(pt.chunk3() == flush_ch);
     const auto h = (int)size/2;
     const auto o = Vector2i(pt.offset());
-    const auto back = Vector2ub{(uint8_t)t, (uint8_t)(size + 2*t)}, side = Vector2ub{(uint8_t)(size + t), (uint8_t)t};
+    const auto back = Vector2ub{(u8)t, (u8)(size + 2*t)}, side = Vector2ub{(u8)(size + t), (u8)t};
     add_block(w, pt.local(), back, Vector2b(o + Vector2i{-open*(h + t/2), 0}));
     add_block(w, pt.local(), side, Vector2b(o + Vector2i{-open*t/2, -(h + t/2)}));
     add_block(w, pt.local(), side, Vector2b(o + Vector2i{-open*t/2, h + t/2}));
 }
 
-void check_one_move(world& w, point pt, uint32_t size, Vector2i open)
+void check_one_move(world& w, point pt, u32 size, Vector2i open)
 {
     fm_assert(box_free(w, pt, Vector2ui(size)));
     for (int dy = -1; dy <= 1; dy++)
@@ -303,12 +303,12 @@ void check_one_move(world& w, point pt, uint32_t size, Vector2i open)
                 fm_assert(box_free(w, point::normalize_coords(pt, {dx, dy}), Vector2ui(size)) == (Vector2i{dx, dy} == open));
 }
 
-bptr<critter> add_walker(world& w, point from, uint32_t size)
+bptr<critter> add_walker(world& w, point from, u32 size)
 {
     critter_proto p;
     p.name = "npc"_s;
     p.speed = 1;
-    p.bbox_size = Vector2ub((uint8_t)size);
+    p.bbox_size = Vector2ub((u8)size);
     p.offset = from.offset();
     auto C = w.make_object<critter>(w.make_id(), from.coord(), move(p));
     w.init_scripts();
@@ -316,7 +316,7 @@ bptr<critter> add_walker(world& w, point from, uint32_t size)
 }
 
 // The walk collides like any other move, so a path through a collider stops it short.
-void walk_to(world& w, const bptr<critter>& C, path_search_result path, point goal, const char* name, uint32_t cell)
+void walk_to(world& w, const bptr<critter>& C, path_search_result path, point goal, const char* name, u32 cell)
 {
     C->script.do_reassign(critter_script::make_walk_script(move(path)), C);
     const auto frame = Second / C->atlas->info().fps;
@@ -337,9 +337,9 @@ void walk_to(world& w, const bptr<critter>& C, path_search_result path, point go
 
 // The start stands in a pocket 3 px off the lattice on both axes, so its cell and every ring
 // seed are closed and only its seed search gets out. With boxed_goal, the goal does too.
-void check_pocket(uint32_t cell, bool boxed_goal)
+void check_pocket(u32 cell, bool boxed_goal)
 {
-    constexpr uint32_t max_dist = 1024, size = 32;
+    constexpr u32 max_dist = 1024, size = 32;
     const auto from = point{global_coords{flush_ch, {5, 8}}, {3, 3}};
     const auto goal = point{global_coords{flush_ch, {11, 8}}, {-5, 7}};
     const char* const name = boxed_goal ? "pocket, boxed goal" : "pocket";
@@ -375,7 +375,7 @@ void check_pocket(uint32_t cell, bool boxed_goal)
     fm_assert(r2.cost() == r1.cost());
     // Leaving a pocket goes a box width away from the other end and back. No step costs less
     // than its x travel.
-    const auto x_travel = (uint32_t)(Vector3i(goal).x() - Vector3i(from).x()) + 2*size*(1 + (uint32_t)boxed_goal);
+    const auto x_travel = (u32)(Vector3i(goal).x() - Vector3i(from).x()) + 2*size*(1 + (u32)boxed_goal);
     if (r1.cost() < x_travel)
         fm_abort("%s at div %u: cost %u, the way around is at least %u", name, cell, r1.cost(), x_travel);
     walk_to(w, C, move(r1), goal, name, cell);
@@ -384,9 +384,9 @@ void check_pocket(uint32_t cell, bool boxed_goal)
 // No search queues a seed. From the pocket with max_dist 32, and toward it with max_dist 1, every
 // seed costs max_dist or more. With max_dist 4 box widths some cost less, but a seed's cost plus its
 // octile distance to `open` is at least the octile distance from `pocket` to `open`, over max_dist.
-void check_seeds_past_max_dist(uint32_t cell)
+void check_seeds_past_max_dist(u32 cell)
 {
-    constexpr uint32_t size = 32;
+    constexpr u32 size = 32;
     const auto pocket = point{global_coords{flush_ch, {5, 8}}, {3, 3}};
     const auto open = point{global_coords{flush_ch, {11, 8}}, {-5, 7}};
     const auto& pred = Search::without_critters();
@@ -401,7 +401,7 @@ void check_seeds_past_max_dist(uint32_t cell)
     c.ensure_passability();
     fm_assert(!A.cache()->is_passable_for_bbox(w, pool, pocket, pred));
 
-    struct search { point from, to; uint32_t max_dist; };
+    struct search { point from, to; u32 max_dist; };
     for (auto [from, to, max_dist] : { search{pocket, open, size}, search{open, pocket, 1}, search{pocket, open, 4*size} })
     {
         auto r1 = A.Dijkstra<0, false>(w, pool, from, to, max_dist, Vector2ui(size), pred);
@@ -416,9 +416,9 @@ void check_seeds_past_max_dist(uint32_t cell)
 // closed and room nodes lie near it. The room's only other way in is the corridor's far end,
 // facing away from the start. A* exhausts without reaching the goal, then the goal's seed search
 // runs down the corridor to its nodes.
-void check_corridor_goal(uint32_t cell)
+void check_corridor_goal(u32 cell)
 {
-    constexpr uint32_t max_dist = 1024, size = 32;
+    constexpr u32 max_dist = 1024, size = 32;
     constexpr auto room_tile = local_coords{10, 8};
     constexpr int corridor_west = 576;
     const auto from = point{global_coords{flush_ch, {13, 8}}, {}};
@@ -452,7 +452,7 @@ void check_corridor_goal(uint32_t cell)
     fm_assert(r2.cost() == r1.cost());
     // The corridor is entered where the box clears its walls.
     const auto mouth_x = corridor_west - (int)size/2;
-    const auto x_travel = (uint32_t)(Vector3i(from).x() - mouth_x + Vector3i(goal).x() - mouth_x);
+    const auto x_travel = (u32)(Vector3i(from).x() - mouth_x + Vector3i(goal).x() - mouth_x);
     if (r1.cost() < x_travel)
         fm_abort("corridor goal at div %u: cost %u, the way around is at least %u", cell, r1.cost(), x_travel);
     // With max_dist at that bound, A* runs out of nodes again, and the goal's seed search after
@@ -468,7 +468,7 @@ void check_corridor_goal(uint32_t cell)
 // reaches some positions diagonally first, then cheaper on an axial step.
 void check_post_field()
 {
-    constexpr uint32_t max_dist = 1024, size = 32, cell = 8;
+    constexpr u32 max_dist = 1024, size = 32, cell = 8;
     constexpr int post = 16, pitch = post + (int)size - 1 + 3;
     const auto from = point{global_coords{flush_ch, flush_tile}, {pitch/2, pitch/2}};
     const auto goal = point{global_coords{flush_ch, {12, 8}}, {}};
@@ -480,7 +480,7 @@ void check_post_field()
     add_floors(w, from, max_dist, cell);
     for (int j = -1; j <= 1; j++)
         for (int i = -1; i <= 1; i++)
-            add_block(w, flush_tile, Vector2ub(post), Vector2b{(int8_t)(i*pitch), (int8_t)(j*pitch)});
+            add_block(w, flush_tile, Vector2ub(post), Vector2b{(i8)(i*pitch), (i8)(j*pitch)});
     const auto C = add_walker(w, from, size);
     auto& c = w[flush_ch];
     c.mark_passability_modified();
@@ -504,7 +504,7 @@ void check_post_field()
 // the goal and store the same number of nodes.
 void check_walled_off_goal(bool open)
 {
-    constexpr uint32_t max_dist = 1536, size = 32, cell = 4;
+    constexpr u32 max_dist = 1536, size = 32, cell = 4;
     constexpr auto room = local_coords{12, 8};
     const auto from = point{global_coords{flush_ch, {2, 8}}, {}};
     const auto goal = point{global_coords{flush_ch, room}, {}};
@@ -518,7 +518,7 @@ void check_walled_off_goal(bool open)
     auto w = world();
     add_floors(w, from, max_dist, cell);
     for (auto y = 6u; y <= 10; y++)
-        add_block(w, {room.x, (uint8_t)y}, {16, tile_size_xy}, {-40, 0});
+        add_block(w, {room.x, (u8)y}, {16, tile_size_xy}, {-40, 0});
     add_block(w, room, {96, 16}, {0, -40});
     add_block(w, room, {96, 16}, {0, 40});
     if (open)
@@ -564,7 +564,7 @@ void Test::test_dijkstra()
     auto w = world();
 
     constexpr auto wcx = 1, wcy = 1, wtx = 8, wty = 8, wox = 0, woy = 0;
-    constexpr auto max_dist = (uint32_t)(Vector2i(Math::abs(wcx)+1, Math::abs(wcy)+1)*chunk_size<Vector2i>).length();
+    constexpr auto max_dist = (u32)(Vector2i(Math::abs(wcx)+1, Math::abs(wcy)+1)*chunk_size<Vector2i>).length();
     constexpr auto wch = chunk_coords_{wcx, wcy, 0};
     constexpr auto wt = local_coords{wtx, wty};
     constexpr auto wpos = global_coords{wch, wt};
@@ -576,8 +576,8 @@ void Test::test_dijkstra()
     auto& ch = w[wch];
     auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, 0};
 
-    for (int16_t j = wcy - 1; j <= wcy + 1; j++)
-        for (int16_t i = wcx - 1; i <= wcx + 1; i++)
+    for (i16 j = wcy - 1; j <= wcy + 1; j++)
+        for (i16 i = wcx - 1; i <= wcx + 1; i++)
         {
             auto &c = w[{i, j, 0}];
             for (int k : {  3, 4, 5, 6, 11, 12, 13, 14, 15, })
@@ -592,8 +592,8 @@ void Test::test_dijkstra()
     ch[{ wtx+1, wty   }].wall_west()  = wall;
     ch[{ wtx,   wty +1}].wall_north() = wall;
 
-    for (int16_t j = wcy - 1; j <= wcy + 1; j++)
-        for (int16_t i = wcx - 1; i <= wcx + 1; i++)
+    for (i16 j = wcy - 1; j <= wcy + 1; j++)
+        for (i16 i = wcx - 1; i <= wcx + 1; i++)
         {
             auto& c = w[{i, j, 0}];
             c.mark_passability_modified();
@@ -613,8 +613,8 @@ void Test::test_dijkstra()
     };
 
     {
-        constexpr auto min = (uint32_t)(TILE_SIZE2.length()*.25f) - uint32_t{1},
-                       max = (uint32_t)(TILE_SIZE2*2.f).length() + uint32_t{1};
+        constexpr auto min = (u32)(TILE_SIZE2.length()*.25f) - u32{1},
+                       max = (u32)(TILE_SIZE2*2.f).length() + u32{1};
         auto result = run.operator()<debug>(goal);
 
         fm_assert(!result.is_found());
@@ -655,7 +655,7 @@ void Test::test_dijkstra()
             for (int y = -half_tile<int>; y < half_tile<int>; y++)
                 for (int x = -half_tile<int>; x < half_tile<int>; x++)
                 {
-                    const auto pt = point{wpos, {(int8_t)x, (int8_t)y}};
+                    const auto pt = point{wpos, {(i8)x, (i8)y}};
                     if (!A.cache()->is_passable_for_bbox(w, pool, pt, pred) && box_free(w, pt, own_size))
                         return pt;
                 }

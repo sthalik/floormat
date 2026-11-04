@@ -31,10 +31,10 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
     {
         scenery_static_mesh.clear();
         // upper bound: six quads per static object, none for a dynamic one
-        scenery_static_mesh.reserve(6 * (uint32_t)_objects.size());
+        scenery_static_mesh.reserve(6 * (u32)_objects.size());
     }
 
-    sb.begin_chunk((uint32_t)_objects.size()); // static objects go to scenery_static_mesh instead
+    sb.begin_chunk((u32)_objects.size()); // static objects go to scenery_static_mesh instead
 
     for (const auto& eʹ : _objects)
     {
@@ -82,7 +82,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             const float sprite_h = float(frame.size.y());
             const float bottom_y = float(frame.size.y()) - float(frame.ground.y());
 
-            //const auto depth_bias = int32_t((uint32_t)e.bbox_size.min());
+            //const auto depth_bias = i32((u32)e.bbox_size.min());
             const auto depth_bias = hi.sum();
             const auto front_depth      = Depth::value_at(depth_start, center, depth_offset + depth_bias);
             const auto back_left_depth  = Depth::value_at(depth_start, center, depth_offset + hi.y() - lo.x());
@@ -104,7 +104,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
                 const float xc = Math::clamp(x, w.x(), east.x());
                 const float south = (float)(hi.y() - lo.x()) + (xc - w.x()),
                             east_side = (float)(hi.x() - lo.y()) + (east.x() - xc);
-                const auto off = (int32_t)Math::floor(Math::min(south, east_side));
+                const auto off = (i32)Math::floor(Math::min(south, east_side));
                 return Depth::value_at(depth_start, center, depth_offset + off);
             };
             // quad[0]=BR, quad[1]=TR, quad[2]=BL, quad[3]=TL
@@ -115,7 +115,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
                          depth };
             };
 
-            for (uint32_t i = 0; i < 3; i++)
+            for (u32 i = 0; i < 3; i++)
             {
                 const float xa = xs[i], xb = xs[i+1];
                 if (!(xb > xa))

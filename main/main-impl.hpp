@@ -65,8 +65,8 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     fm_settings& settings() noexcept override;
     const fm_settings& settings() const noexcept override;
 
-    global_coords pixel_to_tile(Vector2i position, int8_t z_level = 0) const noexcept override;
-    point pixel_to_point(Vector2i position, int8_t z_level = 0) const noexcept override;
+    global_coords pixel_to_tile(Vector2i position, i8 z_level = 0) const noexcept override;
+    point pixel_to_point(Vector2i position, i8 z_level = 0) const noexcept override;
 
     ArrayView<const clickable> clickable_scenery() const noexcept override;
     ArrayView<clickable> clickable_scenery() noexcept override;
@@ -78,7 +78,7 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     void set_events_ignored(bool value) override;
     void inject_key(int keycode, int mods, bool is_down, bool is_repeated = false) override;
     void inject_mouse_button(mouse_button button, Vector2i position, bool is_down) override;
-    void inject_mouse_motion(Vector2i position, Vector2i rel, uint32_t button_mask) override;
+    void inject_mouse_motion(Vector2i position, Vector2i rel, u32 button_mask) override;
     void inject_mouse_scroll(Vector2i position, Vector2 offset) override;
     void resize_window(Vector2i size) override;
     [[maybe_unused]] void pointerPressEvent(PointerEvent& ev) override;
@@ -105,7 +105,7 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
 
     static void debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str);
 
-    void set_cursor(uint32_t cursor) noexcept override;
+    void set_cursor(u32 cursor) noexcept override;
 
     struct texture_unit_cache& texture_unit_cache() override;
     class astar& astar() override;
@@ -142,7 +142,7 @@ private:
     struct lightmap_shader _lightmap_shader{_tuc};
     Array<clickable> _clickable_scenery;
     class world _world{};
-    uint32_t _mouse_cursor = (uint32_t)-1;
+    u32 _mouse_cursor = (u32)-1;
     SpriteBatch _sprite_batch;
 #ifdef FM_USE_DEPTH32
     Framebuffer framebuffer;
@@ -153,7 +153,7 @@ private:
     void recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept;
     void draw_world() noexcept;
 
-    template<std::invocable<chunk&, int16_t, int16_t, int8_t> Function>
+    template<std::invocable<chunk&, i16, i16, i8> Function>
     void draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks);
 
     void register_debug_callback();

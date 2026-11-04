@@ -44,7 +44,7 @@ int bench_app::exec()
 {
     if (const auto* s = getenv("FLOORMAT_HWY_TARGET"); s && *s)
     {
-        int64_t t = 0;
+        i64 t = 0;
         if (!strcmp(s, "avx2"))
             t = HWY_AVX2;
         else if (!strcmp(s, "sse4"))

@@ -26,8 +26,8 @@ using std::chrono::steady_clock;
 // Polls, since atomic_wait has no timeout and the codebase has no mutex.
 class Watchdog
 {
-    volatile uintptr_t test = (uintptr_t)"", type = (uintptr_t)"";
-    volatile uint8_t done = 0;
+    volatile uptr test = (uptr)"", type = (uptr)"";
+    volatile u8 done = 0;
     std::thread thread;
 
 public:
@@ -45,40 +45,40 @@ public:
 
     ~Watchdog() noexcept
     {
-        atomic_store(&done, uint8_t{1}, memory_order::release);
+        atomic_store(&done, u8{1}, memory_order::release);
         thread.join();
     }
 
     void enter(const char* test_, const char* type_)
     {
-        atomic_store(&type, (uintptr_t)type_);
-        atomic_store(&test, (uintptr_t)test_);
+        atomic_store(&type, (uptr)type_);
+        atomic_store(&test, (uptr)test_);
     }
 };
 
 template<typename F>
-void run_threads(uint32_t count, F&& fn)
+void run_threads(u32 count, F&& fn)
 {
-    std::latch start_gun{(ptrdiff_t)count};
+    std::latch start_gun{(isize)count};
     std::array<std::thread, 40> threads;
     fm_assert(count <= threads.size());
-    for (uint32_t i = 0; i < count; ++i)
+    for (u32 i = 0; i < count; ++i)
         threads[i] = std::thread([&, i] {
             start_gun.arrive_and_wait();
             fn(i);
         });
-    for (uint32_t i = 0; i < count; ++i)
+    for (u32 i = 0; i < count; ++i)
         threads[i].join();
 }
 
 void yield() { std::this_thread::yield(); }
 
 template<typename T> using U = std::make_unsigned_t<T>;
-template<typename T> constexpr uint32_t bits = sizeof(T) * 8;
+template<typename T> constexpr u32 bits = sizeof(T) * 8;
 template<typename T> constexpr T all_bits = T(U<T>(~U<T>(0)));
 template<typename T> constexpr T high_bit = T(U<T>(U<T>(1) << (bits<T> - 1)));
 template<typename T> constexpr T high_half = T(U<T>(U<T>(1) << bits<T> / 2));
-template<typename T> constexpr T every_byte(uint8_t b) { return T(U<T>(U<T>(U<T>(all_bits<T>) / 0xff) * b)); }
+template<typename T> constexpr T every_byte(u8 b) { return T(U<T>(U<T>(U<T>(all_bits<T>) / 0xff) * b)); }
 
 template<typename T>
 constexpr std::array<T, 9> special_values = {
@@ -86,8 +86,8 @@ constexpr std::array<T, 9> special_values = {
     T(U<T>(U<T>(all_bits<T>) >> 1)), high_half<T>,
     every_byte<T>(0x5a), every_byte<T>(0xa5),
 };
-static_assert(every_byte<uint64_t>(0xa5) == 0xa5a5a5a5a5a5a5a5u);
-static_assert(every_byte<uint8_t>(0xa5) == 0xa5);
+static_assert(every_byte<u64>(0xa5) == 0xa5a5a5a5a5a5a5a5u);
+static_assert(every_byte<u8>(0xa5) == 0xa5);
 
 constexpr memory_order load_orders[] = { memory_order::relaxed, memory_order::acquire, memory_order::seq_cst };
 
@@ -109,7 +109,7 @@ static_assert(!can_wait<memory_order>);
 
 constexpr bool sizes_valid()
 {
-    uint32_t prev = 0;
+    u32 prev = 0;
     for (auto x : atomic_wait_sizes)
     {
         if (x != 1 && x != 2 && x != 4 && x != 8)
@@ -130,7 +130,7 @@ static_assert(!atomic_wait_size_supported(16));
 static_assert(std::size(atomic_wait_sizes) == 4);
 #endif
 
-uint64_t thread_cpu_time()
+u64 thread_cpu_time()
 {
 #ifdef _WIN32
     ULONG64 cycles = 0;
@@ -139,7 +139,7 @@ uint64_t thread_cpu_time()
 #else
     timespec ts{};
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
-    return (uint64_t)ts.tv_sec * 1'000'000'000u + (uint64_t)ts.tv_nsec;
+    return (u64)ts.tv_sec * 1'000'000'000u + (u64)ts.tv_nsec;
 #endif
 }
 
@@ -148,7 +148,7 @@ uint64_t thread_cpu_time()
 double cpu_time_rate()
 {
     double rate = 0;
-    for (uint32_t i = 0; i < 3; ++i)
+    for (u32 i = 0; i < 3; ++i)
     {
         auto t0 = steady_clock::now();
         auto c0 = thread_cpu_time();
@@ -166,8 +166,8 @@ template<typename T>
 void test_values_distinct()
 {
     constexpr auto& v = special_values<T>;
-    for (uint32_t i = 0; i < v.size(); ++i)
-        for (uint32_t j = i + 1; j < v.size(); ++j)
+    for (u32 i = 0; i < v.size(); ++i)
+        for (u32 j = i + 1; j < v.size(); ++j)
             fm_assert(v[i] != v[j]);
 }
 
@@ -215,26 +215,26 @@ double sleeps_cpu_share(double rate)
         { high_bit<T>, T(0) },
         { high_half<T>, T(high_half<T> | 1) },
     };
-    constexpr uint32_t n = std::size(pairs);
+    constexpr u32 n = std::size(pairs);
     struct alignas(64) slot
     {
         volatile T value;
-        volatile uint8_t ready = 0;
-        uint64_t cpu = 0;
+        volatile u8 ready = 0;
+        u64 cpu = 0;
         double wall = 0;
     };
     slot slots[n];
-    for (uint32_t i = 0; i < n; ++i)
+    for (u32 i = 0; i < n; ++i)
         slots[i].value = pairs[i].old;
 
-    run_threads(n + 1, [&](uint32_t i) {
+    run_threads(n + 1, [&](u32 i) {
         if (i < n)
         {
             auto& s = slots[i];
             // Read before `ready`, so the waker's whole sleep falls inside the measured interval.
             auto t0 = steady_clock::now();
             auto c0 = thread_cpu_time();
-            atomic_store(&s.ready, uint8_t{1});
+            atomic_store(&s.ready, u8{1});
             atomic_wait(&s.value, pairs[i].old);
             s.cpu = thread_cpu_time() - c0;
             s.wall = std::chrono::duration<double>(steady_clock::now() - t0).count();
@@ -246,7 +246,7 @@ double sleeps_cpu_share(double rate)
                 while (!atomic_load(&s.ready))
                     yield();
             std::this_thread::sleep_for(30ms);
-            for (uint32_t k = 0; k < n; ++k)
+            for (u32 k = 0; k < n; ++k)
             {
                 atomic_store(&slots[k].value, pairs[k].next);
                 atomic_notify_one(&slots[k].value);
@@ -271,7 +271,7 @@ template<typename T>
 void test_sleeps(double rate)
 {
     double share = 0;
-    for (uint32_t i = 0; i < 3; ++i)
+    for (u32 i = 0; i < 3; ++i)
         if ((share = sleeps_cpu_share<T>(rate)) < 0.25)
             return;
     fm_abort("atomic_wait waiter used %.0f%% of a CPU while asleep", share * 100);
@@ -280,14 +280,14 @@ void test_sleeps(double rate)
 template<typename T>
 void test_ping_pong(T a, T b, bool notify_all)
 {
-    constexpr uint32_t rounds = 500;
+    constexpr u32 rounds = 500;
     const T values[2] = { a, b };
     volatile T turn = a;
-    uint32_t payload = 0; // not atomic, published by `turn`
+    u32 payload = 0; // not atomic, published by `turn`
 
-    run_threads(2, [&](uint32_t i) {
+    run_threads(2, [&](u32 i) {
         const T theirs = values[1 - i];
-        for (uint32_t r = 0; r < rounds; ++r)
+        for (u32 r = 0; r < rounds; ++r)
         {
             atomic_wait(&turn, theirs, memory_order::acquire);
             fm_assert(atomic_load(&turn, memory_order::relaxed) == values[i]);
@@ -306,13 +306,13 @@ void test_ping_pong(T a, T b, bool notify_all)
 template<typename T>
 void test_ring()
 {
-    constexpr uint32_t threads = 8, laps = 100;
-    auto turn_of = [](uint32_t i) { return T(U<T>(U<T>(i) << (bits<T> - 3))); };
+    constexpr u32 threads = 8, laps = 100;
+    auto turn_of = [](u32 i) { return T(U<T>(U<T>(i) << (bits<T> - 3))); };
     volatile T turn = turn_of(0);
-    uint32_t payload = 0; // not atomic, published by `turn`
+    u32 payload = 0; // not atomic, published by `turn`
 
-    run_threads(threads, [&](uint32_t i) {
-        for (uint32_t lap = 0; lap < laps; ++lap)
+    run_threads(threads, [&](u32 i) {
+        for (u32 lap = 0; lap < laps; ++lap)
         {
             for (;;)
             {
@@ -335,17 +335,17 @@ void test_ring()
 template<typename T>
 void test_many_addresses()
 {
-    constexpr uint32_t n = 32, stride = 13;
+    constexpr u32 n = 32, stride = 13;
     static_assert(n % stride != 0 && stride % 2 == 1);
     volatile T values[n] = {};
-    volatile uint8_t arrived[n] = {}, returned[n] = {};
+    volatile u8 arrived[n] = {}, returned[n] = {};
 
-    run_threads(n + 1, [&](uint32_t i) {
+    run_threads(n + 1, [&](u32 i) {
         if (i < n)
         {
-            atomic_store(&arrived[i], uint8_t{1});
+            atomic_store(&arrived[i], u8{1});
             atomic_wait(&values[i], T(0));
-            atomic_store(&returned[i], uint8_t{1});
+            atomic_store(&returned[i], u8{1});
         }
         else
         {
@@ -353,14 +353,14 @@ void test_many_addresses()
                 while (!atomic_load(&x))
                     yield();
             std::this_thread::sleep_for(5ms);
-            for (uint32_t j = 0; j < n; ++j)
+            for (u32 j = 0; j < n; ++j)
             {
-                uint32_t k = j * stride % n;
+                u32 k = j * stride % n;
                 atomic_store(&values[k], T(1));
                 atomic_notify_one(&values[k]);
                 while (!atomic_load(&returned[k]))
                     yield();
-                for (uint32_t m = 0; m < n; ++m)
+                for (u32 m = 0; m < n; ++m)
                     if (atomic_load(&values[m]) == T(0))
                         fm_assert(!atomic_load(&returned[m]));
             }
@@ -373,20 +373,20 @@ void test_notify_unchanged()
 {
     constexpr T old = all_bits<T>;
     volatile T value = old;
-    volatile uint8_t arrived = 0, returned = 0;
+    volatile u8 arrived = 0, returned = 0;
 
-    run_threads(2, [&](uint32_t i) {
+    run_threads(2, [&](u32 i) {
         if (i == 0)
         {
-            atomic_store(&arrived, uint8_t{1});
+            atomic_store(&arrived, u8{1});
             atomic_wait(&value, old);
-            atomic_store(&returned, uint8_t{1});
+            atomic_store(&returned, u8{1});
         }
         else
         {
             while (!atomic_load(&arrived))
                 yield();
-            for (uint32_t k = 0; k < 200; ++k)
+            for (u32 k = 0; k < 200; ++k)
             {
                 if (k % 2)
                     atomic_notify_all(&value);
@@ -405,11 +405,11 @@ void test_notify_unchanged()
 template<typename T>
 void test_wake_sleepers(bool notify_all)
 {
-    constexpr uint32_t waiters = 8;
+    constexpr u32 waiters = 8;
     volatile T value = high_bit<T>;
-    volatile uint32_t arrived = 0, returned = 0;
+    volatile u32 arrived = 0, returned = 0;
 
-    run_threads(waiters + 1, [&](uint32_t i) {
+    run_threads(waiters + 1, [&](u32 i) {
         if (i < waiters)
         {
             atomic_fetch_add(&arrived, 1u);
@@ -427,7 +427,7 @@ void test_wake_sleepers(bool notify_all)
             if (notify_all)
                 atomic_notify_all(&value);
             else
-                for (uint32_t k = 0; k < waiters; ++k)
+                for (u32 k = 0; k < waiters; ++k)
                     atomic_notify_one(&value);
         }
     });
@@ -437,14 +437,14 @@ void test_wake_sleepers(bool notify_all)
 template<typename T>
 void test_counter()
 {
-    constexpr uint32_t producers = 4, consumers = 3, per_producer = 30;
+    constexpr u32 producers = 4, consumers = 3, per_producer = 30;
     constexpr T target = T(producers * per_producer);
     static_assert(producers * per_producer <= 127);
     volatile T counter = 0;
 
-    run_threads(producers + consumers, [&](uint32_t i) {
+    run_threads(producers + consumers, [&](u32 i) {
         if (i < producers)
-            for (uint32_t k = 0; k < per_producer; ++k)
+            for (u32 k = 0; k < per_producer; ++k)
             {
                 atomic_fetch_add(&counter, T(1), memory_order::release);
                 atomic_notify_all(&counter);

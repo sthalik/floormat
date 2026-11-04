@@ -217,7 +217,7 @@ constexpr void test_constraints()
     static_assert(foo.get_max_length(x) == 42);
 
     static_assert(m_foo.get_range(x) == constraints::range<int>{});
-    static_assert(m_foo.get_max_length(x) == (size_t)-1);
+    static_assert(m_foo.get_max_length(x) == (usize)-1);
 
     constexpr auto foo2 = entity::type<int>::field {
         "foo"_s, &TestAccessors::foo, &TestAccessors::foo,

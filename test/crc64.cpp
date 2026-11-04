@@ -7,9 +7,9 @@ namespace floormat::Test {
 
 namespace {
 
-uint64_t crc64(uint64_t init, StringView str)
+u64 crc64(u64 init, StringView str)
 {
-    uint64_t crc = init;
+    u64 crc = init;
     crc = Hash::crc64_update(crc, str.data(), str.size());
 
     return crc;
@@ -20,13 +20,13 @@ uint64_t crc64(uint64_t init, StringView str)
 void test_crc64()
 {
     {
-        constexpr uint64_t expected =  0x6C40DF5F0B497347;
+        constexpr u64 expected =  0x6C40DF5F0B497347;
 
-        {uint64_t crc = Hash::CRC64_INITIALIZER;
+        {u64 crc = Hash::CRC64_INITIALIZER;
          crc = crc64(crc, "123456789"_s);
          fm_assert(crc == expected);}
 
-        {uint64_t crc = Hash::CRC64_INITIALIZER;
+        {u64 crc = Hash::CRC64_INITIALIZER;
          crc = crc64(crc, "123"_s);
          crc = crc64(crc, "456789"_s);
          fm_assert(crc == expected);}

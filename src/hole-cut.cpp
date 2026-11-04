@@ -18,8 +18,8 @@ namespace {
 
 template<typename T> using Cr = CutResult<T>;
 
-enum shift : uint8_t { __ = 0, x0 = 1 << 0, x1 = 1 << 1, y0 = 1 << 2, y1 = 1 << 3, };
-enum class location : uint8_t { R0, R1, H0, H1, };
+enum shift : u8 { __ = 0, x0 = 1 << 0, x1 = 1 << 1, y0 = 1 << 2, y1 = 1 << 3, };
+enum class location : u8 { R0, R1, H0, H1, };
 
 struct coords
 {
@@ -31,13 +31,13 @@ struct coords
 
 struct element
 {
-    uint8_t size;
+    u8 size;
     std::array<coords, 4> array;
 };
 
 template<typename T> using Vec2ʹ = VectorTypeFor<2, T>;
 
-constexpr element make_element(uint8_t s)
+constexpr element make_element(u8 s)
 {
     // NOLINTBEGIN(*-simplify, *-redundant-expression)
     // ReSharper disable CppIdenticalOperandsInBinaryExpression
@@ -123,10 +123,10 @@ constexpr auto get_value_from_coord(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Ve
 {
     const auto xs = std::array{ r0.x(), r1.x(), h0.x(), h1.x(), };
     const auto ys = std::array{ r0.y(), r1.y(), h0.y(), h1.y(), };
-    const auto x0 = xs[(uint8_t)c.x0];
-    const auto x1 = xs[(uint8_t)c.x1];
-    const auto y0 = ys[(uint8_t)c.y0];
-    const auto y1 = ys[(uint8_t)c.y1];
+    const auto x0 = xs[(u8)c.x0];
+    const auto x1 = xs[(u8)c.x1];
+    const auto y0 = ys[(u8)c.y0];
+    const auto y1 = ys[(u8)c.y1];
     return Math::Range2D<T>{ {x0, y0}, {x1, y1} };
 }
 
@@ -144,9 +144,9 @@ constexpr bool check_empty(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h
 }
 
 template<typename T>
-constexpr Cr<T> cut_rectangleʹ(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1, uint8_t val)
+constexpr Cr<T> cut_rectangleʹ(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T> h1, u8 val)
 {
-    constexpr auto table = map(make_element, iota_array<uint8_t, 16>);
+    constexpr auto table = map(make_element, iota_array<u8, 16>);
 
     CORRADE_ASSUME(val < 16);
     const auto elt = table[val];
@@ -168,7 +168,7 @@ constexpr Cr<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T
     if (check_empty<T>(r0, r1, h0, h1))
         return {
             .array = {{ { r0, r1 }, }},
-            .s = (uint8_t)-1,
+            .s = (u8)-1,
             .size = 1,
         };
 
@@ -177,7 +177,7 @@ constexpr Cr<T> cut_rectangle(Vec2ʹ<T> r0, Vec2ʹ<T> r1, Vec2ʹ<T> h0, Vec2ʹ<T
     const bool sy = h0.y() <= r0.y();
     const bool ey = h1.y() >= r1.y();
 
-    const auto val = uint8_t(sx << 0 | ex << 1 | sy << 2 | ey << 3);
+    const auto val = u8(sx << 0 | ex << 1 | sy << 2 | ey << 3);
     CORRADE_ASSUME(val < 16);
     return cut_rectangleʹ<T>(r0, r1, h0, h1, val);
 }
@@ -190,7 +190,7 @@ constexpr Cr<T> cut_rectangle(Math::Range2D<T> input, Math::Range2D<T> hole)
 
 } // namespace
 
-template<typename T> Cr<T> CutResult<T>::cutʹ(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1, uint8_t s)
+template<typename T> Cr<T> CutResult<T>::cutʹ(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1, u8 s)
 {
     return cut_rectangleʹ<T>(r0, r1, h0, h1, s);
 }
@@ -198,10 +198,10 @@ template<typename T> Cr<T> CutResult<T>::cutʹ(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h
 template<typename T> Cr<T> CutResult<T>::cut(Math::Range2D<T> input, Math::Range2D<T> hole) { return cut_rectangle<T>(input, hole); }
 template<typename T> Cr<T> CutResult<T>::cut(Vec2 r0, Vec2 r1, Vec2 h0, Vec2 h1) { return cut_rectangle<T>(r0, r1, h0, h1); }
 
-template<typename T> bool CutResult<T>::found() const { return s != (uint8_t)-1; }
+template<typename T> bool CutResult<T>::found() const { return s != (u8)-1; }
 
-template struct CutResult<uint32_t>;
-template struct CutResult<int32_t>;
+template struct CutResult<u32>;
+template struct CutResult<i32>;
 template struct CutResult<float>;
 
 } // namespace floormat

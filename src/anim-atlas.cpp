@@ -18,7 +18,7 @@ namespace floormat {
 
 namespace {
 constexpr inline char name_array[][3] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
-constexpr inline auto rot_count = size_t(rotation_COUNT);
+constexpr inline auto rot_count = usize(rotation_COUNT);
 } // namespace
 
 template class basic_bptr<anim_atlas, non_atomic_refcount>;
@@ -27,9 +27,9 @@ template class basic_bptr<const anim_atlas, non_atomic_refcount>;
 static_assert(array_size(name_array) == rot_count);
 static_assert(rot_count == 8);
 
-uint8_t anim_atlas::rotation_to_index(StringView name)
+u8 anim_atlas::rotation_to_index(StringView name)
 {
-    for (uint8_t i = 0; i < rot_count; i++)
+    for (u8 i = 0; i < rot_count; i++)
         if (name == StringView{name_array[i]})
             return i;
     fm_throw("can't parse rotation name '{}'", name);
@@ -37,12 +37,12 @@ uint8_t anim_atlas::rotation_to_index(StringView name)
 
 decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_def& a) noexcept
 {
-    std::array<uint8_t, rot_count> array = {
+    std::array<u8, rot_count> array = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
     const auto ngroups = a.groups.size();
     for (auto i = 0uz; i < ngroups; i++)
-        array[rotation_to_index(a.groups[i].name)] = uint8_t(i);
+        array[rotation_to_index(a.groups[i].name)] = u8(i);
     return array;
 }
 
@@ -82,21 +82,21 @@ Ns anim_atlas::frame_duration() const noexcept { return Ns{_frame_duration}; }
 
 auto anim_atlas::group(rotation r) const -> const anim_group&
 {
-    const auto group_idx = _group_indices[size_t(r)];
+    const auto group_idx = _group_indices[usize(r)];
     fm_soft_assert(group_idx != 0xff);
     return _info.groups[group_idx];
 }
 
-auto anim_atlas::frame(rotation r, size_t frame) const -> const anim_frame&
+auto anim_atlas::frame(rotation r, usize frame) const -> const anim_frame&
 {
     const anim_group& g = group(r);
     fm_soft_assert(frame < g.frames.size());
     return g.frames[frame];
 }
 
-auto anim_atlas::frame_quad(const Vector3& center, rotation r, size_t i) const noexcept -> quad
+auto anim_atlas::frame_quad(const Vector3& center, rotation r, usize i) const noexcept -> quad
 {
-    enum : size_t { x, y, z };
+    enum : usize { x, y, z };
     const auto f = frame(r, i);
     const auto gx = f.ground[x]*.5f, gy = f.ground[y]*.5f;
     const auto size = Vector2(f.size);
@@ -139,8 +139,8 @@ BitArrayView anim_atlas::bitmask() const
 
 rotation anim_atlas::next_rotation_from(rotation r) const noexcept
 {
-    constexpr auto count = size_t(rotation_COUNT);
-    for (auto i = size_t(r)+1; i < count; i++)
+    constexpr auto count = usize(rotation_COUNT);
+    for (auto i = usize(r)+1; i < count; i++)
         if (_group_indices[i] != 0xff)
             return rotation(i);
     for (auto i = 0uz; i < count; i++)
@@ -151,21 +151,20 @@ rotation anim_atlas::next_rotation_from(rotation r) const noexcept
 
 rotation anim_atlas::prev_rotation_from(rotation r) const noexcept
 {
-    using ssize = std::make_signed_t<size_t>;
-    constexpr auto count = ssize(rotation_COUNT);
+    constexpr auto count = isize(rotation_COUNT);
     if (r < rotation_COUNT)
-        for (auto i = ssize(r)-1; i >= 0; i--)
-            if (_group_indices[size_t(i)] != 0xff)
+        for (auto i = isize(r)-1; i >= 0; i--)
+            if (_group_indices[usize(i)] != 0xff)
                 return rotation(i);
     for (auto i = count-1; i >= 0; i--)
-        if (_group_indices[size_t(i)] != 0xff)
+        if (_group_indices[usize(i)] != 0xff)
             return rotation(i);
     fm_abort("where did the rotations go?!");
 }
 
 bool anim_atlas::check_rotation(rotation r) const noexcept
 {
-    return r < rotation_COUNT && _group_indices[size_t(r)] < 0xff;
+    return r < rotation_COUNT && _group_indices[usize(r)] < 0xff;
 }
 
 rotation anim_atlas::first_rotation() const noexcept

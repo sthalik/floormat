@@ -46,11 +46,11 @@ constexpr double f[] = {
     7.86869131145613259100e-4, 1.84631831751005468180e-5, 1.42151175831644588870e-7, 2.04426310338993978564e-15,
 };
 
-template<uint32_t N>
+template<u32 N>
 double polynomial(double x, const double (&coeffs)[N])
 {
     double y = coeffs[N-1];
-    for (uint32_t i = N-1; i-- > 0; )
+    for (u32 i = N-1; i-- > 0; )
         y = y * x + coeffs[i];
     return y;
 }
@@ -58,8 +58,8 @@ double polynomial(double x, const double (&coeffs)[N])
 // libm's log rounds differently in each C library. Only for normal x > 0.
 double log_positive(double x)
 {
-    const uint64_t bits = std::bit_cast<uint64_t>(x);
-    int32_t exponent = int32_t(bits >> 52) - 1023;
+    const u64 bits = std::bit_cast<u64>(x);
+    i32 exponent = i32(bits >> 52) - 1023;
     double m = std::bit_cast<double>((bits & 0x000fffffffffffff) | 0x3ff0000000000000);
     if (m > 1.4142135623730951)
     {
@@ -75,16 +75,16 @@ double log_positive(double x)
 }
 
 // Inverse normal CDF of (m + 1/2) / 2^64 for m < 2^63.
-double lower_quantile(uint64_t m)
+double lower_quantile(u64 m)
 {
     // p - 1/2 from a rounded p loses q's low bits near p = 1/2.
-    const double q = -((double)int64_t(0x7fffffffffffffff - m) + 0.5) * 0x1p-64;
+    const double q = -((double)i64(0x7fffffffffffffff - m) + 0.5) * 0x1p-64;
     if (q >= -0.425)
     {
         const double r = 0.180625 - q * q;
         return q * polynomial(r, a) / polynomial(r, b);
     }
-    const double p = ((double)int64_t(m) + 0.5) * 0x1p-64;
+    const double p = ((double)i64(m) + 0.5) * 0x1p-64;
     const double r = sqrt_(-log_positive(p));
     if (r <= 5)
         return -polynomial(r - 1.6, c) / polynomial(r - 1.6, d);
@@ -94,24 +94,24 @@ double lower_quantile(uint64_t m)
 
 } // namespace
 
-template<> double gaussian<double>(uint64_t u)
+template<> double gaussian<double>(u64 u)
 {
     const bool upper = u >> 63;
     const double z = lower_quantile(upper ? ~u : u);
     return upper ? -z : z;
 }
 
-template<> float gaussian<float>(uint64_t u)
+template<> float gaussian<float>(u64 u)
 {
     return (float)gaussian<double>(u);
 }
 
-template<> double gaussian<double>(uint64_t u, double center, double spread)
+template<> double gaussian<double>(u64 u, double center, double spread)
 {
     return center + spread * gaussian<double>(u);
 }
 
-template<> float gaussian<float>(uint64_t u, float center, float spread)
+template<> float gaussian<float>(u64 u, float center, float spread)
 {
     return (float)gaussian<double>(u, (double)center, (double)spread);
 }

@@ -14,7 +14,7 @@ inline void to_json(json& j, const tile_image_ref& val) { j = tile_image_proto(v
 inline void from_json(const json& j, tile_image_ref& val) { val = tile_image_proto(j); }
 
 struct local_coords_ final {
-    uint8_t x, y;
+    u8 x, y;
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(local_coords_, x, y)
@@ -24,19 +24,19 @@ inline void to_json(json& j, const chunk_coords_& val) { j = json{{"x", val.x}, 
 
 inline void from_json(const json& j, chunk_coords_& val)
 {
-    const int16_t x = j.at("x"), y = j.at("y");
+    const i16 x = j.at("x"), y = j.at("y");
     const int z = j.at("z");
     fm_soft_assert(z >= chunk_z_min && z <= chunk_z_max);
-    val = chunk_coords_{x, y, int8_t(z)};
+    val = chunk_coords_{x, y, i8(z)};
 }
 
-inline void to_json(json& j, global_coords coord) { j = std::tuple<chunk_coords, local_coords, int8_t>{ coord.chunk(), coord.local(), coord.z() }; }
+inline void to_json(json& j, global_coords coord) { j = std::tuple<chunk_coords, local_coords, i8>{ coord.chunk(), coord.local(), coord.z() }; }
 inline void from_json(const json& j, global_coords& coord)
 {
     std::tuple<chunk_coords, local_coords, int> t = j;
     auto [ch, pos, z] = t;
     fm_soft_assert(z >= chunk_z_min && z <= chunk_z_max);
-    coord = { ch, pos, int8_t(z) };
+    coord = { ch, pos, i8(z) };
 }
 
 } // namespace floormat
@@ -67,7 +67,7 @@ void adl_serializer<local_coords>::from_json(const json& j, local_coords& val)
 {
     const int x = j.at("x"), y = j.at("y");
     fm_soft_assert(x >= 0 && x < (int)TILE_MAX_DIM && y >= 0 && y < (int)TILE_MAX_DIM);
-    val = { uint8_t(x), uint8_t(y) };
+    val = { u8(x), u8(y) };
 }
 
 void adl_serializer<chunk_coords>::to_json(json& j, const chunk_coords& val) { using nlohmann::to_json; to_json(j, val); }

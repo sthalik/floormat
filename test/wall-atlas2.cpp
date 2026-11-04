@@ -45,7 +45,7 @@ void test_empty_wall()
         fm_assert(!g.is_defined);                   \
         fm_assert(g == Wall::Group{});              \
         fm_assert(g.count == 0);                    \
-        fm_assert(g.index == (uint32_t)-1);         \
+        fm_assert(g.index == (u32)-1);         \
         fm_assert(g == Wall::Group{});              \
         fm_assert(!wall.group(dir, x));             \
     } while (false)
@@ -66,7 +66,7 @@ void test_empty_wall()
     fm_assert(n.wall != Wall::Group{});
     fm_assert(!n.wall.mirrored);
     fm_assert(n.wall.count > 0);
-    fm_assert(n.wall.index != (uint32_t)-1);
+    fm_assert(n.wall.index != (u32)-1);
     fm_assert(n.wall.pixel_size == wall_size);
     fm_assert(wall.raw_frame_array()[0].offset.isZero());
     fm_assert(wall.raw_frame_array()[0].size == wall_atlas::expected_size(wall.info().depth, Wall::Group_::wall));

@@ -14,8 +14,8 @@ Pass::Pool& GridRegistry::pass_pool(const Pass::Params& pʹ)
     // slot unless div_size is a power of two. Other sizes take the linear search below.
     if (p.bbox_size <= direct_max_bbox && std::has_single_bit(div_size))
     {
-        const auto mode = (uint32_t)p.min_pass - 1;
-        const auto div_shift = (uint32_t)std::countr_zero(div_size);
+        const auto mode = (u32)p.min_pass - 1;
+        const auto div_shift = (u32)std::countr_zero(div_size);
         auto& slot = pass_.direct[mode][div_shift][p.bbox_size - Pass::Grid::min_bbox_size];
         if (!slot)
             slot.emplace(p, Search::without_critters());
@@ -37,7 +37,7 @@ Cover::Pool& GridRegistry::cover_pool(const Cover::Params& pʹ)
     // As in pass_pool(), countr_zero(div_size) is an exact index only for a power-of-two div_size.
     if (std::has_single_bit(p.div_size))
     {
-        auto& slot = cover_.direct[(uint32_t)std::countr_zero(p.div_size)];
+        auto& slot = cover_.direct[(u32)std::countr_zero(p.div_size)];
         if (!slot)
             slot.emplace(p, pass_pool(pass_params));
         return *slot;

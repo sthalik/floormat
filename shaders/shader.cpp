@@ -129,7 +129,7 @@ Vector2i tile_shader::projectʹ(Vector3i pt)
     return { 2*(x-y), x+y-2*z };
 }
 
-point tile_shader::pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera, int8_t z_level)
+point tile_shader::pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera, i8 z_level)
 {
     const auto sʹ = 2*(pixel - window_size/2 - camera) + Vector2i{0, 2*z_level*tile_size_z};
     // unproject(sʹ), which is 4× the world position

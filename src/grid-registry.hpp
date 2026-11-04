@@ -21,14 +21,14 @@ public:
     Pass::Pool& pass_pool(const Pass::Params& p);
     Cover::Pool& cover_pool(const Cover::Params& p);
 
-    // object bbox sizes are uint8_t
-    static constexpr uint32_t direct_max_bbox = limits<uint8_t>::max;
-    static constexpr uint32_t direct_bbox_count = direct_max_bbox - Pass::Grid::min_bbox_size + 1;
+    // object bbox sizes are u8
+    static constexpr u32 direct_max_bbox = limits<u8>::max;
+    static constexpr u32 direct_bbox_count = direct_max_bbox - Pass::Grid::min_bbox_size + 1;
     // The pass_.direct branch takes only a power-of-two div_size no larger than bbox_size, so
     // countr_zero(div_size) is below this.
-    static constexpr uint32_t direct_div_count = (uint32_t)std::bit_width(direct_max_bbox);
+    static constexpr u32 direct_div_count = (u32)std::bit_width(direct_max_bbox);
     // Params::validate() rejects pass_mode::blocked, so min_pass - 1 is below this.
-    static constexpr uint32_t direct_mode_count = (uint32_t)pass_mode::COUNT - 1;
+    static constexpr u32 direct_mode_count = (u32)pass_mode::COUNT - 1;
 
 private:
     struct

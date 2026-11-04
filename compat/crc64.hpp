@@ -2,8 +2,8 @@
 
 namespace floormat::Hash {
 
-constexpr inline uint64_t CRC64_INITIALIZER = 0x0000000000000000ULL;
+constexpr inline u64 CRC64_INITIALIZER = 0x0000000000000000ULL;
 
-uint64_t crc64_update(uint64_t crc, const void* ptr, const size_t count);
+u64 crc64_update(u64 crc, const void* ptr, const usize count);
 
 } // namespace floormat::Hash

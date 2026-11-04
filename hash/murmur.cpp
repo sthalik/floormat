@@ -24,7 +24,7 @@ namespace {
 // Block read - if your platform needs to do endian-swapping or can only
 // handle aligned reads, do the conversion here
 
-CORRADE_ALWAYS_INLINE uint32_t getblock32 ( const uint32_t * p, int i )
+CORRADE_ALWAYS_INLINE u32 getblock32 ( const u32 * p, int i )
 {
   return p[i];
 }
@@ -32,7 +32,7 @@ CORRADE_ALWAYS_INLINE uint32_t getblock32 ( const uint32_t * p, int i )
 //-----------------------------------------------------------------------------
 // Finalization mix - force all bits of a hash block to avalanche
 
-CORRADE_ALWAYS_INLINE uint32_t fmix32 ( uint32_t h )
+CORRADE_ALWAYS_INLINE u32 fmix32 ( u32 h )
 {
   h ^= h >> 16;
   h *= 0x85ebca6b;
@@ -45,25 +45,25 @@ CORRADE_ALWAYS_INLINE uint32_t fmix32 ( uint32_t h )
 
 //-----------------------------------------------------------------------------
 
-void MurmurHash3_x86_32 ( const void * __restrict key, size_t len, void * __restrict out )
+void MurmurHash3_x86_32 ( const void * __restrict key, usize len, void * __restrict out )
 {
-  constexpr auto seed = uint32_t{0xa6b8edcd};
-  const auto* data = (const uint8_t*)key;
+  constexpr auto seed = u32{0xa6b8edcd};
+  const auto* data = (const u8*)key;
   const int nblocks = (int)(len / 4);
 
-  uint32_t h1 = seed;
+  u32 h1 = seed;
 
-  constexpr uint32_t c1 = 0xcc9e2d51;
-  constexpr uint32_t c2 = 0x1b873593;
+  constexpr u32 c1 = 0xcc9e2d51;
+  constexpr u32 c2 = 0x1b873593;
 
   //----------
   // body
 
-  const auto* blocks = (const uint32_t *)(data + (size_t)(nblocks*4));
+  const auto* blocks = (const u32 *)(data + (usize)(nblocks*4));
 
   for(int i = -nblocks; i; i++)
   {
-    uint32_t k1 = getblock32(blocks,i);
+    u32 k1 = getblock32(blocks,i);
 
     k1 *= c1;
     k1 = std::rotl(k1,15);
@@ -77,9 +77,9 @@ void MurmurHash3_x86_32 ( const void * __restrict key, size_t len, void * __rest
   //----------
   // tail
 
-  const auto* tail = (const uint8_t*)(data + (size_t)(nblocks*4));
+  const auto* tail = (const u8*)(data + (usize)(nblocks*4));
 
-  uint32_t k1 = 0;
+  u32 k1 = 0;
 
   switch(len & 3)
   {
@@ -96,24 +96,24 @@ void MurmurHash3_x86_32 ( const void * __restrict key, size_t len, void * __rest
 
   h1 = fmix32(h1);
 
-  *(uint32_t*)out = h1;
+  *(u32*)out = h1;
 }
 
 } // namespace
 
-size_t hash_buf(const void* __restrict buf, size_t size) noexcept
+usize hash_buf(const void* __restrict buf, usize size) noexcept
 {
-    uint32_t ret;
+    u32 ret;
     MurmurHash3_x86_32(buf, size, &ret);
     return ret;
 }
 
-size_t hash_int(uint32_t x) noexcept
+usize hash_int(u32 x) noexcept
 {
     return hash_buf(&x, sizeof x);
 }
 
-size_t hash_int(uint64_t x) noexcept
+usize hash_int(u64 x) noexcept
 {
     return hash_buf(&x, sizeof x);
 }

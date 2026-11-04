@@ -16,7 +16,7 @@ namespace floormat::bptr_test {
 template<typename Tag>
 struct counting_allocator
 {
-    static inline volatile int64_t live, total;
+    static inline volatile i64 live, total;
 
     template<typename X> static void* allocate()
     {
@@ -37,11 +37,11 @@ template<typename Tag>
 struct pool_allocator
 {
     static constexpr bool pooling = true;
-    static constexpr size_t slot_size = 256, slot_align = 64;
+    static constexpr usize slot_size = 256, slot_align = 64;
     struct slot { slot* next; };
 
     static inline slot* free_list = nullptr;
-    static inline volatile int64_t live, total;
+    static inline volatile i64 live, total;
 
     template<typename X> static void* allocate()
     {
@@ -85,7 +85,7 @@ struct counted_refcount : non_atomic_refcount
 
 struct small_refcount : non_atomic_refcount
 {
-    using counter = bptr_policy::non_atomic_counter<uint16_t>;
+    using counter = bptr_policy::non_atomic_counter<u16>;
     using allocator = counting_allocator<small_refcount>;
     using stats = bptr_policy::counting_stats<small_refcount>;
 };
@@ -116,7 +116,7 @@ struct thread_counted_refcount : thread_checked_refcount
 };
 
 // Only ASan exposes the heap total, so elsewhere a leaked control block goes unnoticed.
-inline size_t allocated_bytes()
+inline usize allocated_bytes()
 {
 #if fm_ASAN && __has_include(<sanitizer/allocator_interface.h>)
     // libcxxrt allocates a thread's exception state on its first throw and frees it at thread exit.
@@ -147,8 +147,8 @@ template<typename P> constexpr bool pooling = requires { requires P::allocator::
 
 struct heap_state
 {
-    size_t bytes = 0;
-    int64_t blocks = 0, objects = 0, allocations = 0;
+    usize bytes = 0;
+    i64 blocks = 0, objects = 0, allocations = 0;
     bool operator==(const heap_state&) const = default;
 };
 
@@ -172,7 +172,7 @@ heap_state heap_snapshot(bool bytes = true)
 }
 
 template<typename P>
-void check_leaks(const heap_state& before, const char* policy, const char* what, uint32_t n, bool bytes = true)
+void check_leaks(const heap_state& before, const char* policy, const char* what, u32 n, bool bytes = true)
 {
     auto after = heap_snapshot<P>(bytes);
     if (after != before)
@@ -182,7 +182,7 @@ void check_leaks(const heap_state& before, const char* policy, const char* what,
 }
 
 template<typename P>
-void run_test(const char* policy, uint32_t n, void(*test)())
+void run_test(const char* policy, u32 n, void(*test)())
 {
     auto before = heap_snapshot<P>();
     test();

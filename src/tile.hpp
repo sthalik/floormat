@@ -30,7 +30,7 @@ struct tile_ref_ final
     using ground_image = std::conditional_t<is_const, const_tile_image_ref, tile_image_proto>;
     using wall_image = std::conditional_t<is_const, const_wall_image_ref, wall_image_proto>;
 
-    tile_ref_(Chunk& c, uint8_t i) noexcept;
+    tile_ref_(Chunk& c, u8 i) noexcept;
 
     tile_image_ref ground() noexcept requires(!std::is_const_v<Chunk>);
     wall_image_ref wall_north() noexcept requires(!std::is_const_v<Chunk>);
@@ -47,13 +47,13 @@ struct tile_ref_ final
     explicit operator tile_proto() const noexcept;
 
     Chunk& chunk() const noexcept;
-    size_t index() const noexcept;
+    usize index() const noexcept;
 
     friend bool operator==<Chunk>(const tile_ref_& a, const tile_ref_& b) noexcept;
 
 private:
     Chunk* _chunk;
-    uint8_t i;
+    u8 i;
 };
 
 using tile_ref = tile_ref_<chunk>;

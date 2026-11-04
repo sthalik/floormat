@@ -38,7 +38,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     static Vector2i projectʹ(Vector3i pt);
     /// Nearest point on z_level's floor to the pixel, halves rounded up. A point whose y
     /// is a half pixel is picked from the pixel above it. camera is camera_offsetʹ().
-    static point pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera, int8_t z_level);
+    static point pixel_to_point(Vector2i pixel, Vector2i window_size, Vector2i camera, i8 z_level);
     /// window_size/2 + camera + project(world), exact. y ends in .5 when x+y is odd.
     static Vector2 point_to_pixel(Vector3i world, Vector2i window_size, Vector2i camera);
     static Vector2 point_to_pixel(Vector3 world, Vector2i window_size, Vector2i camera);
@@ -56,7 +56,7 @@ private:
     void draw_pre(GL::AbstractTexture& tex);
     void draw_post(GL::AbstractTexture& tex);
 
-    enum Uniform : uint8_t {
+    enum Uniform : u8 {
         ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2,
         EnableLightmapUniform = 3,
         SamplerUniform = 4, LightmapSamplerUniform = 5,

@@ -64,7 +64,7 @@ chunk& Test::make_test_chunk(world& w, chunk_coords_ ch)
         cproto.name = name;
         cproto.playable = playable;
         auto& p = *w.make_object<critter>(w.make_id(), global_coords{ch, {coord.x(), coord.y()}}, cproto);
-        p.frame = (uint16_t)coord.x();
+        p.frame = (u16)coord.x();
     };
     add_player("Player 1", {12, 11}, true); // duplicate
     add_player("Player 1", {13, 11}, true); // duplicate
@@ -182,11 +182,11 @@ void assert_chunks_equal(const chunk* a, const chunk* b)
 // The writer runs the reader's checks, so bad data has to be put into the file directly.
 void write_patched(StringView path, ArrayView<const char> save, ArrayView<const char> from, ArrayView<const char> to)
 {
-    constexpr auto crc_size = (uint32_t)sizeof(uint64_t);
+    constexpr auto crc_size = (u32)sizeof(u64);
     fm_assert(save.size() > crc_size);
     fm_assert(from.size() == to.size());
-    const auto body = (uint32_t)save.size() - crc_size;
-    auto pos = (uint32_t)-1, hits = 0u;
+    const auto body = (u32)save.size() - crc_size;
+    auto pos = (u32)-1, hits = 0u;
     for (auto i = 0u; i + from.size() <= body; i++)
         if (std::memcmp(&save[i], from.data(), from.size()) == 0)
         {
@@ -203,7 +203,7 @@ void write_patched(StringView path, ArrayView<const char> save, ArrayView<const 
     fm_assert(Path::write(path, buf));
 }
 
-void write_patched(StringView path, ArrayView<const char> save, float from, uint32_t to)
+void write_patched(StringView path, ArrayView<const char> save, float from, u32 to)
 {
     write_patched(path, save, {(const char*)&from, sizeof from}, {(const char*)&to, sizeof to});
 }
@@ -213,14 +213,14 @@ void check_nan_rejected(StringView path, ArrayView<const char> save, object_id i
 {
     // A valid edit must load, so the NaN load can only fail on the value.
     const auto other = value * 2;
-    write_patched(path, save, value, std::bit_cast<uint32_t>(other));
+    write_patched(path, save, value, std::bit_cast<u32>(other));
     auto w = world::deserialize(path, loader_policy::error);
     const auto obj = w.find_object<T>(id);
     fm_assert(obj);
     fm_assert((*obj).*field == other);
 
     // Release builds assume no NaN, and clang compiles quiet_NaN() here to 0.
-    constexpr uint32_t nan_bits = 0x7fc00000;
+    constexpr u32 nan_bits = 0x7fc00000;
     write_patched(path, save, value, nan_bits);
     bool caught = false;
     try { (void)world::deserialize(path, loader_policy::error); }
@@ -318,8 +318,8 @@ void test_save_objs()
         p.offset       = Vector2b{-1, 2};
         p.bbox_offset  = Vector2b{3, -4};
         p.bbox_size    = Vector2ub{129, 255};
-        p.delta        = uint32_t{65638};
-        p.frame        = uint16_t{9};
+        p.delta        = u32{65638};
+        p.frame        = u16{9};
         p.type         = object_type::critter;
         p.r            = rotation::SE;
         p.pass         = pass_mode::see_through;
@@ -329,12 +329,12 @@ void test_save_objs()
 
         constexpr auto ch = chunk_coords_{512, -768, 0};
         constexpr auto coord = global_coords{ch, {1, 15}};
-        constexpr auto anim_progress = uint32_t{44'432};
+        constexpr auto anim_progress = u32{44'432};
 
         const auto objʹ = w.make_object<critter>(w.make_id(), coord, p);
         fm_assert(objʹ);
         const auto& obj = *objʹ;
-        const_cast<uint32_t&>(obj.anim_progress) = anim_progress;
+        const_cast<u32&>(obj.anim_progress) = anim_progress;
         auto w2 = reload_from_save(tmp, w);
         const auto& obj2ʹ = w2.find_object<critter>(obj.id);
         fm_assert(obj2ʹ);
@@ -432,27 +432,27 @@ void test_save_nan()
 // delta is from that pair converted at its atlas's fps.
 double offset_frac_error(const critter& C)
 {
-    uint32_t offset_frac, delta;
+    u32 offset_frac, delta;
     fm_assert(std::sscanf(C.name.data(), "offset_frac=%u delta=%u", &offset_frac, &delta) == 2);
-    // delta counted (uint32_t)-1 per second. offset_frac is path length × 32768, and a
+    // delta counted (u32)-1 per second. offset_frac is path length × 32768, and a
     // pixel of path cost a frame.
-    const auto expected = delta * 1e9 / double(uint32_t(-1))
+    const auto expected = delta * 1e9 / double(u32(-1))
                         + offset_frac * 1e9 / (32768 * double(C.atlas->info().fps));
     return Math::abs(double(C.delta) - expected);
 }
 
-void check_offset_frac(StringView name, uint16_t expected_proto, uint32_t expected_count)
+void check_offset_frac(StringView name, u16 expected_proto, u32 expected_count)
 {
     constexpr auto magic = ".floormat.save"_s;
     const auto path = Path::join(loader.TEMP_PATH, Path::join("test/save"_s, name));
     const auto file = Path::read(path);
-    fm_assert(file && file->size() > magic.size() + sizeof(uint16_t));
-    uint16_t proto;
+    fm_assert(file && file->size() > magic.size() + sizeof(u16));
+    u16 proto;
     std::memcpy(&proto, file->data() + magic.size(), sizeof proto);
     fm_assert(Serialize::maybe_byteswap(proto) == expected_proto);
 
     auto w = world::deserialize(path, loader_policy::ignore);
-    uint32_t count = 0;
+    u32 count = 0;
     double max_err = 0;
     for (auto& c : w.chunks())
         c.objects().visit<critter>([&](critter& C) {
@@ -470,7 +470,7 @@ void test_save_offset_frac()
     check_offset_frac("proto-30-offset-frac.dat"_s, 30, 24);
 }
 
-void check_missing_atlas(StringView name, uint32_t expected_count)
+void check_missing_atlas(StringView name, u32 expected_count)
 {
     const auto path = Path::join(loader.TEMP_PATH, Path::join("test/save"_s, name));
     const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-atlas.dat"_s);
@@ -480,7 +480,7 @@ void check_missing_atlas(StringView name, uint32_t expected_count)
     write_patched(patched, *file, {from.data(), from.size()}, {to.data(), to.size()});
 
     auto w = world::deserialize(patched, loader_policy::ignore);
-    uint32_t count = 0;
+    u32 count = 0;
     double max_err = 0;
     for (auto& c : w.chunks())
         c.objects().visit<critter>([&](critter& C) {
@@ -580,7 +580,7 @@ String missing_name(StringView name)
     constexpr auto suffix = "gone"_s;
     fm_assert(name.size() > suffix.size());
     auto ret = String{name};
-    for (uint32_t i = 0; i < suffix.size(); i++)
+    for (u32 i = 0; i < suffix.size(); i++)
         ret[ret.size() - suffix.size() + i] = suffix[i];
     fm_assert(ret != name);
     return ret;
@@ -603,7 +603,7 @@ void test_save_missing_door_atlas()
         auto w = world();
         w[ch].mark_modified();
         auto closed = door_proto, open = door_proto;
-        closed.frame = uint16_t(door_proto.atlas->info().nframes - 1);
+        closed.frame = u16(door_proto.atlas->info().nframes - 1);
         closed.pass = pass_mode::blocked;
         open.frame = 0;
         open.pass = pass_mode::pass;
@@ -625,7 +625,7 @@ void test_save_missing_door_atlas()
     write_patched(patched, *save, {table_from.data(), table_from.size()}, {table_to.data(), table_to.size()});
 
     const auto check = [&](world& w) {
-        const auto check_door = [&](object_id id, uint16_t frame, pass_mode pass) {
+        const auto check_door = [&](object_id id, u16 frame, pass_mode pass) {
             const auto d = w.find_object<door_scenery>(id);
             fm_assert(d);
             fm_assert(d->atlas->name() == door_to);
@@ -659,7 +659,7 @@ void test_save_missing_door_atlas()
 
     {
         const auto restored = Path::join(loader.TEMP_PATH, "test/test-save-missing-door-atlas-4.dat"_s);
-        const auto last = uint16_t(door_proto.atlas->info().nframes - 1);
+        const auto last = u16(door_proto.atlas->info().nframes - 1);
         fm_assert(last > 1);
         auto bytes = Path::read(resaved);
         fm_assert(bytes);
@@ -669,7 +669,7 @@ void test_save_missing_door_atlas()
         write_patched(restored, *bytes, {table_to.data(), table_to.size()}, {table_from.data(), table_from.size()});
         auto w3 = world::deserialize(restored, loader_policy::error);
 
-        const auto swing = [&](object_id id, uint16_t from, uint16_t to, pass_mode from_pass, pass_mode to_pass) {
+        const auto swing = [&](object_id id, u16 from, u16 to, pass_mode from_pass, pass_mode to_pass) {
             const auto obj = w3.find_object(id);
             const auto d = w3.find_object<door_scenery>(id);
             fm_assert(d);
@@ -678,7 +678,7 @@ void test_save_missing_door_atlas()
             fm_assert(d->frame == from && d->pass == from_pass && !d->active);
             auto index = d->index();
             fm_assert(d->activate(index));
-            for (uint32_t i = 0; d->active; i++)
+            for (u32 i = 0; d->active; i++)
             {
                 fm_assert(i < 10);
                 d->update(obj, index, Second);
@@ -689,7 +689,7 @@ void test_save_missing_door_atlas()
         swing(open_id, 0, last, pass_mode::pass, pass_mode::blocked);
     }
 
-    const auto toggle =[&](object_id id, uint16_t frame, pass_mode pass) {
+    const auto toggle =[&](object_id id, u16 frame, pass_mode pass) {
         const auto obj = w.find_object(id);
         const auto d = w.find_object<door_scenery>(id);
         auto index = d->index();

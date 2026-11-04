@@ -13,17 +13,17 @@ namespace {
 using namespace std::chrono_literals;
 using std::chrono::steady_clock;
 
-template<uint32_t N, typename F>
+template<u32 N, typename F>
 void run_threads(F&& fn)
 {
     std::latch start_gun(N);
     std::array<std::thread, N> threads;
-    for (uint32_t i = 0; i < N; ++i)
+    for (u32 i = 0; i < N; ++i)
         threads[i] = std::thread([&, i] {
             start_gun.arrive_and_wait();
             fn(i);
         });
-    for (uint32_t i = 0; i < N; ++i)
+    for (u32 i = 0; i < N; ++i)
         threads[i].join();
 }
 
@@ -40,14 +40,14 @@ void poll_until(F&& done)
 
 void test_single_threaded()
 {
-    volatile uint8_t done = 0;
+    volatile u8 done = 0;
     // On its own thread, so that a commit_wait() that never returns fails the deadline.
     std::thread t{[&] {
         EventCount ec;
         ec.notify_one();
         ec.notify_all();
 
-        uint32_t key = ec.prepare_wait();
+        u32 key = ec.prepare_wait();
         ec.cancel_wait();
 
         key = ec.prepare_wait();
@@ -57,7 +57,7 @@ void test_single_threaded()
         key = ec.prepare_wait();
         ec.notify_all();
         ec.commit_wait(key);
-        atomic_store(&done, uint8_t{1}, memory_order::relaxed);
+        atomic_store(&done, u8{1}, memory_order::relaxed);
     }};
     poll_until([&] { return atomic_load(&done, memory_order::relaxed) != 0; });
     t.join();
@@ -65,26 +65,26 @@ void test_single_threaded()
 
 // The consumer sleeps and the producer polls with a deadline, so a lost wake-up fails the
 // producer's assert instead of hanging both.
-template<uint32_t rounds>
+template<u32 rounds>
 void test_ping_pong()
 {
     EventCount ec;
-    volatile uint32_t posted = 0, taken = 0;
+    volatile u32 posted = 0, taken = 0;
 
-    run_threads<2>([&](uint32_t i) {
+    run_threads<2>([&](u32 i) {
         if (i == 0)
-            for (uint32_t k = 1; k <= rounds; ++k)
+            for (u32 k = 1; k <= rounds; ++k)
             {
                 atomic_store(&posted, k, memory_order::relaxed);
                 ec.notify_one();
                 poll_until([&] { return atomic_load(&taken, memory_order::relaxed) == k; });
             }
         else
-            for (uint32_t k = 1; k <= rounds; ++k)
+            for (u32 k = 1; k <= rounds; ++k)
             {
                 while (atomic_load(&posted, memory_order::relaxed) != k)
                 {
-                    uint32_t key = ec.prepare_wait();
+                    u32 key = ec.prepare_wait();
                     if (atomic_load(&posted, memory_order::relaxed) == k)
                         ec.cancel_wait();
                     else
@@ -95,31 +95,31 @@ void test_ping_pong()
     });
 }
 
-template<uint32_t consumers, uint32_t jobs>
+template<u32 consumers, u32 jobs>
 void test_jobs()
 {
     EventCount ec;
-    volatile uint32_t available = 0, done = 0, exited = 0;
-    volatile uint8_t stop = 0;
+    volatile u32 available = 0, done = 0, exited = 0;
+    volatile u8 stop = 0;
 
     auto claim = [&] {
-        uint32_t n = atomic_load(&available, memory_order::relaxed);
+        u32 n = atomic_load(&available, memory_order::relaxed);
         while (n)
             if (atomic_compare_exchange_weak(&available, n, n - 1, memory_order::relaxed))
                 return true;
         return false;
     };
 
-    run_threads<consumers + 1>([&](uint32_t i) {
+    run_threads<consumers + 1>([&](u32 i) {
         if (i == consumers)
         {
-            for (uint32_t k = 0; k < jobs; ++k)
+            for (u32 k = 0; k < jobs; ++k)
             {
                 atomic_fetch_add(&available, 1u, memory_order::relaxed);
                 ec.notify_one();
             }
             poll_until([&] { return atomic_load(&done, memory_order::relaxed) == jobs; });
-            atomic_store(&stop, uint8_t{1}, memory_order::relaxed);
+            atomic_store(&stop, u8{1}, memory_order::relaxed);
             ec.notify_all();
             poll_until([&] { return atomic_load(&exited, memory_order::relaxed) == consumers; });
         }
@@ -133,7 +133,7 @@ void test_jobs()
                     break;
                 else
                 {
-                    uint32_t key = ec.prepare_wait();
+                    u32 key = ec.prepare_wait();
                     if (atomic_load(&available, memory_order::relaxed) || atomic_load(&stop, memory_order::relaxed))
                         ec.cancel_wait();
                     else

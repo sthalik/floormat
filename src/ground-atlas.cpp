@@ -24,20 +24,20 @@ ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
     fm_soft_assert(num_tiles() <= variant_max);
     fm_soft_assert(_def.size.x() > 0 && _def.size.y() > 0);
 
-    const Vector2ui img_size{(uint32_t)image.size().x(), (uint32_t)image.size().y()};
+    const Vector2ui img_size{(u32)image.size().x(), (u32)image.size().y()};
     fm_soft_assert(img_size.product() > 0);
     fm_soft_assert(img_size % Vector2ui{_def.size} == Vector2ui());
     const Vector2ui tile_px = img_size / Vector2ui{_def.size};
 
     arrayReserve(_frame_sprites, num_tiles());
-    for (size_t i = 0; i < num_tiles(); i++)
+    for (usize i = 0; i < num_tiles(); i++)
     {
-        const uint32_t gx = (uint32_t)(i % _def.size.x());
-        const uint32_t gy = (uint32_t)(i / _def.size.x());
-        const uint32_t td_x = gx * tile_px.x();
-        const uint32_t td_y = gy * tile_px.y();
+        const u32 gx = (u32)(i % _def.size.x());
+        const u32 gy = (u32)(i / _def.size.x());
+        const u32 td_x = gx * tile_px.x();
+        const u32 td_y = gy * tile_px.y();
         // Y-flip: Magnum bottom-up, JSON top-down. See loader/anim-traits.cpp.
-        const uint32_t mem_y_start = img_size.y() - td_y - tile_px.y();
+        const u32 mem_y_start = img_size.y() - td_y - tile_px.y();
         PixelStorage sub_storage = image.storage();
         sub_storage.setRowLength((Int)img_size.x())
                    .setSkip({(Int)td_x, (Int)mem_y_start, 0});
@@ -54,7 +54,7 @@ ground_atlas::ground_atlas(const ground_atlas& a, StringView name) :
     arrayAppend(_frame_sprites, a._frame_sprites);
 }
 
-Quads::texcoords ground_atlas::texcoords_for_id(size_t i) const
+Quads::texcoords ground_atlas::texcoords_for_id(usize i) const
 {
     fm_assert(i < num_tiles());
     return loader.atlas().texcoords_for(_frame_sprites[i], false);
@@ -62,7 +62,7 @@ Quads::texcoords ground_atlas::texcoords_for_id(size_t i) const
 
 auto ground_atlas::raw_sprite_array() const -> ArrayView<const sprite> { return _frame_sprites; }
 
-size_t ground_atlas::num_tiles() const { return Vector2ui{_def.size}.product(); }
+usize ground_atlas::num_tiles() const { return Vector2ui{_def.size}.product(); }
 Vector2ub ground_atlas::num_tiles2() const { return _def.size; }
 StringView ground_atlas::name() const { return _def.name; }
 bool ground_atlas::is_placeholder() const noexcept { return _placeholder || _def.name == loader_::INVALID; }

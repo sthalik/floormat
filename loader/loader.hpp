@@ -29,7 +29,7 @@ class sprite_atlas;
 
 struct placeholder_anim_params
 {
-    uint32_t fps = 0, nframes = 1;
+    u32 fps = 0, nframes = 1;
 };
 
 struct loader_

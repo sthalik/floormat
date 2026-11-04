@@ -62,7 +62,7 @@ hole::~hole() noexcept
         return;
 }
 
-void hole::update(const bptr<object>&, size_t&, const Ns&) {}
+void hole::update(const bptr<object>&, usize&, const Ns&) {}
 
 hole::operator hole_proto() const
 {
@@ -81,12 +81,12 @@ void hole::mark_neighbor_chunks_modified()
     mark_chunk_modifiedʹ(*c);
 }
 
-int32_t hole::depth_offset() const
+i32 hole::depth_offset() const
 {
     return tile_size_xy * 4;
 }
 
-void hole::set_height(uint8_t heightʹ)
+void hole::set_height(u8 heightʹ)
 {
     if (height != heightʹ)
     {
@@ -95,7 +95,7 @@ void hole::set_height(uint8_t heightʹ)
     }
 }
 
-void hole::set_z_offset(uint8_t z)
+void hole::set_z_offset(u8 z)
 {
     if (z_offset != z)
     {

@@ -31,7 +31,7 @@ chunk& make_chunk1(chunk& c, bool val, bool flipped)
     auto floor = tile_image_proto { loader.ground_atlas("texel"), 0 };
     auto empty = tile_image_proto{};
 
-    constexpr uint8_t mat[TILE_MAX_DIM][TILE_MAX_DIM] = {
+    constexpr u8 mat[TILE_MAX_DIM][TILE_MAX_DIM] = {
         { 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
         { 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, },
         { 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, },
@@ -95,7 +95,7 @@ void Grid_Build(benchmark::State& state)
     for (auto* cʹ : { &c1, &c2, &c3, &c4, &c5, &c6, &c7 })
         rebuild(*cʹ);
 
-    Pass::Pool pool{Pass::Params{(uint32_t)state.range(0), pass_mode::pass}, Search::without_critters()};
+    Pass::Pool pool{Pass::Params{(u32)state.range(0), pass_mode::pass}, Search::without_critters()};
     pool.maybe_mark_stale_all(w);
     pool.build_if_stale_all();
 
@@ -166,8 +166,8 @@ void make_cover_chunk(world& w, chunk& c)
 
 template<typename F> void for_cover_chunks(F&& fun)
 {
-    for (int16_t y = -1; y <= 1; y++)
-        for (int16_t x = -1; x <= 1; x++)
+    for (i16 y = -1; y <= 1; y++)
+        for (i16 x = -1; x <= 1; x++)
             fun(chunk_coords_{x, y, 0});
 }
 
@@ -185,7 +185,7 @@ void Cover_Build(benchmark::State& state)
     make_cover_world(w);
     auto& c = w[{0, 0, 0}];
 
-    const auto div_size = (uint32_t)state.range(0);
+    const auto div_size = (u32)state.range(0);
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Cover::Pool pool{Cover::Params{div_size}, pass_pool};
     pool.maybe_mark_stale_all(w);
@@ -209,7 +209,7 @@ void Cover_Aligned(benchmark::State& state)
     make_cover_world(w);
     auto& c = w[{0, 0, 0}];
 
-    const auto div_size = (uint32_t)state.range(0);
+    const auto div_size = (u32)state.range(0);
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Cover::Pool pool{Cover::Params{div_size}, pass_pool};
     pool.maybe_mark_stale_all(w);
@@ -251,7 +251,7 @@ cover_query make_cover_query(world& w, const find_case& f)
     const auto npc = point{Vector3i{f.npc, 0}};
     const auto min = Vector2(npc.intra().center_shifted() - Vector2i(cover_body/2u));
     fm_assert(Search::is_passable(w, npc.chunk3(), Range2D{min, min + Vector2(cover_body)}, Search::never_continue()));
-    return { npc, cover_body, point{Vector3i{threat, 0}}, 3*(uint32_t)tile_size_xy };
+    return { npc, cover_body, point{Vector3i{threat, 0}}, 3*(u32)tile_size_xy };
 }
 
 void set_find_counters(benchmark::State& state, const cover_point_result& r)
@@ -261,14 +261,14 @@ void set_find_counters(benchmark::State& state, const cover_point_result& r)
 }
 
 // Octants built on the 3×3 chunks, the ones casting a ray per cell apart from those sweeping the pass bitmap.
-void set_fill_counters(benchmark::State& state, world& w, Cover::Pool& pool, uint32_t sweeps_before)
+void set_fill_counters(benchmark::State& state, world& w, Cover::Pool& pool, u32 sweeps_before)
 {
-    constexpr uint32_t sweep_mask = 0x11111111u;
-    uint32_t rays = 0, sweeps = 0;
+    constexpr u32 sweep_mask = 0x11111111u;
+    u32 rays = 0, sweeps = 0;
     for_cover_chunks([&](chunk_coords_ ch) {
         const auto k = pool[w[ch]].built_octants();
-        rays += (uint32_t)std::popcount(k & ~sweep_mask);
-        sweeps += (uint32_t)std::popcount(k & sweep_mask);
+        rays += (u32)std::popcount(k & ~sweep_mask);
+        sweeps += (u32)std::popcount(k & sweep_mask);
     });
     state.counters["ray_fills"] = rays;
     state.counters["sweep_fills"] = sweeps - sweeps_before;
@@ -279,7 +279,7 @@ void Cover_Find(benchmark::State& state)
 {
     auto w = world();
     make_cover_world(w);
-    const auto params = Cover::Params{(uint32_t)state.range(0)};
+    const auto params = Cover::Params{(u32)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Grid::GridRegistry pools;
     cover_point finder;
@@ -296,7 +296,7 @@ void Cover_Find_Octants(benchmark::State& state)
 {
     auto w = world();
     make_cover_world(w);
-    const auto params = Cover::Params{(uint32_t)state.range(0)};
+    const auto params = Cover::Params{(u32)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Optional<Grid::GridRegistry> pools;
     cover_point finder;
@@ -324,7 +324,7 @@ void Cover_Find_Fresh(benchmark::State& state)
 {
     auto w = world();
     make_cover_world(w);
-    const auto params = Cover::Params{(uint32_t)state.range(0)};
+    const auto params = Cover::Params{(u32)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Optional<Grid::GridRegistry> pools;
     cover_point finder;
@@ -343,7 +343,7 @@ void Cover_Find_Fresh(benchmark::State& state)
 
 void find_args(benchmark::Benchmark* b)
 {
-    b->ArgNames({"div", "case"})->ArgsProduct({{8, 16}, benchmark::CreateDenseRange(0, (int64_t)std::size(find_cases) - 1, 1)});
+    b->ArgNames({"div", "case"})->ArgsProduct({{8, 16}, benchmark::CreateDenseRange(0, (i64)std::size(find_cases) - 1, 1)});
 }
 
 BENCHMARK(Cover_Find)->Apply(find_args)->Unit(benchmark::kMicrosecond);

@@ -13,7 +13,7 @@ namespace floormat {
 
 namespace {
 
-size_t _reload_no_ = 0; // NOLINT todo thread safety
+usize _reload_no_ = 0; // NOLINT todo thread safety
 
 } // namespace
 
@@ -36,10 +36,10 @@ bool chunk::empty(bool force) noexcept
     return _maybe_empty;
 }
 
-ground_atlas* chunk::ground_atlas_at(size_t i) const noexcept { return _ground ? _ground->atlases[i].get() : nullptr; }
+ground_atlas* chunk::ground_atlas_at(usize i) const noexcept { return _ground ? _ground->atlases[i].get() : nullptr; }
 
-tile_ref chunk::operator[](size_t idx) noexcept { return { *this, uint8_t(idx) }; }
-const_tile_ref chunk::operator[](size_t idx) const noexcept { return { *this, uint8_t(idx) }; }
+tile_ref chunk::operator[](usize idx) noexcept { return { *this, u8(idx) }; }
+const_tile_ref chunk::operator[](usize idx) const noexcept { return { *this, u8(idx) }; }
 tile_ref chunk::operator[](local_coords xy) noexcept { return operator[](xy.to_index()); }
 const_tile_ref chunk::operator[](local_coords xy) const noexcept { return operator[](xy.to_index()); }
 
@@ -48,7 +48,7 @@ chunk_coords_ chunk::coord() const noexcept { return _coord; }
 Optional<tile_ref> chunk::at_offset(local_coords pos, Vector2i off)
 {
     if (auto r = std::as_const(*this).at_offset(pos, off))
-        return tile_ref{non_const(r->chunk()), uint8_t(r->index())};
+        return tile_ref{non_const(r->chunk()), u8(r->index())};
     return NullOpt;
 }
 
@@ -175,7 +175,7 @@ void chunk::add_object_unsorted(const bptr<object>& e)
     _objects.append(e);
 }
 
-size_t chunk::add_objectʹ(const bptr<object>& e)
+usize chunk::add_objectʹ(const bptr<object>& e)
 {
     add_object_pre(e);
     return _objects.insert(e);
@@ -190,7 +190,7 @@ void chunk::on_teardown() // NOLINT(*-make-member-function-const)
 
 bool chunk::is_teardown() const { return _teardown || _world->is_teardown(); }
 
-void chunk::remove_object(const object& e, size_t i)
+void chunk::remove_object(const object& e, usize i)
 {
     const auto eʹ = _objects.ptr(e, i);
     fm_assert(&e.chunk() == this);
@@ -221,7 +221,7 @@ void chunk::remove_object(const object& e, size_t i)
     _objects.erase(e, i);
 }
 
-void chunk::kill_object(const object& e, size_t i, script_destroy_reason r)
+void chunk::kill_object(const object& e, usize i, script_destroy_reason r)
 {
     auto eʹ = _objects.ptr(e, i);
     // the script is handed a live bptr, so the object can only be deleted after it's torn down

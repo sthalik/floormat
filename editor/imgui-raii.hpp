@@ -71,9 +71,9 @@ private:
     float font_size;
 };
 
-namespace detail { const char* label_left_(StringView, char*, size_t, float); }
+namespace detail { const char* label_left_(StringView, char*, usize, float); }
 
-template<std::size_t N>
+template<usize N>
 const char* label_left(StringView label, char(&buf)[N], float width)
 {
     return detail::label_left_(label, static_cast<char*>(buf), N, width);

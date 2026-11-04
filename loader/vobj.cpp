@@ -76,15 +76,15 @@ bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, String
     }
 
     const auto format = tex.format();
-    const auto px_size = (size_t)tex.pixels().size()[2];  // 3 for RGB, 4 for RGBA
-    const auto row_stride = (size_t)width * px_size;
+    const auto px_size = (usize)tex.pixels().size()[2];  // 3 for RGB, 4 for RGBA
+    const auto row_stride = (usize)width * px_size;
     const auto* src_base = (const char*)tex.pixels().data();
     PixelStorage storage;
     storage.setRowLength((Int)width);
     storage.setAlignment(1);
     const ImageView2D view{storage, format,
                            {(Int)width, (Int)height},
-                           ArrayView<const void>{src_base, (size_t)height * row_stride}};
+                           ArrayView<const void>{src_base, (usize)height * row_stride}};
     auto sp = atlas().add(view);
     def.groups[0].sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, 1};
     def.groups[0].sprites[0] = sp.raw();
@@ -127,7 +127,7 @@ const struct vobj_cell& loader_impl::vobj(StringView name)
 {
     if (vobjs.isEmpty())
         get_vobj_list();
-    const size_t* it = vobj_atlas_map.find(name);
+    const usize* it = vobj_atlas_map.find(name);
     if (!it)
         fm_throw("no such vobj '{}'", name);
     return vobjs[*it];

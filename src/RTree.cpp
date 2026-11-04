@@ -4,7 +4,7 @@
 #include <cstdio>
 namespace floormat::detail {
 namespace {
-size_t fresh_counter, reuse_counter, dtor_counter; // NOLINT
+usize fresh_counter, reuse_counter, dtor_counter; // NOLINT
 } // namespace
 } // namespace floormat::detail
 #endif

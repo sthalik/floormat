@@ -34,7 +34,7 @@ constexpr inline auto always_continueʹ = Pred<Chunk>{always_continueʹʹ<Chunk>
 template<typename Chunk>
 constexpr inline auto without_crittersʹʹ = [](Chunk& self, collision_data data, Range2D) -> path_search_continue {
     // 'scenery' covers all object types here, including critters
-    if (data.type == (uint64_t)collision_type::scenery)
+    if (data.type == (u64)collision_type::scenery)
     {
         auto obj = self.world().find_object(data.id);
         fm_assert(obj);
@@ -53,11 +53,11 @@ bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
         return true;
 
     bool ret = true;
-    (void)is_passable_common(c, min, max, [&](uint64_t x, const Chunk_RTree::Rect& r) {
+    (void)is_passable_common(c, min, max, [&](u64 x, const Chunk_RTree::Rect& r) {
         auto data = std::bit_cast<collision_data>(x);
         // hole markers live in hole_rtree()
-        fm_debug3_assert(data.type != (uint64_t)collision_type::none);
-        if (data.pass == (uint64_t)pass_mode::pass)
+        fm_debug3_assert(data.type != (u64)collision_type::none);
+        if (data.pass == (u64)pass_mode::pass)
             return true;
         auto rect = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
         if (!rect_intersects(min, max, rect.min(), rect.max()))

@@ -8,10 +8,10 @@
 namespace floormat::SpriteAtlas {
 
 struct Sprite {
-    uint64_t x : 14, y : 14, layer : 14, width_minus1 : 10, height_minus1 : 10;
-    uint64_t is_rotated : 1;
+    u64 x : 14, y : 14, layer : 14, width_minus1 : 10, height_minus1 : 10;
+    u64 is_rotated : 1;
 
-    uint64_t _pad0 : 1 = 0;
+    u64 _pad0 : 1 = 0;
 };
 
 struct Shelf
@@ -19,21 +19,21 @@ struct Shelf
     Array<Pointer<Sprite>> sprites {};
     // One past the shelf's last used column, so it can equal layer_width. 15 bits hold 1 << 14,
     // the widest layer the 14-bit Sprite::x can address.
-    uint64_t y : 14, next_x : 15, layer : 14;
+    u64 y : 14, next_x : 15, layer : 14;
 
-    uint64_t _pad0 : 21 = 0;
+    u64 _pad0 : 21 = 0;
 };
 
 struct Layer
 {
     Array<Pointer<Shelf>> shelves {};
-    uint16_t next_y = 0;
+    u16 next_y = 0;
 };
 
 struct HeightClass
 {
     Array<Shelf*> shelves {};
-    uint32_t height;
+    u32 height;
 };
 
 // A sprite added but not yet in the texture: its pixels sit at `staging_offset` in Atlas::staging, tightly
@@ -42,7 +42,7 @@ struct PendingSprite
 {
     const Sprite* sprite;
     PixelFormat format;
-    uint32_t staging_offset;
+    u32 staging_offset;
 };
 
 struct Atlas
@@ -53,18 +53,18 @@ struct Atlas
     Array<PendingSprite> pending {};
     Array<char> staging {};
     GL::Texture2DArray texture{NoCreate};
-    uint16_t layer_width = 0, layer_height = 0;
-    uint16_t texture_layer_count = 0;
+    u16 layer_width = 0, layer_height = 0;
+    u16 texture_layer_count = 0;
 };
 
-uint32_t quantize_height(uint32_t h);
-uint32_t max_2d_texture_size();
-uint16_t get_next_layer_count(uint16_t layer_count, const Atlas& A);
-void grow_texture(Atlas& atlas, uint16_t new_layer_count);
+u32 quantize_height(u32 h);
+u32 max_2d_texture_size();
+u16 get_next_layer_count(u16 layer_count, const Atlas& A);
+void grow_texture(Atlas& atlas, u16 new_layer_count);
 void ensure_texture(Atlas& atlas);
 void free_atlas(Atlas& atlas);
-Shelf* alloc_new_shelf(Atlas& atlas, uint32_t height);
-Sprite* alloc_sprite(Atlas& atlas, uint32_t w, uint32_t h, bool allow_rotate = true);
+Shelf* alloc_new_shelf(Atlas& atlas, u32 height);
+Sprite* alloc_sprite(Atlas& atlas, u32 w, u32 h, bool allow_rotate = true);
 void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels);
 void stage_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels);
 void flush(Atlas& atlas);

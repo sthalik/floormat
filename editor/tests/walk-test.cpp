@@ -50,7 +50,7 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
 
             auto pt0 = C->position();
             auto vec = Math::abs(*ptʹ - pt0) * 2 + chunk_size<Vector2i> * 1;
-            auto dist = (uint32_t)vec.length();
+            auto dist = (u32)vec.length();
             auto bb = C->circumscribed_bbox_size();
             if (e.button == mouse_button_middle)
             {

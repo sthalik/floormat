@@ -16,18 +16,18 @@ namespace floormat::Grid::Pass { class Pool; }
 
 namespace floormat::Grid::Cover {
 
-inline constexpr uint32_t octant_count = 32;
-inline constexpr uint16_t blocked = (uint16_t)-1;
-constexpr inline uint32_t max_div_size = 64;
+inline constexpr u32 octant_count = 32;
+inline constexpr u16 blocked = (u16)-1;
+constexpr inline u32 max_div_size = 64;
 
 // Within 0.7° of k*11.25°. Octant k's distances run along it.
-Vector2 octant_direction(uint32_t k);
+Vector2 octant_direction(u32 k);
 
 struct Params
 {
-    uint32_t div_size;
+    u32 div_size;
 
-    constexpr explicit Params(uint32_t div_size): div_size{div_size} {}
+    constexpr explicit Params(u32 div_size): div_size{div_size} {}
 
     [[nodiscard]] Params validate() const;
     bool operator==(const Params&) const noexcept;
@@ -43,15 +43,15 @@ public:
     Grid(const Grid&) noexcept;
     Grid& operator=(const Grid&) & noexcept;
 
-    static uint32_t get_cell_index(uint32_t x, uint32_t y, uint32_t div_count);
-    uint32_t get_cell_index_from_coord(intra_coord pos) const;
+    static u32 get_cell_index(u32 x, u32 y, u32 div_count);
+    u32 get_cell_index_from_coord(intra_coord pos) const;
 
     // From the cell's center in div_size units, rounded. div_count() means no hit within
     // chunk_size_xy - div_size/2 px. A cell whose shoot_through pass bit is clear holds `blocked`.
-    uint16_t distance(uint32_t index, uint32_t octant) const;
+    u16 distance(u32 index, u32 octant) const;
 
-    uint32_t div_count() const;
-    uint64_t build_no() const;
+    u32 div_count() const;
+    u64 build_no() const;
 
     explicit operator bool() const noexcept;
     detail::grid::CoverGrid* raw() const noexcept;
@@ -61,9 +61,9 @@ public:
     void maybe_mark_stale();
     void build_if_stale();
 
-    bool ensure_octant(uint32_t k);
+    bool ensure_octant(u32 k);
     bool fill_next_unfilled();
-    uint32_t built_octants() const;
+    u32 built_octants() const;
 };
 
 class Pool final
@@ -82,9 +82,9 @@ public:
     void build_if_stale_all();
 
     Params params() const;
-    uint32_t pooled_count() const;
+    u32 pooled_count() const;
     // since the pool was made
-    uint32_t octant_fills() const;
+    u32 octant_fills() const;
     Ns octant_fill_time() const;
 };
 

@@ -51,20 +51,20 @@ world make_world()
     w[{0, 2, 0}][{ 9,  0}].wall_north() = wall1;
     w[{0, 2, 0}][{10,  0}].wall_north() = wall1;
 
-    for (int16_t k = -5; k <= -1; k++)
+    for (i16 k = -5; k <= -1; k++)
     {
         auto& ch = w[{-5, -5, 0}];
         for (unsigned i = 0; i < TILE_MAX_DIM; i++)
         {
-            ch[{(uint8_t)i, 0}].wall_west()  = wall1;
-            ch[{(uint8_t)i, 1}].wall_north() = wall1;
-            ch[{(uint8_t)i, 2}].wall_north() = wall2;
-            ch[{(uint8_t)i, 2}].wall_west()  = wall2;
+            ch[{(u8)i, 0}].wall_west()  = wall1;
+            ch[{(u8)i, 1}].wall_north() = wall1;
+            ch[{(u8)i, 2}].wall_north() = wall2;
+            ch[{(u8)i, 2}].wall_west()  = wall2;
         }
     }
 
-    for (int16_t i = -15; i <= 15; i++)
-        for (int16_t j = -15; j <= 15; j++)
+    for (i16 i = -15; i <= 15; i++)
+        for (i16 j = -15; j <= 15; j++)
             w[{{i, j}, 0}].mark_modified();
 
     return w;
@@ -133,25 +133,25 @@ world make_dense_world()
 
     auto w = world{};
 
-    constexpr int16_t cmin = -10, cmax = 10;
+    constexpr i16 cmin = -10, cmax = 10;
 
-    auto hash2 = [](uint32_t x, uint32_t y) -> uint32_t {
-        uint32_t h = x * 0x9E3779B1u + y * 0x85EBCA77u;
+    auto hash2 = [](u32 x, u32 y) -> u32 {
+        u32 h = x * 0x9E3779B1u + y * 0x85EBCA77u;
         h ^= h >> 16; h *= 0xC2B2AE3Du;
         h ^= h >> 13; h *= 0x27D4EB2Du;
         h ^= h >> 16;
         return h;
     };
 
-    for (int16_t cx = cmin; cx <= cmax; cx++)
-        for (int16_t cy = cmin; cy <= cmax; cy++)
+    for (i16 cx = cmin; cx <= cmax; cx++)
+        for (i16 cy = cmin; cy <= cmax; cy++)
         {
             auto& ch = w[{cx, cy, 0}];
-            for (uint8_t lx = 0; lx < 16; lx++)
-                for (uint8_t ly = 0; ly < 16; ly++)
+            for (u8 lx = 0; lx < 16; lx++)
+                for (u8 ly = 0; ly < 16; ly++)
                 {
-                    uint32_t fx = (uint32_t)(cx + 16) * 16 + lx;
-                    uint32_t fy = (uint32_t)(cy + 16) * 16 + ly;
+                    u32 fx = (u32)(cx + 16) * 16 + lx;
+                    u32 fy = (u32)(cy + 16) * 16 + ly;
 
                     if ((hash2(fx,           fy ^ 0xA5A5u) & 0x1Fu) == 0u)
                         ch[{lx, ly}].wall_north() = wall1;
@@ -167,7 +167,7 @@ world make_dense_world()
 point project_to(point from, point to, int extra_tiles)
 {
     auto seg = to - from;
-    auto len_sq = (float)(seg.x()*(int64_t)seg.x() + seg.y()*(int64_t)seg.y());
+    auto len_sq = (float)(seg.x()*(i64)seg.x() + seg.y()*(i64)seg.y());
     if (len_sq < 1.f) return to;
     auto len = Math::sqrt(len_sq);
     auto step_px = (float)tile_size_xy * (float)extra_tiles;
@@ -179,7 +179,7 @@ point project_to(point from, point to, int extra_tiles)
 bool run_dense(Pass::Pool& pool, point from, point to_orig, world& w)
 {
     auto seg = to_orig - from;
-    auto seg_len = Math::sqrt((float)(seg.x()*(int64_t)seg.x() + seg.y()*(int64_t)seg.y()));
+    auto seg_len = Math::sqrt((float)(seg.x()*(i64)seg.x() + seg.y()*(i64)seg.y()));
     if (seg_len < 3.f * chunk_size<float>)
     {
         fm_error("ray length %.0f px < 3 chunks", (double)seg_len);
@@ -287,9 +287,9 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
             .to = to,
             .collision = {},
             .collider = {
-                .type = (uint64_t)collision_type::none,
-                .pass = (uint64_t)pass_mode::pass,
-                .id   = ((uint64_t)1 << collision_data_BITS)-1,
+                .type = (u64)collision_type::none,
+                .pass = (u64)pass_mode::pass,
+                .id   = ((u64)1 << collision_data_BITS)-1,
             },
             .rect = {},
             .has_result = true,
@@ -329,9 +329,9 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
         .to = to,
         .collision = {},
         .collider = {
-            .type = (uint64_t)collision_type::none,
-            .pass = (uint64_t)pass_mode::pass,
-            .id   = ((uint64_t)1 << collision_data_BITS)-1,
+            .type = (u64)collision_type::none,
+            .pass = (u64)pass_mode::pass,
+            .id   = ((u64)1 << collision_data_BITS)-1,
         },
         .rect = {},
         .has_result = true,
@@ -381,10 +381,10 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
         min_tmin = FLT_MAX;
         b = true;
 
-        const auto do_check_collider = [&](uint64_t data, const Rect& r)
+        const auto do_check_collider = [&](u64 data, const Rect& r)
         {
             auto x = std::bit_cast<collision_data>(data);
-            if (x.id == self || x.pass == (uint64_t)pass_mode::pass)
+            if (x.id == self || x.pass == (u64)pass_mode::pass)
                 return;
             auto ret = ray_aabb_intersection(origin, dir_inv_norm,
                                              {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},
@@ -439,7 +439,7 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
                 auto ch_off = (center.chunk() - from.chunk() + Vector2i(i-1, j-1)) * chunk_size<Vector2i>;
                 origin = Vector2(intra_coord{from}.center_shifted() - ch_off);
                 auto* r = c->rtree();
-                r->Search(fmin.data(), fmax.data(), [&](uint64_t data, const Rect& r) {
+                r->Search(fmin.data(), fmax.data(), [&](u64 data, const Rect& r) {
                     do_check_collider(data, r);
                     return true;
                 });

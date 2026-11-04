@@ -15,8 +15,8 @@ struct SpriteList
 
     void add(const Quads::vertexes& vertexes, float depth, object* obj);
     void clear();
-    void reserve(uint32_t count);
-    uint32_t size() const;
+    void reserve(u32 count);
+    u32 size() const;
 
     SpriteList();
 

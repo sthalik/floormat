@@ -47,7 +47,7 @@ constexpr struct {
     { rotation::NW, "nw"_s },
 };
 
-template<size_t N, typename T>
+template<usize N, typename T>
 auto foo_from_string(StringView str, const T(&map)[N], const char* desc)
 {
     for (const auto& [value, str2] : map)
@@ -56,13 +56,13 @@ auto foo_from_string(StringView str, const T(&map)[N], const char* desc)
     fm_throw("wrong {} string '{}'", desc, str);
 }
 
-template<size_t N, typename T>
+template<usize N, typename T>
 StringView foo_to_string(auto type, const T(&map)[N], const char* desc)
 {
     for (const auto& [type2, str] : map)
         if (type2 == type)
             return str;
-    fm_throw("wrong {} enum '{}'", desc, (size_t)type);
+    fm_throw("wrong {} enum '{}'", desc, (usize)type);
 }
 
 } // namespace
@@ -183,7 +183,7 @@ void adl_serializer<scenery_proto>::from_json(const json& j, scenery_proto& f)
         f.r = r;
         const auto& frames = f.atlas->group(r).frames;
         fm_soft_assert(!frames.isEmpty());
-        f.frame = uint16_t(frames.size()-1);
+        f.frame = u16(frames.size()-1);
         f.pass = pass_mode::blocked;
         s.closing = false;
         f.offset = Vector2b(offset);

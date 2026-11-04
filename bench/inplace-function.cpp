@@ -7,16 +7,16 @@ namespace floormat {
 
 namespace {
 
-using fu2_fn = fu2::function_base<true, false, fu2::capacity_fixed<40, 8>, false, false, uint64_t(uint64_t)>;
-using inplace_fn = inplace_function<uint64_t(uint64_t), 40, 8>;
+using fu2_fn = fu2::function_base<true, false, fu2::capacity_fixed<40, 8>, false, false, u64(u64)>;
+using inplace_fn = inplace_function<u64(u64), 40, 8>;
 static_assert(sizeof(fu2_fn) == sizeof(inplace_fn));
 
-auto make_target(uint64_t k)
+auto make_target(u64 k)
 {
-    return [k, j = k * 3, m = k ^ 0x9e3779b1u](uint64_t x) noexcept { return x * k + (j ^ m); };
+    return [k, j = k * 3, m = k ^ 0x9e3779b1u](u64 x) noexcept { return x * k + (j ^ m); };
 }
 
-uint64_t opaque(uint64_t k)
+u64 opaque(u64 k)
 {
     benchmark::DoNotOptimize(k);
     return k;
@@ -27,13 +27,13 @@ template<typename Fn>
 void Function_Call(benchmark::State& state)
 {
     Fn f{make_target(opaque(3))};
-    uint64_t x = 1;
+    u64 x = 1;
     for (auto _ : state)
     {
         benchmark::DoNotOptimize(f);
         x = f(x);
     }
-    uint64_t result = x;
+    u64 result = x;
     benchmark::DoNotOptimize(result);
 }
 BENCHMARK_TEMPLATE(Function_Call, fu2_fn);
@@ -42,7 +42,7 @@ BENCHMARK_TEMPLATE(Function_Call, inplace_fn);
 template<typename Fn>
 void Function_ConstructDestroy(benchmark::State& state)
 {
-    uint64_t k = 3;
+    u64 k = 3;
     for (auto _ : state)
     {
         benchmark::DoNotOptimize(k);

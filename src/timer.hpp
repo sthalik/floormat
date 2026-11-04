@@ -18,9 +18,9 @@ struct Time final
     static Time now() noexcept;
 
     Time() noexcept;
-    explicit Time(uint64_t stamp) noexcept;
+    explicit Time(u64 stamp) noexcept;
 
-    uint64_t stamp;
+    u64 stamp;
 };
 
 #define fm_DATETIME_BUF_SIZE 32

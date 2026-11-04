@@ -18,16 +18,16 @@ using std::chrono::duration;
 using Clock = std::chrono::steady_clock;
 static_assert(Clock::is_steady);
 using SystemClock = std::chrono::system_clock;
-using Nsecs = duration<uint64_t, std::nano>;
-using Millis = duration<uint64_t, std::milli>; // 32-bit rep would truncate ms-since-epoch before the %1000
+using Nsecs = duration<u64, std::nano>;
+using Millis = duration<u64, std::milli>; // 32-bit rep would truncate ms-since-epoch before the %1000
 
 namespace {
-uint64_t get_time() noexcept { return duration_cast<Nsecs>(Clock::now().time_since_epoch()).count(); }
-const uint64_t Epoch = get_time();
+u64 get_time() noexcept { return duration_cast<Nsecs>(Clock::now().time_since_epoch()).count(); }
+const u64 Epoch = get_time();
 } // namespace
 
 Time::Time() noexcept: Time{now()} {}
-Time::Time(uint64_t stamp) noexcept: stamp{stamp} {}
+Time::Time(u64 stamp) noexcept: stamp{stamp} {}
 
 Time Time::now() noexcept
 {
@@ -75,7 +75,7 @@ float Time::to_milliseconds(const Ns& ts) noexcept
 const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
 {
     constexpr const char* fmt = "%a, %d %b %Y %H:%M:%S.";
-    constexpr size_t fmtsize = array_size("Thu 01 Mon 197000 00:00:00.");
+    constexpr usize fmtsize = array_size("Thu 01 Mon 197000 00:00:00.");
     static_assert(array_size(buf) - fmtsize == 4);
     const auto t    = SystemClock::now();
     const auto ms   = duration_cast<Millis>(t.time_since_epoch()) % 1000;
@@ -84,7 +84,7 @@ const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
     auto len = std::strftime(buf, array_size(buf), fmt, tm);
     fm_assert(len > 0 && len <= fmtsize);
     auto len2 = std::sprintf(buf + len, "%03u", (unsigned)ms.count());
-    fm_assert(len2 > 0 && len + (size_t)len2 < array_size(buf));
+    fm_assert(len2 > 0 && len + (usize)len2 < array_size(buf));
     return buf;
 }
 

@@ -63,8 +63,8 @@ static_assert(test_wrapping());
 void test_round_trip()
 {
     constexpr chunk_coords_ ch{-3, 7, 1};
-    constexpr int8_t offsets[] = { -half_tile<int8_t>, 0, half_tile<int8_t> - 1 };
-    for (uint32_t i = 0; i < TILE_COUNT; i++)
+    constexpr i8 offsets[] = { -half_tile<i8>, 0, half_tile<i8> - 1 };
+    for (u32 i = 0; i < TILE_COUNT; i++)
         for (auto ox : offsets)
             for (auto oy : offsets)
             {

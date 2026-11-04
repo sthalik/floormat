@@ -11,7 +11,7 @@ void Spinlock::lock() noexcept
         while (atomic_load(&state, memory_order::relaxed))
             cpu_relax();
 
-        int32_t expected = 0;
+        i32 expected = 0;
         if (atomic_compare_exchange_weak(&state, expected, 1, memory_order::acquire))
             return;
     }
@@ -19,7 +19,7 @@ void Spinlock::lock() noexcept
 
 bool Spinlock::try_lock() noexcept
 {
-    int32_t expected = 0;
+    i32 expected = 0;
     return atomic_compare_exchange(&state, expected, 1, memory_order::acquire);
 }
 

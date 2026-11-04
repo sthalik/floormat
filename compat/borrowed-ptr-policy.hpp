@@ -105,7 +105,7 @@ namespace floormat {
 
 struct non_atomic_refcount
 {
-    using counter = bptr_policy::non_atomic_counter<uint32_t>;
+    using counter = bptr_policy::non_atomic_counter<u32>;
     using allocator = bptr_policy::new_delete_allocator;
     using stats = bptr_policy::no_stats;
     static constexpr bool has_weak = true;
@@ -113,7 +113,7 @@ struct non_atomic_refcount
 
 struct thread_checked_refcount : non_atomic_refcount
 {
-    using counter = bptr_policy::thread_checked_counter<uint32_t>;
+    using counter = bptr_policy::thread_checked_counter<u32>;
 };
 
 } // namespace floormat

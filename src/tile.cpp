@@ -37,7 +37,7 @@ wall_image_proto tile_proto::wall_north() const noexcept { return { wall_north_a
 wall_image_proto tile_proto::wall_west() const noexcept  { return { wall_west_atlas, wall_west_variant   }; }
 
 template<typename Chunk>
-tile_ref_<Chunk>::tile_ref_(Chunk& c, uint8_t i) noexcept : _chunk{&c}, i{i} {}
+tile_ref_<Chunk>::tile_ref_(Chunk& c, u8 i) noexcept : _chunk{&c}, i{i} {}
 
 template<typename Chunk>
 tile_image_ref tile_ref_<Chunk>::ground() noexcept requires(!std::is_const_v<Chunk>)
@@ -131,7 +131,7 @@ template<typename Chunk>
 Chunk& tile_ref_<Chunk>::chunk() const noexcept { return *_chunk; }
 
 template<typename Chunk>
-size_t tile_ref_<Chunk>::index() const noexcept { return i; }
+usize tile_ref_<Chunk>::index() const noexcept { return i; }
 
 template<typename Chunk>
 bool operator==(const tile_ref_<Chunk>& a, const tile_ref_<Chunk>& b) noexcept

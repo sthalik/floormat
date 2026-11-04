@@ -45,7 +45,7 @@ GL::Mesh make_light_mesh(T&& vert, U&& index)
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(forward<T>(vert), 0, lightmap_shader::Position{})
         .setIndexBuffer(forward<U>(index), 0, Quads::index_gl_type)
-        .setCount((int32_t)Quads::indexes_per_quad);
+        .setCount((i32)Quads::indexes_per_quad);
     return mesh;
 }
 
@@ -56,7 +56,7 @@ struct Block final
     Vector2 center_fragcoord;
     Vector2 center_clip;
     float range;
-    uint32_t falloff;
+    u32 falloff;
     float radius;
     char _pad0[12];
 };
@@ -102,7 +102,7 @@ GL::Mesh lightmap_shader::make_occlusion_mesh()
     GL::Mesh mesh{GL::MeshPrimitive::Triangles};
     mesh.addVertexBuffer(vertex_buf, 0, Segment{}, ShadowCoord{})
         .setIndexBuffer(index_buf, 0, Quads::index_gl_type)
-        .setCount(int32_t(Quads::indexes_per_quad * capacity));
+        .setCount(i32(Quads::indexes_per_quad * capacity));
     return mesh;
 }
 
@@ -137,7 +137,7 @@ void lightmap_shader::end_occlusion()
 std::array<lightmap_shader::shadow_vertex, 4>& lightmap_shader::alloc_quad()
 {
     // The cap is checked after the shift, so the shift must not wrap.
-    static_assert(Quads::max_quads_per_buffer <= (uint32_t)-1 / 2);
+    static_assert(Quads::max_quads_per_buffer <= (u32)-1 / 2);
 
     if (count == capacity)
     {
@@ -218,7 +218,7 @@ lightmap_shader::lightmap_shader(texture_unit_cache& tuc) : tuc{tuc}
         .center_fragcoord = Vector2(0, 0),
         .center_clip = Vector2(-1, -1),
         .range = 1.f,
-        .falloff = (uint32_t)light_falloff::constant,
+        .falloff = (u32)light_falloff::constant,
         .radius = 0.f,
         ._pad0 = {},
     };
@@ -261,7 +261,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
         .center_fragcoord = center_fragcoord * image_size_ratio,
         .center_clip = center_clip,
         .range = range * image_size_ratio.sum()/2,
-        .falloff = (uint32_t)light.falloff,
+        .falloff = (u32)light.falloff,
         .radius = light.radius * image_size_ratio.sum()/2,
         ._pad0 = {},
     };
@@ -283,7 +283,7 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     setUniform(ModeUniform, DrawShadowsMode);
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
-    mesh_view.setCount((int32_t)(count * Quads::indexes_per_quad));
+    mesh_view.setCount((i32)(count * Quads::indexes_per_quad));
     AbstractShaderProgram::draw(mesh_view);
 
     // --- Pass 2: compute light * (1 - shadow), accumulate to attachment 1 ---

@@ -30,13 +30,13 @@ object_range<T>::object_range(const bptr<object>* begin, const bptr<object>* end
 
 template<typename T> auto object_range<T>::begin() const noexcept -> iterator { return iterator{_begin}; }
 template<typename T> auto object_range<T>::end() const noexcept -> iterator { return iterator{_end}; }
-template<typename T> uint32_t object_range<T>::size() const noexcept { return (uint32_t)(_end - _begin); }
+template<typename T> u32 object_range<T>::size() const noexcept { return (u32)(_end - _begin); }
 
-inline uint32_t object_list_base::size() const noexcept { return (uint32_t)_items.size(); }
-inline const bptr<object>& object_list_base::ptr(uint32_t i) noexcept { return _items[i]; }
+inline u32 object_list_base::size() const noexcept { return (u32)_items.size(); }
+inline const bptr<object>& object_list_base::ptr(u32 i) noexcept { return _items[i]; }
 
-template<typename T> T& object_list<T>::operator[](uint32_t i) noexcept { return static_cast<T&>(*_items[i]); }
-template<typename T> const T& object_list<T>::operator[](uint32_t i) const noexcept { return static_cast<const T&>(*_items[i]); }
+template<typename T> T& object_list<T>::operator[](u32 i) noexcept { return static_cast<T&>(*_items[i]); }
+template<typename T> const T& object_list<T>::operator[](u32 i) const noexcept { return static_cast<const T&>(*_items[i]); }
 
 template<typename T>
 object_range<T> object_list<T>::range() noexcept

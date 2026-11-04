@@ -29,8 +29,8 @@ public:
     // A placeholder copy of `a` named `name`. It shares a's sprites, since the sprite atlas never
     // frees one.
     ground_atlas(const ground_atlas& a, StringView name);
-    texcoords texcoords_for_id(size_t id) const;
-    size_t num_tiles() const;
+    texcoords texcoords_for_id(usize id) const;
+    usize num_tiles() const;
     Vector2ub num_tiles2() const;
     ArrayView<const sprite> raw_sprite_array() const;
     StringView name() const;

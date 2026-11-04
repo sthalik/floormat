@@ -2,18 +2,18 @@
 
 namespace floormat {
 
-enum class mlt_source : uint8_t { heap, superpage };
+enum class mlt_source : u8 { heap, superpage };
 
 struct mlt_bits
 {
-    uint32_t dim[3] = {};
-    uint32_t dims = 0;
+    u32 dim[3] = {};
+    u32 dims = 0;
 
     constexpr mlt_bits() noexcept = default;
-    constexpr mlt_bits(uint32_t x) noexcept;
-    constexpr mlt_bits(uint32_t x, uint32_t y, uint32_t z) noexcept;
+    constexpr mlt_bits(u32 x) noexcept;
+    constexpr mlt_bits(u32 x, u32 y, u32 z) noexcept;
 
-    constexpr uint32_t total() const noexcept;
+    constexpr u32 total() const noexcept;
 };
 
 struct mlt_level
@@ -27,7 +27,7 @@ struct mlt_level
 // Complete here because a class-type template parameter can't have an incomplete type.
 struct mlt_params
 {
-    static constexpr uint32_t max_depth = 4;
+    static constexpr u32 max_depth = 4;
 
     // [0] takes the key's highest bits
     mlt_level levels[max_depth] = {};
@@ -35,18 +35,18 @@ struct mlt_params
     mlt_source page_source = mlt_source::heap;
     bool free_empty = false;
 
-    consteval uint32_t depth() const;
-    consteval uint32_t dims() const;
-    consteval uint32_t dim_bits(uint32_t d) const;
-    consteval uint32_t key_bits() const;
+    consteval u32 depth() const;
+    consteval u32 dims() const;
+    consteval u32 dim_bits(u32 d) const;
+    consteval u32 key_bits() const;
     consteval bool has_pages() const;
-    consteval uint32_t page_bits() const;
-    consteval uint32_t zero_bits() const;
-    consteval uint32_t top_bits() const;
+    consteval u32 page_bits() const;
+    consteval u32 zero_bits() const;
+    consteval u32 top_bits() const;
     consteval mlt_params validate() const;
 };
 
-struct mlt_coords { uint32_t c[3]; };
+struct mlt_coords { u32 c[3]; };
 
 template<typename C, mlt_params P> struct mlt_coord_traits;
 

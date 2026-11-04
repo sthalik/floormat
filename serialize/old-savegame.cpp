@@ -47,33 +47,33 @@ struct object_proto;
 
 namespace floormat::Serialize {
 
-using tilemeta = uint8_t;
-using atlasid  = uint16_t;
-using chunksiz = uint16_t;
-using proto_t  = uint16_t;
+using tilemeta = u8;
+using atlasid  = u16;
+using chunksiz = u16;
+using proto_t  = u16;
 
 namespace {
 
 constexpr inline proto_t proto_version = 19;
 
-constexpr inline size_t atlas_name_max = 128;
+constexpr inline usize atlas_name_max = 128;
 
-constexpr inline size_t critter_name_max = 128;
-constexpr inline size_t string_max = 512;
+constexpr inline usize critter_name_max = 128;
+constexpr inline usize string_max = 512;
 
 constexpr inline proto_t min_proto_version = 1;
-constexpr inline auto chunk_magic = (uint16_t)~0xc0d3;
-constexpr inline auto scenery_magic = (uint16_t)~0xb00b;
+constexpr inline auto chunk_magic = (u16)~0xc0d3;
+constexpr inline auto scenery_magic = (u16)~0xb00b;
 
 constexpr inline auto pass_mask = (1 << pass_mode_BITS)-1;
 
-template<typename T, size_t N, size_t off>
+template<typename T, usize N, usize off>
 constexpr inline auto highbits = (T(1) << N)-1 << sizeof(T)*8-N-off;
 
-template<size_t N, std::unsigned_integral T = uint8_t>
+template<usize N, std::unsigned_integral T = u8>
 constexpr T lowbits = N == sizeof(T)*8 ? (T)-1 : T((T{1} << N)-T{1});
 
-constexpr inline uint8_t meta_short_scenery_bit = highbits<uint8_t, 1, 0>;
+constexpr inline u8 meta_short_scenery_bit = highbits<u8, 1, 0>;
 
 Vector2ub fix_stupid_bbox(Vector2ub bbox_size)
 {
@@ -88,7 +88,7 @@ Vector2ub fix_stupid_bbox(Vector2ub bbox_size)
     return bbox_size;
 }
 
-uint32_t delta_ns(uint32_t fraction) { return object::ns_to_delta(object::fraction_to_ns(fraction)); }
+u32 delta_ns(u32 fraction) { return object::ns_to_delta(object::fraction_to_ns(fraction)); }
 
 // Some saves hold offsets past the tile edge, which the object ctor rejects.
 global_coords normalize_offset(global_coords coord, object_proto& proto)
@@ -124,7 +124,7 @@ namespace {
 struct object_draw_order
 {
     object* e;
-    uint32_t mesh_idx;
+    u32 mesh_idx;
 };
 
 } // namespace
@@ -150,19 +150,19 @@ private:
 
     StringView lookup_atlas(atlasid id);
     const scenery_proto& lookup_scenery(atlasid id);
-    StringView lookup_string(uint32_t idx);
+    StringView lookup_string(u32 idx);
     void read_atlases(reader_t& reader);
     void read_sceneries(reader_t& reader);
     void read_strings(reader_t& reader);
     void read_chunks(reader_t& reader);
-    void read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i);
+    void read_old_scenery(reader_t& s, chunk_coords_ ch, usize i);
     void preload_chunks();
 
     std::vector<String> strings;
     std::vector<scenery_proto> sceneries;
     std::vector<String> atlases;
     world* _world;
-    uint16_t PROTO = proto_version;
+    u16 PROTO = proto_version;
     loader_policy asset_policy;
 };
 
@@ -186,7 +186,7 @@ template<typename T, object_subtype U>
 bool read_object_flags(binary_reader<T>& s, U& e)
 {
     constexpr auto tag = object_type_<U>::value;
-    uint8_t flags; flags << s;
+    u8 flags; flags << s;
     e.pass = pass_mode(flags & pass_mask);
     if (e.type != tag)
          fm_throw("invalid object type '{}'", (int)e.type);
@@ -220,7 +220,7 @@ bool read_object_flags(binary_reader<T>& s, U& e)
 
 void reader_state::read_sceneries(reader_t& s)
 {
-    uint16_t magic; magic << s;
+    u16 magic; magic << s;
     if (magic != scenery_magic)
         fm_throw("bad scenery magic");
     atlasid sz; sz << s;
@@ -230,7 +230,7 @@ void reader_state::read_sceneries(reader_t& s)
     auto i = 0uz;
     while (i < sz)
     {
-        uint8_t num; num << s;
+        u8 num; num << s;
         fm_soft_assert(num > 0);
         auto str = s.read_asciiz_string<atlas_name_max>();
         auto sc = loader.scenery(str, asset_policy);
@@ -242,7 +242,7 @@ void reader_state::read_sceneries(reader_t& s)
             bool short_frame = read_object_flags(s, sc);
             fm_debug_assert(sc.atlas != nullptr);
             if (short_frame)
-                sc.frame = s.read<uint8_t>();
+                sc.frame = s.read<u8>();
             else
                 sc.frame << s;
             fm_soft_assert(sc.frame < sc.atlas->info().nframes);
@@ -255,7 +255,7 @@ void reader_state::read_sceneries(reader_t& s)
 
 void reader_state::read_strings(reader_t& s)
 {
-    uint32_t size; size << s;
+    u32 size; size << s;
     strings.reserve(size);
     for (auto i = 0uz; i < size; i++)
     {
@@ -280,7 +280,7 @@ const scenery_proto& reader_state::lookup_scenery(atlasid id)
         fm_throw("no such scenery: '{}'", id);
 }
 
-StringView reader_state::lookup_string(uint32_t idx)
+StringView reader_state::lookup_string(u32 idx)
 {
     fm_soft_assert(idx < strings.size());
     return strings[idx];
@@ -297,7 +297,7 @@ void reader_state::read_chunks(reader_t& s)
     Array<object_draw_order> array;
     const auto N = s.read<chunksiz>();
 #ifndef FM_NO_DEBUG
-    [[maybe_unused]] size_t nbytes_read = 0;
+    [[maybe_unused]] usize nbytes_read = 0;
 #endif
 
     for (auto k = 0uz; k < N; k++)
@@ -308,8 +308,8 @@ void reader_state::read_chunks(reader_t& s)
         magic << s;
         if (magic != chunk_magic)
             fm_throw("bad chunk magic");
-        int16_t cx, cy;
-        int8_t cz = 0;
+        i16 cx, cy;
+        i8 cz = 0;
         cx << s;
         cy << s;
         if (PROTO >= 10) [[likely]]
@@ -331,20 +331,20 @@ void reader_state::read_chunks(reader_t& s)
                 }
 
             tile_ref t = c[i];
-            using uchar = uint8_t;
+            using uchar = u8;
             const auto make_atlas = [&]<typename T>() -> image_proto_<T> {
                 atlasid atlas_id;
                 if (PROTO < 8) [[unlikely]]
                     atlas_id = flags & meta_short_atlasid_ ? atlasid{s.read<uchar>()} : s.read<atlasid>();
                 else
                     atlas_id << s;
-                uint8_t v;
+                u8 v;
                 if (PROTO >= 2) [[likely]]
                     v << s;
                 else
                     v = flags & meta_short_variant_
-                        ? s.read<uint8_t>()
-                        : uint8_t(s.read<uint16_t>());
+                        ? s.read<u8>()
+                        : u8(s.read<u16>());
                 auto name = lookup_atlas(atlas_id);
                 if constexpr(std::is_same_v<ground_atlas, T>)
                 {
@@ -359,8 +359,8 @@ void reader_state::read_chunks(reader_t& s)
                 }
                 else
                 {
-                    static_assert(sizeof T{} != (size_t)-1);
-                    static_assert(sizeof T{} == (size_t)-1);
+                    static_assert(sizeof T{} != (usize)-1);
+                    static_assert(sizeof T{} == (usize)-1);
                     std::unreachable();
                 }
             };
@@ -377,7 +377,7 @@ void reader_state::read_chunks(reader_t& s)
                     read_old_scenery(s, ch, i);
             SET_CHUNK_SIZE();
         }
-        uint32_t object_count = 0;
+        u32 object_count = 0;
         if (PROTO >= 8) [[likely]]
             object_count << s;
 
@@ -403,7 +403,7 @@ void reader_state::read_chunks(reader_t& s)
             if (type >= object_type::COUNT || type == object_type::none) [[unlikely]]
                 fm_throw("invalid_object_type '{}'", (int)type);
 
-            const auto local = local_coords{s.read<uint8_t>()};
+            const auto local = local_coords{s.read<u8>()};
 
             Vector2b offset;
             if (PROTO >= 14) [[likely]]
@@ -429,20 +429,20 @@ void reader_state::read_chunks(reader_t& s)
             case object_type::critter: {
                 critter_proto proto;
                 proto.offset = offset;
-                uint8_t id; id << s;
+                u8 id; id << s;
                 proto.r = rotation(id >> sizeof(id)*8-1-rotation_BITS & rotation_MASK);
                 if (read_object_flags(s, proto))
-                    proto.frame = s.read<uint8_t>();
+                    proto.frame = s.read<u8>();
                 else
                     proto.frame << s;
-                (void)s.read<uint16_t>();
-                (void)s.read<uint16_t>();
+                (void)s.read<u16>();
+                (void)s.read<u16>();
                 const bool exact = id & meta_short_scenery_bit_;
                 SET_CHUNK_SIZE();
 
                 if (PROTO >= 9) [[likely]]
                 {
-                    uint32_t string_id; string_id << s;
+                    u32 string_id; string_id << s;
                     auto name = lookup_string(string_id);
                     fm_soft_assert(name.size() < critter_name_max);
                     proto.name = name;
@@ -473,7 +473,7 @@ void reader_state::read_chunks(reader_t& s)
                 rotation r;
                 if (PROTO >= 19) [[likely]]
                 {
-                    uint8_t bits; bits << s;
+                    u8 bits; bits << s;
                     exact = bits & meta_short_scenery_bit;
                     r = rotation(bits >> sizeof(bits)*8-1-rotation_BITS & rotation_MASK);
                 }
@@ -491,7 +491,7 @@ void reader_state::read_chunks(reader_t& s)
                 if (!exact)
                 {
                     if (read_object_flags(s, sc))
-                        sc.frame = s.read<uint8_t>();
+                        sc.frame = s.read<u8>();
                     else
                         sc.frame << s;
                     (void)sc.atlas->frame(sc.r, sc.frame);
@@ -505,18 +505,18 @@ void reader_state::read_chunks(reader_t& s)
                     {
                         if (val->active)
                         {
-                            uint16_t delta_;
+                            u16 delta_;
                             delta_ << s;
-                            sc.delta = delta_ns(uint32_t(delta_) * 65536u);
+                            sc.delta = delta_ns(u32(delta_) * 65536u);
                         }
                     }
                     else if (const auto* val = swl::get_if<door_scenery_proto>(&sc.subtype))
                     {
                         if (val->active)
                         {
-                            uint16_t delta_;
+                            u16 delta_;
                             delta_ << s;
-                            sc.delta = delta_ns(uint32_t(delta_) * 65536u);
+                            sc.delta = delta_ns(u32(delta_) * 65536u);
                         }
                     }
                     else
@@ -530,7 +530,7 @@ void reader_state::read_chunks(reader_t& s)
                 light_proto proto;
                 proto.offset = offset;
 
-                uint8_t flags; flags << s;
+                u8 flags; flags << s;
                 const bool exact = flags & 1;
                 proto.r = rotation((flags >> 1) & lowbits<rotation_BITS>);
                 bool enabled;
@@ -552,9 +552,9 @@ void reader_state::read_chunks(reader_t& s)
                     s >> proto.color[3];
                 if (!exact)
                 {
-                    uint16_t frame; frame << s;
+                    u16 frame; frame << s;
                     auto pass = pass_mode((frame >> 14) & lowbits<2>);
-                    frame &= lowbits<14, uint16_t>;
+                    frame &= lowbits<14, u16>;
                     proto.pass = pass;
                     proto.frame = frame;
                     read_bbox(s, proto);
@@ -586,7 +586,7 @@ void reader_state::preload_chunks()
         c.ensure_passability();
 }
 
-void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
+void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, usize i)
 {
     atlasid id; id << s;
     const bool exact = id & meta_short_scenery_bit_;
@@ -601,7 +601,7 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
     if (!exact)
     {
         if (read_object_flags(s, sc))
-            sc.frame = s.read<uint8_t>();
+            sc.frame = s.read<u8>();
         else
             sc.frame << s;
         if (PROTO >= 5) [[likely]]
@@ -627,15 +627,15 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
             {
                 if (PROTO >= 4) [[likely]]
                 {
-                    uint16_t delta_;
+                    u16 delta_;
                     delta_ << s;
-                    sc.delta = delta_ns(uint32_t(delta_) * 65536u);
+                    sc.delta = delta_ns(u32(delta_) * 65536u);
                 }
                 else
                 {
                     auto x = (double)s.read<float>();
                     fm_soft_assert(x >= 0 && x <= 1);
-                    sc.delta = delta_ns((uint32_t)(x * (uint32_t)-1));
+                    sc.delta = delta_ns((u32)(x * (u32)-1));
                 }
             }
         }
@@ -645,15 +645,15 @@ void reader_state::read_old_scenery(reader_t& s, chunk_coords_ ch, size_t i)
             {
                 if (PROTO >= 4) [[likely]]
                 {
-                    uint16_t delta_;
+                    u16 delta_;
                     delta_ << s;
-                    sc.delta = delta_ns(uint32_t(delta_) * 65536u);
+                    sc.delta = delta_ns(u32(delta_) * 65536u);
                 }
                 else
                 {
                     auto x = (double)s.read<float>();
                     fm_soft_assert(x >= 0 && x <= 1);
-                    sc.delta = delta_ns((uint32_t)(x * (uint32_t)-1));
+                    sc.delta = delta_ns((u32)(x * (u32)-1));
                 }
             }
         }
@@ -670,7 +670,7 @@ void reader_state::deserialize_world(ArrayView<const char> buf, proto_t proto)
     auto s = binary_reader{buf};
     if (!(proto >= min_proto_version && proto <= proto_version))
         fm_throw("bad proto version '{}' (should be between '{}' and '{}')",
-                 (size_t)proto, (size_t)min_proto_version, (size_t)proto_version);
+                 (usize)proto, (usize)min_proto_version, (usize)proto_version);
     PROTO = proto;
     fm_assert(PROTO > 0);
     object_id object_counter = world::object_counter_init;

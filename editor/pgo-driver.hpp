@@ -11,9 +11,9 @@ namespace floormat { enum mouse_button : unsigned char; }
 namespace floormat::pgo {
 
 // more rays makes the screen illegible
-constexpr inline uint32_t max_rays_per_frame = 32;
+constexpr inline u32 max_rays_per_frame = 32;
 
-struct pause final { uint32_t num_frames = 1; };
+struct pause final { u32 num_frames = 1; };
 
 struct [[nodiscard]] task final
 {
@@ -57,7 +57,7 @@ struct task::promise_type final
     // Which one the runner reads depends on the form. Under co_await it counts the sub's
     // `frames_to_wait` down. Under the loop form the caller re-yields the sub's `current`.
     pause current;
-    uint32_t frames_to_wait = 0;
+    u32 frames_to_wait = 0;
     // Default-constructed is done(), so no separate flag says whether one is active.
     task sub;
 
@@ -90,19 +90,19 @@ struct state final
 {
     task scene_task;
     Time scene_started;
-    uint32_t scene_index = 0;
-    uint32_t pass_index = 0;
-    uint32_t frames_run = 0;
-    uint32_t scene_first_frame = 0;
+    u32 scene_index = 0;
+    u32 pass_index = 0;
+    u32 frames_run = 0;
+    u32 scene_first_frame = 0;
     Ns scene_dt{};
     // What the frame-0 pin actually produced. Not settings().resolution: that is in window
     // units and window_size() is in framebuffer units, which differ under HiDPI.
     Vector2i base_window_size;
-    uint32_t scene_mask = 0;
+    u32 scene_mask = 0;
     // scene_raycast raycasts and draws its own sweep. Going through the raycast test would have
     // shown one ray of the batch, since a test keeps a single result and the driver fires many.
     std::array<rc::raycast_result_s, max_rays_per_frame> rays;
-    uint32_t num_rays = 0;
+    u32 num_rays = 0;
     // One per ray of the batch. raycast_with_diag() clears and refills whichever it is handed,
     // so a single one would leave the cells of 31 of the 32 rays undrawn.
     std::array<rc::raycast_diag_s, max_rays_per_frame> diags;

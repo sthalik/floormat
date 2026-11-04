@@ -48,7 +48,7 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
         s.name_map[t.name_of(c)] = i++;
 
     { const Cell& invalid_atlas{get_invalid_atlas()};
-      size_t sz{s.cell_array.size()};
+      usize sz{s.cell_array.size()};
       arrayAppend(s.cell_array, invalid_atlas);
       s.name_map[loader.INVALID] = sz;
     }
@@ -88,7 +88,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
 
     fm_soft_assert(loader.check_atlas_name(name));
 
-    if (const size_t* it = s.name_map.find(name)) [[likely]]
+    if (const usize* it = s.name_map.find(name)) [[likely]]
     {
         if (*it == -1uz) [[unlikely]]
         {
@@ -135,7 +135,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         // can't leave a null-atlas cell behind or grow the array on every retry.
         t.atlas_of(*cʹ) = make_atlas(name, *cʹ);
         fm_debug_assert(t.atlas_of(*cʹ));
-        const size_t index{s.cell_array.size()};
+        const usize index{s.cell_array.size()};
         arrayAppend(s.cell_array, move(*cʹ));
         Cell& c{s.cell_array.back()};
         s.name_map[t.name_of(c)] = index;
@@ -201,14 +201,14 @@ template<typename ATLAS, typename TRAITS>
 bool atlas_loader<ATLAS, TRAITS>::cell_exists(Corrade::Containers::StringView name)
 {
     // -1uz marks a name looked up under warn/ignore that has no backing cell.
-    const size_t* it = s.name_map.find(name);
+    const usize* it = s.name_map.find(name);
     return it && *it != -1uz;
 }
 
 template<typename ATLAS, typename TRAITS>
 auto atlas_loader<ATLAS, TRAITS>::get_cell(StringView name) -> const Cell&
 {
-    const size_t* it = s.name_map.find(name);
+    const usize* it = s.name_map.find(name);
     fm_assert(it && *it != -1uz);
     return s.cell_array[*it];
 }
@@ -220,7 +220,7 @@ void atlas_loader<ATLAS, TRAITS>::register_cell(Cell&& c)
     if (name.isSmall()) name = String{AllocatedInit, name};
     fm_assert(!s.name_map.contains(name));
     fm_soft_assert(loader.check_atlas_name(name));
-    const size_t index{s.cell_array.size()};
+    const usize index{s.cell_array.size()};
     arrayAppend(s.cell_array, move(c));
     if (String& name_ = t.name_of(s.cell_array.back()); name_.isSmall()) name_ = String{AllocatedInit, name_};
     s.name_map[ t.name_of(s.cell_array.back()) ] = index;

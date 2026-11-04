@@ -20,7 +20,7 @@ constexpr auto takes_critter = [](critter&) {};
 constexpr auto takes_scenery = [](scenery&) {};
 constexpr auto takes_const_object = [](const object&) {};
 constexpr auto reads_light = [](auto& e) { (void)e.max_distance; };
-constexpr auto mutates = [k = 0](light& e) mutable { e.frame = (uint16_t)k++; };
+constexpr auto mutates = [k = 0](light& e) mutable { e.frame = (u16)k++; };
 constexpr auto takes_list = []<typename T>(object_list<T>&) {};
 
 static_assert(object_visitor<decltype(takes_critter), critter>);
@@ -100,7 +100,7 @@ void test_empty()
     fm_assert(view.size() == 0);
     fm_assert(view.begin() == view.end());
 
-    uint32_t n = 0;
+    u32 n = 0;
     for ([[maybe_unused]] const object& o : view)
         ++n;
     fm_assert(n == 0);
@@ -120,7 +120,7 @@ void test_populated()
     const auto& view = cc.objects();
     fm_assert(view.size() == mut.size());
 
-    uint32_t i = 0;
+    u32 i = 0;
     for (const object& o : view)
     {
         fm_assert(&o == &*mut[i]);
@@ -128,12 +128,12 @@ void test_populated()
     }
     fm_assert(i == view.size());
 
-    for (uint32_t k = 0; k < view.size(); ++k)
+    for (u32 k = 0; k < view.size(); ++k)
         fm_assert(&view[k] == &*mut[k]);
 
     auto it = view.begin();
     auto end = view.end();
-    uint32_t walked = 0;
+    u32 walked = 0;
     while (it != end)
     {
         ++it;

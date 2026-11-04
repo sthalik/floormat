@@ -7,10 +7,10 @@ namespace floormat {
 
 namespace {
 
-struct count_iterator { uint32_t i; };
-struct count_range { uint32_t n; };
+struct count_iterator { u32 i; };
+struct count_range { u32 n; };
 
-constexpr uint32_t operator*(const count_iterator& it) noexcept { return it.i; }
+constexpr u32 operator*(const count_iterator& it) noexcept { return it.i; }
 constexpr count_iterator& operator++(count_iterator& it) noexcept { ++it.i; return it; }
 constexpr bool operator==(const count_iterator& a, const count_iterator& b) noexcept { return a.i == b.i; }
 constexpr count_iterator begin(const count_range&) noexcept { return {0}; }
@@ -45,7 +45,7 @@ void test_bindings()
     int a[] = { 3, 5, 7 };
     float b[] = { 11, 13, 17 };
 
-    uint32_t n = 0;
+    u32 n = 0;
     for (auto& [x, y] : zip(a, b))
     {
         static_assert(std::is_same_v<decltype(x), int>);
@@ -91,7 +91,7 @@ void test_const()
     const int c[] = { 19, 23 };
     int m[] = { 29, 31 };
 
-    uint32_t n = 0;
+    u32 n = 0;
     for (auto& [x, y] : zip(c, m))
     {
         static_assert(std::is_same_v<decltype(x), const int>);
@@ -116,7 +116,7 @@ void test_rvalue_ranges()
 
     // Stored outside the loop, see test_rvalue_range() in test/enumerate.cpp.
     auto z = zip(ArrayView<int>{arr}.exceptPrefix(1), ArrayView<int>{arr}.exceptSuffix(1));
-    uint32_t n = 0;
+    u32 n = 0;
     for (auto& [next, prev] : z)
     {
         fm_assert(&next == &arr[n + 1] && &prev == &arr[n]);
@@ -135,10 +135,10 @@ void test_prvalue()
 {
     int xs[] = { 61, 67, 71 };
 
-    uint32_t n = 0;
+    u32 n = 0;
     for (auto& [i, x] : zip(count_range{3}, xs))
     {
-        static_assert(std::is_same_v<decltype(i), uint32_t>);
+        static_assert(std::is_same_v<decltype(i), u32>);
         fm_assert(i == n++);
         fm_assert(&x == &xs[i]);
     }
@@ -146,7 +146,7 @@ void test_prvalue()
 
     for (const auto& [i, x] : zip(count_range{3}, xs))
     {
-        static_assert(std::is_same_v<decltype(i), const uint32_t>);
+        static_assert(std::is_same_v<decltype(i), const u32>);
         static_assert(std::is_same_v<decltype(x), const int>);
         fm_assert(&x == &xs[i]);
     }
@@ -155,7 +155,7 @@ void test_prvalue()
 void test_sentinel()
 {
     constexpr const char* str = "pqr";
-    uint32_t n = 0;
+    u32 n = 0;
     for (auto& [c, i] : zip(c_string{str}, count_range{3}))
     {
         static_assert(std::is_same_v<decltype(c), const char>);
@@ -171,7 +171,7 @@ void test_arity()
     short b[] = { 83, 89 };
     double c[] = { 97, 101 };
     const char d[] = { 'a', 'b' };
-    uint32_t n = 0;
+    u32 n = 0;
     for (auto& [w, x, y, z] : zip(a, b, c, d))
     {
         static_assert(std::is_same_v<decltype(x), short>);
@@ -185,7 +185,7 @@ void test_arity()
 
 void test_empty()
 {
-    uint32_t n = 0;
+    u32 n = 0;
     for ([[maybe_unused]] auto& [x, y] : zip(ArrayView<int>{}, ArrayView<float>{}))
         n++;
     fm_assert(n == 0);
@@ -196,7 +196,7 @@ void test_enumerate_zip()
     int a[] = { 103, 107, 109 };
     float b[] = { 113, 127, 131 };
 
-    uint32_t n = 0;
+    u32 n = 0;
     for (auto& [i, e] : enumerate(zip(a, b)))
     {
         auto& [x, y] = e;
@@ -223,11 +223,11 @@ void test_zip_enumerate()
     int a[] = { 137, 139, 149 };
     float b[] = { 151, 157, 163 };
 
-    uint32_t n = 0;
+    u32 n = 0;
     for (auto& [e, y] : zip(enumerate(a), b))
     {
         auto& [i, x] = e;
-        static_assert(std::is_same_v<decltype(i), uint32_t>);
+        static_assert(std::is_same_v<decltype(i), u32>);
         static_assert(std::is_same_v<decltype(x), int>);
         static_assert(std::is_same_v<decltype(y), float>);
         fm_assert(i == n++);
@@ -240,7 +240,7 @@ void test_zip_enumerate()
     for (const auto& [e, y] : zip(enumerate(a), b))
     {
         auto& [i, x] = e;
-        static_assert(std::is_same_v<decltype(i), const uint32_t>);
+        static_assert(std::is_same_v<decltype(i), const u32>);
         static_assert(std::is_same_v<decltype(x), const int>);
         static_assert(std::is_same_v<decltype(y), const float>);
         fm_assert(&x == &a[i] && &y == &b[i]);

@@ -36,7 +36,7 @@ Vector2 dir_inverse(Vector2 dir)
 #endif
 }
 
-std::array<uint8_t, 2> ray_aabb_signs(Vector2 ray_dir_inv_norm)
+std::array<u8, 2> ray_aabb_signs(Vector2 ray_dir_inv_norm)
 {
     bool signs[2];
     for (unsigned d = 0; d < 2; ++d)
@@ -47,7 +47,7 @@ std::array<uint8_t, 2> ray_aabb_signs(Vector2 ray_dir_inv_norm)
 // https://tavianator.com/2022/ray_box_boundary.html
 // https://www.researchgate.net/figure/The-slab-method-for-ray-intersection-detection-15_fig3_283515372
 aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
-                                  std::array<Vector2, 2> box_minmax, std::array<uint8_t, 2> signs)
+                                  std::array<Vector2, 2> box_minmax, std::array<u8, 2> signs)
 {
     using Math::min;
     using Math::max;
@@ -72,7 +72,7 @@ aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,
 
 aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, Vector2 ray_dir_inv_norm,
                                           std::array<Vector2, 2> box_minmax, float radius,
-                                          std::array<uint8_t, 2> signs)
+                                          std::array<u8, 2> signs)
 {
     const auto [bmin, bmax] = box_minmax;
     const auto grown = ray_aabb_intersection(ray_origin, ray_dir_inv_norm,
@@ -107,7 +107,7 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
 }
 
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
-                         uint32_t first_step, uint32_t last_step, bool both_orthogonal,
+                         u32 first_step, u32 last_step, bool both_orthogonal,
                          Grid::Pass::Pool* pool,
                          fu2::function_view<bool(const line_cell&) const> visit)
 {
@@ -115,30 +115,30 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     if (pool)
         pool->maybe_mark_stale_all(w);
 
-    constexpr auto csize = chunk_size<int32_t>;
-    const auto div = pool ? (int32_t)pool->params().div_size() : csize;
-    const auto div_count = (uint32_t)(csize / div);
-    const auto div_shift = std::countr_zero((uint32_t)div); // xxx todo assumes power of two chunk size
-    const auto origin = Vector2i{half_tile<int32_t>};
+    constexpr auto csize = chunk_size<i32>;
+    const auto div = pool ? (i32)pool->params().div_size() : csize;
+    const auto div_count = (u32)(csize / div);
+    const auto div_shift = std::countr_zero((u32)div); // xxx todo assumes power of two chunk size
+    const auto origin = Vector2i{half_tile<i32>};
     const auto cell_of = [&](Vector2i p) {
         return Vector2i{(p.x() + origin.x()) >> div_shift, (p.y() + origin.y()) >> div_shift};
     };
 
     const auto major = line.major_axis(), minor = 1 - major;
     const auto from = line.start_pos();
-    const uint64_t len = line.steps(), minor_len = line.minor_len();
+    const u64 len = line.steps(), minor_len = line.minor_len();
     // The steps with minor offset at most b end before t = ceil((2b + 1)*len / (2*minor_len)). Keeping
     // t_rem = t*2*minor_len - (2b + 1)*len lets the next cell's b + div skip the division.
-    int64_t t_b = INT32_MIN;
-    uint64_t t = 0, t_rem = 0, t_step = 0, t_step_rem = 0;
+    i64 t_b = INT32_MIN;
+    u64 t = 0, t_rem = 0, t_step = 0, t_step_rem = 0;
     if (minor_len)
     {
-        t_step = 2*(uint64_t)div*len / (2*minor_len);
-        t_step_rem = 2*(uint64_t)div*len % (2*minor_len);
+        t_step = 2*(u64)div*len / (2*minor_len);
+        t_step_rem = 2*(u64)div*len % (2*minor_len);
     }
-    const auto last_within_minor = [&](int64_t b) -> uint32_t {
-        if (b >= (int64_t)minor_len)
-            return (uint32_t)len;
+    const auto last_within_minor = [&](i64 b) -> u32 {
+        if (b >= (i64)minor_len)
+            return (u32)len;
         const auto d = 2*minor_len;
         if (b == t_b + div)
         {
@@ -153,12 +153,12 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         }
         else if (b != t_b)
         {
-            const auto a = (2*(uint64_t)b + 1)*len;
+            const auto a = (2*(u64)b + 1)*len;
             t = (a + d - 1)/d;
             t_rem = t*d - a;
         }
         t_b = b;
-        return (uint32_t)(t - 1);
+        return (u32)(t - 1);
     };
 
     line_cell cell = {};
@@ -172,8 +172,8 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         cell.chunk_offset = off;
         for (int j = 0; j < 3; j++)
             for (int i = 0; i < 3; i++)
-                cell.chunks[(size_t)(j*3 + i)] = w.at(chunk_coords_{
-                    (int16_t)(ch.x + off.x() + i - 1), (int16_t)(ch.y + off.y() + j - 1), ch.z });
+                cell.chunks[(usize)(j*3 + i)] = w.at(chunk_coords_{
+                    (i16)(ch.x + off.x() + i - 1), (i16)(ch.y + off.y() + j - 1), ch.z });
         auto* c = cell.chunks[4];
         has_grid = pool && c;
         if (has_grid)
@@ -194,14 +194,14 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     };
 
     // v[axis] with a run-time axis goes through the stack.
-    const auto on = [](Vector2i v, uint32_t axis) { return axis ? v.y() : v.x(); };
-    const auto axis_step = [&](uint32_t axis) {
+    const auto on = [](Vector2i v, u32 axis) { return axis ? v.y() : v.x(); };
+    const auto axis_step = [&](u32 axis) {
         const auto s = line.sign(axis);
         return axis ? Vector2i{0, s} : Vector2i{s, 0};
     };
     const auto major_step = axis_step(major), minor_step = axis_step(minor);
     const auto count_shift = std::countr_zero(div_count); // xxx todo assumes power of two chunk size
-    const auto count_mask = (int32_t)div_count - 1;
+    const auto count_mask = (i32)div_count - 1;
     const auto chunk_of = [&](Vector2i c) { return Vector2i{c.x() >> count_shift, c.y() >> count_shift}; };
 
     // Cells count from the line's chunk, so a cell's chunk and its cell within it are a shift and a mask
@@ -227,10 +227,10 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         {
             lo = chunk_off * csize + local_cell * div - origin;
             hi = lo + Vector2i{div - 1};
-            skip = has_grid && grid.bit(Pass::Grid::get_bitmask_index((uint32_t)local_cell.x(), (uint32_t)local_cell.y(), div_count));
+            skip = has_grid && grid.bit(Pass::Grid::get_bitmask_index((u32)local_cell.x(), (u32)local_cell.y(), div_count));
         }
         fm_debug3_assert((line.point_at(k) >= lo).all() && (line.point_at(k) <= hi).all());
-        const auto b = line.sign(minor) > 0 ? (int64_t)on(hi, minor) - on(from, minor) : (int64_t)on(from, minor) - on(lo, minor);
+        const auto b = line.sign(minor) > 0 ? (i64)on(hi, minor) - on(from, minor) : (i64)on(from, minor) - on(lo, minor);
         const auto last_major = line.interval_bounds_to_steps(major, on(lo, major), on(hi, major)).last, last_minor = last_within_minor(b);
         const auto last = Math::min(Math::min(last_major, last_minor), last_step);
         if (!skip)
@@ -251,7 +251,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             // Orthogonal point i moves along axis i first, and the minor offset at last is b, as in orthogonal_at().
             if (exit_major && exit_minor)
             {
-                const auto e = (int64_t)((2*(uint64_t)last + 1)*minor_len) - (int64_t)((2*(uint64_t)b + 1)*len);
+                const auto e = (i64)((2*(u64)last + 1)*minor_len) - (i64)((2*(u64)b + 1)*len);
                 for (auto i = 0u; i < 2; i++)
                 {
                     if (!both_orthogonal && !(i == major ? e <= 0 : e >= 0))
@@ -300,27 +300,27 @@ namespace {
 struct line_pixel
 {
     // 2k for the pixel of step k, 2k + 1 for an orthogonal point of the step from k to k + 1
-    int64_t key;
+    i64 key;
     Vector2i pixel;
 };
 
 // The first pixel of the line's supercover in the closed rect [lo, hi], or bound if its key isn't below it.
-line_pixel first_pixel_in_bounds(const bresenham_line& line, Vector2i lo, Vector2i hi, int64_t bound)
+line_pixel first_pixel_in_bounds(const bresenham_line& line, Vector2i lo, Vector2i hi, i64 bound)
 {
     const auto x = line.interval_bounds_to_steps(0, lo.x(), hi.x()), y = line.interval_bounds_to_steps(1, lo.y(), hi.y());
-    const int64_t x0 = x.first, x1 = x.last, y0 = y.first, y1 = y.last;
+    const i64 x0 = x.first, x1 = x.last, y0 = y.first, y1 = y.last;
     line_pixel ret = { bound, {} };
     if (const auto k = Math::max(x0, y0); k <= Math::min(x1, y1) && 2*k < bound)
-        ret = { 2*k, line.point_at((uint32_t)k) };
+        ret = { 2*k, line.point_at((u32)k) };
     // The steps putting orthogonal point i in the rect form a range. If its first step's point i
     // isn't in the supercover, a main pixel in the rect comes before every later one.
     for (auto i = 0u; i < 2; i++)
     {
         const auto t  = i == 0 ? Math::max(x0 - 1, y0) : Math::max(x0, y0 - 1);
         const auto t1 = i == 0 ? Math::min(x1 - 1, y1) : Math::min(x1, y1 - 1);
-        if (t > Math::min(t1, (int64_t)line.steps() - 1) || 2*t + 1 >= ret.key)
+        if (t > Math::min(t1, (i64)line.steps() - 1) || 2*t + 1 >= ret.key)
             continue;
-        if (const auto o = line.orthogonal_at((uint32_t)t); o.diagonal && o.in_supercover[i])
+        if (const auto o = line.orthogonal_at((u32)t); o.diagonal && o.in_supercover[i])
             ret = { 2*t + 1, o.points[i] };
     }
     return ret;
@@ -362,9 +362,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             .to = to,
             .collision = {},
             .collider = {
-                .type = (uint64_t)collision_type::none,
-                .pass = (uint64_t)pass_mode::pass,
-                .id   = ((uint64_t)1 << collision_data_BITS)-1,
+                .type = (u64)collision_type::none,
+                .pass = (u64)pass_mode::pass,
+                .id   = ((u64)1 << collision_data_BITS)-1,
             },
             .rect = {},
             .has_result = true,
@@ -381,9 +381,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         .to = to,
         .collision = {},
         .collider = {
-            .type = (uint64_t)collision_type::none,
-            .pass = (uint64_t)pass_mode::pass,
-            .id   = ((uint64_t)1 << collision_data_BITS)-1,
+            .type = (u64)collision_type::none,
+            .pass = (u64)pass_mode::pass,
+            .id   = ((u64)1 << collision_data_BITS)-1,
         },
         .rect = {},
         .has_result = true,
@@ -397,11 +397,11 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     fm_assert(min_pool_bbox_size(radius) <= params.bbox_size);
     // R-tree rects have integer corners and Search() counts a touching rect, so a cell grown by
     // floor(fuzz2 + radius) finds the same rects as one grown by fuzz2 + radius.
-    const auto grow = (int32_t)(fuzz2 + radius);
-    const auto div_size_i = (int32_t)params.div_size();
-    const auto min_pass = (uint64_t)params.min_pass;
+    const auto grow = (i32)(fuzz2 + radius);
+    const auto div_size_i = (i32)params.div_size();
+    const auto min_pass = (u64)params.min_pass;
     const auto div_size_f = (float)div_size_i;
-    const auto cells_per_chunk = (int32_t)params.div_count;
+    const auto cells_per_chunk = (i32)params.div_count;
 
     const auto from_ic = intra_coord{from};
     const auto from_shifted = Vector2(from_ic);
@@ -410,9 +410,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     const auto line = bresenham_line{from_px, from_px + (to - from)};
     const auto step_len = ray_len / (float)line.steps();
 
-    int32_t cell_x = from_ic.x() / div_size_i, cell_y = from_ic.y() / div_size_i;
-    int32_t chunk_off_x = 0, local_cell_x = cell_x;
-    int32_t chunk_off_y = 0, local_cell_y = cell_y;
+    i32 cell_x = from_ic.x() / div_size_i, cell_y = from_ic.y() / div_size_i;
+    i32 chunk_off_x = 0, local_cell_x = cell_x;
+    i32 chunk_off_y = 0, local_cell_y = cell_y;
 
     int step_x = dir.x() > 0 ? 1 : (dir.x() < 0 ? -1 : 0);
     int step_y = dir.y() > 0 ? 1 : (dir.y() < 0 ? -1 : 0);
@@ -437,7 +437,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             .tmin = 0,
             .radius = radius,
         };
-        auto chunk_count_max = (uint32_t)(abs(V.x()) / chunk_size<float>
+        auto chunk_count_max = (u32)(abs(V.x()) / chunk_size<float>
                                         + abs(V.y()) / chunk_size<float>) + 2u;
         arrayClear(diag.path);
         arrayClear(diag.queries);
@@ -445,7 +445,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         arrayReserve(diag.queries, 8u);
     }
 
-    Vector2i last_chunk_off { (int32_t)1<<30, (int32_t)1<<30 };
+    Vector2i last_chunk_off { (i32)1<<30, (i32)1<<30 };
     chunk* last_nb[9] = {};
     chunk* last_c = nullptr;
     Pass::Grid last_g{nullptr, nullptr};
@@ -453,7 +453,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     bool last_chunk_empty = true;
 
     float min_tmin = FLT_MAX;
-    int64_t best_key = INT64_MAX;
+    i64 best_key = INT64_MAX;
     Vector2i best_px;
     bool b = true;
     float t_entry = 0;
@@ -470,8 +470,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                 for (int i = 0; i < 3; i++)
                 {
                     chunk_coords_ co {
-                        (int16_t)(from.chunk().x + chunk_off_x + i - 1),
-                        (int16_t)(from.chunk().y + chunk_off_y + j - 1),
+                        (i16)(from.chunk().x + chunk_off_x + i - 1),
+                        (i16)(from.chunk().y + chunk_off_y + j - 1),
                         from.chunk3().z };
                     last_nb[j*3 + i] = w.at(co);
                 }
@@ -481,8 +481,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             if constexpr(EnableDiagnostics)
             {
                 chunk_coords_ ch_coord {
-                    (int16_t)(from.chunk().x + chunk_off_x),
-                    (int16_t)(from.chunk().y + chunk_off_y),
+                    (i16)(from.chunk().x + chunk_off_x),
+                    (i16)(from.chunk().y + chunk_off_y),
                     from.chunk3().z };
                 arrayAppend(diag.path, bbox{
                     point{ch_coord, intra_coord{chunk_size<Vector2i> / 2}},
@@ -504,7 +504,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             if (!last_chunk_empty)
             {
                 auto bit_idx = Pass::Grid::get_bitmask_index(
-                    (uint32_t)local_cell_x, (uint32_t)local_cell_y, (uint32_t)cells_per_chunk);
+                    (u32)local_cell_x, (u32)local_cell_y, (u32)cells_per_chunk);
                 bit = last_g.bit(bit_idx);
             }
         }
@@ -525,7 +525,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         if (!bit)
         {
             const auto query_size = Vector2i{div_size_i + 2*grow};
-            const auto query_min = Vector2i{cell_x, cell_y} * div_size_i - Vector2i{half_tile<int32_t> + grow};
+            const auto query_min = Vector2i{cell_x, cell_y} * div_size_i - Vector2i{half_tile<i32> + grow};
             const auto query_max = query_min + query_size;
             if constexpr(EnableDiagnostics)
                 arrayAppend(diag.queries, bbox{point{from.chunk3(), {}, {}} + (query_min + query_size/2), Vector2ui(query_size)});
@@ -537,10 +537,10 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                     auto* nb = last_nb[j*3 + i];
                     if (!nb)
                         continue;
-                    int32_t nb_off_x = chunk_off_x + i - 1;
-                    int32_t nb_off_y = chunk_off_y + j - 1;
+                    i32 nb_off_x = chunk_off_x + i - 1;
+                    i32 nb_off_y = chunk_off_y + j - 1;
 
-                    const auto nb_world = Vector2i{nb_off_x, nb_off_y} * chunk_size<int32_t>;
+                    const auto nb_world = Vector2i{nb_off_x, nb_off_y} * chunk_size<i32>;
                     const auto fmin = Vector2(query_min - nb_world), fmax = Vector2(query_max - nb_world);
 
                     if (!within_chunk_bounds(fmin, fmax))
@@ -548,10 +548,10 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
                     const auto origin = from_center - Vector2(nb_world);
 
-                    nb->rtree()->Search(fmin.data(), fmax.data(), [&, min_pass](uint64_t data, const Rect& r)
+                    nb->rtree()->Search(fmin.data(), fmax.data(), [&, min_pass](u64 data, const Rect& r)
                     {
                         auto x = std::bit_cast<collision_data>(data);
-                        fm_debug3_assert(x.type != (uint64_t)collision_type::none);
+                        fm_debug3_assert(x.type != (u64)collision_type::none);
                         if (x.id == self || x.pass >= min_pass)
                             return true;
                         // a rect owns the pixels in [min, max), as walking does
@@ -598,10 +598,10 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
         if (last_chunk_empty)
         {
-            int32_t nx = (step_x > 0) ? (cells_per_chunk - local_cell_x)
+            i32 nx = (step_x > 0) ? (cells_per_chunk - local_cell_x)
                        : (step_x < 0) ? (local_cell_x + 1)
                        : INT32_MAX;
-            int32_t ny = (step_y > 0) ? (cells_per_chunk - local_cell_y)
+            i32 ny = (step_y > 0) ? (cells_per_chunk - local_cell_y)
                        : (step_y < 0) ? (local_cell_y + 1)
                        : INT32_MAX;
 
@@ -610,9 +610,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
             if (t_x_chunk <= t_y_chunk)
             {
-                int32_t y_crossings = 0;
+                i32 y_crossings = 0;
                 if (step_y != 0 && t_max_y <= t_x_chunk)
-                    y_crossings = (int32_t)floor((t_x_chunk - t_max_y) / t_delta_y) + 1;
+                    y_crossings = (i32)floor((t_x_chunk - t_max_y) / t_delta_y) + 1;
                 if (y_crossings >= ny) y_crossings = ny - 1;
                 if (y_crossings < 0) y_crossings = 0;
 
@@ -629,9 +629,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             }
             else
             {
-                int32_t x_crossings = 0;
+                i32 x_crossings = 0;
                 if (step_x != 0 && t_max_x <= t_y_chunk)
-                    x_crossings = (int32_t)floor((t_y_chunk - t_max_x) / t_delta_x) + 1;
+                    x_crossings = (i32)floor((t_y_chunk - t_max_x) / t_delta_x) + 1;
                 if (x_crossings >= nx) x_crossings = nx - 1;
                 if (x_crossings < 0) x_crossings = 0;
 

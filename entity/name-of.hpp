@@ -13,11 +13,11 @@ static constexpr auto _fm_internal_type_name_of() // NOLINT(bugprone-reserved-id
 {
     using namespace floormat;
     using SVF = StringViewFlag;
-    constexpr auto my_strlen = [](const char* str) constexpr -> size_t {
+    constexpr auto my_strlen = [](const char* str) constexpr -> usize {
         const char* start = str;
         for (; *str; str++)
             ;
-        return (size_t)(str - start);
+        return (usize)(str - start);
     };
     constexpr auto strip_prefix = [](StringView& s, StringView pfx) constexpr {
         if (s.size() < pfx.size())

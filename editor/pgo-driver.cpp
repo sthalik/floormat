@@ -229,14 +229,14 @@ constexpr float pan_speed = tile_size_xy/4.f;
 // Walking all of a maze route at that rate would take minutes -- one leg is 65605 px. So it is
 // cut into segments and each gets a frame budget, which puts the camera in four places along the
 // route instead of crawling the first chunk of it. The overlay draws the whole route regardless.
-constexpr uint32_t pan_segments = 4, pan_segment_frames = 64;
+constexpr u32 pan_segments = 4, pan_segment_frames = 64;
 constexpr float pan_segment_px = (float)pan_segment_frames * pan_speed;
 // The same segment length, so a short pan stops the camera at the same four places.
-constexpr uint32_t short_pan_segment_frames = 4;
+constexpr u32 short_pan_segment_frames = 4;
 constexpr float short_pan_speed = pan_segment_px / (float)short_pan_segment_frames;
 
 constexpr auto short_hold_dt = Second/10;
-constexpr uint32_t short_dwell_frames = 1;
+constexpr u32 short_dwell_frames = 1;
 
 // Which waypoints of scene_raycast's circle one frame's batch of rays takes. `radar` takes the
 // batch adjacent and advances the whole wedge by its own size, so the beam sweeps exactly its own
@@ -245,7 +245,7 @@ constexpr uint32_t short_dwell_frames = 1;
 // sector per ray and takes the same offset inside each, which spreads the batch out but stops
 // reading as motion; there the per-frame advance is a stride that has to be coprime with the frame
 // count. Either casts every waypoint exactly once per radius.
-enum class ray_order : uint8_t { spokes, radar };
+enum class ray_order : u8 { spokes, radar };
 constexpr inline auto sweep_order = ray_order::radar;
 
 // Which offset inside a sector frame f takes, under `spokes`. Taking them in order advances every
@@ -254,9 +254,9 @@ constexpr inline auto sweep_order = ray_order::radar;
 // about four seconds, and still far enough that no frame repeats its neighbour's rays. Any stride
 // coprime with the frame count visits every offset exactly once, which is what keeps the sweep
 // exhaustive; the golden ratio does that too but spins the wheel faster than the eye follows.
-constexpr inline uint32_t sweep_sector_div = 8;
+constexpr inline u32 sweep_sector_div = 8;
 
-uint32_t frame_stride(uint32_t num_frames)
+u32 frame_stride(u32 num_frames)
 {
     auto s = num_frames / sweep_sector_div;
     while (s > 1 && std::gcd(s, num_frames) != 1)
@@ -274,12 +274,12 @@ Vector2i sprite_center_pixel(app& A, const object& e)
             fm_assert(hit && hit->id == e.id);
             return pixel;
         }
-    fm_abort("no clickable for object %zu", (size_t)e.id);
+    fm_abort("no clickable for object %zu", (usize)e.id);
 }
 
 // The k-th cell of a chunk walked in one of five orders. Each order visits every cell once, so an
 // atlas with up to TILE_COUNT variants never paints over itself.
-local_coords ground_pattern_cell(uint32_t pattern, uint32_t k)
+local_coords ground_pattern_cell(u32 pattern, u32 k)
 {
     constexpr int n = TILE_MAX_DIM;
     fm_assert(k < TILE_COUNT);
@@ -313,8 +313,8 @@ local_coords ground_pattern_cell(uint32_t pattern, uint32_t k)
     {
         constexpr int dx[] = { 1, 0, -1, 0 }, dy[] = { 0, 1, 0, -1 };
         int x = n/2 - 1, y = n/2 - 1;
-        for (uint32_t leg = 0; ; leg++)
-            for (uint32_t s = 0; s <= leg/2; s++)
+        for (u32 leg = 0; ; leg++)
+            for (u32 s = 0; s <= leg/2; s++)
             {
                 if (x >= 0 && y >= 0 && x < n && y < n && k-- == 0)
                     return { x, y };
@@ -344,7 +344,7 @@ void app::set_modifier_state(int mod, bool is_pressed)
     mods = is_pressed ? mods | mod : mods & ~mod;
 }
 
-void app::set_mouse_button_state(uint8_t button, bool is_pressed)
+void app::set_mouse_button_state(u8 button, bool is_pressed)
 {
     fm_assert(button != mouse_button_none);
     // do_mouse_up_down() compares for equality, so exactly one bit at a time.
@@ -375,7 +375,7 @@ void app::move_cursor_to(point pt)
     do_mouse_move(_driver->mods);
 }
 
-void app::scroll(int8_t offset)
+void app::scroll(i8 offset)
 {
     do_mouse_scroll(offset);
 }
@@ -394,7 +394,7 @@ void app::set_window_size(Vector2i size)
 task app::pan_along_path(ArrayView<const point> path)
 {
     fm_assert(!path.isEmpty());
-    const auto n = (uint32_t)path.size();
+    const auto n = (u32)path.size();
     const bool shorten = pgo_driver_use_short_scenes();
     const auto speed = shorten ? short_pan_speed : pan_speed;
     // A copy, unlike this function's own borrowed view. pgo::state is not scoped to the
@@ -432,7 +432,7 @@ task app::pan_along_path(ArrayView<const point> path)
         while (frames > 0 && i + 1 < n)
         {
             const auto d = path[i+1] - cur;
-            const auto steps = Math::max(1u, (uint32_t)(Vector2(d).length()/speed));
+            const auto steps = Math::max(1u, (u32)(Vector2(d).length()/speed));
             for (auto k = 1u; k <= steps && frames > 0; k++, frames--)
             {
                 center_camera_on(point::normalize_coords(cur, d * (int)k / (int)steps));
@@ -448,14 +448,14 @@ task app::pan_along_path(ArrayView<const point> path)
 
 // The press and the release straddle a frame, so something renders with the button held and a
 // handler that acts on one edge gets a frame to do it in before the other arrives.
-task app::click_at_cursor(uint8_t button)
+task app::click_at_cursor(u8 button)
 {
     set_mouse_button_state(button, true);
     co_yield {};
     set_mouse_button_state(button, false);
 }
 
-task app::click_at(point pt, uint8_t button)
+task app::click_at(point pt, u8 button)
 {
     move_cursor_to(pt);
     co_await click_at_cursor(button);
@@ -463,9 +463,9 @@ task app::click_at(point pt, uint8_t button)
 
 void app::release_all_input()
 {
-    for (uint32_t b = 1; b <= mouse_button_x2; b <<= 1)
+    for (u32 b = 1; b <= mouse_button_x2; b <<= 1)
         if (_driver->held_buttons & b)
-            set_mouse_button_state((uint8_t)b, false);
+            set_mouse_button_state((u8)b, false);
     clear_keys();
     _driver->mods = 0;
     // A press that placed something returns early without reaching on_release(), so the drag
@@ -480,7 +480,7 @@ point app::cursor_point()
     return *pt;
 }
 
-task app::press_and_hold(point pt, uint8_t button, uint32_t num_frames)
+task app::press_and_hold(point pt, u8 button, u32 num_frames)
 {
     move_cursor_to(pt);
     set_mouse_button_state(button, true);
@@ -488,7 +488,7 @@ task app::press_and_hold(point pt, uint8_t button, uint32_t num_frames)
     set_mouse_button_state(button, false);
 }
 
-task app::drag_along(point from, Vector2i step, uint32_t count, uint8_t button)
+task app::drag_along(point from, Vector2i step, u32 count, u8 button)
 {
     fm_assert(count > 0);
     auto pt = from;
@@ -535,7 +535,7 @@ task app::scene_modes()
 
     // Ctrl+scroll is the only path to a Z level; without it do_mouse_scroll() returns early,
     // and shift instead of ctrl clamps the floor at ground level.
-    constexpr uint32_t z_dwell_frames = 30;
+    constexpr u32 z_dwell_frames = 30;
     const auto z_dwell = pgo_driver_use_short_scenes() ? short_dwell_frames : z_dwell_frames;
     fm_assert_equal(0, (int)_z_level);
     set_modifier_state(kmod_ctrl, true);
@@ -571,7 +571,7 @@ task app::scene_modes()
     co_yield {};
 }
 
-task app::inject_key_press(key k, uint32_t held_frames)
+task app::inject_key_press(key k, u32 held_frames)
 {
     const auto [code, mods] = keycode_for_key(k);
     M->inject_key(code, mods, true);
@@ -592,10 +592,10 @@ task app::inject_click(Vector2i pos, mouse_button button)
 
 task app::scene_input_events()
 {
-    const auto press = [&](key k, uint32_t held_frames) { return inject_key_press(k, held_frames); };
+    const auto press = [&](key k, u32 held_frames) { return inject_key_press(k, held_frames); };
     // A camera pan or a mode switch is one frame of change, which at 60 Hz nobody watching can
     // see. Everything here dwells afterwards.
-    constexpr uint32_t press_frames = 12, dwell_frames = 8;
+    constexpr u32 press_frames = 12, dwell_frames = 8;
     const auto shorten = pgo_driver_use_short_scenes();
     const auto pressed = shorten ? short_dwell_frames : press_frames;
     const auto dwell = shorten ? short_dwell_frames : dwell_frames;
@@ -675,9 +675,9 @@ task app::scene_popup_target()
 
     // Covers every inspect_object_subtype() branch, and fills max_inspectors exactly
     constexpr chunk_coords_ ch{0, 0, 0};
-    const auto place = [&](StringView name, uint8_t x) {
+    const auto place = [&](StringView name, u8 x) {
         auto proto = loader.scenery(name);
-        return w.make_scenery(w.make_id(), {ch, local_coords{x, uint8_t{1}}}, move(proto))->id;
+        return w.make_scenery(w.make_id(), {ch, local_coords{x, u8{1}}}, move(proto))->id;
     };
     const object_id ids[] = {
         C->id,
@@ -690,10 +690,10 @@ task app::scene_popup_target()
         place("shelf1"_s, 7),
     };
 
-    constexpr uint32_t stagger_frames = 15, hold_frames = 90, short_hold_frames = 1;
+    constexpr u32 stagger_frames = 15, hold_frames = 90, short_hold_frames = 1;
     const bool shorten = pgo_driver_use_short_scenes();
     const auto dpi = M->dpi_scale();
-    const auto place_window = [&](uint32_t i) {
+    const auto place_window = [&](u32 i) {
         char id_buf[10], name[sizeof id_buf + 3];
         entity_inspector_name(id_buf, ids[i]);
         std::snprintf(name, sizeof name, "###%s", id_buf);
@@ -743,7 +743,7 @@ task app::scene_door()
     fm_assert(door.interactive);
 
     // Long enough on either side of the click to see the door shut, swing, and stand open.
-    constexpr uint32_t dwell_frames = 45;
+    constexpr u32 dwell_frames = 45;
     const auto dwell = pgo_driver_use_short_scenes() ? short_dwell_frames : dwell_frames;
 
     center_camera_on(obj->position());
@@ -758,7 +758,7 @@ task app::scene_door()
     fm_assert(door.active);
     fm_assert(frame0 == 0 ? door.frame > frame0 : door.frame < frame0);
 
-    const auto budget = Second * (uint64_t)nframes * 4 / door.atlas->info().fps;
+    const auto budget = Second * (u64)nframes * 4 / door.atlas->info().fps;
     for (const auto dt0 = _driver->scene_dt; door.active && _driver->scene_dt - dt0 < budget; )
         co_yield {};
 
@@ -785,14 +785,14 @@ task app::scene_ground_editor()
         c0[k].ground() = tile_image_proto{};
     c0.mark_ground_modified();
 
-    uint32_t n = 0, a = 0;
+    u32 n = 0, a = 0;
     const auto shorten = pgo_driver_use_short_scenes();
 
     for (const auto& [name, cell] : ed->items())
     {
         fm_assert(cell.atlas);
 
-        const auto variants = (uint32_t)cell.atlas->num_tiles();
+        const auto variants = (u32)cell.atlas->num_tiles();
         for (auto v = 0u; v < variants; v++)
         {
             ed->select_tile(cell.atlas, v);
@@ -802,7 +802,7 @@ task app::scene_ground_editor()
             if (shorten && v > 0)
                 continue;
 
-            const point pt{{chunks[a % array_size(chunks)], ground_pattern_cell(a, v % (uint32_t)TILE_COUNT)}, {}};
+            const point pt{{chunks[a % array_size(chunks)], ground_pattern_cell(a, v % (u32)TILE_COUNT)}, {}};
             move_cursor_to(pt);
             fm_assert_equal(pt, cursor_point());
             // click_at() suspends between press and release, so there is no separate pause.
@@ -811,7 +811,7 @@ task app::scene_ground_editor()
             fm_assert(c);
             auto t = (*c)[pt.local()];
             fm_assert(t.ground().atlas == cell.atlas);
-            fm_assert_equal(v, (uint32_t)t.ground().variant);
+            fm_assert_equal(v, (u32)t.ground().variant);
             n++;
         }
 
@@ -853,7 +853,7 @@ task app::scene_drag_paint()
         { rotation::W, {0, 1} },
     };
 
-    constexpr uint32_t count = 8, short_count = 3;
+    constexpr u32 count = 8, short_count = 3;
     const bool shorten = pgo_driver_use_short_scenes();
     const auto n = shorten ? short_count : count;
     auto& w = M->world();
@@ -898,7 +898,7 @@ task app::scene_drag_paint()
     // survives delegation. A sub-task's count must reach the runner unscaled: not collapsed
     // to one frame, and not multiplied by the outer loop.
     {
-        constexpr uint32_t held = 30, short_held = 2;
+        constexpr u32 held = 30, short_held = 2;
         const auto hold = shorten ? short_held : held;
         const point pt{{{0, 0, 0}, {4, 4}}, {}};
         const auto before = _driver->frames_run;
@@ -960,11 +960,11 @@ task app::scene_clickables()
     center_camera_on(ensure_player_character(w)->position());
     populate_scene_clickables();
 
-    uint32_t calls = 0, chunks = 0;
+    u32 calls = 0, chunks = 0;
     for (const auto ch : M->get_draw_bounds(_chunk_bounds_array, {}))
         if (const auto* c = w.at(ch))
         {
-            calls += (uint32_t)c->objects().size();
+            calls += (u32)c->objects().size();
             chunks++;
         }
     fm_debug("clickables: %u add_clickable calls a frame over %u chunks", calls, chunks);
@@ -1019,7 +1019,7 @@ task app::scene_overlays()
     do_set_mode(editor_mode::none);
     auto& w = M->world();
     constexpr chunk_coords_ ch0{0, 0, 0}, ch1{0, 0, 1};
-    const auto place = [&](StringView name, chunk_coords_ ch, uint8_t x, uint8_t y, Vector2b offset = {}) {
+    const auto place = [&](StringView name, chunk_coords_ ch, u8 x, u8 y, Vector2b offset = {}) {
         auto proto = loader.scenery(name);
         proto.offset = offset;
         w.make_scenery(w.make_id(), {ch, local_coords{x, y}}, move(proto));
@@ -1085,12 +1085,12 @@ task app::scene_walk()
     // The generator puts the player on the corridor's north end, on the first passable column.
     // Baffles alternate sides down the corridor, so the route weaves between the columns either
     // side of them rather than running straight; the goal column is clear of the last one.
-    constexpr uint8_t col = pgo::walk_corridor_tile + 1;
+    constexpr u8 col = pgo::walk_corridor_tile + 1;
     // The corridor is the same length and the search is the same search; this only decides how
     // many frames the critter spends covering it.
     constexpr float speed_mult = 3, short_speed_mult = 6;
     const auto mult = pgo_driver_use_short_scenes() ? short_speed_mult : speed_mult;
-    constexpr uint32_t poll_frames = 15, max_polls = 400;
+    constexpr u32 poll_frames = 15, max_polls = 400;
     populate_scene_benchmark_walkable(pgo::walk_corridor_width);
     auto& w = M->world();
     auto C = ensure_player_character(w);
@@ -1120,7 +1120,7 @@ task app::scene_walk()
     C->speed *= mult;
     C->script.do_reassign(critter_script::make_walk_script(move(res)), move(C));
 
-    const auto n = (uint32_t)D.route.size();
+    const auto n = (u32)D.route.size();
     const auto goal = D.route[n-1];
     fm_assert_equal(to, goal);
     float route_len = 0;
@@ -1130,7 +1130,7 @@ task app::scene_walk()
     // The script moves the critter from update() and reports no completion, so watch for the
     // position going quiet instead.
     auto last = from;
-    uint32_t polls = 0;
+    u32 polls = 0;
     for (; polls < max_polls; polls++)
     {
         co_yield {poll_frames};
@@ -1151,7 +1151,7 @@ task app::scene_walk()
     fm_assert_equal(goal, last);
     // route against straight is what says the baffles are being walked around, not through.
     fm_debug("walk: %ux speed, %u waypoints, route %.0f px over %.0f straight, %u polls",
-             (uint32_t)mult, n, (double)route_len,
+             (u32)mult, n, (double)route_len,
              (double)point::distance(from, to), polls);
 }
 
@@ -1159,7 +1159,7 @@ task app::scene_walk()
 // this path slides in update_movement_1().
 task app::scene_slide()
 {
-    constexpr uint32_t poll_frames = 10, max_polls = 200;
+    constexpr u32 poll_frames = 10, max_polls = 200;
 
     populate_scene_slide(true);
     auto& w = M->world();
@@ -1173,7 +1173,7 @@ task app::scene_slide()
     set_key_state(key_left, true);
 
     auto last = from;
-    uint32_t polls = 0;
+    u32 polls = 0;
     for (; polls < max_polls; polls++)
     {
         co_yield {poll_frames};
@@ -1205,7 +1205,7 @@ task app::scene_maze1()
     // A tour of the four corner cells rather than one diagonal. Each leg is a search in its own
     // right, and the two that run along an edge have the shortest straight line against the same
     // snake corridor, so Search::octile tells A* the least about those.
-    constexpr uint32_t num_legs = 4;
+    constexpr u32 num_legs = 4;
 
     populate_scene_maze1();
     auto& w = M->world();
@@ -1247,13 +1247,13 @@ task app::scene_raycast()
     // ray mostly gets through while a full-chunk one mostly stops. Those are different paths
     // through the DDA and one radius only ever shows one of them. They live in pgo-scenes.hpp
     // because the pin field is sized against the longest of them from another file.
-    constexpr uint32_t num_sampled = 64;
+    constexpr u32 num_sampled = 64;
     // Driving the raycast test instead cost a frame per ray, and the profile came out mostly
     // swap and ImGui. The scene runs raycast_with_diag() itself, so the batch size is its own
     // choice rather than the test's queue depth, and driver_draw_overlay() draws all of them.
-    constexpr uint32_t rays_per_frame = pgo::max_rays_per_frame;
-    constexpr uint32_t short_waypoint_stride = 64;
-    const uint32_t wp_stride = pgo_driver_use_short_scenes() ? short_waypoint_stride : 1;
+    constexpr u32 rays_per_frame = pgo::max_rays_per_frame;
+    constexpr u32 short_waypoint_stride = 64;
+    const u32 wp_stride = pgo_driver_use_short_scenes() ? short_waypoint_stride : 1;
 
     populate_scene_raycast_pins();
     auto& w = M->world();
@@ -1270,12 +1270,12 @@ task app::scene_raycast()
     // finds 99.8% of what 0.125 px does for a sixth of the trig.
     constexpr float waypoint_step_px = .15f;
     constexpr auto tau = 2.f * Math::Constants<float>::pi();
-    const auto num_steps = [](int ray_len) { return (uint32_t)((float)(8*ray_len) / waypoint_step_px); };
+    const auto num_steps = [](int ray_len) { return (u32)((float)(8*ray_len) / waypoint_step_px); };
     const auto build_waypoints = [&](int ray_len) {
         const auto n = num_steps(ray_len);
         const auto step = tau / (float)n;
         Array<Vector2i> out;
-        arrayReserve(out, 8*(uint32_t)ray_len);
+        arrayReserve(out, 8*(u32)ray_len);
         for (auto i = 0u; i < n; i++)
         {
             const auto theta = Rad{(float)i * step};
@@ -1289,9 +1289,9 @@ task app::scene_raycast()
         return out;
     };
 
-    uint32_t num_pins = 0;
+    u32 num_pins = 0;
     for (auto& c : w.chunks())
-        num_pins += (uint32_t)c.objects().size();
+        num_pins += (u32)c.objects().size();
     num_pins--; // the player
 
     // A cursor is allowed past the window edge -- the bounds test lives in on_mouse_up_down(),
@@ -1311,10 +1311,10 @@ task app::scene_raycast()
     set_cursor_at(point::normalize_coords(from, Vector2i{pgo::raycast_radii[0], 0}));
     co_yield {};
 
-    uint32_t num_rays = 0, total_frames = 0;
+    u32 num_rays = 0, total_frames = 0;
     const auto frame0 = w.frame_no();
 
-    const auto cast = [&](uint32_t k, Vector2i offset) {
+    const auto cast = [&](u32 k, Vector2i offset) {
         const auto to = point::normalize_coords(from, offset);
         // Nothing reads the cursor here any more, but the sweep is what the editor's own
         // pixel_to_point() path gets exercised by, and it keeps the pointer on the ray.
@@ -1328,12 +1328,12 @@ task app::scene_raycast()
     for (const auto ray_len : pgo::raycast_radii)
     {
         const auto wp = build_waypoints(ray_len);
-        const auto n = (uint32_t)wp.size();
+        const auto n = (u32)wp.size();
         // raycast_test keeps its result in an anonymous namespace, so a sample run here is the
         // only way to know the field obstructs at all. Both extremes are wrong: too few hits means
         // the pins are too sparse to be in the way, too many that they are a wall and no ray gets
         // walked.
-        uint32_t sampled_hits = 0;
+        u32 sampled_hits = 0;
         float mean_dist = 0;
         for (auto i = 0u; i < num_sampled; i++)
         {
@@ -1359,7 +1359,7 @@ task app::scene_raycast()
         for (auto f = 0u; f < num_frames; f++)
         {
             const auto off = f*stride % num_frames;
-            uint32_t k = 0;
+            u32 k = 0;
             for (auto j = 0u; j < rays_per_frame; j++)
             {
                 const auto idx = sweep_order == ray_order::spokes ? j*num_frames + off
@@ -1381,14 +1381,14 @@ task app::scene_raycast()
                  (double)mean_dist);
     }
 
-    constexpr uint32_t spin_frames = 155, short_spin_frames = 3;
+    constexpr u32 spin_frames = 155, short_spin_frames = 3;
     const auto spin = pgo_driver_use_short_scenes() ? short_spin_frames : spin_frames;
     constexpr int spin_r1 = 5*tile_size_xy/4;
     const auto spin_r0 = pgo::raycast_radii[array_size(pgo::raycast_radii)-1];
     const auto spin_rays0 = num_rays;
     // Where the radar sweep's last revolution ended.
     float theta = 0;
-    uint32_t revs = 0, skipped = 0;
+    u32 revs = 0, skipped = 0;
     // (0, 0) is never on the circle, so the first ray is kept.
     Vector2i prev;
     for (auto f = 0u; f < spin; f++)
@@ -1396,7 +1396,7 @@ task app::scene_raycast()
         const auto t = (float)(f+1) / (float)spin;
         const auto ray_len = (int)Math::round((float)spin_r0 - (float)(spin_r0 - spin_r1) * t*t);
         const auto step = tau / (float)num_steps(ray_len);
-        uint32_t k = 0;
+        u32 k = 0;
         while (k < rays_per_frame)
         {
             const auto pt = Vector2i(Vector2{Math::cos(Rad{theta}), Math::sin(Rad{theta})} * (float)ray_len);
@@ -1424,10 +1424,10 @@ task app::scene_raycast()
              num_rays - spin_rays0, spin_r0, spin_r1, spin, revs);
 
     D.num_rays = 0;
-    fm_assert_equal((uint64_t)total_frames, w.frame_no() - frame0);
+    fm_assert_equal((u64)total_frames, w.frame_no() - frame0);
 
     fm_debug("raycast: %u rays over %u radii in %s batches of %u, %u pins",
-             num_rays, (uint32_t)array_size(pgo::raycast_radii),
+             num_rays, (u32)array_size(pgo::raycast_radii),
              sweep_order == ray_order::spokes ? "spoke" : "radar", rays_per_frame, num_pins);
     co_yield {};
 }
@@ -1467,13 +1467,13 @@ task app::scene_maze2()
 task app::scene_maze3()
 {
     using mazes::kind;
-    constexpr auto n = (uint32_t)kind::COUNT;
+    constexpr auto n = (u32)kind::COUNT;
     auto& w = M->world();
     auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass});
     mazes::route routes[n];
     for (auto k = 0u; k < n; k++)
     {
-        const auto x = (int16_t)(k*(uint32_t)(mazes::map_chunks + 1));
+        const auto x = (i16)(k*(u32)(mazes::map_chunks + 1));
         routes[k] = mazes::build(w, kind(k), chunk_coords_{x, 0, 0}, pool);
     }
     auto C = ensure_player_character(w);
@@ -1501,25 +1501,25 @@ task app::scene_maze3()
 task app::scene_maze_exit()
 {
 #ifdef FM_NO_DEBUG3
-    constexpr uint32_t count = 54;
+    constexpr u32 count = 54;
 #else
-    constexpr uint32_t count = 9;
+    constexpr u32 count = 9;
 #endif
     // The first four exit W, E, W, N, every side the first nine use. One walk covers walking.
-    constexpr uint32_t short_count = 4, short_walks = 1;
+    constexpr u32 short_count = 4, short_walks = 1;
     const bool shorten = pgo_driver_use_short_scenes();
     const auto n = shorten ? short_count : count, walks = shorten ? short_walks : count;
-    constexpr uint64_t seed0 = 1;
+    constexpr u64 seed0 = 1;
     // The walk animation advances a frame per pixel and holds two steps in 60 frames, so from 30 a
     // step shows in two poses or runs backwards. The scene tests the search, and a faster walk
     // fits more mazes.
     constexpr float speed = 50;
     // At this speed the critter moves every frame; standing still this long means the script
     // ended without reporting, as when maybe_stop_auto_movement() cuts it short.
-    constexpr uint32_t stall_frames = 30;
+    constexpr u32 stall_frames = 30;
     constexpr auto hold_dt = Second*3/2;
     const auto hold = pgo_driver_use_short_scenes() ? short_hold_dt : hold_dt;
-    constexpr uint8_t size = 24;
+    constexpr u8 size = 24;
     constexpr auto bbox = Vector2ui{size};
     auto& w = M->world();
     auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, size, pass_mode::pass});
@@ -1565,7 +1565,7 @@ task app::scene_maze_exit()
         C->script.do_reassign(critter_script::make_walk_script(move(res)), C);
 
         auto last = C->position();
-        for (uint32_t still = 0; C->last_walk == critter::walk_result::none; )
+        for (u32 still = 0; C->last_walk == critter::walk_result::none; )
         {
             co_yield {};
             const auto pos = C->position();
@@ -1665,7 +1665,7 @@ task app::scene_cover()
     // ensure_octant() on whatever is selected before it background-fills anything else. Eight of
     // the 32 are aligned and sweep the pass bitmap with a recurrence; the other 24 are 16384
     // raycasts each, which is the bulk of what this scene costs.
-    uint32_t built = 0;
+    u32 built = 0;
     for (auto k = 0u; k < Cover::octant_count; k++)
     {
         const auto t0 = _driver->scene_dt;
@@ -1678,10 +1678,10 @@ task app::scene_cover()
     }
     // Every octant was selected once and each selection is ensured on the next frame, so a gap
     // here means a fill silently failed rather than that the scene ran short.
-    fm_assert_equal((uint32_t)-1, built);
+    fm_assert_equal((u32)-1, built);
 
     fm_debug("cover: %u octants at %u ms each, all built", Cover::octant_count,
-             (uint32_t)Time::to_milliseconds(dt));
+             (u32)Time::to_milliseconds(dt));
 
     // Left alive, cover_test keeps calling fill_next_unfilled() every frame of whatever scene
     // comes next -- tests_post_update() is gated on current_test alone, not the editor mode.
@@ -1697,7 +1697,7 @@ task app::scene_lightmap()
     // of them rebuilds the occlusion mesh and runs all 48 lights of the block.
     //
     // Each frame costs 2.4-4.5 s on CI's llvmpipe, so the count is kept low.
-    constexpr uint32_t num_tested = 9, short_num_tested = 1, frames_per_light = 8, short_frames_per_light = 1;
+    constexpr u32 num_tested = 9, short_num_tested = 1, frames_per_light = 8, short_frames_per_light = 1;
     const bool shorten = pgo_driver_use_short_scenes();
     const auto tested = shorten ? short_num_tested : num_tested;
     const auto light_frames = shorten ? short_frames_per_light : frames_per_light;
@@ -1721,11 +1721,11 @@ task app::scene_lightmap()
         {
             const auto ch = pt.chunk3();
             const auto ns = M->lightmap_shader().iter_bounds();
-            uint32_t walls = 0, boxes = 0, lights = 0, chunks = 0;
+            u32 walls = 0, boxes = 0, lights = 0, chunks = 0;
             for (int j = ch.y - ns; j < ch.y + ns; j++)
                 for (int i = ch.x - ns; i < ch.x + ns; i++)
                 {
-                    auto* cʹ = w.at(chunk_coords_{(int16_t)i, (int16_t)j, ch.z});
+                    auto* cʹ = w.at(chunk_coords_{(i16)i, (i16)j, ch.z});
                     if (!cʹ)
                         continue;
                     chunks++;
@@ -1762,16 +1762,16 @@ task app::scene_lightmap()
         {
             auto img = M->lightmap_shader().accum_texture().image(0, {PixelFormat::RGBA8Unorm});
             const auto data = img.data();
-            uint32_t dark = 0, sat = 0; uint64_t sum = 0;
+            u32 dark = 0, sat = 0; u64 sum = 0;
             for (auto i = 0uz; i + 3 < data.size(); i += 4)
             {
-                const uint32_t v = Math::max({(uint32_t)(uint8_t)data[i], (uint32_t)(uint8_t)data[i+1],
-                                              (uint32_t)(uint8_t)data[i+2]});
+                const u32 v = Math::max({(u32)(u8)data[i], (u32)(u8)data[i+1],
+                                              (u32)(u8)data[i+2]});
                 sum += v;
                 dark += v < 16;
                 sat += v >= 250;
             }
-            const auto total = (uint32_t)(data.size()/4), medium = total - dark - sat;
+            const auto total = (u32)(data.size()/4), medium = total - dark - sat;
             const auto mean = (double)sum/total;
             const auto dark_pct = (double)dark*100/total, medium_pct = (double)medium*100/total,
                        sat_pct = (double)sat*100/total;
@@ -1803,8 +1803,8 @@ task app::scene_grids()
     // with the pin count and has nothing to do with the grids. maybe_mark_stale_all() is not
     // frame-gated (src/grid-pass.cpp:455), so a second sample in the same frame still sees the new
     // pins as stale and rebuilds for real.
-    constexpr uint32_t pins_per_step = 16, steps_per_frame = 8, max_pins = 1u << 14;
-    constexpr uint32_t short_steps_per_frame = 128;
+    constexpr u32 pins_per_step = 16, steps_per_frame = 8, max_pins = 1u << 14;
+    constexpr u32 short_steps_per_frame = 128;
     // Stop once the bitmap is this full. Past it a new pin only takes cells an earlier one had
     // already taken, while a build still walks every object in the chunk. Read off the (8,8)
     // grid, which is the one the grid test draws.
@@ -1812,7 +1812,7 @@ task app::scene_grids()
     // Cover's 8 aligned octants sweep the pass bitmap with a recurrence and are nearly free. The
     // other 24 raycast every cell -- 16384 rays each at cover_test's div_size of 8. Filling all
     // 32 twice would cost more than the rest of the driver, so the expensive half is sampled.
-    constexpr uint32_t cover_octant_budget = 12, short_cover_octant_budget = 2;
+    constexpr u32 cover_octant_budget = 12, short_cover_octant_budget = 2;
     const bool shorten = pgo_driver_use_short_scenes();
     const auto steps = shorten ? short_steps_per_frame : steps_per_frame;
     const auto octant_budget = shorten ? short_cover_octant_budget : cover_octant_budget;
@@ -1840,7 +1840,7 @@ task app::scene_grids()
     const auto fill_ratio = [](Pass::Grid g)
     {
         const auto n = g.div_count() * g.div_count();
-        uint32_t blocked = 0;
+        u32 blocked = 0;
         for (auto k = 0u; k < n; k++)
             blocked += !g.bit(k);
         return (float)blocked / (float)n;
@@ -1872,7 +1872,7 @@ task app::scene_grids()
     }
 
     tests().switch_to(floormat::tests::Test::grid);
-    uint32_t num_pins = 0, num_builds = 0;
+    u32 num_pins = 0, num_builds = 0;
     float fill = 0;
     while (fill < fill_target && num_pins < max_pins)
     {
@@ -1928,7 +1928,7 @@ task app::scene_grids()
     const auto idle = pgo_driver_use_short_scenes() ? short_hold_dt : idle_dt;
     const auto idle_t0 = _driver->scene_dt;
     const auto wall_t0 = Time::now();
-    uint32_t idle_frames = 0;
+    u32 idle_frames = 0;
     do
     {
         co_yield {};
@@ -1955,7 +1955,7 @@ void app::driver_draw_overlay()
     {
         const auto route_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0.25f, 1}),
                    goal_color  = ImGui::ColorConvertFloat4ToU32({0, 0,   1.f, 1});
-        const auto n = (uint32_t)D.route.size();
+        const auto n = (u32)D.route.size();
         auto prev = point_to_pixel(D.route.front());
         draw.AddCircle(ImVec2(prev), 9, route_color, 0, 3);
         for (auto i = 1u; i < n; i++)
@@ -2020,7 +2020,7 @@ void app::driver_tick(Ns dt)
         for (auto name : StringView{M->settings().driver_scenes}.splitWithoutEmptyParts(','))
         {
             name = name.trimmed();
-            uint32_t i = 0;
+            u32 i = 0;
             while (i < Scenes.size() && StringView{Scenes[i].name} != name)
                 i++;
             fm_assert(i < Scenes.size()); // name not found

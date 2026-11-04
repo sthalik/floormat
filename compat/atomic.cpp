@@ -35,11 +35,11 @@ namespace {
 // i386 SysV only aligns 64-bit integers to 4 bytes. Tell the compiler the
 // operand is naturally aligned so that it inlines cmpxchg8b instead of
 // calling libatomic. Callers must keep 64-bit atomics 8-byte aligned.
-typedef int64_t aligned_int64_t __attribute__((aligned(8)));
-typedef uint64_t aligned_uint64_t __attribute__((aligned(8)));
+typedef i64 aligned_int64_t __attribute__((aligned(8)));
+typedef u64 aligned_uint64_t __attribute__((aligned(8)));
 template<typename T> struct aligned_ { using type = T; };
-template<> struct aligned_<int64_t> { using type = aligned_int64_t; };
-template<> struct aligned_<uint64_t> { using type = aligned_uint64_t; };
+template<> struct aligned_<i64> { using type = aligned_int64_t; };
+template<> struct aligned_<u64> { using type = aligned_uint64_t; };
 template<typename T> using A = typename aligned_<T>::type;
 
 template<typename T> [[fm_always_inline]] inline volatile A<T>* al(volatile T* p) noexcept { return (volatile A<T>*)p; }
@@ -60,7 +60,7 @@ void compiler_barrier() noexcept
 #endif
 
 // Unsuffixed Interlocked intrinsics are full barriers on every target.
-template<size_t N> struct ops;
+template<usize N> struct ops;
 
 template<> struct ops<1>
 {

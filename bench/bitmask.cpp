@@ -35,10 +35,10 @@ void Bitmask_Width(benchmark::State& state)
     const auto w = (int)state.range(0), h = img.size().y();
     fm_assert(w <= img.size().x());
 
-    Array<char> buf{NoInit, (size_t)w * (size_t)h * img.pixelSize()};
-    fm_assert(((uintptr_t)buf.data() & 15) == 0);
+    Array<char> buf{NoInit, (usize)w * (usize)h * img.pixelSize()};
+    fm_assert(((uptr)buf.data() & 15) == 0);
     MutableImageView2D view{img.format(), {w, h}, buf};
-    Utility::copy(img.pixels().prefix({(size_t)h, (size_t)w, img.pixelSize()}), view.pixels());
+    Utility::copy(img.pixels().prefix({(usize)h, (usize)w, img.pixelSize()}), view.pixels());
     run(state, view);
 }
 

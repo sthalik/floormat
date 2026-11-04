@@ -164,7 +164,7 @@ void adl_serializer<anim_scale>::from_json(const json& j, anim_scale& val)
     {
         // Read signed first: nlohmann wraps a negative JSON number into a huge
         // unsigned that would slip past the width_or_height > 0 check.
-        const int64_t v = j.at(1);
+        const i64 v = j.at(1);
         fm_soft_assert(v > 0 && v <= 0xffffffffLL);
         val = anim_scale::fixed{(unsigned)v, is_width};
     }

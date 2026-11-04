@@ -27,9 +27,9 @@ constexpr auto origin = point{{0, 0, 0}, {0, 0}, {0, 0}};
 
 constexpr Vector2i dir_vecs[] = { {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1} };
 
-Vector2i vec_of(rotation r) { return dir_vecs[(uint8_t)r]; }
-bool is_diagonal(rotation r) { return (uint8_t)r & 1; }
-rotation turned(rotation r, int32_t eighths) { return rotation((uint8_t(r) + 8 + eighths) % 8); }
+Vector2i vec_of(rotation r) { return dir_vecs[(u8)r]; }
+bool is_diagonal(rotation r) { return (u8)r & 1; }
+rotation turned(rotation r, i32 eighths) { return rotation((u8(r) + 8 + eighths) % 8); }
 
 rotation rotation_of(Vector2i d)
 {
@@ -40,12 +40,12 @@ rotation rotation_of(Vector2i d)
 }
 
 // rotation_to_similar(r)[k] in src/critter.cpp, for a diagonal r and k of 1 or 2
-rotation alternative(rotation r, uint32_t k) { return turned(r, k == 1 ? -1 : 1); }
+rotation alternative(rotation r, u32 k) { return turned(r, k == 1 ? -1 : 1); }
 
-enum class entry : uint8_t { update_movement, move_toward_dest, move_toward_line, COUNT };
-enum class end_reason : uint8_t { below_frame, turn_refused, time, arrived, blocked, at_end, n_zero, COUNT };
+enum class entry : u8 { update_movement, move_toward_dest, move_toward_line, COUNT };
+enum class end_reason : u8 { below_frame, turn_refused, time, arrived, blocked, at_end, n_zero, COUNT };
 
-enum : uint8_t
+enum : u8
 {
     ev_turn = 1 << 0, ev_step = 1 << 1, ev_slide1 = 1 << 2, ev_slide2 = 1 << 3,
     ev_slide_failed = 1 << 4, ev_crossed = 1 << 5, ev_COUNT = 1 << 6,
@@ -61,10 +61,10 @@ struct walker_state
     rotation r;
     Vector2b bbox_offset;
     Vector2ub bbox_size;
-    uint32_t delta;
-    uint8_t moves;
-    uint16_t frame;
-    uint32_t anim_progress;
+    u32 delta;
+    u8 moves;
+    u16 frame;
+    u32 anim_progress;
 
     bool operator==(const walker_state&) const = default;
 };
@@ -78,10 +78,10 @@ walker_state state_of(const critter& C)
 // in 1/anim_speed_unit px. This is step_length() in src/critter.cpp with a double square root in place
 // of isqrt(). The root's argument stays under 2^34, where truncating the correctly rounded root gives
 // the exact floor that isqrt() returns.
-uint32_t step_length(uint32_t minor, uint32_t major)
+u32 step_length(u32 minor, u32 major)
 {
-    const auto q = uint64_t{minor} * anim_speed_unit / major;
-    return uint32_t(std::sqrt(double(uint64_t{anim_speed_unit} * anim_speed_unit + q * q)));
+    const auto q = u64{minor} * anim_speed_unit / major;
+    return u32(std::sqrt(double(u64{anim_speed_unit} * anim_speed_unit + q * q)));
 }
 
 walker_state facing(walker_state s, rotation new_r)
@@ -94,15 +94,15 @@ walker_state facing(walker_state s, rotation new_r)
 
 struct walk_outcome
 {
-    int32_t stop_after = -1;
-    uint32_t steps = 0, slides = 0;
-    uint8_t first_slide = 0;
+    i32 stop_after = -1;
+    u32 steps = 0, slides = 0;
+    u8 first_slide = 0;
     bool resumed = false;
 
     void blocked()
     {
         if (stop_after < 0)
-            stop_after = (int32_t)steps;
+            stop_after = (i32)steps;
     }
 };
 
@@ -111,7 +111,7 @@ struct expected_call
     walker_state s;
     Ns dt;
     critter::move_result res;
-    uint8_t events;
+    u8 events;
     end_reason end;
     walk_outcome o;
 };
@@ -133,19 +133,19 @@ struct model
     world& w;
     skip_self pred;
     Ns frame, diag;
-    uint64_t anim_speed;
-    uint32_t nframes;
+    u64 anim_speed;
+    u32 nframes;
 
     Ns cost(rotation r) const { return is_diagonal(r) ? diag : frame; }
 
     // Advances s.frame and s.anim_progress by one step len / anim_speed_unit px long, scaled by
     // anim_speed and rounded down. advance_anim_frames() in src/critter.cpp advances a batch of steps
     // at once and rounds each step the same way, so one step at a time reaches the same values.
-    void animate(walker_state& s, uint32_t len) const
+    void animate(walker_state& s, u32 len) const
     {
         const auto total = s.anim_progress + anim_speed * len / anim_speed_unit;
-        s.frame = uint16_t((s.frame + total / anim_speed_unit) % nframes);
-        s.anim_progress = uint32_t(total % anim_speed_unit);
+        s.frame = u16((s.frame + total / anim_speed_unit) % nframes);
+        s.anim_progress = u32(total % anim_speed_unit);
     }
 
     Range2D box_at(point p, chunk_coords_ ch, Vector2b offset, Vector2ub size) const
@@ -175,7 +175,7 @@ struct model
     {
         const auto ch = s.pos.chunk3();
         auto ticks = dt + Ns{s.delta};
-        uint8_t ev = 0;
+        u8 ev = 0;
         const auto ret = [&](end_reason end) {
             if (s.pos.chunk3() != ch)
                 ev |= ev_crossed;
@@ -211,7 +211,7 @@ struct model
                 continue;
             }
             o.blocked();
-            uint32_t k = 1;
+            u32 k = 1;
             while (is_diagonal(new_r) && k <= 2 && !step_free(s, vec_of(alternative(new_r, k))))
                 k++;
             if (!is_diagonal(new_r) || k > 2)
@@ -227,7 +227,7 @@ struct model
             ev |= k == 1 ? ev_slide1 : ev_slide2;
             o.slides++;
             if (!o.first_slide)
-                o.first_slide = (uint8_t)k;
+                o.first_slide = (u8)k;
         }
         s.delta = object::ns_to_delta(ticks);
         return ret(end_reason::time);
@@ -237,7 +237,7 @@ struct model
     {
         const auto ch = s.pos.chunk3();
         auto ticks = dt + Ns{s.delta};
-        uint8_t ev = 0;
+        u8 ev = 0;
         bool moved = false;
         const auto ret = [&](end_reason end, Ns dt_out, bool blocked) {
             if (s.pos.chunk3() != ch)
@@ -293,7 +293,7 @@ struct model
         const auto steps = line.steps();
         const auto k = line.step_of(s.pos - line_origin);
         fm_assert(line_origin + line.point_at(k) == s.pos);
-        uint8_t ev = 0;
+        u8 ev = 0;
         const auto ret = [&](end_reason end, Ns dt_out, critter::move_result res) {
             if (s.pos.chunk3() != ch)
                 ev |= ev_crossed;
@@ -302,7 +302,7 @@ struct model
         if (k == steps)
             return ret(end_reason::at_end, dt, {false, false});
         auto ticks = dt + Ns{s.delta};
-        const auto n = (uint32_t)Math::min(uint64_t{steps - k}, ticks / step_cost);
+        const auto n = (u32)Math::min(u64{steps - k}, ticks / step_cost);
         if (n == 0)
         {
             s.delta = object::ns_to_delta(ticks);
@@ -347,18 +347,18 @@ struct model
     }
 };
 
-struct span { int32_t lo, hi; };
+struct span { i32 lo, hi; };
 
 // On an axis the walk moves along with sign s, the rect's near face meets the leading face of the
 // box [lo, hi) after k0 steps. It overlaps the box swept from step k to k + 1 when k >= k0.
-span ahead(int32_t lo, int32_t hi, int32_t s, int32_t k0, int32_t len)
+span ahead(i32 lo, i32 hi, i32 s, i32 k0, i32 len)
 {
     return s > 0 ? span{hi + k0, hi + k0 + len} : span{lo - k0 - len, lo - k0};
 }
 
 // The rect's far face meets the box's trailing face after k0 steps. It overlaps the swept box when
 // k < k0, given len >= k0.
-span behind(int32_t lo, int32_t hi, int32_t s, int32_t k0, int32_t len)
+span behind(i32 lo, i32 hi, i32 s, i32 k0, i32 len)
 {
     return s > 0 ? span{lo + k0 - len, lo + k0} : span{hi - k0, hi - k0 + len};
 }
@@ -368,7 +368,7 @@ span behind(int32_t lo, int32_t hi, int32_t s, int32_t k0, int32_t len)
 void add_rect(world& w, span x, span y)
 {
     fm_assert(x.lo < x.hi && y.lo < y.hi);
-    constexpr int32_t piece = 255;
+    constexpr i32 piece = 255;
     for (auto y0 = y.lo; y0 < y.hi; y0 += piece)
         for (auto x0 = x.lo; x0 < x.hi; x0 += piece)
         {
@@ -394,7 +394,7 @@ struct box_desc
 constexpr box_desc boxes[] = {
     { Vector2ub{1}, {} }, { Vector2ub{2}, {} }, { Vector2ub{24}, {} }, { {23, 25}, {} }, { Vector2ub{7}, {5, -3} },
 };
-constexpr uint32_t square_boxes = 3;
+constexpr u32 square_boxes = 3;
 
 struct walk_box { Vector2i lo, hi; };
 
@@ -405,7 +405,7 @@ walk_box box_facing(Vector2i px, const box_desc& b, rotation r)
     return { lo, lo + Vector2i(rotate_size(b.size, rotation::N, r)) };
 }
 
-enum class level : uint8_t
+enum class level : u8
 {
     none, start_overlap, head_on, beside_flush, lane, turn_refused, leading_corner, side_corner,
     second_leg, second_turn_refused,
@@ -419,11 +419,11 @@ constexpr const char* level_names[] = {
 struct layout
 {
     level lv;
-    int32_t gap = 0;
+    i32 gap = 0;
     // beside_flush and lane: 0 is the lane's low side, 1 the high one. side_corner: the axis the
     // rect is ahead on; it is behind on the other.
-    uint8_t side = 0;
-    int32_t overlap = 0;
+    u8 side = 0;
+    i32 overlap = 0;
 };
 
 struct direction
@@ -442,10 +442,10 @@ constexpr direction off_octant[] = {
     { {-26, -80}, rotation::N, rotation::N, false },
 };
 
-uint32_t major_of(Vector2i v) { return Math::abs(v.x()) >= Math::abs(v.y()) ? 0 : 1; }
+u32 major_of(Vector2i v) { return Math::abs(v.x()) >= Math::abs(v.y()) ? 0 : 1; }
 
 // move_toward(dest)'s first leg, along the major axis
-int32_t first_leg(Vector2i v)
+i32 first_leg(Vector2i v)
 {
     const auto a = Math::abs(v);
     return Math::max(a.x(), a.y()) - Math::min(a.x(), a.y());
@@ -453,20 +453,20 @@ int32_t first_leg(Vector2i v)
 
 // b_diag: the box facing the diagonal leg where it starts.
 void place_obstacles(world& w, const layout& l, const direction& d, walk_box b, walk_box b_turned, walk_box b_diag,
-                     int32_t len)
+                     i32 len)
 {
     const auto s = Math::sign(d.vec);
     const auto a = major_of(d.vec), c = 1 - a;
     const auto g = l.gap;
-    const auto on = [&](uint32_t i, span p, span q) {
+    const auto on = [&](u32 i, span p, span q) {
         if (i == 0)
             add_rect(w, p, q);
         else
             add_rect(w, q, p);
     };
-    const auto ahead_ = [&](uint32_t i, int32_t k0, int32_t n) { return ahead(b.lo[i], b.hi[i], s[i], k0, n); };
-    const auto behind_ = [&](uint32_t i, int32_t k0, int32_t n) { return behind(b.lo[i], b.hi[i], s[i], k0, n); };
-    const auto around = [&](uint32_t i, int32_t k, int32_t m) {
+    const auto ahead_ = [&](u32 i, i32 k0, i32 n) { return ahead(b.lo[i], b.hi[i], s[i], k0, n); };
+    const auto behind_ = [&](u32 i, i32 k0, i32 n) { return behind(b.lo[i], b.hi[i], s[i], k0, n); };
+    const auto around = [&](u32 i, i32 k, i32 m) {
         return span{b.lo[i] + k*s[i] - m, b.hi[i] + k*s[i] + m};
     };
 
@@ -530,9 +530,9 @@ void place_obstacles(world& w, const layout& l, const direction& d, walk_box b, 
 
 struct expected_outcome
 {
-    int32_t stop_after;
-    uint8_t slide;
-    int32_t slides;
+    i32 stop_after;
+    u8 slide;
+    i32 slides;
 };
 
 expected_outcome outcome_of(const layout& l, const direction& d)
@@ -555,7 +555,7 @@ expected_outcome outcome_of(const layout& l, const direction& d)
         if (l.overlap == 0)
             return { -1, 0, 0 };
         // The free cardinal moves along the axis the rect is behind on.
-        return { l.gap, uint8_t(vec_of(alternative(leg_r, 1))[l.side] == 0 ? 1 : 2), l.overlap };
+        return { l.gap, u8(vec_of(alternative(leg_r, 1))[l.side] == 0 ? 1 : 2), l.overlap };
     case level::second_leg:
         return { first_leg(d.vec) + l.gap, 0, 0 };
     case level::second_turn_refused:
@@ -564,12 +564,12 @@ expected_outcome outcome_of(const layout& l, const direction& d)
     fm_assert(false);
 }
 
-enum class place : uint8_t { inside, edge, corner, missing };
+enum class place : u8 { inside, edge, corner, missing };
 constexpr const char* place_names[] = { "inside", "edge", "corner", "missing" };
 
-Vector2i start_px(place pl, Vector2i s, uint32_t major)
+Vector2i start_px(place pl, Vector2i s, u32 major)
 {
-    const auto edge = [](int32_t si) { return si > 0 ? chunk_size<int32_t> - half_tile<int32_t> - 1 : -half_tile<int32_t>; };
+    const auto edge = [](i32 si) { return si > 0 ? chunk_size<i32> - half_tile<i32> - 1 : -half_tile<i32>; };
     auto px = chunk_size<Vector2i>/2;
     if (pl == place::edge || pl == place::missing)
         px[major] = edge(s[major]);
@@ -578,7 +578,7 @@ Vector2i start_px(place pl, Vector2i s, uint32_t major)
     return px;
 }
 
-enum class time_mode : uint8_t { half_frame, one_frame, three_frames, whole };
+enum class time_mode : u8 { half_frame, one_frame, three_frames, whole };
 constexpr const char* time_names[] = { "half_frame", "one_frame", "three_frames", "whole" };
 
 struct walk
@@ -586,7 +586,7 @@ struct walk
     entry e;
     rotation walk_r;
     point start, dest;
-    uint32_t budget;
+    u32 budget;
     Ns line_cost;
 };
 
@@ -594,21 +594,21 @@ struct case_desc
 {
     const walk& wk;
     rotation start_r;
-    uint32_t box;
+    u32 box;
     layout l;
     place pl;
     time_mode t;
-    int32_t random = -1;
+    i32 random = -1;
 };
 
-void print_case(const case_desc& cd, uint32_t call)
+void print_case(const case_desc& cd, u32 call)
 {
     const auto& b = boxes[cd.box];
-    DBG_nospace << "critter-walk: " << entry_names[(uint32_t)cd.wk.e] << " from " << cd.wk.start << " to "
+    DBG_nospace << "critter-walk: " << entry_names[(u32)cd.wk.e] << " from " << cd.wk.start << " to "
                 << cd.wk.dest << " walk_r " << (int)cd.wk.walk_r << " start_r " << (int)cd.start_r
-                << " box " << b.size << " " << b.offset << " level " << level_names[(uint32_t)cd.l.lv]
+                << " box " << b.size << " " << b.offset << " level " << level_names[(u32)cd.l.lv]
                 << " gap " << cd.l.gap << " side " << (int)cd.l.side << " overlap " << cd.l.overlap
-                << " place " << place_names[(uint32_t)cd.pl] << " time " << time_names[(uint32_t)cd.t]
+                << " place " << place_names[(u32)cd.pl] << " time " << time_names[(u32)cd.t]
                 << " random " << cd.random << " call " << call;
 }
 
@@ -621,7 +621,7 @@ void print_state(const char* name, const walker_state& s, Ns dt, critter::move_r
 }
 
 void check_call(const critter& C, const expected_call& x, critter::move_result res, Ns dt, const case_desc& cd,
-                uint32_t call)
+                u32 call)
 {
     const auto s = state_of(C);
     bool ok = s == x.s;
@@ -633,13 +633,13 @@ void check_call(const critter& C, const expected_call& x, critter::move_result r
     print_case(cd, call);
     print_state("code ", s, dt, res);
     print_state("model", x.s, x.dt, x.res);
-    DBG_nospace << "model end " << end_names[(uint32_t)x.end] << " events " << x.events;
+    DBG_nospace << "model end " << end_names[(u32)x.end] << " events " << x.events;
     fm_abort("critter-walk: the critter differs from the model");
 }
 
 struct combos
 {
-    bool seen[(size_t)entry::COUNT][ev_COUNT][(size_t)end_reason::COUNT] = {};
+    bool seen[(usize)entry::COUNT][ev_COUNT][(usize)end_reason::COUNT] = {};
 };
 
 Ns remaining_cost(const model& m, const walk& wk, const walker_state& s, const walk_outcome& o)
@@ -651,7 +651,7 @@ Ns remaining_cost(const model& m, const walk& wk, const walker_state& s, const w
     case entry::move_toward_dest:
     {
         const auto a = Math::abs(wk.dest - s.pos);
-        const auto lo = (uint32_t)Math::min(a.x(), a.y()), hi = (uint32_t)Math::max(a.x(), a.y());
+        const auto lo = (u32)Math::min(a.x(), a.y()), hi = (u32)Math::max(a.x(), a.y());
         return m.frame * (hi - lo) + m.diag * lo;
     }
     case entry::move_toward_line:
@@ -676,7 +676,7 @@ walk_outcome run_walk(const model& m, critter& C, const case_desc& cd, combos* s
     C.set_keys(true, false, true, false);
     walk_outcome o;
     bool last = false;
-    for (uint32_t call = 0; ; call++)
+    for (u32 call = 0; ; call++)
     {
         fm_assert(call < 10'000);
         const auto s = state_of(C);
@@ -704,7 +704,7 @@ walk_outcome run_walk(const model& m, critter& C, const case_desc& cd, combos* s
         check_call(C, x, res, dt_io, cd, call);
         o = x.o;
         if (seen)
-            seen->seen[(size_t)wk.e][x.events][(size_t)x.end] = true;
+            seen->seen[(usize)wk.e][x.events][(usize)x.end] = true;
         const bool ended = x.end == end_reason::blocked || x.end == end_reason::turn_refused ||
                            x.end == end_reason::arrived || x.end == end_reason::at_end;
         if (last || wk.e == entry::update_movement && (ended || o.steps + o.slides >= wk.budget))
@@ -764,12 +764,12 @@ struct product
     }
 };
 
-critter& populate(world& w, const layout& l, const direction& d, uint32_t box, Vector2i px, int32_t len,
+critter& populate(world& w, const layout& l, const direction& d, u32 box, Vector2i px, i32 len,
                   bool make_chunks)
 {
     if (make_chunks)
-        for (int16_t y = -1; y <= 1; y++)
-            for (int16_t x = -1; x <= 1; x++)
+        for (i16 y = -1; y <= 1; y++)
+            for (i16 x = -1; x <= 1; x++)
                 (void)w[chunk_coords_{x, y, 0}];
     const auto& b = boxes[box];
     const auto diag_px = px + vec_of(d.leg_r) * first_leg(d.vec);
@@ -784,7 +784,7 @@ critter& populate(world& w, const layout& l, const direction& d, uint32_t box, V
     return C;
 }
 
-int32_t walk_length(const layout& l)
+i32 walk_length(const layout& l)
 {
     switch (l.lv)
     {
@@ -809,7 +809,7 @@ int32_t walk_length(const layout& l)
 }
 
 // only: the one entry point a layout is walked with, or COUNT for all.
-void walk_layout(product& P, const direction& d, uint32_t box, const layout& l, place pl, entry only)
+void walk_layout(product& P, const direction& d, u32 box, const layout& l, place pl, entry only)
 {
     const auto s = Math::sign(d.vec);
     const auto px = start_px(pl, s, major_of(d.vec));
@@ -817,7 +817,7 @@ void walk_layout(product& P, const direction& d, uint32_t box, const layout& l, 
     const auto len = walk_length(l);
     const auto vec = d.unit ? d.vec * len : d.vec;
     const auto x = outcome_of(l, d);
-    const auto budget = uint32_t(l.lv == level::side_corner && l.overlap > 0 ? l.gap + l.overlap + 4 : len);
+    const auto budget = u32(l.lv == level::side_corner && l.overlap > 0 ? l.gap + l.overlap + 4 : len);
     constexpr time_mode all_times[] = { time_mode::half_frame, time_mode::one_frame, time_mode::three_frames, time_mode::whole };
     constexpr time_mode whole_only[] = { time_mode::whole };
     const bool long_walk = only != entry::COUNT && l.lv == level::head_on;
@@ -826,7 +826,7 @@ void walk_layout(product& P, const direction& d, uint32_t box, const layout& l, 
     const auto run = [&](world& w, critter& C, entry e, rotation start_r, time_mode t) {
         const auto& info = C.atlas->info();
         const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps), P.line_cost({1, 1}),
-                             uint64_t(C.anim_speed * float(anim_speed_unit)), info.nframes};
+                             u64(C.anim_speed * float(anim_speed_unit)), info.nframes};
         const auto walk_r = e == entry::move_toward_line ? d.line_r : d.leg_r;
         const auto wk = walk{e, walk_r, start, start + vec, budget,
                              e == entry::move_toward_line ? P.line_cost(vec) : Ns{}};
@@ -845,7 +845,7 @@ void walk_layout(product& P, const direction& d, uint32_t box, const layout& l, 
 
         bool ok = o.stop_after == x.stop_after;
         if (e == entry::update_movement)
-            ok = ok && o.first_slide == x.slide && (x.slides < 0 || o.slides == uint32_t(x.slides) && (x.slides == 0 || o.resumed));
+            ok = ok && o.first_slide == x.slide && (x.slides < 0 || o.slides == u32(x.slides) && (x.slides == 0 || o.resumed));
         else if (x.stop_after < 0)
             ok = ok && C.position() == wk.dest;
         if (!ok)
@@ -889,13 +889,13 @@ void walk_layout(product& P, const direction& d, uint32_t box, const layout& l, 
 }
 
 template<typename F>
-void each_layout(const direction& d, uint32_t box, const F& f)
+void each_layout(const direction& d, u32 box, const F& f)
 {
     f(layout{level::none}, entry::COUNT);
     if (!d.unit)
     {
         // The line walk takes another path.
-        for (int32_t g : { 0, 1, 2 })
+        for (i32 g : { 0, 1, 2 })
             f(layout{level::second_leg, g}, entry::move_toward_dest);
         if (box >= square_boxes)
             f(layout{level::second_turn_refused}, entry::move_toward_dest);
@@ -904,42 +904,42 @@ void each_layout(const direction& d, uint32_t box, const F& f)
             // These are placed for the box facing leg_r, and the line walk may face another way,
             // which only a square box without an offset ignores.
             f(layout{level::start_overlap}, entry::COUNT);
-            for (int32_t g : { 0, 1, 2 })
+            for (i32 g : { 0, 1, 2 })
                 f(layout{level::head_on, g}, entry::COUNT);
         }
         return;
     }
     f(layout{level::start_overlap}, entry::COUNT);
-    for (int32_t g : { 0, 1, 2 })
+    for (i32 g : { 0, 1, 2 })
         f(layout{level::head_on, g}, entry::COUNT);
     // max_run in update_movement() and move_toward(dest)
-    for (int32_t g : { 511, 512, 513 })
+    for (i32 g : { 511, 512, 513 })
         for (auto e : { entry::update_movement, entry::move_toward_dest })
             f(layout{level::head_on, g}, e);
     if (!is_diagonal(d.leg_r))
     {
-        for (auto side : { uint8_t{0}, uint8_t{1} })
+        for (auto side : { u8{0}, u8{1} })
         {
             f(layout{level::beside_flush, 0, side}, entry::COUNT);
-            for (int32_t g : { 0, 1, 2 })
+            for (i32 g : { 0, 1, 2 })
                 f(layout{level::lane, g, side}, entry::COUNT);
         }
         if (boxes[box].size.x() != boxes[box].size.y())
             f(layout{level::turn_refused}, entry::COUNT);
         return;
     }
-    for (int32_t g : { 0, 1, 2 })
+    for (i32 g : { 0, 1, 2 })
     {
         f(layout{level::leading_corner, g}, entry::COUNT);
-        for (auto side : { uint8_t{0}, uint8_t{1} })
-            for (int32_t n : { 0, 1, 2, 10 })
+        for (auto side : { u8{0}, u8{1} })
+            for (i32 n : { 0, 1, 2, 10 })
                 f(layout{level::side_corner, g, side, n}, entry::COUNT);
     }
 }
 
 void run_product(product& P)
 {
-    const auto walk_direction = [&](const direction& d, uint32_t nboxes) {
+    const auto walk_direction = [&](const direction& d, u32 nboxes) {
         for (auto box = 0u; box < nboxes; box++)
             each_layout(d, box, [&](const layout& l, entry only) {
                 const bool diagonal = d.unit && is_diagonal(d.leg_r);
@@ -952,15 +952,15 @@ void run_product(product& P)
             });
     };
     for (auto i = 0u; i < 8; i++)
-        walk_direction(direction{dir_vecs[i], rotation(i), rotation(i), true}, (uint32_t)array_size(boxes));
+        walk_direction(direction{dir_vecs[i], rotation(i), rotation(i), true}, (u32)array_size(boxes));
     for (const auto& d : off_octant)
-        walk_direction(d, (uint32_t)array_size(boxes));
+        walk_direction(d, (u32)array_size(boxes));
 }
 
 struct combo
 {
     entry e;
-    uint8_t events;
+    u8 events;
     end_reason end;
 };
 
@@ -1041,45 +1041,45 @@ constexpr combo expected_combos[] = {
     { entry::move_toward_line, ev_turn|ev_step|ev_crossed, end_reason::blocked },
 };
 
-void print_combo(entry e, uint32_t ev, end_reason end, const char* note)
+void print_combo(entry e, u32 ev, end_reason end, const char* note)
 {
-    std::fprintf(stderr, "    { entry::%s, ", entry_names[(uint32_t)e]);
+    std::fprintf(stderr, "    { entry::%s, ", entry_names[(u32)e]);
     if (!ev)
         std::fputs("0", stderr);
     for (auto i = 0u, n = 0u; i < array_size(event_names); i++)
         if (ev & 1u << i)
             std::fprintf(stderr, "%s%s", n++ ? "|" : "", event_names[i]);
-    std::fprintf(stderr, ", end_reason::%s },%s\n", end_names[(uint32_t)end], note);
+    std::fprintf(stderr, ", end_reason::%s },%s\n", end_names[(u32)end], note);
 }
 
 void check_combos(const combos& c)
 {
     combos expected;
     for (const auto& x : expected_combos)
-        expected.seen[(size_t)x.e][x.events][(size_t)x.end] = true;
+        expected.seen[(usize)x.e][x.events][(usize)x.end] = true;
     bool ok = true;
-    for (auto e = 0u; e < (uint32_t)entry::COUNT; e++)
+    for (auto e = 0u; e < (u32)entry::COUNT; e++)
         for (auto ev = 0u; ev < ev_COUNT; ev++)
-            for (auto end = 0u; end < (uint32_t)end_reason::COUNT; end++)
+            for (auto end = 0u; end < (u32)end_reason::COUNT; end++)
                 ok &= c.seen[e][ev][end] == expected.seen[e][ev][end];
     if (ok)
         return;
     std::fputs("critter-walk: combinations seen (+ unlisted, - listed but not seen):\n", stderr);
-    for (auto e = 0u; e < (uint32_t)entry::COUNT; e++)
+    for (auto e = 0u; e < (u32)entry::COUNT; e++)
         for (auto ev = 0u; ev < ev_COUNT; ev++)
-            for (auto end = 0u; end < (uint32_t)end_reason::COUNT; end++)
+            for (auto end = 0u; end < (u32)end_reason::COUNT; end++)
                 if (c.seen[e][ev][end] || expected.seen[e][ev][end])
                     print_combo(entry(e), ev, end_reason(end),
                                 c.seen[e][ev][end] == expected.seen[e][ev][end] ? "" : c.seen[e][ev][end] ? " +" : " -");
     fm_abort("critter-walk: the product's combinations differ from the table");
 }
 
-void run_random(product& P, uint32_t count)
+void run_random(product& P, u32 count)
 {
-    uint64_t seed = 0x9e3779b97f4a7c15;
-    const auto next = [&](uint32_t n) {
+    u64 seed = 0x9e3779b97f4a7c15;
+    const auto next = [&](u32 n) {
         seed = seed * 6364136223846793005u + 1442695040888963407u;
-        return uint32_t(seed >> 33) % n;
+        return u32(seed >> 33) % n;
     };
     // At anim_speed 1 the division by anim_speed_unit is exact, so only other speeds show where it rounds.
     constexpr float anim_speeds[] = { 1, 0.75f, 1.5f };
@@ -1089,7 +1089,7 @@ void run_random(product& P, uint32_t count)
         const bool off = e != entry::update_movement && next(3) == 0;
         const auto r = rotation(next(8));
         const auto d = off ? off_octant[next(4)] : direction{vec_of(r), r, r, true};
-        const auto box = next((uint32_t)array_size(boxes));
+        const auto box = next((u32)array_size(boxes));
         const auto s = Math::sign(d.vec);
         const auto pl = place(next(d.unit && is_diagonal(d.leg_r) ? 3 : 2));
         const auto px = start_px(pl, s, major_of(d.vec));
@@ -1097,13 +1097,13 @@ void run_random(product& P, uint32_t count)
         const auto vec = d.unit ? d.vec * 40 : d.vec;
 
         auto w = world();
-        for (int16_t y = -1; y <= 1; y++)
-            for (int16_t x = -1; x <= 1; x++)
+        for (i16 y = -1; y <= 1; y++)
+            for (i16 x = -1; x <= 1; x++)
                 (void)w[chunk_coords_{x, y, 0}];
         for (auto k = 0u, n = 1 + next(3); k < n; k++)
         {
-            const auto lo = px + vec * (int32_t)next(41) / 40 + Vector2i{(int32_t)next(61), (int32_t)next(61)} - Vector2i{30};
-            add_rect(w, {lo.x(), lo.x() + 1 + (int32_t)next(40)}, {lo.y(), lo.y() + 1 + (int32_t)next(40)});
+            const auto lo = px + vec * (i32)next(41) / 40 + Vector2i{(i32)next(61), (i32)next(61)} - Vector2i{30};
+            add_rect(w, {lo.x(), lo.x() + 1 + (i32)next(40)}, {lo.y(), lo.y() + 1 + (i32)next(40)});
         }
         object_id id = 0;
         auto proto = Run::make_proto(1.f);
@@ -1115,17 +1115,17 @@ void run_random(product& P, uint32_t count)
 
         const auto& info = C.atlas->info();
         const auto m = model{w, skip_self{C.id}, object::frame_duration(info.fps), P.line_cost({1, 1}),
-                             uint64_t(C.anim_speed * float(anim_speed_unit)), info.nframes};
+                             u64(C.anim_speed * float(anim_speed_unit)), info.nframes};
         const auto wk = walk{e, e == entry::move_toward_line ? d.line_r : d.leg_r, start, start + vec, 40,
                              e == entry::move_toward_line ? P.line_cost(vec) : Ns{}};
-        const auto cd = case_desc{wk, rotation(next(8)), box, layout{level::none}, pl, time_mode::whole, (int32_t)i};
+        const auto cd = case_desc{wk, rotation(next(8)), box, layout{level::none}, pl, time_mode::whole, (i32)i};
         (void)run_walk(m, C, cd, nullptr, [&](const walker_state& st, const walk_outcome& o) {
             switch (next(4))
             {
             case 0: return m.frame;
             case 1: return m.frame * 3u;
             case 2: return remaining_cost(m, wk, st, o) + m.frame / 2u;
-            default: return Ns{1 + next(uint32_t(m.frame.stamp * 3))};
+            default: return Ns{1 + next(u32(m.frame.stamp * 3))};
             }
         });
     }

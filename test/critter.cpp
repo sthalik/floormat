@@ -26,7 +26,7 @@ namespace floormat::Run {
 
 namespace {
 
-void test1(StringView instance_name, const Function& make_dt, double accel, uint32_t max_steps)
+void test1(StringView instance_name, const Function& make_dt, double accel, u32 max_steps)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
@@ -54,7 +54,7 @@ void test1(StringView instance_name, const Function& make_dt, double accel, uint
     fm_assert(ret);
 }
 
-void test2(StringView instance_name, const Function& make_dt, double accel, uint32_t max_steps)
+void test2(StringView instance_name, const Function& make_dt, double accel, u32 max_steps)
 {
     const auto W = wall_image_proto{ loader.wall_atlas("empty"), 0 };
 
@@ -123,7 +123,7 @@ void test3(StringView instance_name, const Function& make_dt, double accel, rota
            },
            Grace{
                //.time = 15*Second,
-               //.distance_L1 = (uint32_t)-1,
+               //.distance_L1 = (u32)-1,
                .max_steps = 1000,
                .no_crash = true,
            });
@@ -160,7 +160,7 @@ void test_dt_invariance()
         const auto p_30fps = walk_for(r, Millisecond * 33.334, total);
         const auto p_10fps = walk_for(r, Millisecond * 100.0,  total);
 
-        constexpr uint32_t tol = 2;
+        constexpr u32 tol = 2;
         fm_assert_equal(expected, p_60fps - walk_start);
         fm_assert(point::distance_l1(p_1ms,   p_60fps) <= tol);
         fm_assert(point::distance_l1(p_30fps, p_60fps) <= tol);
@@ -207,7 +207,7 @@ void test_unspent_dt_tiny_speed()
     npc.delta = object::ns_to_delta(Second / npc.atlas->info().fps);
     auto dt = Ns{};
     (void)npc.move_toward(idx, dt, walk_start);
-    fm_assert(dt <= Ns{uint64_t{1} << 53});
+    fm_assert(dt <= Ns{u64{1} << 53});
 }
 
 // Stored time is already speed-scaled, so without a check it would move a critter of speed 0.
@@ -254,9 +254,9 @@ void test_fps_zero_stays()
 
     // 2^53 ns, the most alloc_ticks() takes, still pays for no step. A step cost whose
     // frame_duration(0) * length product wrapped around 64 bits would be under 2^48 ns.
-    dt = Ns{uint64_t{1} << 53};
+    dt = Ns{u64{1} << 53};
     const auto res3 = npc.move_toward(idx, dt, dest);
-    dt = Ns{uint64_t{1} << 53};
+    dt = Ns{u64{1} << 53};
     const auto res4 = npc.move_toward(idx, dt, walk_start, dest);
     fm_assert(!res3.blocked && !res3.moved && !res4.blocked && !res4.moved);
     fm_assert_equal(walk_start, npc.position());
@@ -281,8 +281,8 @@ void test_delta_range()
 {
     const auto t = Second * 1.5;
     fm_assert(object::ns_to_delta(t) == t.stamp);
-    fm_assert(object::ns_to_delta(Second * 5u) == uint32_t(-1));
-    fm_assert(object::fraction_to_ns(uint32_t(-1)) == Second);
+    fm_assert(object::ns_to_delta(Second * 5u) == u32(-1));
+    fm_assert(object::fraction_to_ns(u32(-1)) == Second);
 }
 
 void test_alloc_ticks_clamp()
@@ -291,8 +291,8 @@ void test_alloc_ticks_clamp()
     const auto max = frame * 4096u - Ns{1u};
     fm_assert_equal(max, object::alloc_ticks(frame * 4096u, 0, frame, 1.f));
     fm_assert_equal(max, object::alloc_ticks(max, 0, frame, 1.f));
-    fm_assert_equal(Ns{1u}, object::frame_duration(uint32_t(-1)));
-    fm_assert_equal(Ns{uint64_t{1} << 53}, object::alloc_ticks(Millisecond * 100u, 0, object::frame_duration(0), 1e9f));
+    fm_assert_equal(Ns{1u}, object::frame_duration(u32(-1)));
+    fm_assert_equal(Ns{u64{1} << 53}, object::alloc_ticks(Millisecond * 100u, 0, object::frame_duration(0), 1e9f));
 }
 
 // 100 ms at speed 1e6 is 1e14 ns, far over 4096 frames, so the ticks of every call are cut.
@@ -320,7 +320,7 @@ struct line_walker
 {
     world w;
     critter* npc;
-    size_t idx;
+    usize idx;
     Ns frame;
 
     line_walker() : w{world()}
@@ -337,7 +337,7 @@ struct line_walker
         npc->delta = {};
     }
 
-    critter::move_result step(point from, point dest, uint32_t nframes = 1)
+    critter::move_result step(point from, point dest, u32 nframes = 1)
     {
         dt = frame * nframes;
         return npc->move_toward(idx, dt, from, dest);
@@ -357,7 +357,7 @@ void test_move_toward_line()
         const auto from = point{{0, 0, 0}, {14, 14}, {3, -5}}, dest = from + vec;
         const auto line = rc::bresenham_line{{}, vec};
         L.place(from);
-        uint32_t frames = 0, k = 0;
+        u32 frames = 0, k = 0;
         while (L.npc->position() != dest)
         {
             fm_assert(frames++ < 1000);
@@ -375,7 +375,7 @@ void test_move_toward_line()
         fm_assert(!L.step(from, dest).moved);
 
         L.place(from);
-        const auto res = L.step(from, dest, (uint32_t)Math::ceil(len) + 50);
+        const auto res = L.step(from, dest, (u32)Math::ceil(len) + 50);
         fm_assert(res.moved && !res.blocked && L.npc->position() == dest);
         fm_assert(L.dt >= L.frame * 50u && L.dt < L.frame * 51u);
     }
@@ -451,8 +451,8 @@ struct script_walker
 
     script_walker() : w{world()}
     {
-        for (int16_t j = -1; j <= 1; j++)
-            for (int16_t i = -1; i <= 1; i++)
+        for (i16 j = -1; j <= 1; j++)
+            for (i16 i = -1; i <= 1; i++)
                 (void)w[chunk_coords_{i, j, 0}];
         object_id id = 0;
         npc = w.ensure_player_character(id, make_proto(1.f));
@@ -480,11 +480,11 @@ struct script_walker
     }
 
     void walk(path_search_result res) { npc->script.do_reassign(critter_script::make_walk_script(move(res)), npc); }
-    void update(uint32_t nframes = 1) { auto i = npc->index(); npc->update(npc, i, frame * nframes); }
+    void update(u32 nframes = 1) { auto i = npc->index(); npc->update(npc, i, frame * nframes); }
 
-    uint32_t walk_to_end()
+    u32 walk_to_end()
     {
-        uint32_t frames = 0;
+        u32 frames = 0;
         while (npc->last_walk == critter::walk_result::none)
         {
             fm_assert(frames++ < 2000);
@@ -530,7 +530,7 @@ void test_walk_smoothed()
         len += Vector2(sp[j+1] - sp[j]).length();
 
     W.walk(move(res));
-    uint32_t frames = 0, seg = 0;
+    u32 frames = 0, seg = 0;
     while (W.npc->last_walk == critter::walk_result::none)
     {
         fm_assert(frames++ < 2000);
@@ -665,7 +665,7 @@ void test_turn_boxed_in()
         fm_assert(npc.can_move_to({}));
 
         const auto frame = Second / npc.atlas->info().fps;
-        for (auto i = 0u; i < (uint32_t)rotation_COUNT; i++)
+        for (auto i = 0u; i < (u32)rotation_COUNT; i++)
         {
             const auto r = rotation(i), r0 = npc.r;
             const bool same_box = size.x() == size.y() || i/2 % 2 == 0;

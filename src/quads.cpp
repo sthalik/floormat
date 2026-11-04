@@ -22,7 +22,7 @@ float depth_start()
 
 } // namespace
 
-indexes quad_indexes(size_t N)
+indexes quad_indexes(usize N)
 {
     using I = index_type;
     const auto b = N * vertexes_per_quad;
@@ -77,7 +77,7 @@ texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_, b
     };
 
     constexpr struct {
-        uint8_t a:2, b:2, c:2, d:2;
+        u8 a:2, b:2, c:2, d:2;
     } perm[4] = {
         {0, 1, 2, 3}, // normal
         {1, 3, 0, 2}, // rotated only
@@ -89,7 +89,7 @@ texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_, b
 }
 
 template<bool LR_1, bool LR_2, bool LR_3, bool LR_4>
-depths depth_quad(point L, point R, int32_t depth_offset)
+depths depth_quad(point L, point R, i32 depth_offset)
 {
     const float S = depth_start();
 
@@ -106,21 +106,21 @@ depths depth_quad(point L, point R, int32_t depth_offset)
     };
 }
 
-template depths depth_quad<>(point, point, int32_t);
-template depths depth_quad<0, 1, 0, 1>(point, point, int32_t);
-template depths depth_quad<1, 0, 1, 0>(point, point, int32_t);
-template depths depth_quad<0, 0, 1, 1>(point, point, int32_t);
+template depths depth_quad<>(point, point, i32);
+template depths depth_quad<0, 1, 0, 1>(point, point, i32);
+template depths depth_quad<1, 0, 1, 0>(point, point, i32);
+template depths depth_quad<0, 0, 1, 1>(point, point, i32);
 
 vertexes make_vertexes(const quad& q, const texcoords& tc, const depths& d, Vector3 center)
 {
-    return map([&](uint8_t j) -> vertex { return { q[j] + center, tc[j], d[j] }; },
-               iota_array<uint8_t, vertexes_per_quad>);
+    return map([&](u8 j) -> vertex { return { q[j] + center, tc[j], d[j] }; },
+               iota_array<u8, vertexes_per_quad>);
 }
 
 vertexes make_vertexes(const quad& q, const texcoords& tc, float depth, Vector3 center)
 {
-    return map([&](uint8_t j) -> vertex { return { q[j] + center, tc[j], depth }; },
-               iota_array<uint8_t, vertexes_per_quad>);
+    return map([&](u8 j) -> vertex { return { q[j] + center, tc[j], depth }; },
+               iota_array<u8, vertexes_per_quad>);
 }
 
 } // namespace floormat::Quads

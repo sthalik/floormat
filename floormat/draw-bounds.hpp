@@ -2,6 +2,6 @@
 
 namespace floormat {
 
-struct z_bounds final { int8_t cur; bool only; };
+struct z_bounds final { i8 cur; bool only; };
 
 } // namespace floormat

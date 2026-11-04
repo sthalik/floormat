@@ -48,9 +48,9 @@ void get_next_layer_count_at_16bit_boundary()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
-    // cur=43689 is the largest uint16_t input to the 1.5x branch whose result
-    // still fits in uint16_t: ceil(43689 * 1.5) + 1 == 65535.
-    // At cur=43690+ the function hits its fm_assert guarding against uint16_t
+    // cur=43689 is the largest u16 input to the 1.5x branch whose result
+    // still fits in u16: ceil(43689 * 1.5) + 1 == 65535.
+    // At cur=43690+ the function hits its fm_assert guarding against u16
     // overflow of the returned value — we can't catch that from a test, but
     // the boundary value above breaks if anyone alters the formula.
     fm_assert(get_next_layer_count(43689, a) == 65535);
@@ -59,9 +59,9 @@ void get_next_layer_count_at_16bit_boundary()
 // Fill a buffer with a deterministic-but-varied RGBA8 pattern so round-trip
 // tests can compare byte-for-byte without random noise. The caller sizes the
 // buffer as w*h*4.
-void fill_pattern(unsigned char* dst, uint32_t w, uint32_t h)
+void fill_pattern(unsigned char* dst, u32 w, u32 h)
 {
-    for (uint32_t i = 0; i < w * h; i++)
+    for (u32 i = 0; i < w * h; i++)
     {
         dst[i*4 + 0] = (unsigned char)(i * 31);
         dst[i*4 + 1] = (unsigned char)(i * 71);
@@ -74,7 +74,7 @@ void upload_and_readback_is_lossless()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
-    constexpr uint32_t w = 4, h = 4;
+    constexpr u32 w = 4, h = 4;
     unsigned char src[w * h * 4];
     fill_pattern(src, w, h);
     Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src};
@@ -89,7 +89,7 @@ void upload_and_readback_is_lossless()
 
     auto data = img.data();
     fm_assert(data.size() >= sizeof(src));
-    for (size_t i = 0; i < sizeof(src); i++)
+    for (usize i = 0; i < sizeof(src); i++)
         fm_assert(data[i] == (char)src[i]);
 }
 
@@ -97,7 +97,7 @@ void realloc_preserves_uploaded_pixels()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
-    constexpr uint32_t w = 4, h = 4;
+    constexpr u32 w = 4, h = 4;
     unsigned char src[w * h * 4];
     fill_pattern(src, w, h);
     Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src};
@@ -106,7 +106,7 @@ void realloc_preserves_uploaded_pixels()
     upload_sprite(a, *s, view);
     auto before = a.texture_layer_count;
 
-    grow_texture(a, Math::max<uint16_t>(1, a.texture_layer_count) * 4); // force a grow-blit
+    grow_texture(a, Math::max<u16>(1, a.texture_layer_count) * 4); // force a grow-blit
     fm_assert(a.texture_layer_count > before);
 
     // Read back from the same (unchanged) coordinates after grow.
@@ -116,7 +116,7 @@ void realloc_preserves_uploaded_pixels()
         Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
 
     auto data = img.data();
-    for (size_t i = 0; i < sizeof(src); i++)
+    for (usize i = 0; i < sizeof(src); i++)
         fm_assert(data[i] == (char)src[i]);
 }
 
@@ -125,7 +125,7 @@ void texcoords_encode_expected_corners()
     Atlas a;
     a.layer_width = 256;
     a.layer_height = 512;
-    constexpr uint32_t w = 30, h = 40;
+    constexpr u32 w = 30, h = 40;
     Sprite* s = alloc_sprite(a, w, h, false);
 
     // texcoords_for_sprite uses direct positional UV (no 1-y flip) because
@@ -163,7 +163,7 @@ void staged_adds_reach_texture()
 {
     sprite_atlas atlas{64, 64};
     // 40x40 leaves no room for a second shelf in a 64 px layer, so each takes a new layer
-    constexpr uint32_t n = 3, w = 40, h = 40, rw = 7, rh = 11;
+    constexpr u32 n = 3, w = 40, h = 40, rw = 7, rh = 11;
     Array<unsigned char> src[n + 1];
     const Sprite* sprites[n + 1];
     for (auto i = 0u; i <= n; i++)
@@ -191,8 +191,8 @@ void staged_adds_reach_texture()
         auto img = tex.subImage(0, Range3Di{{(Int)s.x(), (Int)s.y(), (Int)s.layer()},
                                             {(Int)(s.x() + sw), (Int)(s.y() + sh), (Int)s.layer() + 1}},
                                 Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
-        const auto* slot = reinterpret_cast<const uint32_t*>(img.data().data());
-        const auto* orig = reinterpret_cast<const uint32_t*>(src[i].data());
+        const auto* slot = reinterpret_cast<const u32*>(img.data().data());
+        const auto* orig = reinterpret_cast<const u32*>(src[i].data());
         for (auto y = 0u; y < s.height(); y++)
             for (auto x = 0u; x < s.width(); x++)
                 fm_assert(orig[y*s.width() + x] == (s.is_rotated() ? slot[x*sw + s.height()-1-y] : slot[y*sw + x]));
@@ -202,7 +202,7 @@ void staged_adds_reach_texture()
 void wrapper_accessors_roundtrip_values()
 {
     sprite_atlas atlas{256, 256};
-    constexpr uint32_t w = 31, h = 47;
+    constexpr u32 w = 31, h = 47;
     unsigned char buf[w * h * 4]{};
     Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, buf};
 
@@ -241,19 +241,19 @@ void sprites_do_not_overlap_pairwise()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
-    constexpr uint32_t N = 40;
-    struct R { uint32_t x, y, layer, w, h; };
+    constexpr u32 N = 40;
+    struct R { u32 x, y, layer, w, h; };
     R rects[N];
-    for (uint32_t i = 0; i < N; i++)
+    for (u32 i = 0; i < N; i++)
     {
-        const uint32_t w = 5 + (i * 7) % 80;
-        const uint32_t h = 3 + (i * 11) % 60;
+        const u32 w = 5 + (i * 7) % 80;
+        const u32 h = 3 + (i * 11) % 60;
         const Sprite* s = alloc_sprite(a, w, h, false);
-        rects[i] = R{ (uint32_t)s->x, (uint32_t)s->y, (uint32_t)s->layer, w, h };
+        rects[i] = R{ (u32)s->x, (u32)s->y, (u32)s->layer, w, h };
     }
 
-    for (uint32_t i = 0; i < N; i++)
-        for (uint32_t j = i + 1; j < N; j++)
+    for (u32 i = 0; i < N; i++)
+        for (u32 j = i + 1; j < N; j++)
         {
             const auto& A = rects[i];
             const auto& B = rects[j];
@@ -271,8 +271,8 @@ void max_dimension_sprite_stores_without_truncation()
     Atlas a;
     a.layer_width = a.layer_height = max_sprite_xy;   // 1024 — matches the 10-bit storage cap
     Sprite* s = alloc_sprite(a, max_sprite_xy, max_sprite_xy);
-    fm_assert((uint32_t)s->width_minus1 + 1 == max_sprite_xy);
-    fm_assert((uint32_t)s->height_minus1 + 1 == max_sprite_xy);
+    fm_assert((u32)s->width_minus1 + 1 == max_sprite_xy);
+    fm_assert((u32)s->height_minus1 + 1 == max_sprite_xy);
 }
 
 void tallest_layer_stores_y_without_truncation()
@@ -280,18 +280,18 @@ void tallest_layer_stores_y_without_truncation()
     Atlas a;
     a.layer_width = 64;
     a.layer_height = max_layer_height;
-    constexpr uint32_t w = 64, h = 16, N = max_layer_height / h;
+    constexpr u32 w = 64, h = 16, N = max_layer_height / h;
     const Sprite* sprites[N];
-    for (uint32_t i = 0; i < N; i++)
+    for (u32 i = 0; i < N; i++)
         sprites[i] = alloc_sprite(a, w, h, false);
 
-    Array<bool> used{ValueInit, (size_t)a.layers.size() * max_layer_height};
+    Array<bool> used{ValueInit, (usize)a.layers.size() * max_layer_height};
     for (const auto* s : sprites)
     {
         fm_assert(s->y + h <= max_layer_height);
-        for (uint32_t y = (uint32_t)s->y; y < s->y + h; y++)
+        for (u32 y = (u32)s->y; y < s->y + h; y++)
         {
-            auto& u = used[(uint32_t)s->layer * max_layer_height + y];
+            auto& u = used[(u32)s->layer * max_layer_height + y];
             fm_assert(!u);
             u = true;
         }

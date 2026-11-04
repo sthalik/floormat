@@ -298,10 +298,10 @@ public:
 #ifndef RTREE_NO_EXTERN_TEMPLATE
 
 namespace floormat::detail {
-extern template struct rtree_pool<RTree<uint64_t, float, 2, float>::Node>;
-extern template struct rtree_pool<RTree<uint64_t, float, 2, float>::ListNode>;
+extern template struct rtree_pool<RTree<u64, float, 2, float>::Node>;
+extern template struct rtree_pool<RTree<u64, float, 2, float>::ListNode>;
 } // namespace floormat::detail
-extern template class RTree<floormat::uint64_t, float, 2, float>;
+extern template class RTree<floormat::u64, float, 2, float>;
 
 #endif
 //#undef RTREE_TEMPLATE

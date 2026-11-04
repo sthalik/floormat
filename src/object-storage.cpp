@@ -37,18 +37,18 @@ const object_list_base& object_storage::list_for(object_type type, scenery_type 
     using getter = const object_list_base& (*)(const object_storage&) noexcept;
     static constexpr auto object_types = []
     {
-        std::array<std::array<getter, (size_t)scenery_type::COUNT>, (size_t)object_type::COUNT> array{};
-        array[(size_t)object_type::scenery][(size_t)scenery_type::generic] = &list_member<&object_storage::_generic>;
-        array[(size_t)object_type::scenery][(size_t)scenery_type::door] = &list_member<&object_storage::_door>;
-        array[(size_t)object_type::critter][(size_t)scenery_type::none] = &list_member<&object_storage::_critter>;
-        array[(size_t)object_type::light][(size_t)scenery_type::none] = &list_member<&object_storage::_light>;
-        array[(size_t)object_type::hole][(size_t)scenery_type::none] = &list_member<&object_storage::_hole>;
+        std::array<std::array<getter, (usize)scenery_type::COUNT>, (usize)object_type::COUNT> array{};
+        array[(usize)object_type::scenery][(usize)scenery_type::generic] = &list_member<&object_storage::_generic>;
+        array[(usize)object_type::scenery][(usize)scenery_type::door] = &list_member<&object_storage::_door>;
+        array[(usize)object_type::critter][(usize)scenery_type::none] = &list_member<&object_storage::_critter>;
+        array[(usize)object_type::light][(usize)scenery_type::none] = &list_member<&object_storage::_light>;
+        array[(usize)object_type::hole][(usize)scenery_type::none] = &list_member<&object_storage::_hole>;
         return array;
     }();
 
     getter fn = nullptr;
-    if ((size_t)type < object_types.size() && (size_t)sc_type < object_types[0].size())
-        fn = object_types[(size_t)type][(size_t)sc_type];
+    if ((usize)type < object_types.size() && (usize)sc_type < object_types[0].size())
+        fn = object_types[(usize)type][(usize)sc_type];
     if (!fn) [[unlikely]]
         fm_abort("invalid object type %d/%d", (int)type, (int)sc_type);
     return fn(*this);
@@ -59,10 +59,10 @@ object_list_base& object_storage::list_for(object_type type, scenery_type sc_typ
     return non_const(std::as_const(*this).list_for(type, sc_type));
 }
 
-const object_list_base* object_storage::list_at(uint32_t k) const noexcept
+const object_list_base* object_storage::list_at(u32 k) const noexcept
 {
     const object_list_base* ret = nullptr;
-    uint32_t n = 0;
+    u32 n = 0;
     for_each_list<object>([&](const object_list_base& l) {
         if (n++ == k)
             ret = &l;
@@ -70,13 +70,13 @@ const object_list_base* object_storage::list_at(uint32_t k) const noexcept
     return ret;
 }
 
-size_t object_storage::insert(const bptr<object>& e)
+usize object_storage::insert(const bptr<object>& e)
 {
     fm_assert(_sorted);
     auto& es = list_for(e->type(), scenery_type_of(*e))._items;
     arrayReserve(es, 8);
     auto* it = std::lower_bound(es.data(), es.data() + es.size(), e, object_id_lessp);
-    auto i = (size_t)(it - es.data());
+    auto i = (usize)(it - es.data());
     arrayInsert(es, i, e);
     return i;
 }
@@ -89,7 +89,7 @@ void object_storage::append(const bptr<object>& e)
     arrayAppend(es, e);
 }
 
-void object_storage::erase(const object& e, size_t i)
+void object_storage::erase(const object& e, usize i)
 {
     fm_assert(_sorted);
     auto& es = list_for(e.type(), scenery_type_of(e))._items;
@@ -117,16 +117,16 @@ void object_storage::clear()
     });
 }
 
-uint32_t object_storage::size() const noexcept
+u32 object_storage::size() const noexcept
 {
-    uint32_t n = 0;
+    u32 n = 0;
     for_each_list<object>([&](const object_list_base& l) { n += l.size(); });
     return n;
 }
 
 bool object_storage::empty() const noexcept { return size() == 0; }
 
-size_t object_storage::index_of(const object& e) const
+usize object_storage::index_of(const object& e) const
 {
     fm_assert(_sorted);
     const auto fn = [id = e.id](const bptr<object>& a, std::nullptr_t) { return a->id < id; };
@@ -134,10 +134,10 @@ size_t object_storage::index_of(const object& e) const
     auto it = std::lower_bound(es.cbegin(), es.cend(), nullptr, fn);
     fm_assert(it != es.cend());
     fm_assert((*it)->id == e.id);
-    return (size_t)(it - es.cbegin());
+    return (usize)(it - es.cbegin());
 }
 
-const bptr<object>& object_storage::ptr(const object& e, size_t i)
+const bptr<object>& object_storage::ptr(const object& e, usize i)
 {
     const auto& es = list_for(e.type(), scenery_type_of(e))._items;
     fm_assert(i < es.size());
@@ -153,7 +153,7 @@ object_storage::iterator_<Const>::iterator_(const object_storage& s) noexcept : 
 }
 
 template<bool Const>
-void object_storage::iterator_<Const>::load(uint32_t k) noexcept
+void object_storage::iterator_<Const>::load(u32 k) noexcept
 {
     for (; const auto* l = _s->list_at(k); k++)
     {
@@ -187,7 +187,7 @@ object_storage::const_iterator object_storage::begin() const noexcept
 
 object_storage::const_iterator object_storage::end() const noexcept { return {}; }
 
-const bptr<object>& object_storage::item_at(uint32_t i) const noexcept
+const bptr<object>& object_storage::item_at(u32 i) const noexcept
 {
     const bptr<object>* ret = nullptr;
     for_each_list<object>([&](const object_list_base& l) {
@@ -202,7 +202,7 @@ const bptr<object>& object_storage::item_at(uint32_t i) const noexcept
     return *ret;
 }
 
-const bptr<object>& object_storage::operator[](uint32_t i) noexcept { return item_at(i); }
-const object& object_storage::operator[](uint32_t i) const noexcept { return *item_at(i); }
+const bptr<object>& object_storage::operator[](u32 i) noexcept { return item_at(i); }
+const object& object_storage::operator[](u32 i) const noexcept { return *item_at(i); }
 
 } // namespace floormat

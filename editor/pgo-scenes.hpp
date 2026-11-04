@@ -5,23 +5,23 @@
 #include "src/tile-defs.hpp"
 #include <cr/StringView.h>
 
-namespace floormat { enum class driver_mode : uint8_t { coverage, profile, }; }
+namespace floormat { enum class driver_mode : u8 { coverage, profile, }; }
 
 namespace floormat::pgo {
 
 struct scene_name
 {
     char str[15];
-    uint8_t size;
+    u8 size;
 
-    template<size_t N>
+    template<usize N>
     constexpr scene_name(const char (&id)[N]): scene_name{id, N} {}
 
-    constexpr explicit scene_name(const char* id, size_t N): str{}
+    constexpr explicit scene_name(const char* id, usize N): str{}
     {
         constexpr auto prefix = "scene_"_s;
         fm_assert(N-1 > prefix.size() && N-1 - prefix.size() < sizeof str);
-        size = (uint8_t)(N-1 - prefix.size());
+        size = (u8)(N-1 - prefix.size());
         for (auto i = 0u; i < prefix.size(); i++)
             fm_assert(id[i] == prefix[i]);
         for (auto i = 0u; i < size; i++)
@@ -60,8 +60,8 @@ constexpr inline int raycast_radius_max = []
 // walk_corridor_tile+1 through walk_corridor_tile+walk_corridor_width-2. It starts at chunk 0,
 // where the camera stays and the critter starts at its north end, and reaches past bench_chunk_max,
 // so the scene around it is generated out to walk_chunk_max.
-constexpr inline int16_t walk_chunk_min = 0, walk_chunk_max = 9;
-constexpr inline uint8_t walk_corridor_tile = 1, walk_corridor_width = 9;
+constexpr inline i16 walk_chunk_min = 0, walk_chunk_max = 9;
+constexpr inline u8 walk_corridor_tile = 1, walk_corridor_width = 9;
 
 // scene_slide's layout, in global tile coords (chunk*TILE_MAX_DIM + local), not chunk-local.
 // test/slide.cpp mirrors these. A free SW run holds x+y constant, so the ledge slide
@@ -75,16 +75,16 @@ constexpr inline int slide_floor_y = 15, slide_floor_x1 = 2;
 constexpr inline int slide_corner_x = slide_wall_x, slide_corner_y = slide_wall_y1;
 // Only these are cleared; the dense scene outside keeps the 8 neighbours free_steps() searches
 // realistically full.
-constexpr inline int16_t slide_chunk_min = -1, slide_chunk_max = 0;
-constexpr inline uint8_t slide_bbox = 32;
+constexpr inline i16 slide_chunk_min = -1, slide_chunk_max = 0;
+constexpr inline u8 slide_bbox = 32;
 
 // Arithmetic shift floors, which is what negative tiles need; a division would truncate toward
 // zero and put tile -1 in chunk 0.
 constexpr global_coords tile_at(int x, int y)
 {
     static_assert(TILE_MAX_DIM == 16);
-    return { chunk_coords_{(int16_t)(x >> 4), (int16_t)(y >> 4), 0},
-             local_coords{(uint8_t)(x & 15), (uint8_t)(y & 15)} };
+    return { chunk_coords_{(i16)(x >> 4), (i16)(y >> 4), 0},
+             local_coords{(u8)(x & 15), (u8)(y & 15)} };
 }
 
 } // namespace floormat::pgo

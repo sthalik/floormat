@@ -25,9 +25,9 @@ namespace {
 // as "no usable identifier" and fall through to the depth limit instead of
 // deduping unrelated directories that all happen to map to (0,0).
 
-struct file_id { uint64_t dev, ino; };
+struct file_id { u64 dev, ino; };
 struct file_id_hash {
-    size_t operator()(const file_id& id) const noexcept {
+    usize operator()(const file_id& id) const noexcept {
         return id.dev * 0x9E3779B97F4A7C15ull ^ id.ino;
     }
 };
@@ -38,7 +38,7 @@ struct file_id_eq {
 };
 using visited_set = gtl::flat_hash_set<file_id, file_id_hash, file_id_eq>;
 
-constexpr uint32_t max_depth = 64;
+constexpr u32 max_depth = 64;
 
 // Returns false if we couldn't obtain an identifier (permission denied,
 // broken symlink, missing path, etc.). On failure the walker falls back
@@ -66,8 +66,8 @@ bool get_file_id(const String& path, file_id& out)
     BOOL ok = GetFileInformationByHandle(h, &info);
     CloseHandle(h);
     if (!ok) return false;
-    out.dev = (uint64_t)info.dwVolumeSerialNumber;
-    out.ino = ((uint64_t)info.nFileIndexHigh << 32) | (uint64_t)info.nFileIndexLow;
+    out.dev = (u64)info.dwVolumeSerialNumber;
+    out.ino = ((u64)info.nFileIndexHigh << 32) | (u64)info.nFileIndexLow;
     return true;
 }
 
@@ -78,15 +78,15 @@ bool get_file_id(const String& path, file_id& out)
     struct stat st;
     if (::stat(path.data(), &st) != 0)
         return false;
-    out.dev = (uint64_t)st.st_dev;
-    out.ino = (uint64_t)st.st_ino;
+    out.dev = (u64)st.st_dev;
+    out.ino = (u64)st.st_ino;
     return true;
 }
 
 #endif
 
 void walk_impl(const String& dir, Array<String>& results,
-               visited_set& visited, uint32_t depth)
+               visited_set& visited, u32 depth)
 {
     if (depth > max_depth)
         return;
@@ -146,10 +146,10 @@ void test_sprites()
 
     SpriteAtlas::Atlas atlas;
     const auto max_size = SpriteAtlas::max_2d_texture_size();
-    atlas.layer_width = (uint16_t)Math::min<unsigned>(SpriteAtlas::max_layer_width, max_size);
-    atlas.layer_height = (uint16_t)Math::min<unsigned>(SpriteAtlas::max_layer_height, max_size);
+    atlas.layer_width = (u16)Math::min<unsigned>(SpriteAtlas::max_layer_width, max_size);
+    atlas.layer_height = (u16)Math::min<unsigned>(SpriteAtlas::max_layer_height, max_size);
 
-    uint32_t png_count = 0, alloc_count = 0;
+    u32 png_count = 0, alloc_count = 0;
     for (const String& path : files)
     {
         // Walker returns all regular files; filter to PNG here so the walker
@@ -161,9 +161,9 @@ void test_sprites()
         auto size = img.size();
         // Skip sprites larger than the bitfield limit — a handful of F2
         // worldmap/splash PNGs exceed 1024 in either dimension.
-        if ((uint32_t)size.max() > SpriteAtlas::max_sprite_xy)
+        if ((u32)size.max() > SpriteAtlas::max_sprite_xy)
             continue;
-        auto* sprite = SpriteAtlas::alloc_sprite(atlas, (uint32_t)size.x(), (uint32_t)size.y());
+        auto* sprite = SpriteAtlas::alloc_sprite(atlas, (u32)size.x(), (u32)size.y());
         SpriteAtlas::upload_sprite(atlas, *sprite, img);
         alloc_count++;
     }

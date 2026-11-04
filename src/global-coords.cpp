@@ -33,14 +33,14 @@ Debug& operator<<(Debug& dbg, const chunk_coords_& c)
     return dbg;
 }
 
-size_t chunk_coords_::hash() const noexcept
+usize chunk_coords_::hash() const noexcept
 {
-    int16_t buf[3] = { x, y, (int16_t)z, };
+    i16 buf[3] = { x, y, (i16)z, };
     static_assert(sizeof buf == 6);
     return hash_buf(buf, sizeof buf);
 }
 
-size_t global_coords::hash() const noexcept
+usize global_coords::hash() const noexcept
 {
     static_assert(sizeof *this == 4 + 4);
     return hash_buf(this, sizeof *this);
@@ -112,6 +112,6 @@ static_assert(test_comparison1());
 
 } // namespace
 
-size_t Hash::chunk_coord_hasher::operator()(chunk_coords_ coord) noexcept { return coord.hash(); }
+usize Hash::chunk_coord_hasher::operator()(chunk_coords_ coord) noexcept { return coord.hash(); }
 
 } // namespace floormat

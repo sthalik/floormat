@@ -72,7 +72,7 @@ requires (std::is_integral_v<T> && std::is_signed_v<T>)
 constexpr erased_constraints::range erased_range_from_range(T min, T max)
 { return { { .i = min }, { .i = max }, erased_constraints::range::type_::type_int }; }
 
-template<size_t N, typename T>
+template<usize N, typename T>
 requires (std::is_integral_v<T> || std::is_floating_point_v<T>)
 constexpr erased_constraints::range erased_range_from_range(const Math::Vector<N, T>& min0,
                                                             const Math::Vector<N, T>& max0)
@@ -82,8 +82,8 @@ constexpr erased_constraints::range erased_range_from_range(const Math::Vector<N
     using type = erased_constraints::range::type_;
 
     using Element = std::conditional_t<std::is_floating_point_v<T>, float,
-                                       std::conditional_t<std::is_unsigned_v<T>, size_t,
-                                                          std::make_signed_t<size_t>>>;
+                                       std::conditional_t<std::is_unsigned_v<T>, usize,
+                                                          std::make_signed_t<usize>>>;
 
     Math::Vector4<Element> min{limits<Element>::min}, max{limits<Element>::max};
     for (auto i = 0u; i < N; i++)
@@ -109,8 +109,8 @@ constexpr erased_constraints::range erased_range_from_range(const Math::Vector<N
     }
     else
     {
-        static_assert(sizeof T{} == (size_t)-1);
-        static_assert(sizeof T{} != (size_t)-1);
+        static_assert(sizeof T{} == (usize)-1);
+        static_assert(sizeof T{} != (usize)-1);
         return {};
     }
 }

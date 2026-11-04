@@ -13,8 +13,8 @@ namespace {
 constexpr chunk_coords_ coord_a{0, 0, 0};
 constexpr chunk_coords_ coord_b{1, 0, 0};
 
-constexpr int16_t find_side = 17;
-constexpr uint32_t find_per_chunk = 448;
+constexpr i16 find_side = 17;
+constexpr u32 find_per_chunk = 448;
 
 void World_OperatorIndex_Hit(benchmark::State& state)
 {
@@ -63,33 +63,33 @@ BENCHMARK(World_At)->Unit(benchmark::kNanosecond);
 
 void World_FindObject(benchmark::State& state)
 {
-    const auto num_z = (int32_t)state.range(0);
+    const auto num_z = (i32)state.range(0);
     const bool shuffled = state.range(1) != 0;
-    const auto num_objects = uint32_t(find_side * find_side * num_z) * find_per_chunk;
+    const auto num_objects = u32(find_side * find_side * num_z) * find_per_chunk;
 
     auto w = world();
     Array<object_id> ids{NoInit, num_objects};
     light_proto p;
     // A zero bbox keeps the object out of the RTree.
     p.bbox_size = {};
-    uint32_t i = 0;
-    for (int32_t z = 0; z < num_z; z++)
-        for (int16_t y = 0; y < find_side; y++)
-            for (int16_t x = 0; x < find_side; x++)
+    u32 i = 0;
+    for (i32 z = 0; z < num_z; z++)
+        for (i16 y = 0; y < find_side; y++)
+            for (i16 x = 0; x < find_side; x++)
             {
-                const auto cz = int8_t(num_z == 1 ? 0 : chunk_z_min + z);
-                const chunk_coords_ ch{int16_t(x - find_side/2), int16_t(y - find_side/2), cz};
+                const auto cz = i8(num_z == 1 ? 0 : chunk_z_min + z);
+                const chunk_coords_ ch{i16(x - find_side/2), i16(y - find_side/2), cz};
                 for (auto k = 0u; k < find_per_chunk; k++)
                     ids[i++] = w.make_object<light>(w.make_id(), {ch, local_coords{k % TILE_COUNT}}, p)->id;
             }
 
     if (shuffled)
     {
-        uint64_t rng = 0x9e3779b97f4a7c15u;
+        u64 rng = 0x9e3779b97f4a7c15u;
         for (auto j = num_objects; j-- > 1; )
         {
             rng = rng*6364136223846793005u + 1442695040888963407u;
-            const auto k = (uint32_t)((rng >> 32) % (j + 1));
+            const auto k = (u32)((rng >> 32) % (j + 1));
             const auto tmp = ids[j]; ids[j] = ids[k]; ids[k] = tmp;
         }
     }
