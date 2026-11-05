@@ -55,7 +55,7 @@ void fill_ground(chunk& c)
 
 bptr<critter> make_slit(world& w)
 {
-    // pillar geometry from editor/world.cpp:populate_sweep_aabb_slit.
+    // pillar geometry from editor/world-scenes.cpp:populate_sweep_aabb_slit.
     constexpr chunk_coords_ ch{0, 0, 0};
     auto& c = w[ch];
     fill_ground(c);
