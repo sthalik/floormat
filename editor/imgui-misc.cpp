@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "floormat/main.hpp"
 #include "imgui-raii.hpp"
-#include "compat/format.hpp"
+#include "compat/format.inl"
 #include <imgui_internal.h>
 
 namespace floormat {

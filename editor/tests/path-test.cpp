@@ -1,6 +1,6 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
-#include "compat/format.hpp"
+#include "compat/format.inl"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"
 #include "floormat/main.hpp"

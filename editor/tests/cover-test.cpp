@@ -1,7 +1,7 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
-#include "compat/format.hpp"
+#include "compat/format.inl"
 #include "src/point.hpp"
 #include "src/intra-coord.inl"
 #include "src/grid-cover.hpp"
