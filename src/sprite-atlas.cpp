@@ -11,6 +11,7 @@
 #include <cr/GrowableArray.h>
 #include <cr/Path.h>
 #include <cr/StridedArrayView.h>
+#include <cr/StringView.h>
 #include <cr/StructuredBindings.h>
 #include <mg/Texture.h>
 #include <mg/TextureArray.h>

@@ -2,7 +2,7 @@
 #include "bptr-common.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/weak-borrowed-ptr.inl"
-#include "compat/exception.hpp"
+#include "compat/exception.inl"
 #include "compat/fwd/thread.hpp"
 #include <new>
 #include <latch>

@@ -17,7 +17,7 @@
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/crc64.hpp"
-#include "compat/exception.hpp"
+#include "compat/exception.inl"
 #include "compat/nanosecond.inl"
 #include "serialize/binary-serializer.hpp"
 #include <bit>

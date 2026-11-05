@@ -5,7 +5,7 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/tile.hpp"
 #include "compat/assert.hpp"
-#include "compat/exception.hpp"
+#include "compat/exception.inl"
 #include "src/global-coords.hpp"
 #include "src/ground-atlas.hpp"
 #include "loader/ground-cell.hpp"

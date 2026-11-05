@@ -3,7 +3,7 @@
 #include "serialize/wall-atlas.hpp"
 #include "serialize/json-helper.hpp"
 #include "loader/loader.hpp"
-#include "compat/exception.hpp"
+#include "compat/exception.inl"
 #include <cr/String.h>
 #include <cr/Path.h>
 
