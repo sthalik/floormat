@@ -132,6 +132,7 @@ private:
 
     Time timeline;
     std::FILE* _frame_times_file = nullptr;
+    Time _fps_log_time{0};
 
     Array<chunk_coords_> _chunk_bounds_array;
     fm_settings s;
