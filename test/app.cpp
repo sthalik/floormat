@@ -1,6 +1,8 @@
 #include "app.hpp"
 #include "loader/loader.hpp"
 #include "src/log.hpp"
+#include "src/nanosecond.hpp"
+#include "src/timer.hpp"
 #include "compat/array-size.hpp"
 #include "compat/headless.hpp"
 #include "compat/sysexits.hpp"
@@ -9,7 +11,6 @@
 #include <cr/Arguments.h>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
-#include <mg/Timeline.h>
 
 namespace floormat::Test {
 
@@ -164,10 +165,9 @@ void run_tests(ArrayView<const test_entry> list, bool quiet)
 
     FILE* const s = stdout;
     constexpr auto get_time = [](auto&& fn) {
-        Timeline t;
-        t.start();
+        Time t;
         (*fn)();
-        return t.currentFrameTime() * 1e3f;
+        return Time::to_milliseconds(t.update());
     };
 
     unsigned longest_name = 0;

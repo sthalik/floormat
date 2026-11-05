@@ -10,6 +10,8 @@
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/RTree-search.hpp"
+#include "src/nanosecond.hpp"
+#include "src/timer.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>
 #include <cfloat>
@@ -18,7 +20,6 @@
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
-#include <mg/Timeline.h>
 
 namespace floormat {
 
@@ -452,10 +453,9 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
 
 raycast_result_s raycast_old(world& w, point from, point to, object_id self)
 {
-    Timeline timeline;
-    timeline.start();
+    auto t = Time::now();
     auto ret = do_raycasting_old(w, from, to, self);
-    ret.time = timeline.currentFrameDuration();
+    ret.time = Time::to_seconds(t.update());
     return ret;
 }
 
