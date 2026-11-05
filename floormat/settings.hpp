@@ -32,6 +32,7 @@ struct fm_settings
     bool no_warmup           : 1 = false;
     bool driver_save_world   : 1 = false;
 #endif
+    bool show_fps = false;
     bool vsync = true;
     bool resizable          : 1 = true,
          fullscreen         : 1 = false,

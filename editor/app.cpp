@@ -149,6 +149,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("fixed-framerate", "").setHelp("fixed-framerate", "feed update() a constant dt, 0 for the measured frame time; 60 with --scenes, else 0", "HZ")
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
         .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns to FILE, one per line", "FILE")
+        .addBooleanOption("show-fps").setHelp("show-fps", "print FPS to stderr every 5 seconds")
 #ifndef FLOORMAT_NO_PGO_DRIVER
         .addOption("scenes", "off").setHelp("scenes", "run driver scenes, then quit; names or list|all|coverage|profile|none", "a,b,c")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
@@ -160,6 +161,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     if (const auto s = args.value<StringView>("load-game"))
         opts.load_game = resolve_load_game_path(s);
     opts.log_frame_times = String{args.value<StringView>("log-frame-times")};
+    opts.show_fps = args.isSet("show-fps");
     opts.vsync = parse_bool("vsync", args);
 #ifndef FLOORMAT_NO_PGO_DRIVER
     if (const auto arg = args.value<StringView>("scenes"); arg != "off"_s)

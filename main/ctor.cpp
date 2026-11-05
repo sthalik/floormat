@@ -39,6 +39,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
         }
     }
     timeline = Time::now();
+    _fps_log_time = timeline;
 }
 
 class world& main_impl::reset_world(class world&& w) noexcept

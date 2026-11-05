@@ -120,6 +120,19 @@ void main_impl::drawEvent()
 
     if (_frame_times_file) [[unlikely]]
         std::fprintf(_frame_times_file, "%llu\n", (unsigned long long)(Time::now() - t0).stamp);
+
+    if (s.show_fps) [[unlikely]]
+    {
+        const auto now = Time::now();
+        if (now - _fps_log_time >= 5*Seconds)
+        {
+            if (float fps = smoothed_fps(); fps > 0)
+            {
+                std::fprintf(stderr, "FPS: %.1f\n", (double)fps);
+                _fps_log_time = now;
+            }
+        }
+    }
 }
 
 template<std::invocable<chunk&, i16, i16, i8> Function>
