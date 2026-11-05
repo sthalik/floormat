@@ -1216,7 +1216,7 @@ task app::scene_maze1()
     {
         const auto from = maze_corner(leg), to = maze_corner(leg + 1);
         // Every cell walked once bounds the true path; the ratio never gets near that.
-        const auto max_dist = point::distance(from, to) * 32;
+        const auto max_dist = point::distance(from, to) * 31;
         auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, C->circumscribed_bbox_size(),
                                           Search::without_critters());
         // Same partial-route trap as scene_walk.
@@ -1444,7 +1444,7 @@ task app::scene_maze2()
     co_yield {};
 
     const auto to = maze2_goal();
-    const auto max_dist = point::distance(from, to) * 32;
+    const auto max_dist = point::distance(from, to) * 13;
     auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, C->circumscribed_bbox_size(),
                                       Search::without_critters());
     // Same partial-route trap as scene_walk.
