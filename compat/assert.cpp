@@ -1,5 +1,4 @@
 #include "assert.hpp"
-#include "exception.hpp"
 #include <cstdlib>
 #include <cstdio>
 #include <cstdarg>
