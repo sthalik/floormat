@@ -59,7 +59,7 @@ struct font_saver final
     ~font_saver();
 
 private:
-    float font_size, font_base_size;
+    float font_size;
 };
 
 struct draw_list_font_saver final
