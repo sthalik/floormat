@@ -13,7 +13,7 @@
 #include "compat/array-size.hpp"
 #include "compat/fill.hpp"
 #include "compat/floor-divmod.hpp"
-#include "compat/format.hpp"
+#include "compat/format.inl"
 #include "compat/function2.hpp"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"

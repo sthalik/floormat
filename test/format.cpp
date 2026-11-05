@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include "compat/format.hpp"
+#include "compat/format.inl"
 #include <cr/String.h>
 #include <cr/StringView.h>
 

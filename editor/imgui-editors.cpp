@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "src/tile-constants.hpp"
 #include "compat/array-size.hpp"
-#include "compat/format.hpp"
+#include "compat/format.inl"
 #include "imgui-raii.hpp"
 #include "ground-editor.hpp"
 #include "wall-editor.hpp"

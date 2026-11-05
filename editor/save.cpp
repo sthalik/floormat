@@ -2,7 +2,7 @@
 #include "floormat/main.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
-#include "compat/format.hpp"
+#include "compat/format.inl"
 #include "compat/sysexits.hpp"
 #include "imgui-raii.hpp"
 #include <cstdio>

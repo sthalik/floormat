@@ -3,7 +3,7 @@
 #include "../imgui-raii.hpp"
 #include "../raycast-draw.hpp"
 #include "compat/array-size.hpp"
-#include "compat/format.hpp"
+#include "compat/format.inl"
 #include "compat/weak-borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
 #include "compat/timer.hpp"

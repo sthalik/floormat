@@ -8,7 +8,7 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include "format.hpp"
+#include "format.inl"
 #include <windows.h>
 #else
 #include <cerrno>
