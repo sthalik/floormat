@@ -221,6 +221,7 @@ void app::update_world(Ns dt)
 {
     auto& world = M->world();
     const auto frame_no = world.increment_frame_no();
+    world.advance_game_time(dt);
     ArrayView<chunk_coords_> chunks;
     if (_update_all_chunks)
     {

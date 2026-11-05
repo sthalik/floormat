@@ -7,6 +7,7 @@
 #include "global-coords.hpp"
 #include "object-type.hpp"
 #include "scenery-type.hpp"
+#include "compat/nanosecond.hpp"
 #include "loader/policy.hpp"
 #include <array>
 
@@ -38,6 +39,7 @@ private:
     bptr<unique_id> _unique_id;
     object_id _object_counter = object_counter_init;
     u64 _current_frame = 1; // zero is special for struct object
+    Ns _game_time{};
     u64 _pass_gen = 0;
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
@@ -108,6 +110,8 @@ public:
                                 loader_policy asset_policy) noexcept(false);
     u64 frame_no() const;
     u64 increment_frame_no();
+    Ns game_time() const;
+    void advance_game_time(Ns dt);
     u64 pass_gen() const noexcept;
 
     template<typename T, bool sorted = true, typename... Xs>

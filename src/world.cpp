@@ -8,6 +8,7 @@
 #include "scenery-proto.hpp"
 #include "light.hpp"
 #include "hole.hpp"
+#include "compat/nanosecond.inl"
 #include "compat/borrowed-ptr.inl"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
@@ -29,6 +30,7 @@ world::world(world&& w) noexcept :
     _unique_id{move(w._unique_id)},
     _object_counter{w._object_counter},
     _current_frame{w._current_frame},
+    _game_time{w._game_time},
     _pass_gen{w._pass_gen},
     _teardown{w._teardown},
     _script_initialized{w._script_initialized},
@@ -84,6 +86,7 @@ world& world::operator=(world&& w) noexcept
     _object_counter = w._object_counter;
     w._object_counter = 0;
     _current_frame = w._current_frame;
+    _game_time = w._game_time;
     _pass_gen = Math::max(_pass_gen, w._pass_gen);
     _check_objects_each_frame = w._check_objects_each_frame;
     return *this;
@@ -392,6 +395,8 @@ bptr<critter> world::ensure_player_character(object_id& id)
 
 u64 world::frame_no() const { return _current_frame; }
 u64 world::increment_frame_no() { return _current_frame++; }
+Ns world::game_time() const { return _game_time; }
+void world::advance_game_time(Ns dt) { _game_time += dt; }
 u64 world::next_pass_gen() noexcept { return ++_pass_gen; }
 u64 world::pass_gen() const noexcept { return _pass_gen; }
 
