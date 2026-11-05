@@ -1,6 +1,6 @@
 #pragma once
 #include "point.hpp"
-#include "src/tile-constants.hpp"
+#include "tile-constants.hpp"
 #include "compat/floor-divmod.hpp"
 #include <mg/Functions.h>
 

@@ -1,7 +1,7 @@
 #pragma once
-#include "compat/assert.hpp"
-#include "compat/atomic.hpp"
-#include "compat/defs.hpp"
+#include "assert.hpp"
+#include "atomic.hpp"
+#include "defs.hpp"
 #include <bit>
 #include <new>
 

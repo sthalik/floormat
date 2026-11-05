@@ -9,7 +9,7 @@
 #include "shaders/texture-unit-cache.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
-#include "main/clickable.hpp"
+#include "clickable.hpp"
 #include <concepts>
 #include <cstdio>
 #include <mg/DebugOutput.h>

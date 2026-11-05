@@ -1,5 +1,5 @@
 #include "ground-cell.hpp"
-#include "loader/loader.hpp"
+#include "loader.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/ground-atlas.hpp"
 #include "serialize/corrade-array.hpp"

@@ -1,5 +1,5 @@
 #include "debug.hpp"
-#include "compat/strerror.hpp"
+#include "strerror.hpp"
 #include <cerrno>
 #include <iostream>
 #include <cr/StringView.h>

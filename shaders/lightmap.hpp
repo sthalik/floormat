@@ -2,7 +2,7 @@
 
 #include "src/light-falloff.hpp"
 #include "src/quads.hpp"
-#include "shaders/texture-unit-cache.hpp"
+#include "texture-unit-cache.hpp"
 #include <array>
 #include <cr/Optional.h>
 #include <cr/StringView.h>

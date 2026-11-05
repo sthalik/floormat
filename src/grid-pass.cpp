@@ -5,7 +5,7 @@
 #include "collision.hpp"
 #include "object.hpp"
 #include "search.hpp"
-#include "src/RTree-search.hpp"
+#include "RTree-search.hpp"
 #include "compat/function2.hpp"
 #include <bit>
 #include <array>

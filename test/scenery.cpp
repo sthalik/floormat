@@ -1,4 +1,4 @@
-#include "test/app.hpp"
+#include "app.hpp"
 #include "compat/exception.inl"
 #include "src/scenery-proto.hpp"
 #include "src/scenery.hpp"

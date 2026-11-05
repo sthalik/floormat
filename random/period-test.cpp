@@ -1,4 +1,4 @@
-#include "random/random.hpp"
+#include "random.hpp"
 #include "compat/fwd/chrono.hpp"
 #include <bit>
 #include <cinttypes>

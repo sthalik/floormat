@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/assert.hpp"
+#include "assert.hpp"
 #include <type_traits>
 #include <cr/Tags.h>
 

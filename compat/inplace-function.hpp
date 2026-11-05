@@ -1,9 +1,9 @@
 #pragma once
 
-#include "compat/fwd/construct_at.hpp"
-#include "compat/inplace-function-fwd.hpp"
-#include "compat/assert.hpp"
-#include "compat/function2.fwd.hpp"
+#include "fwd/construct_at.hpp"
+#include "inplace-function-fwd.hpp"
+#include "assert.hpp"
+#include "function2.fwd.hpp"
 #include <new>
 #include <type_traits>
 #include <utility>

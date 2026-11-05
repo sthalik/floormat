@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/move.hpp"
+#include "move.hpp"
 #include <cstddef>
 
 namespace floormat {

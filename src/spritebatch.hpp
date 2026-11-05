@@ -1,8 +1,8 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "compat/safe-ptr.hpp"
-#include "src/rotation.hpp"
-#include "src/quads.hpp"
+#include "rotation.hpp"
+#include "quads.hpp"
 
 namespace floormat {
 

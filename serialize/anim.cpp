@@ -1,7 +1,7 @@
-#include "serialize/magnum-vector.hpp"
-#include "serialize/corrade-string.hpp"
-#include "serialize/anim.hpp"
-#include "serialize/corrade-array.hpp"
+#include "magnum-vector.hpp"
+#include "corrade-string.hpp"
+#include "anim.hpp"
+#include "corrade-array.hpp"
 #include "compat/exception.hpp"
 #include <cr/Array.h>
 #include <nlohmann/json.hpp>

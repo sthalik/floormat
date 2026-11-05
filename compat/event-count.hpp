@@ -1,6 +1,6 @@
 #pragma once
-#include "compat/atomic.hpp"
-#include "compat/defs.hpp"
+#include "atomic.hpp"
+#include "defs.hpp"
 
 namespace floormat {
 

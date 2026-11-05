@@ -2,13 +2,13 @@
 #include "compat/defs.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include "compat/propagate-const.hpp"
-#include "src/global-coords.hpp"
-#include "src/rotation.hpp"
-#include "src/pass-mode.hpp"
-#include "src/object-type.hpp"
-#include "src/object-id.hpp"
-#include "src/point.hpp"
-#include "src/script-enums.hpp"
+#include "global-coords.hpp"
+#include "rotation.hpp"
+#include "pass-mode.hpp"
+#include "object-type.hpp"
+#include "object-id.hpp"
+#include "point.hpp"
+#include "script-enums.hpp"
 
 namespace floormat {
 

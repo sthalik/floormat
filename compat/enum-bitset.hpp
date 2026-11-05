@@ -1,6 +1,6 @@
 #pragma once
 #include "enum-bitset-fwd.hpp"
-#include "compat/assert.hpp"
+#include "assert.hpp"
 
 namespace floormat {
 

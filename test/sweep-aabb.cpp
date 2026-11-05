@@ -18,7 +18,7 @@
 #include "src/grid-pass.hpp"
 #include "src/search.hpp"
 #include "src/rect-intersects.hpp"
-#include "test/run.hpp"
+#include "run.hpp"
 
 namespace floormat {
 namespace {

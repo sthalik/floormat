@@ -4,10 +4,10 @@
 #include "src/anim-atlas.hpp"
 #include "compat/assert.hpp"
 #include "loader/loader.hpp"
-#include "serialize/corrade-string.hpp"
+#include "corrade-string.hpp"
 #include "loader/scenery-cell.hpp"
-#include "serialize/pass-mode.hpp"
-#include "serialize/magnum-vector.hpp"
+#include "pass-mode.hpp"
+#include "magnum-vector.hpp"
 #include "json-wrapper.hpp"
 #include "compat/swl-variant.hpp"
 #include <cr/String.h>

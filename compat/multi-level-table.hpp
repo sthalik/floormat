@@ -1,7 +1,7 @@
 #pragma once
 #include "multi-level-table-fwd.hpp"
 #include "superpage.hpp"
-#include "compat/assert.hpp"
+#include "assert.hpp"
 #include <type_traits>
 #include <cr/Array.h>
 

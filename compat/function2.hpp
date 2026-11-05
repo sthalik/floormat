@@ -18,8 +18,8 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
-#include "compat/fwd/allocator.hpp"
-#include "compat/fwd/tuple-fwd.hpp"
+#include "fwd/allocator.hpp"
+#include "fwd/tuple-fwd.hpp"
 #include <type_traits>
 #include <utility>
 

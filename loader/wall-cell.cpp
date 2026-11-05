@@ -4,7 +4,7 @@
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
 #include "serialize/corrade-array.hpp"
-#include "loader/loader.hpp"
+#include "loader.hpp"
 #include <cr/Array.h>
 
 namespace floormat {

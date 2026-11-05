@@ -1,4 +1,4 @@
-#include "test/app.hpp"
+#include "app.hpp"
 #include "src/wall-atlas.hpp"
 #include "serialize/wall-atlas.hpp"
 #include "serialize/json-helper.hpp"

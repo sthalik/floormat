@@ -2,7 +2,7 @@
 #include "compat/defs.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "src/pass-mode.hpp"
-#include "loader/policy.hpp"
+#include "policy.hpp"
 #include <cr/StringView.h>
 
 //namespace Magnum { using Vector2ub = Math::Vector2<unsigned char>; }

@@ -2,7 +2,7 @@
 #include "object-id.hpp"
 #include "tile.hpp"
 #include "local-coords.hpp"
-#include "src/RTree-fwd.h"
+#include "RTree-fwd.h"
 #include "global-coords.hpp"
 #include "search-pred.hpp"
 #include "script-enums.hpp"

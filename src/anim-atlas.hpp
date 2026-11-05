@@ -2,7 +2,7 @@
 #include "compat/defs.hpp"
 #include "rotation.hpp"
 #include "anim.hpp"
-#include "src/quads.hpp"
+#include "quads.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include <array>
 #include <cr/BitArray.h>
