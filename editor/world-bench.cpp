@@ -1065,15 +1065,13 @@ void carve_corridor_baffles(world& w, i16 cx, u8 start_tile, u8 width,
     {
         const bool east = (row / walk_baffle_pitch) & 1;
         const auto x0 = (u8)(east ? start_tile + width - walk_baffle_tiles : start_tile + 1);
-        const auto ch = chunk_coords_{cx, (i16)(cy_min + (int)(row / TILE_MAX_DIM)), 0};
-        const auto ly = (u8)(row % TILE_MAX_DIM);
+        const auto g = global_coords{chunk_coords_{cx, cy_min, 0}, {}} + Vector2i{x0, (int)row};
         for (u8 k = 0; k < walk_baffle_tiles; k++)
         {
             auto p = proto;
-            w.make_scenery<false>(w.make_id(), global_coords{ch, local_coords{(u8)(x0 + k), ly}},
-                                  move(p));
+            w.make_scenery<false>(w.make_id(), g + Vector2i{k, 0}, move(p));
         }
-        auto& c = w[ch];
+        auto& c = w[g.chunk3()];
         c.sort_objects();
         c.mark_modified();
     }

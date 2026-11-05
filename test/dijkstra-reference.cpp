@@ -68,8 +68,8 @@ point zone_point(zone z) { return point{Vector3i{z.tile*tile_size_xy + Vector2i(
 
 tile_ref tile_at(world& w, int x, int y)
 {
-    auto& c = w[chunk_coords_{(i16)(x / dim), (i16)(y / dim), 0}];
-    return c[local_coords{(u8)(x % dim), (u8)(y % dim)}];
+    const auto g = global_coords{x, y, 0};
+    return w[g.chunk3()][g.local()];
 }
 
 void add_block(world& w, int x, int y, Vector2ub size, Vector2b offset = {})
@@ -80,8 +80,7 @@ void add_block(world& w, int x, int y, Vector2ub size, Vector2b offset = {})
     p.bbox_size   = size;
     p.bbox_offset = offset;
     p.pass        = pass_mode::blocked;
-    w.make_scenery(w.make_id(), {chunk_coords_{(i16)(x / dim), (i16)(y / dim), 0},
-                                 local_coords{(u8)(x % dim), (u8)(y % dim)}}, move(p));
+    w.make_scenery(w.make_id(), global_coords{x, y, 0}, move(p));
 }
 
 bool near_zone(int x, int y)
