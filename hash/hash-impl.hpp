@@ -10,25 +10,17 @@
 #if FM_HASH_HAVE_MEOWHASH
 namespace floormat::meow_hash {
 usize hash_buf(const void* __restrict buf, usize size) noexcept;
-usize hash_int(u32 x) noexcept;
-usize hash_int(u64 x) noexcept;
 } // namespace floormat::meow_hash
 #endif
 
 namespace floormat::xxHash {
 usize hash_buf(const void* __restrict buf, usize size) noexcept;
-usize hash_int(u32 x) noexcept;
-usize hash_int(u64 x) noexcept;
 } // namespace floormat::xxHash
 
 namespace floormat::SipHash {
 usize hash_buf(const void* __restrict buf, usize size) noexcept;
-usize hash_int(u32 x) noexcept;
-usize hash_int(u64 x) noexcept;
 } // namespace floormat::SipHash
 
 namespace floormat::MurmurHash {
 usize hash_buf(const void* __restrict buf, usize size) noexcept;
-usize hash_int(u32 x) noexcept;
-usize hash_int(u64 x) noexcept;
 } // namespace floormat::MurmurHash

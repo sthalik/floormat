@@ -33,16 +33,6 @@ usize hash_buf(const void* __restrict buf, usize size) noexcept
     return hash(const_cast<void*>(buf), size);
 }
 
-usize hash_int(u32 x) noexcept
-{
-    return hash(&x, sizeof x);
-}
-
-usize hash_int(u64 x) noexcept
-{
-    return hash(&x, sizeof x);
-}
-
 } // namespace floormat::meow_hash
 
 #endif
