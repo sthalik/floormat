@@ -252,6 +252,36 @@ void test_cache_margin()
         }
 }
 
+// max_dist drops to the largest whose Search::cache rectangle fits in its max_size_bytes.
+void test_large_search_limit()
+{
+    constexpr uint32_t cell = astar::default_div_size, max_dist = 523'777;
+    const auto from = point{global_coords{flush_ch, flush_tile}, {}};
+    uint32_t clamped;
+    {
+        auto c = Search::cache{};
+        clamped = c.allocate(from, max_dist, cell);
+        fm_assert(clamped < max_dist);
+        fm_assert(c.indexes.size() * sizeof(uint32_t) <= Search::cache::max_size_bytes);
+        fm_assert(c.allocate(from, clamped, cell) == clamped);
+        fm_assert(c.allocate(from, clamped + 1, cell) == clamped);
+    }
+
+    auto w = world();
+    auto A = astar{};
+    const auto& pred = Search::without_critters();
+    const auto search = [&](Vector2i off, uint32_t dist) {
+        return A.Dijkstra<0, false>(w, from, from + off, dist, Vector2ui{cell}, pred);
+    };
+    const auto near = Vector2i{97, 53};
+    const auto small = search(near, 1024), large = search(near, max_dist);
+    fm_assert(small.is_found() && large.is_found());
+    fm_assert(small.cost() == large.cost());
+    fm_assert(large.path().back() == from + near);
+    fm_assert(search({(int)clamped - tile_size_xy, 0}, max_dist).is_found());
+    fm_assert(!search({(int)clamped + tile_size_xy, 0}, max_dist).is_found());
+}
+
 void add_pocket(world& w, point pt, uint32_t size, int open)
 {
     constexpr int t = 16;
@@ -594,6 +624,7 @@ void Test::test_dijkstra()
     for (auto bbox : { 31u, 33u })
         test_odd_body_corridor(bbox);
     test_cache_margin();
+    test_large_search_limit();
     for (auto cell : { 8u, 16u, 32u })
     {
         check_pocket(cell, false);

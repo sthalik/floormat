@@ -14,6 +14,8 @@ namespace floormat::Search {
 
 struct cache
 {
+    static constexpr size_t max_size_bytes = size_t{4} << 30;
+
     Vector2ui size;
     Vector2i start{(int)((1u << 31) - 1)};
     uint32_t div_size_ = 0;
@@ -30,7 +32,7 @@ struct cache
     uint32_t get_tile_index(intra_coord pos) const;
     static Vector2ui get_size_to_allocate(uint32_t max_dist);
 
-    void allocate(point from, uint32_t max_dist, uint32_t div_size);
+    [[nodiscard]] uint32_t allocate(point from, uint32_t max_dist, uint32_t div_size);
     void add_index(uint32_t chunk_index, uint32_t tile_index, uint32_t index);
     uint32_t lookup_index(uint32_t chunk_index, uint32_t tile_index);
     // Drops the chunk's nodes, so it runs once per chunk and search, before the chunk's first lookup.

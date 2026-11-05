@@ -1206,7 +1206,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     const auto step = (int)params.div_size();
     const auto oct = Search::octile{params.div_size()};
     auto& cache = *_cache;
-    cache.allocate(from, max_dist, params.div_size());
+    max_dist = cache.allocate(from, max_dist, params.div_size());
 
     const auto start = endpoint{w, from, own_size}, goal = endpoint{w, to, own_size};
     if (!start.is_passable(p) || !goal.is_passable(p))
