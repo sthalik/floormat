@@ -1,7 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "src/timer.hpp"
-#include "src/nanosecond.hpp"
+#include "compat/timer.hpp"
+#include "compat/nanosecond.hpp"
 #include "src/raycast-diag.hpp"
 #include <array>
 #include <coroutine>

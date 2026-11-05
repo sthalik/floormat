@@ -1,9 +1,9 @@
 #include "run.hpp"
 #include "compat/debug.hpp"
 #include "compat/function2.hpp"
+#include "compat/nanosecond.inl"
 #include "src/point.inl"
 #include "src/tile-constants.hpp"
-#include "src/nanosecond.inl"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
 #include <mg/Functions.h>

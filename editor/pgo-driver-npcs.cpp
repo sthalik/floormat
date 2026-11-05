@@ -14,10 +14,10 @@
 #include "src/search-result.hpp"
 #include "src/grid-pass.hpp"
 #include "src/point.inl"
-#include "src/nanosecond.inl"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
+#include "compat/nanosecond.inl"
 #include "floormat/main.hpp"
 #include <mg/Functions.h>
 

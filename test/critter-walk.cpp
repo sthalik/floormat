@@ -3,6 +3,7 @@
 #include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
+#include "compat/nanosecond.inl"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "src/world.hpp"
@@ -14,7 +15,6 @@
 #include "src/raycast-line.hpp"
 #include "src/rotation.inl"
 #include "src/point.inl"
-#include "src/nanosecond.inl"
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <cmath>

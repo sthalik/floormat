@@ -1,11 +1,11 @@
 #include "anim-atlas.hpp"
 #include "object.hpp"
-#include "nanosecond.hpp"
 #include "shaders/shader.hpp"
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/nanosecond.hpp"
 #include "loader/loader.hpp"
 #include <cmath>
 #include <cr/BitArrayView.h>

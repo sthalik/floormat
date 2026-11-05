@@ -14,11 +14,11 @@
 #include "src/RTree.hpp"
 #include "src/sweep-aabb.hpp"
 #include "src/RTree-search.hpp"
-#include "src/nanosecond.inl"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
+#include "compat/nanosecond.inl"
 #include "random/random.hpp"
 #include <bit>
 #include <cr/Array.h>

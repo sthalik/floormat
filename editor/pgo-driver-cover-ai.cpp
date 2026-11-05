@@ -13,9 +13,9 @@
 #include "src/search-astar.hpp"
 #include "src/search-pred.hpp"
 #include "src/point.inl"
-#include "src/nanosecond.inl"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/nanosecond.inl"
 #include "floormat/main.hpp"
 #include <cr/GrowableArray.h>
 

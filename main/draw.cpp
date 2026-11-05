@@ -3,11 +3,11 @@
 #include "floormat/draw-bounds.hpp"
 #include "src/anim-atlas.hpp"
 #include "main/clickable.hpp"
-#include "src/nanosecond.inl"
 #include "src/fps-counter.hpp"
 #include "shaders/shader.hpp"
 #include "src/chunk.hpp"
 #include "compat/fwd/algorithm/sort.hpp"
+#include "compat/nanosecond.inl"
 #include <cr/GrowableArray.h>
 #include <cr/ArrayView.h>
 #include <mg/DefaultFramebuffer.h>

@@ -4,7 +4,6 @@
 #include "cover-point.hpp"
 #include "critter.hpp"
 #include "grid-registry.hpp"
-#include "nanosecond.inl"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "raycast.hpp"
@@ -12,11 +11,12 @@
 #include "search-astar.hpp"
 #include "search-result.hpp"
 #include "tile-defs.hpp"
-#include "timer.hpp"
 #include "world.hpp"
 #include "entity/name-of.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/function2.hpp"
+#include "compat/nanosecond.inl"
+#include "compat/timer.hpp"
 #include <algorithm>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>

@@ -1,10 +1,10 @@
 #include "tests-private.hpp"
 #include "compat/array-size.hpp"
 #include "compat/safe-ptr.hpp"
+#include "compat/nanosecond.inl"
 #include "app.hpp"
 #include "floormat/main.hpp"
 #include "floormat/events.hpp"
-#include "src/nanosecond.inl"
 #include "imgui-raii.hpp"
 
 #ifdef __GNUG__

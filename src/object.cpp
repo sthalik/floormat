@@ -9,7 +9,7 @@
 #include "compat/limits.hpp"
 #include "compat/non-const.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "nanosecond.inl"
+#include "compat/nanosecond.inl"
 #include <cr/Pair.h>
 #include <cr/StructuredBindings.h>
 

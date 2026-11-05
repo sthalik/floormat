@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include "src/nanosecond.inl"
+#include "compat/nanosecond.inl"
 #include "src/fps-counter.hpp"
 #include <mg/Functions.h>
 

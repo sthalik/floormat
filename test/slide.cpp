@@ -3,6 +3,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/debug.hpp"
 #include "compat/function2.hpp"
+#include "compat/nanosecond.inl"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "src/world.hpp"
@@ -11,7 +12,6 @@
 #include "src/scenery-proto.hpp"
 #include "src/tile-image.hpp"
 #include "src/tile-constants.hpp"
-#include "src/nanosecond.inl"
 #include "src/point.inl"
 #include <mg/Functions.h>
 

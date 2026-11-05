@@ -2,9 +2,9 @@
 #include "scenery-proto.hpp"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/nanosecond.hpp"
 #include "tile-constants.hpp"
 #include "anim-atlas.hpp"
-#include "nanosecond.hpp"
 #include "rotation.inl"
 #include <mg/Functions.h>
 

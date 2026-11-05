@@ -7,9 +7,9 @@
 #include "src/RTree-search.hpp"
 #include "src/object.hpp"
 #include "src/world.hpp"
-#include "src/timer.hpp"
 #include "compat/enum-bitset.hpp"
 #include "compat/borrowed-ptr.hpp"
+#include "compat/timer.hpp"
 #include <bit>
 #include <mg/Range.h>
 #include <mg/Functions.h>

@@ -10,7 +10,6 @@
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"
-#include "src/nanosecond.inl"
 #include "loader/loader.hpp"
 #include "loader/anim-cell.hpp"
 #include "loader/ground-cell.hpp"
@@ -19,6 +18,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/crc64.hpp"
 #include "compat/exception.hpp"
+#include "compat/nanosecond.inl"
 #include "serialize/binary-serializer.hpp"
 #include <bit>
 #include <cstdio>

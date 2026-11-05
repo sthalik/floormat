@@ -1,7 +1,7 @@
+#include "compat/nanosecond.hpp"
+#include "compat/timer.hpp"
 #include "raycast-loop.hpp"
 #include "world.hpp"
-#include "nanosecond.hpp"
-#include "timer.hpp"
 
 namespace floormat::rc {
 
