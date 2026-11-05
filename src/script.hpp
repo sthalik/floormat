@@ -2,7 +2,7 @@
 #include "script-enums.hpp"
 #include "compat/defs.hpp"
 #include "compat/borrowed-ptr.hpp"
-#include "src/object-type.hpp"
+#include "object-type.hpp"
 
 namespace floormat
 {

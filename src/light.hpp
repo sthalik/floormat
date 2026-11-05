@@ -1,6 +1,6 @@
 #pragma once
-#include "src/light-falloff.hpp"
-#include "src/object.hpp"
+#include "light-falloff.hpp"
+#include "object.hpp"
 #include <mg/Vector4.h>
 
 namespace floormat {

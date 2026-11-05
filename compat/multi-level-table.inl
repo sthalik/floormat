@@ -1,8 +1,8 @@
 #pragma once
 #include "multi-level-table.hpp"
-#include "compat/assert.hpp"
+#include "assert.hpp"
 #include "entity/name-of.hpp"
-#include "compat/fwd/construct_at.hpp"
+#include "fwd/construct_at.hpp"
 #include <utility>
 #include <cr/GrowableArray.h>
 

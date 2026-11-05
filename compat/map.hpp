@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/array-size.hpp"
+#include "array-size.hpp"
 #include <type_traits>
 #include <utility>
 

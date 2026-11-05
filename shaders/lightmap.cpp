@@ -1,4 +1,4 @@
-#include "shaders/lightmap.hpp"
+#include "lightmap.hpp"
 #include "compat/assert.hpp"
 #include "src/tile-defs.hpp"
 #include "src/chunk.hpp"

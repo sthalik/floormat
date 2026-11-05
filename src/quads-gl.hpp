@@ -1,5 +1,5 @@
 #pragma once
-#include "src/quads.hpp"
+#include "quads.hpp"
 #include <mg/Mesh.h>
 
 namespace floormat::Quads {

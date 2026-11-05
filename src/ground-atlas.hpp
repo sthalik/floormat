@@ -1,8 +1,8 @@
 #pragma once
 #include "compat/borrowed-ptr.hpp"
-#include "src/pass-mode.hpp"
-#include "src/quads.hpp"
-#include "src/ground-def.hpp"
+#include "pass-mode.hpp"
+#include "quads.hpp"
+#include "ground-def.hpp"
 #include "sprite-atlas.hpp"
 #include <cr/Array.h>
 #include <cr/String.h>

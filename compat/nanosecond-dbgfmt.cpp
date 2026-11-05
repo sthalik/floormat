@@ -1,5 +1,5 @@
-#include "compat/debug.hpp"
-#include "compat/nanosecond.inl"
+#include "debug.hpp"
+#include "nanosecond.inl"
 #include <cinttypes>
 #include <cstdio>
 #include <cr/Debug.h>

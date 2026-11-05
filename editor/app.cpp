@@ -10,7 +10,7 @@
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "loader/loader.hpp"
-#include "editor/pgo-scenes.hpp"
+#include "pgo-scenes.hpp"
 #include <cr/StringIterable.h>
 #include <cr/Arguments.h>
 #include <cr/GrowableArray.h>

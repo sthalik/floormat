@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/integer-types.hpp"
+#include "integer-types.hpp"
 
 // inplace-function.hpp uses it too and #undefs it.
 #define FM_INPLACE_FUNCTION_QUALIFIERS(X)              \

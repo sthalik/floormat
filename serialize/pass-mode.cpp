@@ -1,6 +1,6 @@
 #include "pass-mode.hpp"
 #include "compat/exception.hpp"
-#include "serialize/corrade-string.hpp"
+#include "corrade-string.hpp"
 #include <nlohmann/json.hpp>
 #include <cr/String.h>
 

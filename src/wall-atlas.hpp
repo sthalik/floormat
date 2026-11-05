@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/borrowed-ptr.hpp"
-#include "src/pass-mode.hpp"
+#include "pass-mode.hpp"
 #include "wall-defs.hpp"
 #include "compat/defs.hpp"
 #include "compat/array-size.hpp"

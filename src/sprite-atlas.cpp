@@ -3,7 +3,7 @@
 #include "sprite-constants.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
-#include "src/quads.hpp"
+#include "quads.hpp"
 #include "compat/fwd/algorithm/lower_bound.hpp"
 #include <cmath>
 #include <cstdio>

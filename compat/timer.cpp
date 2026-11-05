@@ -1,8 +1,8 @@
 #include "timer.hpp"
-#include "compat/assert.hpp"
-#include "compat/array-size.hpp"
+#include "assert.hpp"
+#include "array-size.hpp"
 #include "nanosecond.hpp"
-#include "compat/fwd/chrono.hpp"
+#include "fwd/chrono.hpp"
 #include <ctime>
 #include <compare>
 #include <cstdio>

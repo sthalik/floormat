@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/chase-lev-deque.hpp"
+#include "chase-lev-deque.hpp"
 
 namespace floormat {
 

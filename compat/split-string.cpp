@@ -1,5 +1,5 @@
 #include "split-string.hpp"
-#include "compat/assert.hpp"
+#include "assert.hpp"
 #include <cr/ArrayView.h>
 
 namespace floormat {

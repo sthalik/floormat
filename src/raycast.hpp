@@ -1,8 +1,8 @@
 #pragma once
-#include "src/object-id.hpp"
-#include "src/collision.hpp"
-#include "src/point.hpp"
-#include "src/search-pred.hpp"
+#include "object-id.hpp"
+#include "collision.hpp"
+#include "point.hpp"
+#include "search-pred.hpp"
 #include <mg/Range.h>
 
 namespace floormat {

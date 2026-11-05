@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/assert.hpp"
+#include "assert.hpp"
 #if !defined __GNUG__ && !defined _MSC_VER
 #include <utility>
 #endif

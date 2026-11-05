@@ -1,6 +1,6 @@
 #pragma once
-#include "compat/range-access.hpp"
-#include "compat/assert.hpp"
+#include "range-access.hpp"
+#include "assert.hpp"
 #include <cr/StlForwardTupleSizeElement.h>
 
 namespace floormat::detail_zip {

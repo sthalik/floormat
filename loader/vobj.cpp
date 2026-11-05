@@ -4,7 +4,7 @@
 #include "src/anim.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
-#include "loader/vobj-cell.hpp"
+#include "vobj-cell.hpp"
 #include <cr/ArrayViewStl.h>
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>

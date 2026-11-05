@@ -1,6 +1,6 @@
 #pragma once
-#include "compat/exception.hpp"
-#include "compat/fwd/exception.hpp"
+#include "exception.hpp"
+#include "fwd/exception.hpp"
 #include <cr/String.h>
 
 namespace floormat {

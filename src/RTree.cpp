@@ -10,7 +10,7 @@ usize fresh_counter, reuse_counter, dtor_counter; // NOLINT
 #endif
 #include "RTree.hpp"
 #include "rtree-pool.inl"
-#include "src/object-id.hpp"
+#include "object-id.hpp"
 
 namespace floormat::detail {
 

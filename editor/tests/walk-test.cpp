@@ -1,5 +1,5 @@
 #include "../tests-private.hpp"
-#include "editor/app.hpp"
+#include "../app.hpp"
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
 #include "src/search-result.hpp"

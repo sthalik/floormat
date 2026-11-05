@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/assert.hpp"
-#include "editor/app.hpp"
+#include "app.hpp"
 #include "src/global-coords.hpp"
 #include "src/tile-defs.hpp"
 #include <cr/StringView.h>

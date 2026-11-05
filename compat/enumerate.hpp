@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/range-access.hpp"
+#include "range-access.hpp"
 #include <cr/StlForwardTupleSizeElement.h>
 
 namespace floormat::detail_enumerate {

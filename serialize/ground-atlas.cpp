@@ -4,9 +4,9 @@
 #include "src/ground-def.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
-#include "serialize/corrade-string.hpp"
-#include "serialize/magnum-vector.hpp"
-#include "serialize/pass-mode.hpp"
+#include "corrade-string.hpp"
+#include "magnum-vector.hpp"
+#include "pass-mode.hpp"
 #include <tuple>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>

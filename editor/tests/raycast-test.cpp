@@ -1,5 +1,5 @@
 #include "../tests-private.hpp"
-#include "editor/app.hpp"
+#include "../app.hpp"
 #include "floormat/main.hpp"
 #include "compat/array-size.hpp"
 #include "../imgui-raii.hpp"

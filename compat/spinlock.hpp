@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/defs.hpp"
+#include "defs.hpp"
 #include <concepts>
 
 namespace floormat {

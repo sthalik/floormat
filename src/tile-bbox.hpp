@@ -1,6 +1,6 @@
 #pragma once
 #include "tile-constants.hpp"
-#include "src/local-coords.hpp"
+#include "local-coords.hpp"
 #include <cr/Pair.h>
 #include <mg/DimensionTraits.h>
 
