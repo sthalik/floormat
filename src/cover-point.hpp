@@ -11,9 +11,9 @@ namespace floormat { class world; }
 namespace floormat::Grid { class GridRegistry; }
 namespace floormat::Grid::Cover { struct Params; }
 
-namespace floormat {
+namespace floormat::Cover::Point {
 
-struct cover_query
+struct query
 {
     /// the body's center, as Dijkstra takes it
     point pos;
@@ -37,23 +37,22 @@ struct cover_query
     u32 max_fills = (u32)-1;
 };
 
-struct cover_spot
+struct spot
 {
     point pos;
     /// toward the threat; pos is flush against a blocker along it
     Vector2i axis;
 };
 
-struct cover_point_result
+struct result
 {
     /// The first accepted spot, when found.
     point pos;
     /// toward the threat; pos is flush against a blocker along it
     Vector2i axis;
-    /// With list_spots, every accepted spot once, in the order tried, starting with pos and axis.
-    /// A spot two candidates reach keeps the first one's axis. Points into the cover_point, so it
-    /// is valid until the next find_cover_point() call.
-    ArrayView<const cover_spot> spots;
+    /// With list_spots, every accepted spot once, in search order. A duplicate keeps its first axis.
+    /// Points into the finder and stays valid until its next find() call.
+    ArrayView<const spot> spots;
     /// The number of candidates, including those never tried.
     u32 candidates = 0;
     /// The candidates pushed flush to a blocker and still seen by the threat or a turned one,
@@ -80,7 +79,7 @@ Vector2i across_of(Vector2i axis);
 /// of a tile's center, nearest first, then by y and x.
 void nearest_tiles(u32 radius, Array<Vector2i>& out);
 
-struct cover_point
+struct finder
 {
     /// @brief The first spot near q.pos where a body of q.body_size fits by pred, which counts
     /// critters, and q.threat sees no pixel of it.
@@ -89,24 +88,23 @@ struct cover_point
     /// enough to push it against, tried by octile distance from q.pos.
     /// @param list_spots Go on past the first spot and list every accepted one in spots, leaving the
     /// other fields as without it.
-    cover_point_result find_cover_point(world& w, Grid::GridRegistry& pools, Grid::Cover::Params params,
-                                        const cover_query& q, const Search::pred& pred,
-                                        bool list_spots = false);
-    /// True when threat sees no pixel of a body of body_size centered on s.pos, tested as find_cover_point
+    result find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params params,
+                const query& q, const Search::pred& pred, bool list_spots = false);
+    /// True when threat sees no pixel of a body of body_size centered on s.pos, tested as find
     /// tests its spots.
-    bool hidden_at(world& w, point threat, const cover_spot& s, Vector2ui body_size);
-    /// q.pos, flush against a blocker along axis, moved along its face as find_cover_point moves its spots for q.
+    bool hidden_at(world& w, point threat, const spot& s, Vector2ui body_size);
+    /// q.pos, flush against a blocker along axis, moved along its face as find moves its spots for q.
     /// The result is hidden from each point of also_from too, or is q.pos.
-    point move_to_cover_end(world& w, const cover_query& q, Vector2i axis, const Search::pred& pred,
+    point move_to_cover_end(world& w, const query& q, Vector2i axis, const Search::pred& pred,
                             ArrayView<const point> also_from = {});
 
-    cover_point();
-    ~cover_point() noexcept;
-    fm_DISABLE_MOVE_COPY(cover_point);
+    finder();
+    ~finder() noexcept;
+    fm_DISABLE_MOVE_COPY(finder);
 
 private:
     struct Impl;
     safe_ptr<Impl> impl;
 };
 
-} // namespace floormat
+} // namespace floormat::Cover::Point

@@ -89,7 +89,3 @@ public:
 };
 
 } // namespace floormat::Grid::Cover
-
-namespace floormat {
-namespace Cover = floormat::Grid::Cover;
-} // namespace floormat

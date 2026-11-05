@@ -31,7 +31,7 @@ namespace {
 constexpr u8 wall_x = 8, wall_y0 = 7, wall_y1 = 9;
 constexpr local_coords npc_tile{10, 8}, threat_tile{2, 8}, moved_threat_tile{2, 12};
 // cover_ai_test's default, which its script casts rays with until the scene picks div 16
-constexpr u32 cover_div = cover_script_options{}.div_size;
+constexpr u32 cover_div = Cover::Script::options{}.div_size;
 constexpr u32 cycles = 2, short_cycles = 1;
 // for each wait on the npc
 constexpr auto max_dt = Second*60;
@@ -40,7 +40,7 @@ struct stop_s
 {
     point pos;
     // from the first update that left the npc at pos
-    cover_script_status status;
+    Cover::Script::status status;
 };
 
 // scene_cover_ai_map's walls: four straight ones and two Ls. None encloses a spot, which no path
@@ -67,17 +67,17 @@ constexpr u32 map_min_player_dist = 2*tile_size_xy;
 // What cover_ai_test's "Other cover spots" box lists once its search has reached every tile: the
 // spots of one search over its default radius, 1024 px, around the tile c stands on and from
 // threat. Its default octants and max_cover_end_dist are the script's.
-void overlay_spots(critter& c, point threat, Array<cover_spot>& out,
-                   u32 max_cover_end_dist = cover_script_options{}.listed_cover_end_dist())
+void overlay_spots(critter& c, point threat, Array<Cover::Point::spot>& out,
+                   u32 max_cover_end_dist = Cover::Script::options{}.listed_cover_end_dist())
 {
-    const auto s = get_cover_script_status(c);
+    const auto s = Cover::Script::get_status(c);
     fm_assert(s && s->has_query);
     auto q = s->query;
     q.pos = point{c.position().coord(), {}};
     q.threat = threat;
     q.radius = 16*tile_size_xy;
     q.max_cover_end_dist = max_cover_end_dist;
-    list_cover_spots(c, q, out);
+    Cover::Script::list_spots(c, q, out);
 }
 
 // A peek spot that n spots of a list peek from: nearest, the one nearest it unless tie says two
@@ -89,13 +89,13 @@ struct shared_peek
     bool tie = false;
 };
 
-Array<shared_peek> shared_peeks(critter& c, const Array<cover_spot>& spots)
+Array<shared_peek> shared_peeks(critter& c, const Array<Cover::Point::spot>& spots)
 {
     Array<shared_peek> out;
     arrayReserve(out, spots.size());
     for (const auto& x : spots)
     {
-        const auto p = find_cover_peek(c, x);
+        const auto p = Cover::Script::find_peek(c, x);
         if (!p)
             continue;
         auto i = 0u;
@@ -124,7 +124,7 @@ Array<shared_peek> shared_peeks(critter& c, const Array<cover_spot>& spots)
     return out;
 }
 
-bool listed(const Array<cover_spot>& spots, point pt)
+bool listed(const Array<Cover::Point::spot>& spots, point pt)
 {
     for (const auto& x : spots)
         if (x.pos == pt)
@@ -142,8 +142,8 @@ task app::scene_cover_ai()
 {
     using tests::base_test;
     using tests::Test;
-    using state = cover_script_status::state;
-    using hold_phase = cover_script_options::hold_phase;
+    using state = Cover::Script::status::state;
+    using hold_phase = Cover::Script::options::hold_phase;
 
     // reset_world() below move-assigns the new world into the one M->world() returns, so w stays
     // valid and then names the new world. No bptr may live across that call, since
@@ -196,7 +196,7 @@ task app::scene_cover_ai()
     const auto status = [&] {
         auto C = w.find_object<critter>(npc_id);
         fm_assert(C);
-        const auto s = get_cover_script_status(*C);
+        const auto s = Cover::Script::get_status(*C);
         fm_assert(s);
         return *s;
     };
@@ -236,7 +236,7 @@ task app::scene_cover_ai()
     fm_assert_equal(stops[0].pos, status().cover);
     const auto cover = Vector3i(stops[0].pos).xy(), peek = Vector3i(stops[1].pos).xy();
 
-    Array<cover_spot> overlay;
+    Array<Cover::Point::spot> overlay;
     {
         const auto v = press(2);
         fm_assert(v.type == base_test::ValueType::u32);
@@ -270,12 +270,12 @@ task app::scene_cover_ai()
 
         const auto v = press(4);
         fm_assert(v.type == base_test::ValueType::u32);
-        Array<cover_spot> spots;
-        list_cover_spots(*w.find_object<critter>(npc_id), spots);
+        Array<Cover::Point::spot> spots;
+        Cover::Script::list_spots(*w.find_object<critter>(npc_id), spots);
         fm_assert(v.u32 > 0 && v.u32 < spots.size());
         const auto switched = spots[v.u32];
         fm_assert_equal(switched.pos, status().canonical);
-        const auto p = find_cover_peek(*w.find_object<critter>(npc_id), switched);
+        const auto p = Cover::Script::find_peek(*w.find_object<critter>(npc_id), switched);
         fm_assert(p);
         // hidden, out and back, as at cover it found itself
         for (const auto exposed : { false, true, false })
@@ -293,12 +293,12 @@ task app::scene_cover_ai()
         struct target { point peek, cover; };
         target targets[2] = { {p->pos, switched.pos}, };
         auto n_targets = 1u;
-        Optional<cover_spot> nearest;
+        Optional<Cover::Point::spot> nearest;
         point other_peek;
         auto first_shares = false;
         for (const auto& x : overlay)
         {
-            const auto q = find_cover_peek(*w.find_object<critter>(npc_id), x);
+            const auto q = Cover::Script::find_peek(*w.find_object<critter>(npc_id), x);
             if (!q || q->pos == p->pos || nearest && q->pos != other_peek)
                 continue;
             if (!nearest || point::distance_squared(x.pos, q->pos) < point::distance_squared(nearest->pos, q->pos))
@@ -371,7 +371,7 @@ task app::scene_cover_ai()
             fm_assert(h.type == base_test::ValueType::u32);
             fm_assert_equal((u32)hold_phase::hidden, h.u32);
         }
-        const auto q = find_cover_peek(*w.find_object<critter>(npc_id), spots[prev.u32]);
+        const auto q = Cover::Script::find_peek(*w.find_object<critter>(npc_id), spots[prev.u32]);
         fm_assert(q);
         set_cursor_at(q->pos);
         co_await click_at_cursor(mouse_button_left);
@@ -402,7 +402,7 @@ task app::scene_cover_ai()
         // wall. Two peek spots shared with no tie for the nearest: the npc first hides at a spot of
         // the first other than the nearest, held hidden for 3 s, then peeks from there, then from
         // the nearest spot of the second.
-        Array<cover_spot> unmoved;
+        Array<Cover::Point::spot> unmoved;
         {
             const auto v = press(2);
             fm_assert(v.type == base_test::ValueType::u32);
@@ -590,7 +590,7 @@ task app::scene_cover_ai_map()
 {
     using tests::base_test;
     using tests::Test;
-    using state = cover_script_status::state;
+    using state = Cover::Script::status::state;
 
     auto& w = M->world();
     {
@@ -641,7 +641,7 @@ task app::scene_cover_ai_map()
     const auto status = [&] {
         auto C = w.find_object<critter>(npc_id);
         fm_assert(C);
-        const auto s = get_cover_script_status(*C);
+        const auto s = Cover::Script::get_status(*C);
         fm_assert(s);
         return *s;
     };
@@ -699,7 +699,7 @@ task app::scene_cover_ai_map()
             fm_assert(v.type == base_test::ValueType::u32);
             n_spots = v.u32;
             auto& C = *w.find_object<critter>(npc_id);
-            Array<cover_spot> spots;
+            Array<Cover::Point::spot> spots;
             overlay_spots(C, player, spots);
             fm_assert_equal(n_spots, (u32)spots.size());
             const auto canonical = status().canonical;
@@ -707,7 +707,7 @@ task app::scene_cover_ai_map()
             for (const auto& x : spots)
             {
                 fm_assert(!sees(player, x.pos));
-                const auto peek = !!find_cover_peek(C, x);
+                const auto peek = !!Cover::Script::find_peek(C, x);
                 n_peeks += peek;
                 peeks |= peek && x.pos == canonical;
             }
@@ -786,13 +786,13 @@ task app::scene_cover_ai_map()
         const auto octant = (u32)box.ai32[2];
         const auto from = tile_pos(map_player_tiles[at]);
         auto& C = *w.find_object<critter>(npc_id);
-        auto q = get_cover_script_status(C)->query;
+        auto q = Cover::Script::get_status(C)->query;
         q.pos = center;
         q.threat = from;
         q.radius = 16*tile_size_xy;
-        q.max_cover_end_dist = cover_script_options{}.listed_cover_end_dist();
-        Array<cover_spot> listed_spots;
-        list_cover_spots(C, q, listed_spots);
+        q.max_cover_end_dist = Cover::Script::options{}.listed_cover_end_dist();
+        Array<Cover::Point::spot> listed_spots;
+        Cover::Script::list_spots(C, q, listed_spots);
         const auto before = press(10);
         fm_assert_equal(0u, before.au32[1]);
         fm_assert_equal(before.au32[2], (u32)listed_spots.size());
@@ -804,7 +804,7 @@ task app::scene_cover_ai_map()
                     for (const auto ox : offsets)
                     {
                         const auto pt = point{chunk_coords_{}, {x, y}, {ox, oy}};
-                        if (nearest_octant(Vector2(pt - center)) != octant ||
+                        if (Cover::Point::nearest_octant(Vector2(pt - center)) != octant ||
                             to && point::distance_squared(pt, from) >= point::distance_squared(*to, from))
                             continue;
                         for (const auto& s : listed_spots)

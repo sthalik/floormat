@@ -51,17 +51,17 @@ void test_pass_pool_snapped_params()
 
 void test_cover_pool_per_div()
 {
-    constexpr auto N = (u32)std::bit_width(Cover::max_div_size);
+    constexpr auto N = (u32)std::bit_width(Grid::Cover::max_div_size);
     Grid::GridRegistry reg;
-    Cover::Pool* pools[N];
+    Grid::Cover::Pool* pools[N];
     for (auto i = 0u; i < N; i++)
     {
-        pools[i] = &reg.cover_pool(Cover::Params{1u << i});
-        fm_assert(pools[i]->params() == Cover::Params{1u << i});
+        pools[i] = &reg.cover_pool(Grid::Cover::Params{1u << i});
+        fm_assert(pools[i]->params() == Grid::Cover::Params{1u << i});
     }
     for (auto i = 0u; i < N; i++)
     {
-        fm_assert(&reg.cover_pool(Cover::Params{1u << i}) == pools[i]);
+        fm_assert(&reg.cover_pool(Grid::Cover::Params{1u << i}) == pools[i]);
         for (auto j = i + 1; j < N; j++)
             fm_assert(pools[i] != pools[j]);
     }
@@ -72,7 +72,7 @@ void test_cover_pool_shares_pass_pool()
     auto w = world();
     auto& c = w[chunk_coords_{0, 0, 0}];
     Grid::GridRegistry reg;
-    auto& cover = reg.cover_pool(Cover::Params{8});
+    auto& cover = reg.cover_pool(Grid::Cover::Params{8});
     cover.maybe_mark_stale_all(w);
     cover[c].build_if_stale();
     // a grid this pool never built reads 0

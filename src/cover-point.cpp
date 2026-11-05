@@ -17,11 +17,11 @@
 #include <cr/Optional.h>
 #include <mg/Range.h>
 
-namespace floormat {
+namespace floormat::Cover::Point {
 
 namespace {
 
-constexpr float octant_step = 2.f * Math::Constants<float>::pi() / (float)Cover::octant_count;
+constexpr float octant_step = 2.f * Math::Constants<float>::pi() / (float)Grid::Cover::octant_count;
 
 struct octant_pair
 {
@@ -31,7 +31,7 @@ struct octant_pair
 // The two octants whose bearings are on either side of v's.
 octant_pair octants_around(Vector2 v)
 {
-    constexpr auto n = (int)Cover::octant_count;
+    constexpr auto n = (int)Grid::Cover::octant_count;
     const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step);
     const auto lo = (u32)((k % n + n) % n);
     return { lo, (lo + 1) % (u32)n };
@@ -101,7 +101,7 @@ enum class end_step : u8 { hidden, seen, stopped, };
 // whole px, as Vector3i(point).xy() gives them.
 struct spot_tests
 {
-    spot_tests(world& w, const cover_query& q, const Search::pred& pred, Array<slope_range>& runs,
+    spot_tests(world& w, const query& q, const Search::pred& pred, Array<slope_range>& runs,
                Array<Range2Di>& turned_rects, Array<Range2Di>& end_rects);
 
     point to_point(Vector2i px) const { return q_pos + (px - P); }
@@ -131,7 +131,7 @@ struct spot_tests
     Vector2 turns[4];
 };
 
-spot_tests::spot_tests(world& w, const cover_query& q, const Search::pred& pred, Array<slope_range>& runs,
+spot_tests::spot_tests(world& w, const query& q, const Search::pred& pred, Array<slope_range>& runs,
                        Array<Range2Di>& turned_rects, Array<Range2Di>& end_rects) :
     w{w}, pred{pred}, runs{runs}, turned_rects{turned_rects}, end_rects{end_rects}, q_pos{q.pos},
     P{Vector3i(q.pos).xy()}, T{Vector3i(q.threat).xy()}, body_size{q.body_size},
@@ -321,11 +321,11 @@ Vector2i axis_toward(Vector2i v)
 
 Vector2i across_of(Vector2i axis) { return Math::abs(Vector2i{axis.y(), axis.x()}); }
 
-// A bearing halfway between octants k and k + 1 takes k + 1, mod Cover::octant_count, since
+// A bearing halfway between octants k and k + 1 takes k + 1, mod Grid::Cover::octant_count, since
 // floor(x + 1/2) rounds a half up.
 u32 nearest_octant(Vector2 v)
 {
-    constexpr auto n = (int)Cover::octant_count;
+    constexpr auto n = (int)Grid::Cover::octant_count;
     const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step + .5f);
     return (u32)((k % n + n) % n);
 }
@@ -349,19 +349,19 @@ void nearest_tiles(u32 radius, Array<Vector2i>& out)
     });
 }
 
-struct cover_point::Impl
+struct finder::Impl
 {
     Array<u8> known;
     Array<cell_info> cells;
     Array<candidate> cands;
     Array<Range2Di> rects;
     Array<slope_range> runs;
-    Array<cover_spot> spots;
+    Array<spot> spots;
     Array<Range2Di> turned_rects;
     Array<Range2Di> end_rects;
 };
 
-cover_point::cover_point()
+finder::finder()
 {
     arrayReserve(impl->cands, 16);
     arrayReserve(impl->rects, 16);
@@ -370,11 +370,10 @@ cover_point::cover_point()
     arrayReserve(impl->end_rects, 16);
 }
 
-cover_point::~cover_point() noexcept = default;
+finder::~finder() noexcept = default;
 
-cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& pools, Cover::Params params,
-                                                 const cover_query& q, const Search::pred& pred,
-                                                 bool list_spots)
+result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params params,
+                    const query& q, const Search::pred& pred, bool list_spots)
 {
     auto& [known, cells, cands, rects, runs, spots, turned_rects, end_rects] = *impl;
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
@@ -397,7 +396,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
 
     // cell n spans px n*ds - half_tile up to the next one, so cells line up with chunk edges
     const auto cell_of = [ds](Vector2i px) {
-        return Vector2i{floor_div(px.x() + half_tile<int>, ds), floor_div(px.y() + half_tile<int>, ds)};
+        return Vector2i{floormat::floor_div(px.x() + half_tile<int>, ds), floormat::floor_div(px.y() + half_tile<int>, ds)};
     };
     const auto center_of = [ds](Vector2i n) { return n*ds + Vector2i{ds/2 - half_tile<int>}; };
 
@@ -425,7 +424,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
 
     // dc is also a miss, so a threat past the cap reads as exposed
     const auto hides = [&](u16 d, float len) {
-        return d != Cover::blocked && d < dc && (float)(d*(u32)ds) < len;
+        return d != Grid::Cover::blocked && d < dc && (float)(d*(u32)ds) < len;
     };
 
     const auto fills0 = cover_pool.octant_fills();
@@ -435,7 +434,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
         return !out_of_fills;
     };
     // False, with g unchanged, when building g or filling octant k would pass q.max_fills.
-    const auto ensure = [&](Cover::Grid& g, u32 k) {
+    const auto ensure = [&](Grid::Cover::Grid& g, u32 k) {
         if (g.is_stale())
         {
             if (!may_fill())
@@ -456,7 +455,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
         if (known[i])
             return cells[i];
         known[i] = true;
-        cells[i] = { false, false, Cover::blocked };
+        cells[i] = { false, false, Grid::Cover::blocked };
         const auto center = center_of(n);
         const auto pt = to_point(center);
         auto* c = w.at(pt.chunk3());
@@ -476,7 +475,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
         const auto cell = g.get_cell_index_from_coord(pt.intra());
         const auto d0 = g.distance(cell, k.lo), d1 = g.distance(cell, k.hi);
         const auto d = hides(d0, len) && hides(d1, len) ? Math::min(d0, d1) : hides(d1, len) ? d1 : d0;
-        cells[i] = { hides(d, len), d == Cover::blocked, d };
+        cells[i] = { hides(d, len), d == Grid::Cover::blocked, d };
         return cells[i];
     };
 
@@ -514,7 +513,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
     // distance to the threat. False when a cell's chunk doesn't exist, as look() reads it as seen.
     const auto half = (int)(q.octants/2u);
     const auto hidden_in_octants = [&](Vector2i center) {
-        constexpr auto n = (int)Cover::octant_count;
+        constexpr auto n = (int)Grid::Cover::octant_count;
         const auto v = Vector2(T - center);
         const auto len = v.length();
         const auto m = (int)nearest_octant(v);
@@ -530,7 +529,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
                     const auto d = distance_at({x, y}, k);
                     if (!d)
                         return false;
-                    if (*d != Cover::blocked)
+                    if (*d != Grid::Cover::blocked)
                         highest = Math::max(highest, *d);
                 }
             if (!hides(highest, len))
@@ -556,7 +555,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
                             && (q.octants ? hidden_in_octants(center) : body_hidden(center));
             if (out_of_fills)
             {
-                cover_point_result ret;
+                result ret;
                 ret.fills = cover_pool.octant_fills() - fills0;
                 ret.out_of_fills = true;
                 return ret;
@@ -578,7 +577,7 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
         return a.center.y() != b.center.y() ? a.center.y() < b.center.y() : a.center.x() < b.center.x();
     });
 
-    cover_point_result ret;
+    result ret;
     ret.candidates = (u32)cands.size();
     ret.fills = cover_pool.octant_fills() - fills0;
     if (cands.isEmpty())
@@ -688,14 +687,14 @@ cover_point_result cover_point::find_cover_point(world& w, Grid::GridRegistry& p
         while (i < spots.size() && spots[i].pos != pt)
             i++;
         if (i == spots.size())
-            arrayAppend(spots, cover_spot{pt, axis});
+            arrayAppend(spots, spot{pt, axis});
     }
     if (list_spots)
         ret.spots = spots;
     return ret;
 }
 
-bool cover_point::hidden_at(world& w, point threat, const cover_spot& s, Vector2ui body_size)
+bool finder::hidden_at(world& w, point threat, const spot& s, Vector2ui body_size)
 {
     fm_assert(s.pos.chunk3().z == threat.chunk3().z);
     auto& I = *impl;
@@ -703,8 +702,8 @@ bool cover_point::hidden_at(world& w, point threat, const cover_spot& s, Vector2
     return X.hidden_from(X.T, X.P, s.axis, I.rects);
 }
 
-point cover_point::move_to_cover_end(world& w, const cover_query& q, Vector2i axis, const Search::pred& pred,
-                                     ArrayView<const point> also_from)
+point finder::move_to_cover_end(world& w, const query& q, Vector2i axis, const Search::pred& pred,
+                               ArrayView<const point> also_from)
 {
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     auto& I = *impl;
@@ -734,4 +733,4 @@ point cover_point::move_to_cover_end(world& w, const cover_query& q, Vector2i ax
     return X.to_point(X.P + dir*a);
 }
 
-} // namespace floormat
+} // namespace floormat::Cover::Point

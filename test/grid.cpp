@@ -1342,9 +1342,9 @@ void test_cover_east_distance(u32 div_size)
     rebuild_passability(c);
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
-    Cover::Grid g = pool[c];
+    Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
     fm_assert(g.built_octants() & 1u);
 
@@ -1365,9 +1365,9 @@ void test_cover_east_distance(u32 div_size)
     const auto east = [&](int x) {
         return g.distance(g.get_cell_index_from_coord(intra_coord{Vector2i{x, pos.y()}}), 0);
     };
-    fm_assert_equal(Cover::blocked, east(540));
+    fm_assert_equal(Grid::Cover::blocked, east(540));
     auto x = pos.x();
-    while (east(x + (int)div_size) != Cover::blocked)
+    while (east(x + (int)div_size) != Grid::Cover::blocked)
     {
         x += (int)div_size;
         fm_assert(x < 540);
@@ -1544,7 +1544,7 @@ Array<u16> cover_aligned_reference(chunk& c, const Pass::Grid& pg, u32 div_size,
             const auto i = at({x, y});
             ret[i] = pg.bit(Pass::Grid::get_bitmask_index((u32)x, (u32)y, (u32)dc))
                      ? cover_units_fixed(px[i], div_size)
-                     : Cover::blocked;
+                     : Grid::Cover::blocked;
         }
     return ret;
 }
@@ -1610,7 +1610,7 @@ Array<u16> cover_stepped_reference(chunk& c, const Pass::Grid& pg, u32 div_size,
             if (!passable(x, y))
             {
                 px[i] = 0;
-                ret[i] = Cover::blocked;
+                ret[i] = Grid::Cover::blocked;
                 continue;
             }
             u32 v;
@@ -1635,7 +1635,7 @@ Array<u16> cover_stepped_reference(chunk& c, const Pass::Grid& pg, u32 div_size,
     return ret;
 }
 
-void check_cover_octants(world& w, Cover::Grid& g, u32 div_size, ArrayView<const u32> octants)
+void check_cover_octants(world& w, Grid::Cover::Grid& g, u32 div_size, ArrayView<const u32> octants)
 {
     auto& c = w[COORD];
     // the params CoverPool gives its own pass pool
@@ -1675,9 +1675,9 @@ void test_cover_matches_reference(u32 div_size, ArrayView<const u32> octants)
     make_cover_scene(w);
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
-    Cover::Grid g = pool[w[COORD]];
+    Grid::Cover::Grid g = pool[w[COORD]];
     g.build_if_stale();
     check_cover_octants(w, g, div_size, octants);
 
@@ -1707,9 +1707,9 @@ void test_cover_diagonal_tracks_ray(u32 div_size)
 
     auto& c = w[COORD];
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
-    Cover::Grid g = pool[c];
+    Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
     constexpr u32 k = 4;
     (void)g.ensure_octant(k);
@@ -1723,7 +1723,7 @@ void test_cover_diagonal_tracks_ray(u32 div_size)
         {
             const auto x = y + off;
             const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool), div_size);
-            const auto d = (u32)g.distance(Cover::Grid::get_cell_index(x, y, dc), k);
+            const auto d = (u32)g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
             if (Math::max(d, ray) - Math::min(d, ray) > 1)
             {
                 Error{standard_error()} << "!!! fatal: div_size" << div_size << "cell" << x << y
@@ -1737,11 +1737,11 @@ void test_cover_diagonal_tracks_ray(u32 div_size)
 
 void test_cover_octant_directions()
 {
-    for (auto k = 0u; k < Cover::octant_count; k++)
+    for (auto k = 0u; k < Grid::Cover::octant_count; k++)
     {
-        const auto dir = Cover::octant_direction(k);
+        const auto dir = Grid::Cover::octant_direction(k);
         fm_assert((dir - cover_direction(k)).length() < 1e-6f);
-        const auto theta = Rad{2.f * Math::Constants<float>::pi() * (float)k / (float)Cover::octant_count};
+        const auto theta = Rad{2.f * Math::Constants<float>::pi() * (float)k / (float)Grid::Cover::octant_count};
         const auto c = Math::cos(theta), s = Math::sin(theta);
         const auto off = Deg{Rad{std::atan2(dir.y()*c - dir.x()*s, dir.x()*c + dir.y()*s)}};
         fm_assert(Math::abs(float(off)) <= .7f);
@@ -1771,9 +1771,9 @@ void test_cover_stepped_tracks_ray(u32 div_size, ArrayView<const u32> octants)
 
     auto& c = w[COORD];
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
-    Cover::Grid g = pool[c];
+    Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
 
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
@@ -1790,7 +1790,7 @@ void test_cover_stepped_tracks_ray(u32 div_size, ArrayView<const u32> octants)
                 if ((x*7 + y*13) % every != 0)
                     continue;
                 const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool), div_size);
-                const auto d = (u32)g.distance(Cover::Grid::get_cell_index(x, y, dc), k);
+                const auto d = (u32)g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
                 if (Math::max(d, ray) - Math::min(d, ray) > 1)
                 {
                     Error{standard_error()} << "!!! fatal: div_size" << div_size << "octant" << k << "cell" << x << y
@@ -1832,9 +1832,9 @@ void test_cover_east_rounds(u32 div_size)
         rebuild_passability(w[ch]);
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
-    Cover::Grid g = pool[w[COORD]];
+    Grid::Cover::Grid g = pool[w[COORD]];
     g.build_if_stale();
 
     const auto dc = g.div_count();
@@ -1854,7 +1854,7 @@ void test_cover_east_rounds(u32 div_size)
             {
                 const auto px = (u32)(face - center(x));
                 const auto expected = Math::min(dc, (2*px + div_size) / (2*div_size));
-                const auto d = (u32)g.distance(Cover::Grid::get_cell_index(x, y, dc), 0);
+                const auto d = (u32)g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), 0);
                 if (d != expected)
                 {
                     Error{standard_error()} << "!!! fatal: div_size" << div_size << "cell" << x << y
@@ -1876,9 +1876,9 @@ void test_cover_blocked_cells(u32 div_size)
     rebuild_passability(c);
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
-    Cover::Grid g = pool[c];
+    Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
 
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
@@ -1894,9 +1894,9 @@ void test_cover_blocked_cells(u32 div_size)
         for (auto y = 0u; y < dc; y++)
             for (auto x = 0u; x < dc; x++)
             {
-                const auto d = g.distance(Cover::Grid::get_cell_index(x, y, dc), k);
+                const auto d = g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
                 const bool passable = pg.bit(Pass::Grid::get_bitmask_index(x, y, dc));
-                fm_assert(passable == (d != Cover::blocked));
+                fm_assert(passable == (d != Grid::Cover::blocked));
                 fm_assert(!passable || (d >= 1 && d <= dc));
                 blocked += !passable;
             }
@@ -1914,10 +1914,10 @@ void test_cover_rebuilds_on_neighbor_change(u32 div_size)
     rebuild_passability(c);
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
     const auto walk = [&] {
         pool.maybe_mark_stale_all(w);
-        Cover::Grid g = pool[c];
+        Grid::Cover::Grid g = pool[c];
         g.build_if_stale();
         return g.build_no();
     };
@@ -1947,13 +1947,13 @@ void test_cover_rebuilds_on_ring2_change(u32 div_size)
         rebuild_passability(w[ch]);
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
     const auto dc = chunk_size_xy / div_size;
     // a row through tile row 8, which the blocker spans
-    const auto cell = Cover::Grid::get_cell_index(dc - 1, (u32)(tile_size_xy*8 + half_tile<int>) / div_size, dc);
-    const auto east = [&](Cover::Pool& p) {
+    const auto cell = Grid::Cover::Grid::get_cell_index(dc - 1, (u32)(tile_size_xy*8 + half_tile<int>) / div_size, dc);
+    const auto east = [&](Grid::Cover::Pool& p) {
         p.maybe_mark_stale_all(w);
-        Cover::Grid g = p[w[COORD]];
+        Grid::Cover::Grid g = p[w[COORD]];
         g.build_if_stale();
         (void)g.ensure_octant(0);
         return (u32)g.distance(cell, 0);
@@ -1968,7 +1968,7 @@ void test_cover_rebuilds_on_ring2_change(u32 div_size)
     fm_assert(expected < dc);
     {
         Pass::Pool fresh_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-        Cover::Pool fresh{Cover::Params{div_size}, fresh_pass_pool};
+        Grid::Cover::Pool fresh{Grid::Cover::Params{div_size}, fresh_pass_pool};
         fm_assert(east(fresh) == expected);
     }
     const auto d = east(pool);
@@ -1996,9 +1996,9 @@ void test_cover_diagonal_matches_ray(u32 div_size)
 
     auto& c = w[COORD];
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
     pool.maybe_mark_stale_all(w);
-    Cover::Grid g = pool[c];
+    Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
     constexpr u32 k = 4;
     (void)g.ensure_octant(k);
@@ -2012,7 +2012,7 @@ void test_cover_diagonal_matches_ray(u32 div_size)
         {
             const auto x = y + off;
             const auto ray = cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool);
-            const auto d = g.distance(Cover::Grid::get_cell_index(x, y, dc), k);
+            const auto d = g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
             if (Math::abs((float)d - ray / (float)div_size) > .5f + 1.f/16)
             {
                 Error{standard_error()} << "!!! fatal: div_size" << div_size << "cell" << x << y
@@ -2090,8 +2090,8 @@ void test_grid()
             test_hole_marker_never_blocks(ds, p);
         test_hole_still_opens_blocked_ground(ds);
     }
-    u32 all_octants[Cover::octant_count], stepped_octants[Cover::octant_count - 8];
-    for (auto k = 0u, n = 0u; k < Cover::octant_count; k++)
+    u32 all_octants[Grid::Cover::octant_count], stepped_octants[Grid::Cover::octant_count - 8];
+    for (auto k = 0u, n = 0u; k < Grid::Cover::octant_count; k++)
     {
         all_octants[k] = k;
         if (k % 4 != 0)
