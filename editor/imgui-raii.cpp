@@ -12,16 +12,13 @@ font_saver::~font_saver()
 {
     auto& ctx = *ImGui::GetCurrentContext();
     ctx.FontSize = font_size;
-    //ctx.FontSizeBase = font_base_size;
 }
 
 font_saver::font_saver(float size) :
-    font_size{ImGui::GetCurrentContext()->FontSize},
-    font_base_size{ImGui::GetCurrentContext()->FontSizeBase}
+    font_size{ImGui::GetCurrentContext()->FontSize}
 {
     auto& ctx = *ImGui::GetCurrentContext();
     ctx.FontSize = size;
-    //ctx.FontSizeBase = size;
     //ImGui::UpdateCurrentFontSize(0);
 }
 
