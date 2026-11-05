@@ -1,7 +1,7 @@
 #pragma once
 #include <fmt/base.h>
 #include <cr/String.h>
-#include <exception>
+#include "compat/fwd/exception.hpp"
 
 namespace floormat {
 
