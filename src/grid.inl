@@ -94,9 +94,8 @@ T* pool_subscript(Pool<T>* p, chunk& c)
 }
 
 template <typename T>
-bool grid_bit_at(Pool<T>* pool, T* grid, u32 index)
+bool grid_bit_at(T* grid, u32 index)
 {
-    (void)pool;
     //check_current(grid);
     //fm_assert(index < grid->bitmask.size());
     return grid->bitmask[index];

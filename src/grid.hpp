@@ -113,4 +113,6 @@ struct BitView
     void write(u32 i, bool value);
 };
 
+template <typename T> bool grid_bit_at(T* grid, u32 index);
+
 } // namespace floormat::detail::grid

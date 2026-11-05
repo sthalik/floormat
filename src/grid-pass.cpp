@@ -344,7 +344,7 @@ Range2D Grid::get_coord_from_div(u32 x, u32 y) const
 
 bool Grid::bit(u32 index) const
 {
-    return detail::grid::grid_bit_at(pool, grid, index);
+    return detail::grid::grid_bit_at(grid, index);
 }
 
 BitView Grid::bits() const
