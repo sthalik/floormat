@@ -78,13 +78,13 @@ bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Sea
     return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(size)}, pred);
 }
 
-cover_point_result find(world& w, point npc, point threat, u32 radius, u32 div_size, Vector2ui size = body,
+Cover::Point::result find(world& w, point npc, point threat, u32 radius, u32 div_size, Vector2ui size = body,
                         const Search::pred& pred = Search::without_critters(), bool list_spots = false,
                         u8 octants = 0, u32 max_cover_end_dist = 0)
 {
-    static cover_point finder;
+    static Cover::Point::finder finder;
     Grid::GridRegistry pools;
-    return finder.find_cover_point(w, pools, Cover::Params{div_size}, {npc, size, threat, radius, octants, max_cover_end_dist},
+    return finder.find(w, pools, Grid::Cover::Params{div_size}, {npc, size, threat, radius, octants, max_cover_end_dist},
                                    pred, list_spots);
 }
 
@@ -364,7 +364,7 @@ void test_spot_taken()
 
 // Returns the search for npc and threat with its spots listed, after checking that a search
 // without them returns the same fields. The spots are valid until the next find().
-cover_point_result find_listed(world& w, point npc, point threat, u32 radius)
+Cover::Point::result find_listed(world& w, point npc, point threat, u32 radius)
 {
     const auto r0 = find(w, npc, threat, radius, 8);
     const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters(), true);
@@ -401,9 +401,9 @@ void test_lists_cover_spots()
 
     const point npc{ch, {4, 8}, {}}, threat{ch, {12, 8}, {}};
     constexpr auto radius = 3*tile_size_xy;
-    cover_point fresh;
+    Cover::Point::finder fresh;
     Grid::GridRegistry pools;
-    const auto r1 = fresh.find_cover_point(w, pools, Cover::Params{8}, {npc, body, threat, radius},
+    const auto r1 = fresh.find(w, pools, Grid::Cover::Params{8}, {npc, body, threat, radius},
                                            Search::without_critters(), true);
     // Spots left over from a search on the other side of the wall would show in the next list.
     const auto other = find(w, point{ch, {10, 8}, {}}, point{ch, {2, 8}, {}}, radius, 8, body, Search::without_critters(), true);
@@ -427,11 +427,11 @@ void test_max_fills()
 
     const point npc{ch, {4, 8}, {}}, threat{ch, {12, 8}, {}};
     constexpr auto radius = 3*(u32)tile_size_xy;
-    cover_point finder;
-    cover_query q{npc, body, threat, radius, 3};
+    Cover::Point::finder finder;
+    Cover::Point::query q{npc, body, threat, radius, 3};
     const auto whole = [&] {
         Grid::GridRegistry pools;
-        return finder.find_cover_point(w, pools, Cover::Params{8}, q, Search::without_critters());
+        return finder.find(w, pools, Grid::Cover::Params{8}, q, Search::without_critters());
     }();
     fm_assert(whole.found && !whole.out_of_fills);
     fm_assert(whole.fills > 2);
@@ -439,10 +439,10 @@ void test_max_fills()
     Grid::GridRegistry pools;
     q.max_fills = 1;
     auto calls = 0u, fills = 0u;
-    cover_point_result r;
+    Cover::Point::result r;
     do
     {
-        r = finder.find_cover_point(w, pools, Cover::Params{8}, q, Search::without_critters());
+        r = finder.find(w, pools, Grid::Cover::Params{8}, q, Search::without_critters());
         fm_assert(r.fills <= 1);
         fm_assert(!r.out_of_fills || r.fills == 1 && !r.found);
         fills += r.fills;
@@ -455,7 +455,7 @@ void test_max_fills()
     fm_assert(r.found && r.pos == whole.pos && r.axis == whole.axis);
 
     q.max_fills = 0;
-    const auto warm = finder.find_cover_point(w, pools, Cover::Params{8}, q, Search::without_critters());
+    const auto warm = finder.find(w, pools, Grid::Cover::Params{8}, q, Search::without_critters());
     fm_assert(warm.found && !warm.out_of_fills && warm.fills == 0 && warm.pos == whole.pos);
 }
 
@@ -485,14 +485,14 @@ void test_lists_past_rejected()
 void check_lists_by_area(world& w, point npc, point threat, u8 octants, u32 max_cover_end_dist, u32 min_spots)
 {
     constexpr auto radius = 4*(u32)tile_size_xy;
-    cover_point finder;
+    Cover::Point::finder finder;
     Grid::GridRegistry pools;
     const auto search = [&](Optional<Range2Di> area) {
-        return finder.find_cover_point(w, pools, Cover::Params{8}, {npc, body, threat, radius, octants, max_cover_end_dist, area},
+        return finder.find(w, pools, Grid::Cover::Params{8}, {npc, body, threat, radius, octants, max_cover_end_dist, area},
                                        Search::without_critters(), true);
     };
     const auto whole = search({});
-    Array<cover_spot> spots;
+    Array<Cover::Point::spot> spots;
     arrayAppend(spots, whole.spots);
     fm_assert(spots.size() > min_spots);
 
@@ -541,12 +541,12 @@ void test_lists_by_area_long_wall()
     check_lists_by_area(w, point{ch, {6, 8}, {4, 4}}, point{ch, {12, 8}, {}}, 0, 2*tile_size_xy, 1);
 }
 
-// Where find_cover_point puts the threat turned about pos by j octants, rounded to whole px. It
+// Where find puts the threat turned about pos by j octants, rounded to whole px. It
 // rounds float math, so each component must lie at least 1e-3 px from a half pixel.
 Vector2i turned_threat(Vector2i threat, Vector2i pos, int j)
 {
     const auto v = Vector2d(threat - pos);
-    const auto a = j * 2 * Math::Constants<double>::pi() / Cover::octant_count;
+    const auto a = j * 2 * Math::Constants<double>::pi() / Grid::Cover::octant_count;
     const auto t = Vector2d{v.x()*std::cos(a) - v.y()*std::sin(a), v.x()*std::sin(a) + v.y()*std::cos(a)};
     fm_assert((Math::abs(t - Math::floor(t) - Vector2d{.5}) >= Vector2d{1e-3}).all());
     return pos + Vector2i(Math::round(t));
@@ -562,7 +562,7 @@ bool hidden_from(world& w, Vector2i threat, point pos)
     return ret;
 }
 
-Array<point> copy_spots(const cover_point_result& r)
+Array<point> copy_spots(const Cover::Point::result& r)
 {
     Array<point> ret;
     arrayReserve(ret, r.spots.size());
@@ -799,9 +799,9 @@ struct cover_scene
     point next_stop();
     u32 stay(u32 max, Vector2i threat_step = {});
     void move_threat(point pos);
-    cover_script_status status();
+    Cover::Script::status status();
     void step_until(point pos);
-    void step_until(cover_script_status::state st);
+    void step_until(Cover::Script::status::state st);
     u32 finish_search();
 };
 
@@ -842,9 +842,9 @@ void cover_scene::move_threat(point pos)
     threat->teleport_to(i, pos, rotation_COUNT);
 }
 
-cover_script_status cover_scene::status()
+Cover::Script::status cover_scene::status()
 {
-    const auto s = get_cover_script_status(*npc);
+    const auto s = Cover::Script::get_status(*npc);
     fm_assert(s);
     return *s;
 }
@@ -858,7 +858,7 @@ void cover_scene::step_until(point pos)
     }
 }
 
-void cover_scene::step_until(cover_script_status::state st)
+void cover_scene::step_until(Cover::Script::status::state st)
 {
     for (auto frames = 0u; status().st != st; frames++)
     {
@@ -871,7 +871,7 @@ void cover_scene::step_until(cover_script_status::state st)
 // number of updates that started in state::find_retreat.
 u32 cover_scene::finish_search()
 {
-    using state = cover_script_status::state;
+    using state = Cover::Script::status::state;
     const auto num_searches = status().num_searches;
     const auto searching = [&] {
         const auto t = status();
@@ -949,7 +949,7 @@ u32 cover_scene::stay(u32 max, Vector2i threat_step)
 void test_cover_script_keeps_peeking(point hidden, point peek)
 {
     cover_scene s;
-    set_cover_script_options(*s.npc, {.search_every_move = true});
+    Cover::Script::set_options(*s.npc, {.search_every_move = true});
     for (auto frames = 0u; s.npc->position() != peek; frames++)
     {
         fm_assert(frames < 60*s.fps);
@@ -1000,7 +1000,7 @@ void test_cover_script_keeps_peeking(point hidden, point peek)
 void test_cover_script_follows_while_hidden()
 {
     cover_scene s;
-    set_cover_script_options(*s.npc, {.search_every_move = true, .octants = 0, .threat_reach = 0});
+    Cover::Script::set_options(*s.npc, {.search_every_move = true, .octants = 0, .threat_reach = 0});
     const auto hidden = s.next_stop();
     (void)s.stay(2*s.fps);
     (void)s.next_stop();
@@ -1059,7 +1059,7 @@ void test_cover_script_threat_walks_along_wall(bool search_every_move)
 {
     cover_scene s{point{ch, {8, 8}, {}}};
     // From 56 px, the threat could walk around either end of the wall within threat_reach.
-    set_cover_script_options(*s.npc, {.search_every_move = search_every_move, .threat_reach = 0});
+    Cover::Script::set_options(*s.npc, {.search_every_move = search_every_move, .threat_reach = 0});
     const auto hidden = s.next_stop();
     (void)s.stay(2*s.fps);
     const auto peek = s.next_stop();
@@ -1108,7 +1108,7 @@ void test_cover_script_walking_threat(point hidden)
     {
         s.move_threat(s.threat->position() + Vector2i{1, 0});
         s.step();
-        if (s.status().st == cover_script_status::state::to_peek)
+        if (s.status().st == Cover::Script::status::state::to_peek)
             break;
         fm_assert(frames < 2*s.fps + 2);
         fm_assert(Vector3i(s.npc->position()).x() == Vector3i(hidden).x());
@@ -1121,10 +1121,10 @@ void test_cover_script_walking_threat(point hidden)
 // the threat sees the gun at the peek spot and not with the peek 1 px shorter. gun_offset is as in
 // cover_scene.
 cover_cycle peek_with_gun(Optional<int> gun_offset, const Optional<point>& other_pos = {}, Vector2ui npc_size = body,
-                          u32 max_cover_end_dist = cover_script_options{}.max_cover_end_dist)
+                          u32 max_cover_end_dist = Cover::Script::options{}.max_cover_end_dist)
 {
     cover_scene s{point{ch, {12, 8}, {}}, gun_offset, other_pos, npc_size};
-    set_cover_script_options(*s.npc, {.max_cover_end_dist = max_cover_end_dist});
+    Cover::Script::set_options(*s.npc, {.max_cover_end_dist = max_cover_end_dist});
     const auto hidden = s.next_stop();
     // The peek is along y, so the default is half of bbox_size.y(). find_peek_pos() reads bbox_size
     // at hidden, and each walk turns the npc, which rotates bbox_size.
@@ -1188,10 +1188,9 @@ bool gun_seen(world& w, point threat, point pos)
     return raycast(w, threat, gun_at(pos, threat, (int)body.y()/2), 0, pool, Search::without_critters()).success;
 }
 
-// The walk from spot to find_cover_peek's spot for it, for an npc standing on spot with the cover
-// script and its default gun point, and its threat at threat_pos. w holds the blockers. It asserts
-// that the threat sees the gun at the peek spot, and doesn't at spot or 1 px back toward it.
-Vector2i peek_walk(world& w, const cover_spot& spot, point threat_pos)
+// Checks the walk from spot to its peek with the default gun point, cover script and threat at threat_pos.
+// The threat sees the gun at the peek spot, and not at spot or 1 px back toward it.
+Vector2i peek_walk(world& w, const Cover::Point::spot& spot, point threat_pos)
 {
     rebuild(w);
     const auto threat = add_critter(w, threat_pos);
@@ -1199,8 +1198,8 @@ Vector2i peek_walk(world& w, const cover_spot& spot, point threat_pos)
     w.init_scripts();
     auto A = astar{};
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
-    set_cover_script_options(*npc, {.max_cover_end_dist = 0});
-    const auto p = find_cover_peek(*npc, spot);
+    Cover::Script::set_options(*npc, {.max_cover_end_dist = 0});
+    const auto p = Cover::Script::find_peek(*npc, spot);
     w.finish_scripts();
     fm_assert(p);
     const auto d = Vector3i(p->pos).xy() - Vector3i(spot.pos).xy();
@@ -1218,7 +1217,7 @@ void test_cover_script_peeks_diagonally()
     auto w = world();
     add_ground(w);
     add_blocker(w, {8, 8}, {64, 64});
-    const cover_spot spot{point{ch, {7, 8}, {20, -16}}, {1, 0}};
+    const Cover::Point::spot spot{point{ch, {7, 8}, {20, -16}}, {1, 0}};
     const auto threat = spot.pos + Vector2i{256, 256};
     const auto d = peek_walk(w, spot, threat);
     fm_assert(d.x() < 0 && d.y() == -d.x());
@@ -1239,7 +1238,7 @@ void test_cover_script_peeks_from_corner()
     add_ground(w);
     add_blocker(w, {8, 7}, {16, 192});
     add_blocker(w, {8, 8}, {32, 16}, {-24, 24});
-    const cover_spot spot{point{ch, {8, 8}, {-20, 4}}, {1, 0}};
+    const Cover::Point::spot spot{point{ch, {8, 8}, {-20, 4}}, {1, 0}};
     const auto d = peek_walk(w, spot, spot.pos + Vector2i{128, 256});
     fm_assert(d.x() < 0 && d.y() == 0);
 }
@@ -1267,7 +1266,7 @@ void test_cover_script_faces_threat()
     const auto north = hidden - Vector2i{0, (int)body.y() + 1};
     const auto peek = peek_with_gun(gun_offset, north, body, 0).peek;
     cover_scene s{point{ch, {12, 8}, {}}, gun_offset, north};
-    set_cover_script_options(*s.npc, {.max_cover_end_dist = 0});
+    Cover::Script::set_options(*s.npc, {.max_cover_end_dist = 0});
     for (auto frames = 0u; s.npc->position() != peek; frames++)
     {
         fm_assert(frames < 60*s.fps);
@@ -1312,14 +1311,14 @@ void test_cover_script_faces_threat()
     fm_assert(standing + 2 >= 2*s.fps && standing <= 2*s.fps + 2);
 }
 
-using state = cover_script_status::state;
+using state = Cover::Script::status::state;
 
 // The npc of cover_scene hides at hidden, and stays without searching while the threat walks east 1 px per frame.
 // When the threat moves north-west of the wall, the npc retreats at once and hides at cover its search finds.
 void test_cover_script_hidden_checks(point hidden)
 {
     cover_scene s;
-    fm_assert(!get_cover_script_status(*s.threat));
+    fm_assert(!Cover::Script::get_status(*s.threat));
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
     const auto t0 = s.status();
@@ -1358,7 +1357,7 @@ void test_cover_script_hidden_checks(point hidden)
     fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, t.cover, body, s.npc->id));
 }
 
-using hold_phase = cover_script_options::hold_phase;
+using hold_phase = Cover::Script::options::hold_phase;
 
 // The npc of cover_scene steps through hold's values, staying put 4 s in each held phase. It steps
 // out when hold becomes exposed, peeks for its whole 2 s out once hold is none, and, held hidden
@@ -1373,25 +1372,25 @@ void test_cover_script_holds_hidden(point hidden, point peek)
             fm_assert(s.npc->position() == pos && s.status().st == st);
         }
     };
-    set_cover_script_options(*s.npc, {.hold = hold_phase::hidden});
+    Cover::Script::set_options(*s.npc, {.hold = hold_phase::hidden});
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
     stays_at(hidden, state::hidden);
 
-    set_cover_script_options(*s.npc, {.hold = hold_phase::exposed});
+    Cover::Script::set_options(*s.npc, {.hold = hold_phase::exposed});
     s.step();
     fm_assert(s.status().st == state::to_peek);
     s.step_until(peek);
     stays_at(peek, state::exposed);
 
-    set_cover_script_options(*s.npc, {});
+    Cover::Script::set_options(*s.npc, {});
     // As in test_cover_script_faces_threat.
     const auto frames = s.stay(2*s.fps + 3);
     fm_assert(frames + 2 >= 2*s.fps);
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
 
-    set_cover_script_options(*s.npc, {.hold = hold_phase::hidden});
+    Cover::Script::set_options(*s.npc, {.hold = hold_phase::hidden});
     const point threat_pos{ch, {2, 4}, {}};
     s.move_threat(threat_pos);
     fm_assert(s.seen_from(threat_pos, hidden));
@@ -1411,7 +1410,7 @@ void test_cover_script_holds_hidden(point hidden, point peek)
 void test_cover_script_holds_exposed(point hidden, point peek)
 {
     cover_scene s;
-    set_cover_script_options(*s.npc, {.hold = hold_phase::exposed});
+    Cover::Script::set_options(*s.npc, {.hold = hold_phase::exposed});
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
     s.step();
@@ -1439,7 +1438,7 @@ void test_cover_script_holds_exposed(point hidden, point peek)
     const auto peek2 = s.npc->position();
     fm_assert(peek2 != cover);
 
-    set_cover_script_options(*s.npc, {.hold = hold_phase::hidden});
+    Cover::Script::set_options(*s.npc, {.hold = hold_phase::hidden});
     s.step();
     fm_assert(s.status().st == state::to_cover);
     s.step_until(state::hidden);
@@ -1456,11 +1455,11 @@ void test_cover_script_holds_exposed(point hidden, point peek)
 void test_cover_script_hold_follows_orders(point hidden, point peek)
 {
     cover_scene s;
-    set_cover_script_options(*s.npc, {.hold = hold_phase::hidden});
+    Cover::Script::set_options(*s.npc, {.hold = hold_phase::hidden});
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
-    Array<cover_spot> spots;
-    list_cover_spots(*s.npc, spots);
+    Array<Cover::Point::spot> spots;
+    Cover::Script::list_spots(*s.npc, spots);
     fm_assert(!spots.isEmpty() && spots[0].pos == s.status().canonical);
     const auto stays_at = [&](point pos, state st) {
         for (auto k = 0u; k < 4*s.fps; k++)
@@ -1470,11 +1469,11 @@ void test_cover_script_hold_follows_orders(point hidden, point peek)
         }
     };
 
-    fm_assert(send_to_peek(*s.npc, spots[0]));
+    fm_assert(Cover::Script::send_to_peek(*s.npc, spots[0]));
     s.step_until(peek);
     stays_at(peek, state::exposed);
 
-    fm_assert(send_to_cover(*s.npc, spots[0]));
+    fm_assert(Cover::Script::send_to_cover(*s.npc, spots[0]));
     s.step_until(hidden);
     stays_at(hidden, state::hidden);
 }
@@ -1552,9 +1551,9 @@ bptr<scenery> wall_in_east_cover(world& w)
 
 // For scenes with wall_in_east_cover. needs_peek and threat_reach would skip walled-in spots before their Dijkstra
 // search, which the tests count.
-cover_script_options walled_in_options()
+Cover::Script::options walled_in_options()
 {
-    auto o = cover_script_options{};
+    auto o = Cover::Script::options{};
     o.threat_reach = 0;
     o.needs_peek = false;
     return o;
@@ -1582,7 +1581,7 @@ void test_cover_script_flanked_searches_from_retreat_end(point peek)
 
     s.move_threat(west);
     const auto r = find(s.w, peek, west, 5*tile_size_xy, 8, body, Search::never_continue(), false,
-                        cover_script_options{}.octants);
+                        Cover::Script::options{}.octants);
     fm_assert(r.found && walled_in(r.pos));
     s.step();
     s.finish_search();
@@ -1604,11 +1603,11 @@ void test_cover_script_seek_no_path()
 {
     const point west{ch, {2, 8}, {}};
     cover_scene s{west};
-    set_cover_script_options(*s.npc, walled_in_options());
+    Cover::Script::set_options(*s.npc, walled_in_options());
     wall_in_east_cover(s.w);
     const auto t0 = s.status();
     const auto r = find(s.w, s.npc->position(), west, 5*tile_size_xy, 8, body, Search::never_continue(), false,
-                        cover_script_options{}.octants);
+                        Cover::Script::options{}.octants);
     fm_assert(r.found && walled_in(r.pos));
     s.step();
     fm_assert(s.status().num_dijkstra_calls - t0.num_dijkstra_calls <= 1);
@@ -1631,12 +1630,12 @@ void test_cover_script_no_path_ties()
     cover_scene s{west};
     auto o = walled_in_options();
     o.max_cover_end_dist = 0;
-    set_cover_script_options(*s.npc, o);
+    Cover::Script::set_options(*s.npc, o);
     wall_in_east_cover(s.w);
     const auto t0 = s.status();
-    Array<cover_spot> spots;
-    list_cover_spots(*s.npc, cover_query{s.npc->position(), body, west, 5*tile_size_xy, o.octants}, spots);
-    fm_assert(std::count_if(spots.begin(), spots.end(), [](const cover_spot& x) { return walled_in(x.pos); }) > 2);
+    Array<Cover::Point::spot> spots;
+    Cover::Script::list_spots(*s.npc, Cover::Point::query{s.npc->position(), body, west, 5*tile_size_xy, o.octants}, spots);
+    fm_assert(std::count_if(spots.begin(), spots.end(), [](const Cover::Point::spot& x) { return walled_in(x.pos); }) > 2);
     s.step();
     s.finish_search();
     const auto t1 = s.status();
@@ -1647,7 +1646,7 @@ void test_cover_script_no_path_ties()
 
 struct no_path_search
 {
-    cover_script_status before;
+    Cover::Script::status before;
     bptr<scenery> south;
 };
 
@@ -1655,7 +1654,7 @@ struct no_path_search
 // update that finds no path to the nearest walled-in spot. Returns the status from before the first update.
 no_path_search start_no_path_search(cover_scene& s)
 {
-    set_cover_script_options(*s.npc, walled_in_options());
+    Cover::Script::set_options(*s.npc, walled_in_options());
     const auto before = s.status();
     auto south = wall_in_east_cover(s.w);
     for (auto frames = 0u; s.status().num_dijkstra_calls == before.num_dijkstra_calls; frames++)
@@ -1675,7 +1674,7 @@ void test_cover_script_no_path_threat_moves(point to, bool same_octant)
     const point west{ch, {2, 8}, {}};
     cover_scene s{west}, still{west};
     const auto start = s.npc->position();
-    fm_assert(same_octant == (nearest_octant(Vector2(to - start)) == nearest_octant(Vector2(west - start))));
+    fm_assert(same_octant == (Cover::Point::nearest_octant(Vector2(to - start)) == Cover::Point::nearest_octant(Vector2(west - start))));
     const auto t0 = start_no_path_search(s).before;
     (void)start_no_path_search(still);
     const auto num_calls = s.status().num_find_cover_point_calls;
@@ -1870,14 +1869,14 @@ void test_cover_script_search_every_move(point hidden)
     for (const auto every : { false, true })
     {
         cover_scene s;
-        auto o = cover_script_options{.search_every_move = every};
+        auto o = Cover::Script::options{.search_every_move = every};
         // Without these, each search would cast peek_spot's rays and test its spot from where the threat can walk.
         if (every)
         {
             o.threat_reach = 0;
             o.needs_peek = false;
         }
-        set_cover_script_options(*s.npc, o);
+        Cover::Script::set_options(*s.npc, o);
         s.step_until(state::hidden);
         // Without threat_reach, cover_end slides the spot past hidden.
         const auto spot = s.npc->position();
@@ -1988,7 +1987,7 @@ void test_cover_script_retreat_closed_in(point hidden)
 
 // test_cover_script_retreat_closed_in's scene, up to the flank's update, in which 4 of the 6 enclosed spots
 // had no path. Returns the status after it.
-cover_script_status flank_closed_in(cover_scene& s, point hidden, point threat_pos)
+Cover::Script::status flank_closed_in(cover_scene& s, point hidden, point threat_pos)
 {
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
@@ -2054,7 +2053,7 @@ void test_cover_script_retreat_circling_threat(point hidden)
     for (; s.status().st == state::find_retreat; updates++)
     {
         fm_assert(updates < 5);
-        const auto a = (updates + 1) * 2 * Math::Constants<double>::pi() / Cover::octant_count;
+        const auto a = (updates + 1) * 2 * Math::Constants<double>::pi() / Grid::Cover::octant_count;
         s.move_threat(here + Vector2i(Math::round(Vector2d{std::cos(a), std::sin(a)} * 64.)));
         s.step();
     }
@@ -2085,7 +2084,7 @@ void test_cover_script_search_circling_threat(point hidden, bool far_block)
     for (auto updates = 0u; !ended(); updates++)
     {
         fm_assert(updates < 60*s.fps);
-        const auto a = (updates + 1) * 2 * Math::Constants<double>::pi() / Cover::octant_count;
+        const auto a = (updates + 1) * 2 * Math::Constants<double>::pi() / Grid::Cover::octant_count;
         s.move_threat(hidden + Vector2i(Math::round(Vector2d{std::cos(a), std::sin(a)} * 64.)));
         s.step();
         const auto st = s.status().st;
@@ -2253,9 +2252,9 @@ void test_cover_script_far_cover(bool turned)
     w.init_scripts();
     auto A = astar{};
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
-    const auto& pool = A.pool_registry().cover_pool(Cover::Params{8});
+    const auto& pool = A.pool_registry().cover_pool(Grid::Cover::Params{8});
     const auto frame = Second / npc->atlas->info().fps;
-    const auto status = [&] { return *get_cover_script_status(*npc); };
+    const auto status = [&] { return *Cover::Script::get_status(*npc); };
     const auto step = [&] {
         auto i = npc->index();
         npc->update(npc, i, frame);
@@ -2324,12 +2323,12 @@ void test_cover_script_div_change()
     auto A = astar{};
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
     const auto frame = Second / npc->atlas->info().fps;
-    const auto status = [&] { return *get_cover_script_status(*npc); };
+    const auto status = [&] { return *Cover::Script::get_status(*npc); };
     const auto step = [&] {
         auto i = npc->index();
         npc->update(npc, i, frame);
     };
-    const auto fills = [&](u32 div) { return A.pool_registry().cover_pool(Cover::Params{div}).octant_fills(); };
+    const auto fills = [&](u32 div) { return A.pool_registry().cover_pool(Grid::Cover::Params{div}).octant_fills(); };
 
     for (auto updates = 0u; status().search_tile <= 32; updates++)
     {
@@ -2339,7 +2338,7 @@ void test_cover_script_div_change()
     }
     fm_assert(fills(16) == 0);
     const auto fills8 = fills(8);
-    set_cover_script_options(*npc, {.div_size = 16});
+    Cover::Script::set_options(*npc, {.div_size = 16});
     step();
     fm_assert(status().st == state::search && status().search_tile <= 32);
     for (auto updates = 0u; status().st == state::search; updates++)
@@ -2355,28 +2354,25 @@ void test_cover_script_div_change()
     w.finish_scripts();
 }
 
-// The npc hides behind the wall at one of its ends, then is sent to the last listed spot, at the
-// other end, where it hides and peeks from find_cover_peek's spot for it. Sent to peek from the
-// first, it walks to that spot's peek spot and hides at the first. A spot inside the wall has no
-// path and no peek spot, and with the threat gone no spot has one, so sending the npc there
-// changes nothing.
+// Checks cover and peek orders at both wall ends, and that invalid orders leave the script unchanged.
+// A missing threat must give no peek spot.
 void test_cover_script_orders(point hidden)
 {
     cover_scene s;
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
-    Array<cover_spot> spots;
-    list_cover_spots(*s.npc, spots);
+    Array<Cover::Point::spot> spots;
+    Cover::Script::list_spots(*s.npc, spots);
     fm_assert(spots.size() >= 2);
     fm_assert(spots[0].pos == s.status().canonical);
     const auto other = spots[spots.size() - 1], first = spots[0];
 
     const auto num_rays = s.status().num_rays;
-    const auto p = find_cover_peek(*s.npc, other);
+    const auto p = Cover::Script::find_peek(*s.npc, other);
     fm_assert(p);
     fm_assert_equal(num_rays, s.status().num_rays);
 
-    fm_assert(send_to_cover(*s.npc, other));
+    fm_assert(Cover::Script::send_to_cover(*s.npc, other));
     const auto other_end = s.status().cover;
     {
         const auto t = s.status();
@@ -2394,9 +2390,9 @@ void test_cover_script_orders(point hidden)
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == other_end);
 
-    const auto q = find_cover_peek(*s.npc, first);
+    const auto q = Cover::Script::find_peek(*s.npc, first);
     fm_assert(q);
-    fm_assert(send_to_peek(*s.npc, first));
+    fm_assert(Cover::Script::send_to_peek(*s.npc, first));
     {
         const auto t = s.status();
         fm_assert(t.st == state::to_peek);
@@ -2408,24 +2404,24 @@ void test_cover_script_orders(point hidden)
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
 
-    const cover_spot wall{point{ch, {7, 8}, {}}, {1, 0}};
+    const Cover::Point::spot wall{point{ch, {7, 8}, {}}, {1, 0}};
     const auto t0 = s.status();
-    fm_assert(!send_to_cover(*s.npc, wall));
-    fm_assert(!send_to_peek(*s.npc, wall));
+    fm_assert(!Cover::Script::send_to_cover(*s.npc, wall));
+    fm_assert(!Cover::Script::send_to_peek(*s.npc, wall));
     const auto t1 = s.status();
     fm_assert(t1.st == t0.st && t1.cover == t0.cover);
     fm_assert(t1.has_peek == t0.has_peek && t1.peek == t0.peek);
 
     s.w[ch].kill_object(*s.threat, s.threat->index());
-    fm_assert(!find_cover_peek(*s.npc, other));
-    fm_assert(!send_to_peek(*s.npc, other));
+    fm_assert(!Cover::Script::find_peek(*s.npc, other));
+    fm_assert(!Cover::Script::send_to_peek(*s.npc, other));
 }
 
 // True when the threat at from sees a pixel of the npc's body centered on pos, as the npc's script tests it.
 bool edge_seen(cover_scene& s, point from, point pos)
 {
-    static cover_point finder;
-    return !finder.hidden_at(s.w, from, {pos, axis_toward(from - pos)}, body);
+    static Cover::Point::finder finder;
+    return !finder.hidden_at(s.w, from, {pos, Cover::Point::axis_toward(from - pos)}, body);
 }
 
 // True when the threat at from sees a pixel of the npc where it stands or at its canonical, either of which makes
@@ -2523,9 +2519,9 @@ void test_cover_script_rehides()
     for (const auto tile : blocks)
         add_blocker(s.w, tile, {64, 64});
     rebuild(s.w);
-    auto o = cover_script_options{};
-    o.hold = cover_script_options::hold_phase::hidden;
-    set_cover_script_options(*s.npc, o);
+    auto o = Cover::Script::options{};
+    o.hold = Cover::Script::options::hold_phase::hidden;
+    Cover::Script::set_options(*s.npc, o);
     s.step_until(state::hidden);
     for (auto i = 0u; i < 16; i++)
     {
@@ -2584,7 +2580,7 @@ void test_cover_script_rehides()
     }
 }
 
-using fallback = cover_script_options::fallback;
+using fallback = Cover::Script::options::fallback;
 
 void move_npc(cover_scene& s, point pos)
 {
@@ -2619,21 +2615,21 @@ void test_cover_script_needs_peek(bool turned_off)
 {
     cover_scene s;
     add_long_wall(s);
-    auto o = cover_script_options{};
+    auto o = Cover::Script::options{};
     // cover_end would move a spot at the middle to the wall's end, which has a peek spot.
     o.max_cover_end_dist = 0;
-    set_cover_script_options(*s.npc, o);
+    Cover::Script::set_options(*s.npc, o);
     if (turned_off)
     {
         s.step();
         fm_assert(s.status().st == state::search);
         o.needs_peek = false;
-        set_cover_script_options(*s.npc, o);
+        Cover::Script::set_options(*s.npc, o);
     }
     s.step_until(state::hidden);
     const auto t = s.status();
     fm_assert(s.npc->position() == t.cover);
-    fm_assert(turned_off != !!find_cover_peek(*s.npc, {t.canonical, {1, 0}}));
+    fm_assert(turned_off != !!Cover::Script::find_peek(*s.npc, {t.canonical, {1, 0}}));
 }
 
 // The threat stands 56 px east of cover_scene's wall and the npc as far west of it, with a 64 px block 4 tiles
@@ -2649,12 +2645,12 @@ point threat_reach_hides(bool reach, bool arms)
         add_blocker(s.w, {8, 9}, {136, 16}, {-4, -8});
     }
     rebuild(s.w);
-    auto o = cover_script_options{};
+    auto o = Cover::Script::options{};
     // The wall hides the gun of an npc behind the block from the threat.
     o.needs_peek = false;
     if (!reach)
         o.threat_reach = 0;
-    set_cover_script_options(*s.npc, o);
+    Cover::Script::set_options(*s.npc, o);
     s.step_until(state::hidden);
     const auto pos = s.npc->position();
     fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
@@ -2685,7 +2681,7 @@ void test_cover_script_cover_end_reach(bool reach)
 {
     cover_scene s;
     if (!reach)
-        set_cover_script_options(*s.npc, {.threat_reach = 0});
+        Cover::Script::set_options(*s.npc, {.threat_reach = 0});
     s.step_until(state::hidden);
     const auto pos = s.npc->position();
     fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
@@ -2729,7 +2725,7 @@ void test_cover_script_last_resort_no_peek(fallback last_resort)
 {
     cover_scene s{point{ch, {6, 8}, {}}};
     add_longer_wall(s);
-    set_cover_script_options(*s.npc, {.last_resort = last_resort});
+    Cover::Script::set_options(*s.npc, {.last_resort = last_resort});
     fm_assert(!moves_during_search(s, false));
     fm_assert(s.status().st == (last_resort == fallback::none ? state::seek : state::to_cover));
     if (last_resort == fallback::none)
@@ -2761,7 +2757,7 @@ void test_cover_script_last_resort_seen()
 void test_cover_script_last_resort_in_reach(fallback last_resort)
 {
     cover_scene s{point{ch, {8, 8}, {}}};
-    set_cover_script_options(*s.npc, {.last_resort = last_resort});
+    Cover::Script::set_options(*s.npc, {.last_resort = last_resort});
     fm_assert(!moves_during_search(s, false));
     fm_assert(s.status().st == (last_resort == fallback::in_reach ? state::to_cover : state::seek));
     if (last_resort != fallback::in_reach)
@@ -2778,7 +2774,7 @@ void test_cover_script_last_resort_walking_threat()
 {
     cover_scene s{point{ch, {6, 8}, {}}};
     add_longer_wall(s);
-    set_cover_script_options(*s.npc, {.last_resort = fallback::no_peek});
+    Cover::Script::set_options(*s.npc, {.last_resort = fallback::no_peek});
     const auto num_searches = s.status().num_searches;
     for (auto frames = 0u; s.status().num_searches == num_searches; frames++)
     {

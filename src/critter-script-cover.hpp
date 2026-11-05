@@ -5,11 +5,11 @@
 #include "nanosecond.hpp"
 #include <cr/Optional.h>
 
-namespace floormat {
+namespace floormat { struct critter; }
 
-struct critter;
+namespace floormat::Cover::Script {
 
-struct cover_script_options
+struct options
 {
     enum class hold_phase : u8 { none, hidden, exposed, };
     // The spots a search keeps of those it skips. With each value, it also keeps what the values before keep.
@@ -28,13 +28,13 @@ struct cover_script_options
     // Looks for cover on every move of the threat while the critter stands, without casting rays
     // first, and walks never stop early. For comparing CPU time.
     bool search_every_move = false;
-    // cover_query::octants of the script's searches. With 3, a cover spot must also hide the critter
+    // Cover::Point::query::octants of the script's searches. With 3, a cover spot must also hide the critter
     // from the threat turned 11.25° either way about it.
     u8 octants = 3;
     // How far in px the critter's cover may lie from its spot, along their face.
     u32 max_cover_end_dist = 5*(u32)tile_size_xy;
     // The div_size of the grids the script searches and casts rays in, which make_cover_script sets.
-    // Options built from {} set it back to 8.
+    // options built from {} set it back to 8.
     u32 div_size = 8;
     // In px. Spots and their cover must also hide the critter from where the threat can walk within this
     // distance. 0 tests only where it stands.
@@ -45,11 +45,11 @@ struct cover_script_options
     // sees the critter, the critter retreats while the search goes on, once per search.
     fallback last_resort = fallback::in_reach;
 
-    // The script's searches' cover_query::max_cover_end_dist. 0 with threat_reach, as their move ignores it.
+    // The searches' max_cover_end_dist. 0 with threat_reach, as their move ignores it.
     u32 listed_cover_end_dist() const { return threat_reach ? 0 : max_cover_end_dist; }
 };
 
-struct cover_script_status
+struct status
 {
     // search: standing while it looks for cover, a few tiles per update. find_retreat: standing while
     // it looks for a path to a spot farther from the threat, a few Dijkstra searches per update.
@@ -65,7 +65,7 @@ struct cover_script_status
     point gun, gun_ray_from;
     // When has_query, the last finished search's query, found or not. Its radius is cut to a tile
     // past the spot found.
-    cover_query query = {};
+    Cover::Point::query query = {};
     // Since the script started: finished searches for cover, rays cast from the threat, tests of the body at
     // a spot against the threat, and Dijkstra searches, those of a retreat included.
     u32 num_searches = 0, num_rays = 0, num_body_checks = 0, num_dijkstra_calls = 0;
@@ -78,7 +78,7 @@ struct cover_script_status
     // Since the script started, the times find_retreat went back to its first spot because the threat
     // moved to another octant of the cover grid, seen from the critter, or a retreat walk was blocked or flanked.
     u32 num_retreat_restarts = 0;
-    // Since the script started, the searches' find_cover_point calls, each for one tile. A tile gets
+    // Since the script started, the searches' Cover::Point::finder::find calls, each for one tile. A tile gets
     // another call when the threat moved since its list was made, or when the call ran out of fills.
     u32 num_find_cover_point_calls = 0;
     Ns last_update, max_update, total_update;
@@ -86,40 +86,38 @@ struct cover_script_status
     bool has_cover = false, has_peek = false, has_query = false;
 };
 
-// Empty when c runs another script or none.
-Optional<cover_script_status> get_cover_script_status(critter& c);
-
 // Where c peeks from a cover spot: pos, its body's center, and gun, its gun point.
-struct cover_peek
+struct peek
 {
     point pos, gun;
 };
 
-// Replaces out with every spot find_cover_point accepts for the status's query, in the order tried,
-// so the first is the spot it found if the world hasn't changed. Empty when c runs another script
-// or none, or the script hasn't searched yet.
-void list_cover_spots(critter& c, Array<cover_spot>& out);
-
-// As list_cover_spots, for q in place of the status's query, returning find_cover_point's result.
 // Empty when c runs another script or none.
-cover_point_result list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
+Optional<status> get_status(critter& c);
+
+// Replaces out with every spot accepted for the last search's query, in search order.
+// Empty when c runs another script or none, or the script hasn't searched yet.
+void list_spots(critter& c, Array<Cover::Point::spot>& out);
+
+// As list_spots, for q in place of the status's query, returning Cover::Point::finder::find's result.
+// Empty when c runs another script or none.
+Cover::Point::result list_spots(critter& c, const Cover::Point::query& q, Array<Cover::Point::spot>& out);
 
 // The peek spot the script steps out to after send_to_cover(c, s), with the threat where it stands now. Empty
 // when c runs another script or none, the threat is gone, or no direction has one within max_peek_dist.
-Optional<cover_peek> find_cover_peek(critter& c, const cover_spot& s);
+Optional<peek> find_peek(critter& c, const Cover::Point::spot& s);
 
 // Walks c along a Dijkstra path to hide for hidden_time at s moved to its cover's end, as cover is from canonical.
 // An options.hold other than none becomes hidden. False, changing nothing, with another script, none, or no path.
-bool send_to_cover(critter& c, const cover_spot& s);
+bool send_to_cover(critter& c, const Cover::Point::spot& s);
 
-// As send_to_cover, but to find_cover_peek's spot for s, to be exposed there for exposed_time and
-// then hide. An options.hold other than none becomes exposed. False also when the threat is
-// gone or s has no peek spot.
-bool send_to_peek(critter& c, const cover_spot& s);
+// Sends c to find_peek's spot for s, stays exposed for exposed_time, then hides. A hold becomes exposed.
+// False, changing nothing, with another script, none, no threat, no path or no peek spot.
+bool send_to_peek(critter& c, const Cover::Point::spot& s);
 
 // From the script's next update on. A changed hold that names the phase other than the one c stands
 // in or walks to ends that phase in c's next standing update. Does nothing when c runs another
 // script or none.
-void set_cover_script_options(critter& c, const cover_script_options& options);
+void set_options(critter& c, const options& options);
 
-} // namespace floormat
+} // namespace floormat::Cover::Script

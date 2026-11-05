@@ -1666,7 +1666,7 @@ task app::scene_cover()
     // the 32 are aligned and sweep the pass bitmap with a recurrence; the other 24 are 16384
     // raycasts each, which is the bulk of what this scene costs.
     u32 built = 0;
-    for (auto k = 0u; k < Cover::octant_count; k++)
+    for (auto k = 0u; k < Grid::Cover::octant_count; k++)
     {
         const auto t0 = _driver->scene_dt;
         do
@@ -1680,7 +1680,7 @@ task app::scene_cover()
     // here means a fill silently failed rather than that the scene ran short.
     fm_assert_equal((u32)-1, built);
 
-    fm_debug("cover: %u octants at %u ms each, all built", Cover::octant_count,
+    fm_debug("cover: %u octants at %u ms each, all built", Grid::Cover::octant_count,
              (u32)Time::to_milliseconds(dt));
 
     // Left alive, cover_test keeps calling fill_next_unfilled() every frame of whatever scene
@@ -1909,7 +1909,7 @@ task app::scene_grids()
     fm_debug("grids: %u pins to %.0f%% full of %.0f%%, %u pass builds over 3 pools, "
              "%u cover octants of %u either side",
              num_pins, (double)fill*100, (double)fill_target*100, num_builds,
-             octant_budget, Cover::octant_count);
+             octant_budget, Grid::Cover::octant_count);
 
     // Test::none, not just key_mode_none. tests_post_update() is gated on current_test alone
     // (editor/update.cpp:307) and never on the editor mode, and cover_test::update_post() runs

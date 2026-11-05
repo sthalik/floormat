@@ -187,9 +187,9 @@ void Cover_Build(benchmark::State& state)
 
     const auto div_size = (u32)state.range(0);
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
     pool.maybe_mark_stale_all(w);
-    Cover::Grid g = pool[c];
+    Grid::Cover::Grid g = pool[c];
 
     for (auto _ : state)
     {
@@ -211,15 +211,15 @@ void Cover_Aligned(benchmark::State& state)
 
     const auto div_size = (u32)state.range(0);
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
-    Cover::Pool pool{Cover::Params{div_size}, pass_pool};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
     pool.maybe_mark_stale_all(w);
-    Cover::Grid g = pool[c];
+    Grid::Cover::Grid g = pool[c];
 
     for (auto _ : state)
     {
         g.mark_stale();
         g.build_if_stale();
-        for (auto k = 4u; k < Cover::octant_count; k += 4)
+        for (auto k = 4u; k < Grid::Cover::octant_count; k += 4)
             (void)g.ensure_octant(k);
     }
 }
@@ -244,7 +244,7 @@ constexpr find_case find_cases[] = {
     { { 352, 416 }, 250,   96 },
 };
 
-cover_query make_cover_query(world& w, const find_case& f)
+Cover::Point::query make_cover_query(world& w, const find_case& f)
 {
     const auto a = Rad{Deg{f.bearing_deg}};
     const auto threat = f.npc + Vector2i(Math::round(Vector2{Math::cos(a), Math::sin(a)} * f.dist));
@@ -254,14 +254,14 @@ cover_query make_cover_query(world& w, const find_case& f)
     return { npc, cover_body, point{Vector3i{threat, 0}}, 3*(u32)tile_size_xy };
 }
 
-void set_find_counters(benchmark::State& state, const cover_point_result& r)
+void set_find_counters(benchmark::State& state, const Cover::Point::result& r)
 {
     state.counters["found"] = r.found;
     state.counters["candidates"] = r.candidates;
 }
 
 // Octants built on the 3×3 chunks, the ones casting a ray per cell apart from those sweeping the pass bitmap.
-void set_fill_counters(benchmark::State& state, world& w, Cover::Pool& pool, u32 sweeps_before)
+void set_fill_counters(benchmark::State& state, world& w, Grid::Cover::Pool& pool, u32 sweeps_before)
 {
     constexpr u32 sweep_mask = 0x11111111u;
     u32 rays = 0, sweeps = 0;
@@ -279,14 +279,14 @@ void Cover_Find(benchmark::State& state)
 {
     auto w = world();
     make_cover_world(w);
-    const auto params = Cover::Params{(u32)state.range(0)};
+    const auto params = Grid::Cover::Params{(u32)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Grid::GridRegistry pools;
-    cover_point finder;
+    Cover::Point::finder finder;
     const auto& pred = Search::never_continue();
-    auto r = finder.find_cover_point(w, pools, params, q, pred);
+    auto r = finder.find(w, pools, params, q, pred);
     for (auto _ : state)
-        r = finder.find_cover_point(w, pools, params, q, pred);
+        r = finder.find(w, pools, params, q, pred);
     set_find_counters(state, r);
 }
 
@@ -296,11 +296,11 @@ void Cover_Find_Octants(benchmark::State& state)
 {
     auto w = world();
     make_cover_world(w);
-    const auto params = Cover::Params{(u32)state.range(0)};
+    const auto params = Grid::Cover::Params{(u32)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Optional<Grid::GridRegistry> pools;
-    cover_point finder;
-    cover_point_result r;
+    Cover::Point::finder finder;
+    Cover::Point::result r;
     for (auto _ : state)
     {
         state.PauseTiming();
@@ -313,7 +313,7 @@ void Cover_Find_Octants(benchmark::State& state)
             cover_pool[w[ch]].build_if_stale();
         });
         state.ResumeTiming();
-        r = finder.find_cover_point(w, *pools, params, q, Search::never_continue());
+        r = finder.find(w, *pools, params, q, Search::never_continue());
     }
     set_find_counters(state, r);
     set_fill_counters(state, w, pools->cover_pool(params), 9);
@@ -324,18 +324,18 @@ void Cover_Find_Fresh(benchmark::State& state)
 {
     auto w = world();
     make_cover_world(w);
-    const auto params = Cover::Params{(u32)state.range(0)};
+    const auto params = Grid::Cover::Params{(u32)state.range(0)};
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Optional<Grid::GridRegistry> pools;
-    cover_point finder;
-    cover_point_result r;
+    Cover::Point::finder finder;
+    Cover::Point::result r;
     for (auto _ : state)
     {
         state.PauseTiming();
         pools = NullOpt;
         pools.emplace();
         state.ResumeTiming();
-        r = finder.find_cover_point(w, *pools, params, q, Search::never_continue());
+        r = finder.find(w, *pools, params, q, Search::never_continue());
     }
     set_find_counters(state, r);
     set_fill_counters(state, w, pools->cover_pool(params), 0);

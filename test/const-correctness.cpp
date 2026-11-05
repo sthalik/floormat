@@ -31,8 +31,8 @@ static_assert(same<decltype(std::declval<T>().wall_west()), const_wall_image_ref
 
 static_assert(has_subscript<Pass::Pool, chunk>);
 static_assert(!has_subscript<Pass::Pool, const chunk>);
-static_assert(has_subscript<Cover::Pool, chunk>);
-static_assert(!has_subscript<Cover::Pool, const chunk>);
+static_assert(has_subscript<Grid::Cover::Pool, chunk>);
+static_assert(!has_subscript<Grid::Cover::Pool, const chunk>);
 
 template<typename O> concept has_c = requires(O& o) { o.c; };
 

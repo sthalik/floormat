@@ -25,8 +25,8 @@ namespace floormat::detail::grid {
 
 namespace {
 
-using Cover::Params;
-using Cover::octant_count;
+using Grid::Cover::Params;
+using Grid::Cover::octant_count;
 
 // Octant k steps octant_steps[k] cells at a time, within 0.7° of k*11.25°, so a fill can carry a
 // distance from a cell to the cell a step away.
@@ -356,7 +356,7 @@ struct CoverGrid : GridBase
 
     Params params;
     u32 cell_count;
-    // A distance is at most dc, and (T)-1 is Cover::blocked, so u8 needs dc < UINT8_MAX.
+    // A distance is at most dc, and (T)-1 is Grid::Cover::blocked, so u8 needs dc < UINT8_MAX.
     bool narrow;
     // cell_count rounded up, so every plane starts on 64 bytes
     u32 plane_stride;

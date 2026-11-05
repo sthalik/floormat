@@ -38,7 +38,7 @@ constexpr Color4 color_selected{1, 0.843f, 0, 0.8f};
 struct cover_test final : base_test
 {
     Pointer<Pass::Pool> pass_pool;
-    Pointer<Cover::Pool> pool;
+    Pointer<Grid::Cover::Pool> pool;
     u32 chunk_span = 1;
 
     cover_test();
@@ -74,7 +74,7 @@ struct cover_test final : base_test
 
 cover_test::cover_test():
     pass_pool{InPlaceInit, Pass::Params{default_div_size, pass_mode::shoot_through}, Search::without_critters()},
-    pool{InPlaceInit, Cover::Params{default_div_size}, *pass_pool}
+    pool{InPlaceInit, Grid::Cover::Params{default_div_size}, *pass_pool}
 {}
 
 bool cover_test::handle_key(app& a, const key_event& e, bool is_down)
@@ -133,7 +133,7 @@ chunk* cover_test::chunk_at(world& w, i32 dx, i32 dy) const
 
 void cover_test::draw_chunk(app& a, chunk& c, u32 sk)
 {
-    Cover::Grid cg = (*pool)[c];
+    Grid::Cover::Grid cg = (*pool)[c];
     cg.build_if_stale();
     if (!(cg.built_octants() & (1u << sk)))
         return;
@@ -170,9 +170,9 @@ void cover_test::draw_chunk(app& a, chunk& c, u32 sk)
     for (u32 cy = 0; cy < dc; cy++)
         for (u32 cx = 0; cx < dc; cx++)
         {
-            const u32 idx = Cover::Grid::get_cell_index(cx, cy, dc);
+            const u32 idx = Grid::Cover::Grid::get_cell_index(cx, cy, dc);
             const u16 d = cg.distance(idx, sk);
-            const auto color = d == Cover::blocked ? blocked_color : rgb(d, max_d);
+            const auto color = d == Grid::Cover::blocked ? blocked_color : rgb(d, max_d);
             const Vector2 base = p00 + dx * float(cx) + dy * float(cy);
             draw.AddQuadFilled(ImVec2(base), ImVec2(base + dx), ImVec2(base + dx + dy), ImVec2(base + dy), color);
         }
@@ -197,7 +197,7 @@ void cover_test::draw_overlay(app& a)
             if (auto* ch = chunk_at(w, dx, dy))
                 draw_chunk(a, *ch, sk);
 
-    Cover::Grid cg = (*pool)[*c];
+    Grid::Cover::Grid cg = (*pool)[*c];
     cg.build_if_stale();
 
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
@@ -207,20 +207,20 @@ void cover_test::draw_overlay(app& a)
     const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 0.6f});
 
     const auto built = cg.built_octants();
-    for (u32 k = 0; k < Cover::octant_count; k++)
+    for (u32 k = 0; k < Grid::Cover::octant_count; k++)
     {
-        if (k == sk || !(built & 1u << k) || cg.distance(result.cell_idx, k) == Cover::blocked)
+        if (k == sk || !(built & 1u << k) || cg.distance(result.cell_idx, k) == Grid::Cover::blocked)
             continue;
-        const auto dir = Cover::octant_direction(k);
+        const auto dir = Grid::Cover::octant_direction(k);
         const auto len_px = (int)cg.distance(result.cell_idx, k) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
         const auto end_px = a.point_to_pixel(end_pt);
         draw.AddLine(ImVec2(pos), ImVec2(end_px), line_color);
     }
 
-    if (built & 1u << sk && cg.distance(result.cell_idx, sk) != Cover::blocked)
+    if (built & 1u << sk && cg.distance(result.cell_idx, sk) != Grid::Cover::blocked)
     {
-        const auto dir = Cover::octant_direction(sk);
+        const auto dir = Grid::Cover::octant_direction(sk);
         const auto len_px = (int)cg.distance(result.cell_idx, sk) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
         const auto end_px = a.point_to_pixel(end_pt);
@@ -269,7 +269,7 @@ base_test::Value cover_test::advance(app& a, Value)
     ret.type = ValueType::u64;
     ret.u64 = 0;
 
-    selected_octant = (i32)(((u32)selected_octant + 1u) % Cover::octant_count);
+    selected_octant = (i32)(((u32)selected_octant + 1u) % Grid::Cover::octant_count);
     if (!has_result)
         return ret;
     auto& w = a.main().world();
@@ -291,7 +291,7 @@ void cover_test::extract(app& a, point pt)
         return;
 
     pool->maybe_mark_stale_all(w);
-    Cover::Grid g = (*pool)[*c];
+    Grid::Cover::Grid g = (*pool)[*c];
     g.build_if_stale();
 
     const auto idx = g.get_cell_index_from_coord(intra_coord{pt});
@@ -310,7 +310,7 @@ void cover_test::set_div_size(app& a, u32 div_size)
         return;
     pool = nullptr;
     pass_pool.emplace(Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters());
-    pool.emplace(Cover::Params{div_size}, *pass_pool);
+    pool.emplace(Grid::Cover::Params{div_size}, *pass_pool);
     if (has_result)
     {
         has_result = false;
@@ -387,7 +387,7 @@ void cover_test::draw_ui(app& a, float)
         do_column("octant");
 
         constexpr auto fmt_octant_label = [](auto&& out, u32 kk) {
-            const auto dir = Cover::octant_direction(kk);
+            const auto dir = Grid::Cover::octant_direction(kk);
             const float deg = float(Deg(Rad(std::atan2(dir.y(), dir.x()))));
             const float dd = deg < 0 ? deg + 360 : deg;
             snformat(out, "{} (k={}, {:.1f}°)", compass_names_16[kk / 2], kk, dd);
@@ -399,7 +399,7 @@ void cover_test::draw_ui(app& a, float)
         static const float label_max_w = [&] {
             char tmp[64];
             float w = 0;
-            for (u32 kk = 0; kk < Cover::octant_count; kk++)
+            for (u32 kk = 0; kk < Grid::Cover::octant_count; kk++)
             {
                 fmt_octant_label(tmp, kk);
                 w = Math::max(w, ImGui::CalcTextSize(tmp).x);
@@ -412,7 +412,7 @@ void cover_test::draw_ui(app& a, float)
             auto b2 = push_style_var(ImGuiStyleVar_FramePadding, {ImGui::GetStyle().FramePadding.x, 0});
 
             if (ImGui::ArrowButton("##oct_dec", ImGuiDir_Left))
-                selected_octant = (i32)(((u32)selected_octant + Cover::octant_count - 1) % Cover::octant_count);
+                selected_octant = (i32)(((u32)selected_octant + Grid::Cover::octant_count - 1) % Grid::Cover::octant_count);
             ImGui::SameLine();
 
             int sel = selected_octant;
@@ -424,13 +424,13 @@ void cover_test::draw_ui(app& a, float)
                     push_style_color(ImGuiCol_FrameBg,          Color4{0.10f, 0.12f, 0.18f, 1.0f}),
                     push_style_color(ImGuiCol_FrameBgHovered,   Color4{0.16f, 0.20f, 0.30f, 1.0f}),
                 };
-                ImGui::SliderInt("##sel_octant", &sel, 0, (int)Cover::octant_count - 1);
+                ImGui::SliderInt("##sel_octant", &sel, 0, (int)Grid::Cover::octant_count - 1);
             }
             selected_octant = sel;
 
             ImGui::SameLine();
             if (ImGui::ArrowButton("##oct_inc", ImGuiDir_Right))
-                selected_octant = (i32)(((u32)selected_octant + 1u) % Cover::octant_count);
+                selected_octant = (i32)(((u32)selected_octant + 1u) % Grid::Cover::octant_count);
         }
 
         {

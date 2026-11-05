@@ -28,8 +28,8 @@ namespace floormat::tests {
 namespace {
 
 using namespace floormat::imgui;
-using state = cover_script_status::state;
-using hold_phase = cover_script_options::hold_phase;
+using state = Cover::Script::status::state;
+using hold_phase = Cover::Script::options::hold_phase;
 
 constexpr int spawn_distance = 4*tile_size_xy;
 constexpr Vector2i spawn_dirs[] = { {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, };
@@ -49,10 +49,10 @@ constexpr u32 spots_tiles_per_frame = 32, spots_fills_per_frame = 1;
 
 enum class note : u8 { none, no_free_spot, no_start, start_taken, no_path, no_other_cover, };
 
-// find_cover_peek's spot for a listed spot, found when the spot was listed.
+// Cover::Script::find_peek's spot for a listed spot, found when the spot was listed.
 struct spot_state
 {
-    cover_peek peek;
+    Cover::Script::peek peek;
     bool has_peek = false;
 };
 
@@ -84,7 +84,7 @@ struct fill_count { u32 n = 0; Ns time{}; };
 
 fill_count fills_of(app& a, u32 div_size)
 {
-    auto& p = a.main().astar().pool_registry().cover_pool(Cover::Params{div_size});
+    auto& p = a.main().astar().pool_registry().cover_pool(Grid::Cover::Params{div_size});
     return {p.octant_fills(), p.octant_fill_time()};
 }
 
@@ -145,25 +145,25 @@ struct cover_ai_test final : base_test
     u32 seen_spots(app& a, const critter& c);
     void search_spots(app& a, critter& c, bool limited);
     Optional<u32> search_tile(app& a, critter& c, point player, u32 max_fills);
-    bool player_sees(app& a, const critter& c, const cover_spot& s);
-    bool send(critter& c, const cover_spot& s, bool peek);
+    bool player_sees(app& a, const critter& c, const Cover::Point::spot& s);
+    bool send(critter& c, const Cover::Point::spot& s, bool peek);
     u32 toggle_hold();
     u32 toggle_move_to_end();
-    ArrayView<const cover_spot> script_spots(app& a, critter& c, const cover_script_status& s);
+    ArrayView<const Cover::Point::spot> script_spots(app& a, critter& c, const Cover::Script::status& s);
     Optional<u32> step_cover(app& a, bool back);
     void draw_cover_picker(app& a);
-    void update_rates(const cover_script_status& s);
-    void update_ray(app& a, const critter& c, const cover_script_status& s);
-    void log_script(app& a, const critter& c, const cover_script_status& s);
+    void update_rates(const Cover::Script::status& s);
+    void update_ray(app& a, const critter& c, const Cover::Script::status& s);
+    void log_script(app& a, const critter& c, const Cover::Script::status& s);
 
     weak_bptr<critter> npc;
     rc::raycast_result_s ray;
-    cover_point finder;
-    Array<cover_spot> spots, tile_spots, script_list;
+    Cover::Point::finder finder;
+    Array<Cover::Point::spot> spots, tile_spots, script_list;
     Array<spot_state> spot_states;
     // The tiles of the overlay's search, as offsets from search_center, nearest first.
     Array<Vector2i> tiles;
-    cover_script_options options;
+    Cover::Script::options options;
     // spots_player: where the player stood when drop_seen_spots last ran, or the search started.
     point start_pos, search_center, spots_player;
     object_id threat = 0, script_list_npc = 0;
@@ -173,7 +173,7 @@ struct cover_ai_test final : base_test
     u32 search_octant = 0, search_div = 0, dropped_spots = 0, script_list_num_searches = 0;
     Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
     fill_count fills_before_update, search_fills;
-    cover_script_status logged;
+    Cover::Script::status logged;
     object_id logged_npc = 0;
     counts snapshot;
     per_second rates;
@@ -255,7 +255,7 @@ object_id cover_ai_test::spawn(app& a, point at)
     // serialize/savegame.cpp leaves it out of saves
     c->ephemeral = true;
     c->script.do_reassign(critter_script::make_cover_script(m.astar(), threat, options.div_size), c);
-    set_cover_script_options(*c, options);
+    Cover::Script::set_options(*c, options);
     npc = c;
     has_snapshot = false;
     rates = {};
@@ -266,7 +266,7 @@ object_id cover_ai_test::spawn(app& a, point at)
 void cover_ai_test::apply_options()
 {
     if (auto c = npc.lock())
-        set_cover_script_options(*c, options);
+        Cover::Script::set_options(*c, options);
 }
 
 // Also drops script_spots()' list, since the script's last query accepts other spots in grids of
@@ -294,7 +294,7 @@ bool cover_ai_test::spots_stale(app& a) const
         return true;
     auto& w = a.main().world();
     const auto player = w.find_object(threat);
-    return !player || nearest_octant(Vector2(player->position() - search_center)) != search_octant ||
+    return !player || Cover::Point::nearest_octant(Vector2(player->position() - search_center)) != search_octant ||
            w.pass_gen() != search_pass_gen || search_radius != (u32)radius_tiles*tile_size_xy ||
            search_octants != options.octants || search_listed_cover_end_dist != options.listed_cover_end_dist() ||
            search_max_cover_end_dist != options.max_cover_end_dist ||
@@ -313,13 +313,13 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
     const auto r = (u32)radius_tiles*tile_size_xy;
     if (r != tiles_radius)
     {
-        nearest_tiles(r, tiles);
+        Cover::Point::nearest_tiles(r, tiles);
         tiles_radius = r;
     }
     search_center = point{c.position().coord(), {}};
     spots_player = player->position();
     dropped_spots = 0;
-    search_octant = nearest_octant(Vector2(player->position() - search_center));
+    search_octant = Cover::Point::nearest_octant(Vector2(player->position() - search_center));
     search_pass_gen = w.pass_gen();
     search_radius = r;
     search_octants = options.octants;
@@ -369,11 +369,11 @@ Optional<u32> cover_ai_test::search_tile(app& a, critter& c, point player, u32 m
     const auto f0 = fills(a);
     auto t = Time::now();
     const auto mid = tiles[next_tile]*tile_size_xy;
-    const cover_query q{search_center, Vector2ui(c.bbox_size), player, search_radius, search_octants,
+    const Cover::Point::query q{search_center, Vector2ui(c.bbox_size), player, search_radius, search_octants,
                         search_listed_cover_end_dist,
                         Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}},
                         max_fills};
-    const auto r = list_cover_spots(c, q, tile_spots);
+    const auto r = Cover::Script::list_spots(c, q, tile_spots);
     const auto f = fills(a);
     search_fills.n += f.n - f0.n;
     search_fills.time += f.time - f0.time;
@@ -389,7 +389,7 @@ Optional<u32> cover_ai_test::search_tile(app& a, critter& c, point player, u32 m
         if (i < spots.size())
             continue;
         spot_state st;
-        if (const auto p = find_cover_peek(c, x))
+        if (const auto p = Cover::Script::find_peek(c, x))
         {
             st.peek = *p;
             st.has_peek = true;
@@ -434,7 +434,7 @@ void cover_ai_test::search_spots(app& a, critter& c, bool limited)
 }
 
 // True when the player sees a pixel of c's body at s, as the script's check_hidden tests canonical.
-bool cover_ai_test::player_sees(app& a, const critter& c, const cover_spot& s)
+bool cover_ai_test::player_sees(app& a, const critter& c, const Cover::Point::spot& s)
 {
     auto& w = a.main().world();
     const auto player = w.find_object(threat);
@@ -445,9 +445,9 @@ bool cover_ai_test::player_sees(app& a, const critter& c, const cover_spot& s)
 
 // The script moves its hold to the phase of an order, and options follows, so that apply_options
 // doesn't move it back.
-bool cover_ai_test::send(critter& c, const cover_spot& s, bool peek)
+bool cover_ai_test::send(critter& c, const Cover::Point::spot& s, bool peek)
 {
-    const auto ok = peek ? send_to_peek(c, s) : send_to_cover(c, s);
+    const auto ok = peek ? Cover::Script::send_to_peek(c, s) : Cover::Script::send_to_cover(c, s);
     last_note = ok ? note::none : note::no_path;
     if (ok && options.hold != hold_phase::none)
         options.hold = peek ? hold_phase::exposed : hold_phase::hidden;
@@ -463,7 +463,7 @@ u32 cover_ai_test::toggle_hold()
     else
     {
         const auto c = npc.lock();
-        const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+        const auto s = c ? Cover::Script::get_status(*c) : Optional<Cover::Script::status>{};
         const auto out = s && (s->st == state::exposed || s->st == state::to_peek);
         options.hold = out ? hold_phase::exposed : hold_phase::hidden;
     }
@@ -473,16 +473,14 @@ u32 cover_ai_test::toggle_hold()
 
 u32 cover_ai_test::toggle_move_to_end()
 {
-    options.max_cover_end_dist = options.max_cover_end_dist ? 0 : cover_script_options{}.max_cover_end_dist;
+    options.max_cover_end_dist = options.max_cover_end_dist ? 0 : Cover::Script::options{}.max_cover_end_dist;
     apply_options();
     return options.max_cover_end_dist ? 1 : 0;
 }
 
-// The spots of the script's last search, apart from the overlay's, from list_cover_spots(), which
-// runs that search again. They are kept until the script searches again, world::pass_gen() moves or
-// the npc is another, since listing them each frame would cost a whole search per frame. Critters
-// walking don't move pass_gen, so a spot the player walks onto stays listed.
-ArrayView<const cover_spot> cover_ai_test::script_spots(app& a, critter& c, const cover_script_status& s)
+// Caches the script's last search's spots until the next search, a pass_gen change or another npc.
+// Critter movement leaves pass_gen unchanged, so a spot the player walks onto stays listed.
+ArrayView<const Cover::Point::spot> cover_ai_test::script_spots(app& a, critter& c, const Cover::Script::status& s)
 {
     const auto gen = a.main().world().pass_gen();
     if (!has_script_list || script_list_npc != c.id || script_list_num_searches != s.num_searches ||
@@ -490,7 +488,7 @@ ArrayView<const cover_spot> cover_ai_test::script_spots(app& a, critter& c, cons
     {
         const auto f0 = fills(a);
         auto t = Time::now();
-        list_cover_spots(c, script_list);
+        Cover::Script::list_spots(c, script_list);
         const auto dt = t.update();
         const auto f = fills(a);
         fm_debug("cover-ai: cover list: %u spots, %.1f us, %u octant fills in %.1f us", (u32)script_list.size(),
@@ -510,7 +508,7 @@ ArrayView<const cover_spot> cover_ai_test::script_spots(app& a, critter& c, cons
 Optional<u32> cover_ai_test::step_cover(app& a, bool back)
 {
     const auto c = npc.lock();
-    const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+    const auto s = c ? Cover::Script::get_status(*c) : Optional<Cover::Script::status>{};
     if (!s)
         return {};
     const auto list = script_spots(a, *c, *s);
@@ -542,7 +540,7 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
     if (is_down || e.button != mouse_button_left || !show_spots)
         return false;
     const auto c = npc.lock();
-    const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+    const auto s = c ? Cover::Script::get_status(*c) : Optional<Cover::Script::status>{};
     if (!s)
         return false;
     auto best = pick_radius*pick_radius;
@@ -582,7 +580,7 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
     return true;
 }
 
-void cover_ai_test::update_rates(const cover_script_status& s)
+void cover_ai_test::update_rates(const Cover::Script::status& s)
 {
     const counts now{s.num_searches, s.num_rays, s.num_dijkstra_calls};
     if (!has_snapshot)
@@ -609,7 +607,7 @@ void cover_ai_test::update_rates(const cover_script_status& s)
 // drawn line and the "ray" row show a ray the script found clear, at grazing angles too, unless the
 // world changed since. The line starts at the player whenever the script checked the gun after the
 // player's last move, and otherwise where the player stood at the last check.
-void cover_ai_test::update_ray(app& a, const critter& c, const cover_script_status& s)
+void cover_ai_test::update_ray(app& a, const critter& c, const Cover::Script::status& s)
 {
     ray.has_result = false;
     if (s.st != state::exposed || !s.has_peek)
@@ -623,7 +621,7 @@ void cover_ai_test::update_post(app& a, const Ns& dt)
 {
     clock += dt;
     const auto c = npc.lock();
-    const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+    const auto s = c ? Cover::Script::get_status(*c) : Optional<Cover::Script::status>{};
     if (!s)
     {
         ray.has_result = false;
@@ -651,7 +649,7 @@ void cover_ai_test::update_pre(app& a, const Ns&)
 
 // The octant fills are those of the whole world update, of which the script's update is the only
 // part that reads cover grids.
-void cover_ai_test::log_script(app& a, const critter& c, const cover_script_status& s)
+void cover_ai_test::log_script(app& a, const critter& c, const Cover::Script::status& s)
 {
     const auto& l = logged;
     if (c.id == logged_npc && s.num_searches == l.num_searches &&s.has_cover == l.has_cover && s.cover == l.cover &&
@@ -757,7 +755,7 @@ void cover_ai_test::draw_overlay(app& a)
     const auto c = npc.lock();
     if (!c)
         return;
-    const auto s = get_cover_script_status(*c);
+    const auto s = Cover::Script::get_status(*c);
     if (!s)
         return;
     ImDrawList& fg = *ImGui::GetForegroundDrawList();
@@ -774,17 +772,17 @@ void cover_ai_test::draw_cover_picker(app& a)
 {
     char preview[96], label[96], coord[64];
     const auto c = npc.lock();
-    auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+    auto s = c ? Cover::Script::get_status(*c) : Optional<Cover::Script::status>{};
     auto d = begin_disabled(!s);
 
     if (ImGui::ArrowButton("##prev-cover", ImGuiDir_Left))
     {
         (void)step_cover(a, true);
-        s = get_cover_script_status(*c);
+        s = Cover::Script::get_status(*c);
     }
     ImGui::SameLine();
 
-    ArrayView<const cover_spot> list;
+    ArrayView<const Cover::Point::spot> list;
     if (s)
         list = script_spots(a, *c, *s);
     auto cur = (u32)-1;
@@ -867,12 +865,12 @@ void cover_ai_test::draw_ui(app& a, float)
     bool reach = options.threat_reach != 0;
     if (ImGui::Checkbox("Hide from where the player can walk in 2 tiles", &reach))
     {
-        options.threat_reach = reach ? cover_script_options{}.threat_reach : 0;
+        options.threat_reach = reach ? Cover::Script::options{}.threat_reach : 0;
         apply_options();
     }
     if (ImGui::Checkbox("Only cover with a peek spot", &options.needs_peek))
         apply_options();
-    using fallback = cover_script_options::fallback;
+    using fallback = Cover::Script::options::fallback;
     text("If no cover passes, take one");
     auto last = (int)options.last_resort;
     auto changed = ImGui::RadioButton("never", &last, (int)fallback::none);
@@ -933,7 +931,7 @@ void cover_ai_test::draw_ui(app& a, float)
     }
 
     const auto c = npc.lock();
-    const auto s = c ? get_cover_script_status(*c) : Optional<cover_script_status>{};
+    const auto s = c ? Cover::Script::get_status(*c) : Optional<Cover::Script::status>{};
     auto& w = a.main().world();
     const auto player = threat ? w.find_object(threat) : bptr<object>{};
 
