@@ -108,16 +108,6 @@ usize hash_buf(const void* __restrict buf, usize size) noexcept
     return ret;
 }
 
-usize hash_int(u32 x) noexcept
-{
-    return hash_buf(&x, sizeof x);
-}
-
-usize hash_int(u64 x) noexcept
-{
-    return hash_buf(&x, sizeof x);
-}
-
 } // namespace floormat::MurmurHash
 
 // NOLINTEND(*-switch-missing-default-case)

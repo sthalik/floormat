@@ -4,13 +4,9 @@
 
 namespace floormat {
 
-namespace Hash_int = xxHash;
-namespace Hash_str = xxHash;
-
-using Hash_int::hash_int;
-using Hash_str::hash_buf;
+using xxHash::hash_buf;
 
 struct hash_string_view { [[nodiscard]] CORRADE_ALWAYS_INLINE usize operator()(StringView str) const noexcept; };
-usize hash_string_view::operator()(StringView str) const noexcept { return Hash_str::hash_buf(str.data(), str.size()); }
+usize hash_string_view::operator()(StringView str) const noexcept { return hash_buf(str.data(), str.size()); }
 
 } // namespace floormat

@@ -33,7 +33,5 @@ CORRADE_ALWAYS_INLINE usize do_xxhash(const void* __restrict buf, usize size) no
 } // namespace
 
 usize hash_buf(const void* __restrict buf, usize size) noexcept { return do_xxhash(buf, size); }
-usize hash_int(u32 x) noexcept { return do_xxhash(&x, sizeof x); }
-usize hash_int(u64 x) noexcept { return do_xxhash(&x, sizeof x); }
 
 } // namespace floormat::xxHash
