@@ -28,7 +28,7 @@ double filter_alpha(double cutoff_hz, double dt)
 
 FPS_Counter::FPS_Counter(Ns settle_time) noexcept: settle_time{settle_time} {}
 
-void FPS_Counter::reset()
+CORRADE_NEVER_INLINE void FPS_Counter::reset()
 {
     frame_time = 0;
     change_rate = 0;
@@ -36,12 +36,12 @@ void FPS_Counter::reset()
     value_ok = false;
 }
 
-float FPS_Counter::get() const
+CORRADE_NEVER_INLINE float FPS_Counter::get() const
 {
     return value_ok ? (float)(1 / frame_time) : 0;
 }
 
-float FPS_Counter::update(Ns ns)
+CORRADE_NEVER_INLINE float FPS_Counter::update(Ns ns)
 {
     if (ns > 10*Seconds) [[unlikely]]
     {
@@ -70,7 +70,7 @@ float FPS_Counter::update(Ns ns)
     return get();
 }
 
-void FPS_Counter::set_settle_time(Ns time) { settle_time = time; }
-Ns FPS_Counter::get_settle_time() const { return settle_time; }
+CORRADE_NEVER_INLINE void FPS_Counter::set_settle_time(Ns time) { settle_time = time; }
+CORRADE_NEVER_INLINE Ns FPS_Counter::get_settle_time() const { return settle_time; }
 
 } // namespace floormat

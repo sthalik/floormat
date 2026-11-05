@@ -119,7 +119,7 @@ chunk& world::operator[](chunk_coords_ coord) noexcept
         return make_chunk_(coord);
 }
 
-chunk& world::make_chunk_(chunk_coords_ coord)
+CORRADE_NEVER_INLINE chunk& world::make_chunk_(chunk_coords_ coord)
 {
     return *new chunk(*this, coord);
 }

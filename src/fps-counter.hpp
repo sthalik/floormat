@@ -14,12 +14,12 @@ class FPS_Counter
 public:
     explicit FPS_Counter(Ns settle_time = Ns{}) noexcept;
 
-    CORRADE_NEVER_INLINE void reset();
-    CORRADE_NEVER_INLINE float get() const;
-    CORRADE_NEVER_INLINE float update(Ns dt);
+    void reset();
+    float get() const;
+    float update(Ns dt);
 
-    CORRADE_NEVER_INLINE void set_settle_time(Ns time);
-    CORRADE_NEVER_INLINE Ns get_settle_time() const;
+    void set_settle_time(Ns time);
+    Ns get_settle_time() const;
 };
 
 } // namespace floormat

@@ -54,7 +54,7 @@ void CORRADE_NEVER_INLINE emit_debug_loc(const char* prefix, const char* file, i
     va_end(arg_ptr);
 }
 
-void emit_assert_fail(const char* expr, const char* file, int line, const char* function)
+CORRADE_NEVER_INLINE void emit_assert_fail(const char* expr, const char* file, int line, const char* function)
 {
     std::fflush(stdout);
     std::fflush(stderr);
@@ -63,7 +63,7 @@ void emit_assert_fail(const char* expr, const char* file, int line, const char* 
     std::abort();
 }
 
-void emit_abort(const char* file, int line, const char* function, fm_FORMAT_ARG_MSVC const char* fmt, ...)
+CORRADE_NEVER_INLINE void emit_abort(const char* file, int line, const char* function, fm_FORMAT_ARG_MSVC const char* fmt, ...)
 {
     va_list arg_ptr;
     va_start(arg_ptr, fmt);
@@ -72,7 +72,7 @@ void emit_abort(const char* file, int line, const char* function, fm_FORMAT_ARG_
     std::abort();
 }
 
-void emit_abort()
+CORRADE_NEVER_INLINE void emit_abort()
 {
     std::fflush(stdout);
     std::fflush(stderr);

@@ -26,9 +26,9 @@ void emit_debug0(fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(1);
 void emit_debug_loc(const char* prefix, const char* file, int line, const char* function, fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(5);
 void emit_debug_loc0(const char* file, int line, const char* function, fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(4);
 
-[[noreturn]] CORRADE_NEVER_INLINE void emit_assert_fail(const char* expr, const char* file, int line, const char* function);
-[[noreturn]] CORRADE_NEVER_INLINE void emit_abort(const char* file, int line, const char* function, fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(4);
-[[noreturn]] CORRADE_NEVER_INLINE void emit_abort();
+[[noreturn]] void emit_assert_fail(const char* expr, const char* file, int line, const char* function);
+[[noreturn]] void emit_abort(const char* file, int line, const char* function, fm_FORMAT_ARG_MSVC const char* fmt, ...) fm_FORMAT_ARG(4);
+[[noreturn]] void emit_abort();
 
 } // namespace floormat::debug::detail
 
