@@ -38,8 +38,12 @@ static constexpr auto _fm_internal_type_name_of() // NOLINT(bugprone-reserved-id
         s = StringView{ s.data(), ssiz - sufsiz, s.flags() };
         return true;
     };
-    const char* str = FM_PRETTY_FUNCTION;
+    constexpr const char* str = FM_PRETTY_FUNCTION;
     auto s = StringView{ str, my_strlen(str), SVF::Global };
+#ifdef __CLION_IDE__
+    return s;
+#endif
+
     strip_prefix(s, "constexpr "_s);
 
     if (strip_prefix(s, "auto "_s))
