@@ -64,13 +64,13 @@ raii_wrapper push_style_color(ImGuiCol_ var, const Color4& value)
 raii_wrapper push_id(StringView str)
 {
     ImGui::PushID(str.data(), str.data() + str.size());
-    return {[]{ ImGui::PopID(); }};
+    return {&ImGui::PopID};
 }
 
 raii_wrapper push_id(int id)
 {
     ImGui::PushID(id);
-    return {[]{ ImGui::PopID(); }};
+    return {&ImGui::PopID};
 }
 
 raii_wrapper push_style_var(ImGuiStyleVar_ var, float value)
@@ -161,8 +161,7 @@ raii_wrapper begin_window(StringView name, bool* p_open, ImGuiWindowFlags flags)
     fm_assert(name.flags() & StringViewFlag::NullTerminated);
     // Unlike the other Begin/End pairs, ImGui::End() must be called for every
     // ImGui::Begin() even when it returns false (collapsed window).
-    bool visible = ImGui::Begin(name.data(), p_open, flags);
-    return {&ImGui::End, visible};
+    return {&ImGui::End, ImGui::Begin(name.data(), p_open, flags)};
 }
 
 raii_wrapper begin_child(StringView name, const ImVec2& size, int flags, int window_flags)
