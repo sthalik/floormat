@@ -329,10 +329,7 @@ far_tile farthest(const wall_map& m, u32 src)
 
 point tile_point(chunk_coords_ origin, const wall_map& m, u32 t)
 {
-    const auto x = t % m.size, y = t / m.size;
-    const auto cx = origin.x + (int)(x / TILE_MAX_DIM), cy = origin.y + (int)(y / TILE_MAX_DIM);
-    return { chunk_coords_{(i16)cx, (i16)cy, 0},
-             local_coords{(u8)(x % TILE_MAX_DIM), (u8)(y % TILE_MAX_DIM)}, {} };
+    return { global_coords{origin, {}} + Vector2i{(int)(t % m.size), (int)(t / m.size)}, {} };
 }
 
 wall_map make_map(kind k, rng& r)

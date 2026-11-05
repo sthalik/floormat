@@ -207,19 +207,18 @@ void app::populate_labyrinth()
         }
 
     auto GN = [&](int gx, int gy) {
-        w[{i16(gx/16), i16(gy/16), 0}][{u8(gx%16), u8(gy%16)}].wall_north() = {wall, 0};
+        const auto g = global_coords{gx, gy, 0};
+        w[g.chunk3()][g.local()].wall_north() = {wall, 0};
     };
     auto GW = [&](int gx, int gy) {
-        w[{i16(gx/16), i16(gy/16), 0}][{u8(gx%16), u8(gy%16)}].wall_west() = {wall, 0};
+        const auto g = global_coords{gx, gy, 0};
+        w[g.chunk3()][g.local()].wall_west() = {wall, 0};
     };
 
     for (int x = step; x < W; x++) GN(x, 0);
-    for (int x = step; x < W; x++)
-        w[{i16(x/16), i16(rows), 0}][{u8(x%16), 0}].wall_north() = {wall, 0};
+    for (int x = step; x < W; x++) GN(x, H);
     for (int y = 0; y < H; y++) GW(0, y);
-    for (int cy = 0; cy < rows; cy++)
-        for (int y = 0; y < 16; y++)
-            w[{i16(cols), i16(cy), 0}][{0, u8(y)}].wall_west() = {wall, 0};
+    for (int y = 0; y < H; y++) GW(W, y);
 
     for (int wy = step; wy < H; wy += step) {
         int gap = ((wy/step - 1) % 2 == 0) ? W - step : 0;
