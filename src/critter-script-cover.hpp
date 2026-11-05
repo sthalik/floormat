@@ -1,8 +1,8 @@
 #pragma once
+#include "compat/nanosecond.hpp"
 #include "point.hpp"
 #include "tile-defs.hpp"
 #include "cover-point.hpp"
-#include "nanosecond.hpp"
 #include <cr/Optional.h>
 
 namespace floormat { struct critter; }

@@ -1,7 +1,7 @@
 #pragma once
 #include "compat/function2.fwd.hpp"
+#include "compat/nanosecond.hpp"
 #include "src/rotation.hpp"
-#include "src/nanosecond.hpp"
 #include "src/log.hpp"
 #include "src/critter.hpp"
 

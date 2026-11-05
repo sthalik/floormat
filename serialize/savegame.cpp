@@ -9,6 +9,7 @@
 #include "compat/hash-table-load-factor.hpp"
 #include "compat/crc64.hpp"
 #include "compat/fwd/algorithm/sort.hpp"
+#include "compat/nanosecond.inl"
 
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
@@ -20,7 +21,6 @@
 #include "src/hole.hpp"
 #include "src/world.hpp"
 #include "src/object-storage.inl"
-#include "src/nanosecond.inl"
 
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"

@@ -1,6 +1,5 @@
 #include "app.hpp"
 #include "run.hpp"
-#include "src/nanosecond.inl"
 #include "src/point.inl"
 #include "src/world.hpp"
 #include "src/critter.hpp"
@@ -19,6 +18,7 @@
 #include "loader/loader.hpp"
 #include "loader/anim-cell.hpp"
 #include "compat/constantly.hpp"
+#include "compat/nanosecond.inl"
 #include <cr/GrowableArray.h>
 #include <cstdio>
 

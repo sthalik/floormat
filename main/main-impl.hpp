@@ -1,10 +1,10 @@
 #pragma once
+#include "compat/timer.hpp"
+#include "compat/nanosecond.inl"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include "src/world.hpp"
-#include "src/timer.hpp"
 #include "src/fps-counter.hpp"
-#include "src/nanosecond.inl"
 #include "src/spritebatch.hpp"
 #include "shaders/texture-unit-cache.hpp"
 #include "shaders/shader.hpp"

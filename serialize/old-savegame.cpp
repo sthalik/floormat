@@ -11,10 +11,10 @@
 #include "src/pass-mode.hpp"
 #include "src/rotation.hpp"
 #include "src/object-type.hpp"
-#include "src/nanosecond.hpp"
 #include "compat/limits.hpp"
 #include "compat/strerror.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/nanosecond.hpp"
 #include <concepts>
 #include <vector>
 

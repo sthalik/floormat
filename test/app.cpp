@@ -1,11 +1,11 @@
 #include "app.hpp"
 #include "loader/loader.hpp"
 #include "src/log.hpp"
-#include "src/nanosecond.hpp"
-#include "src/timer.hpp"
 #include "compat/array-size.hpp"
 #include "compat/headless.hpp"
 #include "compat/sysexits.hpp"
+#include "compat/nanosecond.hpp"
+#include "compat/timer.hpp"
 #include <stdlib.h> // NOLINT(*-deprecated-headers)
 #include <cstdio>
 #include <cr/Arguments.h>

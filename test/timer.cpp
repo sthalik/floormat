@@ -1,6 +1,6 @@
 #include "app.hpp"
-#include "src/nanosecond.inl"
-#include "src/timer.hpp"
+#include "compat/nanosecond.inl"
+#include "compat/timer.hpp"
 
 namespace floormat {
 

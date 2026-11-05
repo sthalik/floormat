@@ -14,7 +14,6 @@
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/point.inl"
-#include "src/nanosecond.inl"
 #include "src/tile-defs.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-registry.hpp"
@@ -40,11 +39,12 @@
 #include <mg/Image.h>
 #include <mg/PixelFormat.h>
 #include <mg/BatchFunctions.h>
-#include "src/nanosecond.hpp"
 #include "compat/array-size.hpp"
 #include "compat/assert.hpp"
 #include "compat/enum-bitset.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/nanosecond.inl"
+#include "compat/nanosecond.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"

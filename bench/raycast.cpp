@@ -1,5 +1,7 @@
 #include "src/raycast-diag.hpp"
 #include "src/raycast.hpp"
+#include "compat/nanosecond.hpp"
+#include "compat/timer.hpp"
 #include "src/raycast-loop.hpp"
 #include "src/grid-pass.hpp"
 #include "src/collision.hpp"
@@ -10,8 +12,6 @@
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/RTree-search.hpp"
-#include "src/nanosecond.hpp"
-#include "src/timer.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>
 #include <cfloat>

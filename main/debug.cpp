@@ -1,5 +1,5 @@
 #include "main-impl.hpp"
-#include "src/nanosecond.hpp"
+#include "compat/nanosecond.hpp"
 
 namespace floormat {
 

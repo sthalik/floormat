@@ -6,10 +6,10 @@
 #include "world.hpp"
 #include "raycast-loop.hpp"
 #include "point.inl"
-#include "nanosecond.inl"
-#include "timer.hpp"
 #include "compat/assume-aligned.hpp"
 #include "compat/function2.hpp"
+#include "compat/nanosecond.inl"
+#include "compat/timer.hpp"
 #include <bit>
 #include <cstring>
 #include <array>

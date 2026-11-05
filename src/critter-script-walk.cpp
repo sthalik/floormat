@@ -1,7 +1,7 @@
+#include "compat/nanosecond.hpp"
 #include "critter-script.hpp"
 #include "critter-walk.hpp"
 #include "point.inl"
-#include "nanosecond.hpp"
 #include "critter.hpp"
 #include "search-result.hpp"
 #include "search-astar.hpp"

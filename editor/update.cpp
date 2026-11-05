@@ -15,11 +15,11 @@
 #include "src/critter.hpp"
 #include "src/light.hpp"
 #include "src/hole.hpp"
-#include "src/nanosecond.hpp"
-#include "src/timer.hpp"
 #include "src/tile-constants.hpp"
 #include "keys.hpp"
 #include "compat/enum-bitset.hpp"
+#include "compat/nanosecond.hpp"
+#include "compat/timer.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat {

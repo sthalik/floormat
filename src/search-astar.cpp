@@ -7,8 +7,6 @@
 #include "world.hpp"
 #include "sweep-aabb.hpp"
 #include "raycast-line.hpp"
-#include "nanosecond.hpp"
-#include "timer.hpp"
 #include "tile-defs.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
@@ -17,6 +15,8 @@
 #include "compat/floor-divmod.hpp"
 #include "compat/format.hpp"
 #include "compat/function2.hpp"
+#include "compat/nanosecond.hpp"
+#include "compat/timer.hpp"
 #include <array>
 #include <cmath>
 #include <cstdio>

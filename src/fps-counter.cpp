@@ -1,5 +1,5 @@
 #include "fps-counter.hpp"
-#include "nanosecond.inl"
+#include "compat/nanosecond.inl"
 #include <cmath>
 #include <mg/Constants.h>
 
