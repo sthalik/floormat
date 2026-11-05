@@ -1,5 +1,5 @@
 #include "test/app.hpp"
-#include "compat/exception.hpp"
+#include "compat/exception.inl"
 #include "src/scenery-proto.hpp"
 #include "src/scenery.hpp"
 #include "src/world.hpp"
