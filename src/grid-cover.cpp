@@ -74,7 +74,7 @@ struct stepped_octant
     std::array<crossed_cell, 8> cells;
 };
 
-constexpr stepped_octant make_stepped_octant(Vector2b step)
+consteval stepped_octant make_stepped_octant(Vector2b step)
 {
     const int q = step.x(), p = step.y();
     const int aq = q < 0 ? -q : q, ap = p < 0 ? -p : p;

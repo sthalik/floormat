@@ -37,7 +37,7 @@ struct element
 
 template<typename T> using Vec2ʹ = VectorTypeFor<2, T>;
 
-constexpr element make_element(u8 s)
+consteval element make_element(u8 s)
 {
     // NOLINTBEGIN(*-simplify, *-redundant-expression)
     // ReSharper disable CppIdenticalOperandsInBinaryExpression

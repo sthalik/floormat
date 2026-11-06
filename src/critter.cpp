@@ -28,7 +28,7 @@ namespace {
 
 constexpr auto m_auto_mask = critter::move_u { .bits {.AUTO = true} };
 
-constexpr rotation arrows_to_dir_from_mask(unsigned mask)
+consteval rotation arrows_to_dir_from_mask(unsigned mask)
 {
     constexpr unsigned L = 1 << 3, R = 1 << 2, U = 1 << 1, D = 1 << 0;
     switch (mask)
@@ -142,7 +142,7 @@ struct step_costs
     Ns operator()(rotation r) const { return costs[is_diagonal(r)]; }
 };
 
-constexpr std::array<rotation, 3> rotation_to_similar_(rotation r)
+consteval std::array<rotation, 3> rotation_to_similar_(rotation r)
 {
     switch (r)
     {
@@ -352,7 +352,7 @@ struct step_s
     Vector2b direction;
 };
 
-constexpr rotation dir_from_step_mask(u8 val)
+consteval rotation dir_from_step_mask(u8 val)
 {
     switch (val)
     {

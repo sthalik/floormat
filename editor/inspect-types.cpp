@@ -38,7 +38,7 @@ struct entity_accessors<object, inspect_intent_t> {
         return x.updates_passability() || x.pass != pass_mode::pass;
     }
 
-    static constexpr auto accessors()
+    static consteval auto accessors()
     {
         using E = Entity<object>;
         return std::tuple{
@@ -125,7 +125,7 @@ struct entity_accessors<object, inspect_intent_t> {
 
 template<> struct entity_accessors<generic_scenery, inspect_intent_t>
 {
-    static constexpr auto accessors()
+    static consteval auto accessors()
     {
         using E = Entity<generic_scenery>;
         auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
@@ -147,7 +147,7 @@ template<> struct entity_accessors<generic_scenery, inspect_intent_t>
 
 template<> struct entity_accessors<door_scenery, inspect_intent_t>
 {
-    static constexpr auto accessors()
+    static consteval auto accessors()
     {
         using E = Entity<door_scenery>;
         auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
@@ -174,7 +174,7 @@ template<> struct entity_accessors<door_scenery, inspect_intent_t>
 
 template<> struct entity_accessors<hole, inspect_intent_t>
 {
-    static constexpr auto accessors()
+    static consteval auto accessors()
     {
         using E = Entity<hole>;
         auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();
@@ -283,7 +283,7 @@ bool inspect_type(T& x, Intent)
 
 template<>
 struct entity_accessors<critter, inspect_intent_t> {
-    static constexpr auto accessors()
+    static consteval auto accessors()
     {
         using E = Entity<critter>;
         auto prev = entity_accessors<object, inspect_intent_t>::accessors();
@@ -323,7 +323,7 @@ template<typename U> struct enum_values<light_falloff, U>
 template<>
 struct entity_accessors<light, inspect_intent_t>
 {
-    static constexpr auto accessors()
+    static consteval auto accessors()
     {
         using E = Entity<light>;
         auto tuple0 = entity_accessors<object, inspect_intent_t>::accessors();

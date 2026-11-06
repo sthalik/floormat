@@ -7,7 +7,7 @@ namespace floormat {
 
 namespace {
 
-constexpr auto make_see_through_mask() noexcept
+consteval auto make_see_through_mask() noexcept
 {
     pass_through_mask array;
     array[(unsigned)pass_mode::blocked] = false;
@@ -17,7 +17,7 @@ constexpr auto make_see_through_mask() noexcept
     return array;
 }
 
-constexpr auto make_shoot_through_mask() noexcept
+consteval auto make_shoot_through_mask() noexcept
 {
     pass_through_mask array;
     array[(unsigned)pass_mode::blocked] = false;

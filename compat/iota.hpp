@@ -4,7 +4,7 @@
 namespace floormat::detail {
 
 template<typename Type, usize Count>
-std::array<Type, Count> constexpr iota_array_()
+std::array<Type, Count> consteval iota_array_()
 {
     static_assert( usize(Type(Count)) == Count );
     std::array<Type, Count> ret;

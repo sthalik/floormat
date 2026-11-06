@@ -56,7 +56,7 @@ constexpr CORRADE_ALWAYS_INLINE u64 U8TO64_LE(const u8* __restrict p)
     } while (0)
 
 struct Key { u64 k0, k1; };
-constexpr Key make_key()
+consteval Key make_key()
 {
     u8 buf[16];
     for (u8 i = 0; i < 16; i++)
