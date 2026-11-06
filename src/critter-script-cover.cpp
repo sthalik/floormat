@@ -230,7 +230,7 @@ private:
     // the threat alone sees no pixel of c. threat_pos is where the threat stood at the last check or search.
     point cover, canonical, threat_pos, peek_pos, gun_pos, gun_ray_from;
     Vector2i axis;
-    Ns wait_until{}, last_update{}, max_update{}, total_update{};
+    Ns wait_until{}, prev_game_time{}, last_update{}, max_update{}, total_update{};
     object_id threat_id;
     u32 num_searches = 0, num_rays = 0, num_body_checks = 0, num_dijkstra_calls = 0;
     u32 num_find_cover_point_calls = 0;
@@ -289,6 +289,7 @@ void cover_script::on_init(const bptr<critter>& c)
     // find and Dijkstra take the body's center as the critter's position.
     fm_assert(c->bbox_offset == Vector2b{});
     c->moves.AUTO = true;
+    prev_game_time = c->world().game_time();
 }
 
 void cover_script::on_update(const bptr<critter>& c, usize& i, const Ns& dt)
@@ -317,6 +318,11 @@ void cover_script::on_update(const bptr<critter>& c, usize& i, const Ns& dt)
 
 void cover_script::update(const bptr<critter>& c, usize& i, const Ns& dt)
 {
+    // Game time that passes while c gets no updates, as outside the chunks the editor updates, doesn't count
+    // toward a wait, so wait_until moves forward by the game time since c's last update, less this update's dt.
+    const auto now = c->world().game_time();
+    wait_until += Math::max(now - prev_game_time, dt) - dt;
+    prev_game_time = now;
     if (st != state::seek && (st != state::hidden && st != state::exposed || holds()))
         wait_until += dt;
     switch (st)
