@@ -912,6 +912,7 @@ void cover_script::end_search(critter& c, Optional<reachable_cover> r)
         // Without a path to the peek spot, c hides at the cover it has a path to, and steps out from there.
         if (const auto p = find_peek_pos(c, threat_pos); p && walk_to(c, *p, state::exposed))
             return;
+        has_peek = false;
         walk_to_cover(c, move(r->path));
         wait_until = c.world().game_time() + time_in(state::hidden);
         return;
