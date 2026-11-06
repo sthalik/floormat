@@ -128,7 +128,7 @@ struct cover_script final : critter_script
     void set_options(critter& c, const Cover::Script::options& o);
 
 private:
-    struct retreat_spot { Vector2i offset; bool done; };
+    struct retreat_spot { Vector2i offset; bool done = false; };
     // end is cover_end() of spot, and path leads there. path is empty when c stands on spot or end.
     struct reachable_cover { Cover::Point::spot spot; point end; path_search_result path; };
     struct skipped_spot { Cover::Point::spot spot; u32 octant; };
@@ -186,6 +186,7 @@ private:
     Cover::Point::finder finder;
     Cover::Point::query query = {};
     Array<retreat_spot> retreat_spots;
+    Vector2i retreat_spot_spacing;
     // The search's spots that have no path, or that joins_unreachable ties to one.
     Array<point> unreachable;
     // The spots of the search's tile search_tile, once tile_listed, of which tile_spot is next. They
@@ -982,28 +983,33 @@ void cover_script::begin_retreat(critter& c)
 {
     // finish_search() in test/cover-point.cpp expects retreat_next to go back only on a restart.
     fm_debug_assert(st != state::find_retreat);
-    const auto body = Vector2i(c.bbox_size);
-    const auto step = Math::max(body/2, Vector2i{1});
-    const auto n = Vector2i{(int)retreat_radius} / step;
-    const auto count = (u32)((2*n.x() + 1)*(2*n.y() + 1));
-    if (arrayCapacity(retreat_spots) < count)
-        arrayReserve(retreat_spots, count);
-    arrayClear(retreat_spots);
+    const auto step = Math::max(Vector2i(c.bbox_size)/2, Vector2i{1});
+    if (step != retreat_spot_spacing)
+    {
+        retreat_spot_spacing = step;
+        const auto n = Vector2i{(int)retreat_radius} / step;
+        const auto count = (u32)((2*n.x() + 1)*(2*n.y() + 1));
+        if (arrayCapacity(retreat_spots) < count)
+            arrayReserve(retreat_spots, count);
+        arrayClear(retreat_spots);
+        for (auto y = -n.y(); y <= n.y(); y++)
+            for (auto x = -n.x(); x <= n.x(); x++)
+                if (const auto off = Vector2i{x, y} * step; off.dot() <= (int)(retreat_radius*retreat_radius))
+                    arrayAppend(retreat_spots, retreat_spot{off});
+        // std::sort leaves the order of equal elements to the standard library, so the offset breaks
+        // the tie and every library picks the same spot.
+        std::sort(retreat_spots.begin(), retreat_spots.end(), [](const retreat_spot& a, const retreat_spot& b) {
+            if (const auto da = a.offset.dot(), db = b.offset.dot(); da != db)
+                return da < db;
+            return a.offset.y() != b.offset.y() ? a.offset.y() < b.offset.y() : a.offset.x() < b.offset.x();
+        });
+    }
     retreat_rays = 0;
-    for (auto y = -n.y(); y <= n.y(); y++)
-        for (auto x = -n.x(); x <= n.x(); x++)
-            if (const auto off = Vector2i{x, y} * step; off.dot() <= (int)(retreat_radius*retreat_radius))
-            {
-                arrayAppend(retreat_spots, retreat_spot{off, false});
-                retreat_rays += off.dot() > min_retreat_gain*min_retreat_gain;
-            }
-    // std::sort leaves the order of equal elements to the standard library, so the offset breaks
-    // the tie and every library picks the same spot.
-    std::sort(retreat_spots.begin(), retreat_spots.end(), [](const retreat_spot& a, const retreat_spot& b) {
-        if (const auto da = a.offset.dot(), db = b.offset.dot(); da != db)
-            return da < db;
-        return a.offset.y() != b.offset.y() ? a.offset.y() < b.offset.y() : a.offset.x() < b.offset.x();
-    });
+    for (auto& s : retreat_spots)
+    {
+        s.done = false;
+        retreat_rays += s.offset.dot() > min_retreat_gain*min_retreat_gain;
+    }
     retreat_next = 0;
     num_failed_retreat_dijkstra_calls = 0;
     retreat_all = false;
