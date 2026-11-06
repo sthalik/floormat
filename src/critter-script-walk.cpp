@@ -15,12 +15,12 @@ critter_walk::critter_walk() = default;
 critter_walk::critter_walk(point dest) : _dest{dest}, mode{walk_mode::line} {}
 
 critter_walk::critter_walk(path_search_result pathʹ) :
-    _dest{pathʹ.path().back()},
     path{move(pathʹ)},
     path_index{0},
     mode{walk_mode::path}
 {
     fm_assert(!path.empty());
+    _dest = path.path().back();
     if (std::as_const(path).smoothings().size() >= 2)
     {
         mode = walk_mode::smoothed;
@@ -76,6 +76,8 @@ auto critter_walk::walk_smoothed(const bptr<critter>& c, usize& i, const Ns& dt�
 {
     auto dt = dtʹ;
     const auto sp = std::as_const(path).smoothings();
+    if (path_index == sp.size())
+        return walk_result::arrived;
     for (;;)
     {
         const auto to = sp[path_index].pt;
