@@ -11,6 +11,7 @@
 #include "compat/floor-divmod.hpp"
 #include "compat/function2.hpp"
 #include "compat/fwd/algorithm/sort.hpp"
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cr/GrowableArray.h>
@@ -28,13 +29,33 @@ struct octant_pair
     u32 lo, hi;
 };
 
+// Grid::Cover::octant_direction() of each octant. Its distances run along integer cell steps, within 0.7° of
+// k*octant_step, so a bearing near a multiple of octant_step can lie on either side of the octant's.
+const std::array<Vector2, Grid::Cover::octant_count>& octant_dirs()
+{
+    static const auto dirs = [] {
+        std::array<Vector2, Grid::Cover::octant_count> a;
+        for (auto k = 0u; k < Grid::Cover::octant_count; k++)
+            a[k] = Grid::Cover::octant_direction(k);
+        return a;
+    }();
+    return dirs;
+}
+
 // The two octants whose bearings are on either side of v's.
 octant_pair octants_around(Vector2 v)
 {
-    constexpr auto n = (int)Grid::Cover::octant_count;
+    constexpr auto n = (u32)Grid::Cover::octant_count;
+    const auto& dirs = octant_dirs();
     const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step);
-    const auto lo = (u32)((k % n + n) % n);
-    return { lo, (lo + 1) % (u32)n };
+    auto lo = (u32)((k % (int)n + (int)n) % (int)n);
+    const auto vd = Vector2d(v);
+    // k*octant_step is off by under a step, so one step either way reaches the octant at or before v.
+    if (Math::cross(Vector2d(dirs[lo]), vd) < 0)
+        lo = (lo + n - 1) % n;
+    else if (Math::cross(Vector2d(dirs[(lo + 1) % n]), vd) >= 0)
+        lo = (lo + 1) % n;
+    return { lo, (lo + 1) % n };
 }
 
 // Cells first to last, both included, on both axes.
@@ -321,13 +342,22 @@ Vector2i axis_toward(Vector2i v)
 
 Vector2i across_of(Vector2i axis) { return Math::abs(Vector2i{axis.y(), axis.x()}); }
 
-// A bearing halfway between octants k and k + 1 takes k + 1, mod Grid::Cover::octant_count, since
-// floor(x + 1/2) rounds a half up.
+// A bearing halfway between octants k and k + 1 takes k + 1, mod Grid::Cover::octant_count.
 u32 nearest_octant(Vector2 v)
 {
-    constexpr auto n = (int)Grid::Cover::octant_count;
-    const auto k = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step + .5f);
-    return (u32)((k % n + n) % n);
+    constexpr auto n = (u32)Grid::Cover::octant_count;
+    const auto& dirs = octant_dirs();
+    const auto k0 = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step + .5f);
+    const auto k = (u32)((k0 % (int)n + (int)n) % (int)n);
+    // The octants' bearings are off k*octant_step by under half a step, so the nearest is k or beside it.
+    const auto next = (k + 1) % n, prev = (k + n - 1) % n;
+    const auto vd = Vector2d(v);
+    const auto d = Math::dot(Vector2d(dirs[k]), vd);
+    if (Math::dot(Vector2d(dirs[next]), vd) >= d)
+        return next;
+    if (Math::dot(Vector2d(dirs[prev]), vd) > d)
+        return prev;
+    return k;
 }
 
 void nearest_tiles(u32 radius, Array<Vector2i>& out)
