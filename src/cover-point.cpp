@@ -738,6 +738,8 @@ point cover_point::move_to_cover_end(world& w, const cover_query& q, Vector2i ax
                                      ArrayView<const point> also_from)
 {
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
+    // spot_tests holds the turned directions of up to 9 octants, as in find_cover_point.
+    fm_assert(q.octants == 0 || q.octants % 2 == 1 && q.octants <= 9);
     auto& I = *impl;
     spot_tests X{w, q, pred, I.runs, I.turned_rects, I.end_rects};
     const auto across = across_of(axis);
