@@ -11,6 +11,7 @@
 
 // What doesn't work with intrusive_bptr_base. Each line fails to compile or aborts, so it stays
 // commented out. IFoo derives from intrusive_bptr_base<P>.
+// test18 and test19 cover the cases of multiple inheritance that work.
 //
 // Compile errors:
 //   new IFoo{1};  new IFoo[2];  new (std::nothrow) IFoo{1};  std::make_unique<IFoo>(1);
@@ -70,6 +71,18 @@ static_assert(std::is_same_v<bptr<IPlain>, std::decay_t<decltype(bptr{std::declv
 static_assert(std::is_same_v<bptr<IPlain>, decltype(basic_bptr{std::declval<IPlain*>()})>);
 static_assert(std::is_same_v<bptr<Plain>, decltype(basic_bptr{std::declval<Plain*>()})>);
 
+struct Listener
+{
+    static inline int alive = 0;
+    int id;
+
+    explicit Listener(int id) : id{id} { ++alive; }
+    virtual ~Listener() noexcept { --alive; fm_assert(alive >= 0); }
+    virtual void on_event() = 0;
+};
+
+struct Payload { int d; };
+
 template<typename P>
 struct suite
 {
@@ -87,6 +100,9 @@ struct suite
     struct IAligned64;
     struct IAligned128;
     struct IBig;
+    struct IListener;
+    struct IPayloadFirst;
+    struct IVirtualListener;
 
     static i64 allocations();
     static i64 copies();
@@ -108,6 +124,8 @@ struct suite
     static void test15();
     static void test16();
     static void test17();
+    static void test18();
+    static void test19();
 
     static void run(const char* policy);
 };
@@ -186,6 +204,28 @@ struct alignas(128) suite<P>::IAligned128 : intrusive_bptr_base<P> { char data[1
 
 template<typename P>
 struct suite<P>::IBig : intrusive_bptr_base<P> { char data[2048]{}; };
+
+template<typename P>
+struct suite<P>::IListener : IFoo, Listener
+{
+    bptr<IListener> kept;
+    IListener(int x, int id) : IFoo{x}, Listener{id} {}
+    void on_event() override { kept = basic_bptr{this}; }
+};
+
+template<typename P>
+struct suite<P>::IPayloadFirst : Payload, intrusive_bptr_base<P>
+{
+    explicit IPayloadFirst(int d) : Payload{d} {}
+};
+
+template<typename P>
+struct suite<P>::IVirtualListener : intrusive_bptr_base<P>, virtual Listener
+{
+    bptr<IVirtualListener> kept;
+    explicit IVirtualListener(int id) : Listener{id} {}
+    void on_event() override { kept = basic_bptr{this}; }
+};
 
 template<typename P>
 i64 suite<P>::allocations()
@@ -554,6 +594,58 @@ void suite<P>::test17()
     fm_assert(IFoo::alive == 0);
 }
 
+// bptr{raw} and bptr{this} find the block from a pointer to a polymorphic second base,
+// through static_cast and through a virtual call.
+template<typename P>
+void suite<P>::test18()
+{
+    IFoo::alive = Listener::alive = 0;
+    auto total = allocations();
+    auto a = bptr<IListener>{InPlace, 53, 59};
+    fm_assert(allocations() - total == i64{counts_allocations<P>});
+    Listener* l = &*a;
+    auto b = bptr<IListener>{static_cast<IListener*>(l)};
+    fm_assert(b == a && a.use_count() == 2 && b->x == 53 && b->id == 59);
+    l->on_event();
+    fm_assert(a->kept == a && a.use_count() == 3);
+    auto foo = bptr<IFoo>{a};
+    auto back = static_pointer_cast<IListener>(foo);
+    fm_assert(back.get() == a.get() && a.use_count() == 5);
+    fm_assert(allocations() - total == i64{counts_allocations<P>});
+
+    if constexpr (has_weak)
+    {
+        auto w = weak_bptr<IFoo>{a};
+        fm_assert(w.lock() == a);
+        b.destroy();
+        fm_assert(w.expired() && !w.lock());
+    }
+    else
+        b.destroy();
+    fm_assert(IFoo::alive == 0 && Listener::alive == 0);
+    fm_assert(!a && !b && !foo && !back && a.has_block() && back.has_block());
+    fm_assert(poisoned(l));
+}
+
+// A non-polymorphic base declared first goes after the intrusive base. Without RTTI, a pointer to a virtual
+// base leads back to the object only through a virtual call.
+template<typename P>
+void suite<P>::test19()
+{
+    auto a = bptr<IPayloadFirst>{InPlace, 61};
+    Payload* d = &*a;
+    auto b = bptr<IPayloadFirst>{static_cast<IPayloadFirst*>(d)};
+    fm_assert(b == a && a.use_count() == 2 && b->d == 61);
+
+    Listener::alive = 0;
+    auto v = bptr<IVirtualListener>{InPlace, 67};
+    Listener* l = &*v;
+    l->on_event();
+    fm_assert(v->kept == v && v.use_count() == 2 && l->id == 67 && Listener::alive == 1);
+    v.destroy();
+    fm_assert(Listener::alive == 0 && !v && v.has_block() && poisoned(l));
+}
+
 template<typename P>
 void suite<P>::run(const char* policy)
 {
@@ -582,6 +674,8 @@ void suite<P>::run(const char* policy)
         check_leaks<P>(before, policy, "test", 16, false);
     }
     run_test<P>(policy, 17, test17);
+    run_test<P>(policy, 18, test18);
+    run_test<P>(policy, 19, test19);
 }
 
 } // namespace

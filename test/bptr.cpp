@@ -143,6 +143,25 @@ struct A : bptr_base
     fm_DISABLE_MOVE_COPY(A);
 };
 
+int Listener_alive = 0, Multi_alive = 0; // NOLINT
+
+struct Listener
+{
+    int id;
+    explicit Listener(int id) : id{id} { ++Listener_alive; }
+    virtual ~Listener() noexcept { --Listener_alive; fm_assert(Listener_alive >= 0); }
+
+    fm_DISABLE_MOVE_COPY(Listener);
+};
+
+template<typename B1, typename B2>
+struct Multi final : B1, B2
+{
+    int x;
+    Multi(int x, int id) : Listener{id}, x{x} { ++Multi_alive; }
+    ~Multi() noexcept override { --Multi_alive; fm_assert(Multi_alive >= 0); }
+};
+
 int Node_alive = 0; // NOLINT
 
 template<typename P>
@@ -158,6 +177,7 @@ struct suite
     static void check_empty(const bptr<A>& p);
     static void check_nonempty(const bptr<A>& p);
     static Node* make_self_owned();
+    template<typename T> static void check_two_bases(bool in_place);
 
     static void test1();
     static void test2();
@@ -186,6 +206,7 @@ struct suite
     static void test26();
     static void test27();
     static void test31();
+    static void test32();
 
     static void run(const char* policy);
 };
@@ -1711,6 +1732,47 @@ void suite<P>::test31()
 }
 
 template<typename P>
+template<typename T>
+void suite<P>::check_two_bases(bool in_place)
+{
+    Listener_alive = Multi_alive = 0;
+    auto a = in_place ? bptr<T>{InPlace, 43, 47} : bptr<T>{new T{43, 47}};
+    T* raw = &*a;
+    Listener* l = raw;
+    bptr_base* base = raw;
+    basic_bptr<bptr_base, P> any = a;
+    fm_assert(any.get() == base && any == a && a.use_count() == 2);
+    auto back = static_pointer_cast<T>(any);
+    fm_assert(back.get() == raw && back->x == 43 && back->id == 47);
+    bptr<const T> c = a;
+    fm_assert(c == a && c.get() == raw && a.use_count() == 4);
+
+    if constexpr (has_weak)
+    {
+        auto w = weak_bptr<bptr_base>{a};
+        fm_assert(w.lock().get() == base);
+        any.destroy();
+        fm_assert(w.expired());
+    }
+    else
+        any.destroy();
+    fm_assert(Listener_alive == 0 && Multi_alive == 0);
+    fm_assert(!a && !any && !back && !c && a.has_block());
+    fm_assert(poisoned(l) && poisoned(base));
+}
+
+// With ptr_block and inplace_block, bptr_base needn't start the object.
+template<typename P>
+void suite<P>::test32()
+{
+    for (bool in_place : {false, true})
+    {
+        check_two_bases<Multi<Listener, bptr_base>>(in_place);
+        check_two_bases<Multi<bptr_base, Listener>>(in_place);
+    }
+}
+
+template<typename P>
 void suite<P>::run(const char* policy)
 {
     run_test<P>(policy, 1, test1);
@@ -1747,6 +1809,7 @@ void suite<P>::run(const char* policy)
     run_test<P>(policy, 26, test26);
     run_test<P>(policy, 27, test27);
     run_test<P>(policy, 31, test31);
+    run_test<P>(policy, 32, test32);
 }
 
 } // namespace
