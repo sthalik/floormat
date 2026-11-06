@@ -2171,6 +2171,30 @@ void test_cover_script_retreat_circling_threat(point hidden)
     fm_assert_equal(t0.num_dijkstra_calls + 1, t.num_dijkstra_calls);
 }
 
+// As test_cover_script_retreat_circling_threat, with the threat stepping between 64 px east and south of the npc.
+// A spot seen from an octant gets no second ray from it, so the third update tests spots past the first's.
+void test_cover_script_retreat_threat_back_and_forth(point hidden)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    s.w[ch].remove_object(*s.wall, s.wall->index());
+    rebuild(s.w);
+    s.move_threat(point{ch, {7, 1}, {}});
+    s.step_until(state::find_retreat);
+    const auto here = s.npc->position();
+    u32 next[3];
+    for (auto i = 0u; i < std::size(next); i++)
+    {
+        s.move_threat(here + (i % 2 ? Vector2i{0, 64} : Vector2i{64, 0}));
+        s.step();
+        const auto t = s.status();
+        fm_assert(t.st == state::find_retreat && !t.retreat_all);
+        next[i] = t.retreat_spot;
+    }
+    fm_assert(next[2] > next[0]);
+}
+
 // As test_cover_script_retreat_circling_threat, from the npc's search for cover at hidden. The search restarts
 // only while a whole scan fits in search_tiles_left, so it still reaches its last tile, or a block 7 tiles away.
 void test_cover_script_search_circling_threat(point hidden, bool far_block)
@@ -3067,6 +3091,7 @@ void Test::test_cover_point()
     test_cover_script_retreat_closed_in(hidden);
     test_cover_script_retreat_restart(hidden);
     test_cover_script_retreat_circling_threat(hidden);
+    test_cover_script_retreat_threat_back_and_forth(hidden);
     test_cover_script_search_circling_threat(hidden, false);
     test_cover_script_search_circling_threat(hidden, true);
     test_cover_script_retreat_finds_cover(hidden, false);

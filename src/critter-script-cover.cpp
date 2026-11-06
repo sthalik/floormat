@@ -128,7 +128,8 @@ struct cover_script final : critter_script
     void set_options(critter& c, const Cover::Script::options& o);
 
 private:
-    struct retreat_spot { Vector2i offset; bool done = false; };
+    struct retreat_spot { Vector2i offset; u32 seen_octants = 0; bool done = false; };
+    static_assert(Grid::Cover::octant_count <= 32);
     // end is cover_end() of spot, and path leads there. path is empty when c stands on spot or end.
     struct reachable_cover { Cover::Point::spot spot; point end; path_search_result path; };
     struct skipped_spot { Cover::Point::spot spot; u32 octant; };
@@ -1009,6 +1010,7 @@ void cover_script::begin_retreat(critter& c)
     for (auto& s : retreat_spots)
     {
         s.done = false;
+        s.seen_octants = 0;
         retreat_rays += s.offset.dot() > min_retreat_gain*min_retreat_gain;
     }
     retreat_next = 0;
@@ -1043,6 +1045,7 @@ void cover_script::retreat_step(critter& c)
         retreat_next = 0;
         num_retreat_restarts++;
     }
+    const auto octant_bit = 1u << retreat_octant;
     const auto here = Math::sqrt((double)point::distance_squared(from, threat_pos));
     const auto body = Vector2i(c.bbox_size);
     const auto pred = blocks_all_but(c.id);
@@ -1062,7 +1065,7 @@ void cover_script::retreat_step(critter& c)
         }
         auto& s = retreat_spots[retreat_next];
         const auto to = from + s.offset;
-        if (s.done)
+        if (s.done || !retreat_all && (s.seen_octants & octant_bit))
         {
             retreat_next++;
             continue;
@@ -1099,6 +1102,7 @@ void cover_script::retreat_step(critter& c)
             retreat_rays--;
             if (sees(c, threat_pos, to))
             {
+                s.seen_octants |= octant_bit;
                 retreat_next++;
                 continue;
             }
