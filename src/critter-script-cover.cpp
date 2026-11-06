@@ -198,14 +198,15 @@ private:
     point tile_threat;
     // The first spots the search skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
     Optional<Cover::Point::spot> peekless, in_reach;
-    // reach_positions() for the threat at reach_from while reach_known, which each update clears. The others
-    // are its fill's scratch.
+    // reach_positions() for the threat at reach_from, while world::pass_gen() is reach_built_pass_gen and the
+    // threat's larger bbox side is reach_bbox. The others are its fill's scratch.
     Array<point> reach;
     Array<u16> reach_dist;
     Array<u8> reach_open;
     Array<u64> reach_heap;
     point reach_from;
-    bool reach_known = false;
+    u64 reach_built_pass_gen = 0;
+    u32 reach_bbox = 0;
     // How far from search_from the Dijkstra searches that put spots in unreachable could reach, and
     // world::pass_gen() once the last of them ended.
     u32 unreachable_reach = 0;
@@ -307,7 +308,6 @@ void cover_script::on_update(const bptr<critter>& c, usize& i, const Ns& dt)
     }
     // do_clear deletes the script, so the clock starts after it.
     auto t = Time::now();
-    reach_known = false;
     update(c, i, dt);
     // threat_pos is where the threat stood at the last check or search, and in seek c checks
     // nothing. A retreat ends in seek with c facing away from a threat that may not have moved.
@@ -426,7 +426,7 @@ void cover_script::set_options(critter& c, const Cover::Script::options& o)
     using fallback = Cover::Script::options::fallback;
     const auto old = options.hold;
     options = o;
-    reach_known = false;
+    reach_built_pass_gen = 0;
     // Spots kept for a last_resort the new options don't allow, which neither the retreat nor take_last_resort
     // checks again.
     switch (o.last_resort)
@@ -495,20 +495,21 @@ bool cover_script::hidden_at(critter& c, point threat, point pos, Vector2i axis)
 // options.threat_reach px and that border a cell the fill doesn't reach.
 ArrayView<const point> cover_script::reach_positions(critter& c, point threat)
 {
-    if (reach_known && reach_from == threat)
-        return reach;
-    reach_known = true;
-    reach_from = threat;
-    arrayClear(reach);
-    arrayAppend(reach, threat);
     auto& w = c.world();
     const auto obj = w.find_object(threat_id);
+    const auto bbox = obj ? Math::max((u32)obj->bbox_size.x(), (u32)obj->bbox_size.y()) : 0u;
+    if (reach_built_pass_gen == w.pass_gen() && reach_from == threat && reach_bbox == bbox)
+        return reach;
+    reach_built_pass_gen = w.pass_gen();
+    reach_from = threat;
+    reach_bbox = bbox;
+    arrayClear(reach);
+    arrayAppend(reach, threat);
     const auto R = (int)options.threat_reach;
     if (!R || !obj)
         return reach;
     fm_assert(R < (u16)-1);
 
-    const auto bbox = Math::max((u32)obj->bbox_size.x(), (u32)obj->bbox_size.y());
     auto& pool = A.pool_registry().pass_pool(Pass::Params{astar::default_div_size, bbox, pass_mode::pass});
     pool.maybe_mark_stale_all(w);
     const auto div = (int)pool.params().div_size(), dc = (int)pool.params().div_count;
@@ -1455,7 +1456,6 @@ Optional<Cover::Script::peek> cover_script::peek_for(critter& c, const Cover::Po
     const auto threat = find_threat(c);
     if (!threat)
         return {};
-    reach_known = false;
     // sees() counts every ray, and the counters leave this out.
     const auto n = num_rays;
     const auto p = peek_spot(c, cover_end(c, s, threat->position()), s.axis, threat->position());
@@ -1470,7 +1470,6 @@ bool cover_script::send_to(critter& c, const Cover::Point::spot& s, bool peek)
     const auto threat = find_threat(c);
     if (!threat)
         return false;
-    reach_known = false;
     const auto end = cover_end(c, s, threat->position());
     Optional<Cover::Script::peek> p;
     if (peek)

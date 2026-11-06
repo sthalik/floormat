@@ -2809,6 +2809,34 @@ void test_cover_script_cover_end_reach(bool reach)
     fm_assert(reach != seen_within(s, pos, 2*tile_size_xy));
 }
 
+// Walls a shot passes box in cover_scene's threat, so the threat reaches no farther than its cell and cover_end
+// slides the npc's spot farther along the wall. Once they're gone, send_to_cover takes the search's cover again.
+void test_cover_script_cover_end_after_pass_change()
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    const auto t0 = s.status();
+    const Cover::Point::spot spot{t0.canonical, t0.axis};
+    const Vector2i walls[][2] = {
+        {{72, 16}, {0, -28}}, {{72, 16}, {0, 28}}, {{16, 72}, {-28, 0}}, {{16, 72}, {28, 0}},
+    };
+    bptr<scenery> box[std::size(walls)];
+    for (auto i = 0u; i < std::size(walls); i++)
+    {
+        const auto p = s.threat->position() + walls[i][1];
+        box[i] = add_blocker(s.w, p.local(), Vector2ub(walls[i][0]), p.offset(), pass_mode::shoot_through);
+    }
+    rebuild(s.w);
+    fm_assert(Cover::Script::send_to_cover(*s.npc, spot));
+    const auto boxed = s.status().cover;
+    fm_assert(point::distance(boxed, t0.canonical) > point::distance(t0.cover, t0.canonical));
+    for (const auto& b : box)
+        s.w[ch].remove_object(*b, b->index());
+    rebuild(s.w);
+    fm_assert(Cover::Script::send_to_cover(*s.npc, spot));
+    fm_assert(s.status().cover == t0.cover);
+}
+
 // Replaces cover_scene's wall with one 584 px long, 56 px west of a threat at tile (6, 8). The wall hides the gun
 // of an npc behind it within max_peek_dist of any spot there, so no spot has a peek spot.
 void add_longer_wall(cover_scene& s)
@@ -3074,6 +3102,7 @@ void Test::test_cover_point()
     test_cover_script_threat_reach_wall();
     test_cover_script_cover_end_reach(true);
     test_cover_script_cover_end_reach(false);
+    test_cover_script_cover_end_after_pass_change();
     test_cover_script_last_resort_no_peek(fallback::none);
     test_cover_script_last_resort_no_peek(fallback::no_peek);
     test_cover_script_last_resort_seen();
