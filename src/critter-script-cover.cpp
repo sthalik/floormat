@@ -175,7 +175,7 @@ private:
     void peek_again(critter& c);
     void step_out(const bptr<critter>& c);
     void leave_peek(critter& c);
-    void take_cover(const bptr<critter>& c);
+    void take_cover(critter& c);
     void walk_update(const bptr<critter>& c, usize& i, const Ns& dt);
     void face_threat(critter& c, usize i, point threat);
     Optional<Cover::Script::peek> peek_spot(critter& c, point from, Vector2i axis, point threat);
@@ -1133,7 +1133,7 @@ bool cover_script::walk_to(critter& c, point to, state then)
     return true;
 }
 
-// Walks c along end_search's path to cover, or straight there from canonical, where the path is empty.
+// Walks c along path to cover, or straight there without one.
 void cover_script::walk_to_cover(critter& c, path_search_result path)
 {
     if (path.is_found())
@@ -1171,10 +1171,7 @@ void cover_script::check_hidden(critter& c, point threat)
     if (!hidden_at(c, threat, canonical, axis))
         flee(c);
     else if (refresh_cover(c))
-    {
-        walk = critter_walk{cover};
-        st = state::to_cover;
-    }
+        walk_to_cover(c, {});
 }
 
 // A ray from `threat`, which stands elsewhere than at the last check, to c's gun. A pixel of c at canonical
@@ -1207,7 +1204,7 @@ void cover_script::check_walk(critter& c)
     }
     // A moved cover may lie off a straight walk's line, so c walks a path there, or walks straight without one.
     if (st == state::to_cover && refresh_cover(c) && walk.is_line() && !walk_to(c, cover, state::hidden))
-        walk = critter_walk{cover};
+        walk_to_cover(c, {});
     if (st == state::to_peek && !sees_gun(c, walk.dest(), pos))
         peek_again(c);
 }
@@ -1239,16 +1236,9 @@ bool cover_script::check_retreat(critter& c)
 // retry_time.
 void cover_script::peek_again(critter& c)
 {
-    if (const auto p = find_peek_pos(c, threat_pos))
-    {
-        if (!walk_to(c, *p, state::exposed))
-            retry_later(c);
-        return;
-    }
-    refresh_cover(c);
-    if (walk_to(c, cover, state::hidden))
-        wait_until = c.world().game_time() + time_in(state::hidden);
-    else
+    if (const auto p = find_peek_pos(c, threat_pos); !p)
+        take_cover(c);
+    else if (!walk_to(c, *p, state::exposed))
         retry_later(c);
 }
 
@@ -1272,22 +1262,19 @@ void cover_script::leave_peek(critter& c)
 {
     wait_until = c.world().game_time() + time_in(state::hidden);
     if (!refresh_cover(c) || !walk_to(c, cover, state::hidden))
-    {
-        walk = critter_walk{cover};
-        st = state::to_cover;
-    }
+        walk_to_cover(c, {});
 }
 
 // Walks c to cover along a Dijkstra path and hides it there for hidden_time. It serves where c may
 // be off the line from its cover that find_peek_pos checked clear, so a straight walk back could
 // run into the blocker. With no path, c seeks after retry_time.
-void cover_script::take_cover(const bptr<critter>& c)
+void cover_script::take_cover(critter& c)
 {
-    refresh_cover(*c);
-    if (walk_to(*c, cover, state::hidden))
-        wait_until = c->world().game_time() + time_in(state::hidden);
+    refresh_cover(c);
+    if (walk_to(c, cover, state::hidden))
+        wait_until = c.world().game_time() + time_in(state::hidden);
     else
-        retry_later(*c);
+        retry_later(c);
 }
 
 void cover_script::walk_update(const bptr<critter>& c, usize& i, const Ns& dt)
@@ -1318,7 +1305,7 @@ void cover_script::walk_update(const bptr<critter>& c, usize& i, const Ns& dt)
     }
     if (st == state::to_peek)
     {
-        take_cover(c);
+        take_cover(*c);
         return;
     }
     if (st == state::retreat && !replans)
@@ -1486,15 +1473,8 @@ bool cover_script::send_to(critter& c, const Cover::Point::spot& s, bool peek)
         if (!p)
             return false;
     }
-    const auto to = p ? p->pos : end;
-    const auto here = c.position() == to;
-    path_search_result path;
-    if (!here)
-    {
-        path = path_to(c, to);
-        if (!path.is_found())
-            return false;
-    }
+    if (!walk_to(c, p ? p->pos : end, p ? state::exposed : state::hidden))
+        return false;
     canonical = s.pos;
     cover = end;
     axis = s.axis;
@@ -1512,18 +1492,8 @@ bool cover_script::send_to(critter& c, const Cover::Point::spot& s, bool peek)
     if (options.hold != hold_phase::none)
         options.hold = p ? hold_phase::exposed : hold_phase::hidden;
     wait_until = c.world().game_time() + time_in(p ? state::exposed : state::hidden);
-    if (!here)
-    {
-        walk = critter_walk{move(path)};
-        st = p ? state::to_peek : state::to_cover;
-    }
-    else if (p)
-    {
-        st = state::exposed;
+    if (st == state::exposed)
         face_threat(c, c.index(), threat_pos);
-    }
-    else
-        st = state::hidden;
     return true;
 }
 
