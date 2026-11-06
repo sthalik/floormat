@@ -1,11 +1,13 @@
 #pragma once
+#include "compat/borrowed-ptr-fwd.hpp"
 #include "compat/nanosecond.hpp"
+#include "object-id.hpp"
 #include "point.hpp"
 #include "tile-defs.hpp"
 #include "cover-point.hpp"
 #include <cr/Optional.h>
 
-namespace floormat { struct critter; }
+namespace floormat { struct critter; struct object; class world; }
 
 namespace floormat::Cover::Script {
 
@@ -104,7 +106,7 @@ void list_spots(critter& c, Array<Cover::Point::spot>& out);
 Cover::Point::result list_spots(critter& c, const Cover::Point::query& q, Array<Cover::Point::spot>& out);
 
 // The peek spot the script steps out to after send_to_cover(c, s), with the threat where it stands now. Empty
-// when c runs another script or none, the threat is gone, or no direction has one within max_peek_dist.
+// when c runs another script or none, no threat is on c's floor, or no direction has one within max_peek_dist.
 Optional<peek> find_peek(critter& c, const Cover::Point::spot& s);
 
 // Walks c along a Dijkstra path to hide for hidden_time at s moved to its cover's end, as cover is from canonical.
@@ -112,12 +114,15 @@ Optional<peek> find_peek(critter& c, const Cover::Point::spot& s);
 bool send_to_cover(critter& c, const Cover::Point::spot& s);
 
 // Sends c to find_peek's spot for s, stays exposed for exposed_time, then hides. A hold becomes exposed.
-// False, changing nothing, with another script, none, no threat, no path or no peek spot.
+// False, changing nothing, with another script, none, no threat on c's floor, no path or no peek spot.
 bool send_to_peek(critter& c, const Cover::Point::spot& s);
 
 // From the script's next update on. A changed hold that names the phase other than the one c stands
 // in or walks to ends that phase in c's next standing update. Does nothing when c runs another
 // script or none.
 void set_options(critter& c, const options& options);
+
+// Object id of w, or empty when it's gone or its chunk3().z isn't z.
+bptr<object> find_object_at_z(world& w, object_id id, i8 z);
 
 } // namespace floormat::Cover::Script
