@@ -159,7 +159,8 @@ using proto_t  = u16;
 // 29: add critter::anim_speed
 // 30: allow bbox_size as an odd number
 // 31: drop critter::offset_frac, store object::delta in ns
-static constexpr proto_t proto_version = 31;
+// 32: add world frame number and game time
+static constexpr proto_t proto_version = 32;
 
 static constexpr usize string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
@@ -739,6 +740,8 @@ ok:     void();
             visit(c, f);
         visit(proto_version, f);
         visit(w.object_counter(), f);
+        visit(w.frame_no(), f);
+        visit(w.game_time().stamp, f);
         auto nstrings = (u32)string_array.size(),
              natlases = (u32)atlas_array.size(),
              nchunks  = (u32)chunk_array.size();
@@ -916,12 +919,16 @@ struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
     std::vector<StringView> strings;
     std::vector<atlas_pair> atlases;
     object_id object_counter = world::object_counter_init;
+    u64 frame_no;
+    Ns game_time;
     u32 nstrings = 0, natlases = 0, nchunks = 0;
 
     class world& w;
     loader_policy asset_policy;
 
-    reader(class world& w, loader_policy policy) : w{w}, asset_policy{policy} {}
+    reader(class world& w, loader_policy policy) :
+        frame_no{w.frame_no()}, game_time{w.game_time()}, w{w}, asset_policy{policy}
+    {}
 
     atlas_pair& atlas_pair_of(const bptr<anim_atlas>& a)
     {
@@ -1126,6 +1133,12 @@ ok:
                 object_counter << s;
                 fm_soft_assert(object_counter >= world::object_counter_init);
                 fm_soft_assert(!(object_counter >> object_table::key_bits));
+            }
+            if (PROTO >= 32) [[likely]]
+            {
+                frame_no << s;
+                game_time.stamp << s;
+                fm_soft_assert(frame_no != 0);
             }
             nstrings << s;
             natlases << s;
@@ -1369,11 +1382,15 @@ class world world::deserialize(StringView filename, loader_policy asset_policy) 
     {
         struct reader<true> r{w, asset_policy};
         r.deserialize_world(s, buf, proto);
+        w._current_frame = r.frame_no;
+        w._game_time = r.game_time;
     }
     else
     {
         struct reader<false> r{w, asset_policy};
         r.deserialize_world(s, buf, proto);
+        w._current_frame = r.frame_no;
+        w._game_time = r.game_time;
     }
 
     //fm_assert("t o d o && false);
