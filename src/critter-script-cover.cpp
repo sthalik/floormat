@@ -43,7 +43,8 @@ constexpr u32 path_slack = 5*(u32)tile_size_xy;
 // Tiles of search_tiles(), each listed by one find_cover_point call over the tile's area.
 constexpr u32 max_search_tiles_per_update = 32;
 // An octant fill computes how far a shot travels from each cell of a chunk's cover grid along one of 32
-// directions. A stale grid's rebuild counts as one. A rebuild and a fill took 0.66 ms at div 8.
+// directions. A stale grid's rebuild counts as one. A rebuild and a fill took 0.66 ms at div 8. A call that ran
+// out followed by a pass change has no limit, so a tile's grids staled every update still get their octants.
 constexpr u32 max_search_octant_fills_per_update = 1;
 // path_to calls, each one Dijkstra search. One that found a path took up to 0.71 ms among dense scenery.
 constexpr u32 max_search_dijkstra_calls_per_update = 1;
@@ -227,6 +228,9 @@ private:
     // A retreat started since start_search, so a kept last_resort spot starts no other.
     bool search_retreated = false;
     bool tile_listed = false;
+    // world::pass_gen() when the last find_cover_point call ran out of fills, else 0. A pass change since may
+    // have staled a grid it filled, so the next call has no limit, or a grid staled every update never fills.
+    u64 fills_pass_gen = 0;
     // canonical is the spot the search found, and cover where c hides, canonical moved along its face as far as
     // the threat alone sees no pixel of c. threat_pos is where the threat stood at the last check or search.
     point cover, canonical, threat_pos, peek_pos, gun_pos, gun_ray_from;
@@ -721,7 +725,9 @@ void cover_script::search_step(critter& c)
     const auto base = point{search_from.coord(), {}} - search_from;
     const auto body = Vector2ui(c.bbox_size);
     const auto pred = blocks_all_but(c.id);
-    auto fills = max_search_octant_fills_per_update, dijkstra_left = max_search_dijkstra_calls_per_update;
+    const auto unlimited = fills_pass_gen && w.pass_gen() != fills_pass_gen;
+    auto fills = unlimited ? (u32)-1 : max_search_octant_fills_per_update;
+    auto dijkstra_left = max_search_dijkstra_calls_per_update;
     auto peek_spot_searches_left = max_peek_spot_searches_per_update;
     const auto checks_at_start = num_body_checks;
     for (auto n = 0u; n < max_search_tiles_per_update; n++)
@@ -734,7 +740,9 @@ void cover_script::search_step(critter& c)
                                 Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}, fills};
             const auto r = finder.find_cover_point(w, A.pool_registry(), Cover::Params{options.div_size}, q, pred, true);
             num_find_cover_point_calls++;
-            fills -= r.fills;
+            // after an unlimited call, the update's later tiles get none
+            fills = unlimited ? 0 : fills - r.fills;
+            fills_pass_gen = r.out_of_fills ? w.pass_gen() : 0;
             if (r.out_of_fills)
                 return;
             const auto count = r.spots.size();
