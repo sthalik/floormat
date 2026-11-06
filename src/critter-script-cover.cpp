@@ -1476,13 +1476,13 @@ Optional<Cover::Script::peek> cover_script::peek_for(critter& c, const Cover::Po
 bool cover_script::send_to(critter& c, const Cover::Point::spot& s, bool peek)
 {
     const auto threat = find_threat(c);
+    if (!threat)
+        return false;
     reach_known = false;
-    const auto end = threat ? cover_end(c, s, threat->position()) : s.pos;
+    const auto end = cover_end(c, s, threat->position());
     Optional<Cover::Script::peek> p;
     if (peek)
     {
-        if (!threat)
-            return false;
         p = peek_spot(c, end, s.axis, threat->position());
         if (!p)
             return false;
@@ -1501,8 +1501,7 @@ bool cover_script::send_to(critter& c, const Cover::Point::spot& s, bool peek)
     axis = s.axis;
     has_cover = true;
     replans = 0;
-    if (threat)
-        threat_pos = threat->position();
+    threat_pos = threat->position();
     has_peek = !!p;
     if (p)
     {

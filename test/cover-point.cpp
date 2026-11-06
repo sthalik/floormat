@@ -2511,6 +2511,25 @@ void test_cover_script_orders(point hidden)
     fm_assert(!Cover::Script::send_to_peek(*s.npc, other));
 }
 
+// With the npc on floor 1 and the threat on floor 0, an order to take cover fails and changes nothing.
+void test_cover_script_threat_off_floor()
+{
+    world w;
+    constexpr chunk_coords_ ch1{0, 0, 1};
+    auto npc = add_critter(w, point{ch1, {4, 8}, {}});
+    auto threat = add_critter(w, point{ch, {12, 8}, {}});
+    w.init_scripts();
+    astar A;
+    npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8, 0), npc);
+    auto i = npc->index();
+    npc->update(npc, i, Second / npc->atlas->info().fps);
+    fm_assert(Cover::Script::get_status(*npc)->st == state::seek);
+    fm_assert(!Cover::Script::send_to_cover(*npc, {npc->position(), {1, 0}}));
+    const auto t = *Cover::Script::get_status(*npc);
+    fm_assert(t.st == state::seek && !t.has_cover);
+    w.finish_scripts();
+}
+
 // True when the threat at from sees a pixel of the npc's body centered on pos, as the npc's script tests it.
 bool edge_seen(cover_scene& s, point from, point pos)
 {
@@ -3021,6 +3040,7 @@ void Test::test_cover_point()
     test_cover_script_far_cover(true);
     test_cover_script_div_change();
     test_cover_script_orders(hidden);
+    test_cover_script_threat_off_floor();
     test_cover_script_keeps_peeking(hidden, c0.peek);
     test_cover_script_leave_peek_enclosed();
     test_cover_script_walking_threat(hidden);

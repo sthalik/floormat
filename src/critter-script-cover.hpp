@@ -110,7 +110,7 @@ Cover::Point::result list_spots(critter& c, const Cover::Point::query& q, Array<
 Optional<peek> find_peek(critter& c, const Cover::Point::spot& s);
 
 // Walks c along a Dijkstra path to hide for hidden_time at s moved to its cover's end, as cover is from canonical.
-// An options.hold other than none becomes hidden. False, changing nothing, with another script, none, or no path.
+// A hold becomes hidden. False, changing nothing, with another script, none, no threat on c's floor or no path.
 bool send_to_cover(critter& c, const Cover::Point::spot& s);
 
 // Sends c to find_peek's spot for s, stays exposed for exposed_time, then hides. A hold becomes exposed.
