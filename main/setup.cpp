@@ -68,7 +68,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 
 void main_impl::resize_window(Vector2i size)
 {
-    fm_assert(size.x() > 0 && size.y() > 0);
+    fm_assert(size.min() > 0);
     // Direct rather than Sdl2Application::setWindowSize(), which scales by dpiScaling() and would
     // reintroduce the rounding make_conf() just removed.
     SDL_SetWindowSize(window(), size.x(), size.y());

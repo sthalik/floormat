@@ -97,7 +97,7 @@ u32 GridBase::pack_bit_index_from_coord(intra_coord posʹ, u32 div_count)
 {
     const auto pos = Vector2ui(Vector2i(posʹ)) >> (u32)(std::countr_zero(chunk_size_xy) - std::countr_zero(div_count)); // xxx todo assumes power of two chunk size
     // per-axis: an out-of-range x with a small y still packs below div_count²
-    fm_debug3_assert(pos.x() < div_count && pos.y() < div_count);
+    fm_debug3_assert(pos.max() < div_count);
     return pack_bit_index(pos.x(), pos.y(), div_count);
 }
 

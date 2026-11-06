@@ -380,7 +380,7 @@ std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& s
 {
     const auto full_w = (u32)sprite.width_minus1 + 1;
     const auto full_h = (u32)sprite.height_minus1 + 1;
-    fm_assert(sub_size.x() > 0 && sub_size.y() > 0);
+    fm_assert(sub_size.min() > 0);
     fm_assert(sub_offset.x() + sub_size.x() <= full_w);
     fm_assert(sub_offset.y() + sub_size.y() <= full_h);
 

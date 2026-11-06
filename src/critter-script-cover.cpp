@@ -89,7 +89,7 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
         return pos;
     const auto dist = offset ? *offset : Math::dot(Vector2i(c.bbox_size), across)/2;
     const auto f = Vector2(threat - pos);
-    return pos + Vector2i(Math::round(Vector2{-f.y(), f.x()} * ((float)dist / f.length())));
+    return pos + Vector2i(Math::round(f.perpendicular() * ((float)dist / f.length())));
 }
 
 // A query's pos lies up to half a tile from its tile's center on each axis, so the list reaches a
@@ -312,7 +312,7 @@ void cover_script::on_update(const bptr<critter>& c, usize& i, const Ns& dt)
             face_threat(*c, i, threat->position());
     }
     last_update = t.update();
-    max_update = std::max(max_update, last_update);
+    max_update = Math::max(max_update, last_update);
     total_update += last_update;
 }
 
@@ -891,7 +891,7 @@ bool cover_script::joins_unreachable(critter& c, point to)
     for (const auto& u : unreachable)
     {
         const auto d = to - u;
-        if (Math::abs(d.x()) > tile_size_xy || Math::abs(d.y()) > tile_size_xy)
+        if (Math::abs(d).max() > tile_size_xy)
             continue;
         const auto a = u.intra().center_shifted(), b = a + d;
         const auto lo = Math::min(a, b) - body/2;

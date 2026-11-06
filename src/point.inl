@@ -33,7 +33,7 @@ constexpr point::point(Vector3i p)
 constexpr u32 point::distance(point a, point b)
 {
     Vector2i dist = a - b;
-    return (u32)Math::ceil(Math::sqrt(Vector2(dist).dot()));
+    return (u32)Math::ceil(Vector2(dist).length());
 }
 
 constexpr u64 point::distance_squared(Vector2i delta)
