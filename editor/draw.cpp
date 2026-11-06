@@ -18,7 +18,6 @@
 #include "shaders/texture-unit-cache.hpp"
 #include "main/clickable.hpp"
 #include "draw/wireframe.hpp"
-#include "compat/limits.hpp"
 #include <bit>
 #include <mg/Color.h>
 #include <mg/ImGuiIntegration/Context.h>
@@ -108,15 +107,6 @@ void app::draw_collision_boxes()
 
     using rtree_type = std::decay_t<decltype(*world[{}].rtree())>;
     using rect_type = rtree_type::Rect;
-
-    Vector2s min{limits<i16>::max, limits<i16>::max},
-             max{limits<i16>::min, limits<i16>::min};
-
-    for (auto ch : chunks)
-    {
-        min = Math::min(min, {ch.x, ch.y});
-        max = Math::max(max, {ch.x, ch.y});
-    }
 
     for (auto ch : chunks)
     {
