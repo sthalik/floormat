@@ -263,7 +263,7 @@ cover_script::cover_script(astar& A, object_id threat, u32 div_size, Optional<in
 Cover::Script::status cover_script::status() const
 {
     return {
-        .cover = cover, .canonical = canonical, .peek = peek_pos, .gun = gun_pos,
+        .cover = cover, .canonical = canonical, .axis = axis, .peek = peek_pos, .gun = gun_pos,
         .gun_ray_from = gun_ray_from, .query = query, .num_searches = num_searches, .num_rays = num_rays,
         .num_body_checks = num_body_checks, .num_dijkstra_calls = num_dijkstra_calls,
         .search_tiles_left = search_tiles_left, .search_tile = search_tile,

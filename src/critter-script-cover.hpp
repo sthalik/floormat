@@ -60,6 +60,8 @@ struct status
     // The cover the critter hides at, peeks from or walks to, when has_cover. canonical is the spot found for
     // it, from where cover lies along their face as far as the threat alone, without its turns, sees no pixel.
     point cover, canonical;
+    // canonical's axis, toward the threat, when has_cover.
+    Vector2i axis;
     // The last spot find_peek_pos found, when has_peek. Taking new cover clears has_peek.
     point peek;
     // When has_peek, the ends of the last ray from the threat to the gun at peek that was clear:

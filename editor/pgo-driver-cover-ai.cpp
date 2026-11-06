@@ -706,14 +706,14 @@ task app::scene_cover_ai_map()
             Array<Cover::Point::spot> spots;
             overlay_spots(C, player, spots);
             fm_assert_equal(n_spots, (u32)spots.size());
-            const auto canonical = status().canonical;
-            fm_assert(listed(spots, canonical));
+            const auto s = status();
+            fm_assert(listed(spots, s.canonical));
             for (const auto& x : spots)
             {
                 fm_assert(!sees(player, x.pos));
                 const auto peek = !!Cover::Script::find_peek(C, x);
                 n_peeks += peek;
-                peeks |= peek && x.pos == canonical;
+                peeks |= peek && x.pos == s.canonical && x.axis == s.axis;
             }
         }
 
