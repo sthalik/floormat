@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/nanosecond.inl"
 #include <mg/Functions.h>
 #include <mg/BatchFunctions.h>
 #include <limits>
@@ -117,6 +118,19 @@ constexpr bool test_minmax_nan()
     return true;
 }
 
+constexpr bool test_minmax_ns()
+{
+    constexpr auto a = Ns{7u}, b = Ns{13u}, c = Ns{29u};
+    fm_assert(Math::min(b, a) == a);
+    fm_assert(Math::max(a, b) == b);
+    fm_assert(Math::clamp(c, a, b) == b);
+    fm_assert(Math::clamp(Ns{}, a, b) == a);
+    const auto p = Math::minmax(b, a);
+    fm_assert(p.first() == a && p.second() == b);
+
+    return true;
+}
+
 } // namespace
 
 void Test::test_math()
@@ -129,6 +143,7 @@ void Test::test_math()
     static_assert(test_ceil<float>());
     static_assert(test_ceil<double>());
     static_assert(test_minmax<int>());
+    static_assert(test_minmax_ns());
 #ifdef MAGNUM_HAS_CONSTEXPR_ISNAN
     static_assert(test_minmax<float>());
     static_assert(test_minmax_nan());

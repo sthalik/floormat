@@ -228,8 +228,8 @@ Ns object::alloc_ticks(const Ns& dt, u32 delta, Ns frame, float speed)
 Ns object::frame_duration(u32 hz)
 {
     // Above alloc_ticks()'s 2^53 + 2^32 - 1 ns.
-    constexpr auto never = u64{1} << 54;
-    return Ns{hz ? Math::max(Second.stamp / hz, u64{1}) : never};
+    constexpr auto never = Ns{u64{1} << 54};
+    return hz ? Math::max(Second / hz, Ns{1u}) : never;
 }
 
 u32 object::alloc_frame_time(const Ns& dt, u32& delta, Ns frame, float speed)
