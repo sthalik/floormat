@@ -719,6 +719,44 @@ void test_save_missing_door_atlas()
     toggle(open_id, 1, pass_mode::blocked);
 }
 
+// The save holds two door1 doors on their middle frame, closing at tile {4, 5} and opening at {6, 5}.
+void test_save_door_mid_swing()
+{
+    constexpr auto dt = Second / 60;
+    const auto path = Path::join(loader.TEMP_PATH, "test/save/proto-31-door-mid-swing.dat"_s);
+    auto w = world::deserialize(path, loader_policy::error);
+    object_id closing_id = 0, opening_id = 0;
+    u32 count = 0;
+    for (auto& c : w.chunks())
+        c.objects().visit<door_scenery>([&](door_scenery& d) {
+            if (d.coord.local() == local_coords{4, 5})
+                closing_id = d.id;
+            else if (d.coord.local() == local_coords{6, 5})
+                opening_id = d.id;
+            count++;
+        });
+    fm_assert(count == 2 && closing_id && opening_id);
+
+    const auto swing = [&](object_id id, bool closing) {
+        const auto obj = w.find_object(id);
+        const auto d = w.find_object<door_scenery>(id);
+        fm_assert(d);
+        const auto nframes = d->atlas->info().nframes;
+        fm_assert(nframes > 2);
+        fm_assert(d->frame == nframes/2 && d->active && d->closing == closing);
+        auto index = d->index();
+        for (int i = 0; i < 60*5; i++)
+            d->update(obj, index, dt);
+        if (closing)
+            fm_assert(d->frame == nframes-1 && d->pass == pass_mode::blocked);
+        else
+            fm_assert(d->frame == 0 && d->pass == pass_mode::pass);
+        fm_assert(!d->active);
+    };
+    swing(closing_id, true);
+    swing(opening_id, false);
+}
+
 } // namespace
 
 void Test::test_save()
@@ -737,6 +775,7 @@ void Test::test_saves()
     test_save_missing_atlas();
     test_save_missing_tile_atlas();
     test_save_missing_door_atlas();
+    test_save_door_mid_swing();
 }
 
 } // namespace floormat
