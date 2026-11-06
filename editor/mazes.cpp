@@ -18,6 +18,7 @@
 #include "compat/floor-divmod.hpp"
 #include <utility>
 #include <cr/GrowableArray.h>
+#include <cr/StructuredBindings.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -73,13 +74,13 @@ struct cell_graph
     // one bit per wall, kept on the west or north cell of the pair
     bool is_open(u32 a, u32 b) const
     {
-        const auto lo = Math::min(a, b), hi = Math::max(a, b);
+        const auto [lo, hi] = Math::minmax(a, b);
         return (flags[lo] & (hi == lo + 1 ? open_e : open_s)) != 0;
     }
 
     void connect(u32 a, u32 b)
     {
-        const auto lo = Math::min(a, b), hi = Math::max(a, b);
+        const auto [lo, hi] = Math::minmax(a, b);
         flags[lo] |= hi == lo + 1 ? open_e : open_s;
     }
 
