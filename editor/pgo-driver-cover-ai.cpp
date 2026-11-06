@@ -17,7 +17,10 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
 #include "floormat/main.hpp"
+#include "floormat/settings.hpp"
 #include <cr/GrowableArray.h>
+#include <cr/StructuredBindings.h>
+#include <mg/BatchFunctions.h>
 
 #ifndef FLOORMAT_NO_PGO_DRIVER
 
@@ -837,6 +840,163 @@ task app::scene_cover_ai_map()
     }
     fm_debug("cover-ai-map: %u moves, %u cover spots, %u spots dropped as seen, %u ms", n_moves, distinct, dropped,
              (u32)Time::to_milliseconds(M->world().game_time()));
+
+    tests().switch_to(Test::none);
+    do_key(key_mode_none);
+    co_yield {};
+}
+
+task app::scene_cover_wait()
+{
+    using tests::base_test;
+    using tests::Test;
+    using state = Cover::Script::status::state;
+    using hold_phase = Cover::Script::options::hold_phase;
+    constexpr auto wait_time = 2*Second;
+    constexpr u32 min_hz = 60, max_hz = 144, held_updates = 40, held_exposed_updates = 60;
+
+    auto& w = M->world();
+    {
+        auto& c = w[chunk_coords_{}];
+        maybe_initialize_chunk_(c.coord(), c);
+        auto wall = loader.wall_atlas("test1", loader_policy::warn);
+        for (auto y = wall_y0; y <= wall_y1; y++)
+            c[local_coords{wall_x, y}].wall_west() = { wall, (variant_t)-1 };
+        c.mark_modified();
+    }
+    {
+        auto player = ensure_player_character(w);
+        auto index = player->index();
+        player->teleport_to(index, point{chunk_coords_{}, threat_tile, {}}, rotation_COUNT);
+    }
+    const auto press = [&](u32 button) {
+        base_test::Value v;
+        v.type = base_test::ValueType::u32;
+        v.u32 = button;
+        return tests().current_test->advance(*this, v);
+    };
+
+    do_key(key_mode_tests);
+    tests().switch_to(Test::cover_ai);
+    object_id npc_id;
+    {
+        const auto v = press(0);
+        fm_assert(v.type == base_test::ValueType::u64);
+        npc_id = object_id{v.u64};
+        auto npc = w.find_object<critter>(npc_id);
+        fm_assert(npc);
+        auto index = npc->index();
+        npc->teleport_to(index, point{chunk_coords_{}, npc_tile, {}}, rotation_COUNT);
+    }
+    center_camera_on(point{chunk_coords_{}, local_coords{wall_x, (u8)(wall_y0 + 1)}, {}});
+    co_yield {};
+
+    const auto status = [&] {
+        auto C = w.find_object<critter>(npc_id);
+        fm_assert(C);
+        const auto s = Cover::Script::get_status(*C);
+        fm_assert(s);
+        return *s;
+    };
+    const auto name = [](state s) { return s == state::hidden ? "hidden" : "exposed"; };
+
+    struct phase_s
+    {
+        state st = state::seek;
+        Ns spent, wait;
+        u32 updates = 0, held = 0;
+        bool active = false, paused = false;
+    };
+    phase_s ph;
+    auto& hz = M->settings().fixed_framerate;
+    const auto hz0 = hz;
+    u32 seed = 0x9e3779b9u, phases = 0, held_left = 0, num_hidden = 0, num_exposed = 0, num_paused = 0;
+    u32 exposed_held = 0;
+    auto hold = hold_phase::none;
+    bool cut = false;
+    auto prev_st = status().st;
+    auto prev_t = w.game_time();
+    auto dts = Array<Ns>{};
+    arrayReserve(dts, max_dt/(Second/max_hz) + 1);
+    const auto deadline = w.game_time() + max_dt;
+
+    while (exposed_held < held_exposed_updates)
+    {
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
+        hz = min_hz + seed % (max_hz - min_hz + 1);
+        co_yield {};
+        fm_assert(w.game_time() < deadline);
+        const auto t = w.game_time(), dt = t - prev_t;
+        arrayAppend(dts, dt);
+        const auto st = status().st;
+        const auto held = prev_st == state::hidden && hold == hold_phase::hidden ||
+                          prev_st == state::exposed && hold == hold_phase::exposed;
+        if (ph.active)
+        {
+            ph.updates++;
+            if (prev_st == ph.st && held)
+                ph.held++;
+            else if (prev_st == ph.st)
+                ph.spent += dt;
+            const auto due = ph.spent >= ph.wait;
+            if (due != (st != ph.st))
+                fm_abort("cover-wait: %s wait ended %s, on update %u of the phase: %llu of %llu ns spent, dt %llu ns",
+                         name(ph.st), due ? "late" : "early", ph.updates, (unsigned long long)ph.spent.stamp,
+                         (unsigned long long)ph.wait.stamp, (unsigned long long)dt.stamp);
+            if (due)
+            {
+                fm_debug("cover-wait: %s wait ended on update %u of the phase, %u held, %llu of %llu ns spent",
+                         name(ph.st), ph.updates, ph.held, (unsigned long long)ph.spent.stamp,
+                         (unsigned long long)ph.wait.stamp);
+                (ph.st == state::hidden ? num_hidden : num_exposed)++;
+                num_paused += ph.held != 0;
+                ph.active = false;
+            }
+        }
+        if (st != prev_st && (st == state::hidden || st == state::exposed))
+        {
+            fm_assert(!ph.active);
+            ph = { st, Ns{}, wait_time, 0, 0, true, false };
+            phases++;
+        }
+        if (ph.active && (phases == 3 || phases == 4) && !ph.paused && ph.spent >= wait_time/4u)
+        {
+            hold = (hold_phase)press(6).u32;
+            fm_assert(hold == (ph.st == state::hidden ? hold_phase::hidden : hold_phase::exposed));
+            ph.paused = true;
+            held_left = held_updates;
+        }
+        else if (held_left && !--held_left)
+        {
+            hold = (hold_phase)press(6).u32;
+            fm_assert(hold == hold_phase::none);
+        }
+        if (ph.active && phases == 5 && !cut && ph.spent >= wait_time/3u)
+        {
+            fm_assert(ph.st == state::hidden);
+            auto o = Cover::Script::options{};
+            o.hold = hold = hold_phase::exposed;
+            Cover::Script::set_options(*w.find_object<critter>(npc_id), o);
+            ph.wait = ph.spent;
+            cut = true;
+        }
+        if (phases == 6 && ph.active && ph.updates)
+            exposed_held++;
+        prev_st = st;
+        prev_t = t;
+    }
+    hz = hz0;
+
+    const auto [min_dt, max_dt_seen] = Math::minmax(dts);
+    fm_assert_equal(3u, num_hidden);
+    fm_assert_equal(2u, num_exposed);
+    fm_assert_equal(2u, num_paused);
+    fm_assert(min_dt < max_dt_seen);
+    fm_debug("cover-wait: %u hidden and %u exposed waits ended on time, dt %llu to %llu ns, %u ms", num_hidden,
+             num_exposed, (unsigned long long)min_dt.stamp, (unsigned long long)max_dt_seen.stamp,
+             (u32)Time::to_milliseconds(w.game_time()));
 
     tests().switch_to(Test::none);
     do_key(key_mode_none);
