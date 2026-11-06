@@ -132,6 +132,7 @@ struct spot_tests
     square_box body_at(Vector2i pos, Vector2i axis, Vector2i across, Vector2i threat) const;
     void build_runs(const square_box& body, Vector2i axis, Vector2i across, ArrayView<const Range2Di> from);
     bool hidden(const square_box& body) const;
+    bool hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayView<const Range2Di> rects);
     bool hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects);
     bool hidden_from_turned(Vector2i pos, Vector2i axis);
     end_step end_test(Vector2i pos, Vector2i axis, Vector2i across);
@@ -253,12 +254,9 @@ bool spot_tests::hidden(const square_box& body) const
 }
 
 // True when threat sees no pixel of a body centered on pos, judged along axis and along the axis toward threat.
-// rects is filled for the box spanning both.
-bool spot_tests::hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects)
+// rects holds collect_rects() for threat over a box holding threat and the body, or over a larger one.
+bool spot_tests::hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayView<const Range2Di> rects)
 {
-    arrayClear(rects);
-    collect_rects(threat, Math::min(threat, pos - ext_lo) - Vector2i{1}, Math::max(threat, pos + ext_hi) + Vector2i{1},
-                  rects);
     const auto seen_along = [&](Vector2i ax) {
         const auto ac = across_of(ax);
         const auto body = body_at(pos, ax, ac, threat);
@@ -267,6 +265,15 @@ bool spot_tests::hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array
     };
     const auto own = axis_toward(threat - pos);
     return !seen_along(axis) || own != axis && !seen_along(own);
+}
+
+// hidden_by() with rects refilled for the box spanning threat and the body.
+bool spot_tests::hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects)
+{
+    arrayClear(rects);
+    collect_rects(threat, Math::min(threat, pos - ext_lo) - Vector2i{1}, Math::max(threat, pos + ext_hi) + Vector2i{1},
+                  rects);
+    return hidden_by(threat, pos, axis, rects);
 }
 
 // True when the threat turned about pos by up to q.octants/2 octants either way, rounded to whole
@@ -392,10 +399,14 @@ struct finder::Impl
     Array<spot> spots;
     Array<Range2Di> turned_rects;
     Array<Range2Di> end_rects;
+    Array<Range2Di> also_from_rects;
+    Array<u32> also_from_rect_ends;
 };
 
 finder::finder()
 {
+    arrayReserve(impl->also_from_rects, 16);
+    arrayReserve(impl->also_from_rect_ends, 16);
     arrayReserve(impl->cands, 16);
     arrayReserve(impl->rects, 16);
     arrayReserve(impl->runs, 16);
@@ -408,7 +419,7 @@ finder::~finder() noexcept = default;
 result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params params,
                     const query& q, const Search::pred& pred, bool list_spots)
 {
-    auto& [known, cells, cands, rects, runs, spots, turned_rects, end_rects] = *impl;
+    auto& [known, cells, cands, rects, runs, spots, turned_rects, end_rects, also_from_rects, also_from_rect_ends] = *impl;
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     // Odd, so the octants checked lie evenly on both sides of the nearest one.
     fm_assert(q.octants == 0 || q.octants % 2 == 1 && q.octants <= 9);
@@ -754,11 +765,29 @@ point finder::move_to_cover_end(world& w, const query& q, Vector2i axis, const S
     // Assumes the stretch nearer q.pos stays hidden, as the move does.
     const auto len = Math::abs(end.x() - X.P.x()) + Math::abs(end.y() - X.P.y());
     const auto dir = (end - X.P)/len;
+    // Each also_from point gets one R-tree search, on the first step testing it, for a box holding the stretch.
+    const auto lo = Math::min(X.P, end) - X.ext_lo - Vector2i{1};
+    const auto hi = Math::max(X.P, end) + X.ext_hi + Vector2i{1};
+    arrayClear(I.also_from_rects);
+    arrayClear(I.also_from_rect_ends);
     auto a = 0, b = len;
     while (b - a > 1)
     {
         const auto mid = (a + b)/2;
-        if (X.end_test(X.P + dir*mid, axis, across) == end_step::hidden && hidden_from_all(X.P + dir*mid))
+        const auto pos = X.P + dir*mid;
+        auto hidden = X.end_test(pos, axis, across) == end_step::hidden;
+        for (auto i = 0u; hidden && i < also_from.size(); i++)
+        {
+            const auto t = Vector3i(also_from[i]).xy();
+            if (i == I.also_from_rect_ends.size())
+            {
+                X.collect_rects(t, Math::min(t - Vector2i{1}, lo), Math::max(t + Vector2i{1}, hi), I.also_from_rects);
+                arrayAppend(I.also_from_rect_ends, (u32)I.also_from_rects.size());
+            }
+            const auto first = i ? I.also_from_rect_ends[i - 1] : 0u;
+            hidden = X.hidden_by(t, pos, axis, I.also_from_rects.slice(first, I.also_from_rect_ends[i]));
+        }
+        if (hidden)
             a = mid;
         else
             b = mid;
