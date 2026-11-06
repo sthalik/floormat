@@ -1732,6 +1732,8 @@ void test_cover_script_no_path_threat_moves(point to, bool same_octant)
     if (same_octant)
         fm_assert_equal(still.status().num_find_cover_point_calls - still_num_calls + 1,
                         s.status().num_find_cover_point_calls - num_calls);
+    else
+        fm_assert(s.status().search_tile < still.status().search_tile);
     s.finish_search();
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
