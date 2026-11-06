@@ -2,6 +2,8 @@
 #include "compat/zip.hpp"
 #include "compat/enumerate.hpp"
 #include <cr/Array.h>
+#include <array>
+#include <vector>
 
 namespace floormat {
 
@@ -255,6 +257,26 @@ void test_zip_enumerate()
     fm_assert(b[0] == 151 && b[1] == 157 && b[2] == 163);
 }
 
+void test_std_ranges()
+{
+    std::array<int, 3> a = { 167, 173, 179 };
+    std::vector<float> v = { 181, 191, 193 };
+    u32 n = 0;
+    for (auto& [x, y] : zip(a, v))
+    {
+        static_assert(std::is_same_v<decltype(x), int>);
+        static_assert(std::is_same_v<decltype(y), float>);
+        fm_assert(&x == &a[n] && &y == &v[n]);
+        n++;
+    }
+    fm_assert(n == 3);
+
+    int sum = 0;
+    for (const auto& [x, y] : zip(std::array<int, 2>{ 197, 199 }, std::vector<int>{ 211, 223 }))
+        sum += x * y;
+    fm_assert(sum == 197*211 + 199*223);
+}
+
 } // namespace
 
 void Test::test_zip()
@@ -268,6 +290,7 @@ void Test::test_zip()
     test_empty();
     test_enumerate_zip();
     test_zip_enumerate();
+    test_std_ranges();
 }
 
 } // namespace floormat

@@ -130,7 +130,7 @@ public:
 };
 
 template<typename... Its>
-constexpr element<Its...>::element(Its... its) noexcept : _its{ {move(its)}... } {}
+constexpr element<Its...>::element(Its... its) noexcept : _its{ {floormat::move(its)}... } {}
 
 template<typename... Its>
 template<usize... Is>
@@ -217,7 +217,7 @@ constexpr bool iterator<Vs...>::operator==(const sentinel<Vs...>& s) const noexc
 
 template<typename... Rs>
 constexpr view<Rs...>::view(Rs&&... rs) noexcept((std::is_nothrow_constructible_v<detail_range::all_t<Rs>, Rs> && ...)) :
-    _bases{ {detail_range::all_t<Rs>{forward<Rs>(rs)}}... }
+    _bases{ {detail_range::all_t<Rs>{floormat::forward<Rs>(rs)}}... }
 {}
 
 template<typename... Rs>
@@ -260,7 +260,7 @@ namespace floormat {
 template<typename... Rs>
 constexpr detail_zip::view<Rs...> zip(Rs&&... rs) noexcept(std::is_nothrow_constructible_v<detail_zip::view<Rs...>, Rs...>)
 {
-    return detail_zip::view<Rs...>{forward<Rs>(rs)...};
+    return detail_zip::view<Rs...>{floormat::forward<Rs>(rs)...};
 }
 
 } // namespace floormat

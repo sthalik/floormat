@@ -92,7 +92,7 @@ constexpr end_t<const R> ref_view<R>::end() const noexcept
 }
 
 template<typename R>
-constexpr owning_view<R>::owning_view(R&& r) noexcept(std::is_nothrow_move_constructible_v<R>) : _r{move(r)} {}
+constexpr owning_view<R>::owning_view(R&& r) noexcept(std::is_nothrow_move_constructible_v<R>) : _r{floormat::move(r)} {}
 
 template<typename R>
 constexpr begin_t<R> owning_view<R>::begin() noexcept

@@ -1,6 +1,8 @@
 #include "app.hpp"
 #include "compat/enumerate.hpp"
 #include <cr/Array.h>
+#include <array>
+#include <vector>
 
 namespace floormat {
 
@@ -151,6 +153,31 @@ void test_adl()
     fm_assert(n == 3);
 }
 
+void test_std_ranges()
+{
+    std::array<int, 4> a = { 73, 79, 83, 89 };
+    for (auto& [i, x] : enumerate(a))
+    {
+        static_assert(std::is_same_v<decltype(x), int>);
+        fm_assert(&x == &a[i]);
+    }
+
+    std::vector<int> v = { 97, 101 };
+    u32 n = 0;
+    for (const auto& [i, x] : enumerate(v))
+    {
+        static_assert(std::is_same_v<decltype(x), const int>);
+        fm_assert(&x == &v[i]);
+        n++;
+    }
+    fm_assert(n == 2);
+
+    u32 sum = 0;
+    for (auto& [i, x] : enumerate(std::array<int, 2>{ 103, 107 }))
+        sum += (i + 1) * (u32)x;
+    fm_assert(sum == 103 + 2*107);
+}
+
 } // namespace
 
 void Test::test_enumerate()
@@ -160,6 +187,7 @@ void Test::test_enumerate()
     test_rvalue_range();
     test_empty();
     test_adl();
+    test_std_ranges();
 }
 
 } // namespace floormat
