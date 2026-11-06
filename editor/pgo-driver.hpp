@@ -94,7 +94,6 @@ struct state final
     u32 pass_index = 0;
     u32 frames_run = 0;
     u32 scene_first_frame = 0;
-    Ns scene_dt{};
     // What the frame-0 pin actually produced. Not settings().resolution: that is in window
     // units and window_size() is in framebuffer units, which differ under HiDPI.
     Vector2i base_window_size;

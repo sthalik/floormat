@@ -67,7 +67,7 @@ namespace floormat {
 // scenes() is declared but not defined: parse_cmdline() only calls it to validate
 // --scenes, which this build doesn't accept.
 void app::driver_start() {}
-void app::driver_tick(Ns) {}
+void app::driver_tick() {}
 void app::driver_draw_overlay() {}
 
 } // namespace floormat
@@ -759,7 +759,7 @@ task app::scene_door()
     fm_assert(frame0 == 0 ? door.frame > frame0 : door.frame < frame0);
 
     const auto budget = Second * (u64)nframes * 4 / door.atlas->info().fps;
-    for (const auto dt0 = _driver->scene_dt; door.active && _driver->scene_dt - dt0 < budget; )
+    for (const auto dt0 = M->world().game_time(); door.active && M->world().game_time() - dt0 < budget; )
         co_yield {};
 
     fm_assert(!door.active);
@@ -971,10 +971,10 @@ task app::scene_clickables()
 
     do
         co_yield {};
-    while (_driver->scene_dt < hold);
+    while (M->world().game_time() < hold);
 }
 
-// scene_dt restarts at zero on the tick populate runs, so the hold counts from a built world.
+// Game time restarts at zero on the tick populate runs, so the hold counts from a built world.
 task app::scene_torture_flat()
 {
     constexpr auto hold_dt = Second*5;
@@ -982,7 +982,7 @@ task app::scene_torture_flat()
     populate_scene_benchmark();
     do
         co_yield {};
-    while (_driver->scene_dt < hold);
+    while (M->world().game_time() < hold);
 }
 
 task app::scene_torture_all_z()
@@ -992,15 +992,15 @@ task app::scene_torture_all_z()
     populate_scene_benchmark_all_z();
     do
         co_yield {};
-    while (_driver->scene_dt < hold);
+    while (M->world().game_time() < hold);
 }
 
 task app::hold_for(Ns dt)
 {
-    const auto t0 = _driver->scene_dt;
+    const auto t0 = M->world().game_time();
     do
         co_yield {};
-    while (_driver->scene_dt - t0 < dt);
+    while (M->world().game_time() - t0 < dt);
 }
 
 task app::scene_overlays()
@@ -1584,10 +1584,10 @@ task app::scene_maze_exit()
         fm_debug("maze-exit: seed %llu, route %u px over %u tiles, %llu frames",
                  (unsigned long long)seed, len, r.bfs_tiles, (unsigned long long)(w.frame_no() - frame0));
 
-        const auto t0 = _driver->scene_dt;
+        const auto t0 = M->world().game_time();
         do
             co_yield {};
-        while (_driver->scene_dt - t0 < hold);
+        while (M->world().game_time() - t0 < hold);
         C->chunk().kill_object(*C, C->index());
     }
 }
@@ -1668,10 +1668,10 @@ task app::scene_cover()
     u32 built = 0;
     for (auto k = 0u; k < Grid::Cover::octant_count; k++)
     {
-        const auto t0 = _driver->scene_dt;
+        const auto t0 = M->world().game_time();
         do
             co_yield {};
-        while (_driver->scene_dt - t0 < dt);
+        while (M->world().game_time() - t0 < dt);
         auto val = tests().current_test->advance(*this, {});
         fm_assert(val.type == tests::base_test::ValueType::u32);
         built |= val.u32;
@@ -1926,14 +1926,14 @@ task app::scene_grids()
     // Time::now() because what a frame costs in real time is the question.
     constexpr auto idle_dt = Second*3;
     const auto idle = pgo_driver_use_short_scenes() ? short_hold_dt : idle_dt;
-    const auto idle_t0 = _driver->scene_dt;
+    const auto idle_t0 = M->world().game_time();
     const auto wall_t0 = Time::now();
     u32 idle_frames = 0;
     do
     {
         co_yield {};
         idle_frames++;
-    } while (_driver->scene_dt - idle_t0 < idle);
+    } while (M->world().game_time() - idle_t0 < idle);
 
     const auto idle_ms = (double)Time::to_milliseconds(Time::now() - wall_t0);
     fm_debug("grids: idle %u frames in %.2f s over %u objects, %.2f ms/frame, %.1f fps",
@@ -1994,13 +1994,11 @@ void app::driver_start()
     _driver->frames_run = 0;
 }
 
-void app::driver_tick(Ns dt)
+void app::driver_tick()
 {
     auto& D = *_driver;
     if (!D.running)
         return;
-
-    D.scene_dt += dt;
 
     const auto& Scenes = scenes();
 
@@ -2079,7 +2077,6 @@ void app::driver_tick(Ns dt)
         D.scene_task = (this->*Scenes[D.scene_index].fn)();
         D.scene_index++;
         D.scene_started = Time::now();
-        D.scene_dt = Ns{};
         D.scene_first_frame = D.frames_run;
         just_started = true;
     }

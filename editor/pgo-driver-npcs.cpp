@@ -162,7 +162,7 @@ task app::scene_npcs()
 
     const auto place_blocker = [&](const path_search_result& res) {
         auto& slot = blockers[blockers_placed % num_slots];
-        if (placed || res.size() < 3 || (slot.id && _driver->scene_dt - slot.placed_at < lifetime))
+        if (placed || res.size() < 3 || (slot.id && M->world().game_time() - slot.placed_at < lifetime))
             return;
         const auto mid = res.path()[res.size()/2];
         const auto v = mid - point{};
@@ -178,7 +178,7 @@ task app::scene_npcs()
             fm_assert(o);
             o->chunk().kill_object(*o, o->index());
         }
-        slot = { w.make_scenery(w.make_id(), mid.coord(), move(p))->id, _driver->scene_dt };
+        slot = { w.make_scenery(w.make_id(), mid.coord(), move(p))->id, M->world().game_time() };
         blockers_placed++;
         placed = true;
     };
@@ -259,7 +259,7 @@ task app::scene_npcs()
         co_yield {};
         frames++;
     }
-    while (_driver->scene_dt < hold);
+    while (M->world().game_time() < hold);
 
     fm_debug("npcs: %u critters, %u frames, %.0f%% of critter-frames moving, %u walks, "
              "%u collisions, %u searches (%u with critters), %u not found, %u blockers placed",
