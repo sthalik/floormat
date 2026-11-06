@@ -1,10 +1,10 @@
 #pragma once
 #include "object-storage-fwd.hpp"
+#include "object-type.hpp"
+#include "scenery-type.hpp"
 #include "compat/defs.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include "compat/is-one-of.hpp"
-#include "object-type.hpp"
-#include "scenery-type.hpp"
 #include <concepts>
 #include <type_traits>
 #include <cr/Array.h>

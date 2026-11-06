@@ -1,13 +1,13 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
+#include "../imgui-raii.hpp"
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
 #include "src/search-result.hpp"
 #include "src/point.inl"
-#include "floormat/main.hpp"
-#include "../imgui-raii.hpp"
 #include "src/search-astar.hpp"
 #include "src/grid-pass.hpp"
+#include "floormat/main.hpp"
 #include <mg/Functions.h>
 
 namespace floormat::tests {

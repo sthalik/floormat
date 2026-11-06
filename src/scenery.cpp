@@ -1,11 +1,11 @@
 #include "scenery.hpp"
 #include "scenery-proto.hpp"
-#include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
-#include "compat/nanosecond.hpp"
 #include "tile-constants.hpp"
 #include "anim-atlas.hpp"
 #include "rotation.inl"
+#include "compat/assert.hpp"
+#include "compat/borrowed-ptr.inl"
+#include "compat/nanosecond.hpp"
 #include <mg/Functions.h>
 
 namespace floormat {

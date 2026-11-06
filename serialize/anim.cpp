@@ -1,6 +1,6 @@
+#include "anim.hpp"
 #include "magnum-vector.hpp"
 #include "corrade-string.hpp"
-#include "anim.hpp"
 #include "corrade-array.hpp"
 #include "compat/exception.hpp"
 #include <cr/Array.h>

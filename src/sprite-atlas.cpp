@@ -1,9 +1,9 @@
 #include "sprite-atlas.hpp"
 #include "sprite-atlas-impl.hpp"
 #include "sprite-constants.hpp"
+#include "quads.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
-#include "quads.hpp"
 #include "compat/fwd/algorithm/lower_bound.hpp"
 #include <cmath>
 #include <cstdio>

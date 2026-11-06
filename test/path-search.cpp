@@ -3,6 +3,7 @@
 #include "compat/function2.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
+#include "loader/scenery-cell.hpp"
 #include "src/world.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/search.hpp"
@@ -13,7 +14,6 @@
 #include "src/raycast-line.hpp"
 #include "src/chunk.hpp"
 #include "src/point.inl"
-#include "loader/scenery-cell.hpp"
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>

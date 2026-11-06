@@ -8,9 +8,9 @@
 #include "object.hpp"
 #include "RTree-search.hpp"
 #include "rect-intersects.hpp"
+#include "point.inl"
 #include "compat/array-size.hpp"
 #include "compat/function2.hpp"
-#include "point.inl"
 #include <bit>
 #include <mg/Range.h>
 

@@ -1,7 +1,8 @@
 #include "app.hpp"
+#include "inspect.hpp"
+#include "imgui-raii.hpp"
 #include "compat/array-size.hpp"
 #include "compat/format.hpp"
-#include "inspect.hpp"
 #include "floormat/main.hpp"
 #include "src/world.hpp"
 #include "src/object.hpp"
@@ -9,7 +10,6 @@
 #include "src/critter.hpp"
 #include "src/light.hpp"
 #include "src/anim-atlas.hpp"
-#include "imgui-raii.hpp"
 #include <cstdio>
 
 namespace floormat {

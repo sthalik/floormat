@@ -1,15 +1,15 @@
 #include "scenery.hpp"
-#include "compat/overloaded.hpp"
-#include "compat/exception.hpp"
-#include "src/anim-atlas.hpp"
-#include "compat/assert.hpp"
-#include "loader/loader.hpp"
 #include "corrade-string.hpp"
-#include "loader/scenery-cell.hpp"
 #include "pass-mode.hpp"
 #include "magnum-vector.hpp"
 #include "json-wrapper.hpp"
+#include "compat/overloaded.hpp"
+#include "compat/exception.hpp"
+#include "compat/assert.hpp"
 #include "compat/swl-variant.hpp"
+#include "src/anim-atlas.hpp"
+#include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 #include <cr/String.h>
 #include <nlohmann/json.hpp>
 

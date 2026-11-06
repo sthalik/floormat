@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "run.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
 #include "compat/nanosecond.inl"
@@ -18,7 +19,6 @@
 #include "src/grid-pass.hpp"
 #include "src/search.hpp"
 #include "src/rect-intersects.hpp"
-#include "run.hpp"
 
 namespace floormat {
 namespace {

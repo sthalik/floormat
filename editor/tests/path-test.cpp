@@ -1,5 +1,6 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
+#include "../imgui-raii.hpp"
 #include "compat/format.inl"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"
@@ -10,7 +11,6 @@
 #include "src/critter.hpp"
 #include "src/point.inl"
 #include "shaders/shader.hpp"
-#include "../imgui-raii.hpp"
 #include <cr/Optional.h>
 #include <mg/Color.h>
 

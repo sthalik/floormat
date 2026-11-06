@@ -7,6 +7,7 @@
 #include "keys.hpp"
 #include "tests-private.hpp"
 #include "mazes.hpp"
+#include "raycast-draw.hpp"
 #include "random/random.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
@@ -25,7 +26,6 @@
 #include "src/anim-atlas.hpp"
 #include "src/scenery.hpp"
 #include "src/scenery-proto.hpp"
-#include "main/clickable.hpp"
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include "src/critter-script.hpp"
@@ -33,12 +33,14 @@
 #include "src/search-pred.hpp"
 #include "src/search-result.hpp"
 #include "src/raycast.hpp"
-#include "raycast-draw.hpp"
+#include "main/clickable.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
 #include <mg/Image.h>
 #include <mg/PixelFormat.h>
 #include <mg/BatchFunctions.h>
+#include <mg/Functions.h>
+#include <mg/ImGuiIntegration/Integration.h>
 #include "compat/array-size.hpp"
 #include "compat/assert.hpp"
 #include "compat/enum-bitset.hpp"
@@ -50,11 +52,9 @@
 #include "floormat/settings.hpp"
 #include <cstdio>
 #include <numeric>
-#include <mg/Functions.h>
+#include <imgui_internal.h>
 #include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
-#include <mg/ImGuiIntegration/Integration.h>
-#include <imgui_internal.h>
 
 #ifdef FLOORMAT_NO_PGO_DRIVER
 

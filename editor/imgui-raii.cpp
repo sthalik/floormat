@@ -2,9 +2,9 @@
 #include "compat/assert.hpp"
 #include <cstdio>
 #include <utility>
+#include <imgui_internal.h>
 #include <cr/StringView.h>
 #include <mg/Color.h>
-#include <imgui_internal.h>
 
 namespace floormat::imgui {
 

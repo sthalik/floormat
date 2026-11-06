@@ -3,16 +3,16 @@
 #include "src/scenery.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-defs.hpp"
-#include "inspect.hpp"
-#include "loader/loader.hpp"
 #include "src/chunk.hpp"
 #include "src/critter.hpp"
 #include "src/light.hpp"
 #include "src/hole.hpp"
+#include "inspect.hpp"
+#include "loader/loader.hpp"
 #include <concepts>
+#include <imgui.h>
 #include <cr/ArrayViewStl.h>
 #include <mg/Color.h>
-#include <imgui.h>
 
 namespace floormat::entities {
 

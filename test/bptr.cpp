@@ -4,8 +4,8 @@
 #include "compat/weak-borrowed-ptr.inl"
 #include "compat/exception.inl"
 #include "compat/defs.hpp"
-#include "random/random.hpp"
 #include "compat/fwd/thread.hpp"
+#include "random/random.hpp"
 #include <array>
 #include <initializer_list>
 #include <latch>

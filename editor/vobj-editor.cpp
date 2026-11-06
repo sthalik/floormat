@@ -1,10 +1,10 @@
 #include "vobj-editor.hpp"
+#include "app.hpp"
 #include "src/world.hpp"
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
-#include "app.hpp"
 #include "compat/borrowed-ptr.inl"
 #include <cr/StringView.h>
 

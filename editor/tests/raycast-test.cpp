@@ -1,13 +1,13 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
+#include "../imgui-raii.hpp"
+#include "../raycast-draw.hpp"
 #include "floormat/main.hpp"
 #include "compat/array-size.hpp"
-#include "../imgui-raii.hpp"
 #include "src/critter.hpp"
 #include "src/world.hpp"
 #include "src/raycast-diag.hpp"
 #include "src/grid-pass.hpp"
-#include "../raycast-draw.hpp"
 #include <cinttypes>
 #include <cstdio>
 #include <array>

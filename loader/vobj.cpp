@@ -1,10 +1,10 @@
 #include "impl.hpp"
+#include "vobj-cell.hpp"
 #include "compat/exception.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/anim.hpp"
 #include "serialize/json-helper.hpp"
 #include "serialize/corrade-string.hpp"
-#include "vobj-cell.hpp"
 #include <cr/ArrayViewStl.h>
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>

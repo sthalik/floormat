@@ -1,9 +1,9 @@
 #pragma once
 #include "compat/defs.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include "rotation.hpp"
 #include "anim.hpp"
 #include "quads.hpp"
-#include "compat/borrowed-ptr.hpp"
 #include <array>
 #include <cr/BitArray.h>
 #include <cr/String.h>

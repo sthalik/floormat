@@ -5,10 +5,10 @@
 #include "random/random.hpp"
 #include <array>
 #include <cmath>
-#include <gtl/phmap.hpp>
-#include <mg/Functions.h>
 #include <type_traits>
 #include <utility>
+#include <gtl/phmap.hpp>
+#include <mg/Functions.h>
 #if fm_ASAN
 #include <cstring>
 #include <sanitizer/asan_interface.h>

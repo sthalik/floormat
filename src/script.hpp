@@ -1,8 +1,8 @@
 #pragma once
 #include "script-enums.hpp"
+#include "object-type.hpp"
 #include "compat/defs.hpp"
 #include "compat/borrowed-ptr.hpp"
-#include "object-type.hpp"
 
 namespace floormat
 {

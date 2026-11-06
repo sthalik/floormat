@@ -8,8 +8,8 @@
 #include "compat/exception.inl"
 #include "src/global-coords.hpp"
 #include "src/ground-atlas.hpp"
-#include "loader/ground-cell.hpp"
 #include "src/world.hpp"
+#include "loader/ground-cell.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
 #include <cr/StringView.h>

@@ -12,8 +12,8 @@
 #include <windows.h>
 #else
 #include <cerrno>
-#include <sys/mman.h>
 #include <unistd.h>
+#include <sys/mman.h>
 #  ifdef __FreeBSD__
 #    include <fcntl.h>
 #  endif

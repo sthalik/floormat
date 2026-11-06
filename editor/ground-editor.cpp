@@ -1,10 +1,10 @@
 #include "ground-editor.hpp"
+#include "keys.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/world.hpp"
 #include "random/random.hpp"
-#include "keys.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
 #include <cr/GrowableArray.h>

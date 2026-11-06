@@ -1,11 +1,11 @@
 #include "sweep-aabb.hpp"
-#include "compat/function2.hpp"
 #include "collision.hpp"
 #include "chunk.hpp"
 #include "raycast-line.hpp"
 #include "raycast-loop.hpp"
 #include "grid-pass.hpp"
 #include "RTree-search.hpp"
+#include "compat/function2.hpp"
 #include <bit>
 #include <mg/Functions.h>
 #include <mg/Range.h>

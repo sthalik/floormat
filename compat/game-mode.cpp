@@ -5,11 +5,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
-#include <cr/Array.h>
-#include <cr/ScopeGuard.h>
 #include <windows.h>
 #include <wincrypt.h>
 #include <dpapi.h>
+#include <cr/Array.h>
+#include <cr/ScopeGuard.h>
 #endif
 
 namespace floormat {

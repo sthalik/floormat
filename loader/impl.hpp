@@ -1,10 +1,10 @@
 #pragma once
 #include "loader.hpp"
+#include "atlas-loader-fwd.hpp"
+#include "string-index-map.hpp"
 #include "src/sprite-atlas.hpp"
 #include "compat/safe-ptr.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
-#include "atlas-loader-fwd.hpp"
-#include "string-index-map.hpp"
 #include <cr/Optional.h>
 #include <cr/Array.h>
 #include <cr/String.h>

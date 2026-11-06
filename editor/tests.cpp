@@ -1,11 +1,11 @@
 #include "tests-private.hpp"
+#include "app.hpp"
+#include "imgui-raii.hpp"
 #include "compat/array-size.hpp"
 #include "compat/safe-ptr.hpp"
 #include "compat/nanosecond.inl"
-#include "app.hpp"
 #include "floormat/main.hpp"
 #include "floormat/events.hpp"
-#include "imgui-raii.hpp"
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push

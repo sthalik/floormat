@@ -1,6 +1,6 @@
 #include "magnum-vector.hpp"
-#include "compat/exception.hpp"
 #include "corrade-string.hpp"
+#include "compat/exception.hpp"
 #include <mg/Vector.h>
 #include <cstdio>
 #include <string>

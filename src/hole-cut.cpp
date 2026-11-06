@@ -1,8 +1,8 @@
+#include "hole-cut.hpp"
 #include "hole.hpp"
 #include "compat/array-size.hpp"
 #include "compat/iota.hpp"
 #include "compat/map.hpp"
-#include "hole-cut.hpp"
 #include <mg/Range.h>
 
 #ifdef __GNUG__

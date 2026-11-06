@@ -1,10 +1,10 @@
 #include "ground-atlas.hpp"
 #include "quads.hpp"
+#include "tile-image.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/limits.hpp"
-#include "tile-image.hpp"
 #include "loader/loader.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>

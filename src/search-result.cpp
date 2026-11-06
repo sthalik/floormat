@@ -1,7 +1,7 @@
 #include "search-result.hpp"
-#include "compat/assert.hpp"
 #include "search-node.hpp"
 #include "point.inl"
+#include "compat/assert.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat {

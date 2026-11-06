@@ -4,14 +4,14 @@
 #include "wall-atlas.hpp"
 #include "spritebatch.hpp"
 #include "point.inl"
-#include "compat/function2.hpp"
 #include "RTree-search.hpp"
-#include "shaders/shader.hpp"
 #include "depth.hpp"
 #include "renderer.hpp"
 #include "hole-cut.hpp"
-#include "loader/loader.hpp"
 #include "sprite-atlas.hpp"
+#include "compat/function2.hpp"
+#include "shaders/shader.hpp"
+#include "loader/loader.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <cr/StructuredBindings.h>
