@@ -7,7 +7,9 @@
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/tie.hpp"
 #include <cr/ArrayView.h>
+#include <cr/StructuredBindings.h>
 
 namespace floormat {
 
@@ -36,9 +38,7 @@ scenery_editor::scenery_editor() noexcept
 void scenery_editor::set_rotation(enum rotation r)
 {
     auto& s = _selected.proto;
-    const auto offsets = rotate_offset(s.offset, s.bbox_offset, s.r, r);
-    s.offset = offsets.first();
-    s.bbox_offset = offsets.second();
+    tie(s.offset, s.bbox_offset) = rotate_offset(s.offset, s.bbox_offset, s.r, r);
     s.bbox_size = rotate_size(s.bbox_size, s.r, r);
     s.r = r;
 }
