@@ -384,6 +384,7 @@ void cover_script::update(const bptr<critter>& c, usize& i, const Ns& dt)
         }
         return;
     }
+    fm_assert(false);
 }
 
 // The rest of an update in which the checks or a search may have changed st: a walk moves by dt,
@@ -917,6 +918,7 @@ void cover_script::end_search(critter& c, Optional<reachable_cover> r)
         wait_until = c.world().game_time() + time_in(state::hidden);
         return;
     }
+    fm_assert(false);
 }
 
 // True when c's body centered on `to` can move in a straight line to a spot in unreachable no more
