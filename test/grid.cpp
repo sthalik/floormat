@@ -1905,7 +1905,7 @@ void test_cover_blocked_cells(u32 div_size)
 }
 
 // The pool skips its walk while world::pass_gen() stands still. Each neighbor change below moves
-// it through a different path: chunk creation, then mark_passability_modified.
+// it through a different path: chunk creation, mark_passability_modified, chunk deletion.
 void test_cover_rebuilds_on_neighbor_change(u32 div_size)
 {
     auto w = world();
@@ -1931,6 +1931,12 @@ void test_cover_rebuilds_on_neighbor_change(u32 div_size)
 
     add_ground_all(e);
     rebuild_passability(e);
+    fm_assert(walk() != n);
+
+    clear_ground_all(e);
+    n = walk();
+    w.collect(true, true);
+    fm_assert(w.at(COORD_E) == nullptr);
     fm_assert(walk() != n);
 }
 

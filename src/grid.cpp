@@ -68,8 +68,8 @@ void GridBase::reset_base_for_reuse(chunk& ch)
 
 bool GridBase::is_current() const
 {
-    // A neighbour emptied and then deleted by world::collect() goes unseen. Chunks normally
-    // disappear only while laying out a map in the editor.
+    // A neighbour that is gone is skipped. world::collect() moves the stamps of a deleted
+    // chunk's neighbours, so their grids and those reading them still go stale.
     if (c->pass_gen() > built_pass_gen)
         return false;
 

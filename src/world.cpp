@@ -167,7 +167,12 @@ void world::collect(bool force, bool quiet)
         chunk* next = c->_next;
         if (c->empty(force))
         {
+            // Grids skip a neighbour that is gone, so a deleted chunk moves its neighbours' stamps instead.
+            const auto coord = c->coord();
             delete c;
+            for (auto off : neighbor_offsets)
+                if (auto* nb = at(coord + off))
+                    nb->_pass_gen = next_pass_gen();
             deleted++;
         }
         c = next;
