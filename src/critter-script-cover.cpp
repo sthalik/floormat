@@ -206,7 +206,8 @@ private:
     u64 search_pass_gen = 0;
     u32 search_tile = 0, tile_spot = 0, num_failed_dijkstra_calls = 0, search_octant = 0;
     // Tiles the search may still pass, from 3/2 of search_tiles().size(), and 0 once it ended. A restart sends
-    // search_tile to 0 only while more than a scan fits, so a moving threat can't keep the search near c.
+    // search_tile to 0, at the cost of a tile, only while more than a scan fits, so a moving threat can't keep the
+    // search near c.
     u32 search_tiles_left = 0;
     // Where the search's tiles and the threat's octant are measured from. The last restart to tile 0 set it to c's
     // position, or during a retreat walk to the walk's end, so that cover back toward the threat comes later.
@@ -418,7 +419,11 @@ void cover_script::set_options(critter& c, const cover_script_options& o)
     options = o;
     reach_known = false;
     if (search_tiles_left && (st == state::search || st == state::find_retreat || st == state::retreat))
+    {
         restart_search(c);
+        // skipped under the old options
+        arrayClear(tile_skipped);
+    }
     if (o.hold == old)
         return;
     const auto hiding = st == state::hidden || st == state::to_cover;
@@ -643,19 +648,23 @@ void cover_script::flee(critter& c)
 
 // Keeps unreachable and num_failed_dijkstra_calls, so a spot with no path from where c stood stays skipped as c
 // walks. unreachable_reach grows by search_from's move, to hold every chunk those Dijkstra searches could cross.
+// A restart to tile 0 costs a tile, and one that stays on its tile keeps tile_skipped, so a threat that keeps
+// changing octant can't stop the search from passing its tiles.
 void cover_script::restart_search(critter& c)
 {
-    if (search_tiles_left > search_tiles().size())
+    // More than a scan stays left after the restart's tile, so the count stays nonzero until the search ends.
+    if (search_tiles_left > search_tiles().size() + 1)
     {
         const auto from = st == state::retreat ? walk.dest() : c.position();
         if (!unreachable.isEmpty())
             unreachable_reach += point::distance(search_from, from);
         search_from = from;
         search_tile = 0;
+        search_tiles_left--;
+        arrayClear(tile_skipped);
     }
     search_octant = nearest_octant(Vector2(threat_pos - search_from));
     tile_listed = false;
-    arrayClear(tile_skipped);
 }
 
 // One update's work of the search: up to max_search_tiles_per_update tiles in search_tiles() order,
