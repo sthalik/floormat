@@ -206,17 +206,17 @@ task app::scene_cover_ai()
     Array<stop_s> stops;
     arrayReserve(stops, n_stops);
     stop_s cur{start, status()};
-    auto still_since = _driver->scene_dt;
+    auto still_since = M->world().game_time();
     const auto track = [&] {
         auto C = w.find_object<critter>(npc_id);
         fm_assert(C);
         const auto pos = C->position();
         if (pos == cur.pos)
             return;
-        if (_driver->scene_dt - still_since >= Second)
+        if (M->world().game_time() - still_since >= Second)
             arrayAppend(stops, cur);
         cur = {pos, status()};
-        still_since = _driver->scene_dt;
+        still_since = M->world().game_time();
     };
     const auto check_alternating = [&] {
         for (auto i = 2u; i < stops.size(); i++)
@@ -224,10 +224,10 @@ task app::scene_cover_ai()
         fm_assert(stops[0].pos != stops[1].pos);
     };
 
-    auto deadline = _driver->scene_dt + max_dt;
+    auto deadline = M->world().game_time() + max_dt;
     while (stops.size() < n_stops)
     {
-        fm_assert(_driver->scene_dt < deadline);
+        fm_assert(M->world().game_time() < deadline);
         co_yield {};
         track();
     }
@@ -261,10 +261,10 @@ task app::scene_cover_ai()
             return s.st == state::exposed && s.has_peek && s.peek == p && npc_at() == p;
         };
         const auto first = status().canonical;
-        deadline = _driver->scene_dt + max_dt;
+        deadline = M->world().game_time() + max_dt;
         while (!hidden_at(first))
         {
-            fm_assert(_driver->scene_dt < deadline);
+            fm_assert(M->world().game_time() < deadline);
             co_yield {};
         }
 
@@ -280,10 +280,10 @@ task app::scene_cover_ai()
         // hidden, out and back, as at cover it found itself
         for (const auto exposed : { false, true, false })
         {
-            deadline = _driver->scene_dt + max_dt;
+            deadline = M->world().game_time() + max_dt;
             while (!(exposed ? exposed_at(p->pos) : hidden_at(switched.pos)))
             {
-                fm_assert(_driver->scene_dt < deadline);
+                fm_assert(M->world().game_time() < deadline);
                 co_yield {};
             }
         }
@@ -319,16 +319,16 @@ task app::scene_cover_ai()
                 fm_assert(s.st == state::to_peek);
                 fm_assert(s.canonical == cover && s.has_peek && s.peek == peek);
             }
-            deadline = _driver->scene_dt + max_dt;
+            deadline = M->world().game_time() + max_dt;
             while (!exposed_at(peek))
             {
-                fm_assert(_driver->scene_dt < deadline);
+                fm_assert(M->world().game_time() < deadline);
                 co_yield {};
             }
-            deadline = _driver->scene_dt + max_dt;
+            deadline = M->world().game_time() + max_dt;
             while (!hidden_at(cover))
             {
-                fm_assert(_driver->scene_dt < deadline);
+                fm_assert(M->world().game_time() < deadline);
                 co_yield {};
             }
             if (cover == first)
@@ -337,10 +337,10 @@ task app::scene_cover_ai()
             co_await click_at_cursor(mouse_button_left);
             fm_assert(status().st == state::to_cover);
             fm_assert_equal(first, status().canonical);
-            deadline = _driver->scene_dt + max_dt;
+            deadline = M->world().game_time() + max_dt;
             while (!hidden_at(first))
             {
-                fm_assert(_driver->scene_dt < deadline);
+                fm_assert(M->world().game_time() < deadline);
                 co_yield {};
             }
         }
@@ -355,10 +355,10 @@ task app::scene_cover_ai()
         fm_assert(prev.type == base_test::ValueType::u32);
         fm_assert_equal(first, spots[prev.u32].pos);
         fm_assert_equal(first, status().canonical);
-        deadline = _driver->scene_dt + max_dt;
+        deadline = M->world().game_time() + max_dt;
         while (!hidden_at(first))
         {
-            fm_assert(_driver->scene_dt < deadline);
+            fm_assert(M->world().game_time() < deadline);
             co_yield {};
         }
 
@@ -376,13 +376,13 @@ task app::scene_cover_ai()
         set_cursor_at(q->pos);
         co_await click_at_cursor(mouse_button_left);
         fm_assert(status().st == state::to_peek);
-        deadline = _driver->scene_dt + max_dt;
+        deadline = M->world().game_time() + max_dt;
         while (!exposed_at(q->pos))
         {
-            fm_assert(_driver->scene_dt < deadline);
+            fm_assert(M->world().game_time() < deadline);
             co_yield {};
         }
-        for (const auto until = _driver->scene_dt + Second*4; _driver->scene_dt < until;)
+        for (const auto until = M->world().game_time() + Second*4; M->world().game_time() < until;)
         {
             co_yield {};
             fm_assert(exposed_at(q->pos));
@@ -392,7 +392,7 @@ task app::scene_cover_ai()
             fm_assert(e.type == base_test::ValueType::u32);
             fm_assert_equal(0u, e.u32);
         }
-        for (const auto until = _driver->scene_dt + Second; _driver->scene_dt < until;)
+        for (const auto until = M->world().game_time() + Second; M->world().game_time() < until;)
         {
             co_yield {};
             fm_assert(exposed_at(q->pos));
@@ -423,13 +423,13 @@ task app::scene_cover_ai()
         set_cursor_at(own_peek->other);
         co_await click_at_cursor(mouse_button_left);
         fm_assert(status().st == state::to_cover);
-        deadline = _driver->scene_dt + max_dt;
+        deadline = M->world().game_time() + max_dt;
         while (!hidden_at(own_peek->other))
         {
-            fm_assert(_driver->scene_dt < deadline);
+            fm_assert(M->world().game_time() < deadline);
             co_yield {};
         }
-        for (const auto until = _driver->scene_dt + Second*3; _driver->scene_dt < until;)
+        for (const auto until = M->world().game_time() + Second*3; M->world().game_time() < until;)
         {
             co_yield {};
             fm_assert(hidden_at(own_peek->other));
@@ -444,10 +444,10 @@ task app::scene_cover_ai()
                 fm_assert(s.st == state::to_peek);
                 fm_assert(s.canonical == cover && s.has_peek && s.peek == peek);
             }
-            deadline = _driver->scene_dt + max_dt;
+            deadline = M->world().game_time() + max_dt;
             while (!exposed_at(peek))
             {
-                fm_assert(_driver->scene_dt < deadline);
+                fm_assert(M->world().game_time() < deadline);
                 co_yield {};
             }
         }
@@ -463,10 +463,10 @@ task app::scene_cover_ai()
         set_cursor_at(first);
         co_await click_at_cursor(mouse_button_left);
         fm_assert(status().st == state::to_cover);
-        deadline = _driver->scene_dt + max_dt;
+        deadline = M->world().game_time() + max_dt;
         while (!hidden_at(first))
         {
-            fm_assert(_driver->scene_dt < deadline);
+            fm_assert(M->world().game_time() < deadline);
             co_yield {};
         }
         {
@@ -482,21 +482,21 @@ task app::scene_cover_ai()
     // The player moves south while the npc peeks. From there the wall hides the gun as well as the
     // cover, so check_exposed finds the ray to the gun blocked, and the npc walks to a new peek spot
     // at once.
-    deadline = _driver->scene_dt + max_dt;
+    deadline = M->world().game_time() + max_dt;
     while (status().st != state::exposed)
     {
-        fm_assert(_driver->scene_dt < deadline);
+        fm_assert(M->world().game_time() < deadline);
         co_yield {};
     }
     teleport_player(moved_threat_tile);
     const auto threat = point{chunk_coords_{}, moved_threat_tile, {}};
     arrayClear(stops);
     cur = {w.find_object(npc_id)->position(), status()};
-    still_since = _driver->scene_dt;
-    deadline = _driver->scene_dt + max_dt;
+    still_since = M->world().game_time();
+    deadline = M->world().game_time() + max_dt;
     while (stops.size() < n_stops)
     {
-        fm_assert(_driver->scene_dt < deadline);
+        fm_assert(M->world().game_time() < deadline);
         co_yield {};
         track();
     }
@@ -576,7 +576,7 @@ task app::scene_cover_ai()
     fm_debug("cover-ai: cover (%d, %d), peek (%d, %d); after the player moved, cover (%d, %d), peek (%d, %d); "
              "div 16 spots in %u frames, %u octant fills; %u ms", cover.x(), cover.y(), peek.x(), peek.y(),
              cover2.x(), cover2.y(), peek2.x(), peek2.y(), div_frames, div_fills,
-             (u32)Time::to_milliseconds(_driver->scene_dt));
+             (u32)Time::to_milliseconds(M->world().game_time()));
 
     tests().switch_to(Test::none);
     do_key(key_mode_none);
@@ -661,12 +661,12 @@ task app::scene_cover_ai_map()
     for (auto k = 0u; ; k++)
     {
         const auto player = tile_pos(map_player_tiles[at]);
-        auto deadline = _driver->scene_dt + max_dt;
+        auto deadline = M->world().game_time() + max_dt;
         for (;;)
         {
             if (const auto s = status(); s.st == state::hidden && npc_pos() == s.cover && (!k || s.cover != covers.back()))
                 break;
-            if (_driver->scene_dt >= deadline)
+            if (M->world().game_time() >= deadline)
             {
                 const auto s = status();
                 const auto [x, y] = print(npc_pos());
@@ -724,12 +724,12 @@ task app::scene_cover_ai_map()
         }
         else
         {
-            deadline = _driver->scene_dt + max_dt;
+            deadline = M->world().game_time() + max_dt;
             for (;;)
             {
                 if (const auto s = status(); s.st == state::exposed && npc_pos() == s.peek)
                     break;
-                if (_driver->scene_dt >= deadline)
+                if (M->world().game_time() >= deadline)
                     fm_abort("cover-ai-map: move %u: the npc doesn't peek from cover (%d, %d)", k, cx, cy);
                 co_yield {};
             }
@@ -744,10 +744,10 @@ task app::scene_cover_ai_map()
         if (k == n_moves)
             break;
 
-        deadline = _driver->scene_dt + max_dt;
+        deadline = M->world().game_time() + max_dt;
         while (!(status().st == state::hidden && npc_pos() == cover))
         {
-            fm_assert(_driver->scene_dt < deadline);
+            fm_assert(M->world().game_time() < deadline);
             co_yield {};
         }
         auto next = (u32)-1;
@@ -836,7 +836,7 @@ task app::scene_cover_ai_map()
         distinct += j == i;
     }
     fm_debug("cover-ai-map: %u moves, %u cover spots, %u spots dropped as seen, %u ms", n_moves, distinct, dropped,
-             (u32)Time::to_milliseconds(_driver->scene_dt));
+             (u32)Time::to_milliseconds(M->world().game_time()));
 
     tests().switch_to(Test::none);
     do_key(key_mode_none);

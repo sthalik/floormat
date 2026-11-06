@@ -190,7 +190,7 @@ private:
     void set_window_size(Vector2i size);
 
     void driver_start();
-    void driver_tick(Ns dt);
+    void driver_tick();
     void driver_draw_overlay();
     void driver_save_world(u32 scene_number, StringView scene_name, bool is_post);
 
