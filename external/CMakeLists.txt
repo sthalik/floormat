@@ -138,7 +138,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_GL_INFO                                ON
          MAGNUM_WITH_MAGNUMFONT                             OFF
          MAGNUM_WITH_OPENGLTESTER                           ON
-         MAGNUM_WITH_SHADERS                                ON
+         MAGNUM_WITH_SHADERS                                OFF
          MAGNUM_WITH_SHADERTOOLS                            ON
 
          MAGNUM_WITH_ANYIMAGECONVERTER                      ON
@@ -353,6 +353,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
              MAGNUM_STBIMAGECONVERTER_NO_TGA                    ON)
         add_subdirectory(magnum-plugins ${system})
         add_subdirectory(magnum-integration ${system})
+        target_compile_definitions(MagnumImGuiIntegration PRIVATE MAGNUM_IMGUIINTEGRATION_GL330_ONLY)
     endfunction()
 
     if(MAGNUM_BUILD_PLUGINS_STATIC)
