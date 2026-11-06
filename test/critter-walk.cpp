@@ -17,6 +17,7 @@
 #include "src/point.inl"
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
+#include <cr/StructuredBindings.h>
 #include <cmath>
 #include <cstdio>
 
@@ -447,8 +448,8 @@ u32 major_of(Vector2i v) { return Math::abs(v.x()) >= Math::abs(v.y()) ? 0 : 1; 
 // move_toward(dest)'s first leg, along the major axis
 i32 first_leg(Vector2i v)
 {
-    const auto a = Math::abs(v);
-    return Math::max(a.x(), a.y()) - Math::min(a.x(), a.y());
+    const auto [mn, mx] = Math::abs(v).minmax();
+    return mx - mn;
 }
 
 // b_diag: the box facing the diagonal leg where it starts.
@@ -650,8 +651,7 @@ Ns remaining_cost(const model& m, const walk& wk, const walker_state& s, const w
         return m.cost(wk.walk_r) * (wk.budget - Math::min(wk.budget, o.steps + o.slides));
     case entry::move_toward_dest:
     {
-        const auto a = Math::abs(wk.dest - s.pos);
-        const auto lo = (u32)Math::min(a.x(), a.y()), hi = (u32)Math::max(a.x(), a.y());
+        const auto [lo, hi] = Vector2ui(Math::abs(wk.dest - s.pos)).minmax();
         return m.frame * (hi - lo) + m.diag * lo;
     }
     case entry::move_toward_line:

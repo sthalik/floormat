@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "src/raycast-line.hpp"
+#include <cr/StructuredBindings.h>
 #include <mg/Functions.h>
 
 namespace floormat {
@@ -79,7 +80,7 @@ bool touches_square(Vector2i d, Vector2i q)
 {
     const auto lo = 2*q - Vector2i{1}, hi = 2*q + Vector2i{1};
     for (auto i = 0u; i < 2; i++)
-        if (Math::max(0, 2*d[i]) < lo[i] || Math::min(0, 2*d[i]) > hi[i])
+        if (const auto [mn, mx] = Math::minmax(0, 2*d[i]); mx < lo[i] || mn > hi[i])
             return false;
     auto above = 0, below = 0;
     for (auto x : { lo.x(), hi.x() })
@@ -96,7 +97,8 @@ void check_supercover(Vector2i from, Vector2i d)
 {
     constexpr auto size_max = 2*max_len + 3;
     const auto line = bresenham_line{from, from + d};
-    const auto lo = Math::min(Vector2i{0}, d) - Vector2i{1}, hi = Math::max(Vector2i{0}, d) + Vector2i{1};
+    const auto [mn, mx] = Math::minmax(Vector2i{0}, d);
+    const auto lo = mn - Vector2i{1}, hi = mx + Vector2i{1};
     const auto size = hi - lo + Vector2i{1};
     fm_assert(size.x() <= size_max && size.y() <= size_max);
 
@@ -133,7 +135,8 @@ void check_interval_bounds_to_steps(Vector2i from, Vector2i to)
     const auto line = bresenham_line{from, to};
     for (auto axis = 0u; axis < 2; axis++)
     {
-        const auto lo_min = Math::min(from[axis], to[axis]) - 2, hi_max = Math::max(from[axis], to[axis]) + 2;
+        const auto [mn, mx] = Math::minmax(from[axis], to[axis]);
+        const auto lo_min = mn - 2, hi_max = mx + 2;
         for (auto lo = lo_min; lo <= hi_max; lo++)
             for (auto hi = lo - 1; hi <= hi_max; hi++)
             {

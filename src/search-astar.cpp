@@ -24,6 +24,7 @@
 #include <bit>
 #include <cr/Algorithms.h>
 #include <cr/GrowableArray.h>
+#include <cr/StructuredBindings.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -414,9 +415,8 @@ struct astar::endpoint
     bool is_passable_to(point other, const pred& p) const
     {
         const auto other_center = center + Vector2(other - pt);
-        return Search::is_passable_(c, neighbors,
-                                    Math::min(center, other_center) - own_lo,
-                                    Math::max(center, other_center) + own_hi, p);
+        const auto [mn, mx] = Math::minmax(center, other_center);
+        return Search::is_passable_(c, neighbors, mn - own_lo, mx + own_hi, p);
     }
 };
 
@@ -731,7 +731,7 @@ struct astar::seed_search
     u32 seed_dist(u32 g, point pt, point s) const
     {
         const auto d = Vector2ui{Math::abs(s - pt)};
-        const auto mn = Math::min(d.x(), d.y()), mx = Math::max(d.x(), d.y());
+        const auto [mn, mx] = d.minmax();
         return (g + oct.axial*mx + (oct.diag - oct.axial)*mn) >> oct.shift;
     }
 

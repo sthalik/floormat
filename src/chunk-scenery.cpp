@@ -11,6 +11,7 @@
 #include "sprite-atlas.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
+#include <cr/StructuredBindings.h>
 
 namespace floormat {
 
@@ -90,7 +91,8 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
 
             const float x_nw = Math::clamp(nw.x(), left_x, right_x);
             const float x_se = Math::clamp(se.x(), left_x, right_x);
-            const float xs[4] = { left_x, Math::min(x_nw, x_se), Math::max(x_nw, x_se), right_x };
+            const auto [mn, mx] = Math::minmax(x_nw, x_se);
+            const float xs[4] = { left_x, mn, mx, right_x };
 
             // t: 0 = sprite bottom, 1 = top
             auto t_at = [&](float x) {

@@ -17,6 +17,7 @@
 #include "src/tile-defs.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
+#include <cr/StructuredBindings.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -1724,7 +1725,7 @@ void test_cover_diagonal_tracks_ray(u32 div_size)
             const auto x = y + off;
             const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool), div_size);
             const auto d = (u32)g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
-            if (Math::max(d, ray) - Math::min(d, ray) > 1)
+            if (const auto [mn, mx] = Math::minmax(d, ray); mx - mn > 1)
             {
                 Error{standard_error()} << "!!! fatal: div_size" << div_size << "cell" << x << y
                                         << "distance" << d << "but the ray" << ray;
@@ -1791,7 +1792,7 @@ void test_cover_stepped_tracks_ray(u32 div_size, ArrayView<const u32> octants)
                     continue;
                 const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool), div_size);
                 const auto d = (u32)g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
-                if (Math::max(d, ray) - Math::min(d, ray) > 1)
+                if (const auto [mn, mx] = Math::minmax(d, ray); mx - mn > 1)
                 {
                     Error{standard_error()} << "!!! fatal: div_size" << div_size << "octant" << k << "cell" << x << y
                                             << "distance" << d << "but the ray" << ray;

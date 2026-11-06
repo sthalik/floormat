@@ -7,6 +7,7 @@
 #include <cr/StructuredBindings.h>
 #include <mg/Range.h>
 #include <mg/Functions.h>
+#include <mg/BatchFunctions.h>
 #include <array>
 
 namespace floormat {
@@ -112,8 +113,7 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
     const auto p01 = pixel_to_chunk({         -chunk_overhang_x + extra_pixels.min().x(), win.y() + z_height + chunk_overhang_y + extra_pixels.max().y()});
     const auto p11 = pixel_to_chunk({win.x() + chunk_overhang_x + extra_pixels.max().x(), win.y() + z_height + chunk_overhang_y + extra_pixels.max().y()});
 
-    Vector2i min_xy = Math::min(Math::min(p00, p10), Math::min(p01, p11));
-    Vector2i max_xy = Math::max(Math::max(p00, p10), Math::max(p01, p11));
+    const auto [min_xy, max_xy] = Math::minmax({p00, p10, p01, p11});
 
 #if 0
     if (extra_pixels.min().isZero() && extra_pixels.max().isZero())

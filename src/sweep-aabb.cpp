@@ -7,6 +7,7 @@
 #include "RTree-search.hpp"
 #include "compat/function2.hpp"
 #include <bit>
+#include <cr/StructuredBindings.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -49,7 +50,8 @@ void sweep_aabb(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
     const auto visit = [&](const rc::detail::line_cell& cell) {
         const auto k0 = cell.first_step, k1 = cell.last_step;
         const auto a = line.point_at(k0 > first_step ? k0 - 1 : k0), b = line.point_at(k1 < last_step ? k1 + 1 : k1);
-        const auto qmin = Math::min(a, b) - lo, qmax = Math::max(a, b) + hi;
+        const auto [mn, mx] = Math::minmax(a, b);
+        const auto qmin = mn - lo, qmax = mx + hi;
         for (int j = 0; j < 3; j++)
             for (int i = 0; i < 3; i++)
             {

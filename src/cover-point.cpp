@@ -15,6 +15,7 @@
 #include <cmath>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
+#include <cr/StructuredBindings.h>
 #include <mg/Range.h>
 
 namespace floormat::Cover::Point {
@@ -199,8 +200,9 @@ void spot_tests::build_runs(const square_box& body, Vector2i axis, Vector2i acro
     for (const auto& r : from)
     {
         const auto da = (i64)Math::dot(-r.min(), axis), db = (i64)Math::dot(-r.max(), axis);
+        const auto [mn, mx] = Math::minmax(da, db);
         // 1 is half a pixel, where the threat's own pixel ends
-        const auto d0 = Math::max(Math::min(da, db), i64{1}), d1 = Math::min(Math::max(da, db), body.d0);
+        const auto d0 = Math::max(mn, i64{1}), d1 = Math::min(mx, body.d0);
         if (d0 >= d1)
             continue;
         arrayAppend(runs, slopes_of({ d0, d1, Math::dot(r.min(), across), Math::dot(r.max(), across) }));
@@ -562,8 +564,8 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
             }
             if (!ok)
                 continue;
-            const auto a = Math::abs(off);
-            const auto walk_dist = (float)Math::max(a.x(), a.y()) + (Math::sqrt(2.f) - 1) * (float)Math::min(a.x(), a.y());
+            const auto [minor, major] = Math::abs(off).minmax();
+            const auto walk_dist = (float)major + (Math::sqrt(2.f) - 1) * (float)minor;
             arrayAppend(cands, candidate{center, walk_dist, blocker_px});
         }
     // Cells mirrored about the npc's row or column can tie on both keys. std::sort leaves the

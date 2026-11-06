@@ -17,6 +17,7 @@
 #include "compat/nanosecond.inl"
 #include <array>
 #include <cr/ArrayView.h>
+#include <cr/StructuredBindings.h>
 #include <mg/BatchFunctions.h>
 
 namespace floormat {
@@ -217,8 +218,9 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
         // can_move_to() lets an object that passes through others turn anywhere
         const bool turn = run.turn && C.pass != pass_mode::pass;
         st[i] = { from, d, lo, hi, i32(run.nsteps), i32(run.nsteps) + 1, bool(is_diagonal(run.r)), turn, false, {} };
-        min = Math::min(min, Math::min(from, to) - lo);
-        max = Math::max(max, Math::max(from, to) + hi);
+        const auto [mn, mx] = Math::minmax(from, to);
+        min = Math::min(min, mn - lo);
+        max = Math::max(max, mx + hi);
     }
 
     // Returns the first and last step whose box overlaps [r0, r1) on axis i, or first > last for none.
@@ -406,8 +408,7 @@ constexpr step_s next_step(point from, point to)
     const bool y_ge_x = vec.y() >= vec.x();
     const auto step = Vector2b{(signed char)x_ge_y, (signed char)y_ge_x} * signs;
 
-    const auto max_xy = Math::max(vec.x(), vec.y());
-    const auto min_xy = Math::min(vec.x(), vec.y());
+    const auto [min_xy, max_xy] = vec.minmax();
     // xor is 1 iff exactly one ge holds (single-axis dominant); 0 if both (x==y diagonal)
     const u32 count = max_xy - min_xy * u32(x_ge_y ^ y_ge_x);
     return { count, step };
@@ -434,7 +435,7 @@ rotation nearest_rotation(Vector2i vec)
 {
     fm_debug_assert(!vec.isZero());
     const auto a = Vector2ui(Math::abs(vec));
-    const u64 major = Math::max(a.x(), a.y()), minor = Math::min(a.x(), a.y());
+    const auto [minor, major] = Math::minmax<u64>(a.x(), a.y());
     const bool diagonal = (minor + major) * (minor + major) > 2 * major * major;
     const bool x_major = a.x() >= a.y();
     const auto step = Vector2b{(signed char)(x_major || diagonal), (signed char)(!x_major || diagonal)};

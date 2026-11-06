@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
+#include <cr/StructuredBindings.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -894,8 +895,8 @@ bool cover_script::joins_unreachable(critter& c, point to)
         if (Math::abs(d.x()) > tile_size_xy || Math::abs(d.y()) > tile_size_xy)
             continue;
         const auto a = u.intra().center_shifted(), b = a + d;
-        const auto lo = Math::min(a, b) - body/2;
-        const auto hi = Math::max(a, b) - body/2 + body;
+        const auto [mn, mx] = Math::minmax(a, b);
+        const auto lo = mn - body/2, hi = mx - body/2 + body;
         if (Search::is_passable(c.world(), u.chunk3(), Range2D{Vector2(lo), Vector2(hi)}, pred))
             return true;
     }
