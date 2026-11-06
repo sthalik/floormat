@@ -896,16 +896,11 @@ void cover_script::end_search(critter& c, Optional<reachable_cover> r)
         wait = time_in(state::hidden);
         return;
     case search_then::follow:
-        if (const auto p = find_peek_pos(c, threat_pos))
-        {
-            if (!walk_to(c, *p, state::exposed))
-                begin_retreat(c);
-        }
-        else
-        {
-            walk_to_cover(c, move(r->path));
-            wait = time_in(state::hidden);
-        }
+        // Without a path to the peek spot, c hides at the cover it has a path to, and steps out from there.
+        if (const auto p = find_peek_pos(c, threat_pos); p && walk_to(c, *p, state::exposed))
+            return;
+        walk_to_cover(c, move(r->path));
+        wait = time_in(state::hidden);
         return;
     }
 }
