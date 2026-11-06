@@ -38,8 +38,7 @@ void main_impl::do_update(Ns dt)
     fm_debug("%zu frame took %.1f milliseconds",
              bad_frame_counter++, (double)(dt/Milliseconds));
 
-    constexpr auto tenth_of_a_second = u64(1e8);
-    dt.stamp = Math::min(tenth_of_a_second, dt.stamp);
+    dt = Math::min(dt, 100*Milliseconds);
 
     app.update(dt);
 }

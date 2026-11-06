@@ -43,3 +43,12 @@ constexpr inline Ns Minute{60000000000}, Second{1000000000}, Millisecond{1000000
 constexpr inline Ns Minutes{Minute}, Seconds{Second}, Milliseconds{Millisecond}, Microseconds{Microsecond};
 
 } // namespace floormat
+
+namespace Magnum::Math {
+
+template<class T> struct IsScalar;
+template<class T> struct IsUnitless;
+template<> struct IsScalar<floormat::Ns> : std::true_type {};
+template<> struct IsUnitless<floormat::Ns> : std::false_type {};
+
+} // namespace Magnum::Math
