@@ -1,5 +1,4 @@
 #include "impl.hpp"
-#include "compat/assert.hpp"
 #include "ground-traits.hpp"
 #include "ground-cell.hpp"
 #include "wall-traits.hpp"
@@ -11,8 +10,9 @@
 #include "vobj-cell.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
-#include "serialize/json-wrapper.hpp"
 #include "stb-zlib.hpp"
+#include "compat/assert.hpp"
+#include "serialize/json-wrapper.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat {

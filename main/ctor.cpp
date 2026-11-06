@@ -1,10 +1,10 @@
 #include "main-impl.hpp"
 #include "compat/arch.hpp"
+#include "compat/strerror.hpp"
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
 #include "src/chunk.hpp"
 #include "src/object-storage.inl"
-#include "compat/strerror.hpp"
 #include <algorithm>
 #include <cerrno>
 #include <cr/GrowableArray.h>

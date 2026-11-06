@@ -5,13 +5,13 @@
 #include "point.inl"
 #include "depth.hpp"
 #include "sprite-list.hpp"
+#include "sprite-atlas.hpp"
+#include "hwy.hpp"
 #include "main/clickable.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
-#include "sprite-atlas.hpp"
 #include "compat/assume-aligned.hpp"
 #include "compat/setenv.hpp"
-#include "hwy.hpp"
 #include <bit>
 #include <cr/GrowableArray.h>
 #include <cr/Memory.h>

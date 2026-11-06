@@ -1,11 +1,11 @@
 #include "../tests-private.hpp"
+#include "../app.hpp"
+#include "../imgui-raii.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/grid-pass.hpp"
 #include "src/point.hpp"
 #include "src/intra-coord.inl"
-#include "../app.hpp"
-#include "../imgui-raii.hpp"
 #include "floormat/main.hpp"
 #include <cstdio>
 #include <cr/BitArray.h>

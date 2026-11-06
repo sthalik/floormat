@@ -1,5 +1,5 @@
-#include "critter-script.hpp"
 #include "critter-script-cover.hpp"
+#include "critter-script.hpp"
 #include "critter-walk.hpp"
 #include "cover-point.hpp"
 #include "critter.hpp"

@@ -1,9 +1,9 @@
 #pragma once
 #include "compat/borrowed-ptr.hpp"
-#include "pass-mode.hpp"
-#include "wall-defs.hpp"
 #include "compat/defs.hpp"
 #include "compat/array-size.hpp"
+#include "pass-mode.hpp"
+#include "wall-defs.hpp"
 #include "sprite-atlas.hpp"
 #include <array>
 #include <cr/Array.h>

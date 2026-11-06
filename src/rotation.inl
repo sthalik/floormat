@@ -1,8 +1,8 @@
 #pragma once
-#include "compat/assert.hpp"
-#include "compat/limits.hpp"
 #include "rotation.hpp"
 #include "tile-defs.hpp"
+#include "compat/assert.hpp"
+#include "compat/limits.hpp"
 #include <mg/Functions.h>
 #include <mg/Vector2.h>
 

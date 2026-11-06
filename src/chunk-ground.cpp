@@ -4,9 +4,9 @@
 #include "quads.hpp"
 #include "spritebatch.hpp"
 #include "point.inl"
-#include "compat/borrowed-ptr.hpp"
 #include "depth.hpp"
 #include "renderer.hpp"
+#include "compat/borrowed-ptr.hpp"
 
 namespace floormat {
 

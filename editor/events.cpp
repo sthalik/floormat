@@ -6,9 +6,9 @@
 #include "src/world.hpp"
 #include "keys.hpp"
 #include "editor.hpp"
+#include "pgo-driver.hpp"
 #include "compat/enum-bitset.hpp"
 #include "compat/array-size.hpp"
-#include "pgo-driver.hpp"
 #include <cr/Pair.h>
 #include <cr/StructuredBindings.h>
 #include <mg/Sdl2Application.h>

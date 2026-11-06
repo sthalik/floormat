@@ -1,6 +1,6 @@
 #pragma once
-#include "assert.hpp"
 #include "nanosecond.hpp"
+#include "assert.hpp"
 
 namespace floormat {
 

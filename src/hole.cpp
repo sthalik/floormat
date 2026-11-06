@@ -1,9 +1,9 @@
 #include "hole.hpp"
 #include "tile-defs.hpp"
 #include "chunk.hpp"
+#include "world.hpp"
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
-#include "world.hpp"
 #include "compat/non-const.hpp"
 #include "compat/borrowed-ptr.inl"
 

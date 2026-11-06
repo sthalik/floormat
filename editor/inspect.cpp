@@ -1,16 +1,16 @@
 #include "inspect.hpp"
+#include "imgui-raii.hpp"
 #include "compat/assert.hpp"
 #include "entity/accessor.hpp"
-#include "imgui-raii.hpp"
 #include <cstdio>
 #include <utility>
+#include <imgui_internal.h>
 #include <cr/StructuredBindings.h>
 #include <cr/ArrayView.h>
 #include <cr/String.h>
 #include <mg/Functions.h>
 #include <mg/Vector3.h>
 #include <mg/Color.h>
-#include <imgui_internal.h>
 
 namespace floormat::entities {
 

@@ -1,11 +1,11 @@
 #include "app.hpp"
 #include "src/point.inl"
 #include "src/depth.hpp"
+#include "src/world.hpp"
+#include "src/scenery-proto.hpp"
 #include "shaders/shader.hpp"
 #include "shaders/lightmap.hpp"
 #include "shaders/texture-unit-cache.hpp"
-#include "src/world.hpp"
-#include "src/scenery-proto.hpp"
 #include "loader/loader.hpp"
 #include "compat/borrowed-ptr.inl"
 #include <cr/Pair.h>

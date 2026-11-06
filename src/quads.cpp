@@ -1,8 +1,8 @@
 #include "quads.hpp"
-#include "compat/iota.hpp"
-#include "compat/map.hpp"
 #include "depth.hpp"
 #include "renderer.hpp"
+#include "compat/iota.hpp"
+#include "compat/map.hpp"
 #include <mg/Vector2.h>
 #include <mg/Vector3.h>
 

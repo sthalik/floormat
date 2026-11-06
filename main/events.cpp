@@ -1,7 +1,7 @@
 #include "main-impl.hpp"
+#include "sdl-fwd.inl"
 #include "floormat/app.hpp"
 #include "floormat/events.hpp"
-#include "sdl-fwd.inl"
 #include <cstring>
 #include <SDL_events.h>
 #include <SDL_keyboard.h>

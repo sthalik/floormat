@@ -1,9 +1,9 @@
 #pragma once
-#include "compat/assert.hpp"
-#include "compat/exception.hpp"
 #include "atlas-loader.hpp"
 #include "atlas-loader-storage.hpp"
 #include "loader.hpp"
+#include "compat/assert.hpp"
+#include "compat/exception.hpp"
 #include <utility>
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>

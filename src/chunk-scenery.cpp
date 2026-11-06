@@ -1,7 +1,6 @@
 #include "chunk.hpp"
 #include "object-storage.inl"
 #include "tile-constants.hpp"
-#include "shaders/shader.hpp"
 #include "object.hpp"
 #include "anim-atlas.hpp"
 #include "quads.hpp"
@@ -9,8 +8,9 @@
 #include "depth.hpp"
 #include "renderer.hpp"
 #include "spritebatch.hpp"
-#include "loader/loader.hpp"
 #include "sprite-atlas.hpp"
+#include "shaders/shader.hpp"
+#include "loader/loader.hpp"
 
 namespace floormat {
 

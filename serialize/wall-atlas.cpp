@@ -1,12 +1,12 @@
 #include "wall-atlas.hpp"
 #include "magnum-vector.hpp"
 #include "corrade-string.hpp"
-#include "compat/exception.hpp"
-#include "loader/loader.hpp"
 #include "pass-mode.hpp"
 #include "json-helper.hpp"
 #include "corrade-array.hpp"
+#include "compat/exception.hpp"
 #include "compat/array-size.hpp"
+#include "loader/loader.hpp"
 #include <string_view>
 #include <cr/ArrayViewStl.h>
 #include <cr/StringStl.h>

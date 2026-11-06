@@ -1,12 +1,12 @@
 #include "ground-atlas.hpp"
+#include "corrade-string.hpp"
+#include "magnum-vector.hpp"
+#include "pass-mode.hpp"
 #include "compat/exception.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/ground-def.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
-#include "corrade-string.hpp"
-#include "magnum-vector.hpp"
-#include "pass-mode.hpp"
 #include <tuple>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>

@@ -13,10 +13,10 @@
 #include "src/sweep-aabb.hpp"
 #include "src/chunk.hpp"
 #include "loader/scenery-cell.hpp"
-#include "compat/borrowed-ptr.inl"
-#include "compat/function2.hpp"
 #include "loader/loader.hpp"
 #include "loader/anim-cell.hpp"
+#include "compat/borrowed-ptr.inl"
+#include "compat/function2.hpp"
 #include "compat/constantly.hpp"
 #include "compat/nanosecond.inl"
 #include <cr/GrowableArray.h>

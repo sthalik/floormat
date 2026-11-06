@@ -1,11 +1,11 @@
 #include "scenery-editor.hpp"
+#include "app.hpp"
 #include "src/anim-atlas.hpp"
-#include "loader/loader.hpp"
-#include "loader/scenery-cell.hpp"
 #include "src/world.hpp"
 #include "src/rotation.inl"
-#include "app.hpp"
 #include "src/scenery.hpp"
+#include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include <cr/ArrayView.h>
 

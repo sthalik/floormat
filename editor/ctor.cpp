@@ -1,15 +1,15 @@
 #include "app.hpp"
-#include "compat/enum-bitset.hpp"
-#include "src/world.hpp"
 #include "editor.hpp"
 #include "pgo-driver.hpp"
 #include "tests.hpp"
-#include "floormat/settings.hpp"
 #include "imgui-text.hpp"
+#include "compat/enum-bitset.hpp"
+#include "src/world.hpp"
 #include "src/sprite-atlas-impl.hpp"
 #include "src/sprite-atlas.hpp"
-#include "loader/loader.hpp"
+#include "floormat/settings.hpp"
 #include "floormat/main.hpp"
+#include "loader/loader.hpp"
 #include <cr/GrowableArray.h>
 #include <mg/ImGuiIntegration/Context.h>
 

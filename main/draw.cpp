@@ -1,11 +1,11 @@
 #include "main-impl.hpp"
+#include "clickable.hpp"
 #include "floormat/app.hpp"
 #include "floormat/draw-bounds.hpp"
 #include "src/anim-atlas.hpp"
-#include "clickable.hpp"
 #include "src/fps-counter.hpp"
-#include "shaders/shader.hpp"
 #include "src/chunk.hpp"
+#include "shaders/shader.hpp"
 #include "compat/fwd/algorithm/sort.hpp"
 #include "compat/nanosecond.inl"
 #include <cr/GrowableArray.h>

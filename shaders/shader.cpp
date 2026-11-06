@@ -1,8 +1,8 @@
 #include "shader.hpp"
+#include "texture-unit-cache.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
-#include "texture-unit-cache.hpp"
 #include "src/point.inl"
 #include <cr/Iterable.h>
 #include <mg/Functions.h>

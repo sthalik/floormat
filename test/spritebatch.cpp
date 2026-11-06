@@ -6,8 +6,8 @@
 #include <vector>
 #include <bit>
 #include <cfloat>
-#include <hwy/targets.h>
 #include <utility>
+#include <hwy/targets.h>
 #include <cr/ArrayView.h>
 
 namespace floormat::Test {

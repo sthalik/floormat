@@ -1,8 +1,8 @@
 #include "impl.hpp"
-#include "src/wall-atlas.hpp"
 #include "wall-cell.hpp"
 #include "wall-traits.hpp"
 #include "atlas-loader.inl"
+#include "src/wall-atlas.hpp"
 #include <cr/StringIterable.h>
 
 namespace floormat::loader_detail {

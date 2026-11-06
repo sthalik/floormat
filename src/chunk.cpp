@@ -4,8 +4,8 @@
 #include "log.hpp"
 #include "RTree.h"
 #include "grid.hpp"
-#include "compat/non-const.hpp"
 #include "ground-atlas.hpp"
+#include "compat/non-const.hpp"
 #include <cr/Optional.h>
 #include <utility>
 

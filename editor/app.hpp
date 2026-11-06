@@ -5,9 +5,9 @@
 #include "compat/borrowed-ptr-fwd.hpp"
 #include "floormat/app.hpp"
 #include "keys.hpp"
+#include "editor-enums.hpp"
 #include "src/global-coords.hpp"
 #include "src/object-id.hpp"
-#include "editor-enums.hpp"
 #include <cr/Array.h>
 #include <cr/Optional.h>
 
