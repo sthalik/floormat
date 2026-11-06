@@ -16,6 +16,7 @@
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
+#include "compat/tie.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
 #include <cr/GrowableArray.h>
@@ -916,8 +917,7 @@ task app::scene_cover_wait()
     bool cut = false;
     auto prev_st = status().st;
     auto prev_t = w.game_time();
-    auto dts = Array<Ns>{};
-    arrayReserve(dts, max_dt/(Second/max_hz) + 1);
+    auto min_dt = Ns{}, max_dt_seen = Ns{};
     const auto deadline = w.game_time() + max_dt;
 
     while (exposed_held < held_exposed_updates)
@@ -929,7 +929,9 @@ task app::scene_cover_wait()
         co_yield {};
         fm_assert(w.game_time() < deadline);
         const auto t = w.game_time(), dt = t - prev_t;
-        arrayAppend(dts, dt);
+        tie(min_dt, max_dt_seen) = min_dt == Ns{}
+            ? pair(dt, dt)
+            : Math::minmax({min_dt, max_dt_seen, dt});
         const auto st = status().st;
         const auto held = prev_st == state::hidden && hold == hold_phase::hidden ||
                           prev_st == state::exposed && hold == hold_phase::exposed;
@@ -989,7 +991,6 @@ task app::scene_cover_wait()
     }
     hz = hz0;
 
-    const auto [min_dt, max_dt_seen] = Math::minmax(dts);
     fm_assert_equal(3u, num_hidden);
     fm_assert_equal(2u, num_exposed);
     fm_assert_equal(2u, num_paused);

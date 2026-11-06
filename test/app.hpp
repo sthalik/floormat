@@ -78,6 +78,7 @@ void test_sweep_aabb();
 void test_util();
 void test_vqsort();
 void test_texcoords();
+void test_tie();
 void test_timer();
 void test_wall_atlas();
 void test_wall_atlas2();
