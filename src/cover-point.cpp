@@ -161,6 +161,7 @@ spot_tests::spot_tests(world& w, const query& q, const Search::pred& pred, Array
     step_px{Math::max(1, (int)Math::min(q.body_size.x(), q.body_size.y())/2)},
     max_cover_end_dist{q.max_cover_end_dist}
 {
+    fm_assert(half <= (int)std::size(turns));
     for (auto j = 1; j <= half; j++)
         turns[j - 1] = { std::cos((float)j * octant_step), std::sin((float)j * octant_step) };
 }
