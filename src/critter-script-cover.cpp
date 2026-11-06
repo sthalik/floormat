@@ -652,7 +652,6 @@ bool cover_script::start_search(critter& c, search_then next)
     search_retreated = false;
     arrayClear(unreachable);
     unreachable_reach = 0;
-    search_pass_gen = 0;
     const auto n = (u32)search_tiles().size();
     search_tiles_left = n + n/2;
     threat_pos = threat->position();
@@ -727,7 +726,6 @@ void cover_script::search_step(critter& c)
         arrayClear(unreachable);
         arrayClear(tile_skipped);
         unreachable_reach = 0;
-        search_pass_gen = 0;
         restart_search(c);
     }
     else if (k != search_octant)
