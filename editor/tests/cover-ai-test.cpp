@@ -490,7 +490,7 @@ u32 cover_ai_test::toggle_move_to_end()
 }
 
 // The spots of the script's last search, apart from the overlay's, from list_cover_spots(), which
-// runs that search again. They are kept until the script searches again, world::pass_gen() moves or
+// runs that search's query again without its tile areas or filters. They are kept until the script searches again, world::pass_gen() moves or
 // the npc is another, since listing them each frame would cost a whole search per frame. Critters
 // walking don't move pass_gen, so a spot the player walks onto stays listed.
 ArrayView<const cover_spot> cover_ai_test::script_spots(app& a, critter& c, const cover_script_status& s)

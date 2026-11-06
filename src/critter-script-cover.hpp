@@ -95,9 +95,10 @@ struct cover_peek
     point pos, gun;
 };
 
-// Replaces out with every spot find_cover_point accepts for the status's query, in the order tried,
-// so the first is the spot it found if the world hasn't changed. Empty when c runs another script
-// or none, or the script hasn't searched yet.
+// Replaces out with every spot find_cover_point accepts for the status's query, in the order tried. The
+// query has no area and none of the search's filters (threat_reach, needs_peek, unreachable spots, last_resort),
+// and the search tries spots tile by tile, so the spot it found, the status's canonical, needn't come first.
+// Empty when c runs another script or none, or the script hasn't searched yet.
 void list_cover_spots(critter& c, Array<cover_spot>& out);
 
 // As list_cover_spots, for q in place of the status's query, returning find_cover_point's result.
