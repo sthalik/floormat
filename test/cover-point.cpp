@@ -712,6 +712,14 @@ point gun_at(point pos, point threat, int offset)
     return pos + Vector2i(Math::round(v));
 }
 
+void step_critter(world& w, const bptr<critter>& c, Ns dt)
+{
+    w.increment_frame_no();
+    w.advance_game_time(dt);
+    auto i = c->index();
+    c->update(c, i, dt);
+}
+
 // The npc walks behind the wall, stays hidden for 2 s, then peeks along the wall the least that
 // lets a ray from the threat reach its gun. It stays out 2 s and walks back to the same spot, with
 // another critter at other_pos throughout.
@@ -740,8 +748,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
     for (auto frames = 0u; rests.size() < 4; frames++)
     {
         fm_assert(frames < 60*fps);
-        auto i = npc->index();
-        npc->update(npc, i, frame);
+        step_critter(w, npc, frame);
         if (npc->position() == last)
         {
             still++;
@@ -825,11 +832,7 @@ cover_scene::cover_scene(point threat_pos, Optional<int> gun_offset, const Optio
 
 cover_scene::~cover_scene() noexcept { w.finish_scripts(); }
 
-void cover_scene::step()
-{
-    auto i = npc->index();
-    npc->update(npc, i, frame);
-}
+void cover_scene::step() { step_critter(w, npc, frame); }
 
 bool cover_scene::seen_from(point threat_pos, point pos)
 {
@@ -2255,10 +2258,7 @@ void test_cover_script_far_cover(bool turned)
     const auto& pool = A.pool_registry().cover_pool(Grid::Cover::Params{8});
     const auto frame = Second / npc->atlas->info().fps;
     const auto status = [&] { return *Cover::Script::get_status(*npc); };
-    const auto step = [&] {
-        auto i = npc->index();
-        npc->update(npc, i, frame);
-    };
+    const auto step = [&] { step_critter(w, npc, frame); };
     const auto move_threat = [&](point pos) {
         auto i = threat->index();
         threat->teleport_to(i, pos, rotation_COUNT);
@@ -2324,10 +2324,7 @@ void test_cover_script_div_change()
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
     const auto frame = Second / npc->atlas->info().fps;
     const auto status = [&] { return *Cover::Script::get_status(*npc); };
-    const auto step = [&] {
-        auto i = npc->index();
-        npc->update(npc, i, frame);
-    };
+    const auto step = [&] { step_critter(w, npc, frame); };
     const auto fills = [&](u32 div) { return A.pool_registry().cover_pool(Grid::Cover::Params{div}).octant_fills(); };
 
     for (auto updates = 0u; status().search_tile <= 32; updates++)
