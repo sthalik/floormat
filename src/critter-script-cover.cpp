@@ -154,6 +154,7 @@ private:
     void begin_search(critter& c, search_then next);
     void flee(critter& c);
     void restart_search(critter& c);
+    void resume_search(critter& c);
     void search_step(critter& c);
     Optional<reachable_cover> take_last_resort(critter& c);
     void end_search(critter& c, Optional<reachable_cover> r);
@@ -693,6 +694,15 @@ void cover_script::restart_search(critter& c)
     tile_listed = false;
 }
 
+// Back to the search after a retreat c didn't walk to its end, measured from where c stands rather than the
+// walk's end, which restart_search set, while its budget allows a restart.
+void cover_script::resume_search(critter& c)
+{
+    st = state::search;
+    if (search_from != c.position())
+        restart_search(c);
+}
+
 // Tries up to max_search_tiles_per_update tiles, each with its area and the threat's current position.
 // A new threat octant or changed pass grid within a failed path search's reach restarts the search.
 void cover_script::search_step(critter& c)
@@ -1100,7 +1110,7 @@ void cover_script::retreat_step(critter& c)
         num_failed_retreat_dijkstra_calls++;
     }
     if (search_tiles_left)
-        st = state::search;
+        resume_search(c);
     else
         retry_later(c);
 }
@@ -1327,7 +1337,7 @@ void cover_script::walk_update(const bptr<critter>& c, usize& i, const Ns& dt)
     }
     if (st == state::retreat && search_tiles_left)
     {
-        st = state::search;
+        resume_search(*c);
         return;
     }
     st = state::seek;
