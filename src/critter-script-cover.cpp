@@ -131,6 +131,7 @@ private:
     struct retreat_spot { Vector2i offset; bool done; };
     // end is cover_end() of spot, and path leads there. path is empty when c stands on spot or end.
     struct reachable_cover { Cover::Point::spot spot; point end; path_search_result path; };
+    struct skipped_spot { Cover::Point::spot spot; u32 octant; };
     // What end_search does with cover: hide there for hidden_time, for the wait left with relocate, or peek
     // from it with follow. Without cover, seek waits and the others retreat.
     enum class search_then : u8 { seek, relocate, follow, };
@@ -188,8 +189,9 @@ private:
     // The spots of the search's tile search_tile, once tile_listed, of which tile_spot is next. They
     // were listed with the threat at tile_threat.
     Array<Cover::Point::spot> tile_spots;
-    // The spots of tile search_tile that search_step skipped, which a tile listed again skips without testing.
-    Array<Cover::Point::spot> tile_skipped;
+    // The spots of tile search_tile that search_step skipped, with search_octant at the time. A tile listed again
+    // skips without testing those it skipped in the current octant.
+    Array<skipped_spot> tile_skipped;
     point tile_threat;
     // The first spots the search skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
     Optional<Cover::Point::spot> peekless, in_reach;
@@ -206,7 +208,7 @@ private:
     u32 unreachable_reach = 0;
     u64 search_pass_gen = 0;
     u32 search_tile = 0, tile_spot = 0, num_failed_dijkstra_calls = 0, search_octant = 0;
-    // Tiles the search may still pass, from 3/2 of search_tiles().size(), and 0 once it ended. A restart sends
+    // Tiles the search may still pass, and 0 once it ended. A restart sends
     // search_tile to 0 only while more than a scan fits, so a moving threat can't keep the search near c.
     u32 search_tiles_left = 0;
     // Where the search's tiles and the threat's octant are measured from. The last restart to tile 0 set it to c's
@@ -421,7 +423,11 @@ void cover_script::set_options(critter& c, const Cover::Script::options& o)
     options = o;
     reach_known = false;
     if (search_tiles_left && (st == state::search || st == state::find_retreat || st == state::retreat))
+    {
         restart_search(c);
+        // skipped under the old options
+        arrayClear(tile_skipped);
+    }
     if (o.hold == old)
         return;
     const auto hiding = st == state::hidden || st == state::to_cover;
@@ -648,17 +654,19 @@ void cover_script::flee(critter& c)
 // walks. unreachable_reach grows by search_from's move, to hold every chunk those Dijkstra searches could cross.
 void cover_script::restart_search(critter& c)
 {
-    if (search_tiles_left > search_tiles().size())
+    // More than a scan stays left after the restart's tile, so the count stays nonzero until the search ends.
+    if (search_tiles_left > search_tiles().size() + 1)
     {
         const auto from = st == state::retreat ? walk.dest() : c.position();
         if (!unreachable.isEmpty())
             unreachable_reach += point::distance(search_from, from);
         search_from = from;
         search_tile = 0;
+        search_tiles_left--;
+        arrayClear(tile_skipped);
     }
     search_octant = Cover::Point::nearest_octant(Vector2(threat_pos - search_from));
     tile_listed = false;
-    arrayClear(tile_skipped);
 }
 
 // Tries up to max_search_tiles_per_update tiles, each with its area and the threat's current position.
@@ -682,6 +690,7 @@ void cover_script::search_step(critter& c)
     {
         num_failed_dijkstra_calls = 0;
         arrayClear(unreachable);
+        arrayClear(tile_skipped);
         unreachable_reach = 0;
         search_pass_gen = 0;
         restart_search(c);
@@ -735,7 +744,7 @@ void cover_script::search_step(critter& c)
             const auto s = tile_spots[tile_spot];
             bool skipped = false;
             for (const auto& x : tile_skipped)
-                skipped |= x.pos == s.pos && x.axis == s.axis;
+                skipped |= x.spot.pos == s.pos && x.spot.axis == s.axis && x.octant == search_octant;
             if (skipped)
                 continue;
             const auto at_spot = s.pos == here;
@@ -757,7 +766,7 @@ void cover_script::search_step(critter& c)
             {
                 if (options.last_resort >= fallback::in_reach && !in_reach)
                     in_reach = s;
-                arrayAppend(tile_skipped, s);
+                arrayAppend(tile_skipped, skipped_spot{s, search_octant});
                 continue;
             }
             peek_spot_searches_left--;
@@ -767,7 +776,7 @@ void cover_script::search_step(critter& c)
             {
                 if (options.last_resort >= fallback::no_peek && !peekless)
                     peekless = s;
-                arrayAppend(tile_skipped, s);
+                arrayAppend(tile_skipped, skipped_spot{s, search_octant});
                 continue;
             }
             if (at_spot || end == here)

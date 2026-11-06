@@ -38,10 +38,10 @@ namespace {
 constexpr chunk_coords_ ch{0, 0, 0};
 constexpr auto body = Vector2ui{24, 24};
 
-void add_ground(world& w)
+void add_ground(world& w, chunk_coords_ coord = ch)
 {
     const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
-    auto& c = w[ch];
+    auto& c = w[coord];
     for (auto j = 0u; j < TILE_MAX_DIM; j++)
         for (auto i = 0u; i < TILE_MAX_DIM; i++)
             c[{i, j}].ground() = floor;
@@ -1725,6 +1725,59 @@ void test_cover_script_no_path_threat_moves(point to, bool same_octant)
     fm_assert(!s.seen_from(to, t1.cover));
 }
 
+// The search's canonical spot with the threat at p2. With `moves`, the threat starts at p1 and moves to p2 once
+// the search cast a ray, and with `reset_options` set_options is called right after the move.
+point canonical_after_threat_moves(bool moves, bool reset_options)
+{
+    world w;
+    const chunk_coords_ c1{1, 0, 0};
+    add_ground(w);
+    add_ground(w, c1);
+    for (const auto y : {u8{1}, u8{4}, u8{7}})
+        add_blocker(w, global_coords{c1, {12, y}}, {16, 200}, {16, 0});
+    add_blocker(w, global_coords{c1, {12, 9}}, {16, 88}, {16, 0});
+    const auto p1 = at_px({2088, 258}), p2 = at_px({2088, 620});
+    auto threat = add_critter(w, moves ? p1 : p2);
+    auto npc = add_critter(w, at_px({128, 512}));
+    w.init_scripts();
+    astar A;
+    npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8, 0), npc);
+    const Cover::Script::options opts{.octants = 0, .max_cover_end_dist = 0, .threat_reach = 0,
+                                      .last_resort = Cover::Script::options::fallback::none};
+    Cover::Script::set_options(*npc, opts);
+    const auto fps = npc->atlas->info().fps;
+    const auto status = [&] { return *Cover::Script::get_status(*npc); };
+    bool moved = !moves;
+    for (auto frames = 0u; status().num_searches == 0; frames++)
+    {
+        fm_assert(frames < 600*fps);
+        auto i = npc->index();
+        npc->update(npc, i, Second / fps);
+        if (const auto t = status(); !moved && t.st == state::search && t.num_rays > 0)
+        {
+            auto j = threat->index();
+            threat->teleport_to(j, p2, rotation_COUNT);
+            if (reset_options)
+                Cover::Script::set_options(*npc, opts);
+            moved = true;
+        }
+    }
+    fm_assert(moved);
+    const auto t = status();
+    fm_assert(t.has_cover);
+    w.finish_scripts();
+    return t.canonical;
+}
+
+// p2 lies in another octant than p1, seen from the npc. A threat that moves there once the search cast a ray
+// leaves the search to find the cover it finds with the threat at p2 from the start, or after set_options.
+void test_cover_script_skipped_spot_threat_moves()
+{
+    const auto fresh = Vector3i(canonical_after_threat_moves(false, false));
+    fm_assert_equal(fresh, Vector3i(canonical_after_threat_moves(true, true)));
+    fm_assert_equal(fresh, Vector3i(canonical_after_threat_moves(true, false)));
+}
+
 // As in start_no_path_search, then the south blocker goes away. The changed pass grids start the search over,
 // which forgets that the walled-in spot had no path, and the npc takes it.
 void test_cover_script_no_path_opened()
@@ -2885,6 +2938,7 @@ void Test::test_cover_point()
     test_cover_script_no_path_ties();
     test_cover_script_no_path_threat_moves(point{ch, {2, 8}, {0, -1}}, true);
     test_cover_script_no_path_threat_moves(point{ch, {2, 8}, {0, -14}}, false);
+    test_cover_script_skipped_spot_threat_moves();
     test_cover_script_no_path_opened();
     test_cover_script_no_path_far_change();
     test_cover_script_walk_checks(hidden);
