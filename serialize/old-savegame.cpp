@@ -6,6 +6,7 @@
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "src/ground-atlas.hpp"
+#include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile.hpp"
 #include "src/pass-mode.hpp"
@@ -157,10 +158,15 @@ private:
     void read_chunks(reader_t& reader);
     void read_old_scenery(reader_t& s, chunk_coords_ ch, usize i);
     void preload_chunks();
+    template<typename T> const bptr<T>& placeholder_for(std::vector<bptr<T>>& cache, atlasid id, StringView name);
 
     std::vector<String> strings;
     std::vector<scenery_proto> sceneries;
     std::vector<String> atlases;
+    // By atlas id, for missing atlases. As in world::deserialize(), each is named after its atlas, so that saving
+    // again keeps the name.
+    std::vector<bptr<ground_atlas>> ground_placeholders;
+    std::vector<bptr<wall_atlas>> wall_placeholders;
     world* _world;
     u16 PROTO = proto_version;
     loader_policy asset_policy;
@@ -264,6 +270,22 @@ void reader_state::read_strings(reader_t& s)
     }
 }
 
+template<typename T>
+const bptr<T>& reader_state::placeholder_for(std::vector<bptr<T>>& cache, atlasid id, StringView name)
+{
+    if (id >= cache.size())
+        cache.resize(id + 1uz);
+    auto& p = cache[id];
+    if (!p)
+    {
+        if constexpr(std::is_same_v<T, ground_atlas>)
+            p = loader.make_placeholder_ground_atlas(name);
+        else
+            p = loader.make_placeholder_wall_atlas(name);
+    }
+    return p;
+}
+
 StringView reader_state::lookup_atlas(atlasid id)
 {
     if (id < atlases.size())
@@ -349,12 +371,17 @@ void reader_state::read_chunks(reader_t& s)
                 if constexpr(std::is_same_v<ground_atlas, T>)
                 {
                     auto atlas = loader.ground_atlas(name, asset_policy);
+                    // Drawing takes the variant modulo the placeholder's one tile, as with the current format.
+                    if (atlas->is_placeholder()) [[unlikely]]
+                        return { placeholder_for(ground_placeholders, atlas_id, name), v };
                     fm_soft_assert(v < atlas->num_tiles());
                     return { atlas, v };
                 }
                 else if constexpr(std::is_same_v<wall_atlas, T>)
                 {
                     auto atlas = loader.wall_atlas(name, asset_policy);
+                    if (atlas->is_placeholder()) [[unlikely]]
+                        return { placeholder_for(wall_placeholders, atlas_id, name), v };
                     return { atlas, v };
                 }
                 else
