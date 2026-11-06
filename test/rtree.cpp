@@ -237,7 +237,7 @@ void test_odd_bbox_rotation()
     const auto expected = [&](Vector2i center, Vector2ub size, rotation r0, rotation r1) {
         const auto k = ((int)r1/2 - (int)r0/2 + 4) % 4;
         for (auto i = 0; i < k; i++)
-            center = {-center.y(), center.x()};
+            center = center.perpendicular();
         if (k % 2)
             size = size.flipped();
         const auto min = tile_center + center - Vector2i(size/2);

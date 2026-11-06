@@ -189,7 +189,7 @@ bool do_group(state st, usize i, usize j, Group& new_group)
 
     DBG << "    group" << quoted2(group_name);
     fm_debug_assert(expected_size > Vector2ui{0});
-    fm_assert(Math::max(expected_size.x(), expected_size.y()) < max_image_dimension);
+    fm_assert(expected_size.max() < max_image_dimension);
     fm_assert((usize)st.groups.at(j).G == j);
 
     auto& frames = [&]() -> auto&& {

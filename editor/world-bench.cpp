@@ -261,7 +261,7 @@ constexpr bool lm_layouts_in_bounds()
                 return false;
         }
         for (auto s : L.stools)
-            if (s.x() >= TILE_MAX_DIM || s.y() >= TILE_MAX_DIM)
+            if (s.max() >= TILE_MAX_DIM)
                 return false;
     }
     return true;

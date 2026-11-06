@@ -19,6 +19,7 @@
 #include <cfloat>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
+#include <mg/BatchFunctions.h>
 
 namespace floormat {
 
@@ -342,7 +343,7 @@ void test_rays(const Pass::Params& params, world& w)
                 auto res = ray_r({-384, y}, {320, y});
                 fm_assert(!res.success);
                 fm_assert(res.collider.id == C->id);
-                const float dy = Math::max(0.f, Math::max(-13.5f - (float)y, (float)y - 12.5f));
+                const float dy = Math::max({0.f, -13.5f - (float)y, (float)y - 12.5f});
                 fm_assert(Math::abs(diag.tmin - (384 - 21.5f - Math::sqrt(radius*radius - dy*dy))) < 1e-3f);
                 fm_assert(res.collision == P0 + Vector2i{-21, Math::clamp(y, -13, 12)});
                 fm_assert(res.rect == Range2D::fromCenter(Vector2{8*64, 5*64}, Vector2{21, 13}));

@@ -86,7 +86,7 @@ void add_block(world& w, int x, int y, Vector2ub size, Vector2b offset = {})
 bool near_zone(int x, int y)
 {
     for (auto z : zones)
-        if (Math::max(Math::abs(x - z.tile.x()), Math::abs(y - z.tile.y())) <= 3)
+        if (Math::abs(Vector2i{x, y} - z.tile).max() <= 3)
             return true;
     return false;
 }

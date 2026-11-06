@@ -548,7 +548,7 @@ Vector2i turned_threat(Vector2i threat, Vector2i pos, int j)
     const auto v = Vector2d(threat - pos);
     const auto a = j * 2 * Math::Constants<double>::pi() / Grid::Cover::octant_count;
     const auto t = Vector2d{v.x()*std::cos(a) - v.y()*std::sin(a), v.x()*std::sin(a) + v.y()*std::cos(a)};
-    fm_assert((Math::abs(t - Math::floor(t) - Vector2d{.5}) >= Vector2d{1e-3}).all());
+    fm_assert((Math::abs(Math::fract(t) - Vector2d{.5}) >= Vector2d{1e-3}).all());
     return pos + Vector2i(Math::round(t));
 }
 
@@ -707,8 +707,8 @@ point gun_at(point pos, point threat, int offset)
     if (pos == threat)
         return pos;
     const auto f = Vector2(threat - pos);
-    const auto v = Vector2{-f.y(), f.x()} * ((float)offset / f.length());
-    fm_assert((Math::abs(v - Math::floor(v) - Vector2{.5f}) >= Vector2{1e-4f}).all());
+    const auto v = f.perpendicular() * ((float)offset / f.length());
+    fm_assert((Math::abs(Math::fract(v) - Vector2{.5f}) >= Vector2{1e-4f}).all());
     return pos + Vector2i(Math::round(v));
 }
 
@@ -1206,7 +1206,7 @@ Vector2i peek_walk(world& w, const Cover::Point::spot& spot, point threat_pos)
     w.finish_scripts();
     fm_assert(p);
     const auto d = Vector3i(p->pos).xy() - Vector3i(spot.pos).xy();
-    const auto back = Vector2i{Math::sign(d.x()), Math::sign(d.y())};
+    const auto back = Math::sign(d);
     fm_assert(gun_seen(w, threat_pos, p->pos));
     fm_assert(!gun_seen(w, threat_pos, p->pos - back) && !gun_seen(w, threat_pos, spot.pos));
     return d;

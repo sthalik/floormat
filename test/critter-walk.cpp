@@ -159,7 +159,7 @@ struct model
         const auto ch = s.pos.chunk3();
         const auto a = box_at(s.pos, ch, s.bbox_offset, s.bbox_size);
         const auto b = Range2D{a.min() + Vector2(d), a.max() + Vector2(d)};
-        return Search::is_passable(w, ch, Range2D{Math::min(a.min(), b.min()), Math::max(a.max(), b.max())}, pred);
+        return Search::is_passable(w, ch, Math::join(a, b), pred);
     }
 
     bool can_turn(const walker_state& s, rotation new_r) const
@@ -372,7 +372,7 @@ void add_rect(world& w, span x, span y)
     for (auto y0 = y.lo; y0 < y.hi; y0 += piece)
         for (auto x0 = x.lo; x0 < x.hi; x0 += piece)
         {
-            const auto size = Vector2i{Math::min(x.hi - x0, piece), Math::min(y.hi - y0, piece)};
+            const auto size = Math::min(Vector2i{x.hi - x0, y.hi - y0}, piece);
             const auto center = origin + (Vector2i{x0, y0} + size/2);
             scenery_proto p;
             p.atlas       = loader.invalid_scenery_atlas().proto->atlas;

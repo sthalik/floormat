@@ -183,7 +183,7 @@ void check_long_line(Vector2i from, Vector2i to)
         if (k < len)
         {
             const auto q = line.point_at((u32)k + 1);
-            fm_assert(Math::abs(q.x() - p.x()) <= 1 && Math::abs(q.y() - p.y()) <= 1);
+            fm_assert(Math::abs(q - p).max() <= 1);
             fm_assert(Math::abs(y_major ? q.y() - p.y() : q.x() - p.x()) == 1);
         }
     }

@@ -4,6 +4,7 @@
 #include "src/global-coords.hpp"
 #include "src/tile-defs.hpp"
 #include <cr/StringView.h>
+#include <mg/Functions.h>
 
 namespace floormat { enum class driver_mode : u8 { coverage, profile, }; }
 
@@ -52,7 +53,7 @@ constexpr inline int raycast_radius_max = []
 {
     int m = 0;
     for (const int r : raycast_radii)
-        m = r > m ? r : m;
+        m = Math::max(m, r);
     return m;
 }();
 

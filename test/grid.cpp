@@ -1421,7 +1421,7 @@ Vector2i cover_step(u32 k)
     constexpr Vector2i quadrant[] = { {1, 0}, {5, 1}, {5, 2}, {3, 2}, {1, 1}, {2, 3}, {2, 5}, {1, 5} };
     auto s = quadrant[k % 8];
     for (auto i = 0u; i < k / 8; i++)
-        s = {-s.y(), s.x()};
+        s = s.perpendicular();
     return s;
 }
 
@@ -1568,7 +1568,7 @@ Array<Vector2i> cover_crossed_cells(u32 k)
     {
         auto c = j > 4 ? Vector2i{base[i].y(), base[i].x()} : base[i];
         for (auto t = 0u; t < k / 8; t++)
-            c = {-c.y(), c.x()};
+            c = c.perpendicular();
         ret[i] = c;
     }
     return ret;

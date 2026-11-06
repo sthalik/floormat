@@ -209,7 +209,7 @@ void test_swept_collider_line()
     };
     for (auto size : { Vector2ui{1}, Vector2ui{3}, Vector2ui{4, 9}, Vector2ui{8}, Vector2ui{13, 6}, Vector2ui{24} })
     {
-        const auto pool_bbox = (Math::max(size.x(), size.y()) + 1) & ~1u;
+        const auto pool_bbox = (size.max() + 1) & ~1u;
         Pass::Pool pool8{Pass::Params{8, pool_bbox, pass_mode::pass}, Search::never_continue()};
         Pass::Pool pool16{Pass::Params{16, pool_bbox, pass_mode::pass}, Search::never_continue()};
         for (auto i = 0u; i < 24; i++)
@@ -259,7 +259,7 @@ void test_swept_collider_flush()
                 fm_assert(res.has_collider == (deeper != 0));
                 fm_assert(res.step == (deeper ? steps : steps + 1));
 
-                const auto pool_bbox = (Math::max(size.x(), size.y()) + 1) & ~1u;
+                const auto pool_bbox = (size.max() + 1) & ~1u;
                 Pass::Pool pool8{Pass::Params{8, pool_bbox, pass_mode::pass}, Search::never_continue()};
                 check_swept_line(w, ch, from, from + d * i32(steps), 0, steps, size, nullptr);
                 check_swept_line(w, ch, from, from + d * i32(steps), 0, steps, size, &pool8);

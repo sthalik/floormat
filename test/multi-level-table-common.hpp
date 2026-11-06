@@ -848,7 +848,7 @@ class random_run
             const u32 shift = page_bits + (i % 2 ? zero_bits : 0);
             const u64 b = i == 2 ? u64{1} << shift : (Random::next(rng) & key_mask) >> shift << shift;
             const u64 base = b < w / 2 ? 0 : b - w / 2;
-            arrayAppend(bases, base < last ? base : last);
+            arrayAppend(bases, Math::min(base, last));
         }
     }
 
@@ -1184,7 +1184,7 @@ class random_run
         for (u32 d = 0; d < dims; d++)
         {
             const u64 m = low_mask(site_bits[d]), x = (a[d] - b[d]) & m, y = (b[d] - a[d]) & m;
-            n += x < y ? x : y;
+            n += Math::min(x, y);
         }
         return n;
     }
@@ -1507,7 +1507,7 @@ class random_run
             for (u32 dir = 0; dir < dirs; dir++)
             {
                 const u32 n = visits(key_at(moved(at, dir)));
-                w[dir] = 1u << (20 - (n < 20 ? n : 20));
+                w[dir] = 1u << (20 - Math::min(n, 20u));
             }
             at = moved(at, pick_weighted(w));
             per_site[key_at(at)]++;

@@ -135,7 +135,7 @@ void test_pixel_to_point()
             const auto zl = i8(world.z()/tile_size_z);
             fm_assert_equal(point{world}, tile_shader::pixel_to_point(win/2, win, cam, zl));
             fm_assert_equal(win/2, tile_shader::point_to_pixelʹ(world, win, cam));
-            const auto half = float((world.x() + world.y()) & 1)*.5f;
+            const auto half = float(world.xy().sum() & 1)*.5f;
             fm_assert_equal(Vector2(win/2) + Vector2{0, half}, tile_shader::point_to_pixel(world, win, cam));
             for (int y = -32; y < 32; y++)
                 for (int x = -32; x < 32; x++)
