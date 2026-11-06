@@ -315,6 +315,12 @@ void test_octants_beside_bearing()
     fm_assert(cant_be_shot(w, threat, r.pos));
 }
 
+void test_nearest_octant_of_zero()
+{
+    fm_assert_equal(0u, Cover::Point::nearest_octant(Vector2{}));
+    fm_assert_equal(1u, Cover::Point::nearest_octant(Grid::Cover::octant_direction(1)));
+}
+
 // Three 16 px blocks corner to corner. The spot is hidden only where two blocks' slope ranges from
 // the threat meet at the corner they share.
 void test_touching_blockers()
@@ -2978,6 +2984,7 @@ void Test::test_cover_point()
     // pillar's top corner by 5e-5 in slope and grazes the top row. (436, 520) is hidden.
     test_pillar_pair(8, 8, 0, 24, 8, true);
     test_octants_beside_bearing();
+    test_nearest_octant_of_zero();
     test_touching_blockers();
     test_wall_out_of_radius();
     test_spot_taken();

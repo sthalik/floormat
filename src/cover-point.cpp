@@ -346,6 +346,8 @@ Vector2i across_of(Vector2i axis) { return Math::abs(Vector2i{axis.y(), axis.x()
 // A bearing halfway between octants k and k + 1 takes k + 1, mod Grid::Cover::octant_count.
 u32 nearest_octant(Vector2 v)
 {
+    if (v.x() == 0 && v.y() == 0)
+        return 0;
     constexpr auto n = (u32)Grid::Cover::octant_count;
     const auto& dirs = octant_dirs();
     const auto k0 = (int)std::floor(std::atan2(v.y(), v.x()) / octant_step + .5f);
