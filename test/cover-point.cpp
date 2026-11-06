@@ -1096,28 +1096,42 @@ void test_cover_script_threat_walks_along_wall(bool search_every_move)
     fm_assert(farthest > 0);
 }
 
-// From the npc's arrival at cover, the threat walks east 1 px per frame, away from the wall. The npc moves along the
-// wall's face as the threat starts to see its body, and still steps out when its 2 s there are up.
+// From the npc's arrival at cover, by the wall's north end, the threat walks north 2 px per frame. Once it sees that
+// end of the face, the npc walks along the face toward canonical, never in the threat's shots, and still steps out
+// when it has stood hidden for its 2 s, which the walk doesn't spend.
 void test_cover_script_walking_threat(point hidden)
 {
+    using state = cover_script_status::state;
     cover_scene s;
     for (auto frames = 0u; s.npc->position() != hidden; frames++)
     {
         fm_assert(frames < 60*s.fps);
         s.step();
     }
-    auto frames = 0u;
-    for (;; frames++)
+    const auto canonical = s.status().canonical;
+    const auto toward = Vector3i(canonical).y() - Vector3i(hidden).y();
+    fm_assert(toward != 0);
+    auto standing = 0u, walking = 0u;
+    auto last = hidden;
+    for (;;)
     {
-        s.move_threat(s.threat->position() + Vector2i{1, 0});
+        s.move_threat(s.threat->position() + Vector2i{0, -2});
         s.step();
-        if (s.status().st == cover_script_status::state::to_peek)
+        const auto st = s.status().st;
+        if (st == state::to_peek)
             break;
-        fm_assert(frames < 2*s.fps + 2);
-        fm_assert(Vector3i(s.npc->position()).x() == Vector3i(hidden).x());
-        fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, s.npc->position(), body, s.npc->id));
+        fm_assert(st == state::hidden || st == state::to_cover);
+        (st == state::hidden ? standing : walking)++;
+        fm_assert(standing < 2*s.fps + 2 && walking < s.fps);
+        fm_assert(s.status().canonical == canonical);
+        last = s.npc->position();
+        fm_assert(Vector3i(last).x() == Vector3i(hidden).x());
+        fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, last, body, s.npc->id));
     }
-    fm_assert(frames + 2 >= 2*s.fps);
+    fm_assert(standing + 2 >= 2*s.fps);
+    // It moved toward canonical, and no farther.
+    const auto moved = Vector3i(last).y() - Vector3i(hidden).y();
+    fm_assert(walking > 0 && moved*toward > 0 && Math::abs(moved) <= Math::abs(toward));
 }
 
 // The npc's cover and peek spots in a cover_scene made with these arguments, after asserting that
