@@ -737,6 +737,8 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
     arrayReserve(rests, 4);
     auto last = npc->position();
     auto still = 0u;
+    // Shot at while the npc stands on its first rest, as a rest is recorded only once the npc has left it.
+    Optional<bool> hidden_unshot;
     for (auto frames = 0u; rests.size() < 4; frames++)
     {
         fm_assert(frames < 60*fps);
@@ -744,7 +746,8 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
         npc->update(npc, i, frame);
         if (npc->position() == last)
         {
-            still++;
+            if (++still == fps && rests.isEmpty())
+                hidden_unshot = cant_be_shot_at(w, threat_pos, threat->id, last, body, npc->id);
             continue;
         }
         if (still >= fps)
@@ -760,7 +763,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
     // each wait may end a frame early or late, and the walk's arrival frame counts as still
     const auto near_2s = [&](u32 n) { return n + 2 >= 2*fps && n <= 2*fps + 2; };
     fm_assert(near_2s(hidden.frames) && near_2s(peek.frames) && near_2s(back.frames));
-    fm_assert(cant_be_shot_at(w, threat_pos, threat->id, hidden.pos, body, npc->id));
+    fm_assert(hidden_unshot && *hidden_unshot);
     fm_assert(back.pos == hidden.pos && peek2.pos == peek.pos);
 
     const auto peek_offset = Vector3i(peek.pos).xy() - Vector3i(hidden.pos).xy();
