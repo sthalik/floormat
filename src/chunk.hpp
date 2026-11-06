@@ -91,6 +91,9 @@ public:
     const class world& world() const noexcept;
 
     [[nodiscard]] bool can_place_object(const object_proto& proto, local_coords pos);
+    // Creates no chunk. With none at coord, only its neighbours' colliders count.
+    [[nodiscard]] static bool can_place_object(class world& w, chunk_coords_ coord, const object_proto& proto,
+                                               local_coords pos);
     [[nodiscard]] static Optional<Pair<Range2D, pass_mode>> find_hole_in_bbox(const Chunk_RTree& rtree, Range2D bbox, pass_mode min_pass);
     using hole_callback = const fu2::function_view<void(Math::Range2D<float> hole, Math::Range1D<u8> z) const>;
     static void get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_min, Vector2 bb_max, pass_through_mask mask);

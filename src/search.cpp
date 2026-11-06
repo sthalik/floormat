@@ -70,15 +70,9 @@ bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
 }
 
 template<typename Chunk>
-bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<Chunk>& p)
+bool is_passable_neighbors_(const std::array<Chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<Chunk>& p)
 {
     fm_debug3_assert(max >= min);
-
-    if (c0)
-        // it's not correct to return true if c == nullptr
-        // because neighbors can still contain bounding boxes for that tile
-        if (!is_passable_1(*c0, min, max, p))
-            return false;
 
     for (auto i = 0u; i < 8; i++)
     {
@@ -96,6 +90,20 @@ bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min
         }
     }
     return true;
+}
+
+template<typename Chunk>
+bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<Chunk>& p)
+{
+    fm_debug3_assert(max >= min);
+
+    if (c0)
+        // it's not correct to return true if c == nullptr
+        // because neighbors can still contain bounding boxes for that tile
+        if (!is_passable_1(*c0, min, max, p))
+            return false;
+
+    return is_passable_neighbors_(neighbors, min, max, p);
 }
 
 template<typename World, typename Chunk>
@@ -117,6 +125,12 @@ bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min
 { return detail::is_passable_(c0, neighbors, min, max, p); }
 bool is_passable_(const chunk* c0, const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<const chunk>& p)
 { return detail::is_passable_(c0, neighbors, min, max, p); }
+
+bool is_passable_neighbors_(const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<chunk>& p)
+{ return detail::is_passable_neighbors_(neighbors, min, max, p); }
+bool is_passable_neighbors_(const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max,
+                            const Pred<const chunk>& p)
+{ return detail::is_passable_neighbors_(neighbors, min, max, p); }
 
 bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const Pred<chunk>& p)
 { return detail::is_passable(w, ch, bb, p); }

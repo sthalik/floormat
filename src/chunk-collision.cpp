@@ -449,6 +449,11 @@ void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x,
 
 bool chunk::can_place_object(const object_proto& proto, local_coords pos)
 {
+    return can_place_object(*_world, _coord, proto, pos);
+}
+
+bool chunk::can_place_object(class world& w, chunk_coords_ coord, const object_proto& proto, local_coords pos)
+{
     fm_assert(proto.pass < pass_mode::COUNT);
     switch (proto.pass)
     {
@@ -464,7 +469,11 @@ bool chunk::can_place_object(const object_proto& proto, local_coords pos)
     const auto bbox_size = Vector2(proto.bbox_size);
     const auto center = Vector2(pos)*TILE_SIZE2 + Vector2(proto.offset) + Vector2(clamp_bbox_offset(proto.bbox_offset));
     const auto min = center - Vector2(proto.bbox_size/2), max = min + bbox_size;
-    return Search::is_passable_(this, _world->neighbors(_coord), min, max, constantly(path_search_continue::blocked));
+    const auto pred = constantly(path_search_continue::blocked);
+    const auto neighbors = w.neighbors(coord);
+    if (auto* c = w.at(coord))
+        return Search::is_passable_(c, neighbors, min, max, pred);
+    return Search::is_passable_neighbors_(neighbors, min, max, pred);
 }
 
 } // namespace floormat

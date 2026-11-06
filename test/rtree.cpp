@@ -198,6 +198,30 @@ void test_odd_bbox_size()
     fm_assert(!c.can_place_object(proto({-1, 0}, Vector2ub{64}), {9, 8}));
 }
 
+// A box reaching from a missing chunk into its neighbour meets the neighbour's colliders, and no chunk is created.
+void test_place_in_missing_chunk()
+{
+    auto w = world();
+    constexpr auto ch = chunk_coords_{0, 0, 0}, missing = chunk_coords_{1, 0, 0};
+    const auto proto = [](Vector2b offset, Vector2ub size) {
+        scenery_proto p;
+        p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
+        p.subtype   = generic_scenery_proto{};
+        p.offset    = offset;
+        p.bbox_size = size;
+        p.pass      = pass_mode::blocked;
+        return p;
+    };
+    w.make_scenery(w.make_id(), {ch, {15, 8}}, proto({}, Vector2ub{63}));
+    w[ch].ensure_passability();
+    fm_assert(!w.at(missing));
+
+    fm_assert(chunk::can_place_object(w, missing, proto({0, 0}, Vector2ub{64}), {0, 8}));
+    fm_assert(!chunk::can_place_object(w, missing, proto({-1, 0}, Vector2ub{64}), {0, 8}));
+    fm_assert(chunk::can_place_object(w, missing, proto({-1, 0}, Vector2ub{64}), {0, 7}));
+    fm_assert(!w.at(missing));
+}
+
 // Magnum's float == is fuzzy: it takes 483.005 for 483.
 bool has_integer_corners(const chunk::RTree::Rect& r)
 {
@@ -841,6 +865,7 @@ void Test::test_rtree()
     test3();
     test_pass_phases();
     test_odd_bbox_size();
+    test_place_in_missing_chunk();
     test_odd_bbox_rotation();
     test_same_rotation();
     test_rtree_rect_is_bbox();

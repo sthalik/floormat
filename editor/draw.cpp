@@ -74,7 +74,7 @@ void app::draw_cursor()
                 auto [sb] = M->meshes();
                 const auto offset = Vector3i(Vector2i(sel.offset), 0);
                 const auto pos = Vector3i(pt)*iTILE_SIZE + offset;
-                if (!w[pt.chunk3()].can_place_object(sel, pt.local()))
+                if (!chunk::can_place_object(w, pt.chunk3(), sel, pt.local()))
                     shader.set_tint({1, 0, 1, 0.5f});
                 sb.emit_quick(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), {1.f, 1.f, 1.f, 1.f});
             }
