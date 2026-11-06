@@ -105,9 +105,8 @@ Range2D GridBase::coord_range_from_div(u32 x, u32 y, u32 div_size, u32 bbox_size
 {
     const auto bbox = Vector2(bbox_size);
     const auto pos = intra_coord{Vector2i{(i32)x, (i32)y} * (i32)div_size + Vector2i{(i32)(div_size / 2)}};
-    auto min = Vector2(pos.center_shifted()) - Vector2((float)(bbox_size / 2));
-    auto max = min + bbox;
-    return { min, max };
+    const auto min = Vector2(pos.center_shifted()) - Vector2((float)(bbox_size / 2));
+    return Range2D::fromSize(min, bbox);
 }
 
 std::pair<u32, u8> GridBase::byte_and_mask(u32 bit_index)

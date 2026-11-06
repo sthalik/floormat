@@ -713,7 +713,7 @@ void cover_script::search_step(critter& c)
             const auto mid = base + tiles[search_tile]*tile_size_xy;
             const Cover::Point::query q{search_from, body, threat_pos, search_radius, options.octants,
                                 options.listed_cover_end_dist(),
-                                Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}}, fills};
+                                Range2Di::fromCenter(mid, Vector2i{half_tile<int>}), fills};
             const auto r = finder.find(w, A.pool_registry(), Grid::Cover::Params{options.div_size}, q, pred, true);
             num_find_cover_point_calls++;
             fills -= r.fills;
@@ -1037,7 +1037,7 @@ void cover_script::retreat_step(critter& c)
             return;
         passable_left--;
         const auto lo = Vector2(to.intra().center_shifted() - body/2);
-        if (!Search::is_passable(w, to.chunk3(), Range2D{lo, lo + Vector2(body)}, pred))
+        if (!Search::is_passable(w, to.chunk3(), Range2D::fromSize(lo, Vector2(body)), pred))
         {
             s.done = true;
             retreat_next++;

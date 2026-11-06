@@ -478,7 +478,7 @@ void dump_atlas(Atlas& atlas, StringView out_path)
         const Int count = Math::min<Int>(layers_per_chunk, n - first);
 
         auto chunk = atlas.texture.subImage(0,
-            Range3Di{{0, 0, first}, {w, h, first + count}},
+            Range3Di::fromSize({0, 0, first}, {w, h, count}),
             Image3D{PixelFormat::RGBA8Unorm});
         // Tightly-packed 3D storage → re-view as `w` wide, `count*h` tall
         // 2D image, same bytes. Vertical stack of `count` layers.
@@ -516,7 +516,7 @@ void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path)
 
     flush(atlas);
     auto img = atlas.texture.subImage(0,
-        Range3Di{{x, y, layer}, {x + (Int)slot_w, y + (Int)slot_h, layer + 1}},
+        Range3Di::fromSize({x, y, layer}, {(Int)slot_w, (Int)slot_h, 1}),
         Image3D{PixelFormat::RGBA8Unorm});
 
     const Vector2i dst_size{(Int)orig_w, (Int)orig_h};

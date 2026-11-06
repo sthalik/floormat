@@ -132,8 +132,7 @@ ArrayView<WallFragment> cut_wall_face(Array<WallFragment>& output, ArrayView<con
                 const auto& f = frags.array[i];
                 fm_debug2_assert(f.min().x() <= f.max().x());
                 fm_debug2_assert(f.min().y() <= f.max().y());
-                fm_debug2_assert(f.min().x() >= bb_min.x() && f.max().x() <= bb_max.x());
-                fm_debug2_assert(f.min().y() >= bb_min.y() && f.max().y() <= bb_max.y());
+                fm_debug2_assert(Range2D{bb_min, bb_max}.contains(f));
                 arrayAppend(next_wall_fragments, f);
             }
 #if 0

@@ -159,7 +159,7 @@ Optional<Pair<Range2D, pass_mode>> chunk::find_hole_in_bbox(const Chunk_RTree& r
                 { r.m_min[0], r.m_min[1] },
                 { r.m_max[0], r.m_max[1] },
             };
-            if (rect_intersects(hole.min(), hole.max(), bbox.min(), bbox.max()))
+            if (Math::intersects(hole, bbox))
             {
                 ret = {InPlaceInit, hole, pass_mode(x.pass)};
                 return false;
