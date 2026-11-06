@@ -1481,6 +1481,34 @@ void test_cover_script_hold_follows_orders(point hidden, point peek)
     stays_at(hidden, state::hidden);
 }
 
+// The world advances 10 s without updating the npc of cover_scene, once while it hides and once as it
+// leaves to peek. Each phase still lasts 2 s of updates.
+void test_cover_script_missed_updates(point hidden, point peek)
+{
+    cover_scene s;
+    const auto updates_in = [&](state st) {
+        auto frames = 0u;
+        for (; s.status().st == st; frames++)
+        {
+            fm_assert(frames < 60*s.fps);
+            s.step();
+        }
+        return frames;
+    };
+    const auto near_2s = [&](u32 n) { return n + 2 >= 2*s.fps && n <= 2*s.fps + 2; };
+
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    s.w.advance_game_time(10*Second);
+    fm_assert(near_2s(updates_in(state::hidden)));
+
+    fm_assert(s.status().st == state::to_peek && s.npc->position() == hidden);
+    s.w.advance_game_time(10*Second);
+    s.step_until(state::exposed);
+    fm_assert(s.npc->position() == peek);
+    fm_assert(near_2s(updates_in(state::exposed)));
+}
+
 // Half a second after the npc reaches peek, the threat moves west of the wall and sees the cover spot. The npc
 // retreats at once and hides behind the wall's east face, found by its search on the way.
 void test_cover_script_flanked(point hidden, point peek)
@@ -2850,6 +2878,7 @@ void Test::test_cover_point()
     test_cover_script_holds_hidden(hidden, c0.peek);
     test_cover_script_holds_exposed(hidden, c0.peek);
     test_cover_script_hold_follows_orders(hidden, c0.peek);
+    test_cover_script_missed_updates(hidden, c0.peek);
     test_cover_script_flanked_retreat(c0.peek);
     test_cover_script_flanked_searches_from_retreat_end(c0.peek);
     test_cover_script_seek_no_path();
