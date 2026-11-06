@@ -139,6 +139,7 @@ private:
     bool wait_for(const Ns& dt);
     Ns time_in(state phase) const;
     bool holds() const;
+    bptr<object> find_threat(critter& c);
     bool sees(critter& c, point from, point to);
     bool sees_gun(critter& c, point pos, point threat);
     bool hidden_at(critter& c, point threat, point pos, Vector2i axis);
@@ -307,7 +308,7 @@ void cover_script::on_update(const bptr<critter>& c, usize& i, const Ns& dt)
     // nothing. A retreat ends in seek with c facing away from a threat that may not have moved.
     if (st == state::seek)
     {
-        if (const auto threat = c->world().find_object(threat_id))
+        if (const auto threat = find_threat(*c))
             face_threat(*c, i, threat->position());
     }
     last_update = t.update();
@@ -356,7 +357,7 @@ void cover_script::update(const bptr<critter>& c, usize& i, const Ns& dt)
                 leave_peek(*c);
             return;
         }
-        if (const auto threat = c->world().find_object(threat_id); !threat)
+        if (const auto threat = find_threat(*c); !threat)
             retry_later();
         else if (const auto pos = threat->position(); pos != threat_pos)
         {
@@ -430,6 +431,15 @@ void cover_script::set_options(critter& c, const cover_script_options& o)
     const auto peeking = st == state::exposed || st == state::to_peek;
     if (hiding && o.hold == hold_phase::exposed || peeking && o.hold == hold_phase::hidden)
         wait = Ns{};
+}
+
+// The threat, or empty when it's gone or on another floor than c, as rays and cover searches stay on one floor.
+bptr<object> cover_script::find_threat(critter& c)
+{
+    auto threat = c.world().find_object(threat_id);
+    if (threat && threat->position().chunk3().z != c.position().chunk3().z)
+        return {};
+    return threat;
 }
 
 // True when a ray from `from` reaches `to` before any collider a shot can't pass. Critters don't
@@ -608,7 +618,7 @@ Vector2i cover_script::across() const { return across_of(axis); }
 // seeking after retry_time, when the threat is gone.
 bool cover_script::start_search(critter& c, search_then next)
 {
-    const auto threat = c.world().find_object(threat_id);
+    const auto threat = find_threat(c);
     if (!threat)
     {
         retry_later();
@@ -675,7 +685,7 @@ void cover_script::search_step(critter& c)
 {
     using fallback = cover_script_options::fallback;
     auto& w = c.world();
-    const auto threat = w.find_object(threat_id);
+    const auto threat = find_threat(c);
     if (!threat)
     {
         retry_later();
@@ -991,7 +1001,7 @@ void cover_script::begin_retreat(critter& c)
 void cover_script::retreat_step(critter& c)
 {
     auto& w = c.world();
-    const auto threat = w.find_object(threat_id);
+    const auto threat = find_threat(c);
     if (!threat)
     {
         retry_later();
@@ -1166,7 +1176,7 @@ void cover_script::check_exposed(critter& c, point threat)
 // A blocked ray to the gun at the peek spot sends c to a new one.
 void cover_script::check_walk(critter& c)
 {
-    const auto threat = c.world().find_object(threat_id);
+    const auto threat = find_threat(c);
     if (!threat || threat->position() == threat_pos)
         return;
     const auto pos = threat->position();
@@ -1188,7 +1198,7 @@ bool cover_script::check_retreat(critter& c)
 {
     if (replans)
         return false;
-    const auto threat = c.world().find_object(threat_id);
+    const auto threat = find_threat(c);
     if (!threat || threat->position() == threat_pos)
         return false;
     threat_pos = threat->position();
@@ -1292,7 +1302,7 @@ void cover_script::walk_update(const bptr<critter>& c, usize& i, const Ns& dt)
     if (st == state::retreat && !replans)
     {
         // Once per retreat, so walks that keep getting blocked can't rerun find_retreat's Dijkstra searches.
-        const auto threat = c->world().find_object(threat_id);
+        const auto threat = find_threat(*c);
         if (!threat)
         {
             retry_later();
@@ -1427,7 +1437,7 @@ Optional<point> cover_script::find_peek_pos(critter& c, point threat)
 
 Optional<cover_peek> cover_script::peek_for(critter& c, const cover_spot& s)
 {
-    const auto threat = c.world().find_object(threat_id);
+    const auto threat = find_threat(c);
     if (!threat)
         return {};
     reach_known = false;
@@ -1442,7 +1452,7 @@ Optional<cover_peek> cover_script::peek_for(critter& c, const cover_spot& s)
 // with no path leaves the script as it was.
 bool cover_script::send_to(critter& c, const cover_spot& s, bool peek)
 {
-    const auto threat = c.world().find_object(threat_id);
+    const auto threat = find_threat(c);
     reach_known = false;
     const auto end = threat ? cover_end(c, s, threat->position()) : s.pos;
     Optional<cover_peek> p;

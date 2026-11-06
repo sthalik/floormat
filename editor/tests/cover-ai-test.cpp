@@ -145,6 +145,7 @@ struct cover_ai_test final : base_test
     u32 seen_spots(app& a, const critter& c);
     void search_spots(app& a, critter& c, bool limited);
     Optional<u32> search_tile(app& a, critter& c, point player, u32 max_fills);
+    bptr<object> find_player(app& a, const critter& c) const;
     bool player_sees(app& a, const critter& c, const cover_spot& s);
     bool send(critter& c, const cover_spot& s, bool peek);
     u32 toggle_hold();
@@ -294,7 +295,8 @@ bool cover_ai_test::spots_stale(app& a) const
         return true;
     auto& w = a.main().world();
     const auto player = w.find_object(threat);
-    return !player || nearest_octant(Vector2(player->position() - search_center)) != search_octant ||
+    return !player || player->position().chunk3().z != search_center.chunk3().z ||
+           nearest_octant(Vector2(player->position() - search_center)) != search_octant ||
            w.pass_gen() != search_pass_gen || search_radius != (u32)radius_tiles*tile_size_xy ||
            search_octants != options.octants || search_listed_cover_end_dist != options.listed_cover_end_dist() ||
            search_max_cover_end_dist != options.max_cover_end_dist ||
@@ -307,7 +309,7 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
 {
     clear_spots();
     auto& w = a.main().world();
-    const auto player = w.find_object(threat);
+    const auto player = find_player(a, c);
     if (!player)
         return;
     const auto r = (u32)radius_tiles*tile_size_xy;
@@ -337,7 +339,7 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
 // player_sees(). A spot hidden again comes back only when the search starts over.
 void cover_ai_test::drop_seen_spots(app& a, const critter& c)
 {
-    const auto player = a.main().world().find_object(threat);
+    const auto player = find_player(a, c);
     if (!player || player->position() == spots_player)
         return;
     spots_player = player->position();
@@ -412,7 +414,7 @@ Optional<u32> cover_ai_test::search_tile(app& a, critter& c, point player, u32 m
 // Without limited, lists every tile left, whatever the fills.
 void cover_ai_test::search_spots(app& a, critter& c, bool limited)
 {
-    const auto player = a.main().world().find_object(threat);
+    const auto player = find_player(a, c);
     if (!player)
         return;
     auto t = Time::now();
@@ -433,11 +435,20 @@ void cover_ai_test::search_spots(app& a, critter& c, bool limited)
                  us(search_fills.time)*1e-3);
 }
 
+// The player, or empty when it's gone or on another floor than c, where the script doesn't see it either.
+bptr<object> cover_ai_test::find_player(app& a, const critter& c) const
+{
+    auto player = a.main().world().find_object(threat);
+    if (player && player->position().chunk3().z != c.position().chunk3().z)
+        return {};
+    return player;
+}
+
 // True when the player sees a pixel of c's body at s, as the script's check_hidden tests canonical.
 bool cover_ai_test::player_sees(app& a, const critter& c, const cover_spot& s)
 {
     auto& w = a.main().world();
-    const auto player = w.find_object(threat);
+    const auto player = find_player(a, c);
     if (!player)
         return false;
     return !finder.hidden_at(w, player->position(), s, Vector2ui(c.bbox_size));

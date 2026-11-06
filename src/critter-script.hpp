@@ -27,7 +27,7 @@ struct critter_script : base_script
     static Pointer<critter_script> make_walk_script(point to);
     static Pointer<critter_script> make_walk_script(path_search_result path);
     // Hides from the threat and peeks out until it sees the critter's gun, gun_offset px to its right
-    // (default half its width). A must outlive the script's updates.
+    // (default half its width). A threat on another floor counts as gone. A must outlive the script's updates.
     static Pointer<critter_script> make_cover_script(astar& A, object_id threat, u32 div_size);
     static Pointer<critter_script> make_cover_script(astar& A, object_id threat, u32 div_size, int gun_offset);
 };

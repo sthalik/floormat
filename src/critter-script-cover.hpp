@@ -105,7 +105,8 @@ void list_cover_spots(critter& c, Array<cover_spot>& out);
 cover_point_result list_cover_spots(critter& c, const cover_query& q, Array<cover_spot>& out);
 
 // The peek spot the script steps out to after send_to_cover(c, s), with the threat where it stands now. Empty
-// when c runs another script or none, the threat is gone, or no direction has one within max_peek_dist.
+// when c runs another script or none, the threat is gone or on another floor, or no direction has one within
+// max_peek_dist.
 Optional<cover_peek> find_cover_peek(critter& c, const cover_spot& s);
 
 // Walks c along a Dijkstra path to hide for hidden_time at s moved to its cover's end, as cover is from canonical.
@@ -114,7 +115,7 @@ bool send_to_cover(critter& c, const cover_spot& s);
 
 // As send_to_cover, but to find_cover_peek's spot for s, to be exposed there for exposed_time and
 // then hide. An options.hold other than none becomes exposed. False also when the threat is
-// gone or s has no peek spot.
+// gone or on another floor, or s has no peek spot.
 bool send_to_peek(critter& c, const cover_spot& s);
 
 // From the script's next update on. A changed hold that names the phase other than the one c stands
