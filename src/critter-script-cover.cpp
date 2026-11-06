@@ -421,9 +421,16 @@ bool cover_script::holds() const
 void cover_script::set_options(critter& c, const cover_script_options& o)
 {
     using hold_phase = cover_script_options::hold_phase;
+    using fallback = cover_script_options::fallback;
     const auto old = options.hold;
     options = o;
     reach_known = false;
+    // Spots kept for a last_resort the new options don't allow, which neither the retreat nor take_last_resort
+    // checks again.
+    if (o.last_resort < fallback::no_peek)
+        peekless = {};
+    if (o.last_resort < fallback::in_reach)
+        in_reach = {};
     if (search_tiles_left && (st == state::search || st == state::find_retreat || st == state::retreat))
     {
         restart_search(c);
