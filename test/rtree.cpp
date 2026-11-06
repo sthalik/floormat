@@ -241,7 +241,7 @@ void test_odd_bbox_rotation()
         if (k % 2)
             size = size.flipped();
         const auto min = tile_center + center - Vector2i(size/2);
-        return Range2Di{min, min + Vector2i(size)};
+        return Range2Di::fromSize(min, Vector2i(size));
     };
 
     for (const auto size : { Vector2ub{63, 63}, Vector2ub{63, 64}, Vector2ub{64, 63}, Vector2ub{64, 64} })
@@ -303,7 +303,7 @@ void test_rtree_rect_is_bbox()
     constexpr auto ch = chunk_coords_{-1, 2, 0};
     const auto expected = [&](const object& e) {
         const auto min = (e.position() - point{ch, {}, {}}) + Vector2i(e.bbox_offset) - Vector2i(e.bbox_size/2);
-        return Range2Di{min, min + Vector2i(e.bbox_size)};
+        return Range2Di::fromSize(min, Vector2i(e.bbox_size));
     };
     const auto tiles = { local_coords{0, 0}, local_coords{15, 15}, local_coords{7, 3} };
     const auto offsets = { Vector2b{0, 0}, Vector2b{-32, -32}, Vector2b{31, 31}, Vector2b{-29, 17} };
@@ -751,7 +751,7 @@ void test_move()
         const auto rnd = [&](u32 k) { return i32(Random::next(rng) % k); };
         const auto random_rect = [&](u32 max_size) {
             const auto min = Vector2i{rnd(1024), rnd(1024)};
-            return Range2Di{min, min + Vector2i{1 + rnd(max_size), 1 + rnd(max_size)}};
+            return Range2Di::fromSize(min, Vector2i{1 + rnd(max_size), 1 + rnd(max_size)});
         };
         // Closed intervals, as RTree::Overlap() tests them.
         const auto overlaps = [](const Range2Di& a, const Range2Di& b) {
@@ -774,9 +774,9 @@ void test_move()
             const auto id = 1 + u32(rnd(n));
             auto& e = es[id - 1];
             const auto shift = Vector2i{rnd(9) - 4, rnd(9) - 4};
-            auto r1 = Range2Di{e.r.min() + shift, e.r.max() + shift};
+            auto r1 = e.r.translated(shift);
             if (i % 16 == 0)
-                r1 = Range2Di{r1.min(), r1.min() + Vector2i{1 + rnd(64), 1 + rnd(64)}};
+                r1 = Range2Di::fromSize(r1.min(), Vector2i{1 + rnd(64), 1 + rnd(64)});
             const object_id data1 = object_id{i} << 32 | id;
             const auto lo0 = Vector2(e.r.min()), hi0 = Vector2(e.r.max());
             const auto lo1 = Vector2(r1.min()), hi1 = Vector2(r1.max());

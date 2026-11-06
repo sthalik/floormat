@@ -355,7 +355,7 @@ void app::draw_light_info()
             p.text(yellow, " "_s).format(yellow, "radius={}", e.radius);
 
         const auto sz = p.size();
-        const float offx = (dest.min().x() + dest.max().x())*.5f - sz.x()*.5f;
+        const float offx = dest.centerX() - sz.x()*.5f;
         const float offy = dest.max().y() + 5 * dpi.y();
 
         p.render(draw, {offx, offy});
@@ -453,16 +453,16 @@ void app::draw_text_painter_test()
         p.text(gray,   "  (circle, triangle, square)"_s);
         p.render(draw, cursor);
         const auto rc = p.bounds_of(s_circle);
-        const auto cc = (rc.min() + rc.max()) * 0.5f;
+        const auto cc = rc.center();
         draw.AddCircleFilled(ImVec2(cc), 7*dpi.x(), red);
         const auto rt = p.bounds_of(s_tri);
-        const auto ct = (rt.min() + rt.max()) * 0.5f;
+        const auto ct = rt.center();
         const float t = 7*dpi.x();
         draw.AddTriangleFilled({ct.x(), ct.y() - t},
                                {ct.x() - t, ct.y() + t},
                                {ct.x() + t, ct.y() + t}, green);
         const auto rs = p.bounds_of(s_sqr);
-        const auto cs = (rs.min() + rs.max()) * 0.5f;
+        const auto cs = rs.center();
         draw.AddRectFilled(ImVec2(cs - 7*dpi), ImVec2(cs + 7*dpi), blue);
         cursor.y() += line_h;
     }
@@ -554,7 +554,7 @@ void app::draw_text_painter_test()
         p.format(green, "(frame={})", _timestamp);
         p.render(draw, cursor);
         const auto rd = p.bounds_of(dot_slot);
-        const auto cd = (rd.min() + rd.max()) * 0.5f;
+        const auto cd = rd.center();
         draw.AddCircleFilled(ImVec2(cd), 3*dpi.x(), magenta);
         cursor.y() += line_h * 1.4f;
     }
@@ -569,7 +569,7 @@ void app::draw_text_painter_test()
         p.text(gray,   "(magenta diamond, white outline)"_s);
         p.render(draw, cursor);
         const auto rd = p.bounds_of(diamond_slot);
-        const auto cd = (rd.min() + rd.max()) * 0.5f;
+        const auto cd = rd.center();
         const float s = 9*dpi.x();
         draw.AddQuadFilled({cd.x(),     cd.y() - s}, {cd.x() + s, cd.y()    },
                            {cd.x(),     cd.y() + s}, {cd.x() - s, cd.y()    }, magenta);

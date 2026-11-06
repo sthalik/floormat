@@ -250,7 +250,7 @@ Cover::Point::query make_cover_query(world& w, const find_case& f)
     const auto threat = f.npc + Vector2i(Math::round(Vector2{Math::cos(a), Math::sin(a)} * f.dist));
     const auto npc = point{Vector3i{f.npc, 0}};
     const auto min = Vector2(npc.intra().center_shifted() - Vector2i(cover_body/2u));
-    fm_assert(Search::is_passable(w, npc.chunk3(), Range2D{min, min + Vector2(cover_body)}, Search::never_continue()));
+    fm_assert(Search::is_passable(w, npc.chunk3(), Range2D::fromSize(min, Vector2(cover_body)), Search::never_continue()));
     return { npc, cover_body, point{Vector3i{threat, 0}}, 3*(u32)tile_size_xy };
 }
 

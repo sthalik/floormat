@@ -282,8 +282,7 @@ palette_texture_ref editor::palette_texture(sprite s)
 
         auto& src = static_cast<GL::Texture2DArray&>(loader.atlas().texture());
         auto img = src.subImage(0,
-            Range3Di{{(int)s.x(), (int)s.y(), (int)s.layer()},
-                     {(int)s.x() + (int)slot_w, (int)s.y() + (int)slot_h, (int)s.layer() + 1}},
+            Range3Di::fromSize({(int)s.x(), (int)s.y(), (int)s.layer()}, {(int)slot_w, (int)slot_h, 1}),
             Image3D{PixelFormat::RGBA8Unorm});
 
         if (!rotated) [[likely]]

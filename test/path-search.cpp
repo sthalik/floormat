@@ -140,9 +140,7 @@ auto neighbor_tile_bbox(Vector2i coord, Vector2i own_size, Vector2ui div, rotati
 {
     own_size = Math::max(own_size, Vector2i(min_size));
     const auto shift = coord * iTILE_SIZE2;
-    auto range = get_value(own_size, div, r);
-    auto min = range.min(), max = range.max();
-    return { Vector2(min + shift), Vector2(max + shift) };
+    return Range2D{get_value(own_size, div, r).translated(shift)};
 }
 
 auto neighbor_tiles(world& w, global_coords coord, Vector2i size, const pred& p) -> neighbors

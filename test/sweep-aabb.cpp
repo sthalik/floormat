@@ -241,7 +241,7 @@ void test_swept_collider_flush()
                 fill_ground(w[ch]);
                 const auto box = [&](u32 k) {
                     const auto min = from + d * i32(k) - Vector2i(size/2u);
-                    return Range2Di{min, min + Vector2i(size)};
+                    return Range2Di::fromSize(min, Vector2i(size));
                 };
                 const auto end = box(steps), mid = box(steps/2);
                 Vector2i min, max;

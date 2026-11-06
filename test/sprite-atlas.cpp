@@ -83,8 +83,7 @@ void upload_and_readback_is_lossless()
     upload_sprite(a, *s, view);
 
     auto img = a.texture.subImage(0,
-        Range3Di{{(Int)s->x, (Int)s->y, (Int)s->layer},
-                 {(Int)(s->x + w), (Int)(s->y + h), (Int)(s->layer + 1)}},
+        Range3Di::fromSize({(Int)s->x, (Int)s->y, (Int)s->layer}, {(Int)w, (Int)h, 1}),
         Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
 
     auto data = img.data();
@@ -111,8 +110,7 @@ void realloc_preserves_uploaded_pixels()
 
     // Read back from the same (unchanged) coordinates after grow.
     auto img = a.texture.subImage(0,
-        Range3Di{{(Int)s->x, (Int)s->y, (Int)s->layer},
-                 {(Int)(s->x + w), (Int)(s->y + h), (Int)(s->layer + 1)}},
+        Range3Di::fromSize({(Int)s->x, (Int)s->y, (Int)s->layer}, {(Int)w, (Int)h, 1}),
         Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
 
     auto data = img.data();

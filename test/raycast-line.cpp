@@ -85,7 +85,7 @@ bool touches_square(Vector2i d, Vector2i q)
     for (auto x : { lo.x(), hi.x() })
         for (auto y : { lo.y(), hi.y() })
         {
-            const auto s = d.x()*y - d.y()*x;
+            const auto s = Math::cross(d, Vector2i{x, y});
             above += s > 0;
             below += s < 0;
         }

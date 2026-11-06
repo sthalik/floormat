@@ -69,7 +69,7 @@ void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::ra
     };
     // diag.tmin stays 0 when nothing was hit
     const auto end = diag.dir * (r.success ? diag.V.length() : diag.tmin);
-    const auto normal = Vector2{-diag.dir.y(), diag.dir.x()};
+    const auto normal = diag.dir.perpendicular();
 
     // The circle collides from t = 0, so the swept area is a stadium with a half-circle behind from.
     // It's point-symmetric about its middle: end - offset mirrors the back half-circle to the front.

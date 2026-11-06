@@ -564,7 +564,7 @@ route replace(world& w, chunk_coords_ origin, u32 cells, u64 seed,
 
     {
         const auto to_px = [](Range2Di t) {
-            return Range2Di{t.min()*tile_size_xy - half_tile<Vector2i>, t.max()*tile_size_xy - half_tile<Vector2i>};
+            return t.scaled(tile_size<Vector2i>).translated(-half_tile<Vector2i>);
         };
         const Range2Di rects[] = { to_px(maze_rect), to_px(square) };
         const auto in_footprint = [&](const object& o) {

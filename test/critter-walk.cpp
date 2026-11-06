@@ -158,7 +158,7 @@ struct model
     {
         const auto ch = s.pos.chunk3();
         const auto a = box_at(s.pos, ch, s.bbox_offset, s.bbox_size);
-        const auto b = Range2D{a.min() + Vector2(d), a.max() + Vector2(d)};
+        const auto b = a.translated(Vector2(d));
         return Search::is_passable(w, ch, Math::join(a, b), pred);
     }
 

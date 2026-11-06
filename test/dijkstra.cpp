@@ -52,7 +52,7 @@ void add_floors(world& w, point from, u32 max_dist, u32 cell)
 bool box_free(world& w, point pt, Vector2ui size)
 {
     const auto min = Vector2(intra_coord{pt}.center_shifted() - Vector2i(size/2u));
-    return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(size)}, Search::without_critters());
+    return Search::is_passable(w, pt.chunk3(), Range2D::fromSize(min, Vector2(size)), Search::without_critters());
 }
 
 void add_block(world& w, local_coords tile, Vector2ub bbox_size, Vector2b bbox_offset = {})

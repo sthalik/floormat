@@ -371,7 +371,7 @@ Optional<u32> cover_ai_test::search_tile(app& a, critter& c, point player, u32 m
     const auto mid = tiles[next_tile]*tile_size_xy;
     const Cover::Point::query q{search_center, Vector2ui(c.bbox_size), player, search_radius, search_octants,
                         search_listed_cover_end_dist,
-                        Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}},
+                        Range2Di::fromCenter(mid, Vector2i{half_tile<int>}),
                         max_fills};
     const auto r = Cover::Script::list_spots(c, q, tile_spots);
     const auto f = fills(a);

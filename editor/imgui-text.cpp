@@ -170,11 +170,8 @@ Vector2 text_painter::total_size() const noexcept
 
 Math::Range2D<float> text_painter::bounds() const noexcept
 {
-    const Vector2 inner_min = _->last_anchor;
-    const Vector2 inner_max = _->last_anchor + Vector2{_->total_width, _->font_size};
-    return _->has_bg
-        ? Math::Range2D<float>{ inner_min - _->bg_padding, inner_max + _->bg_padding }
-        : Math::Range2D<float>{ inner_min, inner_max };
+    const auto inner = Math::Range2D<float>::fromSize(_->last_anchor, {_->total_width, _->font_size});
+    return _->has_bg ? inner.padded(_->bg_padding) : inner;
 }
 
 Math::Range2D<float> text_painter::bounds_of(slot s) const noexcept
@@ -185,10 +182,7 @@ Math::Range2D<float> text_painter::bounds_of(slot s) const noexcept
         x += _->spans[i].width;
     const auto& sp = _->spans[s.span_index];
     const auto a = _->last_anchor;
-    return Math::Range2D<float>{
-        { a.x() + x,            a.y() },
-        { a.x() + x + sp.width, a.y() + _->font_size }
-    };
+    return Math::Range2D<float>::fromSize({a.x() + x, a.y()}, {sp.width, _->font_size});
 }
 
 Math::Range2D<float> text_painter::render(ImDrawList& draw, Vector2 anchor)

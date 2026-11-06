@@ -75,7 +75,7 @@ void rebuild(world& w)
 bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Search::without_critters())
 {
     const auto min = Vector2(pt.intra().center_shifted() - Vector2i(size/2u));
-    return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(size)}, pred);
+    return Search::is_passable(w, pt.chunk3(), Range2D::fromSize(min, Vector2(size)), pred);
 }
 
 Cover::Point::result find(world& w, point npc, point threat, u32 radius, u32 div_size, Vector2ui size = body,
@@ -504,7 +504,7 @@ void check_lists_by_area(world& w, point npc, point threat, u8 octants, u32 max_
         for (auto x = -n; x <= n; x++)
         {
             const auto mid = Vector2i{x, y}*tile_size_xy;
-            const auto r = search(Range2Di{mid - Vector2i{half_tile<int>}, mid + Vector2i{half_tile<int>}});
+            const auto r = search(Range2Di::fromCenter(mid, Vector2i{half_tile<int>}));
             candidates += r.candidates;
             for (const auto& s : r.spots)
                 if (std::find(tiled.begin(), tiled.end(), s.pos) == tiled.end())
