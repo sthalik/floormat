@@ -17,7 +17,8 @@ public:
     // Spends dt walking. walk_result::none until the walk ends.
     walk_result update(const bptr<critter>& c, usize& i, const Ns& dt);
     point dest() const;
-    // True for a walk built from a point, which goes there in a straight line.
+    // True for a walk built from a point. It goes there as critter::move_toward does, along an axis until the
+    // rest is diagonal, then along the diagonal, so it's straight only when the point lies on an axis or diagonal.
     bool straight() const;
 
 private:
