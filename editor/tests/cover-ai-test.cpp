@@ -127,7 +127,7 @@ struct cover_ai_test final : base_test
     void draw_overlay(app& a) override;
     void draw_ui(app& a, float width) override;
     void update_pre(app& a, const Ns&) override;
-    void update_post(app& a, const Ns& dt) override;
+    void update_post(app& a, const Ns&) override;
     Value advance(app& a, Value v) override;
     void on_leave_tests_mode(app&) override { stop(); }
 
@@ -152,7 +152,7 @@ struct cover_ai_test final : base_test
     ArrayView<const Cover::Point::spot> script_spots(app& a, critter& c, const Cover::Script::status& s);
     Optional<u32> step_cover(app& a, bool back);
     void draw_cover_picker(app& a);
-    void update_rates(const Cover::Script::status& s);
+    void update_rates(app& a, const Cover::Script::status& s);
     void update_ray(app& a, const critter& c, const Cover::Script::status& s);
     void log_script(app& a, const critter& c, const Cover::Script::status& s);
 
@@ -171,7 +171,7 @@ struct cover_ai_test final : base_test
     u32 next_tile = 0, search_radius = 0, search_listed_cover_end_dist = 0, tiles_radius = 0;
     u32 search_max_cover_end_dist = 0, search_threat_reach = 0;
     u32 search_octant = 0, search_div = 0, dropped_spots = 0, script_list_num_searches = 0;
-    Ns clock{}, snapshot_time{}, spots_time{}, search_time{};
+    Ns snapshot_time{}, spots_time{}, search_time{};
     fill_count fills_before_update, search_fills;
     Cover::Script::status logged;
     object_id logged_npc = 0;
@@ -580,17 +580,17 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
     return true;
 }
 
-void cover_ai_test::update_rates(const Cover::Script::status& s)
+void cover_ai_test::update_rates(app& a, const Cover::Script::status& s)
 {
     const counts now{s.num_searches, s.num_rays, s.num_dijkstra_calls};
     if (!has_snapshot)
     {
         snapshot = now;
-        snapshot_time = clock;
+        snapshot_time = a.main().world().game_time();
         has_snapshot = true;
         return;
     }
-    const auto dt = clock - snapshot_time;
+    const auto dt = a.main().world().game_time() - snapshot_time;
     if (dt < Second)
         return;
     const auto secs = Time::to_seconds(dt);
@@ -600,7 +600,7 @@ void cover_ai_test::update_rates(const Cover::Script::status& s)
         .num_dijkstra_calls = (float)(now.num_dijkstra_calls - snapshot.num_dijkstra_calls) / secs,
     };
     snapshot = now;
-    snapshot_time = clock;
+    snapshot_time = a.main().world().game_time();
 }
 
 // Casts the status's ray from gun_ray_from to gun again, with the script's pool and filter, so the
@@ -617,9 +617,8 @@ void cover_ai_test::update_ray(app& a, const critter& c, const Cover::Script::st
     ray = raycast(m.world(), s.gun_ray_from, s.gun, c.id, pool, Search::without_critters());
 }
 
-void cover_ai_test::update_post(app& a, const Ns& dt)
+void cover_ai_test::update_post(app& a, const Ns&)
 {
-    clock += dt;
     const auto c = npc.lock();
     const auto s = c ? Cover::Script::get_status(*c) : Optional<Cover::Script::status>{};
     if (!s)
@@ -630,7 +629,7 @@ void cover_ai_test::update_post(app& a, const Ns& dt)
         rates = {};
         return;
     }
-    update_rates(*s);
+    update_rates(a, *s);
     update_ray(a, *c, *s);
     log_script(a, *c, *s);
     if (!show_spots)
