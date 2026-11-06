@@ -17,7 +17,7 @@ public:
     // Spends dt walking. walk_result::none until the walk ends.
     walk_result update(const bptr<critter>& c, usize& i, const Ns& dt);
     point dest() const;
-    // True for a walk built from a point, which goes there in a straight line.
+    // True for a walk built from a point, straight only when the point lies on an axis or diagonal from the start.
     bool is_line() const;
 
 private:

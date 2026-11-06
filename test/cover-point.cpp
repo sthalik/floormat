@@ -2870,6 +2870,52 @@ void test_cover_script_last_resort_walking_threat()
     fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
 }
 
+// Walls 2 px around the peek spot leave no path back to a cover that a threat move during the peek moved. The npc
+// then starts a straight walk to cover instead of standing in seek where the threat sees it.
+void test_cover_script_leave_peek_enclosed()
+{
+    cover_scene s;
+    s.step_until(state::exposed);
+    const auto t0 = s.status();
+    const auto peek = s.npc->position();
+    fm_assert(t0.cover != t0.canonical);
+    Optional<point> to;
+    const auto sign = Vector3i(t0.cover).y() < Vector3i(t0.canonical).y() ? -1 : 1;
+    for (auto dy = 4; dy <= 320 && !to; dy += 4)
+        for (const auto dx : {0, -64, 64, -128, 128})
+        {
+            const auto p = s.threat->position() + Vector2i{dx, sign*dy};
+            if (edge_seen(s, p, t0.cover) && !edge_seen(s, p, t0.canonical) && s.seen_from(p, peek))
+            {
+                to = p;
+                break;
+            }
+        }
+    fm_assert(to);
+    const Vector2i walls[][2] = {
+        {{44, 8}, {0, -18}}, {{44, 8}, {0, 18}}, {{8, 44}, {-18, 0}}, {{8, 44}, {18, 0}},
+    };
+    for (const auto& [size, off] : walls)
+    {
+        const auto p = peek + off;
+        add_blocker(s.w, p.local(), Vector2ub(size), p.offset(), pass_mode::shoot_through);
+    }
+    s.move_threat(*to);
+    for (auto frames = 0u; s.status().st == state::exposed; frames++)
+    {
+        fm_assert(frames < 10*s.fps);
+        s.step();
+    }
+    auto n = 0u;
+    while (s.status().st == state::seek && s.npc->position() == peek && s.seen_from(*to, peek))
+    {
+        fm_assert(n < 10*s.fps);
+        s.step();
+        n++;
+    }
+    fm_assert(n <= 1);
+}
+
 } // namespace
 
 void Test::test_cover_point()
@@ -2963,6 +3009,7 @@ void Test::test_cover_point()
     test_cover_script_div_change();
     test_cover_script_orders(hidden);
     test_cover_script_keeps_peeking(hidden, c0.peek);
+    test_cover_script_leave_peek_enclosed();
     test_cover_script_walking_threat(hidden);
     test_cover_script_follows_while_hidden();
     test_cover_script_threat_walks_along_wall(false);

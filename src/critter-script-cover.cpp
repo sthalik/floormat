@@ -1177,7 +1177,8 @@ void cover_script::check_walk(critter& c)
         flee(c);
         return;
     }
-    if (st == state::to_cover && refresh_cover(c) && walk.is_line())
+    // A moved cover may lie off a straight walk's line, so c walks a path there, or walks straight without one.
+    if (st == state::to_cover && refresh_cover(c) && walk.is_line() && !walk_to(c, cover, state::hidden))
         walk = critter_walk{cover};
     if (st == state::to_peek && !sees_gun(c, walk.dest(), pos))
         peek_again(c);
@@ -1237,14 +1238,16 @@ void cover_script::step_out(const bptr<critter>& c)
         wait_until = c->world().game_time() + hidden_time;
 }
 
-// Ends c's time out with a straight walk back, along the line from cover that find_peek_pos checked
-// clear unless refresh_cover moves cover.
+// Ends c's time out with a walk back to cover. A cover that refresh_cover moved may lie off the line that
+// find_peek_pos checked clear, so c walks a path there, or straight when path_to finds none.
 void cover_script::leave_peek(critter& c)
 {
-    refresh_cover(c);
-    walk = critter_walk{cover};
-    st = state::to_cover;
     wait_until = c.world().game_time() + time_in(state::hidden);
+    if (!refresh_cover(c) || !walk_to(c, cover, state::hidden))
+    {
+        walk = critter_walk{cover};
+        st = state::to_cover;
+    }
 }
 
 // Walks c to cover along a Dijkstra path and hides it there for hidden_time. It serves where c may
