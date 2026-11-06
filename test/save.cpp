@@ -311,6 +311,24 @@ void test_save_objs()
         fm_assert(caught);
     }
 
+    {   // --- frame number and game time ---
+        auto w = world();
+        for (auto i = 0u; i < 3; i++)
+            (void)w.increment_frame_no();
+        constexpr auto game_time = Ns{0x0123456789abcdefull};
+        w.advance_game_time(game_time);
+        auto w2 = reload_from_save(tmp, w);
+        fm_assert(w2.frame_no() == 4);
+        fm_assert(w2.game_time() == game_time);
+    }
+
+    {   // --- frame number and game time from before proto 32 ---
+        const auto path = Path::join(loader.TEMP_PATH, "test/save/proto-30-offset-frac.dat"_s);
+        auto w = world::deserialize(path, loader_policy::ignore);
+        fm_assert(w.frame_no() == 1);
+        fm_assert(w.game_time() == Ns{});
+    }
+
     {   // ---  critter ---
         auto w = world();
         critter_proto p;
