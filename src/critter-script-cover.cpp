@@ -205,7 +205,7 @@ private:
     point reach_from;
     bool reach_known = false;
     // How far from search_from the Dijkstra searches that put spots in unreachable could reach, and
-    // reach_pass_gen()'s value once the last of them ended.
+    // world::pass_gen() once the last of them ended.
     u32 unreachable_reach = 0;
     u64 search_pass_gen = 0;
     u32 search_tile = 0, tile_spot = 0, num_failed_dijkstra_calls = 0, search_octant = 0;
@@ -693,7 +693,7 @@ void cover_script::search_step(critter& c)
     // Listed spots hold only for the threat position they were listed for, and a Dijkstra search's result
     // only for the pass grids it ran in.
     const auto k = Cover::Point::nearest_octant(Vector2(threat_pos - search_from));
-    if (reach_pass_gen(c) != search_pass_gen)
+    if (reach_pass_gen(c) > search_pass_gen)
     {
         num_failed_dijkstra_calls = 0;
         arrayClear(unreachable);
@@ -803,7 +803,7 @@ void cover_script::search_step(critter& c)
             arrayAppend(unreachable, s.pos);
             const auto reach = max_search_path_length(here, end) + point::distance(here, search_from);
             unreachable_reach = Math::max(unreachable_reach, reach);
-            search_pass_gen = reach_pass_gen(c);
+            search_pass_gen = w.pass_gen();
             if (++num_failed_dijkstra_calls == max_failed_dijkstra_calls)
             {
                 if (!peekless && !in_reach)
