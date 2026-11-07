@@ -29,12 +29,17 @@ default_exes="floormat-test floormat-benchmark floormat-editor"
 # atlas loading counted once instead of once per pass.
 driver_repeat=${FM_DRIVER_REPEAT:-10}
 bench_reps=${FM_BENCH_REPS:-3}
-bench_min_time=${FM_BENCH_MIN_TIME:-0.05s}
+bench_min_time=${FM_BENCH_MIN_TIME:-1s}
 test_repeat=${FM_TEST_REPEAT:-10}
 
 # No colon: an empty FM_TIME_SCENES skips the timing instead of falling back to the default.
-time_scenes=${FM_TIME_SCENES-profile}
+time_scenes=${FM_TIME_SCENES-all}
 time_repeat=${FM_TIME_REPEAT:-3}
+
+driver_repeat=1
+bench_reps=1
+test_repeat=1
+time_repeat=1
 
 pgo_driver=yes
 reconf=no
@@ -58,10 +63,12 @@ case "$compiler" in
         use_dir=build/gcc-pgo-use
         default_profdata="build/gcc-${prof}-gcda"
         cs_rounds=0 ;;
-    *)
+    clang)
         gen_dir=build/clang-pgo-gen
         use_dir=build/clang-pgo-use
         default_profdata="build/${prof}.profdata" ;;
+    *)
+        echo "fatal: unknown compiler" >&2; exit 3 ;;
 esac
 
 usage_text() {
@@ -96,12 +103,7 @@ tree exists, else ${default_profdata}. For GCC it is a directory of .gcda files.
 
 env:
   FM_CS_ROUNDS       context-sensitive rounds in 'use'; 0 for plain PGO; clang only  (${cs_rounds})
-  FM_DRIVER_REPEAT   editor passes over the driver scene table  (${driver_repeat})
-  FM_BENCH_REPS      benchmark repetitions per case  (${bench_reps})
   FM_BENCH_MIN_TIME  benchmark time per case  (${bench_min_time})
-  FM_TEST_REPEAT     floormat-test passes  (${test_repeat})
-  FM_TIME_SCENES     --scenes timed after 'link'; empty skips  (${time_scenes})
-  FM_TIME_REPEAT     passes over the timed scenes  (${time_repeat})
 
 The toolchain is whatever \${CXX:-c++} is, the compiler CMake takes for a new tree:
 ${compiler:-neither clang nor GCC} here. FLOORMAT_PGO is implemented in the Clang and
@@ -110,6 +112,11 @@ the cache. On Windows run this under the toolchain's wrapper: clang64 ./${self} 
 or mingw64 ./${self} all for GCC.
 EOF
 }
+#  FM_DRIVER_REPEAT   editor passes over the driver scene table  (${driver_repeat})
+#  FM_BENCH_REPS      benchmark repetitions per case  (${bench_reps})
+#  FM_TEST_REPEAT     floormat-test passes  (${test_repeat})
+#  FM_TIME_SCENES     --scenes timed after 'link'; empty skips  (${time_scenes})
+#  FM_TIME_REPEAT     passes over the timed scenes  (${time_repeat})
 
 usage() {
     if test "${1:-64}" -eq 0; then
