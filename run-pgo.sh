@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# Instrumented PGO for the clang build: compile instrumented, run the trainers, merge what
-# they wrote, rebuild with -fprofile-use. Run with --help for the verbs, options and env knobs.
+# Instrumented PGO for the clang and GCC builds: compile instrumented, run the trainers, merge
+# what they wrote, rebuild with -fprofile-use. Run with --help for the verbs, options and env knobs.
 
 set -o pipefail
 set -eu
@@ -40,9 +40,29 @@ pgo_driver=yes
 reconf=no
 reconf_done=
 
-gen_dir=build/clang-pgo-gen
-use_dir=build/clang-pgo-use
 prof=pgo
+
+detect_compiler() {
+    local _defs
+    _defs="$(echo | ${CXX:-c++} -dM -E -x c++ - 2>/dev/null)" || return 0
+    case "$_defs" in
+        *__clang__*) echo clang ;;
+        *__GNUC__*) echo gcc ;;
+    esac
+}
+compiler="$(detect_compiler)"
+
+case "$compiler" in
+    gcc)
+        gen_dir=build/gcc-pgo-gen
+        use_dir=build/gcc-pgo-use
+        default_profdata="build/gcc-${prof}-gcda"
+        cs_rounds=0 ;;
+    *)
+        gen_dir=build/clang-pgo-gen
+        use_dir=build/clang-pgo-use
+        default_profdata="build/${prof}.profdata" ;;
+esac
 
 usage_text() {
     cat <<EOF
@@ -54,7 +74,7 @@ Each verb implies the ones before it, so 'link' on its own runs generate and use
   generate  configure ${gen_dir} instrumented, run the trainers, merge
             what they wrote into a fresh profile
   use       generate, then the context-sensitive rounds, each folded into the
-            same profile
+            same profile; GCC has none, so there it is generate alone
   link      the above, then the final -fprofile-use build in ${use_dir},
             then the timed scenes in its editor
   all       same as link
@@ -72,10 +92,10 @@ A name without the floormat- prefix gets one. They run one at a time, in the ord
 given, and one that fails aborts the run before the merge.
 
 The profile is FLOORMAT_PGO_PROFDATA out of ${gen_dir}'s cache when that
-tree exists, else build/${prof}.profdata.
+tree exists, else ${default_profdata}. For GCC it is a directory of .gcda files.
 
 env:
-  FM_CS_ROUNDS       context-sensitive rounds in 'use'; 0 for plain PGO  (${cs_rounds})
+  FM_CS_ROUNDS       context-sensitive rounds in 'use'; 0 for plain PGO; clang only  (${cs_rounds})
   FM_DRIVER_REPEAT   editor passes over the driver scene table  (${driver_repeat})
   FM_BENCH_REPS      benchmark repetitions per case  (${bench_reps})
   FM_BENCH_MIN_TIME  benchmark time per case  (${bench_min_time})
@@ -83,9 +103,11 @@ env:
   FM_TIME_SCENES     --scenes timed after 'link'; empty skips  (${time_scenes})
   FM_TIME_REPEAT     passes over the timed scenes  (${time_repeat})
 
-FLOORMAT_PGO is implemented in the Clang userconfig, and llvm-profdata is taken from
-beside the compiler named in the cache. On Windows run this under the toolchain
-wrapper: clang64 ./${self} all
+The toolchain is whatever \${CXX:-c++} is, the compiler CMake takes for a new tree:
+${compiler:-neither clang nor GCC} here. FLOORMAT_PGO is implemented in the Clang and
+GNU userconfigs. For clang, llvm-profdata is taken from beside the compiler named in
+the cache. On Windows run this under the toolchain's wrapper: clang64 ./${self} all,
+or mingw64 ./${self} all for GCC.
 EOF
 }
 
@@ -212,6 +234,7 @@ configure_tree() {
     cmake $fresh -S . -B "$1" -DFLOORMAT_PGO="$2" -DCMAKE_BUILD_TYPE=Release \
           -DFLOORMAT_NO_PGO_DRIVER="$no_driver" \
           -DFLOORMAT_PGO_PROFDATA="$(native "$profdata")"
+    test -e "$1/save" || ln -s ../../doc/saves "$1/save"
 }
 
 build_tree() {
@@ -225,7 +248,10 @@ build_tree() {
 # twice. Wiped before the trainer runs and again once the merge has consumed them, so nothing
 # a round wrote can reach the next one.
 wipe_profraws() {
-    rm -f -- ./"${gen_dir}"/"${prof}"-*.profraw
+    case "$compiler" in
+        gcc) rm -rf -- ./"${gen_dir}"/gcda ;;
+        *) rm -f -- ./"${gen_dir}"/"${prof}"-*.profraw ;;
+    esac
 }
 
 # resolved fresh every round: the binaries are rebuilt in place between rounds, and on a fresh
@@ -294,7 +320,21 @@ raw_stats() {
 # the post-inline counters -- the IR-level records it was compiled against live in the old file
 # and nothing else supplies them. A cold round must not, since it is defined as using no profile.
 merge_pool() {
-    local raws raw profdata_bin
+    local raws raw profdata_bin n
+    if test "$compiler" = gcc; then
+        n="$(find ./"${gen_dir}"/gcda -name '*.gcda' 2>/dev/null | wc -l)"
+        if test "$n" -eq 0; then
+            echo "error: no .gcda files in ${gen_dir}/gcda" >&2
+            exit 65
+        fi
+        rm -rf -- "${profdata}.tmp"
+        mv -- ./"${gen_dir}"/gcda "${profdata}.tmp"
+        ln -s "$(native "$PWD/doc/saves")" "${profdata}.tmp/save"
+        rm -rf -- "$profdata"
+        mv -- "${profdata}.tmp" "$profdata"
+        echo "==> $profdata: $n .gcda files, $(du -sh -- "$profdata" | cut -f1)"
+        return 0
+    fi
     raws=
     for raw in ./"${gen_dir}"/"${prof}"-*.profraw; do
         if test -f "$raw"; then
@@ -390,12 +430,17 @@ if ! test -f ./CMakeLists.txt || ! test -f ./shaders/resources.conf; then
     exit 65
 fi
 
+if test -z "$compiler"; then
+    echo "error: '${CXX:-c++}' is neither clang nor GCC" >&2
+    exit 65
+fi
+
 profdata=
 if test -f "$gen_dir/CMakeCache.txt"; then
     profdata="$(cache_get "$gen_dir" FLOORMAT_PGO_PROFDATA)"
 fi
 if test -z "$profdata"; then
-    profdata="$PWD/build/${prof}.profdata"
+    profdata="$PWD/${default_profdata}"
 fi
 
 if test $generate -gt 0; then
@@ -403,7 +448,9 @@ if test $generate -gt 0; then
     wipe_profraws
     run_exes
     merge_pool 0
-    cp -- "$profdata" "${profdata%.profdata}-ir.profdata"
+    if test "$compiler" = clang; then
+        cp -- "$profdata" "${profdata%.profdata}-ir.profdata"
+    fi
     wipe_profraws
 fi
 
@@ -421,7 +468,7 @@ if test $use -gt 0; then
 fi
 
 if test $link -gt 0; then
-    if ! test -f "$profdata"; then
+    if ! test -e "$profdata"; then
         echo "error: no profile at '${profdata}', run '${self} generate' first" >&2
         exit 65
     fi
