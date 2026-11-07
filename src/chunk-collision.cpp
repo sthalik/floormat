@@ -14,6 +14,7 @@
 #include "wall-atlas.hpp"
 #include "compat/function2.hpp"
 #include "compat/constantly.hpp"
+#include "compat/zip.hpp"
 #include <bit>
 #include <utility>
 #include <cr/StructuredBindings.h>
@@ -212,9 +213,9 @@ void chunk::ensure_passability() noexcept
     {
         has_holes |= add_holes_from_chunk<false>(holes, *this, {});
         const auto nbs = _world->neighbors(_coord);
-        for (auto i = 0u; i < 8; i++)
-            if (nbs[i])
-                has_holes |= add_holes_from_chunk<true>(holes, *nbs[i], world::neighbor_offsets[i]);
+        for (auto [nb, off] : zip(nbs, world::neighbor_offsets))
+            if (nb)
+                has_holes |= add_holes_from_chunk<true>(holes, *nb, off);
     }
 
     for (auto i = 0u; i < TILE_COUNT; i++)

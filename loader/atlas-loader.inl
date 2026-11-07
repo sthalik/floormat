@@ -4,6 +4,7 @@
 #include "loader.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
+#include "compat/enumerate.hpp"
 #include <utility>
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>
@@ -44,8 +45,8 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
 
     s.name_map.set_load_factor(s.name_map.size()+s.cell_array.size()+1);
 
-    for (auto i = 0uz; const auto& c : s.cell_array)
-        s.name_map[t.name_of(c)] = i++;
+    for (const auto& [i, c] : enumerate(s.cell_array))
+        s.name_map[t.name_of(c)] = i;
 
     { const Cell& invalid_atlas{get_invalid_atlas()};
       usize sz{s.cell_array.size()};

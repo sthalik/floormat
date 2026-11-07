@@ -16,6 +16,7 @@
 #include "src/point.inl"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/enumerate.hpp"
 #include "compat/function2.hpp"
 #include "compat/nanosecond.inl"
 #include "floormat/main.hpp"
@@ -108,7 +109,7 @@ task app::scene_npcs()
     player->teleport_to(player_index, point{chunk_coords_{-1, -1, 0}, local_coords{}, {}}, rotation_COUNT);
 
     Array<actor> actors{ValueInit, num_critters};
-    for (auto i = 0u; i < num_critters; i++)
+    for (auto& [i, act] : enumerate(actors))
     {
         const bool walker = i % 9 == 0;
         const auto pt = at({lo + (int)(i % lattice_side)*step, lo + (int)(i / lattice_side)*step});
@@ -119,8 +120,8 @@ task app::scene_npcs()
         p.offset = pt.offset();
         fm_assert(w[pt.chunk3()].can_place_object(p, pt.local()));
         const auto id = w.make_object<critter>(w.make_id(), pt.coord(), move(p))->id;
-        actors[i] = actor{ .id = id, .dest = pt, .last = pt, .walker = walker,
-                           .vertical = walker && i/9 % 2 != 0, .forward = false, };
+        act = actor{ .id = id, .dest = pt, .last = pt, .walker = walker,
+                     .vertical = walker && i/9 % 2 != 0, .forward = false, };
     }
 
     // update_world() otherwise only updates the chunks around the screen.

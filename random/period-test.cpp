@@ -1,5 +1,6 @@
 #include "random.hpp"
 #include "compat/fwd/chrono.hpp"
+#include "compat/enumerate.hpp"
 #include <bit>
 #include <cinttypes>
 #include <cstdio>
@@ -107,8 +108,8 @@ bit_count_range count_bits(xoshiro256starstar g, u64 count, Next&& next)
     for (u64 i = 0; i < count; i++)
     {
         const u64 x = next(g);
-        for (u32 b = 0; b < 64; b++)
-            counts[b] += x >> b & 1;
+        for (auto& [b, c] : enumerate(counts))
+            c += x >> b & 1;
     }
     bit_count_range r{(u64)-1, 0};
     for (u64 c : counts)

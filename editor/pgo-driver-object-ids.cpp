@@ -9,6 +9,7 @@
 #include "src/point.hpp"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/enumerate.hpp"
 #include "floormat/main.hpp"
 #include <mg/Functions.h>
 
@@ -54,7 +55,7 @@ task app::scene_object_ids()
     object_id id1 = 0;
     Array<object_id> live{NoInit, num_objects};
 
-    for (auto i = 0u; i < num_objects; i++)
+    for (auto& [i, id] : enumerate(live))
     {
         const auto n = i / per_chunk;
         const chunk_coords_ ch{(i16)(chunk_x0 + (int)(n % chunks_per_row)),
@@ -62,8 +63,8 @@ task app::scene_object_ids()
         light_proto p;
         // A zero bbox keeps the object out of the RTree, which nothing here is measuring.
         p.bbox_size = {};
-        live[i] = w.make_object<light>(w.make_id(), {ch, local_coords{i % per_chunk}}, p)->id;
-        id1 = Math::max(id1, live[i]);
+        id = w.make_object<light>(w.make_id(), {ch, local_coords{i % per_chunk}}, p)->id;
+        id1 = Math::max(id1, id);
     }
     fm_assert_equal((usize)num_objects, (usize)(id1 - id0 + 1));
     co_yield {};

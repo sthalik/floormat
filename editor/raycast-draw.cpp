@@ -3,6 +3,7 @@
 #include "imgui-raii.hpp"
 #include "src/raycast-diag.hpp"
 #include "shaders/shader.hpp"
+#include "compat/enumerate.hpp"
 #include <mg/Constants.h>
 #include <mg/Functions.h>
 
@@ -87,10 +88,10 @@ void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::ra
         return;
 
     ImVec2 pts[n];
-    for (auto i = 0u; i < n; i++)
+    for (auto& [i, pt] : enumerate(pts))
     {
         const auto theta = Rad{(float)i * step};
-        pts[i] = to_pixel(end + Vector2{Math::cos(theta), Math::sin(theta)} * diag.radius);
+        pt = to_pixel(end + Vector2{Math::cos(theta), Math::sin(theta)} * diag.radius);
     }
     draw.AddPolyline(pts, (int)n, ImGui::ColorConvertFloat4ToU32(ImVec4{1, .5f, 0, 1}), 2.f, ImDrawFlags_Closed);
 }

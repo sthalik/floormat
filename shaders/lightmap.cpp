@@ -1,5 +1,6 @@
 #include "lightmap.hpp"
 #include "compat/assert.hpp"
+#include "compat/zip.hpp"
 #include "src/tile-defs.hpp"
 #include "src/chunk.hpp"
 #include "src/object-storage.inl"
@@ -193,10 +194,10 @@ lightmap_shader::lightmap_shader(texture_unit_cache& tuc) : tuc{tuc}
     attachShaders({vert, frag});
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    for (auto i = 0u; i < UNIFORM_COUNT; i++)
+    for (auto& [loc, name] : zip(uniform_locations, uniform_names))
     {
-        uniform_locations[i] = uniformLocation(uniform_names[i]);
-        fm_assert(uniform_locations[i] != -1);
+        loc = uniformLocation(name);
+        fm_assert(loc != -1);
     }
 
     framebuffer = make_framebuffer(Vector2i((int)real_image_size));

@@ -5,6 +5,7 @@
 #include "compat/path.hpp"
 #include "compat/format.hpp"
 #include "compat/debug.hpp"
+#include "compat/enumerate.hpp"
 #include "src/tile-constants.hpp"
 #include "src/wall-atlas.hpp"
 #include "serialize/wall-atlas.hpp"
@@ -318,9 +319,9 @@ bool do_input_file(state& st)
     fm_assert(atlas.direction_array.isEmpty());
     arrayReserve(atlas.direction_array, Direction_COUNT);
 
-    for (auto i = 0uz; i < Direction_COUNT; i++)
+    for (const auto& [i, present] : enumerate(st.old_atlas.direction_mask))
     {
-        if (!st.old_atlas.direction_mask[i])
+        if (!present)
             continue;
         if (!do_direction(st, i))
             return false;

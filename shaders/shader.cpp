@@ -3,6 +3,7 @@
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
+#include "compat/enumerate.hpp"
 #include "src/point.inl"
 #include <cr/Iterable.h>
 #include <mg/Functions.h>
@@ -30,8 +31,8 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
     CORRADE_INTERNAL_ASSERT_OUTPUT(frag.compile());
     attachShaders({vert, frag});
 
-    for (auto i = 0u; i < array_size(attribute_names); i++)
-        bindAttributeLocation(i, attribute_names[i]);
+    for (const auto& [i, name] : enumerate(attribute_names))
+        bindAttributeLocation(i, name);
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 

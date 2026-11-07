@@ -4,6 +4,7 @@
 #include "quads.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/fwd/algorithm/lower_bound.hpp"
 #include <cmath>
 #include <cstdio>
@@ -169,8 +170,8 @@ Shelf* alloc_new_shelf(Atlas& atlas, u32 height)
 
     // scan existing layers for one with vertical room for q_height.
     auto layer_idx = (u32)-1;
-    for (u32 i = 0; i < atlas.layers.size(); i++)
-        if ((u32)atlas.layer_height - (u32)atlas.layers[i].next_y >= q_height)
+    for (const auto& [i, layer] : enumerate(atlas.layers))
+        if ((u32)atlas.layer_height - (u32)layer.next_y >= q_height)
         {
             layer_idx = i;
             break;

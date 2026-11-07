@@ -3,10 +3,12 @@
 #include "../imgui-raii.hpp"
 #include "../raycast-draw.hpp"
 #include "compat/array-size.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/format.inl"
 #include "compat/weak-borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
 #include "compat/timer.hpp"
+#include "compat/zip.hpp"
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
 #include "src/critter-script-cover.hpp"
@@ -554,15 +556,15 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
     auto best = pick_radius*pick_radius;
     auto k = (u32)-1;
     auto peek = false;
-    for (auto i = 0u; i < spots.size(); i++)
-        if (const auto d = (a.point_to_pixel(spots[i].pos) - e.position).dot(); d < best)
+    for (const auto& [i, spot] : enumerate(spots))
+        if (const auto d = (a.point_to_pixel(spot.pos) - e.position).dot(); d < best)
         {
             best = d;
             k = i;
         }
-    for (auto i = 0u; i < spot_states.size(); i++)
-        if (spot_states[i].has_peek)
-            if (const auto d = (a.point_to_pixel(spot_states[i].peek.pos) - e.position).dot(); d < best)
+    for (const auto& [i, st] : enumerate(spot_states))
+        if (st.has_peek)
+            if (const auto d = (a.point_to_pixel(st.peek.pos) - e.position).dot(); d < best)
             {
                 best = d;
                 k = i;
@@ -752,11 +754,11 @@ void cover_ai_test::draw_overlay(app& a)
     if (show_spots)
     {
         ImDrawList& bg = *ImGui::GetBackgroundDrawList();
-        for (auto i = 0u; i < spots.size(); i++)
+        for (const auto& [spot, st] : zip(spots, spot_states))
         {
-            draw_dot(bg, a, spots[i].pos, 3, {0.3f, 0.7f, 1, 0.9f});
-            if (spot_states[i].has_peek)
-                draw_dot(bg, a, spot_states[i].peek.pos, 2.5f, {1, 0.55f, 0.15f, 0.9f});
+            draw_dot(bg, a, spot.pos, 3, {0.3f, 0.7f, 1, 0.9f});
+            if (st.has_peek)
+                draw_dot(bg, a, st.peek.pos, 2.5f, {1, 0.55f, 0.15f, 0.9f});
         }
     }
     const auto c = npc.lock();
@@ -793,8 +795,8 @@ void cover_ai_test::draw_cover_picker(app& a)
     if (s)
         list = script_spots(a, *c, *s);
     auto cur = (u32)-1;
-    for (auto i = 0u; i < list.size(); i++)
-        if (s->has_cover && list[i].pos == s->canonical)
+    for (const auto& [i, spot] : enumerate(list))
+        if (s->has_cover && spot.pos == s->canonical)
         {
             cur = i;
             break;
@@ -810,12 +812,12 @@ void cover_ai_test::draw_cover_picker(app& a)
     }
     ImGui::SetNextItemWidth(-(ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.x));
     if (auto b = begin_combo("##cover-spot", preview))
-        for (auto i = 0u; i < list.size(); i++)
+        for (const auto& [i, spot] : enumerate(list))
         {
-            print_coord(coord, list[i].pos);
+            print_coord(coord, spot.pos);
             snformat(label, "{}: {}", i + 1, (const char*)coord);
             if (ImGui::Selectable(label, i == cur))
-                (void)send(*c, list[i], false);
+                (void)send(*c, spot, false);
         }
     ImGui::SameLine();
 

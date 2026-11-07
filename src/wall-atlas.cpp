@@ -3,6 +3,7 @@
 #include "compat/array-size.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/enumerate.hpp"
 #include "compat/non-const.hpp"
 #include "loader/loader.hpp"
 #include <cr/GrowableArray.h>
@@ -22,11 +23,9 @@ namespace floormat::Wall {
 
 u8 direction_index_from_name(StringView s) noexcept(false)
 {
-    for (u8 i = 0; auto [n, _] : wall_atlas::directions)
-        if (n == s)
-            return i;
-        else
-            i++;
+    for (const auto& [i, d] : enumerate(wall_atlas::directions))
+        if (d.name == s)
+            return (u8)i;
 
     fm_throw("bad rotation name '{}'", s);
 }
