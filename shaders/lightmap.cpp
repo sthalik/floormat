@@ -300,10 +300,6 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 void lightmap_shader::bind()
 {
     framebuffer.fb.bind();
-    // Widen the scissor to the whole lightmap FBO so a leftover window-sized
-    // scissor can't clip the render. Restored in finish().
-    { GLint box[4]; glGetIntegerv(GL_SCISSOR_BOX, box); saved_scissor = {box[0], box[1], box[2], box[3]}; }
-    GL::Renderer::setScissor({{}, Vector2i((int)real_image_size)});
     framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
     GL::Renderer::setBlendFunction(BlendFunction::One, BlendFunction::One);
@@ -314,8 +310,6 @@ void lightmap_shader::finish()
 {
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
     GL::Renderer::setBlendFunction(BlendFunction::SourceAlpha, BlendFunction::OneMinusSourceAlpha);
-    GL::Renderer::setScissor({{saved_scissor[0], saved_scissor[1]},
-                              {saved_scissor[0] + saved_scissor[2], saved_scissor[1] + saved_scissor[3]}});
 }
 
 GL::Texture2D& lightmap_shader::accum_texture()
