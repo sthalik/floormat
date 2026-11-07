@@ -437,7 +437,7 @@ void reader_state::read_chunks(reader_t& s)
                     proto.frame << s;
                 (void)s.read<u16>();
                 (void)s.read<u16>();
-                const bool exact = id & meta_short_scenery_bit_;
+                const bool exact = id & meta_short_scenery_bit;
                 SET_CHUNK_SIZE();
 
                 if (PROTO >= 9) [[likely]]
