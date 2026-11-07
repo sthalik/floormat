@@ -774,6 +774,20 @@ constexpr StringView old_scenery_names[] = { "table1"_s, "door1"_s, "control pan
     return world::deserialize(path, loader_policy::ignore);
 }
 
+void replace_once(Array<char>& buf, StringView from, StringView to)
+{
+    fm_assert(from.size() == to.size());
+    auto pos = (u32)-1, hits = 0u;
+    for (auto i = 0u; i + from.size() <= buf.size(); i++)
+        if (std::memcmp(&buf[i], from.data(), from.size()) == 0)
+        {
+            pos = i;
+            hits++;
+        }
+    fm_assert(hits == 1);
+    std::memcpy(&buf[pos], to.data(), to.size());
+}
+
 void assert_worlds_equal(world& a, world& b)
 {
     fm_assert(a.size() == b.size());
@@ -977,6 +991,53 @@ void test_save_old_proto()
     w2.finish_scripts();
 }
 
+void test_save_old_missing_tile_atlas()
+{
+    const auto path = Path::join(loader.TEMP_PATH, "test/test-save-old-missing-tile-atlas.dat"_s);
+    const auto resaved = Path::join(loader.TEMP_PATH, "test/test-save-old-missing-tile-atlas-2.dat"_s);
+    constexpr auto ch = chunk_coords_{-3, 2, 0};
+    constexpr auto pos1 = local_coords{4, 5}, pos2 = local_coords{9, 2}, pos3 = local_coords{13, 11};
+    const auto& tiles = loader.ground_atlas("tiles");
+    const auto& texel = loader.ground_atlas("texel");
+    const auto tiles_variant = variant_t(tiles->num_tiles() - 1), texel_variant = variant_t(texel->num_tiles() - 2);
+    fm_assert(tiles_variant > 0 && texel_variant > 0);
+
+    auto w = world();
+    auto& c = w[ch];
+    c.mark_modified();
+    c[pos1].ground() = { tiles, tiles_variant };
+    c[pos1].wall_north() = { loader.wall_atlas("test1"), 0 };
+    c[pos1].wall_west() = { loader.wall_atlas("test1"), 0 };
+    c[pos2].ground() = { tiles, 0 };
+    c[pos3].ground() = { texel, texel_variant };
+    auto bytes = Test::write_old_savegame(w, {});
+    replace_once(bytes, "tiles"_s, "gone1"_s);
+    replace_once(bytes, "texel"_s, "gone3"_s);
+    replace_once(bytes, "test1"_s, "gone2"_s);
+
+    const auto check = [&](world& w) {
+        auto t1 = w[ch][pos1], t2 = w[ch][pos2], t3 = w[ch][pos3];
+        const auto G1 = t1.ground_atlas(), G3 = t3.ground_atlas();
+        fm_assert(G1->name() == "gone1"_s && G1->is_placeholder());
+        fm_assert(t1.ground().variant == tiles_variant);
+        fm_assert(t2.ground_atlas() == G1 && t2.ground().variant == 0);
+        fm_assert(G3->name() == "gone3"_s && G3->is_placeholder());
+        fm_assert(t3.ground().variant == texel_variant);
+        const auto N = t1.wall_north_atlas(), W = t1.wall_west_atlas();
+        fm_assert(N->name() == "gone2"_s && N->is_placeholder());
+        fm_assert(N == W);
+    };
+    auto w2 = load_old_save(path, bytes);
+    check(w2);
+    if (Path::exists(resaved))
+        Path::remove(resaved);
+    w2.serialize(resaved);
+    auto w3 = world::deserialize(resaved, loader_policy::ignore);
+    check(w3);
+    fm_assert(loader.ground_atlas("gone1"_s, loader_policy::ignore) == loader.invalid_ground_atlas().atlas);
+    fm_assert(loader.wall_atlas("gone2"_s, loader_policy::ignore) == loader.invalid_wall_atlas().atlas);
+}
+
 } // namespace
 
 void Test::test_save()
@@ -997,6 +1058,7 @@ void Test::test_saves()
     test_save_missing_door_atlas();
     test_save_door_mid_swing();
     test_save_old_proto();
+    test_save_old_missing_tile_atlas();
 }
 
 } // namespace floormat
