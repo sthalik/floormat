@@ -2,6 +2,7 @@
 #include "compat/split-string.hpp"
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
+#include "compat/zip.hpp"
 #include <algorithm>
 #include <ranges>
 #include <cr/Array.h>
@@ -179,10 +180,10 @@ void test_split_array()
     // Indexing is through the ArrayView conversion rather than a member operator[].
     const ArrayView<const StringView> view = arr;
     constexpr part expected[] = { {0, 1}, {2, 2}, {6, 3} };
-    for (u32 i = 0; i < array_size(expected); i++)
+    for (const auto& [v, e] : zip(view, expected))
     {
-        fm_assert(view[i].data() == str.data() + expected[i].offset);
-        fm_assert(view[i].size() == expected[i].size);
+        fm_assert(v.data() == str.data() + e.offset);
+        fm_assert(v.size() == e.size);
     }
 
     fm_assert(std::ranges::equal(arr, split_string_without_empty_parts(str, ',')));

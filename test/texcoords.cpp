@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/zip.hpp"
 #include "src/quads.hpp"
 #include <mg/Functions.h>
 
@@ -31,8 +32,8 @@ void test_normal_matches_original()
 {
     auto expected = Quads::texcoords_at(pos, size, image_size);
     auto got      = Quads::texcoords_at(pos, size, image_size, false, false);
-    for (unsigned i = 0; i < 4; i++)
-        fm_assert_equal(expected[i], got[i]);
+    for (const auto& [e, g] : zip(expected, got))
+        fm_assert_equal(e, g);
 }
 
 void test_mirror_only()

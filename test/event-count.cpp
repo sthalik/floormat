@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/atomic.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/event-count.hpp"
 #include "compat/fwd/chrono.hpp"
 #include "compat/fwd/thread.hpp"
@@ -18,8 +19,8 @@ void run_threads(F&& fn)
 {
     std::latch start_gun(N);
     std::array<std::thread, N> threads;
-    for (u32 i = 0; i < N; ++i)
-        threads[i] = std::thread([&, i] {
+    for (auto& [i, t] : enumerate(threads))
+        t = std::thread([&, i] {
             start_gun.arrive_and_wait();
             fn(i);
         });

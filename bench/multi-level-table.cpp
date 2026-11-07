@@ -1,3 +1,4 @@
+#include "compat/enumerate.hpp"
 #include "compat/multi-level-table.inl"
 #include "random/random.hpp"
 #include <cr/Array.h>
@@ -192,10 +193,10 @@ void MLT_Window(benchmark::State& state)
 template<typename Table>
 void register_table(const std::string& name)
 {
-    for (u32 i = 0; i < (u32)pattern::count; i++)
+    for (const auto& [i, pattern_name] : enumerate(pattern_names))
     {
         const auto p = pattern(i);
-        auto* b = benchmark::RegisterBenchmark("MLT_Find/" + name + "/" + pattern_names[i], &MLT_Find<Table>, p);
+        auto* b = benchmark::RegisterBenchmark("MLT_Find/" + name + "/" + pattern_name, &MLT_Find<Table>, p);
         b->ArgName("log2n")->Unit(benchmark::kMicrosecond);
         for (i64 lg : {12, 16, 20, 24})
             if (p != pattern::interleaved || lg >= 20)

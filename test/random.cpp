@@ -1,5 +1,7 @@
 #include "app.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/limits.hpp"
+#include "compat/zip.hpp"
 #include "random/random.hpp"
 #include <bit>
 #include <cmath>
@@ -132,11 +134,11 @@ void test_mix()
     for (u32 k = 0; k < N; k++)
     {
         const u64 x = Random::next(g), y = Random::mix(x);
-        for (u32 i = 0; i < 64; i++)
+        for (auto& [i, row] : enumerate(flips))
         {
             const u64 d = y ^ Random::mix(x ^ (u64{1} << i));
-            for (u32 j = 0; j < 64; j++)
-                flips[i][j] += d >> j & 1;
+            for (auto& [j, n] : enumerate(row))
+                n += d >> j & 1;
         }
     }
     // Each count is binomial(N, 1/2) with standard deviation 32. Allow 8 of them.
@@ -313,8 +315,8 @@ void test_random()
         Random::xoshiro256starstar g;
         Random::seed(g, r.seed);
         fm_assert((g.s[0] | g.s[1] | g.s[2] | g.s[3]) != 0);
-        for (u32 i = 0; i < 4; i++)
-            fm_assert(g.s[i] == r.state[i]);
+        for (const auto& [s, expected] : zip(g.s, r.state))
+            fm_assert(s == expected);
 
         u32 n = 0;
         u64 output_1000000 = 0;

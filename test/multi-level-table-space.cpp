@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "multi-level-table-common.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/zip.hpp"
 #include "src/chunk-table.hpp"
 #include "src/object-table.hpp"
 #include "src/world.hpp"
@@ -251,8 +252,8 @@ void check_chunk_table_random()
     };
     const auto check_neighbors = [&](chunk_coords_ c) {
         const auto nb = t.neighbors(c);
-        for (u32 i = 0; i < 8; i++)
-            fm_assert(nb[i] == lookup(c + world::neighbor_offsets[i]));
+        for (const auto& [ch, off] : zip(nb, world::neighbor_offsets))
+            fm_assert(ch == lookup(c + off));
     };
     const auto check = [&] {
         u32 n = 0;

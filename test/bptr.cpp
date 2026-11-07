@@ -2,9 +2,11 @@
 #include "bptr-common.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/weak-borrowed-ptr.inl"
+#include "compat/enumerate.hpp"
 #include "compat/exception.inl"
 #include "compat/defs.hpp"
 #include "compat/fwd/thread.hpp"
+#include "compat/zip.hpp"
 #include "random/random.hpp"
 #include <array>
 #include <initializer_list>
@@ -770,10 +772,10 @@ void suite<P>::test17()
                 check();
             }
 
-        for (auto j = 0u; j < size; j++)
+        for (auto& [p, m] : zip(array, model))
         {
-            array[j] = nullptr;
-            model[j] = -1;
+            p = nullptr;
+            m = -1;
             check();
         }
         fm_assert(A_total == int(n+1));
@@ -1514,14 +1516,14 @@ struct State
                 check_weak(raw[k]->self, m_self[k]);
         }
         chaos_assert(alive_count == n);
-        for (auto i = 0u; i < H; i++)
+        for (auto& [h, m] : zip(hard, m_hard))
         {
-            check_hard(hard[i], m_hard[i]);
+            check_hard(h, m);
             for (auto i2 = 0u; i2 < H; i2++)
             {
-                auto eq = ptr(m_hard[i]) == ptr(m_hard[i2]);
-                chaos_assert((hard[i] == hard[i2]) == eq);
-                chaos_assert((hard[i] == basic_bptr<const obj, P>{hard[i2]}) == eq);
+                auto eq = ptr(m) == ptr(m_hard[i2]);
+                chaos_assert((h == hard[i2]) == eq);
+                chaos_assert((h == basic_bptr<const obj, P>{hard[i2]}) == eq);
             }
         }
         if constexpr (has_weak)
@@ -1659,8 +1661,8 @@ void test30()
             auto w = basic_weak_bptr<Ct, P>{p};
             std::latch start{nthreads + 1};
             std::array<std::thread, nthreads> threads;
-            for (auto t = 0u; t < nthreads; t++)
-                threads[t] = std::thread{[&start, destroy, drop = (t * 97 + round * 31) % iters, mine = weak_only ? ptr{} : p, weak = w]() mutable {
+            for (auto& [t, th] : enumerate(threads))
+                th = std::thread{[&start, destroy, drop = (t * 97 + round * 31) % iters, mine = weak_only ? ptr{} : p, weak = w]() mutable {
                     start.arrive_and_wait();
                     for (auto i = 0u; i < iters; i++)
                     {

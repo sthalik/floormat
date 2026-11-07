@@ -19,6 +19,7 @@
 #include "compat/crc64.hpp"
 #include "compat/exception.inl"
 #include "compat/nanosecond.inl"
+#include "compat/zip.hpp"
 #include "serialize/binary-serializer.hpp"
 #include <bit>
 #include <cstdio>
@@ -116,10 +117,8 @@ void assert_chunks_equal(const chunk& a, const chunk& b)
         fm_assert(a1 == b1);
     }
 
-    for (auto i = 0u; i < a.objects().size(); i++)
+    for (const auto& [ae, be] : zip(a.objects(), b.objects()))
     {
-        const auto& ae = a.objects()[i];
-        const auto& be = b.objects()[i];
         const auto type = ae.type();
         fm_assert(ae.type() == be.type());
         fm_assert(type < object_type::COUNT && type != object_type::none);

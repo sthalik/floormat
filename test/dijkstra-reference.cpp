@@ -14,7 +14,7 @@
 #include "loader/scenery-cell.hpp"
 #include "loader/wall-cell.hpp"
 #include "random/random.hpp"
-#include "compat/array-size.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/fill.hpp"
 #include "compat/function2.hpp"
@@ -255,17 +255,17 @@ void check_map(bool for_large_pools, ArrayView<const pool_size> pools)
                         fm_abort("dijkstra reference: zone %d,%d isn't clear at cell %u, bbox %u",
                                  z.tile.x(), z.tile.y(), cell, bbox);
 
-        for (auto a = 0u; a < array_size(zones); a++)
+        for (const auto& [a, from] : enumerate(zones))
         {
-            reference_costs(L, zones[a], dist);
+            reference_costs(L, from, dist);
 
-            for (auto b = 0u; b < array_size(zones); b++)
+            for (const auto& [b, to] : enumerate(zones))
             {
                 if (a == b)
                     continue;
-                const auto expected = reference_cost(L, dist, zones[b]);
+                const auto expected = reference_cost(L, dist, to);
                 const bool found = expected < max_dist;
-                const auto r = A.Dijkstra<0, false>(w, pool, zone_point(zones[a]), zone_point(zones[b]),
+                const auto r = A.Dijkstra<0, false>(w, pool, zone_point(from), zone_point(to),
                                                     max_dist, Vector2ui{bbox}, pred);
                 if (r.is_found() != found || (found && r.cost() != expected))
                     fm_abort("dijkstra reference: cell %u, bbox %u, zone %u -> %u: found %d, cost %u;"

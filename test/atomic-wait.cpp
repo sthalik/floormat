@@ -2,6 +2,7 @@
 #include "compat/atomic.hpp"
 #include "compat/fwd/chrono.hpp"
 #include "compat/fwd/thread.hpp"
+#include "compat/zip.hpp"
 #include <array>
 #include <iterator>
 #include <latch>
@@ -224,8 +225,8 @@ double sleeps_cpu_share(double rate)
         double wall = 0;
     };
     slot slots[n];
-    for (u32 i = 0; i < n; ++i)
-        slots[i].value = pairs[i].old;
+    for (auto& [s, p] : zip(slots, pairs))
+        s.value = p.old;
 
     run_threads(n + 1, [&](u32 i) {
         if (i < n)
@@ -360,9 +361,9 @@ void test_many_addresses()
                 atomic_notify_one(&values[k]);
                 while (!atomic_load(&returned[k]))
                     yield();
-                for (u32 m = 0; m < n; ++m)
-                    if (atomic_load(&values[m]) == T(0))
-                        fm_assert(!atomic_load(&returned[m]));
+                for (auto& [v, r] : zip(values, returned))
+                    if (atomic_load(&v) == T(0))
+                        fm_assert(!atomic_load(&r));
             }
         }
     });
