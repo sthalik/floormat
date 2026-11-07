@@ -31,6 +31,18 @@ constexpr auto end_of(R& r) noexcept
 template<typename R> using begin_t = decltype(begin_of(declval<R&>()));
 template<typename R> using end_t = decltype(end_of(declval<R&>()));
 
+template<typename R>
+concept sized = std::is_array_v<R> || requires(R& r) { r.size(); };
+
+template<typename R>
+constexpr usize size_of(R& r) noexcept requires sized<R>
+{
+    if constexpr (std::is_array_v<R>)
+        return std::extent_v<R>;
+    else
+        return usize(r.size());
+}
+
 // std::ranges::ref_view and owning_view, except that a const view iterates its range as const.
 template<typename R>
 class ref_view
@@ -46,6 +58,7 @@ public:
     constexpr begin_t<const R> begin() const noexcept;
     constexpr end_t<R> end() noexcept;
     constexpr end_t<const R> end() const noexcept;
+    constexpr usize size() const noexcept requires sized<const R>;
 };
 
 template<typename R>
@@ -62,6 +75,7 @@ public:
     constexpr begin_t<const R> begin() const noexcept;
     constexpr end_t<R> end() noexcept;
     constexpr end_t<const R> end() const noexcept;
+    constexpr usize size() const noexcept requires sized<const R>;
 };
 
 template<typename R>
@@ -117,6 +131,12 @@ constexpr end_t<const R> ref_view<R>::end() const noexcept
 }
 
 template<typename R>
+constexpr usize ref_view<R>::size() const noexcept requires sized<const R>
+{
+    return size_of(static_cast<const R&>(*_r));
+}
+
+template<typename R>
 constexpr owning_view<R>::owning_view(R&& r) noexcept(std::is_nothrow_move_constructible_v<R>) : _r{floormat::move(r)} {}
 
 template<typename R>
@@ -153,6 +173,12 @@ template<typename R>
 constexpr end_t<const R> owning_view<R>::end() const noexcept
 {
     return end_of(_r);
+}
+
+template<typename R>
+constexpr usize owning_view<R>::size() const noexcept requires sized<const R>
+{
+    return size_of(_r);
 }
 
 } // namespace floormat::detail_range
