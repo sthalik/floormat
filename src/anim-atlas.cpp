@@ -3,6 +3,7 @@
 #include "shaders/shader.hpp"
 #include "compat/assert.hpp"
 #include "compat/array-size.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.hpp"
@@ -29,9 +30,9 @@ static_assert(rot_count == 8);
 
 u8 anim_atlas::rotation_to_index(StringView name)
 {
-    for (u8 i = 0; i < rot_count; i++)
-        if (name == StringView{name_array[i]})
-            return i;
+    for (const auto& [i, rot_name] : enumerate(name_array))
+        if (name == StringView{rot_name})
+            return (u8)i;
     fm_throw("can't parse rotation name '{}'", name);
 }
 
@@ -40,9 +41,8 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_d
     std::array<u8, rot_count> array = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
-    const auto ngroups = (u32)a.groups.size();
-    for (auto i = 0u; i < ngroups; i++)
-        array[rotation_to_index(a.groups[i].name)] = u8(i);
+    for (const auto& [i, g] : enumerate(a.groups))
+        array[rotation_to_index(g.name)] = u8(i);
     return array;
 }
 
@@ -141,8 +141,8 @@ rotation anim_atlas::next_rotation_from(rotation r) const noexcept
     for (auto i = unsigned(r)+1; i < rot_count; i++)
         if (_group_indices[i] != 0xff)
             return rotation(i);
-    for (auto i = 0u; i < rot_count; i++)
-        if (_group_indices[i] != 0xff)
+    for (const auto& [i, idx] : enumerate(_group_indices))
+        if (idx != 0xff)
             return rotation(i);
     fm_abort("where did the rotations go?!");
 }
@@ -167,8 +167,8 @@ bool anim_atlas::check_rotation(rotation r) const noexcept
 
 rotation anim_atlas::first_rotation() const noexcept
 {
-    for (auto i = 0u; i < rot_count; i++)
-        if (_group_indices[i] == 0)
+    for (const auto& [i, idx] : enumerate(_group_indices))
+        if (idx == 0)
             return rotation(i);
     fm_abort("unreachable! can't find first rotation");
 }

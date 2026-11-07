@@ -3,6 +3,7 @@
 #include "chunk.hpp"
 #include "global-coords.hpp"
 #include "compat/assert.hpp"
+#include "compat/map.hpp"
 #include "compat/non-const.hpp"
 #include <utility>
 
@@ -70,16 +71,12 @@ void chunk_table::update_slot(chunk_coords_ ch, chunk* p) noexcept
 std::array<chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) noexcept
 {
     const auto c = std::as_const(*this).neighbors(ch0);
-    std::array<chunk*, 8> ret;
-    for (auto i = 0u; i < 8; i++)
-        ret[i] = non_const(c[i]);
-    return ret;
+    return map([](const chunk* x) { return non_const(x); }, c);
 }
 
 std::array<const chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) const noexcept
 {
     constexpr u32 side = 1u << side_bits;
-    std::array<const chunk*, 8> ret;
     // Away from a page's edges all 8 neighbors share ch0's page, so one lookup finds them, and a
     // missing page holds none. lx - 1 < side - 2 holds for lx in [1, side - 2], and for lx == 0 the
     // u32 subtraction wraps, so the edge takes the slow path. Likewise for ly.
@@ -87,16 +84,12 @@ std::array<const chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) const noex
     if (lx - 1 < side - 2 && ly - 1 < side - 2) [[likely]]
     {
         const auto* s = _table.find(ch0);
-        for (auto i = 0u; i < 8; i++)
-        {
-            const auto off = world::neighbor_offsets[i];
-            ret[i] = s ? s[i32{off.y()} * i32{side} + off.x()] : nullptr;
-        }
+        return map([s](Vector2b off) -> const chunk* {
+            return s ? s[i32{off.y()} * i32{side} + off.x()] : nullptr;
+        }, world::neighbor_offsets);
     }
     else
-        for (auto i = 0u; i < 8; i++)
-            ret[i] = chunk_at(ch0 + world::neighbor_offsets[i]);
-    return ret;
+        return map([&] [[fm_always_inline]] (Vector2b off) { return chunk_at(ch0 + off); }, world::neighbor_offsets);
 }
 
 const multi_level_table<chunk*, chunk_table_params>& chunk_table::raw_table() const noexcept

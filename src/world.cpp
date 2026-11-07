@@ -42,8 +42,8 @@ world::world(world&& w) noexcept :
     w._object_counter = 0;
     w._script_initialized = false;
     w._script_finalized = false;
-    for (chunk* c = _head; c; c = c->_next)
-        c->_world = this;
+    for (auto& c : chunks())
+        c._world = this;
 }
 
 world& world::operator=(world&& w) noexcept
@@ -58,8 +58,8 @@ world& world::operator=(world&& w) noexcept
     fm_assert(!_teardown);
     fm_assert(w._unique_id);
 
-    for (chunk* c = _head; c; c = c->_next)
-        c->on_teardown();
+    for (auto& c : chunks())
+        c.on_teardown();
     // suppress unregister; _chunk_table is replaced wholesale below
     _teardown = true;
     _objects = move(w._objects);
@@ -77,8 +77,8 @@ world& world::operator=(world&& w) noexcept
     _tail = w._tail;
     w._head = nullptr;
     w._tail = nullptr;
-    for (chunk* c = _head; c; c = c->_next)
-        c->_world = this;
+    for (auto& c : chunks())
+        c._world = this;
 
     _unique_id = move(w._unique_id);
     fm_debug_assert(_unique_id);
@@ -97,8 +97,8 @@ world::~world() noexcept
     fm_assert(_script_finalized || !_script_initialized);
     if (!_unique_id) // moved from
         return;
-    for (chunk* c = _head; c; c = c->_next)
-        c->on_teardown();
+    for (auto& c : chunks())
+        c.on_teardown();
     _teardown = true;
     _objects.clear();
     chunk* c = _head;
