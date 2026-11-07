@@ -277,6 +277,31 @@ void test_std_ranges()
     fm_assert(sum == 197*211 + 199*223);
 }
 
+void test_lvalue_arrays()
+{
+    Array<int> a{InPlaceInit, { 227, 229, 233 }};
+    const Array<float> b{InPlaceInit, { 239, 241, 251 }};
+    u32 n = 0;
+    for (auto& [x, y] : zip(a, b))
+    {
+        static_assert(std::is_same_v<decltype(x), int>);
+        static_assert(std::is_same_v<decltype(y), const float>);
+        fm_assert(&x == &a[n] && &y == &b[n]);
+        n++;
+    }
+    fm_assert(n == 3);
+
+    const auto z = zip(a, b);
+    n = 0;
+    for (auto& [x, y] : z)
+    {
+        static_assert(std::is_same_v<decltype(x), const int>);
+        fm_assert(&x == &a[n] && &y == &b[n]);
+        n++;
+    }
+    fm_assert(n == 3);
+}
+
 } // namespace
 
 void Test::test_zip()
@@ -291,6 +316,7 @@ void Test::test_zip()
     test_enumerate_zip();
     test_zip_enumerate();
     test_std_ranges();
+    test_lvalue_arrays();
 }
 
 } // namespace floormat

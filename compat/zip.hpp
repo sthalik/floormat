@@ -30,6 +30,9 @@ constexpr const T& get_leaf(const leaf<I, T>& l) noexcept
 
 template<usize I, typename Tuple> using leaf_t = std::remove_cvref_t<decltype(get_leaf<I>(detail_range::declval<Tuple&>()))>;
 
+template<typename T, typename...> struct first_ { using type = T; };
+template<typename... Ts> using first_type = typename first_<Ts...>::type;
+
 template<typename It>
 struct component
 {
@@ -45,6 +48,23 @@ struct component
 template<typename S, typename I>
 concept sized_sentinel_for = requires(const S& s, const I& i) { static_cast<usize>(s - i); };
 
+template<typename It>
+concept subscriptable = requires(const It& it, usize n) { it[n]; };
+
+template<typename... Vs>
+constexpr bool random_access =
+    sized_sentinel_for<detail_range::end_t<first_type<Vs...>>, detail_range::begin_t<first_type<Vs...>>> &&
+    (subscriptable<detail_range::begin_t<Vs>> && ...);
+
+// GCC 16 drops the C++26 zero-fill of a std::array returned by value only when the loop subscripts the array itself.
+// On MSVC, indexing through the view made is_passable_() call detail::is_passable out of line.
+#if defined _MSC_VER && !defined __clang__
+template<bool Index, typename V> constexpr bool by_range = false;
+#else
+template<bool Index, typename V> constexpr bool by_range = Index && detail_range::static_extent<std::remove_cv_t<V>> != 0;
+#endif
+template<bool Index, typename V> using current_t = std::conditional_t<by_range<Index, V>, V*, detail_range::begin_t<V>>;
+
 template<typename V>
 constexpr usize length(V& v) noexcept
 {
@@ -58,25 +78,27 @@ constexpr bool same_length(V& v, Vs&... vs) noexcept
     return (... && (length(vs) == n));
 }
 
-template<typename... Its> class element;
+template<bool Index> struct index_base {};
+template<> struct index_base<true> { usize _i = 0; };
+
+template<bool Index, typename... Vs> class element;
 template<typename... Vs> class iterator;
 template<typename... Vs> class sentinel;
 template<typename... Rs> class view;
 
-template<typename... Its>
-class element
+template<bool Index, typename... Vs>
+class element : index_base<Index>
 {
     template<typename...> friend class iterator;
-    using tuple_type = tuple_t<Its...>;
+    using tuple_type = tuple_t<current_t<Index, Vs>...>;
 
-    tuple_type _its;
+    tuple_type _current;
 
-    constexpr explicit element(Its... its) noexcept;
-    template<usize... Is> constexpr void advance(index_sequence<Is...>) noexcept;
-    template<typename... Ends, usize... Is> constexpr bool at_end(const tuple<index_sequence<Is...>, Ends...>& ends) const noexcept;
+    constexpr explicit element(Vs&... vs) noexcept;
+    template<usize N, typename Self> static constexpr decltype(auto) deref(Self& self) noexcept;
 
 public:
-    template<usize N> using component_t = component<leaf_t<N, tuple_type>>;
+    template<usize N> using component_t = component<leaf_t<N, tuple_t<detail_range::begin_t<Vs>...>>>;
 
     template<usize N> constexpr auto get() & noexcept -> typename component_t<N>::ref;
     template<usize N> constexpr auto get() const& noexcept -> typename component_t<N>::const_ref;
@@ -89,10 +111,13 @@ class sentinel
 {
     template<typename...> friend class iterator;
     template<typename...> friend class view;
+    using V = first_type<Vs...>;
+    using end_type = std::conditional_t<random_access<Vs...>, usize, detail_range::end_t<V>>;
 
-    tuple_t<detail_range::end_t<Vs>...> _ends;
+    end_type _end;
 
-    constexpr explicit sentinel(Vs&... vs) noexcept;
+    static constexpr end_type end_of(V& v) noexcept;
+    constexpr explicit sentinel(V& v) noexcept;
 };
 
 // operator* returns the element stored here, so the reference dies with the iterator.
@@ -100,7 +125,7 @@ template<typename... Vs>
 class iterator
 {
     template<typename...> friend class view;
-    using element_type = element<detail_range::begin_t<Vs>...>;
+    using element_type = element<random_access<Vs...>, Vs...>;
 
     element_type _e;
 
@@ -129,62 +154,71 @@ public:
     constexpr sentinel<const detail_range::all_t<Rs>...> end() const noexcept;
 };
 
-template<typename... Its>
-constexpr element<Its...>::element(Its... its) noexcept : _its{ {floormat::move(its)}... } {}
+template<bool Index, typename... Vs>
+constexpr element<Index, Vs...>::element(Vs&... vs) noexcept : _current{ {[&]() -> current_t<Index, Vs> {
+    if constexpr (by_range<Index, Vs>)
+        return &vs;
+    else
+        return detail_range::begin_of(vs);
+}()}... } {}
 
-template<typename... Its>
-template<usize... Is>
-constexpr void element<Its...>::advance(index_sequence<Is...>) noexcept
+template<bool Index, typename... Vs>
+template<usize N, typename Self>
+constexpr decltype(auto) element<Index, Vs...>::deref(Self& self) noexcept
 {
-    (++get_leaf<Is>(_its), ...);
+    if constexpr (by_range<Index, leaf_t<N, tuple_t<Vs...>>>)
+        return get_leaf<N>(self._current)->base()[self._i];
+    else if constexpr (Index && std::is_pointer_v<leaf_t<N, tuple_type>>)
+        return get_leaf<N>(self._current)[self._i];
+    // operator[] of a class iterator takes its signed difference_type.
+    else if constexpr (Index)
+        return get_leaf<N>(self._current)[static_cast<isize>(self._i)];
+    else
+        return *get_leaf<N>(self._current);
 }
 
-template<typename... Its>
-template<typename... Ends, usize... Is>
-constexpr bool element<Its...>::at_end(const tuple<index_sequence<Is...>, Ends...>& ends) const noexcept
-{
-    if (!(... || (get_leaf<Is>(_its) == get_leaf<Is>(ends))))
-        return false;
-#ifndef FM_NO_DEBUG
-    if (!(... && (get_leaf<Is>(_its) == get_leaf<Is>(ends)))) [[unlikely]]
-        fm_abort("zip() ranges differ in length");
-#endif
-    return true;
-}
-
-template<typename... Its>
+template<bool Index, typename... Vs>
 template<usize N>
-constexpr auto element<Its...>::get() & noexcept -> typename component_t<N>::ref
+constexpr auto element<Index, Vs...>::get() & noexcept -> typename component_t<N>::ref
 {
-    return *get_leaf<N>(_its);
+    return deref<N>(*this);
 }
 
-template<typename... Its>
+template<bool Index, typename... Vs>
 template<usize N>
-constexpr auto element<Its...>::get() const& noexcept -> typename component_t<N>::const_ref
+constexpr auto element<Index, Vs...>::get() const& noexcept -> typename component_t<N>::const_ref
 {
-    return *get_leaf<N>(_its);
+    return deref<N>(*this);
 }
 
-template<typename... Its>
+template<bool Index, typename... Vs>
 template<usize N>
-constexpr auto element<Its...>::get() && noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy
+constexpr auto element<Index, Vs...>::get() && noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy
 {
-    return *get_leaf<N>(_its);
+    return deref<N>(*this);
 }
 
-template<typename... Its>
+template<bool Index, typename... Vs>
 template<usize N>
-constexpr auto element<Its...>::get() const&& noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy
+constexpr auto element<Index, Vs...>::get() const&& noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy
 {
-    return *get_leaf<N>(_its);
+    return deref<N>(*this);
 }
 
 template<typename... Vs>
-constexpr sentinel<Vs...>::sentinel(Vs&... vs) noexcept : _ends{ {detail_range::end_of(vs)}... } {}
+constexpr auto sentinel<Vs...>::end_of(V& v) noexcept -> end_type
+{
+    if constexpr (random_access<Vs...>)
+        return length(v);
+    else
+        return detail_range::end_of(v);
+}
 
 template<typename... Vs>
-constexpr iterator<Vs...>::iterator(Vs&... vs) noexcept : _e{detail_range::begin_of(vs)...}
+constexpr sentinel<Vs...>::sentinel(V& v) noexcept : _end{end_of(v)} {}
+
+template<typename... Vs>
+constexpr iterator<Vs...>::iterator(Vs&... vs) noexcept : _e{vs...}
 {
     if constexpr ((sized_sentinel_for<detail_range::end_t<Vs>, detail_range::begin_t<Vs>> && ...))
         fm_debug3_assert(same_length(vs...));
@@ -205,14 +239,20 @@ constexpr auto iterator<Vs...>::operator*() const noexcept -> const element_type
 template<typename... Vs>
 constexpr auto iterator<Vs...>::operator++() noexcept -> iterator&
 {
-    _e.advance(make_index_sequence<sizeof...(Vs)>{});
+    if constexpr (random_access<Vs...>)
+        ++_e._i;
+    else
+        [this]<usize... Is>(index_sequence<Is...>) { (++get_leaf<Is>(_e._current), ...); }(make_index_sequence<sizeof...(Vs)>{});
     return *this;
 }
 
 template<typename... Vs>
 constexpr bool iterator<Vs...>::operator==(const sentinel<Vs...>& s) const noexcept
 {
-    return _e.at_end(s._ends);
+    if constexpr (random_access<Vs...>)
+        return _e._i == s._end;
+    else
+        return get_leaf<0>(_e._current) == s._end;
 }
 
 template<typename... Rs>
@@ -239,24 +279,20 @@ constexpr auto view<Rs...>::begin() const noexcept -> iterator<const detail_rang
 template<typename... Rs>
 constexpr auto view<Rs...>::end() noexcept -> sentinel<detail_range::all_t<Rs>...>
 {
-    return [this]<usize... Is>(index_sequence<Is...>) {
-        return sentinel<detail_range::all_t<Rs>...>{get_leaf<Is>(_bases)...};
-    }(make_index_sequence<sizeof...(Rs)>{});
+    return sentinel<detail_range::all_t<Rs>...>{get_leaf<0>(_bases)};
 }
 
 template<typename... Rs>
 constexpr auto view<Rs...>::end() const noexcept -> sentinel<const detail_range::all_t<Rs>...>
 {
-    return [this]<usize... Is>(index_sequence<Is...>) {
-        return sentinel<const detail_range::all_t<Rs>...>{get_leaf<Is>(_bases)...};
-    }(make_index_sequence<sizeof...(Rs)>{});
+    return sentinel<const detail_range::all_t<Rs>...>{get_leaf<0>(_bases)};
 }
 
 } // namespace floormat::detail_zip
 
 namespace floormat {
 
-// Stops at the first range that ends, and aborts unless every range ends there.
+// Iterates as many times as the first range has elements. Only Debug builds check that the others are as long.
 template<typename... Rs>
 constexpr detail_zip::view<Rs...> zip(Rs&&... rs) noexcept(std::is_nothrow_constructible_v<detail_zip::view<Rs...>, Rs...>)
 {
@@ -267,14 +303,14 @@ constexpr detail_zip::view<Rs...> zip(Rs&&... rs) noexcept(std::is_nothrow_const
 
 namespace std {
 
-template<typename... Its>
-struct tuple_size<floormat::detail_zip::element<Its...>> : integral_constant<size_t, sizeof...(Its)> {};
-template<typename... Its>
-struct tuple_size<const floormat::detail_zip::element<Its...>> : integral_constant<size_t, sizeof...(Its)> {};
+template<bool Index, typename... Vs>
+struct tuple_size<floormat::detail_zip::element<Index, Vs...>> : integral_constant<size_t, sizeof...(Vs)> {};
+template<bool Index, typename... Vs>
+struct tuple_size<const floormat::detail_zip::element<Index, Vs...>> : integral_constant<size_t, sizeof...(Vs)> {};
 
-template<size_t I, typename... Its>
-struct tuple_element<I, floormat::detail_zip::element<Its...>> { using type = typename floormat::detail_zip::element<Its...>::template component_t<I>::value_type; };
-template<size_t I, typename... Its>
-struct tuple_element<I, const floormat::detail_zip::element<Its...>> { using type = const typename tuple_element<I, floormat::detail_zip::element<Its...>>::type; };
+template<size_t I, bool Index, typename... Vs>
+struct tuple_element<I, floormat::detail_zip::element<Index, Vs...>> { using type = typename floormat::detail_zip::element<Index, Vs...>::template component_t<I>::value_type; };
+template<size_t I, bool Index, typename... Vs>
+struct tuple_element<I, const floormat::detail_zip::element<Index, Vs...>> { using type = const typename tuple_element<I, floormat::detail_zip::element<Index, Vs...>>::type; };
 
 } // namespace std

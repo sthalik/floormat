@@ -1,5 +1,6 @@
 #pragma once
 #include "move.hpp"
+#include <cr/StlForwardTupleSizeElement.h>
 
 namespace floormat::detail_range {
 
@@ -39,6 +40,8 @@ class ref_view
 public:
     constexpr explicit ref_view(R& r) noexcept;
 
+    constexpr R& base() noexcept;
+    constexpr const R& base() const noexcept;
     constexpr begin_t<R> begin() noexcept;
     constexpr begin_t<const R> begin() const noexcept;
     constexpr end_t<R> end() noexcept;
@@ -53,6 +56,8 @@ class owning_view
 public:
     constexpr explicit owning_view(R&& r) noexcept(std::is_nothrow_move_constructible_v<R>);
 
+    constexpr R& base() noexcept;
+    constexpr const R& base() const noexcept;
     constexpr begin_t<R> begin() noexcept;
     constexpr begin_t<const R> begin() const noexcept;
     constexpr end_t<R> end() noexcept;
@@ -64,8 +69,28 @@ using all_t = std::conditional_t<std::is_lvalue_reference_v<R>,
                                  ref_view<std::remove_reference_t<R>>,
                                  owning_view<std::remove_reference_t<R>>>;
 
+// The element count that a range's type fixes, or 0 if it fixes none.
+template<typename R> constexpr usize static_extent = 0;
+template<typename T, usize N> constexpr usize static_extent<T[N]> = N;
+template<typename R> requires requires { std::tuple_size<R>::value; }
+constexpr usize static_extent<R> = std::tuple_size<R>::value;
+template<typename R> constexpr usize static_extent<ref_view<R>> = static_extent<std::remove_cv_t<R>>;
+template<typename R> constexpr usize static_extent<owning_view<R>> = static_extent<std::remove_cv_t<R>>;
+
 template<typename R>
 constexpr ref_view<R>::ref_view(R& r) noexcept : _r{&r} {}
+
+template<typename R>
+constexpr R& ref_view<R>::base() noexcept
+{
+    return *_r;
+}
+
+template<typename R>
+constexpr const R& ref_view<R>::base() const noexcept
+{
+    return *_r;
+}
 
 template<typename R>
 constexpr begin_t<R> ref_view<R>::begin() noexcept
@@ -93,6 +118,18 @@ constexpr end_t<const R> ref_view<R>::end() const noexcept
 
 template<typename R>
 constexpr owning_view<R>::owning_view(R&& r) noexcept(std::is_nothrow_move_constructible_v<R>) : _r{floormat::move(r)} {}
+
+template<typename R>
+constexpr R& owning_view<R>::base() noexcept
+{
+    return _r;
+}
+
+template<typename R>
+constexpr const R& owning_view<R>::base() const noexcept
+{
+    return _r;
+}
 
 template<typename R>
 constexpr begin_t<R> owning_view<R>::begin() noexcept
