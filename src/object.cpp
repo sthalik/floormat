@@ -4,6 +4,7 @@
 #include "rotation.inl"
 #include "anim-atlas.hpp"
 #include "search.hpp"
+#include "log.hpp"
 #include "compat/function2.hpp"
 #include "compat/exception.hpp"
 #include "compat/limits.hpp"
@@ -212,14 +213,16 @@ Ns object::alloc_ticks(const Ns& dt, u32 delta, Ns frame, float speed)
     auto from_dt = double(dt.stamp) * double(speed);
     if (from_dt > max_from_dt) [[unlikely]]
     {
-        //fm_warn_once("alloc_ticks: dt * speed over 2^53 ns, clamped");
+        if (is_log_verbose())
+            fm_warn_once("alloc_ticks: dt * speed over 2^53 ns, clamped");
         from_dt = max_from_dt;
     }
     auto ticks = Ns(u64(from_dt)) + Ns{delta};
     if (ticks.stamp >> 12 >= frame.stamp) [[unlikely]]
     {
-        //fm_warn_once("alloc_ticks: %llu ns reach 4096 frames of %llu ns, clamped",
-        //             (unsigned long long)ticks.stamp, (unsigned long long)frame.stamp);
+        if (is_log_verbose())
+            fm_warn_once("alloc_ticks: %llu ns reach 4096 frames of %llu ns, clamped",
+                         (unsigned long long)ticks.stamp, (unsigned long long)frame.stamp);
         ticks = Ns{(frame.stamp << 12) - 1};
     }
     return ticks;
