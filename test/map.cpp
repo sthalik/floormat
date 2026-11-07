@@ -78,11 +78,21 @@ constexpr bool test5()
     return true;
 }
 
+constexpr bool test6()
+{
+    constexpr auto array = std::array{1, 2, 3};
+    const auto vecs = map([](int x) constexpr { return Vector2i{x, -x}; }, array);
+    static_assert(std::is_same_v<decltype(vecs), const std::array<Vector2i, 3>>);
+    fm_assert(vecs[0] == Vector2i{1, -1} && vecs[2] == Vector2i{3, -3});
+    return true;
+}
+
 static_assert(test1());
 static_assert(test2());
 static_assert(test3());
 static_assert(test4());
 static_assert(test5());
+static_assert(test6());
 
 } // namespace
 

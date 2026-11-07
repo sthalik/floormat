@@ -8,6 +8,7 @@
 #include "point.inl"
 #include "compat/assume-aligned.hpp"
 #include "compat/function2.hpp"
+#include "compat/map.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/timer.hpp"
 #include <bit>
@@ -109,12 +110,7 @@ consteval stepped_octant make_stepped_octant(Vector2b step)
     return ret;
 }
 
-constexpr std::array<stepped_octant, octant_count> stepped_octants = [] {
-    std::array<stepped_octant, octant_count> ret{};
-    for (u32 k = 0; k < octant_count; k++)
-        ret[k] = make_stepped_octant(octant_steps[k]);
-    return ret;
-}();
+constexpr std::array<stepped_octant, octant_count> stepped_octants = map(make_stepped_octant, octant_steps);
 
 constexpr u32 ring_rows = [] {
     u32 n = 0;

@@ -1,5 +1,6 @@
 #include "wireframe.hpp"
 #include "shaders/shader.hpp"
+#include "compat/map.hpp"
 #include <array>
 #include <mg/Vector3.h>
 #include <mg/ImGuiIntegration/Integration.h>
@@ -17,12 +18,12 @@ void draw_closed_polyline(tile_shader& shader, const vertex_array& corners, floa
     const auto camera = shader.camera_offsetʹ();
     const auto color = ImGui::ColorConvertFloat4ToU32(ImVec4(shader.tint()));
 
-    ImVec2 points[num_corners];
-    for (auto i = 0u; i < num_corners; i++)
-        points[i] = ImVec2(tile_shader::point_to_pixel(corners[i], win, camera));
+    const auto points = map([&](const Vector3& c) {
+        return ImVec2(tile_shader::point_to_pixel(c, win, camera));
+    }, corners);
 
     // background list, so imgui windows stay on top as they did when this was a GL draw
-    ImGui::GetBackgroundDrawList()->AddPolyline(points, (int)num_corners, color,
+    ImGui::GetBackgroundDrawList()->AddPolyline(points.data(), (int)num_corners, color,
                                                line_width, ImDrawFlags_Closed);
 }
 
