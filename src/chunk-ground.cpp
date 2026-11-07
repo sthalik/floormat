@@ -7,6 +7,7 @@
 #include "depth.hpp"
 #include "renderer.hpp"
 #include "compat/borrowed-ptr.hpp"
+#include "compat/map.hpp"
 
 namespace floormat {
 
@@ -38,12 +39,9 @@ void chunk::ensure_ground_mesh(SpriteBatch& sb)
             const auto center = Vector3(point{_coord, pos, {}});
             const auto quad = Quads::floor_quad(center, TILE_SIZE2);
             const auto texcoords = atlas->texcoords_for_id(_ground->variants[i] % atlas->num_tiles());
-            Quads::vertexes v;
-            for (auto j = 0uz; j < 4; j++)
-            {
-                const auto k = Quads::ccw_order[j];
-                v[j] = { quad[k], texcoords[k], depth };
-            }
+            const auto v = map([&](u8 k) -> Quads::vertex {
+                return { quad[k], texcoords[k], depth };
+            }, Quads::ccw_order);
             ground_static_mesh.add(v, depth, nullptr);
         }
     }
