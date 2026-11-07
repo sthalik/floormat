@@ -21,7 +21,10 @@
 #include "compat/nanosecond.inl"
 #include "compat/zip.hpp"
 #include "serialize/binary-serializer.hpp"
+#include "src/point.inl"
+#include "src/anim.hpp"
 #include <bit>
+#include <cr/GrowableArray.h>
 #include <cstdio>
 #include <cstring>
 #include <cr/Path.h>
@@ -756,6 +759,224 @@ void test_save_door_mid_swing()
     swing(opening_id, false);
 }
 
+constexpr StringView old_scenery_names[] = { "table1"_s, "door1"_s, "control panel (wall) 1"_s };
+
+[[nodiscard]] world load_old_save(StringView path, ArrayView<const char> bytes)
+{
+    constexpr auto magic = ".floormat.save"_s;
+    fm_assert(bytes.size() > magic.size() + sizeof(u16));
+    u16 proto;
+    std::memcpy(&proto, bytes.data() + magic.size(), sizeof proto);
+    fm_assert(Serialize::maybe_byteswap(proto) == 19);
+    if (Path::exists(path))
+        Path::remove(path);
+    fm_assert(Path::write(path, bytes));
+    return world::deserialize(path, loader_policy::ignore);
+}
+
+void assert_worlds_equal(world& a, world& b)
+{
+    fm_assert(a.size() == b.size());
+    for (auto& c : a.chunks())
+        assert_chunks_equal(&c, b.at(c.coord()));
+    fm_assert(a.object_counter() == b.object_counter());
+}
+
+struct old_critter
+{
+    chunk_coords_ ch;
+    Vector2b offset, bbox_offset;
+    Vector2ub bbox_size;
+    rotation r;
+    u16 frame;
+    pass_mode pass;
+    bool playable;
+    StringView name;
+};
+
+constexpr old_critter old_critters[] = {
+    { {-1,  0, 0}, {  0,  0}, { 0,  0}, {64, 64}, rotation::N,   0, pass_mode::blocked,     true,  "Player"_s },
+    { { 2, -1, 0}, { -7, 13}, { 3, -5}, {30, 46}, rotation::SE,  5, pass_mode::blocked,     false, "npc 2"_s  },
+    { {-2, -3, 0}, { 11, -3}, {-2,  0}, {22, 22}, rotation::W,  17, pass_mode::see_through, true,  "npc 3"_s  },
+    { { 0,  1, 1}, {-19,  7}, { 0,  0}, {64, 64}, rotation::NW,  2, pass_mode::blocked,     false, "npc 4"_s  },
+    { { 3,  3, 0}, {  5, 29}, { 0,  6}, {38, 26}, rotation::S,  59, pass_mode::blocked,     true,  "npc 5"_s  },
+};
+
+struct old_world
+{
+    world w;
+    Array<object_id> critters;
+};
+
+old_world make_old_world()
+{
+    old_world ret;
+    auto& w = ret.w;
+    (void)Test::make_test_chunk(w, {1, 1, 0});
+
+    constexpr auto ch = chunk_coords_{-1, -1, 0};
+    auto& c = w[ch];
+    c.mark_modified();
+    const auto& tiles = loader.ground_atlas("tiles");
+    const auto& texel = loader.ground_atlas("texel");
+    const auto wall = loader.wall_atlas("test1");
+    c[0].ground() = { tiles, 3 };
+    c[1].ground() = { texel, 1 };
+    c[7].ground() = { tiles, 37 };
+    c[7].wall_north() = { wall, 0 };
+    c[200].ground() = { texel, 2 };
+    c[200].wall_west() = { wall, 0 };
+    c[201].wall_north() = { wall, 0 };
+    c[201].wall_west() = { wall, 0 };
+    c[255].ground() = { tiles, 11 };
+
+    {
+        const auto eʹ = w.make_scenery(w.make_id(), {ch, {5, 9}}, scenery_proto(loader.scenery("door1")));
+        auto& e = static_cast<door_scenery&>(*eʹ);
+        auto index = e.index();
+        fm_assert(e.activate(index));
+        for (auto i = 0u; i < 7; i++)
+            e.update(eʹ, index, Second / 60);
+        fm_assert(e.active);
+        e.delta = object::ns_to_delta(object::fraction_to_ns(1543u * 65536u));
+    }
+    {
+        auto table = scenery_proto(loader.scenery("table1"));
+        table.offset = {-9, 4};
+        table.bbox_offset = {3, -7};
+        table.bbox_size = {46, 22};
+        auto* sub = swl::get_if<generic_scenery_proto>(&table.subtype);
+        fm_assert(sub);
+        sub->interactive = true;
+        w.make_scenery(w.make_id(), {ch, {11, 3}}, move(table));
+    }
+    {
+        auto panel = scenery_proto(loader.scenery("control panel (wall) 1"));
+        panel.r = rotation::W;
+        panel.offset = {5, -11};
+        w.make_scenery(w.make_id(), {ch, {2, 13}}, move(panel));
+    }
+    {
+        light_proto L;
+        L.max_distance = 2.375f;
+        L.color = {13, 47, 211, 97};
+        L.falloff = light_falloff::linear;
+        L.pass = pass_mode::blocked;
+        L.offset = {-3, 5};
+        L.bbox_offset = {1, -2};
+        L.bbox_size = {6, 10};
+        w.make_object<light>(w.make_id(), {ch, {9, 9}}, L);
+    }
+
+    arrayReserve(ret.critters, std::size(old_critters));
+    for (const auto& x : old_critters)
+    {
+        w[x.ch].mark_modified();
+        critter_proto p;
+        p.name = x.name;
+        p.offset = x.offset;
+        p.bbox_offset = x.bbox_offset;
+        p.bbox_size = x.bbox_size;
+        p.r = x.r;
+        p.frame = x.frame;
+        p.pass = x.pass;
+        p.playable = x.playable;
+        const auto C = w.make_object<critter>(w.make_id(), {x.ch, {8, 8}}, move(p));
+        arrayAppend(ret.critters, C->id);
+    }
+    return ret;
+}
+
+constexpr Vector2i rotation_dirs[] = { {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1} };
+
+struct arrow_keys { bool L, R, U, D; };
+
+constexpr arrow_keys rotation_keys[] = {
+    {false, true,  true,  false},
+    {false, true,  false, false},
+    {false, true,  false, true },
+    {false, false, false, true },
+    {true,  false, false, true },
+    {true,  false, false, false},
+    {true,  false, true,  false},
+    {false, false, true,  false},
+};
+
+void turn_and_walk(world& gt, world& ld, object_id id)
+{
+    const auto A = gt.find_object<critter>(id), B = ld.find_object<critter>(id);
+    fm_assert(A && B);
+    const auto same = [&] {
+        fm_assert(A->position() == B->position());
+        fm_assert(critter_proto(*A) == critter_proto(*B));
+    };
+    same();
+
+    const auto saved_r = B->r;
+    for (auto k = 1u; k <= (u32)rotation_COUNT; k++)
+    {
+        const auto r = rotation((u32(saved_r) + k) % (u32)rotation_COUNT);
+        fm_assert(B->can_rotate(r));
+        auto ia = A->index(), ib = B->index();
+        A->rotate(ia, r);
+        B->rotate(ib, r);
+        fm_assert(B->r == r);
+        same();
+    }
+
+    const auto fps = (i32)B->atlas->info().fps;
+    fm_assert(fps > 0);
+    const auto walked = [&](u32 k, Vector2i d) {
+        same();
+        fm_assert(B->r == rotation(k));
+        fm_assert(Math::sign(d) == rotation_dirs[k]);
+        fm_assert(Math::abs(d).max() >= fps * 2 / 3);
+        fm_assert(B->frame < B->atlas->group(B->r).frames.size());
+    };
+    for (auto k = 0u; k < (u32)rotation_COUNT; k++)
+    {
+        const auto from = B->position();
+        auto ia = A->index(), ib = B->index();
+        A->update_movement(ia, Second, rotation(k));
+        B->update_movement(ib, Second, rotation(k));
+        walked(k, B->position() - from);
+    }
+
+    if (!B->playable)
+        return;
+    const auto pa = gt.find_object(id), pb = ld.find_object(id);
+    for (auto k = 0u; k < (u32)rotation_COUNT; k++)
+    {
+        const auto [L, R, U, D] = rotation_keys[k];
+        const auto from = B->position();
+        A->set_keys(L, R, U, D);
+        B->set_keys(L, R, U, D);
+        auto ia = A->index(), ib = B->index();
+        A->update(pa, ia, Second);
+        B->update(pb, ib, Second);
+        walked(k, B->position() - from);
+    }
+}
+
+void test_save_old_proto()
+{
+    const auto path = Path::join(loader.TEMP_PATH, "test/test-save-old-proto.dat"_s);
+    const auto resaved = Path::join(loader.TEMP_PATH, "test/test-save-old-proto-2.dat"_s);
+    auto [w, critters] = make_old_world();
+    const auto bytes = Test::write_old_savegame(w, old_scenery_names);
+    auto w2 = load_old_save(path, bytes);
+    assert_worlds_equal(w, w2);
+    auto w3 = reload_from_save(resaved, w2);
+    assert_worlds_equal(w, w3);
+
+    w.init_scripts();
+    w2.init_scripts();
+    for (const auto id : critters)
+        turn_and_walk(w, w2, id);
+    w.finish_scripts();
+    w2.finish_scripts();
+}
+
 } // namespace
 
 void Test::test_save()
@@ -775,6 +996,7 @@ void Test::test_saves()
     test_save_missing_tile_atlas();
     test_save_missing_door_atlas();
     test_save_door_mid_swing();
+    test_save_old_proto();
 }
 
 } // namespace floormat
