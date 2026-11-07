@@ -922,14 +922,18 @@ task app::scene_cover_wait()
 
     while (exposed_held < held_exposed_updates)
     {
-        seed ^= seed << 13;
-        seed ^= seed >> 17;
-        seed ^= seed << 5;
-        hz = min_hz + seed % (max_hz - min_hz + 1);
+        if (hz0)
+        {
+            seed ^= seed << 13;
+            seed ^= seed >> 17;
+            seed ^= seed << 5;
+            hz = min_hz + seed % (max_hz - min_hz + 1);
+        }
         co_yield {};
         fm_assert(w.game_time() < deadline);
         const auto t = w.game_time(), dt = t - prev_t;
-        fm_assert_equal(Second/hz, dt);
+        if (hz0)
+            fm_assert_equal(Second/hz, dt);
         tie(min_dt, max_dt_seen) = min_dt == Ns{}
             ? pair(dt, dt)
             : Math::minmax({min_dt, max_dt_seen, dt});
@@ -995,7 +999,9 @@ task app::scene_cover_wait()
     fm_assert_equal(3u, num_hidden);
     fm_assert_equal(2u, num_exposed);
     fm_assert_equal(2u, num_paused);
-    fm_assert(Second/max_hz <= min_dt && min_dt < max_dt_seen && max_dt_seen <= Second/min_hz);
+    fm_assert(min_dt < max_dt_seen);
+    if (hz0)
+        fm_assert(Second/max_hz <= min_dt && max_dt_seen <= Second/min_hz);
     fm_debug("cover-wait: %u hidden and %u exposed waits ended on time, dt %llu to %llu ns, %u ms", num_hidden,
              num_exposed, (unsigned long long)min_dt.stamp, (unsigned long long)max_dt_seen.stamp,
              (u32)Time::to_milliseconds(w.game_time()));
