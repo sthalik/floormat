@@ -1981,8 +1981,8 @@ void app::driver_draw_overlay()
         draw_raycast_diag(*this, D.diags[i]);
     // 32 endpoint dots at raycast_test's size bury the pin field they are drawn over.
     constexpr float dot_size = .75f;
-    for (auto i = 0u; i < D.num_rays; i++)
-        draw_raycast_line(*this, D.rays[i], dot_size);
+    for (const auto& ray : arrayView(D.rays.data(), D.num_rays))
+        draw_raycast_line(*this, ray, dot_size);
 }
 
 

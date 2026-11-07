@@ -251,9 +251,8 @@ struct raycast_test final : base_test
     void update_post(app& a, const Ns&) override
     {
         auto& w = a.main().world();
-        for (auto i = 0u; i < num_pending; i++)
+        for (const auto& p : arrayView(pending.data(), num_pending))
         {
-            const auto& p = pending[i];
             if (p.from.chunk3().z != p.to.chunk3().z)
             {
                 fm_warn("raycast: wrong Z value");
