@@ -99,27 +99,37 @@ void grow_texture(Atlas& atlas, u16 new_layer_count)
                .setMinificationFilter(GL::SamplerFilter::Linear)
                .setWrapping(GL::SamplerWrapping::ClampToEdge);
 
-    auto rect = Range2Di{{}, layer_size};
-    constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
-    GL::Framebuffer dst_fb{rect};
-
-    // clear the newly added slices to magenta
-    for (Int i = copied_layer_count; i < (Int)new_layer_count; i++)
+    GLint draw_fb = 0, read_fb = 0, viewport[4] = {};
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fb);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fb);
+    glGetIntegerv(GL_VIEWPORT, viewport);
     {
-        dst_fb.attachTextureLayer(attachment, new_texture, 0, i);
-        dst_fb.clearColor(0, Color4{1.f, 0.f, 1.f, 1.f});
-    }
+        auto rect = Range2Di{{}, layer_size};
+        constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
+        GL::Framebuffer dst_fb{rect};
 
-    if (copied_layer_count > 0)
-    {
-        GL::Framebuffer src_fb{rect};
-        for (Int i = 0; i < copied_layer_count; i++)
+        // clear the newly added slices to magenta
+        for (Int i = copied_layer_count; i < (Int)new_layer_count; i++)
         {
-            src_fb.attachTextureLayer(attachment, atlas.texture, 0, i);
             dst_fb.attachTextureLayer(attachment, new_texture, 0, i);
-            GL::Framebuffer::blit(src_fb, dst_fb, rect, GL::FramebufferBlit::Color);
+            dst_fb.clearColor(0, Color4{1.f, 0.f, 1.f, 1.f});
+        }
+
+        if (copied_layer_count > 0)
+        {
+            GL::Framebuffer src_fb{rect};
+            for (Int i = 0; i < copied_layer_count; i++)
+            {
+                src_fb.attachTextureLayer(attachment, atlas.texture, 0, i);
+                dst_fb.attachTextureLayer(attachment, new_texture, 0, i);
+                GL::Framebuffer::blit(src_fb, dst_fb, rect, GL::FramebufferBlit::Color);
+            }
         }
     }
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)draw_fb);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)read_fb);
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    GL::Context::current().resetState(GL::Context::State::Framebuffers);
 
     atlas.texture = move(new_texture);
     atlas.texture_layer_count = new_layer_count;

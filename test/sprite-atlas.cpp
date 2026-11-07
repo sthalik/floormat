@@ -5,8 +5,11 @@
 #include "src/sprite-atlas-impl.hpp"
 #include "src/sprite-constants.hpp"
 #include <cr/GrowableArray.h>
+#include <mg/Framebuffer.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
+#include <mg/Renderbuffer.h>
+#include <mg/RenderbufferFormat.h>
 #include <mg/PixelFormat.h>
 #include <mg/ImageView.h>
 #include <mg/Image.h>
@@ -114,6 +117,54 @@ void realloc_preserves_uploaded_pixels()
         Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
 
     auto data = img.data();
+    for (usize i = 0; i < sizeof(src); i++)
+        fm_assert(data[i] == (char)src[i]);
+}
+
+void grow_keeps_bound_framebuffer()
+{
+    Atlas a;
+    a.layer_width = a.layer_height = 256;
+    constexpr u32 w = 4, h = 4;
+    unsigned char src[w * h * 4];
+    fill_pattern(src, w, h);
+    Sprite* s = alloc_sprite(a, w, h);
+    upload_sprite(a, *s, Magnum::ImageView2D{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src});
+
+    constexpr auto size = Vector2i{13, 11};
+    constexpr auto viewport = Range2Di{{3, 2}, {12, 9}};
+    GL::Renderbuffer color;
+    color.setStorage(GL::RenderbufferFormat::RGBA8, size);
+    GL::Framebuffer fb{viewport};
+    fb.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, color);
+    fm_assert(fb.checkStatus(GL::FramebufferTarget::Draw) == GL::Framebuffer::Status::Complete);
+    fb.bind();
+    GLint read_fb = 0;
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fb);
+
+    grow_texture(a, Math::max<u16>(1, a.texture_layer_count) * 4);
+
+    GLint draw_fbʹ = 0, read_fbʹ = 0, vp[4] = {};
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fbʹ);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fbʹ);
+    glGetIntegerv(GL_VIEWPORT, vp);
+    fm_assert_equal((GLint)fb.id(), draw_fbʹ);
+    fm_assert_equal(read_fb, read_fbʹ);
+    fm_assert(Range2Di::fromSize({vp[0], vp[1]}, {vp[2], vp[3]}) == viewport);
+
+    glClearColor(0.2f, 0.4f, 0.6f, 0.8f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    const auto fb_img = fb.read({{}, size}, Magnum::Image2D{Magnum::PixelFormat::RGBA8Unorm});
+    const auto fb_data = fb_img.data();
+    fm_assert(fb_data.size() == usize(size.product()) * 4);
+    constexpr unsigned char cleared[4] = { 51, 102, 153, 204 };
+    for (usize i = 0; i < fb_data.size(); i++)
+        fm_assert(fb_data[i] == (char)cleared[i % 4]);
+
+    const auto img = a.texture.subImage(0,
+        Range3Di::fromSize({(Int)s->x, (Int)s->y, (Int)s->layer}, {(Int)w, (Int)h, 1}),
+        Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
+    const auto data = img.data();
     for (usize i = 0; i < sizeof(src); i++)
         fm_assert(data[i] == (char)src[i]);
 }
@@ -307,6 +358,7 @@ void test_sprite_atlas()
     get_next_layer_count_at_16bit_boundary();
     upload_and_readback_is_lossless();
     realloc_preserves_uploaded_pixels();
+    grow_keeps_bound_framebuffer();
     texcoords_encode_expected_corners();
     staged_adds_reach_texture();
     wrapper_accessors_roundtrip_values();
