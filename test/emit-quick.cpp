@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/array-size.hpp"
+#include "compat/zip.hpp"
 #include "src/spritebatch.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/anim.hpp"
@@ -141,11 +142,11 @@ void test_order(state& s)
     fm_assert(f.size == Vector2ui{32});
 
     Vector2i p0[n];
-    for (auto i = 0u; i < n; i++)
+    for (auto& [pos, pl] : zip(p0, list))
     {
-        const auto p = Vector2(fb_size)*.5f + tile_shader::project(list[i].center + Vector3(g.offset)) - Vector2(f.ground);
-        p0[i] = Vector2i(p);
-        fm_assert(Vector2(p0[i]) == p);
+        const auto p = Vector2(fb_size)*.5f + tile_shader::project(pl.center + Vector3(g.offset)) - Vector2(f.ground);
+        pos = Vector2i(p);
+        fm_assert(Vector2(pos) == p);
     }
 
     // Drawn back to back with no readback between, so each draw has to keep the vertexes it was

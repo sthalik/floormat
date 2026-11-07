@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "multi-level-table-common.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/enumerate.hpp"
 #include "compat/limits.hpp"
 #include "src/object-table.hpp"
 
@@ -83,17 +84,17 @@ void check_ints(usize top_size_bytes, ArrayView<const u64> keys)
     }();
 
     Table t;
-    for (u32 i = 0; i < keys.size(); i++)
-        fm_assert(t.insert(keys[i], values[i % values.size()]));
+    for (const auto& [i, key] : enumerate(keys))
+        fm_assert(t.insert(key, values[i % values.size()]));
     check_layout(t, top_size_bytes, keys);
-    for (u32 i = 0; i < keys.size(); i++)
+    for (const auto& [i, key] : enumerate(keys))
     {
-        fm_assert(*t.find(keys[i]) == values[i % values.size()]);
-        fm_assert(!t.insert(keys[i], T(1)));
+        fm_assert(*t.find(key) == values[i % values.size()]);
+        fm_assert(!t.insert(key, T(1)));
     }
     const auto num_pages = t.page_count();
-    for (u32 i = 0; i < keys.size(); i++)
-        fm_assert(t.erase(keys[i]) == values[i % values.size()]);
+    for (const auto& [i, key] : enumerate(keys))
+        fm_assert(t.erase(key) == values[i % values.size()]);
     fm_assert(t.page_count() == (P.free_empty ? 0 : num_pages));
     for (u64 k : keys)
         fm_assert(!present(t, k));

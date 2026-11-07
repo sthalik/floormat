@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/atomic.hpp"
 #include "compat/chase-lev-deque.inl"
+#include "compat/enumerate.hpp"
 #include "compat/fwd/chrono.hpp"
 #include "compat/fwd/thread.hpp"
 #include "compat/valgrind.hpp"
@@ -77,8 +78,8 @@ void run_threads(F&& fn)
 {
     std::latch start_gun(N);
     std::array<std::thread, N> threads;
-    for (u32 i = 0; i < N; ++i)
-        threads[i] = std::thread([&, i] {
+    for (auto& [i, t] : enumerate(threads))
+        t = std::thread([&, i] {
             start_gun.arrive_and_wait();
             fn(i);
         });
@@ -137,14 +138,14 @@ void test_steal_while_growing()
             if (i % (thieves + 1) == thieves)
             {
                 // Pushes outpace takes, so the deque keeps growing.
-                for (u32 k = 0; k < count; ++k)
+                for (auto& [k, item] : enumerate(s.items))
                 {
                     // Otherwise the owner can finish within one time slice, before a thief
                     // sharing its CPU runs. Powers of two spread the steals over buffer sizes.
                     if (std::has_single_bit(k + 1))
-                        push_and_wait_for_steal(&s.items[k]);
+                        push_and_wait_for_steal(&item);
                     else
-                        q.push(&s.items[k]);
+                        q.push(&item);
                     if (k % 3 == 2)
                         if (int* x = q.take())
                             claim(x);

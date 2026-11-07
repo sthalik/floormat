@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/hash.hpp"
 #include "compat/array-size.hpp"
+#include "compat/zip.hpp"
 #include "src/global-coords.hpp"
 #include "src/world.hpp"
 #include <cr/StringView.h>
@@ -31,8 +32,8 @@ void test_simple()
     constexpr auto size = array_size(list);
 
     usize hashes[size] = {};
-    for (auto i = 0uz; i < size; i++)
-        hashes[i] = hash_buf(list[i].data(), list[i].size());
+    for (auto& [h, s] : zip(hashes, list))
+        h = hash_buf(s.data(), s.size());
 
     for (auto i = 0uz; i < size; i++)
         for (auto j = i+1; j < size; j++)

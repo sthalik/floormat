@@ -1,4 +1,6 @@
 #include "app.hpp"
+#include "compat/enumerate.hpp"
+#include "compat/zip.hpp"
 #include "src/hwy.hpp"
 #include <algorithm>
 #include <cmath>
@@ -88,8 +90,8 @@ void check(u32 n)
 {
     std::mt19937 rng{n * 2654435761u + (u32)sizeof(T)};
     Array<T> input{NoInit, n};
-    for (auto i = 0u; i < n; i++)
-        input[i] = make_key<T>(rng, i);
+    for (auto& [i, x] : enumerate(input))
+        x = make_key<T>(rng, i);
 
     Array<T> canonical{NoInit, n}, expected{NoInit, n}, a{NoInit, n}, b{NoInit, n};
     Utility::copy(input, canonical);
@@ -97,8 +99,8 @@ void check(u32 n)
     const auto check_permutation = [&] {
         Utility::copy(a, b);
         std::sort(b.data(), b.data() + n, [](T x, T y) { return full_less(x, y); });
-        for (auto i = 0u; i < n; i++)
-            fm_assert(same(b[i], canonical[i]));
+        for (const auto& [x, y] : zip(b, canonical))
+            fm_assert(same(x, y));
     };
     const auto equiv = [](T x, T y) {
         return !precedes(x, y, sort_order::ascending) && !precedes(y, x, sort_order::ascending);
@@ -112,8 +114,8 @@ void check(u32 n)
 
         Utility::copy(input, a);
         vqsort(a.data(), n, order);
-        for (auto i = 0u; i < n; i++)
-            fm_assert(equiv(a[i], expected[i]));
+        for (const auto& [x, y] : zip(a, expected))
+            fm_assert(equiv(x, y));
         check_permutation();
 
         if (n == 0)

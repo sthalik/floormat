@@ -2,6 +2,7 @@
 #include "run.hpp"
 #include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/enumerate.hpp"
 #include "compat/function2.hpp"
 #include "compat/nanosecond.inl"
 #include "loader/loader.hpp"
@@ -33,8 +34,8 @@ rotation turned(rotation r, i32 eighths) { return rotation((u8(r) + 8 + eighths)
 
 rotation rotation_of(Vector2i d)
 {
-    for (auto i = 0u; i < 8; i++)
-        if (dir_vecs[i] == d)
+    for (const auto& [i, v] : enumerate(dir_vecs))
+        if (v == d)
             return rotation(i);
     fm_assert(false);
 }
@@ -951,8 +952,8 @@ void run_product(product& P)
                 }
             });
     };
-    for (auto i = 0u; i < 8; i++)
-        walk_direction(direction{dir_vecs[i], rotation(i), rotation(i), true}, (u32)array_size(boxes));
+    for (const auto& [i, v] : enumerate(dir_vecs))
+        walk_direction(direction{v, rotation(i), rotation(i), true}, (u32)array_size(boxes));
     for (const auto& d : off_octant)
         walk_direction(d, (u32)array_size(boxes));
 }
@@ -1046,9 +1047,10 @@ void print_combo(entry e, u32 ev, end_reason end, const char* note)
     std::fprintf(stderr, "    { entry::%s, ", entry_names[(u32)e]);
     if (!ev)
         std::fputs("0", stderr);
-    for (auto i = 0u, n = 0u; i < array_size(event_names); i++)
+    auto n = 0u;
+    for (const auto& [i, name] : enumerate(event_names))
         if (ev & 1u << i)
-            std::fprintf(stderr, "%s%s", n++ ? "|" : "", event_names[i]);
+            std::fprintf(stderr, "%s%s", n++ ? "|" : "", name);
     std::fprintf(stderr, ", end_reason::%s },%s\n", end_names[(u32)end], note);
 }
 

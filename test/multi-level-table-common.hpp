@@ -1,5 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/multi-level-table.inl"
 #include "compat/limits.hpp"
 #include "random/random.hpp"
@@ -448,10 +449,10 @@ u64 check_layers(const multi_level_table<T, P>& t, Visit&& visit)
 
     if constexpr (!Table::has_pages)
     {
-        for (u32 k = 0; k < top.size(); k++)
-            if (detail_mlt::occupied(top[k]))
+        for (const auto& [k, slot] : enumerate(top))
+            if (detail_mlt::occupied(slot))
             {
-                visit(u64{k}, top[k]);
+                visit(u64{k}, slot);
                 total++;
             }
     }
@@ -1086,13 +1087,13 @@ class random_run
             if constexpr (zero_bits > 0)
             {
                 u32 num_sides = 0;
-                for (u32 i = 0; i < top.size(); i++)
-                    if (top[i].side)
+                for (const auto& [i, slot] : enumerate(top))
+                    if (slot.side)
                     {
                         const auto s = sides.find(i);
                         fm_assert(s != sides.end());
                         if constexpr (free_empty)
-                            fm_assert(top[i].side[0].live == s->second);
+                            fm_assert(slot.side[0].live == s->second);
                         num_sides++;
                     }
                 fm_assert(num_sides == sides.size());
@@ -1439,8 +1440,8 @@ class random_run
     {
         Array<u32> busy;
         arrayReserve(busy, walkers.size());
-        for (u32 i = 0; i < walkers.size(); i++)
-            if (!walkers[i].path.isEmpty())
+        for (const auto& [i, w] : enumerate(walkers))
+            if (!w.path.isEmpty())
                 arrayAppend(busy, i);
         while (!busy.isEmpty())
         {

@@ -8,6 +8,7 @@
 
 #include "compat/map.hpp"
 #include "compat/assert.hpp"
+#include "compat/zip.hpp"
 #include <array>
 #include <cr/StaticArray.h>
 #include <mg/Vector3.h>
@@ -25,8 +26,8 @@ constexpr bool test1()
     constexpr auto array3 = std::array{(unsigned)-1, 0u, 1u, 2u, 3u};
     fm_assert(array2.size() == array.size());
     fm_assert(array3.size() == array.size());
-    for (auto i = 0uz; i < array.size(); i++)
-        fm_assert(array2[i] == array3[i]);
+    for (const auto& [x, y] : zip(array2, array3))
+        fm_assert(x == y);
     return true;
 }
 

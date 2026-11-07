@@ -2,7 +2,9 @@
 #include "src/spritebatch.hpp"
 #include "src/quads.hpp"
 #include "src/hwy.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/fwd/algorithm/ranges_sort.hpp"
+#include "compat/zip.hpp"
 #include <vector>
 #include <bit>
 #include <cfloat>
@@ -124,8 +126,8 @@ struct fixture
         sb.sort_vertex_buffer(do_sort);
         const auto again = sb.merged_order();
         fm_assert(again.size() == first.size());
-        for (auto i = 0uz; i < first.size(); i++)
-            fm_assert(again[i] == first[i]);
+        for (const auto& [a, f] : zip(again, first))
+            fm_assert(a == f);
     }
 
     // Every run emitted with end_chunk<false> leaves sort_indexes untouched. That identity
@@ -135,8 +137,8 @@ struct fixture
         sb.sort_vertex_buffer(false);
         const auto order = sb.merged_order();
         fm_assert(order.size() == depths.size());
-        for (auto i = 0u; i < order.size(); i++)
-            fm_assert(order[i] == i);
+        for (const auto& [i, x] : enumerate(order))
+            fm_assert(x == i);
         reset();
     }
 

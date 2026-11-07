@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
+#include "compat/zip.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "src/cover-point.hpp"
@@ -417,8 +418,8 @@ void test_lists_cover_spots()
     const auto r = find_listed(w, npc, threat, radius);
     fm_assert(r.spots.size() > 1);
     fm_assert_equal(r1.spots.size(), r.spots.size());
-    for (auto i = 0u; i < r.spots.size(); i++)
-        fm_assert(r.spots[i].pos == r1.spots[i].pos && r.spots[i].axis == r1.spots[i].axis);
+    for (const auto& [s, s1] : zip(r.spots, r1.spots))
+        fm_assert(s.pos == s1.pos && s.axis == s1.axis);
 }
 
 // test_lists_cover_spots' scene on fresh pools, searched with max_fills = 1 until a call finds

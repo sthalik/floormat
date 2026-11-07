@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/enumerate.hpp"
 #include "src/sprite-atlas.hpp"
 #include "src/sprite-atlas-impl.hpp"
 #include "src/sprite-constants.hpp"
@@ -242,12 +243,12 @@ void sprites_do_not_overlap_pairwise()
     constexpr u32 N = 40;
     struct R { u32 x, y, layer, w, h; };
     R rects[N];
-    for (u32 i = 0; i < N; i++)
+    for (auto& [i, r] : enumerate(rects))
     {
         const u32 w = 5 + (i * 7) % 80;
         const u32 h = 3 + (i * 11) % 60;
         const Sprite* s = alloc_sprite(a, w, h, false);
-        rects[i] = R{ (u32)s->x, (u32)s->y, (u32)s->layer, w, h };
+        r = R{ (u32)s->x, (u32)s->y, (u32)s->layer, w, h };
     }
 
     for (u32 i = 0; i < N; i++)

@@ -1,5 +1,7 @@
 #include "app.hpp"
 #include "compat/array-size.hpp"
+#include "compat/enumerate.hpp"
+#include "compat/zip.hpp"
 #include "src/grid-registry.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
@@ -29,10 +31,10 @@ void test_pass_pool_per_params()
 
     Grid::GridRegistry reg;
     Pass::Pool* pools[N];
-    for (auto i = 0u; i < N; i++)
+    for (auto& [pool, p] : zip(pools, params))
     {
-        pools[i] = &reg.pass_pool(params[i]);
-        fm_assert(pools[i]->params() == params[i]);
+        pool = &reg.pass_pool(p);
+        fm_assert(pool->params() == p);
     }
     for (auto i = 0u; i < N; i++)
     {
@@ -54,10 +56,10 @@ void test_cover_pool_per_div()
     constexpr auto N = (u32)std::bit_width(Grid::Cover::max_div_size);
     Grid::GridRegistry reg;
     Grid::Cover::Pool* pools[N];
-    for (auto i = 0u; i < N; i++)
+    for (auto& [i, pool] : enumerate(pools))
     {
-        pools[i] = &reg.cover_pool(Grid::Cover::Params{1u << i});
-        fm_assert(pools[i]->params() == Grid::Cover::Params{1u << i});
+        pool = &reg.cover_pool(Grid::Cover::Params{1u << i});
+        fm_assert(pool->params() == Grid::Cover::Params{1u << i});
     }
     for (auto i = 0u; i < N; i++)
     {
