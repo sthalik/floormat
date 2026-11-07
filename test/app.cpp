@@ -43,6 +43,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_enumerate),
     FM_TEST(test_zip),
     FM_TEST(test_tie),
+    FM_TEST(test_combinations),
     FM_TEST(test_math),
     FM_TEST(test_rtree_pool),
     FM_TEST(test_astar_pool),
