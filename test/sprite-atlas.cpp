@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/combinations.hpp"
 #include "compat/enumerate.hpp"
 #include "src/sprite-atlas.hpp"
 #include "src/sprite-atlas-impl.hpp"
@@ -251,18 +252,15 @@ void sprites_do_not_overlap_pairwise()
         r = R{ (u32)s->x, (u32)s->y, (u32)s->layer, w, h };
     }
 
-    for (u32 i = 0; i < N; i++)
-        for (u32 j = i + 1; j < N; j++)
-        {
-            const auto& A = rects[i];
-            const auto& B = rects[j];
-            if (A.layer != B.layer)
-                continue;   // different layers — can't overlap
-            // Standard AABB intersection test.
-            const bool overlap = A.x < B.x + B.w && B.x < A.x + A.w
-                              && A.y < B.y + B.h && B.y < A.y + A.h;
-            fm_assert(!overlap);
-        }
+    for (const auto& [A, B] : combinations(rects))
+    {
+        if (A.layer != B.layer)
+            continue;   // different layers — can't overlap
+        // Standard AABB intersection test.
+        const bool overlap = A.x < B.x + B.w && B.x < A.x + A.w
+                          && A.y < B.y + B.h && B.y < A.y + A.h;
+        fm_assert(!overlap);
+    }
 }
 
 void max_dimension_sprite_stores_without_truncation()

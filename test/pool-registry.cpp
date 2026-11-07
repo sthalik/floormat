@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/array-size.hpp"
+#include "compat/combinations.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/zip.hpp"
 #include "src/grid-registry.hpp"
@@ -36,12 +37,10 @@ void test_pass_pool_per_params()
         pool = &reg.pass_pool(p);
         fm_assert(pool->params() == p);
     }
-    for (auto i = 0u; i < N; i++)
-    {
-        fm_assert(&reg.pass_pool(params[i]) == pools[i]);
-        for (auto j = i + 1; j < N; j++)
-            fm_assert(pools[i] != pools[j]);
-    }
+    for (const auto& [pool, p] : zip(pools, params))
+        fm_assert(&reg.pass_pool(p) == pool);
+    for (const auto& [a, b] : combinations(pools))
+        fm_assert(a != b);
 }
 
 void test_pass_pool_snapped_params()
@@ -61,12 +60,10 @@ void test_cover_pool_per_div()
         pool = &reg.cover_pool(Grid::Cover::Params{1u << i});
         fm_assert(pool->params() == Grid::Cover::Params{1u << i});
     }
-    for (auto i = 0u; i < N; i++)
-    {
-        fm_assert(&reg.cover_pool(Grid::Cover::Params{1u << i}) == pools[i]);
-        for (auto j = i + 1; j < N; j++)
-            fm_assert(pools[i] != pools[j]);
-    }
+    for (const auto& [i, pool] : enumerate(pools))
+        fm_assert(&reg.cover_pool(Grid::Cover::Params{1u << i}) == pool);
+    for (const auto& [a, b] : combinations(pools))
+        fm_assert(a != b);
 }
 
 void test_cover_pool_shares_pass_pool()

@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/atomic.hpp"
+#include "compat/combinations.hpp"
 #include "compat/fwd/chrono.hpp"
 #include "compat/fwd/thread.hpp"
 #include "compat/zip.hpp"
@@ -167,9 +168,8 @@ template<typename T>
 void test_values_distinct()
 {
     constexpr auto& v = special_values<T>;
-    for (u32 i = 0; i < v.size(); ++i)
-        for (u32 j = i + 1; j < v.size(); ++j)
-            fm_assert(v[i] != v[j]);
+    for (const auto& [a, b] : combinations(v))
+        fm_assert(a != b);
 }
 
 template<typename T>
