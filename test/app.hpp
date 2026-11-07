@@ -25,6 +25,7 @@ void test_bptr();
 void test_bptr_intrusive();
 void test_chase_lev_deque();
 void test_chunk_iter();
+void test_combinations();
 void test_coords();
 void test_intra_coord();
 void test_corridor();
