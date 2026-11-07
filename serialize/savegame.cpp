@@ -783,8 +783,8 @@ ok:     void();
             return std::tuple{a.z, a.y, a.x} <=> std::tuple{b.z, b.y, b.x} == std::strong_ordering::less;
         });
 
-        for (u32 i = 0; auto& [coord, c] : chunk_array)
-            serialize_chunk_(*c, chunk_array[i++].buf);
+        for (auto& [buf, c] : chunk_array)
+            serialize_chunk_(*c, buf);
 
         {
             usize len = 0;
