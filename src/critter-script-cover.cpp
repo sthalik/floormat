@@ -18,6 +18,7 @@
 #include "compat/nanosecond.inl"
 #include "compat/timer.hpp"
 #include <algorithm>
+#include <array>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <mg/Functions.h>
@@ -99,6 +100,7 @@ const Array<Vector2i>& search_tiles()
     static const auto tiles = [] {
         Array<Vector2i> a;
         Cover::Point::nearest_tiles(search_radius + tile_size_xy, a);
+        fm_assert(a.size() <= UINT16_MAX);
         return a;
     }();
     return tiles;
@@ -193,8 +195,8 @@ private:
     // The spots of the search's tile search_tile, once tile_listed, of which tile_spot is next. They
     // were listed with the threat at tile_threat.
     Array<Cover::Point::spot> tile_spots;
-    // The spots of tile search_tile that search_step skipped, with search_octant at the time. A tile listed again
-    // skips without testing those it skipped in the current octant.
+    // The spots search_step skipped, each with its octant, in the tile that octant's scan has reached. A tile
+    // listed again skips without testing those it skipped in the current octant.
     Array<skipped_spot> tile_skipped;
     point tile_threat;
     // The first spots the search skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
@@ -213,9 +215,10 @@ private:
     u32 unreachable_reach = 0;
     u64 search_pass_gen = 0;
     u32 search_tile = 0, tile_spot = 0, num_failed_dijkstra_calls = 0, search_octant = 0;
-    // Tiles the search may still pass, and 0 once it ended. A restart sends
-    // search_tile to 0 only while more than a scan fits, so a moving threat can't keep the search near c.
+    // Tiles the search may still pass, and 0 once it ended. A restart or a change of octant moves search_tile
+    // back only while the rest of the scan fits, so a moving threat can't keep the search near c.
     u32 search_tiles_left = 0;
+    std::array<u16, Grid::Cover::octant_count> octant_search_tiles{};
     // Where the search's tiles and the threat's octant are measured from. The last restart to tile 0 set it to c's
     // position, or during a retreat walk to the walk's end, so that cover back toward the threat comes later.
     point search_from;
@@ -692,6 +695,7 @@ void cover_script::restart_search(critter& c)
         search_tile = 0;
         search_tiles_left--;
         arrayClear(tile_skipped);
+        octant_search_tiles = {};
     }
     search_octant = Cover::Point::nearest_octant(Vector2(threat_pos - search_from));
     tile_listed = false;
@@ -706,8 +710,8 @@ void cover_script::resume_search(critter& c)
         restart_search(c);
 }
 
-// Tries up to max_search_tiles_per_update tiles, each with its area and the threat's current position.
-// A new threat octant or changed pass grid within a failed path search's reach restarts the search.
+// Tries up to max_search_tiles_per_update tiles, each with its area and the threat's current position. A changed
+// pass grid within a failed path search's reach restarts the search, and a new threat octant resumes its own scan.
 void cover_script::search_step(critter& c)
 {
     using fallback = Cover::Script::options::fallback;
@@ -723,6 +727,7 @@ void cover_script::search_step(critter& c)
     // Listed spots hold only for the threat position they were listed for, and a Dijkstra search's result
     // only for the pass grids it ran in.
     const auto k = Cover::Point::nearest_octant(Vector2(threat_pos - search_from));
+    const auto& tiles = search_tiles();
     if (reach_pass_gen(c) > search_pass_gen)
     {
         num_failed_dijkstra_calls = 0;
@@ -732,11 +737,22 @@ void cover_script::search_step(critter& c)
         restart_search(c);
     }
     else if (k != search_octant)
-        restart_search(c);
+    {
+        octant_search_tiles[search_octant] = (u16)search_tile;
+        const auto from = st == state::retreat ? walk.dest() : c.position();
+        if (from == search_from && search_tiles_left > tiles.size() - octant_search_tiles[k] + 1)
+        {
+            search_octant = k;
+            search_tile = octant_search_tiles[k];
+            search_tiles_left--;
+            tile_listed = false;
+        }
+        else
+            restart_search(c);
+    }
     else if (threat_pos != tile_threat)
         tile_listed = false;
 
-    const auto& tiles = search_tiles();
     // With a spot kept for last_resort, the search ends in the update after its last spot, since that spot may
     // have used the update's one Dijkstra call.
     if (search_tile == tiles.size() || num_failed_dijkstra_calls == max_failed_dijkstra_calls)
@@ -841,7 +857,9 @@ void cover_script::search_step(critter& c)
             }
         }
         tile_listed = false;
-        arrayClear(tile_skipped);
+        const auto kept = std::remove_if(tile_skipped.begin(), tile_skipped.end(),
+                                         [&](const skipped_spot& x) { return x.octant == search_octant; });
+        arrayRemoveSuffix(tile_skipped, (usize)(tile_skipped.end() - kept));
         search_tile++;
         fm_debug_assert(search_tiles_left);
         search_tiles_left--;
