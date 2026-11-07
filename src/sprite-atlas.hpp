@@ -44,6 +44,7 @@ public:
     u16 layer_width() const;
     u16 layer_height() const;
     u16 layer_count() const;
+    u32 texture_gen() const;
 
     sprite add(const ImageView2D& pixels, bool allow_rotate = true);
 
