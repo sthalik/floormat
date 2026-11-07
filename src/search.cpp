@@ -11,6 +11,7 @@
 #include "point.inl"
 #include "compat/array-size.hpp"
 #include "compat/function2.hpp"
+#include "compat/zip.hpp"
 #include <bit>
 #include <mg/Range.h>
 
@@ -74,11 +75,8 @@ bool is_passable_neighbors_(const std::array<Chunk*, 8>& neighbors, Vector2 min,
 {
     fm_debug3_assert(max >= min);
 
-    for (auto i = 0u; i < 8; i++)
+    for (const auto& [c2, nb] : zip(neighbors, world::neighbor_offsets))
     {
-        auto nb = world::neighbor_offsets[i];
-        auto* c2 = neighbors[i];
-
         if (c2)
         {
             static_assert(array_size(world::neighbor_offsets) == 8);

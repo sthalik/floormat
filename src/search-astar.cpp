@@ -16,6 +16,7 @@
 #include "compat/floor-divmod.hpp"
 #include "compat/format.inl"
 #include "compat/function2.hpp"
+#include "compat/map.hpp"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"
 #include <array>
@@ -208,13 +209,9 @@ static_assert([] {
 
 std::array<dir_step, 8> make_directions(const Search::octile& oct)
 {
-    std::array<dir_step, 8> array;
-    for (auto i = 0uz; i < 8; i++)
-    {
-        const auto d = unit_directions[i];
-        array[i] = { d * (int)oct.axial, d, d.x() && d.y() ? oct.diag : oct.axial, window_mask(d.x(), d.y()) };
-    }
-    return array;
+    return map([axial = oct.axial, diag = oct.diag] [[fm_always_inline]] (Vector2i d) -> dir_step {
+        return { d * (int)axial, d, d.x() && d.y() ? diag : axial, window_mask(d.x(), d.y()) };
+    }, unit_directions);
 }
 
 void set_result_from_idx(path_search_result& result,
