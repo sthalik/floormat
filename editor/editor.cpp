@@ -26,7 +26,7 @@ struct editor::imgui_palette_cache
 {
     gtl::flat_hash_map<const SpriteAtlas::Sprite*, GL::Texture2D> sprite_copies;
     Array<GL::Texture2D> layer_views, retired_views;
-    UnsignedInt atlas_id = 0;
+    u32 texture_gen = 0;
     bool clear_requested = false;
 };
 
@@ -219,7 +219,7 @@ void editor::clear_imgui_palette_cache()
 {
     auto& c = *_imgui_palette_cache;
     arrayClear(c.retired_views);
-    if (c.clear_requested || !c.layer_views.isEmpty() && loader.atlas().texture().id() != c.atlas_id)
+    if (c.clear_requested || !c.layer_views.isEmpty() && loader.atlas().texture_gen() != c.texture_gen)
     {
         c.sprite_copies.clear();
         arrayClear(c.layer_views);
@@ -234,7 +234,7 @@ palette_texture_ref editor::palette_texture(sprite s)
     {
         auto& atlas = loader.atlas();
         auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
-        if (tex.id() != c.atlas_id) [[unlikely]]
+        if (atlas.texture_gen() != c.texture_gen) [[unlikely]]
         {
             arrayReserve(c.retired_views, Math::max(c.retired_views.size() + c.layer_views.size(), 16uz));
             // This frame's draw commands still name the old views.
@@ -242,7 +242,7 @@ palette_texture_ref editor::palette_texture(sprite s)
                 if (v.id())
                     arrayAppend(c.retired_views, move(v));
             arrayClear(c.layer_views);
-            c.atlas_id = tex.id();
+            c.texture_gen = atlas.texture_gen();
         }
         if (s.layer() >= c.layer_views.size()) [[unlikely]]
             arrayResize(c.layer_views, DirectInit, atlas.layer_count(), NoCreate);

@@ -55,6 +55,7 @@ struct Atlas
     GL::Texture2DArray texture{NoCreate};
     u16 layer_width = 0, layer_height = 0;
     u16 texture_layer_count = 0;
+    u32 texture_gen = 0;
 };
 
 u32 quantize_height(u32 h);

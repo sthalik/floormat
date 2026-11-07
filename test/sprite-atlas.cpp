@@ -248,6 +248,28 @@ void staged_adds_reach_texture()
     }
 }
 
+void each_texture_gets_new_texture_gen()
+{
+    sprite_atlas atlas{64, 64};
+    constexpr u32 w = 40, h = 40;
+    Array<unsigned char> src{ValueInit, w*h*4};
+    const Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src};
+    const auto gen0 = atlas.texture_gen();
+    atlas.add(view, false);
+    (void)atlas.texture();
+    const auto gen1 = atlas.texture_gen();
+    const auto layers = atlas.raw()->texture_layer_count;
+    fm_assert_equal(gen0 + 1, gen1);
+    grow_texture(*atlas.raw(), (u16)(layers * 2));
+    fm_assert_equal(gen1 + 1, atlas.texture_gen());
+    atlas.reset();
+    fm_assert_equal(gen1 + 1, atlas.texture_gen());
+    atlas.add(view, false);
+    (void)atlas.texture();
+    fm_assert_equal(layers, atlas.raw()->texture_layer_count);
+    fm_assert_equal(gen1 + 2, atlas.texture_gen());
+}
+
 void wrapper_accessors_roundtrip_values()
 {
     sprite_atlas atlas{256, 256};
@@ -361,6 +383,7 @@ void test_sprite_atlas()
     grow_keeps_bound_framebuffer();
     texcoords_encode_expected_corners();
     staged_adds_reach_texture();
+    each_texture_gets_new_texture_gen();
     wrapper_accessors_roundtrip_values();
     free_atlas_clears_state_and_allows_reuse();
     sprites_do_not_overlap_pairwise();

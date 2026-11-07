@@ -133,6 +133,7 @@ void grow_texture(Atlas& atlas, u16 new_layer_count)
 
     atlas.texture = move(new_texture);
     atlas.texture_layer_count = new_layer_count;
+    atlas.texture_gen++;
 }
 
 void ensure_texture(Atlas& atlas)
@@ -593,6 +594,7 @@ sprite_atlas& sprite_atlas::operator=(sprite_atlas&&) noexcept = default;
 u16 sprite_atlas::layer_width() const  { return _atlas->layer_width; }
 u16 sprite_atlas::layer_height() const { return _atlas->layer_height; }
 u16 sprite_atlas::layer_count() const  { return (u16)_atlas->layers.size(); }
+u32 sprite_atlas::texture_gen() const { return _atlas->texture_gen; }
 SpriteAtlas::Atlas* sprite_atlas::raw() { return _atlas.get(); }
 const SpriteAtlas::Atlas* sprite_atlas::raw() const { return _atlas.get(); }
 
