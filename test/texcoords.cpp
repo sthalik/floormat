@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/combinations.hpp"
 #include "compat/zip.hpp"
 #include "src/quads.hpp"
 #include <mg/Functions.h>
@@ -72,9 +73,8 @@ void test_mirror_and_rotated()
 void test_all_corners_unique()
 {
     auto tc = Quads::texcoords_at(pos, size, image_size, false, false);
-    for (unsigned i = 0; i < 4; i++)
-        for (unsigned j = i + 1; j < 4; j++)
-            fm_assert_not_equal(tc[i], tc[j]);
+    for (const auto& [a, b] : combinations(tc))
+        fm_assert_not_equal(a, b);
 }
 
 void test_rotation_order_4()

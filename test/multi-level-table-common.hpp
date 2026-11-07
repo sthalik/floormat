@@ -1,4 +1,5 @@
 #pragma once
+#include "compat/combinations.hpp"
 #include "compat/defs.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/multi-level-table.inl"
@@ -462,13 +463,12 @@ u64 check_layers(const multi_level_table<T, P>& t, Visit&& visit)
         constexpr u32 page_size = 1u << page_bits, zero_mask = (1u << zero_bits) - 1;
 
         const auto pages = t.raw_pages();
-        for (u32 i = 0; i < pages.size(); i++)
+        for (const auto& [a, b] : combinations(pages))
+            fm_assert(a.page != b.page);
+        for (const auto& rec : pages)
         {
-            const auto& rec = pages[i];
             fm_assert(rec.page && rec.page != t.raw_spare().page);
             fm_assert(detail_mlt::page_of(ref_at<zero_bits>(top, rec.top_index, rec.zero_index)) == rec.page);
-            for (u32 j = 0; j < i; j++)
-                fm_assert(pages[j].page != rec.page);
             const u64 base = (u64{rec.top_index} << zero_bits | rec.zero_index) << page_bits;
             u32 n = 0;
             for (u32 k = 0; k < page_size; k++)

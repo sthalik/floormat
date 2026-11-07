@@ -11,6 +11,7 @@
 #include "point.inl"
 #include "intra-coord.inl"
 #include "compat/array-size.hpp"
+#include "compat/combinations.hpp"
 #include "compat/fill.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/format.inl"
@@ -199,10 +200,9 @@ constexpr Vector2i unit_directions[8] = {
 };
 
 static_assert([] {
-    for (auto i = 0uz; i < 8; i++)
-        for (auto j = 0uz; j < i; j++)
-            if (unit_directions[i] == unit_directions[j])
-                return false;
+    for (const auto& [a, b] : combinations(unit_directions))
+        if (a == b)
+            return false;
     return true;
 }());
 

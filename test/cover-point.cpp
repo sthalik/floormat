@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/combinations.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/zip.hpp"
 #include "loader/loader.hpp"
@@ -381,11 +382,10 @@ Cover::Point::result find_listed(world& w, point npc, point threat, u32 radius)
     fm_assert_equal(r0.rejected, r.rejected);
     fm_assert(r.spots.isEmpty() == !r.found);
     fm_assert(!r.found || r.spots[0].pos == r.pos && r.spots[0].axis == r.axis);
-    for (auto i = 0u; i < r.spots.size(); i++)
+    for (const auto& [a, b] : combinations(r.spots))
+        fm_assert(a.pos != b.pos);
+    for (const auto [pos, axis] : r.spots)
     {
-        const auto [pos, axis] = r.spots[i];
-        for (auto j = i + 1; j < r.spots.size(); j++)
-            fm_assert(pos != r.spots[j].pos);
         fm_assert(passable(w, pos, body));
         // flush against its blocker
         fm_assert(!passable(w, pos + axis, body));
