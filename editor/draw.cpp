@@ -21,6 +21,7 @@
 #include <bit>
 #include <mg/Color.h>
 #include <mg/ImGuiIntegration/Context.h>
+#include <mg/Renderer.h>
 
 namespace floormat {
 
@@ -202,7 +203,9 @@ void app::draw()
         draw_cursor();
     draw_ui();
     ImGui::EndFrame();
+    GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
     _imgui->drawFrame();
+    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
     _editor->clear_imgui_palette_cache();
 
     M->texture_unit_cache().output_stats();
