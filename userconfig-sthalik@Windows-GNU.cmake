@@ -1,14 +1,22 @@
-set(_math "-fno-math-errno -fcx-limited-range -fexcess-precision=fast -fno-signed-zeros -fno-trapping-math -fassociative-math -freciprocal-math")
+string(CONCAT _math
+       "-funsafe-math-optimizations -fno-math-errno -fcx-limited-range -fexcess-precision=fast"
+       " -ffinite-math-only -fno-signed-zeros -fno-trapping-math -fno-rounding-math -fno-signaling-nans"
+       " -fassociative-math -freciprocal-math -ffp-contract=fast")
+string(CONCAT _release
+       "-O3 -march=x86-64-v2 -mtune=native -mavx -mavx2 -mprefer-vector-width=128 ${_math}"
+       " -fmerge-all-constants -fno-stack-protector -static -flto -flto-partition=none"
+       " -fipa-pta -fipa-icf -fipa-ra -fdevirtualize-speculatively -fno-semantic-interposition"
+       " -ffunction-sections -fdata-sections")
 sets(STRING
      CMAKE_C_FLAGS ""
      CMAKE_C_FLAGS_DEBUG "-Og -ggdb -fstack-protector-all" # fstack-reuse=none
-     CMAKE_C_FLAGS_RELEASE "-O3 -march=x86-64-v2 -mtune=native -mavx -mavx2 -ftree-vectorize ${_math} -fmerge-all-constants -fno-stack-protector -static -flto -flto-partition=none -fipa-pta -fipa-icf -fipa-ra -fdevirtualize-speculatively"
+     CMAKE_C_FLAGS_RELEASE "${_release}"
 )
 
 sets(STRING
      CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}"
      CMAKE_CXX_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}"
-     CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}"
+     CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fstrict-enums"
 )
 
 list(APPEND CMAKE_IGNORE_PATH "c:/msys64" "c:/msys64/clang64")
@@ -30,6 +38,7 @@ if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     set(OpenCV_DIR "f:/build/opencv/build-gcc-debug-floormat/install" CACHE PATH "" FORCE)
 else()
     set(BUILD_SHARED_LIBS OFF)
+    add_link_options(-Wl,--gc-sections)
     set(OpenCV_DIR "f:/build/opencv/build-gcc-release-floormat/install" CACHE PATH "" FORCE)
     if(NOT "${FLOORMAT_PGO}" STREQUAL "" AND NOT FLOORMAT_PGO_PROFDATA)
         set(FLOORMAT_PGO_PROFDATA "${CMAKE_CURRENT_LIST_DIR}/build/gcc-pgo-gcda" CACHE PATH "" FORCE)
