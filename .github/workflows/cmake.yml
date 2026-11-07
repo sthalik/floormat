@@ -84,7 +84,7 @@ jobs:
         export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
         export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
         set -e
-        xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --gl-only
+        MAGNUM_LOG=verbose xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --gl-only
         xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
       timeout-minutes: 60
       if: runner.os == 'Linux'
@@ -92,7 +92,7 @@ jobs:
     - name: Test without ARB_direct_state_access
       run: |
         cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=default MAGNUM_DISABLE_EXTENSIONS=GL_ARB_direct_state_access
+        export MAGNUM_LOG=verbose MAGNUM_DISABLE_EXTENSIONS=GL_ARB_direct_state_access
         export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
         export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
         export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
@@ -103,7 +103,7 @@ jobs:
     - name: Test without a GL context
       run: |
         cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=default
+        export MAGNUM_LOG=verbose
         export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
         env -u DISPLAY -u WAYLAND_DISPLAY gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --no-gl
       timeout-minutes: 60
@@ -112,7 +112,7 @@ jobs:
     - name: Test without a GL context
       run: |
         cd build/install
-        export MAGNUM_LOG=default
+        export MAGNUM_LOG=verbose
         lldb --batch -o "command script import ../../.github/lldbscript.py" -- bin/floormat-test --no-gl
       shell: bash
       timeout-minutes: 60
@@ -154,7 +154,7 @@ jobs:
     - name: Test without a GL context
       run: |
         cd build/install
-        export MAGNUM_LOG=default
+        export MAGNUM_LOG=verbose
         # lldb-server never resumes the process after it loads a plugin DLL.
         export LLDB_USE_LLDB_SERVER=0
         # A process started by a debugger otherwise gets the slow NT debug heap.
@@ -212,8 +212,8 @@ jobs:
         export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
         export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
         set -e
-        xvfb-run bin/floormat-test --gl-only
-        env -u DISPLAY -u WAYLAND_DISPLAY bin/floormat-test --no-gl
+        MAGNUM_LOG=verbose xvfb-run bin/floormat-test --gl-only
+        env -u DISPLAY -u WAYLAND_DISPLAY MAGNUM_LOG=verbose bin/floormat-test --no-gl
         xvfb-run bin/floormat-editor --scenes=drag-paint --driver-no-swapbuffers
       timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Linux' }}
@@ -260,7 +260,7 @@ jobs:
     - name: Test under memcheck
       run: |
         cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=default LD_LIBRARY_PATH="$PWD/lib"
+        export MAGNUM_LOG=verbose LD_LIBRARY_PATH="$PWD/lib"
         export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
         export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
         valgrind --version
@@ -270,7 +270,7 @@ jobs:
     - name: Test without a GL context under memcheck
       run: |
         cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=default LD_LIBRARY_PATH="$PWD/lib"
+        export MAGNUM_LOG=verbose LD_LIBRARY_PATH="$PWD/lib"
         env -u DISPLAY -u WAYLAND_DISPLAY valgrind bin/floormat-test --no-gl
       timeout-minutes: 60
       if: ${{ !cancelled() }}
@@ -325,7 +325,7 @@ jobs:
         export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
         export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
         set -e
-        gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --gl-only
+        MAGNUM_LOG=verbose gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --gl-only
         gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
       timeout-minutes: 60
 
@@ -333,7 +333,7 @@ jobs:
       shell: freebsd {0}
       run: |
         cd build/install
-        export MAGNUM_LOG=default
+        export MAGNUM_LOG=verbose
         export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
         gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --no-gl
       timeout-minutes: 60
