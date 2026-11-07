@@ -18,7 +18,7 @@ namespace floormat {
 
 namespace {
 constexpr inline char name_array[][3] = { "n", "ne", "e", "se", "s", "sw", "w", "nw", };
-constexpr inline auto rot_count = usize(rotation_COUNT);
+constexpr inline auto rot_count = unsigned(rotation_COUNT);
 } // namespace
 
 template class basic_bptr<anim_atlas, non_atomic_refcount>;
@@ -40,8 +40,8 @@ decltype(anim_atlas::_group_indices) anim_atlas::make_group_indices(const anim_d
     std::array<u8, rot_count> array = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     };
-    const auto ngroups = a.groups.size();
-    for (auto i = 0uz; i < ngroups; i++)
+    const auto ngroups = (u32)a.groups.size();
+    for (auto i = 0u; i < ngroups; i++)
         array[rotation_to_index(a.groups[i].name)] = u8(i);
     return array;
 }
@@ -96,25 +96,24 @@ auto anim_atlas::frame(rotation r, usize frame) const -> const anim_frame&
 
 auto anim_atlas::frame_quad(const Vector3& center, rotation r, usize i) const noexcept -> quad
 {
-    enum : usize { x, y, z };
     const auto f = frame(r, i);
-    const auto gx = f.ground[x]*.5f, gy = f.ground[y]*.5f;
+    const auto gx = f.ground.x()*.5f, gy = f.ground.y()*.5f;
     const auto size = Vector2(f.size);
-    const auto sx = size[x]*.5f, sy = size[y]*.5f;
-    const auto bottom_right = tile_shader::unproject({  sx - gx,  sy - gy }),
-               top_right    = tile_shader::unproject({  sx - gx,     - gy }),
-               bottom_left  = tile_shader::unproject({     - gx,  sy - gy }),
-               top_left     = tile_shader::unproject({     - gx,     - gy });
+    const auto sx = size.x()*.5f, sy = size.y()*.5f;
+    const auto bottom_right = tile_shader::unproject({ sx - gx, sy - gy }),
+               top_right    = tile_shader::unproject({ sx - gx,    - gy }),
+               bottom_left  = tile_shader::unproject({    - gx, sy - gy }),
+               top_left     = tile_shader::unproject({    - gx,    - gy });
     auto c = center + Vector3(group(r).offset);
-    // Texcoords run texel centre to texel centre, so texels map 1:1 only from a quad on a whole pixel.
+    // Texcoords run texel center to texel center, so texels map 1:1 only from a quad on a whole pixel.
     // A half-pixel y (odd x+y) is rounded up, as point_to_pixelʹ() does for the clickable rect.
-    const auto py = (c[x] + c[y])*.5f - c[z];
-    c[z] += py - std::floor(py);
+    const auto py = (c.x() + c.y())*.5f - c.z();
+    c.z() += py - std::floor(py);
     return {{
-        { c[x] + bottom_right[x], c[y] + bottom_right[y],  c[z] },
-        { c[x] + top_right[x],    c[y] + top_right[y],     c[z] },
-        { c[x] + bottom_left[x],  c[y] + bottom_left[y],   c[z] },
-        { c[x] + top_left[x],     c[y] + top_left[y],      c[z] },
+        { c.x() + bottom_right.x(), c.y() + bottom_right.y(),  c.z() },
+        { c.x() + top_right.x(),    c.y() + top_right.y(),     c.z() },
+        { c.x() + bottom_left.x(),  c.y() + bottom_left.y(),   c.z() },
+        { c.x() + top_left.x(),     c.y() + top_left.y(),      c.z() },
     }};
 }
 
@@ -139,11 +138,10 @@ BitArrayView anim_atlas::bitmask() const
 
 rotation anim_atlas::next_rotation_from(rotation r) const noexcept
 {
-    constexpr auto count = usize(rotation_COUNT);
-    for (auto i = usize(r)+1; i < count; i++)
+    for (auto i = unsigned(r)+1; i < rot_count; i++)
         if (_group_indices[i] != 0xff)
             return rotation(i);
-    for (auto i = 0uz; i < count; i++)
+    for (auto i = 0u; i < rot_count; i++)
         if (_group_indices[i] != 0xff)
             return rotation(i);
     fm_abort("where did the rotations go?!");
@@ -169,7 +167,7 @@ bool anim_atlas::check_rotation(rotation r) const noexcept
 
 rotation anim_atlas::first_rotation() const noexcept
 {
-    for (auto i = 0uz; i < rot_count; i++)
+    for (auto i = 0u; i < rot_count; i++)
         if (_group_indices[i] == 0)
             return rotation(i);
     fm_abort("unreachable! can't find first rotation");
