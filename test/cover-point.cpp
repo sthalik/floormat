@@ -2438,6 +2438,47 @@ void test_cover_script_far_cover(bool turned)
     w.finish_scripts();
 }
 
+u32 far_cover_search_updates(Vector2i threat_step)
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {12, 8}, {16, 96});
+    rebuild(w);
+    const point threat_pos{ch, {15, 8}, {}}, npc_pos{ch, {4, 8}, {}};
+    const auto threat = add_critter(w, threat_pos);
+    auto npc = add_critter(w, npc_pos);
+    w.init_scripts();
+    auto A = astar{};
+    npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
+    const auto frame = Second / npc->atlas->info().fps;
+    const auto status = [&] { return *Cover::Script::get_status(*npc); };
+    const auto step = [&] { step_critter(w, npc, frame); };
+    const auto move_threat = [&](point pos) {
+        auto i = threat->index();
+        threat->teleport_to(i, pos, rotation_COUNT);
+    };
+    auto updates = 0u;
+    for (step(); status().st == state::search; updates++)
+    {
+        fm_assert(updates < 2000);
+        if (!threat_step.isZero())
+            move_threat(updates % 2 ? threat_pos : threat_pos + threat_step);
+        step();
+    }
+    const auto t = status();
+    fm_assert(t.st == state::to_cover && t.has_cover);
+    fm_assert(point::distance(npc_pos, t.cover) > 7*(u32)tile_size_xy);
+    w.finish_scripts();
+    return updates;
+}
+
+void test_cover_script_search_threat_back_and_forth()
+{
+    const auto still = far_cover_search_updates({});
+    const auto moving = far_cover_search_updates({0, 96});
+    fm_assert(moving < 2*still);
+}
+
 // In test_cover_script_far_cover's world, options with div_size 16, set while the search runs past
 // its first 32 tiles, start it over in the grids of that div_size, where it finds the far cover.
 void test_cover_script_div_change()
@@ -3101,6 +3142,7 @@ void Test::test_cover_point()
     test_cover_script_retreat_end_seen(hidden);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
+    test_cover_script_search_threat_back_and_forth();
     test_cover_script_div_change();
     test_cover_script_orders(hidden);
     test_cover_script_threat_off_floor();
