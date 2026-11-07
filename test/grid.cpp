@@ -14,6 +14,7 @@
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/scenery-proto.hpp"
+#include "src/scenery.hpp"
 #include "src/tile-defs.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
@@ -1804,7 +1805,7 @@ void test_cover_stepped_tracks_ray(u32 div_size, ArrayView<const u32> octants)
     }
 }
 
-void add_blocker(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bbox_size)
+bptr<scenery> add_blocker(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bbox_size)
 {
     scenery_proto p;
     p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
@@ -1812,7 +1813,7 @@ void add_blocker(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bb
     p.bbox_offset = bbox_offset;
     p.bbox_size   = bbox_size;
     p.pass        = pass_mode::blocked;
-    w.make_scenery(w.make_id(), pos, move(p));
+    return w.make_scenery(w.make_id(), pos, move(p));
 }
 
 // A cardinal ray from an integer center reports the face exactly, so each cell is
@@ -1985,6 +1986,36 @@ void test_cover_rebuilds_on_ring2_change(u32 div_size)
     }
 }
 
+void test_cover_rebuilds_on_ring2_collect(u32 div_size)
+{
+    constexpr auto E2 = chunk_coords_{2, 0, 0};
+    auto w = world();
+    for (auto ch : { COORD, E2 })
+        add_ground_all(w[ch]);
+    const auto blocker = add_blocker(w, {E2, local_coords{0, 8}}, {-64, 0}, {32, 64});
+    for (auto ch : { COORD, E2 })
+        rebuild_passability(w[ch]);
+
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
+    const auto dc = chunk_size_xy / div_size;
+    const auto cell = Grid::Cover::Grid::get_cell_index(dc - 1, (u32)(tile_size_xy*8 + half_tile<int>) / div_size, dc);
+    const auto east = [&] {
+        pool.maybe_mark_stale_all(w);
+        Grid::Cover::Grid g = pool[w[COORD]];
+        g.build_if_stale();
+        (void)g.ensure_octant(0);
+        return (u32)g.distance(cell, 0);
+    };
+    fm_assert(east() < dc);
+
+    w[E2].kill_object(*blocker, blocker->index());
+    clear_ground_all(w[E2]);
+    w.collect(true, true);
+    fm_assert(!w.at(E2));
+    fm_assert_equal(dc, east());
+}
+
 // The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
 // ray rounded. Seeds rounded to whole units would be off by up to one more half unit.
 void test_cover_diagonal_matches_ray(u32 div_size)
@@ -2120,7 +2151,10 @@ void test_grid()
         test_cover_blocked_cells(ds);
     test_cover_rebuilds_on_neighbor_change(16);
     for (const auto ds : { 8u, 16u })
+    {
         test_cover_rebuilds_on_ring2_change(ds);
+        test_cover_rebuilds_on_ring2_collect(ds);
+    }
     // Below 8, planes are u16, and one octant of each step, turned and mirrored, keeps the rays few.
     constexpr u32 some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan
