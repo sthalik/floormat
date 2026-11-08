@@ -129,7 +129,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
                         vert(xb, 0.f, db), vert(xb, tb, db),
                         vert(xa, 0.f, da), vert(xa, ta, da),
                     }};
-                    scenery_static_mesh.add(v, front_depth, &e);
+                    scenery_static_mesh.add(v, front_depth, nullptr);
                 }
                 if (ta < 1.f || tb < 1.f)
                 {
@@ -138,7 +138,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
                         vert(xb, tb, db), vert(xb, 1.f, db),
                         vert(xa, ta, da), vert(xa, 1.f, da),
                     }};
-                    scenery_static_mesh.add(v, back_depth, &e);
+                    scenery_static_mesh.add(v, back_depth, nullptr);
                 }
             }
             // --- end slope-based split ---
@@ -148,7 +148,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
 
     if (modify_static)
         sb.sort_by_depth(scenery_static_mesh);
-    sb.emit(scenery_static_mesh, render_vobjs);
+    sb.emit<true>(scenery_static_mesh, render_vobjs);
 }
 
 } // namespace floormat

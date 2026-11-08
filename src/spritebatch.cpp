@@ -322,6 +322,7 @@ void SpriteBatch::end_chunk()
 template void SpriteBatch::end_chunk<false>();
 template void SpriteBatch::end_chunk<true>();
 
+template<bool SkipObjects>
 void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
 {
     const auto size = list.size();
@@ -337,29 +338,46 @@ void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
 
     u32 n = 0;
 
-    if (render_vobjs)
-        for (; n < size; n++)
-        {
-            V[n] = Vin[n];
-            D[n] = Din[n];
-        }
+    if constexpr(SkipObjects)
+    {
+        fm_UNROLL_8 for (auto i = 0u; i < size; i++)
+            V[i] = Vin[i];
+        fm_UNROLL_8 for (auto i = 0u; i < size; i++)
+            D[i] = Din[i];
+        n += size;
+    }
     else
     {
-        object* const* const O = list.Objects.data();
-        for (auto i = 0u; i < size; i++)
+        if (render_vobjs)
         {
-            const auto* obj = O[i];
-            if (obj && obj->is_virtual())
-                continue;
-            V[n] = Vin[i];
-            D[n] = Din[i];
-            n++;
+            fm_UNROLL_8 for (auto i = 0u; i < size; i++)
+            {
+                V[i] = Vin[i];
+                D[i] = Din[i];
+            }
+            n += size;
+        }
+        else
+        {
+            object* const* const O = list.Objects.data();
+            fm_UNROLL_8 for (auto i = 0u; i < size; i++)
+            {
+                const auto* obj = O[i];
+                if (obj && obj->is_virtual())
+                    continue;
+                V[n] = Vin[i];
+                D[n] = Din[i];
+                n++;
+            }
         }
     }
 
     impl.emit_pos = first + n;
     end_chunk<false>();
 }
+
+template void SpriteBatch::emit<true>(SpriteList& list, bool render_vobjs);
+template void SpriteBatch::emit<false>(SpriteList& list, bool render_vobjs);
 
 // Sorting the zip_view directly moves 124 bytes per iter_move to order by a 4-byte key. Sort a
 // permutation instead, then walk its cycles in place.

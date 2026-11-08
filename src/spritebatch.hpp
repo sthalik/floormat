@@ -36,6 +36,8 @@ public:
 
     static void add_clickable(const object& s, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
     void emit(const Quads::vertexes& vertexes, float depth);
+
+    template<bool SkipObjects>
     void emit(SpriteList& list, bool render_vobjs);
     void sort_by_depth(SpriteList& list);
 

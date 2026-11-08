@@ -400,7 +400,7 @@ void run_list(benchmark::State& state, bool render_vobjs)
     {
         sb.clear();
         for (auto i = 0u; i < k; i++)
-            sb.emit(list, render_vobjs);
+            sb.emit<false>(list, render_vobjs);
         benchmark::DoNotOptimize(sb.merged_order().data());
     }
 }

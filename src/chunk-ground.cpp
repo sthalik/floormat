@@ -45,7 +45,7 @@ void chunk::ensure_ground_mesh(SpriteBatch& sb)
             ground_static_mesh.add(v, depth, nullptr);
         }
     }
-    sb.emit(ground_static_mesh, false);
+    sb.emit<true>(ground_static_mesh, false);
 }
 
 } // namespace floormat

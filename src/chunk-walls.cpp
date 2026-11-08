@@ -575,7 +575,7 @@ void chunk::ensure_wall_mesh(SpriteBatch& sb)
             do_wall_tile<true>(*this, W, wall_static_mesh, coord, k);
         }
     }
-    sb.emit(wall_static_mesh, false);
+    sb.emit<true>(wall_static_mesh, false);
 }
 
 } // namespace floormat
