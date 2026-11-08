@@ -145,7 +145,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addBooleanOption("minimized").setHelp("minimized", "start minimized, without taking focus")
         .addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "vertical sync", "true|false")
         .addOption('g', "geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
-        .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "windowed|fullscreen|borderless")
+        .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "fullscreen|maximized|windowed|minimized")
         .addOption("fixed-framerate", "").setHelp("fixed-framerate", "feed update() a constant dt, 0 for the measured frame time; 60 with --scenes, else 0", "HZ")
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
         .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns to FILE, one per line", "FILE")
@@ -157,6 +157,8 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addBooleanOption("driver-save-world").setHelp("driver-save-world", "write driver-saves/driver-NN_<scene>-{pre,post}.dat around every scene")
 #endif
         .parse(argc, argv);
+    if (args.isSet("minimized"))
+        WARN << "warning: --minimized is deprecated, use --window=minimized";
     opts.minimized = args.isSet("minimized");
     if (const auto s = args.value<StringView>("load-game"))
         opts.load_game = resolve_load_game_path(s);
@@ -277,26 +279,18 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     if (auto str = args.value<StringView>("window");
         str == "fullscreen")
     {
-        opts.fullscreen = true;
-        opts.resizable = false;
-    }
-    else if (str == "borderless")
-    {
-        opts.borderless = true;
-        opts.resizable = false;
-    }
-    else if (str == "fullscreen-desktop")
-    {
         opts.fullscreen_desktop = true;
         opts.resizable = false;
     }
-    else if (str == "maximize" || str == "maximized")
+    else if (str == "maximized")
         opts.maximized = true;
     else if (str == "windowed")
         (void)0;
+    else if (str == "minimized")
+        opts.minimized = true;
     else
     {
-        ERR_nospace << "invalid display mode '" << str << "'";
+        ERR_nospace << "invalid window mode '" << str << "'";
         std::exit(EX_USAGE);
     }
     return opts;
