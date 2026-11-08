@@ -271,6 +271,8 @@ bool sweep_row(u16* prev, T* out, const u8* row_bits, i32 sx, u32 step,
         }
 }
 
+} // namespace
+
 // whole vectors, each starting on a byte of the pass grid
 bool stepped_rows_vectorize(u32 dc)
 {
@@ -291,6 +293,8 @@ void expand_pass_row(u16* out, const u8* row_bits, u32 dc)
     for (u32 x = 0; x < dc; x += N)
         hn::StoreU(hn::VecFromMask(d, hn::LoadMaskBits(d, bits + x / 8)), d, out + x);
 }
+
+namespace {
 
 // One row of a stepped octant, as fill_stepped() describes it. next is the row |p| back in sweep
 // order and masks[j] the pass masks of the row j back. A cell whose cell a step away is off the

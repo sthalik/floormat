@@ -1749,6 +1749,43 @@ void test_cover_octant_directions()
     }
 }
 
+// GCC 16.2 miscompiled expand_pass_row() with -fprofile-generate -funroll-loops. With 8 u16 lanes, LoadMaskBits()
+// zeroes a register and loads one byte into its low 8 bits. In the unrolled loop's first copy x / 8 is 0, and GCC
+// used one register as both that zero index and the mask: xor eax,eax, then mov al,[rcx+rax]. An i386 peephole,
+// which checks only that both instructions name the same register, made that movzx eax,[rcx+rax] and dropped the
+// xor, so the address used rax while it still held __memcpy_chk's return value, &bits. rcx held &bits too, so a
+// later pass wrote movzx r8d,[rax+rax], a read at twice the stack address. The later unrolled copies are correct.
+void test_expand_pass_row()
+{
+    for (auto dc = 8u; dc <= chunk_size_xy; dc += 8)
+    {
+        if (!detail::grid::stepped_rows_vectorize(dc))
+            continue;
+        for (auto pattern = 0u; pattern < 4; pattern++)
+        {
+            auto row = Array<u8>{NoInit, dc / 8};
+            for (auto i = 0u; i < dc / 8; i++)
+            {
+                const auto b = (u8)(i * 37 + 11);
+                const u8 bytes[] = { 0, 0xff, b, (u8)~b };
+                row[i] = bytes[pattern];
+            }
+            auto out = Array<u16>{DirectInit, dc, u16{0x1234}};
+            detail::grid::expand_pass_row(out.data(), row.data(), dc);
+            for (auto x = 0u; x < dc; x++)
+            {
+                const auto expected = (u16)(row[x >> 3] >> (x & 7) & 1 ? 0xffff : 0);
+                if (out[x] != expected)
+                {
+                    ERR << "!!! fatal: dc" << dc << "pattern" << pattern << "cell" << x
+                        << "mask" << out[x] << "but expected" << expected;
+                    fm_abort("expand_pass_row() gave a wrong mask");
+                }
+            }
+        }
+    }
+}
+
 // A stepped octant carries the rays of cells near the far edges a step at a time, along the line
 // each ray runs on. With nothing blocked in the chunk, a cell must hold its own ray to within one
 // unit.
@@ -1902,6 +1939,63 @@ void test_cover_blocked_cells(u32 div_size)
                 blocked += !passable;
             }
         fm_assert(blocked > 0);
+    }
+}
+
+// Each fill_stepped<T>() has its own inlined copy of expand_pass_row(), which test_expand_pass_row() doesn't run.
+// The blockers make the first byte of a row's pass bits differ between rows.
+void test_cover_stepped_blocked_cells(u32 div_size, ArrayView<const u32> octants)
+{
+    auto w = world();
+    auto& c = w[COORD];
+    add_ground_all(c);
+    for (auto j = 0u; j < TILE_MAX_DIM; j++)
+        add_blocker(w, {COORD, local_coords{0, (u8)j}}, {(i8)((j*7) % 29 - 20), (i8)((j*11) % 23 - 12)},
+                    {(u8)(3 + (j*5) % 13), (u8)(5 + (j*3) % 13)});
+    rebuild_passability(c);
+
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
+    pool.maybe_mark_stale_all(w);
+    Grid::Cover::Grid g = pool[c];
+    g.build_if_stale();
+
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    tick(w, pass_pool);
+    Pass::Grid pg = pass_pool[c];
+    pg.build_if_stale();
+
+    const auto dc = g.div_count();
+    u32 mixed_rows = 0;
+    for (auto y = 0u; y < dc; y++)
+    {
+        u32 passable = 0;
+        for (auto x = 0u; x < 8; x++)
+            passable += pg.bit(Pass::Grid::get_bitmask_index(x, y, dc));
+        mixed_rows += passable > 0 && passable < 8;
+    }
+    if (mixed_rows < TILE_MAX_DIM)
+    {
+        ERR << "!!! fatal: div_size" << div_size << "only" << mixed_rows
+            << "rows have both kinds of cells among their first 8";
+        fm_abort("the blockers don't vary the first byte of the rows");
+    }
+
+    for (auto k : octants)
+    {
+        (void)g.ensure_octant(k);
+        for (auto y = 0u; y < dc; y++)
+            for (auto x = 0u; x < dc; x++)
+            {
+                const auto d = g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
+                const bool passable = pg.bit(Pass::Grid::get_bitmask_index(x, y, dc));
+                if (passable != (d != Grid::Cover::blocked) || passable && d > dc)
+                {
+                    ERR << "!!! fatal: div_size" << div_size << "octant" << k << "cell" << x << y
+                        << "distance" << d << "but passable" << passable;
+                    fm_abort("a stepped octant's cell disagrees with the pass grid");
+                }
+            }
     }
 }
 
@@ -2134,6 +2228,7 @@ void test_grid()
         if (k % 4 != 0)
             stepped_octants[n++] = k;
     }
+    test_expand_pass_row();
     test_cover_octant_directions();
     for (const auto ds : { 1u, 2u, 8u })
         test_cover_east_distance(ds);
@@ -2146,7 +2241,11 @@ void test_grid()
     // 4 has u16 planes
     constexpr u32 first_steps[] = { 1u, 2u };
     for (const auto ds : { 4u, 8u, 16u })
-        test_cover_stepped_tracks_ray(ds, ds < 8 ? ArrayView<const u32>{first_steps} : stepped_octants);
+    {
+        const auto octants = ds < 8 ? ArrayView<const u32>{first_steps} : stepped_octants;
+        test_cover_stepped_tracks_ray(ds, octants);
+        test_cover_stepped_blocked_cells(ds, octants);
+    }
     for (const auto ds : { 8u, 16u })
         test_cover_blocked_cells(ds);
     test_cover_rebuilds_on_neighbor_change(16);
