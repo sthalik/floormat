@@ -243,6 +243,7 @@ function(fm-userconfig-external)
              MAGNUM_BUILD_TESTS                                 ON
         )
     endif()
+    sets(STRING CORRADE_TESTSUITE_TEST_TARGET corrade-test)
 endfunction()
 
 # for test_app sources only

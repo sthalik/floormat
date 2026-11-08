@@ -100,8 +100,8 @@ function(fm-userconfig-external)
         )
     else()
         sets(BOOL
-             CORRADE_BUILD_TESTS                                    OFF
-             MAGNUM_BUILD_TESTS                                     OFF
+             CORRADE_BUILD_TESTS                                    ON
+             MAGNUM_BUILD_TESTS                                     ON
              SDL_STATIC                                             ON
              SDL_SHARED                                             OFF
              CORRADE_BUILD_STATIC                                   ON
@@ -112,6 +112,7 @@ function(fm-userconfig-external)
         )
         set(OpenCV_DIR "OpenCV_DIR-NOTFOUND" CACHE STRING "" FORCE)
     endif()
+    sets(STRING CORRADE_TESTSUITE_TEST_TARGET corrade-test)
 endfunction()
 
 # for floormat sources only
