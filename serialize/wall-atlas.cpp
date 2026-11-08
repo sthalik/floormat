@@ -6,6 +6,7 @@
 #include "corrade-array.hpp"
 #include "compat/exception.hpp"
 #include "compat/array-size.hpp"
+#include "compat/zip.hpp"
 #include "loader/loader.hpp"
 #include <string_view>
 #include <cr/ArrayViewStl.h>
@@ -76,9 +77,8 @@ bool wall_atlas_def::operator==(const wall_atlas_def& other) const noexcept
         return false;
     if (direction_array.size() != other.direction_array.size())
         return false;
-    for (u8 i = 0; i < array_size(direction_map); i++)
+    for (auto [i1, i2] : zip(direction_map, other.direction_map))
     {
-        auto i1 = direction_map[i], i2 = other.direction_map[i];
         if (!i1 != !i2)
             return false;
         if (i1)
