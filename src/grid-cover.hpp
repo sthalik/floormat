@@ -54,14 +54,22 @@ public:
 
     u32 div_count() const;
     u64 build_no() const;
+    /// @copydoc floormat::Grid::Pass::Grid::built_pass_gen()
+    u64 built_pass_gen() const;
 
     explicit operator bool() const noexcept;
     detail::grid::CoverGrid* raw() const noexcept;
 
-    bool is_stale() const;
+    /// @copydoc floormat::Grid::Pass::Grid::is_marked_stale()
+    bool is_marked_stale() const;
     void mark_stale();
     void maybe_mark_stale();
     void build_if_stale();
+    /// @brief True when the grid is marked stale, or a chunk up to two away from its own, its own included,
+    /// changed after its build.
+    bool is_stale() const;
+    /// @copydoc floormat::Grid::Pass::Grid::is_stale(u64)
+    bool is_stale(u64 pass_gen) const;
 
     bool ensure_octant(u32 k);
     bool fill_next_unfilled();

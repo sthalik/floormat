@@ -48,7 +48,7 @@ GridBase::GridBase(chunk& ch):
 {
 }
 
-bool GridBase::is_stale() const
+bool GridBase::is_marked_stale() const
 {
     return built_pass_gen == 0;
 }
@@ -84,7 +84,7 @@ void GridBase::maybe_mark_stale()
 {
     fm_debug3_assert(c && c->world().at(coord) == c);
 
-    if (!is_stale() && !is_current())
+    if (!is_marked_stale() && !is_current())
         mark_stale();
 }
 

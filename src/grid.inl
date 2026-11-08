@@ -31,7 +31,7 @@ requires requires(Self& s, chunk* sc, Args&&... a) {
 }
 void GridBase::build_if_stale(this Self& self, Args&&... args)
 {
-    if (!self.is_stale())
+    if (!self.is_marked_stale())
         return;
 
     chunk* sc = self.c;
@@ -80,7 +80,7 @@ T* Pool<T>::take(chunk& ch) requires BitGrid<T>
 template <typename T>
 void check_current([[maybe_unused]] T* grid)
 {
-    fm_debug3_assert(grid->is_stale() || grid->is_current());
+    fm_debug3_assert(grid->is_marked_stale() || grid->is_current());
 }
 
 template <typename T>

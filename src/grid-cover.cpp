@@ -379,6 +379,10 @@ struct CoverGrid : GridBase
     // the next ring out. Only maybe_mark_stale() calls this, as check_current() runs on reads.
     bool ring2_is_current() const;
     void maybe_mark_stale();
+    /// @copydoc floormat::Grid::Cover::Grid::is_stale()
+    bool is_stale() const;
+    /// @copydoc floormat::Grid::Cover::Grid::is_stale(u64)
+    bool is_stale(u64 pass_gen) const;
     template<typename T> T* octant_plane(u32 k);
 
     static u32 get_cell_index(u32 x, u32 y, u32 div_count);
@@ -435,11 +439,21 @@ bool CoverGrid::ring2_is_current() const
     return true;
 }
 
+bool CoverGrid::is_stale() const
+{
+    return is_marked_stale() || !is_current() || !ring2_is_current();
+}
+
+bool CoverGrid::is_stale(u64 pass_gen) const
+{
+    return pass_gen != built_pass_gen || !is_current() || !ring2_is_current();
+}
+
 void CoverGrid::maybe_mark_stale()
 {
     fm_debug3_assert(c && c->world().at(coord) == c);
 
-    if (!is_stale() && (!is_current() || !ring2_is_current()))
+    if (!is_marked_stale() && (!is_current() || !ring2_is_current()))
         mark_stale();
 }
 
@@ -762,13 +776,16 @@ u16 Grid::distance(u32 index, u32 octant) const
 
 u32 Grid::div_count() const { return chunk_size_xy / grid->params.div_size; }
 u64 Grid::build_no() const { return grid->build_no; }
+u64 Grid::built_pass_gen() const { return grid->built_pass_gen; }
 
 Grid::operator bool() const noexcept { return grid != nullptr; }
 detail::grid::CoverGrid* Grid::raw() const noexcept { return grid; }
 
-bool Grid::is_stale() const { return grid->is_stale(); }
+bool Grid::is_marked_stale() const { return grid->is_marked_stale(); }
 void Grid::mark_stale() { grid->mark_stale(); }
 void Grid::maybe_mark_stale() { grid->maybe_mark_stale(); }
+bool Grid::is_stale() const { return grid->is_stale(); }
+bool Grid::is_stale(u64 pass_gen) const { return grid->is_stale(pass_gen); }
 
 void Grid::build_if_stale()
 {

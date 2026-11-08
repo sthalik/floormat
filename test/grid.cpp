@@ -702,8 +702,15 @@ void test_explicit_wrapper_mark_stale_rebuilds(u32 div_size)
     const auto base = count_passable_built(pool, c);
 
     Pass::Grid g = pool[c];
+    const auto pass_gen = g.built_pass_gen();
+    fm_assert(!g.is_stale());
+    fm_assert(!g.is_stale(pass_gen));
     g.mark_stale();
+    fm_assert(g.is_stale());
+    fm_assert(g.is_stale(pass_gen));
     g.build_if_stale();
+    fm_assert(!g.is_stale());
+    fm_assert(!g.is_stale(pass_gen));
     fm_assert(count_passable(g) == base);
 }
 
@@ -717,12 +724,19 @@ void test_mark_modified_only_without_ensure_passability(u32 div_size)
     Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}, Search::without_critters()};
     tick(w, pool);
     const auto base = count_passable_built(pool, c);
+    const auto g = pool[c];
+    const auto pass_gen = g.built_pass_gen();
 
     add_wall_north(c, {8, 8});
     c.mark_passability_modified();
+    fm_assert(g.is_stale());
+    fm_assert(g.is_stale(pass_gen));
 
     tick(w, pool);
     const auto after = count_passable_built(pool, c);
+    fm_assert(!g.is_stale());
+    fm_assert(g.is_stale(pass_gen));
+    fm_assert(!g.is_stale(g.built_pass_gen()));
     fm_assert(after < base);
 }
 
@@ -739,14 +753,49 @@ void test_neighbor_mark_only_without_ensure_detected(u32 div_size)
     Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}, Search::without_critters()};
     tick(w, pool);
     const auto base0 = count_passable_built(pool, c0);
+    const auto g0 = pool[c0];
+    const auto pass_gen = g0.built_pass_gen();
 
     for (auto y = 0u; y < TILE_MAX_DIM; y++)
         c1[{0, (u8)y}].wall_west() = wall_proto();
     c1.mark_passability_modified();
+    fm_assert(g0.is_stale());
+    fm_assert(g0.is_stale(pass_gen));
 
     tick(w, pool);
     const auto after0 = count_passable_built(pool, c0);
+    fm_assert(!g0.is_stale());
+    fm_assert(g0.is_stale(pass_gen));
+    fm_assert(!g0.is_stale(g0.built_pass_gen()));
     fm_assert(after0 < base0);
+}
+
+// built_pass_gen() is world::pass_gen() at the rebuild, so a rebuild after an edit anywhere in the world
+// changes it, although nothing the grid reads changed.
+void test_rebuild_after_far_change_reads_as_stale(u32 div_size)
+{
+    auto w = world();
+    auto& c = w[COORD];
+    add_ground_all(c);
+    rebuild_passability(c);
+
+    Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}, Search::without_critters()};
+    Pass::Grid g = pool[c];
+    tick(w, pool);
+    const auto pass_gen = g.built_pass_gen();
+
+    g.mark_stale();
+    g.build_if_stale();
+    fm_assert(g.built_pass_gen() == pass_gen);
+    fm_assert(!g.is_stale(pass_gen));
+
+    (void)w[chunk_coords_{8, 8, 0}];
+    fm_assert(!g.is_stale());
+    g.mark_stale();
+    g.build_if_stale();
+    fm_assert(g.built_pass_gen() > pass_gen);
+    fm_assert(!g.is_stale());
+    fm_assert(g.is_stale(pass_gen));
 }
 
 void test_params_preserved_through_pool(u32 div_size)
@@ -2186,6 +2235,7 @@ void test_grid()
         test_explicit_wrapper_mark_stale_rebuilds(ds);
         test_mark_modified_only_without_ensure_passability(ds);
         test_neighbor_mark_only_without_ensure_detected(ds);
+        test_rebuild_after_far_change_reads_as_stale(ds);
         test_params_preserved_through_pool(ds);
         test_collect_all_chunks_no_crash(ds);
         test_pool_reuse_after_collect(ds);

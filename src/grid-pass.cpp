@@ -365,6 +365,26 @@ u64 Grid::build_no() const
     return grid->build_no;
 }
 
+u64 Grid::built_pass_gen() const
+{
+    return grid->built_pass_gen;
+}
+
+bool Grid::is_marked_stale() const
+{
+    return grid->is_marked_stale();
+}
+
+bool Grid::is_stale() const
+{
+    return grid->is_marked_stale() || !grid->is_current();
+}
+
+bool Grid::is_stale(u64 pass_gen) const
+{
+    return pass_gen != grid->built_pass_gen || !grid->is_current();
+}
+
 bool Grid::is_all_empty() const
 {
     detail::grid::check_current(grid);
@@ -383,9 +403,9 @@ void Grid::mark_stale()
 
 void Grid::maybe_mark_stale()
 {
-    bool was_stale = grid->is_stale();
+    bool was_stale = grid->is_marked_stale();
     grid->maybe_mark_stale();
-    if (!was_stale && grid->is_stale())
+    if (!was_stale && grid->is_marked_stale())
         detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
             auto* c = grid->c->world().at(ch);
             return c ? pool->find(*c) : nullptr;

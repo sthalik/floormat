@@ -479,7 +479,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
     };
     // False, with g unchanged, when building g or filling octant k would pass q.max_fills.
     const auto ensure = [&](Grid::Cover::Grid& g, u32 k) {
-        if (g.is_stale())
+        if (g.is_marked_stale())
         {
             if (!may_fill())
                 return false;

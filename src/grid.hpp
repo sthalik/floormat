@@ -40,7 +40,8 @@ struct GridBase
     explicit GridBase(chunk& ch);
     fm_DISABLE_MOVE_COPY(GridBase);
 
-    bool is_stale() const;
+    /// @brief True after construction, reuse or mark_stale(), until build_if_stale() rebuilds the grid.
+    bool is_marked_stale() const;
     void mark_stale();
     void reset_base_for_reuse(chunk& ch);
     bool is_current() const;

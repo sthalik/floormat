@@ -68,6 +68,16 @@ public:
 
     u32 div_count() const;
     u64 build_no() const;
+    /// @brief world::pass_gen() when build_if_stale() last rebuilt the grid, or 0 while it is marked stale.
+    u64 built_pass_gen() const;
+    /// @brief True when the grid was marked stale and build_if_stale() hasn't rebuilt it since. A grid that
+    /// Pool::operator[] creates starts out marked.
+    bool is_marked_stale() const;
+    /// @brief True when the grid is marked stale, or its chunk or a neighbor changed after its build.
+    bool is_stale() const;
+    /// @param pass_gen What built_pass_gen() returned when the caller read the grid's data.
+    /// @return True when built_pass_gen() no longer equals @p pass_gen, or is_stale() holds.
+    bool is_stale(u64 pass_gen) const;
     bool is_all_empty() const;
 
     detail::grid::PassGrid* raw() const noexcept;
