@@ -390,19 +390,28 @@ SpriteList& get_list_fixture(u32 m)
     return list;
 }
 
-void run_list(benchmark::State& state, bool render_vobjs)
+void run_list(benchmark::State& state, bool render_vobjs, bool objects)
 {
     const auto k = (u32)state.range(0);
     auto& list = get_list_fixture((u32)state.range(1));
     auto sb = SpriteBatch{};
 
-    for (auto _ : state)
-    {
-        sb.clear();
-        for (auto i = 0u; i < k; i++)
-            sb.emit<false>(list, render_vobjs);
-        benchmark::DoNotOptimize(sb.merged_order().data());
-    }
+    if (!objects)
+        for (auto _ : state)
+        {
+            sb.clear();
+            for (auto i = 0u; i < k; i++)
+                sb.emit<false>(list, render_vobjs);
+            benchmark::DoNotOptimize(sb.merged_order().data());
+        }
+    else
+        for (auto _ : state)
+        {
+            sb.clear();
+            for (auto i = 0u; i < k; i++)
+                sb.emit<true>(list, render_vobjs);
+            benchmark::DoNotOptimize(sb.merged_order().data());
+        }
 }
 
 void list_args(benchmark::Benchmark* b)
@@ -490,15 +499,20 @@ void SpriteBatch_MixedMerge(benchmark::State& state)
     run_mixed_merge(state);
 }
 
-// What ground and walls do: every Objects entry is null, so the filter never reaches is_virtual().
-void SpriteBatch_Emit_List(benchmark::State& state)
+void SpriteBatch_Emit_List_Non_Obj(benchmark::State& state)
 {
-    run_list(state, false);
+    run_list(state, false, false);
+}
+
+// What ground and walls do: every Objects entry is null, so the filter never reaches is_virtual().
+void SpriteBatch_Emit_List_Obj(benchmark::State& state)
+{
+    run_list(state, false, true);
 }
 
 void SpriteBatch_Emit_List_Vobjs(benchmark::State& state)
 {
-    run_list(state, true);
+    run_list(state, true, true);
 }
 
 BENCHMARK(SpriteBatch_Merge_Blocked)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
@@ -514,8 +528,9 @@ BENCHMARK(SpriteBatch_Mixed)->Apply(mixed_args);
 BENCHMARK(SpriteBatch_Mixed_SortOnly)->Apply(mixed_args);
 BENCHMARK(SpriteBatch_MixedMerge)->Apply(mixed_args);
 
-BENCHMARK(SpriteBatch_Emit_List)->Apply(list_args);
+BENCHMARK(SpriteBatch_Emit_List_Obj)->Apply(list_args);
 BENCHMARK(SpriteBatch_Emit_List_Vobjs)->Apply(list_args);
+BENCHMARK(SpriteBatch_Emit_List_Non_Obj)->Apply(list_args);
 
 } // namespace
 
