@@ -385,7 +385,7 @@ void SpriteBatch::sort_by_depth(SpriteList& list)
 {
     auto& impl = *this->impl;
     const auto n = list.size();
-    if (n < 2)
+    if (n < 2 || vqsort_avx2_or_better())
         return;
 
     reserve(impl.perm, n);
