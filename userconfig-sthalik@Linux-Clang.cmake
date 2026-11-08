@@ -58,12 +58,13 @@ function(fm-userconfig-external)
          SDL_SHARED                                         OFF
          SDL_STATIC                                         ON
          CORRADE_BUILD_STATIC                               ON
-         CORRADE_BUILD_TESTS                                OFF
+         CORRADE_BUILD_TESTS                                ON
          CORRADE_PLUGINMANAGER_NO_DYNAMIC_PLUGIN_SUPPORT    ON
          MAGNUM_BUILD_PLUGINS_STATIC                        ON
          MAGNUM_BUILD_STATIC                                ON
-         MAGNUM_BUILD_TESTS                                 OFF
+         MAGNUM_BUILD_TESTS                                 ON
     )
+    sets(STRING CORRADE_TESTSUITE_TEST_TARGET corrade-test)
 endfunction()
 
 function(fm-userconfig-src)
