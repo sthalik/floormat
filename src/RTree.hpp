@@ -1397,7 +1397,7 @@ void RTREE_QUAL::ListTree(Array<Rect>& treeList, Array<Node*>& toVisit) const
 
   while (!toVisit.isEmpty()) {
     Node* a_node = toVisit.back();
-    arrayRemoveSuffix(toVisit, toVisit.size());
+    arrayRemoveSuffix(toVisit);
     if(a_node->IsInternalNode())
     {
       // This is an internal node in the tree
