@@ -66,6 +66,7 @@ void test_raycast();
 void test_raycast_line();
 void test_rtree();
 void test_rtree_pool();
+void test_rtree_upstream();
 void test_save();
 void test_saves();
 void test_scenery();
