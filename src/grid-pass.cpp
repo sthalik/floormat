@@ -403,13 +403,7 @@ void Grid::mark_stale()
 
 void Grid::maybe_mark_stale()
 {
-    bool was_stale = grid->is_marked_stale();
     grid->maybe_mark_stale();
-    if (!was_stale && grid->is_marked_stale())
-        detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
-            auto* c = grid->c->world().at(ch);
-            return c ? pool->find(*c) : nullptr;
-        });
 }
 
 detail::grid::PassGrid* Grid::raw() const noexcept { return grid; }

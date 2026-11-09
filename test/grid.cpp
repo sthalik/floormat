@@ -20,6 +20,7 @@
 #include "src/scenery-proto.hpp"
 #include "src/scenery.hpp"
 #include "src/tile-defs.hpp"
+#include "src/tile-bbox.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include <mg/Functions.h>
@@ -2413,6 +2414,87 @@ void test_is_stale_lifecycle()
     fm_assert(cg.is_stale(s3));
 }
 
+void test_pass_blocker_leaves_ring2_current(u32 div_size, u32 bbox_size)
+{
+    constexpr auto blocker_size = Vector2ub{255, 255};
+    const auto params = Pass::Params{div_size, bbox_size, pass_mode::pass};
+    const auto at = [](i32 x, i32 y) { return chunk_coords_{(i16)x, (i16)y, 0}; };
+    const auto lo = Vector2i{half_tile<i32> + (i32)(bbox_size / 2)};
+    const auto hi = Vector2i{(i32)chunk_size_xy - half_tile<i32> - 1 + (i32)(bbox_size - bbox_size / 2)};
+    const auto reaches = [&](const Pair<Vector2i, Vector2i>& r, i32 x, i32 y) {
+        const auto origin = Vector2i{x, y} * (i32)chunk_size_xy;
+        return (r.first() < origin + hi).all() && (origin - lo < r.second()).all();
+    };
+    const auto tile = [](i8 d) -> u8 { return d < 0 ? 0 : d > 0 ? TILE_MAX_DIM - 1 : TILE_MAX_DIM / 2; };
+
+    for (const auto d : world::neighbor_offsets)
+    {
+        auto w = world();
+        for (auto y = -2; y <= 2; y++)
+            for (auto x = -2; x <= 2; x++)
+                add_ground_all(w[at(x, y)]);
+        for (auto& c : w.chunks())
+            rebuild_passability(c);
+
+        Pass::Pool pool{params, Search::without_critters()};
+        pool.maybe_mark_stale_all(w);
+        u32 before[5][5];
+        for (auto y = -2; y <= 2; y++)
+            for (auto x = -2; x <= 2; x++)
+                before[y+2][x+2] = count_passable_built(pool, w[at(x, y)]);
+
+        const auto local = local_coords{tile(d.x()), tile(d.y())};
+        const auto bbox_offset = Vector2b{(i8)(d.x() * 127), (i8)(d.y() * 127)};
+        const auto blocker = add_blocker(w, {COORD, local}, bbox_offset, blocker_size);
+        fm_assert(blocker->bbox_offset == bbox_offset && blocker->bbox_size == blocker_size);
+        const auto rect = scenery_tile(local, blocker->offset, blocker->bbox_offset, blocker->bbox_size);
+
+        pool.maybe_mark_stale_all(w);
+        Pass::Pool fresh{params, Search::without_critters()};
+        fresh.maybe_mark_stale_all(w);
+        for (auto y = -2; y <= 2; y++)
+            for (auto x = -2; x <= 2; x++)
+            {
+                const auto ring = Math::max(Math::abs(x), Math::abs(y));
+                const bool toward = x == d.x() && y == d.y();
+                if (ring == 2)
+                    fm_assert(!reaches(rect, x, y));
+                if (ring == 0 || toward)
+                    fm_assert(reaches(rect, x, y));
+
+                auto& c = w[at(x, y)];
+                auto g = pool[c];
+                if (g.is_marked_stale() != (ring <= 1))
+                {
+                    ERR << "!!! fatal: pass grid of chunk" << x << y << (g.is_marked_stale() ? "marked" : "not marked")
+                        << "stale after a blocker toward" << (int)d.x() << (int)d.y();
+                    fm_abort("wrong pass grids marked stale");
+                }
+                g.build_if_stale();
+                auto f = fresh[c];
+                f.build_if_stale();
+                const auto dc = g.div_count();
+                for (auto i = 0u; i < dc*dc; i++)
+                    if (g.bit(i) != f.bit(i))
+                    {
+                        ERR << "!!! fatal: pass grid of chunk" << x << y << "differs from a fresh build at bit" << i
+                            << "after a blocker toward" << (int)d.x() << (int)d.y();
+                        fm_abort("pass grid differs from a fresh build");
+                    }
+                if (ring == 0 || toward)
+                    fm_assert(count_passable(g) < before[y+2][x+2]);
+            }
+
+        pool[w[at(d.x(), d.y())]].mark_stale();
+        for (auto y = -2; y <= 2; y++)
+            for (auto x = -2; x <= 2; x++)
+            {
+                const bool near = Math::max(Math::abs(x - d.x()), Math::abs(y - d.y())) <= 1;
+                fm_assert(pool[w[at(x, y)]].is_marked_stale() == near);
+            }
+    }
+}
+
 // The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
 // ray rounded. Seeds rounded to whole units would be off by up to one more half unit.
 void test_cover_diagonal_matches_ray(u32 div_size)
@@ -2603,6 +2685,8 @@ void test_grid()
         test_collect_cleanup(ds);
         test_add_remove_wall_restores_baseline(ds);
         test_neighbor_west_wall_affects_east_edge(ds);
+        for (const auto bbox : { ds, chunk_size_xy })
+            test_pass_blocker_leaves_ring2_current(ds, bbox);
         test_bit_from_tile_center_passable(ds);
         test_wall_then_clear_ground_allows_collect(ds);
         test_cell_at_wall_is_blocked(ds);
