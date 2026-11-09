@@ -22,15 +22,18 @@ movement_range::movement_range()
 ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pools, point from, Optional<u32> bbox_side,
                                               u32 max_dist)
 {
-    if (last_pass_gen == w.pass_gen() && last_from == from && last_bbox_side == bbox_side && last_max_dist == max_dist)
+    const auto R = (int)max_dist;
+    // The fill reads cells within R + 2 div px of from, div being at most default_div_size, and each cell's grid
+    // reads one chunk more.
+    const auto pass_gen = w.max_pass_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
+    if (last_pass_gen == pass_gen && last_from == from && last_bbox_side == bbox_side && last_max_dist == max_dist)
         return points;
-    last_pass_gen = w.pass_gen();
+    last_pass_gen = pass_gen;
     last_from = from;
     last_bbox_side = bbox_side;
     last_max_dist = max_dist;
     arrayClear(points);
     arrayAppend(points, from);
-    const auto R = (int)max_dist;
     if (!R || !bbox_side)
         return points;
     fm_assert(R < (u16)-1);

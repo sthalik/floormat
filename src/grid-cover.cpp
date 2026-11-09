@@ -410,6 +410,7 @@ CoverPool::CoverPool(Params p, Pass::Pool& pass_pool):
     pass_pool{pass_pool}
 {
     fm_assert(pass_pool.params() == Pass::Params{params.div_size, pass_mode::shoot_through});
+    kind = pass_pool.kind();
 }
 
 u32 CoverGrid::get_cell_index(u32 x, u32 y, u32 div_count)
@@ -432,9 +433,11 @@ void CoverGrid::build_impl(chunk* self)
 
 bool CoverGrid::ring2_is_current() const
 {
+    const bool objects = pool->kind != Grid::Kind::static_;
     const auto& w = c->world();
     for (auto off : ring2_offsets)
-        if (const auto* ch = w.at(coord + off); ch && ch->pass_gen() > built_pass_gen)
+        if (const auto* ch = w.at(coord + off);
+            ch && (ch->pass_gen() > built_pass_gen || objects && ch->objects_gen() > built_pass_gen))
             return false;
     return true;
 }

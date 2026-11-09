@@ -281,6 +281,7 @@ void chunk::ensure_passability() noexcept
 }
 
 u64 chunk::pass_gen() const noexcept { return _pass_gen; }
+u64 chunk::objects_gen() const noexcept { return _objects_gen; }
 
 bool chunk::_bbox_for_scenery(const object& s, local_coords local, Vector2b offset,
                               Vector2b bbox_offset, Vector2ub bbox_size, bbox& value) noexcept

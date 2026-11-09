@@ -831,16 +831,8 @@ u64 cover_script::reach_pass_gen(critter& c) const
 {
     if (unreachable.isEmpty())
         return 0;
-    const auto& w = c.world();
-    const auto ch = search_from.chunk3();
     // search_from lies anywhere in its chunk, so the reach spans one chunk more than its length.
-    const auto n = (int)(unreachable_reach / chunk_size_xy) + 2;
-    u64 gen = 0;
-    for (auto y = -n; y <= n; y++)
-        for (auto x = -n; x <= n; x++)
-            if (const auto* nb = w.at(chunk_coords_{(i16)(ch.x + x), (i16)(ch.y + y), ch.z}))
-                gen = Math::max(gen, nb->pass_gen());
-    return gen;
+    return c.world().max_pass_gen(search_from.chunk3(), unreachable_reach / chunk_size_xy + 2);
 }
 
 // A Dijkstra path from c to `to`, smoothed when string_pull can. Not found when no path within

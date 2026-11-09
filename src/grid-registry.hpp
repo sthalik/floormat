@@ -11,8 +11,6 @@
 
 namespace floormat::Grid {
 
-enum class Kind : unsigned char { static_, dynamic, COUNT };
-
 class GridRegistry final
 {
 public:

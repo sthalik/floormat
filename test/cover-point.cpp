@@ -8,6 +8,7 @@
 #include "src/cover-point.hpp"
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
+#include "src/critter-script-cover-movement-range.hpp"
 #include "src/critter-script-cover.hpp"
 #include "src/critter-walk.hpp"
 #include "src/anim-atlas.hpp"
@@ -1842,6 +1843,72 @@ void test_cover_script_no_path_far_change()
     fm_assert(Vector3i(t1.cover).x() - (int)body.x()/2 >= 510);
 }
 
+// Two scenes of start_no_path_search with a closed door far from the npc's paths, which then opens in one.
+// That moves objects_gen() alone, so the search goes on without trying the walled-in spot again.
+void test_cover_script_no_path_door_opens()
+{
+    const point west{ch, {2, 8}, {}};
+    cover_scene s{west}, still{west};
+    const auto add_door = [](world& w) {
+        auto proto = loader.scenery("door1");
+        proto.pass = pass_mode::blocked;
+        proto.frame = (u16)(proto.atlas->info().nframes - 1);
+        auto door = w.make_scenery(w.make_id(), {ch, {1, 14}}, move(proto));
+        fm_assert(door->scenery_type() == scenery_type::door && door->is_dynamic());
+        return door;
+    };
+    const auto doorʹ = add_door(s.w);
+    (void)add_door(still.w);
+    (void)start_no_path_search(s);
+    (void)start_no_path_search(still);
+    auto& door = static_cast<door_scenery&>(*doorʹ);
+    auto i = door.index();
+    const auto pass_gen = s.w[ch].pass_gen();
+    fm_assert(door.activate(i));
+    for (auto n = 0u; door.active; n++)
+    {
+        fm_assert(n < 100);
+        door.update(doorʹ, i, Second);
+    }
+    fm_assert(door.pass == pass_mode::pass && s.w[ch].pass_gen() == pass_gen);
+    s.finish_search();
+    still.finish_search();
+    const auto t = s.status(), t_still = still.status();
+    fm_assert(t.st == state::to_cover && t_still.st == state::to_cover);
+    fm_assert_equal(t_still.num_dijkstra_calls, t.num_dijkstra_calls);
+    fm_assert_equal(Vector3i(t_still.cover), Vector3i(t.cover));
+}
+
+// movement_range::border keeps its points while a critter moves, and computes them again after a blocker appears
+// in a neighbour chunk. Computing them rebuilds a pass grid marked stale, so the grid shows which happened.
+void test_movement_range_cache()
+{
+    auto w = world();
+    for (i16 y = -1; y <= 1; y++)
+        for (i16 x = -1; x <= 1; x++)
+            add_ground(w, {x, y, 0});
+    Grid::GridRegistry pools;
+    movement_range range;
+    const point threat{ch, {8, 8}, {}};
+    constexpr u32 side = 24, reach = 128;
+    const auto n = range.border(w, pools, threat, side, reach).size();
+    fm_assert(n > 1);
+    auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, side, pass_mode::pass}, Grid::Kind::static_);
+    auto g = pool[w[ch]];
+    fm_assert(!g.is_marked_stale());
+
+    const auto npc = add_critter(w, point{ch, {4, 4}, {}});
+    auto i = npc->index();
+    npc->teleport_to(i, point{ch, {5, 4}, {}}, rotation_COUNT);
+    g.mark_stale();
+    fm_assert_equal(n, range.border(w, pools, threat, side, reach).size());
+    fm_assert(g.is_marked_stale());
+
+    (void)add_blocker(w, global_coords{chunk_coords_{1, 0, 0}, {0, 8}}, {16, 16});
+    fm_assert_equal(n, range.border(w, pools, threat, side, reach).size());
+    fm_assert(!g.is_marked_stale());
+}
+
 // The npc of cover_scene walks to cover, without searching while the threat walks east 1 px per frame. When the
 // threat moves to the wall's west side, the npc retreats at once and hides behind its east face, never at hidden.
 void test_cover_script_walk_checks(point hidden)
@@ -3127,6 +3194,8 @@ void Test::test_cover_point()
     test_cover_script_skipped_spot_threat_moves();
     test_cover_script_no_path_opened();
     test_cover_script_no_path_far_change();
+    test_cover_script_no_path_door_opens();
+    test_movement_range_cache();
     test_cover_script_walk_checks(hidden);
     test_cover_script_peek_walk_checks(hidden, c0.peek);
     test_cover_script_peek_again_flanked(hidden, c0.peek);

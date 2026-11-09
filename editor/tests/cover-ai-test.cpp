@@ -290,7 +290,7 @@ void cover_ai_test::clear_spots()
 }
 
 // As in the script, only a player move to another octant starts the search over. drop_seen_spots handles the moves
-// within one, and walking critters don't move world::pass_gen().
+// within one, and critters and doors move no chunk's pass_gen().
 bool cover_ai_test::spots_stale(app& a) const
 {
     if (!has_search)
@@ -299,7 +299,8 @@ bool cover_ai_test::spots_stale(app& a) const
     const auto player = w.find_object(threat);
     return !player || player->position().chunk3().z != search_center.chunk3().z ||
            Cover::Point::nearest_octant(Vector2(player->position() - search_center)) != search_octant ||
-           w.pass_gen() != search_pass_gen || search_radius != (u32)radius_tiles*tile_size_xy ||
+           w.max_pass_gen(search_center.chunk3(), search_radius/chunk_size_xy + 3) != search_pass_gen ||
+           search_radius != (u32)radius_tiles*tile_size_xy ||
            search_octants != options.octants || search_listed_cover_end_dist != options.listed_cover_end_dist() ||
            search_max_cover_end_dist != options.max_cover_end_dist ||
            search_threat_reach != options.threat_reach || search_div != options.div_size;
@@ -324,7 +325,8 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
     spots_player = player->position();
     dropped_spots = 0;
     search_octant = Cover::Point::nearest_octant(Vector2(player->position() - search_center));
-    search_pass_gen = w.pass_gen();
+    // The search reads chunks within r px of search_center, and their cover grids read 2 chunks more.
+    search_pass_gen = w.max_pass_gen(search_center.chunk3(), r/chunk_size_xy + 3);
     search_radius = r;
     search_octants = options.octants;
     search_listed_cover_end_dist = options.listed_cover_end_dist();
@@ -488,11 +490,12 @@ u32 cover_ai_test::toggle_move_to_end()
     return options.max_cover_end_dist ? 1 : 0;
 }
 
-// Caches the script's last search's spots until the next search, a pass_gen change or another npc.
+// Caches the script's last search's spots until the next search, a pass_gen change near its query or another npc.
 // Critter movement leaves pass_gen unchanged, so a spot the player walks onto stays listed.
 ArrayView<const Cover::Point::spot> cover_ai_test::script_spots(app& a, critter& c, const Cover::Script::status& s)
 {
-    const auto gen = a.main().world().pass_gen();
+    const auto& q = s.query;
+    const auto gen = s.has_query ? a.main().world().max_pass_gen(q.pos.chunk3(), q.radius/chunk_size_xy + 3) : 0;
     if (!has_script_list || script_list_npc != c.id || script_list_num_searches != s.num_searches ||
         script_list_pass_gen != gen)
     {

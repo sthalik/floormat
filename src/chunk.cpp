@@ -6,6 +6,7 @@
 #include "grid.hpp"
 #include "ground-atlas.hpp"
 #include "compat/non-const.hpp"
+#include "compat/enumerate.hpp"
 #include <cr/Optional.h>
 #include <utility>
 
@@ -104,6 +105,11 @@ void chunk::mark_passability_modified() noexcept
     _pass_gen = _world->next_pass_gen();
 }
 
+void chunk::mark_objects_modified() noexcept
+{
+    _objects_gen = _world->next_pass_gen();
+}
+
 bool chunk::is_passability_modified() const noexcept { return _pass_modified; }
 bool chunk::is_scenery_modified() const noexcept { return _scenery_modified; }
 bool chunk::are_walls_modified() const noexcept { return _walls_modified; }
@@ -165,6 +171,8 @@ void chunk::add_object_pre(const bptr<object>& e)
         if (bbox bb; _bbox_for_scenery(*e, bb))
             _add_bbox_dynamic(bb);
     }
+    if (dyn && type_is_in_objects_array(e->type()))
+        mark_objects_modified();
     if (upd_walls)
         mark_walls_modified();
 }
@@ -214,7 +222,8 @@ void chunk::remove_object(const object& e, usize i)
         if (bbox bb; _bbox_for_scenery(e, bb))
             _remove_bbox_dynamic(bb);
     }
-
+    if (dyn && type_is_in_objects_array(e.type()))
+        mark_objects_modified();
     if (upd_walls)
         mark_walls_modified();
 
@@ -233,5 +242,31 @@ void chunk::kill_object(const object& e, usize i, script_destroy_reason r)
 
 const object_storage& chunk::objects() const { return _objects; }
 object_storage& chunk::objects() { return _objects; }
+
+bool chunk::type_is_in_objects_array(object_type type)
+{
+    constexpr auto types = [] {
+        std::array<bool, (u32)object_type::COUNT> array = {};
+        for (auto& [i, val] : enumerate(array))
+        {
+            switch ((object_type)i)
+            {
+            case object_type::critter:
+            case object_type::scenery:
+                val = true;
+                continue;
+            case object_type::hole:
+            case object_type::light:
+            case object_type::none:
+            case object_type::COUNT:
+                val = false;
+                continue;
+            }
+            fm_assert(false);
+        }
+        return array;
+    }();
+    return types[(u32)type];
+}
 
 } // namespace floormat

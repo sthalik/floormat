@@ -20,8 +20,8 @@ public:
                                   u32 max_dist);
 
 private:
-    // border() for the arguments saved in last_from, last_bbox_side and last_max_dist, while world::pass_gen() is
-    // last_pass_gen. The others are its fill's scratch.
+    // border() for the arguments saved in last_from, last_bbox_side and last_max_dist, while world::max_pass_gen()
+    // over the chunks it read returns last_pass_gen. The others are its fill's scratch.
     Array<point> points;
     Array<u16> dist;
     Array<u8> passable;

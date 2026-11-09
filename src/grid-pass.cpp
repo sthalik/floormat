@@ -264,7 +264,11 @@ struct PassPool final : Pool<PassGrid>
 {
     Search::pred predicate;
 
-    PassPool(Grid::Pass::Params params, const Search::pred& p): Pool<PassGrid>{params}, predicate{p} {}
+    PassPool(Grid::Pass::Params params, const Search::pred& p, Grid::Kind kind):
+        Pool<PassGrid>{params}, predicate{p}
+    {
+        this->kind = kind;
+    }
 };
 
 namespace {
@@ -430,10 +434,12 @@ void Pool::build_if_stale_all()
         static_cast<detail::grid::PassGrid*>(g)->build_if_stale(pool->predicate);
 }
 
-Pool::Pool(Params params, const pred& predicate): pool{new detail::grid::PassPool{params, predicate}} { }
+Pool::Pool(Params params, const pred& predicate, Kind kind):
+    pool{new detail::grid::PassPool{params, predicate, kind}} { }
 Pool::~Pool() noexcept { delete pool; }
 const Params& Pool::params() const { return pool->params; }
 const pred& Pool::predicate() const { return pool->predicate; }
+Kind Pool::kind() const { return pool->kind; }
 u32 Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Pass

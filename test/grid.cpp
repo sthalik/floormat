@@ -2564,27 +2564,35 @@ void test_registry_grids_after_door_changes()
     for_chunks([](chunk& c, i16, i16) { rebuild_passability(c); });
 
     Grid::GridRegistry reg;
+    Pass::Pool unregistered[] = {
+        Pass::Pool{pass_params[0], Search::without_critters()},
+        Pass::Pool{pass_params[1], Search::without_critters()},
+    };
     const auto check_pass = [&](const char* what) {
         Grid::GridRegistry fresh;
-        for (const auto& p : pass_params)
+        for (auto j = 0u; const auto& p : pass_params)
         {
             auto& a = reg.pass_pool(p, Grid::Kind::static_);
             auto& b = fresh.pass_pool(p, Grid::Kind::static_);
+            auto& ad = reg.pass_pool(p, Grid::Kind::dynamic);
             auto& d = fresh.pass_pool(p, Grid::Kind::dynamic);
+            auto& kept = unregistered[j++];
             Pass::Pool both{p, Search::without_critters()};
-            for (auto* pool : { &a, &b, &d, &both })
+            for (auto* pool : { &a, &b, &ad, &d, &kept, &both })
                 pool->maybe_mark_stale_all(w);
             for_chunks([&](chunk& c, i16 x, i16 y) {
-                Pass::Grid ga = a[c], gb = b[c], gd = d[c], g_both = both[c];
-                for (auto* g : { &ga, &gb, &gd, &g_both })
+                Pass::Grid ga = a[c], gb = b[c], gad = ad[c], gd = d[c], g_kept = kept[c], g_both = both[c];
+                for (auto* g : { &ga, &gb, &gad, &gd, &g_kept, &g_both })
                     g->build_if_stale();
                 const auto dc = ga.div_count();
                 for (auto i = 0u; i < dc*dc; i++)
                 {
-                    if (ga.bit(i) != gb.bit(i))
+                    if (ga.bit(i) != gb.bit(i) || gad.bit(i) != gd.bit(i) || g_kept.bit(i) != g_both.bit(i))
                     {
                         ERR << "!!! fatal:" << what << "min_pass" << (int)p.min_pass << "chunk" << x << y
-                            << "cell" << i % dc << i / dc << "bit" << ga.bit(i) << "but fresh" << gb.bit(i);
+                            << "cell" << i % dc << i / dc << "static" << ga.bit(i) << "but fresh" << gb.bit(i)
+                            << "dynamic" << gad.bit(i) << "but fresh" << gd.bit(i)
+                            << "without_critters()" << g_kept.bit(i) << "but fresh" << g_both.bit(i);
                         fm_abort("a pass grid differs from a fresh one");
                     }
                     if ((gb.bit(i) && gd.bit(i)) != g_both.bit(i))
@@ -2601,28 +2609,81 @@ void test_registry_grids_after_door_changes()
     const auto check = [&](const char* what) {
         check_pass(what);
         Grid::GridRegistry fresh;
-        auto& a = reg.cover_pool(cover_params, Grid::Kind::static_);
-        auto& b = fresh.cover_pool(cover_params, Grid::Kind::static_);
-        a.maybe_mark_stale_all(w);
-        b.maybe_mark_stale_all(w);
+        for (auto kind : { Grid::Kind::static_, Grid::Kind::dynamic })
+        {
+            auto& a = reg.cover_pool(cover_params, kind);
+            auto& b = fresh.cover_pool(cover_params, kind);
+            a.maybe_mark_stale_all(w);
+            b.maybe_mark_stale_all(w);
+            for_chunks([&](chunk& c, i16 x, i16 y) {
+                Grid::Cover::Grid ga = a[c], gb = b[c];
+                ga.build_if_stale();
+                gb.build_if_stale();
+                const auto dc = ga.div_count();
+                for (auto k : octants)
+                {
+                    (void)ga.ensure_octant(k);
+                    (void)gb.ensure_octant(k);
+                    for (auto i = 0u; i < dc*dc; i++)
+                        if (ga.distance(i, k) != gb.distance(i, k))
+                        {
+                            ERR << "!!! fatal:" << what << "kind" << (int)kind << "chunk" << x << y
+                                << "octant" << k << "cell" << i % dc << i / dc
+                                << "distance" << ga.distance(i, k) << "but fresh" << gb.distance(i, k);
+                            fm_abort("a cover grid differs from a fresh one");
+                        }
+                }
+            });
+        }
+    };
+    // A door's changes stamp only objects_gen(), so the static grids stay current. Grids that read doors go
+    // stale within one chunk of a stamped one, and cover grids within two.
+    const auto changed = [&](std::initializer_list<chunk_coords_> stamped) {
         for_chunks([&](chunk& c, i16 x, i16 y) {
-            Grid::Cover::Grid ga = a[c], gb = b[c];
-            ga.build_if_stale();
-            gb.build_if_stale();
-            const auto dc = ga.div_count();
-            for (auto k : octants)
+            fm_assert(!c.is_passability_modified());
+            auto dist = (int)limits<i16>::max;
+            for (auto s : stamped)
+                dist = Math::min(dist, Math::max(Math::abs(x - s.x), Math::abs(y - s.y)));
+            for (auto j = 0u; const auto& p : pass_params)
             {
-                (void)ga.ensure_octant(k);
-                (void)gb.ensure_octant(k);
-                for (auto i = 0u; i < dc*dc; i++)
-                    if (ga.distance(i, k) != gb.distance(i, k))
-                    {
-                        ERR << "!!! fatal:" << what << "chunk" << x << y << "octant" << k << "cell" << i % dc << i / dc
-                            << "distance" << ga.distance(i, k) << "but fresh" << gb.distance(i, k);
-                        fm_abort("a cover grid differs from a fresh one");
-                    }
+                fm_assert(!reg.pass_pool(p, Grid::Kind::static_)[c].is_stale());
+                fm_assert_equal(dist <= 1, reg.pass_pool(p, Grid::Kind::dynamic)[c].is_stale());
+                fm_assert_equal(dist <= 1, unregistered[j++][c].is_stale());
             }
+            fm_assert(!reg.cover_pool(cover_params, Grid::Kind::static_)[c].is_stale());
+            fm_assert_equal(dist <= 2, reg.cover_pool(cover_params, Grid::Kind::dynamic)[c].is_stale());
         });
+    };
+    // set_bbox() moves the door's RTree entry, whose id holds the pass mode, and a rebuilt tree must agree.
+    const auto check_tree = [&](const char* what) {
+        u32 n = 0;
+        for (const auto& p : pass_params)
+            for_chunks([&](chunk&, i16, i16) { n += p.div_count * p.div_count; });
+        auto bits = Array<bool>{ValueInit, n};
+        for (auto rebuilt : { false, true })
+        {
+            if (rebuilt)
+                for_chunks([](chunk& c, i16, i16) { c.mark_passability_modified(); });
+            auto k = 0u;
+            for (const auto& p : pass_params)
+            {
+                Pass::Pool pool{p, Search::without_critters()};
+                for_chunks([&](chunk& c, i16 x, i16 y) {
+                    auto g = pool[c];
+                    g.build_if_stale();
+                    const auto dc = g.div_count();
+                    for (auto i = 0u; i < dc*dc; i++, k++)
+                        if (!rebuilt)
+                            bits[k] = g.bit(i);
+                        else if (bits[k] != g.bit(i))
+                        {
+                            ERR << "!!! fatal:" << what << "min_pass" << (int)p.min_pass << "chunk" << x << y
+                                << "cell" << i % dc << i / dc << "bit" << bits[k] << "but rebuilt" << g.bit(i);
+                            fm_abort("a door's moved RTree entry differs from a rebuilt tree");
+                        }
+                });
+            }
+        }
     };
     check("before the door");
 
@@ -2632,15 +2693,19 @@ void test_registry_grids_after_door_changes()
     const auto doorʹ = w.make_scenery(w.make_id(), {COORD, local_coords{15, 8}}, move(proto));
     fm_assert(doorʹ->scenery_type() == scenery_type::door && doorʹ->is_dynamic());
     auto& door = static_cast<door_scenery&>(*doorʹ);
+    changed({COORD});
     check("placed");
 
     auto i = door.index();
     door.teleport_to(i, {COORD, local_coords{12, 8}}, door.offset, door.r);
+    changed({COORD});
     check("moved within the chunk");
     door.teleport_to(i, {COORD_E, local_coords{2, 8}}, door.offset, door.r);
     fm_assert(&door.chunk() == &w[COORD_E]);
+    changed({COORD, COORD_E});
     check("moved into the east chunk");
     door.rotate(i, rotation::W);
+    changed({COORD_E});
     check("turned");
 
     const auto toggle = [&] {
@@ -2653,15 +2718,21 @@ void test_registry_grids_after_door_changes()
     };
     toggle();
     fm_assert(door.pass == pass_mode::pass);
+    changed({COORD_E});
+    check_tree("opened");
     check("opened");
     toggle();
     fm_assert(door.pass == pass_mode::blocked);
+    changed({COORD_E});
+    check_tree("closed");
     check("closed");
 
     door.chunk().remove_object(door, door.index());
+    changed({COORD_E});
     check("removed");
 
-    const auto pass_gen = w.pass_gen();
+    const auto pass_gen = w[COORD].pass_gen(), pass_gen_e = w[COORD_E].pass_gen();
+    const auto objects_gen = w[COORD].objects_gen(), objects_gen_e = w[COORD_E].objects_gen();
     critter_proto cp;
     cp.name = "npc"_s;
     const auto npc = w.make_object<critter>(w.make_id(), {COORD, local_coords{15, 8}}, move(cp));
@@ -2669,7 +2740,73 @@ void test_registry_grids_after_door_changes()
     i = npc->index();
     npc->teleport_to(i, {COORD_E, local_coords{2, 8}}, {}, npc->r);
     check_pass("critter moved");
-    fm_assert(w.pass_gen() == pass_gen);
+    fm_assert(w[COORD].pass_gen() == pass_gen && w[COORD_E].pass_gen() == pass_gen_e);
+    fm_assert(w[COORD].objects_gen() > objects_gen && w[COORD_E].objects_gen() > objects_gen_e);
+}
+
+// A critter's changes stamp only objects_gen(), so the registry's static grids stay current, and a grid whose bits
+// hold critters goes stale within one chunk of a stamped one.
+void test_grids_after_critter_changes()
+{
+    constexpr auto params = Pass::Params{16, 32, pass_mode::pass};
+    auto w = world();
+    const auto for_chunks = [&](auto&& fun) {
+        for (i16 y = -1; y <= 1; y++)
+            for (i16 x = -1; x <= 2; x++)
+                fun(w[chunk_coords_{x, y, 0}], x, y);
+    };
+    for_chunks([](chunk& c, i16, i16) { add_ground_all(c); rebuild_passability(c); });
+
+    Grid::GridRegistry reg;
+    auto& static_pool = reg.pass_pool(params, Grid::Kind::static_);
+    Pass::Pool critter_pool{params, Search::never_continue()};
+    const auto build = [&] {
+        for (auto* pool : { &static_pool, &critter_pool })
+        {
+            pool->maybe_mark_stale_all(w);
+            for_chunks([&](chunk& c, i16, i16) { (*pool)[c].build_if_stale(); });
+        }
+    };
+    const auto changed = [&](const char* what, std::initializer_list<chunk_coords_> stamped) {
+        for_chunks([&](chunk& c, i16 x, i16 y) {
+            auto dist = (int)limits<i16>::max;
+            for (auto s : stamped)
+                dist = Math::min(dist, Math::max(Math::abs(x - s.x), Math::abs(y - s.y)));
+            fm_assert(!static_pool[c].is_stale());
+            fm_assert_equal(dist <= 1, critter_pool[c].is_stale());
+        });
+        build();
+        Pass::Pool fresh{params, Search::never_continue()};
+        for_chunks([&](chunk& c, i16 x, i16 y) {
+            auto a = critter_pool[c], b = fresh[c];
+            b.build_if_stale();
+            const auto dc = a.div_count();
+            for (auto i = 0u; i < dc*dc; i++)
+                if (a.bit(i) != b.bit(i))
+                {
+                    ERR << "!!! fatal:" << what << "chunk" << x << y << "cell" << i % dc << i / dc
+                        << "bit" << a.bit(i) << "but fresh" << b.bit(i);
+                    fm_abort("a pass grid differs from a fresh one");
+                }
+        });
+    };
+    build();
+
+    critter_proto cp;
+    cp.name = "npc"_s;
+    cp.bbox_size = {24, 12};
+    const auto npc = w.make_object<critter>(w.make_id(), {COORD, local_coords{15, 8}}, move(cp));
+    changed("placed", {COORD});
+    auto i = npc->index();
+    npc->teleport_to(i, {COORD, local_coords{12, 8}}, {}, npc->r);
+    changed("moved within the chunk", {COORD});
+    npc->teleport_to(i, {COORD_E, local_coords{2, 8}}, {}, npc->r);
+    fm_assert(&npc->chunk() == &w[COORD_E]);
+    changed("moved into the east chunk", {COORD, COORD_E});
+    npc->rotate(i, rotation::W);
+    changed("turned", {COORD_E});
+    npc->chunk().remove_object(*npc, npc->index());
+    changed("removed", {COORD_E});
 }
 
 } // namespace
@@ -2778,6 +2915,7 @@ void test_grid()
     test_is_stale_on_chunk_create_and_collect();
     test_is_stale_lifecycle();
     test_registry_grids_after_door_changes();
+    test_grids_after_critter_changes();
     // Below 8, planes are u16, and one octant of each step, turned and mirrored, keeps the rays few.
     constexpr u32 some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan

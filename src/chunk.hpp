@@ -62,6 +62,9 @@ public:
     void mark_walls_modified() noexcept;
     void mark_scenery_modified() noexcept;
     void mark_passability_modified() noexcept;
+    /// @brief Call after a critter or a dynamic scenery object, such as a door, is added, removed, moved, turned
+    /// or changes pass mode. Static scenery calls mark_passability_modified() instead.
+    void mark_objects_modified() noexcept;
     void mark_modified() noexcept;
 
     bool is_passability_modified() const noexcept;
@@ -80,6 +83,8 @@ public:
 
     void ensure_passability() noexcept;
     u64 pass_gen() const noexcept;
+    /// @return The world::next_pass_gen() stamp of the last mark_objects_modified(), or 0 before the first.
+    u64 objects_gen() const noexcept;
     RTree* rtree() noexcept;
     const RTree* rtree() const noexcept;
     RTree* hole_rtree() noexcept;
@@ -121,6 +126,8 @@ public:
     };
 
 private:
+    static bool type_is_in_objects_array(object_type type);
+
     SpriteList scenery_static_mesh;
     SpriteList wall_static_mesh;
     SpriteList ground_static_mesh;
@@ -133,7 +140,7 @@ private:
     chunk* _next = nullptr;
     chunk* _prev = nullptr;
     chunk_coords_ _coord;
-    u64 _pass_gen;
+    u64 _pass_gen, _objects_gen = 0;
 
     bool _maybe_empty      : 1 = true,
          _ground_modified  : 1 = true,

@@ -164,6 +164,8 @@ void object::teleport_to(usize& i, global_coords coord_, Vector2b offset_, rotat
             if (upd_walls)
                 c->mark_walls_modified();
         }
+        else if (chunk::type_is_in_objects_array(type()))
+            c->mark_objects_modified();
     }
     else
     {
@@ -293,8 +295,8 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
         c->mark_passability_modified();
     else
     {
-        if (pass_changed) // doors
-            c->mark_passability_modified();
+        if (chunk::type_is_in_objects_array(type()))
+            c->mark_objects_modified();
         c->_replace_bbox_dynamic(bb0, bb, b0, b);
     }
     if (!c->are_walls_modified() && upd_walls)

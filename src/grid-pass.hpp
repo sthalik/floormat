@@ -104,7 +104,9 @@ class Pool final
     detail::grid::PassPool* pool;
 
 public:
-    explicit Pool(Params params, const pred& predicate);
+    /// @param kind Kind::static_ only when @p predicate passes every dynamic object. The grids then stay current
+    /// when only chunk::objects_gen() moves.
+    explicit Pool(Params params, const pred& predicate, Kind kind = Kind::dynamic);
     ~Pool() noexcept;
     fm_DISABLE_MOVE_COPY(Pool);
 
@@ -116,6 +118,7 @@ public:
 
     const Params& params() const;
     const pred& predicate() const;
+    Kind kind() const;
     u32 pooled_count() const;
 };
 

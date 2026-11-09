@@ -14,6 +14,10 @@ class world;
 struct local_coords;
 } // namespace floormat
 
+namespace floormat::Grid {
+enum class Kind : unsigned char { static_, dynamic, COUNT };
+} // namespace floormat::Grid
+
 namespace floormat::detail::grid {
 
 struct GridBase;
@@ -88,6 +92,7 @@ struct PoolBase
     Array<GridBase*> live;
     const u32 slot_index;
     u64 checked_pass_gen = (u64)-1;
+    Grid::Kind kind = Grid::Kind::dynamic;
 
     PoolBase();
     ~PoolBase() noexcept;

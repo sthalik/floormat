@@ -21,7 +21,7 @@ Pass::Pool& GridRegistry::pass_pool(const Pass::Params& pʹ, Kind kind)
         const auto div_shift = (u32)std::countr_zero(div_size);
         auto& slot = pass.direct[mode][div_shift][p.bbox_size - Pass::Grid::min_bbox_size];
         if (!slot)
-            slot.emplace(p, predicate);
+            slot.emplace(p, predicate, kind);
         return *slot;
     }
 
@@ -29,7 +29,7 @@ Pass::Pool& GridRegistry::pass_pool(const Pass::Params& pʹ, Kind kind)
         if (pool->params() == p)
             return *pool;
     arrayReserve(pass.fallback, 4);
-    arrayAppend(pass.fallback, InPlaceInit, InPlaceInit, p, predicate);
+    arrayAppend(pass.fallback, InPlaceInit, InPlaceInit, p, predicate, kind);
     return *pass.fallback.back();
 }
 
