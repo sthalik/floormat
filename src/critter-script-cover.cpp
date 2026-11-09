@@ -1,6 +1,7 @@
 #include "critter-script-cover.hpp"
 #include "critter-script.hpp"
 #include "critter-walk.hpp"
+#include "critter-script-cover-movement-range.hpp"
 #include "cover-point.hpp"
 #include "critter.hpp"
 #include "grid-registry.hpp"
@@ -201,15 +202,7 @@ private:
     point tile_threat;
     // The first spots the search skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
     Optional<Cover::Point::spot> peekless, in_reach;
-    // reach_positions() for the threat at reach_from, while world::pass_gen() is reach_built_pass_gen and the
-    // threat's larger bbox side is reach_bbox. The others are its fill's scratch.
-    Array<point> reach;
-    Array<u16> reach_dist;
-    Array<u8> reach_open;
-    Array<u64> reach_heap;
-    point reach_from;
-    u64 reach_built_pass_gen = 0;
-    u32 reach_bbox = 0;
+    movement_range threat_range;
     // How far from search_from the Dijkstra searches that put spots in unreachable could reach, and
     // world::pass_gen() once the last of them ended.
     u32 unreachable_reach = 0;
@@ -262,8 +255,6 @@ cover_script::cover_script(astar& A, object_id threat, u32 div_size, Optional<in
 {
     options.div_size = div_size;
     arrayReserve(unreachable, 16);
-    arrayReserve(reach, 16);
-    arrayReserve(reach_heap, 16);
 }
 
 Cover::Script::status cover_script::status() const
@@ -430,7 +421,6 @@ void cover_script::set_options(critter& c, const Cover::Script::options& o)
     using fallback = Cover::Script::options::fallback;
     const auto old = options.hold;
     options = o;
-    reach_built_pass_gen = 0;
     // Spots kept for a last_resort the new options don't allow, which neither the retreat nor take_last_resort
     // checks again.
     switch (o.last_resort)
@@ -499,117 +489,10 @@ bool cover_script::hidden_at(critter& c, point threat, point pos, Vector2i axis)
 // options.threat_reach px and that border a cell the fill doesn't reach.
 ArrayView<const point> cover_script::reach_positions(critter& c, point threat)
 {
-    auto& w = c.world();
-    const auto obj = w.find_object(threat_id);
-    const auto bbox = obj ? Math::max((u32)obj->bbox_size.x(), (u32)obj->bbox_size.y()) : 0u;
-    if (reach_built_pass_gen == w.pass_gen() && reach_from == threat && reach_bbox == bbox)
-        return reach;
-    reach_built_pass_gen = w.pass_gen();
-    reach_from = threat;
-    reach_bbox = bbox;
-    arrayClear(reach);
-    arrayAppend(reach, threat);
-    const auto R = (int)options.threat_reach;
-    if (!R || !obj)
-        return reach;
-    fm_assert(R < (u16)-1);
-
-    auto& pool = A.pool_registry().pass_pool(Pass::Params{astar::default_div_size, bbox, pass_mode::pass});
-    pool.maybe_mark_stale_all(w);
-    const auto div = (int)pool.params().div_size(), dc = (int)pool.params().div_count;
-    // A cell farther than n from the threat's cell lies over R px away.
-    const auto n = R/div + 1, side = 2*n + 1;
-    const auto count = (u32)(side*side);
-    const auto g = Vector3i(threat).xy();
-    const auto cell_of = [div](int px) { return floor_div(px + half_tile<int>, div); };
-    const auto origin = Vector2i{cell_of(g.x()), cell_of(g.y())} - Vector2i{n};
-    const auto z = threat.chunk3().z;
-    if (arrayCapacity(reach_dist) < count)
-        arrayReserve(reach_dist, count + count/2);
-    if (arrayCapacity(reach_open) < count)
-        arrayReserve(reach_open, count + count/2);
-    arrayResize(reach_dist, NoInit, count);
-    arrayResize(reach_open, NoInit, count);
-
-    Optional<Pass::Grid> grid;
-    chunk_coords_ grid_ch;
-    bool looked = false;
-    for (auto y = 0; y < side; y++)
-        for (auto x = 0; x < side; x++)
-        {
-            const auto cell = origin + Vector2i{x, y};
-            const auto ch = Vector2i{floor_div(cell.x(), dc), floor_div(cell.y(), dc)};
-            const auto cc = chunk_coords_{(i16)ch.x(), (i16)ch.y(), z};
-            if (!looked || cc != grid_ch)
-            {
-                looked = true;
-                grid_ch = cc;
-                grid = {};
-                if (auto* p = w.at(cc))
-                {
-                    grid.emplace(pool[*p]);
-                    grid->build_if_stale();
-                }
-            }
-            const auto local = Vector2ui(cell - ch*dc);
-            const auto i = (u32)(y*side + x);
-            reach_open[i] = grid && grid->bit(Pass::Grid::get_bitmask_index(local.x(), local.y(), (u32)dc));
-            reach_dist[i] = (u16)-1;
-        }
-
-    const auto diag = (int)(div*Math::sqrt(2.) + .5);
-    const auto open = [&](int x, int y) {
-        return x >= 0 && y >= 0 && x < side && y < side && reach_open[y*side + x];
-    };
-    arrayClear(reach_heap);
-    // A bit is coarser than a point, so the threat's own cell is reached whatever its bit.
-    reach_dist[n*side + n] = 0;
-    arrayAppend(reach_heap, (u64)(n*side + n));
-    while (!reach_heap.isEmpty())
-    {
-        std::pop_heap(reach_heap.begin(), reach_heap.end(), std::greater<>{});
-        const auto key = reach_heap.back();
-        arrayRemoveSuffix(reach_heap, 1);
-        const auto d = (int)(key >> 32), i = (int)(u32)key;
-        if (d > reach_dist[i])
-            continue;
-        const auto x = i % side, y = i / side;
-        for (auto dy = -1; dy <= 1; dy++)
-            for (auto dx = -1; dx <= 1; dx++)
-            {
-                if (!dx && !dy || !open(x + dx, y + dy))
-                    continue;
-                // A diagonal step needs both cells beside it, as the body would clip their corners.
-                if (dx && dy && (!open(x + dx, y) || !open(x, y + dy)))
-                    continue;
-                const auto nd = d + (dx && dy ? diag : div);
-                const auto j = (y + dy)*side + x + dx;
-                if (nd > R || nd >= reach_dist[j])
-                    continue;
-                reach_dist[j] = (u16)nd;
-                arrayAppend(reach_heap, (u64)nd << 32 | (u32)j);
-                std::push_heap(reach_heap.begin(), reach_heap.end(), std::greater<>{});
-            }
-    }
-
-    // A ray from inside the reached cells to a body outside them leaves through a border cell, which sees the
-    // body as well, to within a cell.
-    const auto reached = [&](int x, int y) {
-        return x >= 0 && y >= 0 && x < side && y < side && reach_dist[y*side + x] <= R;
-    };
-    for (auto y = 0; y < side; y++)
-        for (auto x = 0; x < side; x++)
-        {
-            if (!reached(x, y))
-                continue;
-            bool border = false;
-            for (auto dy = -1; dy <= 1; dy++)
-                for (auto dx = -1; dx <= 1; dx++)
-                    border |= !reached(x + dx, y + dy);
-            if (border)
-                arrayAppend(reach, threat + ((origin + Vector2i{x, y})*div + Vector2i{div/2 - half_tile<int>} - g));
-        }
-    return reach;
+    Optional<u32> bbox_side;
+    if (const auto obj = c.world().find_object(threat_id))
+        bbox_side = Math::max((u32)obj->bbox_size.x(), (u32)obj->bbox_size.y());
+    return threat_range.border(c.world(), A.pool_registry(), threat, bbox_side, options.threat_reach);
 }
 
 // True when no point of reach_positions() for threat sees a pixel of c's body centered on pos, flush along axis.
