@@ -23,6 +23,12 @@ namespace floormat::detail::grid {
 struct GridBase;
 struct PoolBase;
 
+// Whole 64-bit words, so the clear_rect_*() functions never read past the end of a small grid.
+constexpr u32 bitmask_size(u32 div_count)
+{
+    return (div_count * div_count + 63) & ~63u;
+}
+
 template <typename T>
 concept BitGrid = requires(T t, chunk& ch, T::Params p) {
     requires std::derived_from<T, GridBase>;

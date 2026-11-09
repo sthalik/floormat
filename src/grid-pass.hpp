@@ -13,6 +13,24 @@ namespace floormat::detail::grid {
 struct PassGrid;
 struct PassPool;
 
+struct cell_range
+{
+    i32 i_lo, i_hi, j_lo, j_hi;
+    bool is_empty() const { return i_lo > i_hi || j_lo > j_hi; }
+};
+
+// The cells of a chunk's grid holding a position where a box of bbox_size, centred there, overlaps a rect in
+// the chunk's frame.
+class inflated_cells
+{
+    float half_div_minus_half_tile, grow_lo, grow_hi, inv_div;
+    i32 div_count;
+
+public:
+    inflated_cells(u32 div_size, u32 div_count, u32 bbox_size);
+    cell_range operator()(float x0, float y0, float x1, float y1) const;
+};
+
 constexpr u32 calc_div_size(u32 div_sizeʹ, u32 bbox_size)
 {
     // caller wants cells coarser than the bbox; grid requires div_size <= bbox_size

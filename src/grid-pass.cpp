@@ -78,12 +78,6 @@ void clear_rect_whole_rows(u8* bits, u32 div_count, u32 i_lo, u32 i_hi, u32 j_lo
     }
 }
 
-// Whole 64-bit words, so the clear_rect_*() functions never read past the end of a small grid.
-constexpr u32 bitmask_size(u32 div_count)
-{
-    return (div_count * div_count + 63) & ~63u;
-}
-
 #ifdef FLOORMAT_GRID_PASS_DEBUG
 unsigned grid_total_count = 0;
 unsigned grid_alive_count = 0;
@@ -92,6 +86,40 @@ unsigned pool_total_count = 0;
 unsigned pool_alive_count = 0;
 #endif
 } // namespace
+
+inflated_cells::inflated_cells(u32 div_size, u32 div_countʹ, u32 bbox_size):
+    div_count{(i32)div_countʹ}
+{
+    const auto half_div = (float)(div_size / 2);
+    half_div_minus_half_tile = half_div - half_tile<float>;
+    // a box spans [center - bbox_lo, center + bbox_hi), as scenery_tile()
+    const auto bbox_lo = (float)(bbox_size / 2), bbox_hi = (float)bbox_size - bbox_lo;
+    // A bit must hold for every position in the cell, not just its anchor
+    // a = i*div_size + half_div - half_tile. pack_bit_index_from_coord() floors, and
+    // positions are integer pixels, so the cell spans [a - reach_below, a + reach_above].
+    const auto reach_below = half_div;
+    const auto reach_above = (float)(div_size - 1 - div_size / 2);
+    // interval overlap, so the cell's low end meets the obstacle's high end and vice versa
+    grow_lo = bbox_hi + reach_above;
+    grow_hi = bbox_lo + reach_below;
+    inv_div = 1.f / (float)div_size; // xxx todo assumes power of two chunk size
+}
+
+cell_range inflated_cells::operator()(float x0, float y0, float x1, float y1) const
+{
+    const float bx0 = x0 - grow_lo, by0 = y0 - grow_lo, bx1 = x1 + grow_hi, by1 = y1 + grow_hi;
+    // open interval (rect_intersects is strict): include j iff bx0 < j*div_size + hdmht < bx1
+    int i_lo = (int)Math::floor((bx0 - half_div_minus_half_tile) * inv_div) + 1;
+    int i_hi = (int)Math::ceil ((bx1 - half_div_minus_half_tile) * inv_div) - 1;
+    int j_lo = (int)Math::floor((by0 - half_div_minus_half_tile) * inv_div) + 1;
+    int j_hi = (int)Math::ceil ((by1 - half_div_minus_half_tile) * inv_div) - 1;
+
+    if (i_lo < 0) i_lo = 0;
+    if (j_lo < 0) j_lo = 0;
+    if (i_hi >= div_count) i_hi = div_count - 1;
+    if (j_hi >= div_count) j_hi = div_count - 1;
+    return { i_lo, i_hi, j_lo, j_hi };
+}
 
 using floormat::Grid::Pass::Params;
 using floormat::Grid::Pass::pred;
@@ -142,15 +170,8 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     const auto div_size  = params.div_size();
     fm_assert(div_countʹ*div_countʹ <= bitmask.size());
 
-    const auto half_div = (float)(div_size / 2);
-    const auto half_div_minus_half_tile = half_div - half_tile<float>;
-    // a box spans [center - bbox_lo, center + bbox_hi), as scenery_tile()
     const auto bbox_lo = (float)(params.bbox_size / 2), bbox_hi = (float)params.bbox_size - bbox_lo;
-    // A bit must hold for every position in the cell, not just its anchor
-    // a = i*div_size + half_div - half_tile. pack_bit_index_from_coord() floors, and
-    // positions are integer pixels, so the cell spans [a - reach_below, a + reach_above].
-    const auto reach_below = half_div;
-    const auto reach_above = (float)(div_size - 1 - div_size / 2);
+    const inflated_cells cells_of{div_size, div_countʹ, params.bbox_size};
 
     chunk* const chunks[9] = {
         self,
@@ -166,8 +187,6 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
     const float pmin_self[2] = { -half_tile<float> - bbox_lo, -half_tile<float> - bbox_lo };
     const float pmax_self[2] = { chunk_size<float> - half_tile<float> + bbox_hi,
                                  chunk_size<float> - half_tile<float> + bbox_hi };
-    const float inv_div = 1.f / (float)div_size; // xxx todo assumes power of two chunk size
-    const int idiv_count = (int)div_countʹ;
     const auto min_pass = (u64)params.min_pass;
     all_empty = true;
 
@@ -191,26 +210,12 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
                     return true;
                 all_empty = false;
 
-                // interval overlap, so the cell's low end meets the obstacle's high end and vice versa
-                const float bx0 = r.m_min[0] + off.x() - bbox_hi - reach_above;
-                const float by0 = r.m_min[1] + off.y() - bbox_hi - reach_above;
-                const float bx1 = r.m_max[0] + off.x() + bbox_lo + reach_below;
-                const float by1 = r.m_max[1] + off.y() + bbox_lo + reach_below;
-
-                // open interval (rect_intersects is strict): include j iff bx0 < j*div_size + hdmht < bx1
-                int i_lo = (int)Math::floor((bx0 - half_div_minus_half_tile) * inv_div) + 1;
-                int i_hi = (int)Math::ceil ((bx1 - half_div_minus_half_tile) * inv_div) - 1;
-                int j_lo = (int)Math::floor((by0 - half_div_minus_half_tile) * inv_div) + 1;
-                int j_hi = (int)Math::ceil ((by1 - half_div_minus_half_tile) * inv_div) - 1;
-
-                if (i_lo < 0) i_lo = 0;
-                if (j_lo < 0) j_lo = 0;
-                if (i_hi >= idiv_count) i_hi = idiv_count - 1;
-                if (j_hi >= idiv_count) j_hi = idiv_count - 1;
-                if (i_lo > i_hi || j_lo > j_hi)
+                const auto cr = cells_of(r.m_min[0] + off.x(), r.m_min[1] + off.y(),
+                                         r.m_max[0] + off.x(), r.m_max[1] + off.y());
+                if (cr.is_empty())
                     return true;
 
-                clear_rect((u32)i_lo, (u32)i_hi, (u32)j_lo, (u32)j_hi);
+                clear_rect((u32)cr.i_lo, (u32)cr.i_hi, (u32)cr.j_lo, (u32)cr.j_hi);
                 return true;
             });
         }
