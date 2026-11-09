@@ -2159,6 +2159,256 @@ void test_cover_rebuilds_on_ring2_collect(u32 div_size)
     fm_assert_equal(dc, east());
 }
 
+enum class expect : u8 { current, stale, either };
+
+expect expect_stale(bool stale)
+{
+    return stale ? expect::stale : expect::current;
+}
+
+template<typename G>
+bool stale_before_walk(const G& g, u64 saved, expect e, const char* grid, const char* what, chunk_coords_ ch)
+{
+    fm_assert(!g.is_marked_stale());
+    const bool stale = g.is_stale();
+    fm_assert(g.is_stale(saved) == stale);
+    if (e != expect::either && stale != (e == expect::stale))
+    {
+        ERR << "!!! fatal:" << grid << "grid" << (stale ? "stale" : "current") << "after" << what
+            << "chunk" << (int)ch.x << (int)ch.y << (int)ch.z;
+        fm_abort("is_stale() is wrong");
+    }
+    return stale;
+}
+
+template<typename G>
+void stale_after_walk(G& g, u64& saved, bool stale)
+{
+    fm_assert(g.is_marked_stale() == stale);
+    fm_assert(g.is_stale() == stale);
+    fm_assert(g.is_stale(saved) == stale);
+    g.build_if_stale();
+    fm_assert(!g.is_stale());
+    fm_assert(g.is_stale(saved) == stale);
+    saved = g.built_pass_gen();
+}
+
+struct stale_grids
+{
+    world& w;
+    Pass::Pool pass_pool{Pass::Params{16, pass_mode::pass}, Search::without_critters()};
+    Pass::Pool cover_pass_pool{Pass::Params{16, pass_mode::shoot_through}, Search::without_critters()};
+    Grid::Cover::Pool cover_pool{Grid::Cover::Params{16}, cover_pass_pool};
+    u64 pass_saved = 0, cover_saved = 0;
+
+    explicit stale_grids(world& w): w{w}
+    {
+        pass_pool.maybe_mark_stale_all(w);
+        cover_pool.maybe_mark_stale_all(w);
+        auto pg = pass_pool[w[COORD]];
+        auto cg = cover_pool[w[COORD]];
+        pg.build_if_stale();
+        cg.build_if_stale();
+        pass_saved = pg.built_pass_gen();
+        cover_saved = cg.built_pass_gen();
+    }
+
+    void check(chunk_coords_ ch, const char* what, auto&& change, expect pass, expect cover)
+    {
+        change();
+        auto pg = pass_pool[w[COORD]];
+        auto cg = cover_pool[w[COORD]];
+        const bool pass_stale = stale_before_walk(pg, pass_saved, pass, "pass", what, ch);
+        const bool cover_stale = stale_before_walk(cg, cover_saved, cover, "cover", what, ch);
+        pass_pool.maybe_mark_stale_all(w);
+        cover_pool.maybe_mark_stale_all(w);
+        stale_after_walk(pg, pass_saved, pass_stale);
+        stale_after_walk(cg, cover_saved, cover_stale);
+    }
+};
+
+void test_is_stale_on_chunk_change()
+{
+    constexpr auto above = chunk_coords_{0, 0, 1};
+    auto w = world();
+    for (auto y = -3; y <= 3; y++)
+        for (auto x = -3; x <= 3; x++)
+            add_ground_all(w[chunk_coords_{(i16)x, (i16)y, 0}]);
+    add_ground_all(w[above]);
+    for (auto& c : w.chunks())
+        rebuild_passability(c);
+
+    stale_grids s{w};
+    for (auto y = -3; y <= 3; y++)
+        for (auto x = -3; x <= 3; x++)
+        {
+            const auto ch = chunk_coords_{(i16)x, (i16)y, 0};
+            const auto d = Math::max(Math::abs(x), Math::abs(y));
+            s.check(ch, "rebuild_passability", [&] { rebuild_passability(w[ch]); },
+                    expect_stale(d <= 1), expect_stale(d <= 2));
+        }
+    s.check(above, "rebuild_passability", [&] { rebuild_passability(w[above]); },
+            expect::current, expect::current);
+}
+
+void test_is_stale_on_chunk_create_and_collect()
+{
+    auto w = world();
+    add_ground_all(w[COORD]);
+    rebuild_passability(w[COORD]);
+
+    stale_grids s{w};
+    const auto check = [&](chunk_coords_ ch, expect pass, expect pass_collect, expect cover) {
+        s.check(ch, "creating", [&] { (void)w[ch]; }, pass, cover);
+        s.check(ch, "collecting", [&] { w.collect(true, true); fm_assert(!w.at(ch)); }, pass_collect, cover);
+    };
+    for (auto y = -3; y <= 3; y++)
+        for (auto x = -3; x <= 3; x++)
+            if (x || y)
+            {
+                const auto d = Math::max(Math::abs(x), Math::abs(y));
+                const auto pass = expect_stale(d <= 1);
+                check({(i16)x, (i16)y, 0}, pass, d == 2 ? expect::either : pass, expect_stale(d <= 2));
+            }
+    check({0, 0, 1}, expect::current, expect::current, expect::current);
+}
+
+void test_is_stale_lifecycle()
+{
+    constexpr chunk_coords_ N{1, -1, 0}, R{-2, 1, 0}, F{5, 5, 0};
+    auto w = world();
+    for (auto ch : { COORD, N, R, F })
+        add_ground_all(w[ch]);
+    for (auto ch : { COORD, N, R, F })
+        rebuild_passability(w[ch]);
+
+    Pass::Pool pass_pool{Pass::Params{16, pass_mode::pass}, Search::without_critters()};
+    Pass::Pool cover_pass_pool{Pass::Params{16, pass_mode::shoot_through}, Search::without_critters()};
+    Grid::Cover::Pool cover_pool{Grid::Cover::Params{16}, cover_pass_pool};
+    auto pg = pass_pool[w[COORD]];
+    auto cg = cover_pool[w[COORD]];
+    const auto each = [&](auto&& f) { f(pg); f(cg); };
+    const auto walk = [&] {
+        pass_pool.maybe_mark_stale_all(w);
+        cover_pool.maybe_mark_stale_all(w);
+    };
+    const auto build = [&] {
+        walk();
+        each([](auto& g) {
+            g.build_if_stale();
+            fm_assert(!g.is_stale());
+        });
+        fm_assert(pg.built_pass_gen() == cg.built_pass_gen());
+        return pg.built_pass_gen();
+    };
+
+    each([](auto& g) {
+        fm_assert(g.is_marked_stale());
+        fm_assert(g.is_stale());
+        fm_assert(g.is_stale(0));
+    });
+    const auto s0 = build();
+    each([&](auto& g) {
+        fm_assert(!g.is_stale(s0));
+        fm_assert(g.is_stale(0));
+    });
+
+    for (auto k : { 8u, 4u, 1u })
+    {
+        const bool filled = cg.ensure_octant(k);
+        fm_assert(filled);
+        fm_assert(!cg.is_stale());
+        fm_assert(!cg.is_stale(s0));
+    }
+
+    each([&](auto& g) {
+        g.mark_stale();
+        fm_assert(g.is_stale());
+        fm_assert(g.is_stale(s0));
+    });
+    (void)build();
+    each([&](auto& g) { fm_assert(!g.is_stale(s0)); });
+
+    rebuild_passability(w[F]);
+    each([&](auto& g) {
+        fm_assert(!g.is_stale());
+        fm_assert(!g.is_stale(s0));
+    });
+    walk();
+    each([&](auto& g) {
+        fm_assert(!g.is_marked_stale());
+        fm_assert(!g.is_stale(s0));
+    });
+
+    rebuild_passability(w[N]);
+    each([&](auto& g) {
+        fm_assert(!g.is_marked_stale());
+        fm_assert(g.is_stale());
+        fm_assert(g.is_stale(s0));
+    });
+    walk();
+    each([](auto& g) { fm_assert(g.is_marked_stale()); });
+    rebuild_passability(w[R]);
+    rebuild_passability(w[N]);
+    walk();
+    each([&](auto& g) {
+        fm_assert(g.is_marked_stale());
+        fm_assert(g.is_stale());
+        fm_assert(g.is_stale(s0));
+    });
+    const auto s1 = build();
+    each([&](auto& g) {
+        fm_assert(g.is_stale(s0));
+        fm_assert(!g.is_stale(s1));
+    });
+
+    rebuild_passability(w[N]);
+    walk();
+    clear_ground_all(w[N]);
+    w.collect(true, true);
+    fm_assert(!w.at(N));
+    each([&](auto& g) {
+        fm_assert(g.is_marked_stale());
+        fm_assert(g.is_stale(s1));
+    });
+    const auto s2 = build();
+    each([&](auto& g) {
+        fm_assert(g.is_stale(s1));
+        fm_assert(!g.is_stale(s2));
+    });
+
+    clear_ground_all(w[COORD]);
+    w.collect(true, true);
+    fm_assert(!w.at(COORD));
+    auto& c = w[COORD];
+    const auto pass_pooled = pass_pool.pooled_count(), cover_pooled = cover_pool.pooled_count();
+    pg = pass_pool[c];
+    cg = cover_pool[c];
+    fm_assert(pass_pool.pooled_count() == pass_pooled - 1);
+    fm_assert(cover_pool.pooled_count() == cover_pooled - 1);
+    each([&](auto& g) {
+        fm_assert(g.is_marked_stale());
+        fm_assert(g.is_stale());
+        fm_assert(g.is_stale(s2));
+    });
+    const auto s3 = build();
+    each([&](auto& g) {
+        fm_assert(g.is_stale(s2));
+        fm_assert(!g.is_stale(s3));
+    });
+
+    auto w2 = world(move(w));
+    each([&](auto& g) {
+        fm_assert(!g.is_stale());
+        fm_assert(!g.is_stale(s3));
+    });
+    (void)w2[chunk_coords_{2, -2, 0}];
+    fm_assert(!pg.is_stale());
+    fm_assert(!pg.is_stale(s3));
+    fm_assert(cg.is_stale());
+    fm_assert(cg.is_stale(s3));
+}
+
 // The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
 // ray rounded. Seeds rounded to whole units would be off by up to one more half unit.
 void test_cover_diagonal_matches_ray(u32 div_size)
@@ -2304,6 +2554,9 @@ void test_grid()
         test_cover_rebuilds_on_ring2_change(ds);
         test_cover_rebuilds_on_ring2_collect(ds);
     }
+    test_is_stale_on_chunk_change();
+    test_is_stale_on_chunk_create_and_collect();
+    test_is_stale_lifecycle();
     // Below 8, planes are u16, and one octant of each step, turned and mirrored, keeps the rays few.
     constexpr u32 some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan
