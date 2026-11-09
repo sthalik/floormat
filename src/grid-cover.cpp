@@ -182,7 +182,7 @@ float raycast_one(chunk& self,
     const point to = from + delta;
 
     const auto r = rc::detail::do_raycasting<false>(nullptr, self.world(), from, to, 0, pass_pool,
-                                                    Search::without_critters(), 0);
+                                                    pass_pool.predicate(), 0);
 
     if (!r.has_result || r.success)
         return (float)max_ray_px;

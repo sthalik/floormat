@@ -1176,7 +1176,8 @@ void app::populate_scene_maze2()
 void app::populate_scene_maze3(mazes::kind k)
 {
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass});
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass},
+                                                      Grid::Kind::static_);
     const auto r = mazes::build(w, k, {}, pool);
     auto C = ensure_player_character(w);
     auto index = C->index();

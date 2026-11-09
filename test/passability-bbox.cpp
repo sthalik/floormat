@@ -30,7 +30,7 @@ void test_pass_pool_promotes_and_snaps()
 {
     Grid::GridRegistry reg;
     const auto pool = [&](u32 bbox) -> auto& {
-        return reg.pass_pool(Grid::Pass::Params{(u32)tile_size_xy / 4, bbox, pass_mode::pass});
+        return reg.pass_pool(Grid::Pass::Params{(u32)tile_size_xy / 4, bbox, pass_mode::pass}, Grid::Kind::static_);
     };
 
     auto& p2 = pool(2);

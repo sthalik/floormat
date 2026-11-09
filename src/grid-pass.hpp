@@ -115,6 +115,7 @@ public:
     void build_if_stale_all();
 
     const Params& params() const;
+    const pred& predicate() const;
     u32 pooled_count() const;
 };
 

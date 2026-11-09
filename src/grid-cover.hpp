@@ -81,7 +81,7 @@ class Pool final
     detail::grid::CoverPool* pool;
 
 public:
-    // pass_pool must outlive this pool and use Search::without_critters(), the cover rays' predicate
+    // pass_pool must outlive this pool
     explicit Pool(Params params, Pass::Pool& pass_pool);
     ~Pool() noexcept;
     fm_DISABLE_MOVE_COPY(Pool);

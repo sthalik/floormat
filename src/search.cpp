@@ -47,6 +47,32 @@ constexpr inline auto without_crittersʹʹ = [](Chunk& self, collision_data data
 template<typename Chunk> constexpr inline auto without_crittersʹ = Pred<Chunk>{without_crittersʹʹ<Chunk>};
 
 template<typename Chunk>
+constexpr inline auto without_dynamic_objectsʹʹ = [](Chunk& self, collision_data data, Range2D) -> path_search_continue {
+    if (data.type == (u64)collision_type::scenery)
+    {
+        auto obj = self.world().find_object(data.id);
+        fm_assert(obj);
+        if (obj->is_dynamic())
+            return path_search_continue::pass;
+    }
+    return path_search_continue::blocked;
+};
+template<typename Chunk> constexpr inline auto without_dynamic_objectsʹ = Pred<Chunk>{without_dynamic_objectsʹʹ<Chunk>};
+
+template<typename Chunk>
+constexpr inline auto dynamic_sceneryʹʹ = [](Chunk& self, collision_data data, Range2D) -> path_search_continue {
+    if (data.type == (u64)collision_type::scenery)
+    {
+        auto obj = self.world().find_object(data.id);
+        fm_assert(obj);
+        if (obj->type() == object_type::scenery && obj->is_dynamic())
+            return path_search_continue::blocked;
+    }
+    return path_search_continue::pass;
+};
+template<typename Chunk> constexpr inline auto dynamic_sceneryʹ = Pred<Chunk>{dynamic_sceneryʹʹ<Chunk>};
+
+template<typename Chunk>
 bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
 {
     constexpr auto bounds = chunk_collision_bounds<Range2D>;
@@ -138,6 +164,8 @@ bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb, const Pred
 template<typename Chunk> const Pred<Chunk>& never_continue() noexcept { return detail::never_continueʹ<Chunk>; }
 template<typename Chunk> const Pred<Chunk>& always_continue() noexcept { return detail::always_continueʹ<Chunk>; }
 template<typename Chunk> const Pred<Chunk>& without_critters() noexcept { return detail::without_crittersʹ<Chunk>; }
+template<typename Chunk> const Pred<Chunk>& without_dynamic_objects() noexcept { return detail::without_dynamic_objectsʹ<Chunk>; }
+template<typename Chunk> const Pred<Chunk>& dynamic_scenery() noexcept { return detail::dynamic_sceneryʹ<Chunk>; }
 
 template const Pred<chunk>& never_continue() noexcept;
 template const Pred<const chunk>& never_continue() noexcept;
@@ -145,5 +173,9 @@ template const Pred<chunk>& always_continue() noexcept;
 template const Pred<const chunk>& always_continue() noexcept;
 template const Pred<chunk>& without_critters() noexcept;
 template const Pred<const chunk>& without_critters() noexcept;
+template const Pred<chunk>& without_dynamic_objects() noexcept;
+template const Pred<const chunk>& without_dynamic_objects() noexcept;
+template const Pred<chunk>& dynamic_scenery() noexcept;
+template const Pred<const chunk>& dynamic_scenery() noexcept;
 
 } // namespace floormat::Search

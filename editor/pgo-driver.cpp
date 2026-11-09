@@ -1470,7 +1470,8 @@ task app::scene_maze3()
     using mazes::kind;
     constexpr auto n = (u32)kind::COUNT;
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass});
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass},
+                                                      Grid::Kind::static_);
     mazes::route routes[n];
     for (auto k = 0u; k < n; k++)
     {
@@ -1523,7 +1524,8 @@ task app::scene_maze_exit()
     constexpr u8 size = 24;
     constexpr auto bbox = Vector2ui{size};
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, size, pass_mode::pass});
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, size, pass_mode::pass},
+                                                      Grid::Kind::static_);
     // reset_world() spawns the player inside the footprint. A critter in a corridor blocks the
     // walk, while the search, run without_critters(), routes through it.
     auto P = ensure_player_character(w);

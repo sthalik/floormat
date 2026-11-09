@@ -20,5 +20,7 @@ using pred = Pred<chunk>;
 template<typename Chunk = chunk> const Pred<Chunk>& never_continue() noexcept;
 template<typename Chunk = chunk> const Pred<Chunk>& always_continue() noexcept;
 template<typename Chunk = chunk> const Pred<Chunk>& without_critters() noexcept;
+template<typename Chunk = chunk> const Pred<Chunk>& without_dynamic_objects() noexcept;
+template<typename Chunk = chunk> const Pred<Chunk>& dynamic_scenery() noexcept;
 
 } // namespace floormat::Search

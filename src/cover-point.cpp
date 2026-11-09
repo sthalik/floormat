@@ -428,7 +428,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
         arrayClear(spots);
         arrayReserve(spots, 16);
     }
-    auto& cover_pool = pools.cover_pool(params);
+    auto& cover_pool = pools.cover_pool(params, Grid::Kind::static_);
     cover_pool.maybe_mark_stale_all(w);
 
     const auto ds = (int)cover_pool.params().div_size;

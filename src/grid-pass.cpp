@@ -439,6 +439,7 @@ void Pool::build_if_stale_all()
 Pool::Pool(Params params, const pred& predicate): pool{new detail::grid::PassPool{params, predicate}} { }
 Pool::~Pool() noexcept { delete pool; }
 const Params& Pool::params() const { return pool->params; }
+const pred& Pool::predicate() const { return pool->predicate; }
 u32 Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Pass

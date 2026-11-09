@@ -11,6 +11,8 @@
 
 namespace floormat::Grid {
 
+enum class Kind : unsigned char { static_, dynamic, COUNT };
+
 class GridRegistry final
 {
 public:
@@ -18,8 +20,8 @@ public:
     ~GridRegistry() noexcept;
     fm_DISABLE_MOVE_COPY(GridRegistry);
 
-    Pass::Pool& pass_pool(const Pass::Params& p);
-    Cover::Pool& cover_pool(const Cover::Params& p);
+    Pass::Pool& pass_pool(const Pass::Params& p, Kind kind);
+    Cover::Pool& cover_pool(const Cover::Params& p, Kind kind);
 
     // object bbox sizes are u8
     static constexpr u32 direct_max_bbox = limits<u8>::max;
@@ -35,13 +37,13 @@ private:
     {
         std::array<std::array<std::array<Pointer<Pass::Pool>, direct_bbox_count>, direct_div_count>, direct_mode_count> direct;
         Array<Pointer<Pass::Pool>> fallback;
-    } pass_;
+    } pass_[(u32)Kind::COUNT];
     // after the pass pools, so destroyed first: each borrows one of them
     struct
     {
         std::array<Pointer<Cover::Pool>, std::bit_width(Cover::max_div_size)> direct;
         Array<Pointer<Cover::Pool>> fallback;
-    } cover_;
+    } cover_[(u32)Kind::COUNT];
 };
 
 } // namespace floormat::Grid

@@ -985,7 +985,7 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    u32 max_dist, Vector2ui own_size,
                                    const pred& p)
 {
-    auto& pool = _pool_registry->pass_pool(default_pool_params(own_size));
+    auto& pool = _pool_registry->pass_pool(default_pool_params(own_size), Grid::Kind::static_);
     return Dijkstra<Debug, FindClosestOnFailure>(w, pool, from, to, max_dist, own_size, p);
 }
 
@@ -1389,7 +1389,7 @@ template path_search_result astar::Dijkstra<3, false>(world&, Grid::Pass::Pool&,
 
 auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p) -> string_pull_result
 {
-    return string_pull(w, _pool_registry->pass_pool(default_pool_params(own_size)), result, own_size, p);
+    return string_pull(w, _pool_registry->pass_pool(default_pool_params(own_size), Grid::Kind::static_), result, own_size, p);
 }
 
 auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,

@@ -462,7 +462,7 @@ bptr<object> cover_script::find_threat(critter& c)
 bool cover_script::sees(critter& c, point from, point to)
 {
     num_rays++;
-    auto& pool = A.pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through});
+    auto& pool = A.pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through}, Grid::Kind::static_);
     return raycast(c.world(), from, to, c.id, pool, Search::without_critters()).success;
 }
 

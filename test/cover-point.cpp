@@ -2385,7 +2385,7 @@ void test_cover_script_far_cover(bool turned)
     w.init_scripts();
     auto A = astar{};
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
-    const auto& pool = A.pool_registry().cover_pool(Grid::Cover::Params{8});
+    const auto& pool = A.pool_registry().cover_pool(Grid::Cover::Params{8}, Grid::Kind::static_);
     const auto frame = Second / npc->atlas->info().fps;
     const auto status = [&] { return *Cover::Script::get_status(*npc); };
     const auto step = [&] { step_critter(w, npc, frame); };
@@ -2496,7 +2496,9 @@ void test_cover_script_div_change()
     const auto frame = Second / npc->atlas->info().fps;
     const auto status = [&] { return *Cover::Script::get_status(*npc); };
     const auto step = [&] { step_critter(w, npc, frame); };
-    const auto fills = [&](u32 div) { return A.pool_registry().cover_pool(Grid::Cover::Params{div}).octant_fills(); };
+    const auto fills = [&](u32 div) {
+        return A.pool_registry().cover_pool(Grid::Cover::Params{div}, Grid::Kind::static_).octant_fills();
+    };
 
     for (auto updates = 0u; status().search_tile <= 32; updates++)
     {

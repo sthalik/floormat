@@ -2,7 +2,6 @@
 #include "compat/array-size.hpp"
 #include "compat/combinations.hpp"
 #include "compat/enumerate.hpp"
-#include "compat/zip.hpp"
 #include "src/grid-registry.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
@@ -13,6 +12,10 @@ namespace floormat {
 namespace {
 
 using Pass::Params;
+using Grid::Kind;
+
+constexpr Kind kinds[] = { Kind::static_, Kind::dynamic };
+static_assert(array_size(kinds) == (u32)Kind::COUNT);
 
 void test_pass_pool_per_params()
 {
@@ -31,14 +34,14 @@ void test_pass_pool_per_params()
     constexpr auto N = array_size(params);
 
     Grid::GridRegistry reg;
-    Pass::Pool* pools[N];
-    for (auto& [pool, p] : zip(pools, params))
+    Pass::Pool* pools[N * array_size(kinds)];
+    for (auto& [i, pool] : enumerate(pools))
     {
-        pool = &reg.pass_pool(p);
-        fm_assert(pool->params() == p);
+        pool = &reg.pass_pool(params[i % N], kinds[i / N]);
+        fm_assert(pool->params() == params[i % N]);
     }
-    for (const auto& [pool, p] : zip(pools, params))
-        fm_assert(&reg.pass_pool(p) == pool);
+    for (const auto& [i, pool] : enumerate(pools))
+        fm_assert(&reg.pass_pool(params[i % N], kinds[i / N]) == pool);
     for (const auto& [a, b] : combinations(pools))
         fm_assert(a != b);
 }
@@ -47,35 +50,42 @@ void test_pass_pool_snapped_params()
 {
     Grid::GridRegistry reg;
     // div 16 snaps to 8 at bbox 10
-    fm_assert(&reg.pass_pool(Params{16, 10, pass_mode::pass}) == &reg.pass_pool(Params{8, 10, pass_mode::pass}));
+    for (auto kind : kinds)
+        fm_assert(&reg.pass_pool(Params{16, 10, pass_mode::pass}, kind) == &reg.pass_pool(Params{8, 10, pass_mode::pass}, kind));
 }
 
 void test_cover_pool_per_div()
 {
     constexpr auto N = (u32)std::bit_width(Grid::Cover::max_div_size);
     Grid::GridRegistry reg;
-    Grid::Cover::Pool* pools[N];
+    Grid::Cover::Pool* pools[N * array_size(kinds)];
     for (auto& [i, pool] : enumerate(pools))
     {
-        pool = &reg.cover_pool(Grid::Cover::Params{1u << i});
-        fm_assert(pool->params() == Grid::Cover::Params{1u << i});
+        pool = &reg.cover_pool(Grid::Cover::Params{1u << i % N}, kinds[i / N]);
+        fm_assert(pool->params() == Grid::Cover::Params{1u << i % N});
     }
     for (const auto& [i, pool] : enumerate(pools))
-        fm_assert(&reg.cover_pool(Grid::Cover::Params{1u << i}) == pool);
+        fm_assert(&reg.cover_pool(Grid::Cover::Params{1u << i % N}, kinds[i / N]) == pool);
     for (const auto& [a, b] : combinations(pools))
         fm_assert(a != b);
 }
 
 void test_cover_pool_shares_pass_pool()
 {
-    auto w = world();
-    auto& c = w[chunk_coords_{0, 0, 0}];
-    Grid::GridRegistry reg;
-    auto& cover = reg.cover_pool(Grid::Cover::Params{8});
-    cover.maybe_mark_stale_all(w);
-    cover[c].build_if_stale();
-    // a grid this pool never built reads 0
-    fm_assert(reg.pass_pool(Params{8, pass_mode::shoot_through})[c].build_no() != 0);
+    for (auto kind : kinds)
+    {
+        auto w = world();
+        auto& c = w[chunk_coords_{0, 0, 0}];
+        Grid::GridRegistry reg;
+        auto& cover = reg.cover_pool(Grid::Cover::Params{8}, kind);
+        cover.maybe_mark_stale_all(w);
+        cover[c].build_if_stale();
+        // a grid this pool never built reads 0
+        fm_assert(reg.pass_pool(Params{8, pass_mode::shoot_through}, kind)[c].build_no() != 0);
+        for (auto other : kinds)
+            if (other != kind)
+                fm_assert(reg.pass_pool(Params{8, pass_mode::shoot_through}, other)[c].build_no() == 0);
+    }
 }
 
 } // namespace

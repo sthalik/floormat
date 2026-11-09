@@ -86,7 +86,7 @@ struct fill_count { u32 n = 0; Ns time{}; };
 
 fill_count fills_of(app& a, u32 div_size)
 {
-    auto& p = a.main().astar().pool_registry().cover_pool(Grid::Cover::Params{div_size});
+    auto& p = a.main().astar().pool_registry().cover_pool(Grid::Cover::Params{div_size}, Grid::Kind::static_);
     return {p.octant_fills(), p.octant_fill_time()};
 }
 
@@ -623,7 +623,7 @@ void cover_ai_test::update_ray(app& a, const critter& c, const Cover::Script::st
     if (s.st != state::exposed || !s.has_peek)
         return;
     auto& m = a.main();
-    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through});
+    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through}, Grid::Kind::static_);
     ray = raycast(m.world(), s.gun_ray_from, s.gun, c.id, pool, Search::without_critters());
 }
 

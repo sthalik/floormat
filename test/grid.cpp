@@ -2,9 +2,13 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/debug.hpp"
 #include "compat/function2.hpp"
+#include "compat/nanosecond.hpp"
 #include "compat/valgrind.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-cover.hpp"
+#include "src/grid-registry.hpp"
+#include "src/anim-atlas.hpp"
+#include "src/critter.hpp"
 #include "src/intra-coord.inl"
 #include "src/point.inl"
 #include "src/raycast.hpp"
@@ -2454,6 +2458,138 @@ void test_cover_diagonal_matches_ray(u32 div_size)
     fm_assert(hits >= dc / 4);
 }
 
+void test_registry_grids_after_door_changes()
+{
+    constexpr auto cover_div_size = 32u;
+    constexpr Pass::Params pass_params[] = {
+        {16, 32, pass_mode::pass},
+        {cover_div_size, pass_mode::shoot_through},
+    };
+    constexpr auto cover_params = Grid::Cover::Params{cover_div_size};
+    constexpr u32 octants[] = { 0u, 4u, 8u, 12u, 16u, 20u, 24u, 28u };
+
+    auto w = world();
+    const auto for_chunks = [&](auto&& fun) {
+        for (i16 y = -1; y <= 1; y++)
+            for (i16 x = -1; x <= 2; x++)
+                fun(w[chunk_coords_{x, y, 0}], x, y);
+    };
+    for_chunks([](chunk& c, i16, i16) { add_ground_all(c); });
+    for (auto i : { 13, 14 })
+        add_wall_north(w[COORD], {(u8)i, 8});
+    for (auto i : { 0, 1, 3, 4 })
+        add_wall_north(w[COORD_E], {(u8)i, 8});
+    for_chunks([](chunk& c, i16, i16) { rebuild_passability(c); });
+
+    Grid::GridRegistry reg;
+    const auto check_pass = [&](const char* what) {
+        Grid::GridRegistry fresh;
+        for (const auto& p : pass_params)
+        {
+            auto& a = reg.pass_pool(p, Grid::Kind::static_);
+            auto& b = fresh.pass_pool(p, Grid::Kind::static_);
+            auto& d = fresh.pass_pool(p, Grid::Kind::dynamic);
+            Pass::Pool both{p, Search::without_critters()};
+            for (auto* pool : { &a, &b, &d, &both })
+                pool->maybe_mark_stale_all(w);
+            for_chunks([&](chunk& c, i16 x, i16 y) {
+                Pass::Grid ga = a[c], gb = b[c], gd = d[c], g_both = both[c];
+                for (auto* g : { &ga, &gb, &gd, &g_both })
+                    g->build_if_stale();
+                const auto dc = ga.div_count();
+                for (auto i = 0u; i < dc*dc; i++)
+                {
+                    if (ga.bit(i) != gb.bit(i))
+                    {
+                        ERR << "!!! fatal:" << what << "min_pass" << (int)p.min_pass << "chunk" << x << y
+                            << "cell" << i % dc << i / dc << "bit" << ga.bit(i) << "but fresh" << gb.bit(i);
+                        fm_abort("a pass grid differs from a fresh one");
+                    }
+                    if ((gb.bit(i) && gd.bit(i)) != g_both.bit(i))
+                    {
+                        ERR << "!!! fatal:" << what << "min_pass" << (int)p.min_pass << "chunk" << x << y
+                            << "cell" << i % dc << i / dc << "static" << gb.bit(i) << "dynamic" << gd.bit(i)
+                            << "but without_critters()" << g_both.bit(i);
+                        fm_abort("the static and dynamic grids don't add up to one without critters");
+                    }
+                }
+            });
+        }
+    };
+    const auto check = [&](const char* what) {
+        check_pass(what);
+        Grid::GridRegistry fresh;
+        auto& a = reg.cover_pool(cover_params, Grid::Kind::static_);
+        auto& b = fresh.cover_pool(cover_params, Grid::Kind::static_);
+        a.maybe_mark_stale_all(w);
+        b.maybe_mark_stale_all(w);
+        for_chunks([&](chunk& c, i16 x, i16 y) {
+            Grid::Cover::Grid ga = a[c], gb = b[c];
+            ga.build_if_stale();
+            gb.build_if_stale();
+            const auto dc = ga.div_count();
+            for (auto k : octants)
+            {
+                (void)ga.ensure_octant(k);
+                (void)gb.ensure_octant(k);
+                for (auto i = 0u; i < dc*dc; i++)
+                    if (ga.distance(i, k) != gb.distance(i, k))
+                    {
+                        ERR << "!!! fatal:" << what << "chunk" << x << y << "octant" << k << "cell" << i % dc << i / dc
+                            << "distance" << ga.distance(i, k) << "but fresh" << gb.distance(i, k);
+                        fm_abort("a cover grid differs from a fresh one");
+                    }
+            }
+        });
+    };
+    check("before the door");
+
+    auto proto = loader.scenery("door1");
+    proto.pass = pass_mode::blocked;
+    proto.frame = (u16)(proto.atlas->info().nframes - 1);
+    const auto doorʹ = w.make_scenery(w.make_id(), {COORD, local_coords{15, 8}}, move(proto));
+    fm_assert(doorʹ->scenery_type() == scenery_type::door && doorʹ->is_dynamic());
+    auto& door = static_cast<door_scenery&>(*doorʹ);
+    check("placed");
+
+    auto i = door.index();
+    door.teleport_to(i, {COORD, local_coords{12, 8}}, door.offset, door.r);
+    check("moved within the chunk");
+    door.teleport_to(i, {COORD_E, local_coords{2, 8}}, door.offset, door.r);
+    fm_assert(&door.chunk() == &w[COORD_E]);
+    check("moved into the east chunk");
+    door.rotate(i, rotation::W);
+    check("turned");
+
+    const auto toggle = [&] {
+        fm_assert(door.activate(i));
+        for (auto n = 0u; door.active; n++)
+        {
+            fm_assert(n < 100);
+            door.update(doorʹ, i, Second);
+        }
+    };
+    toggle();
+    fm_assert(door.pass == pass_mode::pass);
+    check("opened");
+    toggle();
+    fm_assert(door.pass == pass_mode::blocked);
+    check("closed");
+
+    door.chunk().remove_object(door, door.index());
+    check("removed");
+
+    const auto pass_gen = w.pass_gen();
+    critter_proto cp;
+    cp.name = "npc"_s;
+    const auto npc = w.make_object<critter>(w.make_id(), {COORD, local_coords{15, 8}}, move(cp));
+    check_pass("critter placed");
+    i = npc->index();
+    npc->teleport_to(i, {COORD_E, local_coords{2, 8}}, {}, npc->r);
+    check_pass("critter moved");
+    fm_assert(w.pass_gen() == pass_gen);
+}
+
 } // namespace
 
 void test_grid()
@@ -2557,6 +2693,7 @@ void test_grid()
     test_is_stale_on_chunk_change();
     test_is_stale_on_chunk_create_and_collect();
     test_is_stale_lifecycle();
+    test_registry_grids_after_door_changes();
     // Below 8, planes are u16, and one octant of each step, turned and mirrored, keeps the rays few.
     constexpr u32 some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan

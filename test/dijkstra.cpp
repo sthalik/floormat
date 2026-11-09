@@ -87,7 +87,8 @@ void check_flush_goal(const char* name, u32 bbox, F&& setup, Vector2b goal_offse
 
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto& pool16 = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass});
+    auto& pool16 = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass},
+                                               Grid::Kind::static_);
     auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, bbox, pass_mode::pass}, pred};
 
     for (auto* pool : { &pool16, &pool8 })
@@ -573,7 +574,8 @@ void Test::test_dijkstra()
     constexpr auto wpos = global_coords{wch, wt};
     const auto from = point{{0, 0, 0}, {11, 9}};
     constexpr auto own_size = Vector2ui{16};
-    auto& pool = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, own_size.x(), pass_mode::pass});
+    auto& pool = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, own_size.x(), pass_mode::pass},
+                                             Grid::Kind::static_);
 
     add_floors(w, from, max_dist, pool.params().div_size());
     auto& ch = w[wch];
