@@ -4,7 +4,7 @@
 #include "critter-script-cover-movement-range.hpp"
 #include "critter-script-cover-peek-spot.hpp"
 #include "critter-script-cover-retreat-finder.hpp"
-#include "critter-script-cover-unreachable-spots.hpp"
+#include "critter-script-cover-search.hpp"
 #include "cover-point.hpp"
 #include "critter.hpp"
 #include "grid-registry.hpp"
@@ -21,8 +21,6 @@
 #include "compat/function2.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/timer.hpp"
-#include <algorithm>
-#include <array>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <mg/Functions.h>
@@ -35,26 +33,6 @@ namespace {
 constexpr Ns hidden_time = 2*Second, exposed_time = 2*Second;
 // before looking for cover again when there was none, or the walk there was blocked twice
 constexpr Ns retry_time = Second;
-constexpr u32 search_radius = 2*chunk_size_xy;
-constexpr u32 path_slack = 5*(u32)tile_size_xy;
-// The work a search for cover or a retreat may do in one update. Counts, not time, so that the npc
-// behaves the same on every machine.
-// TODO: each critter has its own limits, so n critters searching in different chunks can do n
-// octant fills in one frame.
-
-// Tiles of search_tiles(), each listed by one Cover::Point::finder::find call over the tile's area.
-constexpr u32 max_search_tiles_per_update = 32;
-// An octant fill computes how far a shot travels from each cell of a chunk's cover grid along one of 32
-// directions. A stale grid's rebuild counts as one. A rebuild and a fill took 0.66 ms at div 8.
-constexpr u32 max_search_octant_fills_per_update = 1;
-// path_to calls, each one Dijkstra search. One that found a path took up to 0.71 ms among dense scenery.
-constexpr u32 max_search_dijkstra_calls_per_update = 1;
-// Listed cover spots that hidden_from_reach doesn't reject. Each gets cover_end, up to 0.1 ms among dense
-// scenery, and with needs_peek a search for its peek spot, which casts rays and took up to 42 microseconds.
-constexpr u32 max_peek_spot_searches_per_update = 1;
-// hidden_at calls made by hidden_from_reach, each up to 6 microseconds among dense scenery. Rejecting a spot
-// may take a single call, so a spot that hidden_from_reach rejects counts against this cap only.
-constexpr u32 max_search_body_checks_per_update = 64;
 // A path_to call that finds no path costs a Dijkstra search over every node within max_dist, so a search for
 // cover or a retreat stops after this many of them.
 constexpr u32 max_failed_dijkstra_calls = 8;
@@ -64,29 +42,12 @@ constexpr StringView script_name = name_of<cover_script>;
 using ScriptPtr = Pointer<critter_script>;
 using walk_result = critter::walk_result;
 
-// path_to's max_dist: twice the distance plus path_slack, as the way around a blocker can be many
-// times longer than the straight line.
-u32 max_search_path_length(point from, point to) { return point::distance(from, to)*2 + path_slack; }
-
 // Every collider but the critter itself blocks, other critters included, as when it moves.
 auto blocks_all_but(object_id self)
 {
     return [self](chunk&, collision_data x, Range2D) {
         return x.id == self ? path_search_continue::pass : path_search_continue::blocked;
     };
-}
-
-// A query's pos lies up to half a tile from its tile's center on each axis, so the list reaches a
-// tile past search_radius.
-const Array<Vector2i>& search_tiles()
-{
-    static const auto tiles = [] {
-        Array<Vector2i> a;
-        Cover::Point::nearest_tiles(search_radius + tile_size_xy, a);
-        fm_assert(a.size() <= UINT16_MAX);
-        return a;
-    }();
-    return tiles;
 }
 
 // Takes cover from a critter and steps out of it and back, each phase lasting until its wait runs out.
@@ -113,9 +74,6 @@ struct cover_script final : critter_script
     void set_options(critter& c, const Cover::Script::options& o);
 
 private:
-    // end is cover_end() of spot, and path leads there. path is empty when c stands on spot or end.
-    struct reachable_cover { Cover::Point::spot spot; point end; path_search_result path; };
-    struct skipped_spot { Cover::Point::spot spot; u32 octant; };
     // What end_search does with cover: hide there for hidden_time, for the wait left with relocate, or peek
     // from it with follow. Without cover, seek waits and the others retreat.
     enum class search_then : u8 { seek, relocate, follow, };
@@ -140,8 +98,7 @@ private:
     void restart_search(critter& c);
     void resume_search(critter& c);
     void search_step(critter& c);
-    Optional<reachable_cover> take_last_resort(critter& c);
-    void end_search(critter& c, Optional<reachable_cover> r);
+    void end_search(critter& c, Optional<cover_search::reachable_cover> r);
     path_search_result path_to(critter& c, point to);
     void begin_retreat(critter& c, bool restart = false);
     void retreat_step(critter& c);
@@ -167,30 +124,12 @@ private:
     critter_walk walk;
     Cover::Point::finder finder;
     Cover::Point::query query = {};
-    unreachable_spots unreachable;
-    // The spots of the search's tile search_tile, once tile_listed, of which tile_spot is next. They
-    // were listed with the threat at tile_threat.
-    Array<Cover::Point::spot> tile_spots;
-    // The spots search_step skipped, each with its octant, in the tile that octant's scan has reached. A tile
-    // listed again skips without testing those it skipped in the current octant.
-    Array<skipped_spot> tile_skipped;
-    point tile_threat;
-    // The first spots the search skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
-    Optional<Cover::Point::spot> peekless, in_reach;
+    cover_search search;
     movement_range threat_range;
     retreat_finder retreat;
-    u32 search_tile = 0, tile_spot = 0, search_octant = 0;
-    // Tiles the search may still pass, and 0 once it ended. A restart or a change of octant moves search_tile
-    // back only while the rest of the scan fits, so a moving threat can't keep the search near c.
-    u32 search_tiles_left = 0;
-    std::array<u16, Grid::Cover::octant_count> octant_search_tiles{};
-    // Where the search's tiles and the threat's octant are measured from. The last restart to tile 0 set it to c's
-    // position, or during a retreat walk to the walk's end, so that cover back toward the threat comes later.
-    point search_from;
     search_then then = search_then::seek;
     // A retreat started since start_search, so a kept last_resort spot starts no other.
     bool search_retreated = false;
-    bool tile_listed = false;
     // canonical is the spot the search found, and cover where c hides, canonical moved along its face as far as
     // the threat alone sees no pixel of c. threat_pos is where the threat stood at the last check or search.
     point cover, canonical, threat_pos, peek_pos, gun_pos, gun_ray_from;
@@ -198,7 +137,6 @@ private:
     Ns wait_until{}, prev_game_time{}, last_update{}, max_update{}, total_update{};
     object_id threat_id;
     u32 num_searches = 0, num_rays = 0, num_body_checks = 0, num_dijkstra_calls = 0;
-    u32 num_find_cover_point_calls = 0;
     Optional<int> gun_offset;
     state st = state::seek;
     u8 replans = 0;
@@ -224,11 +162,12 @@ Cover::Script::status cover_script::status() const
         .cover = cover, .canonical = canonical, .axis = axis, .peek = peek_pos, .gun = gun_pos,
         .gun_ray_from = gun_ray_from, .query = query, .num_searches = num_searches, .num_rays = num_rays,
         .num_body_checks = num_body_checks, .num_dijkstra_calls = num_dijkstra_calls,
-        .search_tiles_left = search_tiles_left, .search_tile = search_tile,
-        .num_search_tiles = (u32)search_tiles().size(),
+        .search_tiles_left = search.tiles_left(), .search_tile = search.tile(),
+        .num_search_tiles = cover_search::num_tiles(),
         .retreat_spot = retreat.next(), .num_retreat_spots = retreat.num_spots(),
         .num_failed_retreat_dijkstra_calls = retreat.num_failed_dijkstra_calls(), .retreat_all = retreat.all(),
-        .num_retreat_restarts = retreat.num_restarts(), .num_find_cover_point_calls = num_find_cover_point_calls,
+        .num_retreat_restarts = retreat.num_restarts(),
+        .num_find_cover_point_calls = search.num_find_cover_point_calls(),
         .last_update = last_update, .max_update = max_update, .total_update = total_update,
         .st = st, .has_cover = has_cover, .has_peek = has_peek, .has_query = has_query,
     };
@@ -295,7 +234,7 @@ void cover_script::update(const bptr<critter>& c, usize& i, const Ns& dt)
     case state::search:
         search_step(*c);
         // This runs after search_step, so cover found in this update needs no retreat.
-        if (st == state::search && (peekless || in_reach) && !search_retreated &&
+        if (st == state::search && search.has_last_resort() && !search_retreated &&
             !hidden_at(*c, threat_pos, c->position(), Cover::Point::axis_toward(threat_pos - c->position())))
             begin_retreat(*c);
         go_on(c, i, dt);
@@ -311,7 +250,7 @@ void cover_script::update(const bptr<critter>& c, usize& i, const Ns& dt)
         go_on(c, i, dt);
         return;
     case state::retreat:
-        if ((options.search_every_move || !check_retreat(*c)) && search_tiles_left)
+        if ((options.search_every_move || !check_retreat(*c)) && search.tiles_left())
             search_step(*c);
         go_on(c, i, dt);
         return;
@@ -379,30 +318,14 @@ bool cover_script::holds() const
 void cover_script::set_options(critter& c, const Cover::Script::options& o)
 {
     using hold_phase = Cover::Script::options::hold_phase;
-    using fallback = Cover::Script::options::fallback;
     const auto old = options.hold;
     options = o;
-    // Spots kept for a last_resort the new options don't allow, which neither the retreat nor take_last_resort
-    // checks again.
-    switch (o.last_resort)
-    {
-    case fallback::none:
-        peekless = {};
-        in_reach = {};
-        goto done;
-    case fallback::no_peek:
-        in_reach = {};
-        goto done;
-    case fallback::in_reach:
-        goto done;
-    }
-    fm_assert(false);
-done:
-    if (search_tiles_left && (st == state::search || st == state::find_retreat || st == state::retreat))
+    search.drop_last_resort(o.last_resort);
+    if (search.tiles_left() && (st == state::search || st == state::find_retreat || st == state::retreat))
     {
         restart_search(c);
         // skipped under the old options
-        arrayClear(tile_skipped);
+        search.forget_skipped();
     }
     if (o.hold == old)
         return;
@@ -484,7 +407,7 @@ bool cover_script::refresh_cover(critter& c)
 
 Vector2i cover_script::across() const { return Cover::Point::across_of(axis); }
 
-// Puts c in state::search, which stands while it looks for cover within search_radius. False, with c
+// Puts c in state::search, which stands while it looks for cover within cover_search::radius. False, with c
 // seeking after retry_time, when the threat is gone.
 bool cover_script::start_search(critter& c, search_then next)
 {
@@ -496,14 +419,9 @@ bool cover_script::start_search(critter& c, search_then next)
     }
     st = state::search;
     then = next;
-    peekless = {};
-    in_reach = {};
     search_retreated = false;
-    unreachable.clear();
-    const auto n = (u32)search_tiles().size();
-    search_tiles_left = n + n/2;
     threat_pos = threat->position();
-    restart_search(c);
+    search.begin(c.position(), threat_pos);
     return true;
 }
 
@@ -523,23 +441,9 @@ void cover_script::flee(critter& c)
     retreat_step(c);
 }
 
-// Keeps unreachable, its failed Dijkstra calls included, so a spot with no path from where c stood stays skipped
-// as c walks.
 void cover_script::restart_search(critter& c)
 {
-    // More than a scan stays left after the restart's tile, so the count stays nonzero until the search ends.
-    if (search_tiles_left > search_tiles().size() + 1)
-    {
-        const auto from = st == state::retreat ? walk.dest() : c.position();
-        unreachable.origin_moved(point::distance(search_from, from));
-        search_from = from;
-        search_tile = 0;
-        search_tiles_left--;
-        arrayClear(tile_skipped);
-        octant_search_tiles = {};
-    }
-    search_octant = Cover::Point::nearest_octant(Vector2(threat_pos - search_from));
-    tile_listed = false;
+    search.restart(st == state::retreat ? walk.dest() : c.position(), threat_pos);
 }
 
 // Back to the search after a retreat c didn't walk to its end, measured from where c stands rather than the
@@ -547,194 +451,45 @@ void cover_script::restart_search(critter& c)
 void cover_script::resume_search(critter& c)
 {
     st = state::search;
-    if (search_from != c.position())
+    if (search.from() != c.position())
         restart_search(c);
 }
 
-// Tries up to max_search_tiles_per_update tiles, each with its area and the threat's current position. A changed
-// pass grid within a failed path search's reach restarts the search, and a new threat octant resumes its own scan.
 void cover_script::search_step(critter& c)
 {
-    using fallback = Cover::Script::options::fallback;
-    auto& w = c.world();
     const auto threat = find_threat(c);
     if (!threat)
     {
         retry_later(c);
         return;
     }
-    const auto here = c.position();
     threat_pos = threat->position();
-    // Listed spots hold only for the threat position they were listed for, and a Dijkstra search's result
-    // only for the pass grids it ran in.
-    const auto k = Cover::Point::nearest_octant(Vector2(threat_pos - search_from));
-    const auto& tiles = search_tiles();
-    if (unreachable.stale(w, search_from))
-    {
-        unreachable.clear();
-        arrayClear(tile_skipped);
-        restart_search(c);
-    }
-    else if (k != search_octant)
-    {
-        octant_search_tiles[search_octant] = (u16)search_tile;
-        const auto from = st == state::retreat ? walk.dest() : c.position();
-        if (from == search_from && search_tiles_left > tiles.size() - octant_search_tiles[k] + 1)
-        {
-            search_octant = k;
-            search_tile = octant_search_tiles[k];
-            search_tiles_left--;
-            tile_listed = false;
-        }
-        else
-            restart_search(c);
-    }
-    else if (threat_pos != tile_threat)
-        tile_listed = false;
-
-    // With a spot kept for last_resort, the search ends in the update after its last spot, since that spot may
-    // have used the update's one Dijkstra call.
-    if (search_tile == tiles.size() || unreachable.num_failed_dijkstra_calls() == max_failed_dijkstra_calls)
-    {
-        end_search(c, take_last_resort(c));
-        return;
-    }
-    // the offset of search_from's tile's center, so that each area is a tile of the world
-    const auto base = point{search_from.coord(), {}} - search_from;
-    const auto body = Vector2ui(c.bbox_size);
     const auto pred = blocks_all_but(c.id);
-    auto fills = max_search_octant_fills_per_update, dijkstra_left = max_search_dijkstra_calls_per_update;
-    auto peek_spot_searches_left = max_peek_spot_searches_per_update;
-    const auto checks_at_start = num_body_checks;
-    for (auto n = 0u; n < max_search_tiles_per_update; n++)
-    {
-        if (!tile_listed)
-        {
-            const auto mid = base + tiles[search_tile]*tile_size_xy;
-            const Cover::Point::query q{search_from, body, threat_pos, search_radius, options.octants,
-                                options.listed_cover_end_dist(),
-                                Range2Di::fromCenter(mid, Vector2i{half_tile<int>}), fills};
-            const auto r = finder.find(w, A.pool_registry(), Grid::Cover::Params{options.div_size}, q, pred, true);
-            num_find_cover_point_calls++;
-            fills -= r.fills;
-            if (r.out_of_fills)
-                return;
-            const auto count = r.spots.size();
-            if (arrayCapacity(tile_spots) < count)
-                arrayReserve(tile_spots, count + count/2);
-            arrayClear(tile_spots);
-            arrayAppend(tile_spots, r.spots);
-            if (arrayCapacity(tile_skipped) < tile_skipped.size() + count)
-                arrayReserve(tile_skipped, tile_skipped.size() + count);
-            tile_spot = 0;
-            tile_listed = true;
-            tile_threat = threat_pos;
-        }
-        for (; tile_spot < tile_spots.size(); tile_spot++)
-        {
-            const auto s = tile_spots[tile_spot];
-            bool skipped = false;
-            for (const auto& x : tile_skipped)
-                skipped |= x.spot.pos == s.pos && x.spot.axis == s.axis && x.octant == search_octant;
-            if (skipped)
-                continue;
-            const auto at_spot = s.pos == here;
-            if (!at_spot && unreachable.joins(w, s.pos, Vector2i(c.bbox_size), pred))
-            {
-                unreachable.add(s.pos);
-                continue;
-            }
-            const auto num_checks = num_body_checks - checks_at_start;
-            if (!peek_spot_searches_left || num_checks >= max_search_body_checks_per_update ||
-                !at_spot && !dijkstra_left)
-                return;
-            if (options.threat_reach && !hidden_from_reach(c, threat_pos, s.pos, s.axis))
-            {
-                if (options.last_resort >= fallback::in_reach && !in_reach)
-                    in_reach = s;
-                arrayAppend(tile_skipped, skipped_spot{s, search_octant});
-                continue;
-            }
-            peek_spot_searches_left--;
-            // A path to s.pos could pass end and come back.
-            const auto end = cover_end(c, s, threat_pos);
-            if (options.needs_peek && !peek_spot(c, end, s.axis, threat_pos))
-            {
-                if (options.last_resort >= fallback::no_peek && !peekless)
-                    peekless = s;
-                arrayAppend(tile_skipped, skipped_spot{s, search_octant});
-                continue;
-            }
-            if (at_spot || end == here)
-            {
-                end_search(c, reachable_cover{s, end, {}});
-                return;
-            }
-            dijkstra_left--;
-            // TODO: the path may lead toward the threat. Avoiding it needs A.Dijkstra predicate changes and maybe
-            // a path to the threat, or another measure of how close the path comes to it.
-            if (auto path = path_to(c, end); path.is_found())
-            {
-                end_search(c, reachable_cover{s, end, move(path)});
-                return;
-            }
-            // c can walk straight from s.pos to end, so s.pos has no path either.
-            const auto reach = max_search_path_length(here, end) + point::distance(here, search_from);
-            unreachable.add_failed(s.pos, reach, w.pass_gen());
-            if (unreachable.num_failed_dijkstra_calls() == max_failed_dijkstra_calls)
-            {
-                if (!peekless && !in_reach)
-                    end_search(c, {});
-                return;
-            }
-        }
-        tile_listed = false;
-        const auto kept = std::remove_if(tile_skipped.begin(), tile_skipped.end(),
-                                         [&](const skipped_spot& x) { return x.octant == search_octant; });
-        arrayRemoveSuffix(tile_skipped, (usize)(tile_skipped.end() - kept));
-        search_tile++;
-        fm_debug_assert(search_tiles_left);
-        search_tiles_left--;
-        if (search_tile == tiles.size())
-        {
-            if (!peekless && !in_reach)
-                end_search(c, {});
-            return;
-        }
-    }
-}
-
-// peekless if the threat at threat_pos and where it can walk still see none of c there, else in_reach if the threat
-// alone doesn't, with its cover_end() and a path there. Clears both. At most one path_to call, as in search_step.
-auto cover_script::take_last_resort(critter& c) -> Optional<reachable_cover>
-{
-    Optional<Cover::Point::spot> spot;
-    if (peekless && hidden_from_reach(c, threat_pos, peekless->pos, peekless->axis))
-        spot = peekless;
-    else if (in_reach && hidden_at(c, threat_pos, in_reach->pos, in_reach->axis))
-        spot = in_reach;
-    peekless = {};
-    in_reach = {};
-    if (!spot)
-        return {};
-    const auto s = *spot;
-    const auto here = c.position();
-    const auto end = cover_end(c, s, threat_pos);
-    if (s.pos == here || end == here)
-        return reachable_cover{s, end, {}};
-    if (auto path = path_to(c, end); path.is_found())
-        return reachable_cover{s, end, move(path)};
-    return {};
+    auto r = search.step(c.world(), finder, A.pool_registry(), c.position(),
+                         st == state::retreat ? walk.dest() : c.position(), threat_pos, Vector2ui(c.bbox_size), pred,
+                         options, max_failed_dijkstra_calls, {
+        .hidden_from_reach = [&](point pos, Vector2i axis) {
+            const auto n = num_body_checks;
+            const auto hidden = hidden_from_reach(c, threat_pos, pos, axis);
+            return cover_search::hidden_result{hidden, num_body_checks - n};
+        },
+        .hidden_at = [&](point pos, Vector2i axis) { return hidden_at(c, threat_pos, pos, axis); },
+        .cover_end = [&](const Cover::Point::spot& s) { return cover_end(c, s, threat_pos); },
+        .has_peek = [&](point end, Vector2i axis) { return !!peek_spot(c, end, axis, threat_pos); },
+        .path_to = [&](point to) { return path_to(c, to); },
+    });
+    if (r.done)
+        end_search(c, move(r.cover));
 }
 
 // Takes r's cover, or continues the retreat, retreats or waits as `then` says when r is empty.
-void cover_script::end_search(critter& c, Optional<reachable_cover> r)
+void cover_script::end_search(critter& c, Optional<cover_search::reachable_cover> r)
 {
-    search_tiles_left = 0;
-    const auto radius = r ? Math::min(search_radius, point::distance(search_from, r->spot.pos) + (u32)tile_size_xy)
-                          : search_radius;
-    query = {search_from, Vector2ui(c.bbox_size), threat_pos, radius, options.octants,
-             options.listed_cover_end_dist()};
+    search.end();
+    const auto from = search.from();
+    const auto radius = r ? Math::min(cover_search::radius, point::distance(from, r->spot.pos) + (u32)tile_size_xy)
+                          : cover_search::radius;
+    query = {from, Vector2ui(c.bbox_size), threat_pos, radius, options.octants, options.listed_cover_end_dist()};
     has_query = true;
     num_searches++;
     if (!r)
@@ -822,13 +577,13 @@ void cover_script::retreat_step(critter& c)
         walk = critter_walk{move(r.path)};
         st = state::retreat;
         // The search goes on measured from the walk's end.
-        if (search_tiles_left)
+        if (search.tiles_left())
             restart_search(c);
         return;
     }
     if (!r.done)
         return;
-    if (search_tiles_left)
+    if (search.tiles_left())
         resume_search(c);
     else
         retry_later(c);
@@ -1003,7 +758,7 @@ void cover_script::walk_update(const bptr<critter>& c, usize& i, const Ns& dt)
             walk = critter_walk{cover};
         else if (st == state::to_cover)
             st = state::hidden;
-        else if (st == state::retreat && search_tiles_left)
+        else if (st == state::retreat && search.tiles_left())
         {
             st = state::search;
             face_threat(*c, i, threat_pos);
@@ -1036,7 +791,7 @@ void cover_script::walk_update(const bptr<critter>& c, usize& i, const Ns& dt)
         replans = 1;
         return;
     }
-    if (st == state::retreat && search_tiles_left)
+    if (st == state::retreat && search.tiles_left())
     {
         resume_search(*c);
         return;
