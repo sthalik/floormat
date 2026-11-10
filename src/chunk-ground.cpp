@@ -42,10 +42,10 @@ void chunk::ensure_ground_mesh(SpriteBatch& sb)
             const auto v = map([&](u8 k) -> Quads::vertex {
                 return { quad[k], texcoords[k], depth };
             }, Quads::ccw_order);
-            ground_static_mesh.add(v, depth, nullptr);
+            ground_static_mesh.add(v, depth);
         }
     }
-    sb.emit<true>(ground_static_mesh, false);
+    sb.emit(ground_static_mesh);
 }
 
 } // namespace floormat

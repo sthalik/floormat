@@ -11,9 +11,8 @@ struct SpriteList
 {
     Array<Quads::vertexes> Vertexes;
     Array<float> Depths;
-    Array<object*> Objects;
 
-    void add(const Quads::vertexes& vertexes, float depth, object* obj);
+    void add(const Quads::vertexes& vertexes, float depth);
     void clear();
     void reserve(u32 count);
     u32 size() const;

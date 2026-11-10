@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "src/spritebatch.hpp"
 #include "src/quads.hpp"
+#include "src/sprite-list.hpp"
 #include "src/hwy.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/fwd/algorithm/ranges_sort.hpp"
@@ -48,6 +49,19 @@ struct fixture
     {
         sb.begin_chunk(0);
         do_sort ? sb.end_chunk<true>() : sb.end_chunk<false>();
+    }
+
+    void add_list(SpriteList& list)
+    {
+        for (auto i = 0u; i < list.size(); i++)
+        {
+            depths.push_back(list.Depths[i]);
+            run_of.push_back(nruns);
+            rank_of.push_back(i);
+        }
+        sb.emit(list);
+        if (list.size())
+            nruns++;
     }
 
     void emit_run(const std::vector<float>& run, bool do_sort)
@@ -229,6 +243,30 @@ void test_layout(layout kind, u32 k)
     f.check();
 }
 
+SpriteList make_list(u32 count, float first)
+{
+    SpriteList list;
+    list.reserve(count);
+    for (auto i = 0u; i < count; i++)
+        list.add(dummy_quad, first + 2 * (float)i);
+    return list;
+}
+
+void test_emit_list()
+{
+    auto odd = make_list(37, 1), even = make_list(23, 0), empty = make_list(0, 0);
+    fixture f;
+    f.add_list(odd);
+    f.add_run({20.5f, 3.5f, 60.5f});
+    f.add_list(empty);
+    f.add_list(even);
+    f.check();
+
+    f.add_list(odd);
+    f.add_list(even);
+    f.check_identity();
+}
+
 void run_cases()
 {
     // Every cross-run tie pattern for small k. 14 distinct runs at k <= 4, 6 at k = 5.
@@ -330,6 +368,8 @@ void run_cases()
         f.add_run({-FLT_MAX, FLT_MAX});
         f.check();
     }
+
+    test_emit_list();
 }
 
 } // namespace

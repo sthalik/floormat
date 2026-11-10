@@ -13,6 +13,7 @@
 #include "compat/assume-aligned.hpp"
 #include "compat/setenv.hpp"
 #include <bit>
+#include <cstring>
 #include <cr/GrowableArray.h>
 #include <cr/Memory.h>
 #include <mg/Mesh.h>
@@ -322,11 +323,9 @@ void SpriteBatch::end_chunk()
 template void SpriteBatch::end_chunk<false>();
 template void SpriteBatch::end_chunk<true>();
 
-template<bool SkipObjects>
-void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
+void SpriteBatch::emit(SpriteList& list)
 {
     const auto size = list.size();
-    // Sized to the upper bound, so the filtered branch needs no counting pass.
     begin_chunk(size);
     auto& impl = *this->impl;
     const auto first = impl.emit_pos;
@@ -335,49 +334,11 @@ void SpriteBatch::emit(SpriteList& list, bool render_vobjs)
     const auto* const Din = list.Depths.data();
     auto* const V = impl.verts.data() + first;
     auto* const D = impl.depths.data() + first;
-
-    u32 n = 0;
-
-    if constexpr(SkipObjects)
-    {
-        fm_UNROLL_8 for (auto i = 0u; i < size; i++)
-            V[i] = Vin[i];
-        fm_UNROLL_8 for (auto i = 0u; i < size; i++)
-            D[i] = Din[i];
-        n += size;
-    }
-    else
-    {
-        if (render_vobjs)
-        {
-            fm_UNROLL_8 for (auto i = 0u; i < size; i++)
-            {
-                V[i] = Vin[i];
-                D[i] = Din[i];
-            }
-            n += size;
-        }
-        else
-        {
-            object* const* const O = list.Objects.data();
-            fm_UNROLL_8 for (auto i = 0u; i < size; i++)
-            {
-                const auto* obj = O[i];
-                if (obj && obj->is_virtual())
-                    continue;
-                V[n] = Vin[i];
-                D[n] = Din[i];
-                n++;
-            }
-        }
-    }
-
-    impl.emit_pos = first + n;
+    std::memcpy(V, Vin, size * sizeof *Vin);
+    std::memcpy(D, Din, size * sizeof *Din);
+    impl.emit_pos += size;
     end_chunk<false>();
 }
-
-template void SpriteBatch::emit<true>(SpriteList& list, bool render_vobjs);
-template void SpriteBatch::emit<false>(SpriteList& list, bool render_vobjs);
 
 // Sorting the zip_view directly moves 124 bytes per iter_move to order by a 4-byte key. Sort a
 // permutation instead, then walk its cycles in place.
@@ -393,7 +354,6 @@ void SpriteBatch::sort_by_depth(SpriteList& list)
     sort_depths(list.Depths.data(), impl.perm.data(), 0, n, impl.sort_keys.data());
 
     auto* const V = list.Vertexes.data();
-    auto* const O = list.Objects.data();
     auto* const P = impl.perm.data();
 
     for (auto i = 0u; i < n; i++)
@@ -401,7 +361,6 @@ void SpriteBatch::sort_by_depth(SpriteList& list)
         if (P[i] == i)
             continue;
         const auto v = V[i];
-        auto* const o = O[i];
         auto j = i;
         for (;;)
         {
@@ -410,11 +369,9 @@ void SpriteBatch::sort_by_depth(SpriteList& list)
             if (k == i)
                 break;
             V[j] = V[k];
-            O[j] = O[k];
             j = k;
         }
         V[j] = v;
-        O[j] = o;
     }
 }
 

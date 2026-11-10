@@ -298,7 +298,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                         const auto k = Quads::ccw_order[j];
                         v[j] = {quad[k] + center, texcoords[k], depth[k]};
                     }
-                    wsl.add(v, depth[0], nullptr);
+                    wsl.add(v, depth[0]);
                 }
             }
         }
@@ -365,7 +365,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                             depth_offset);
                     }
                     const auto v = Quads::make_vertexes(quad, texcoords, depth, center);
-                    wsl.add(v, depth[0], nullptr);
+                    wsl.add(v, depth[0]);
                 }
             }
         }
@@ -434,7 +434,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                                               depth_offset);
 
                 const auto v = Quads::make_vertexes(quad, texcoords, depth, center);
-                wsl.add(v, depth[0], nullptr);
+                wsl.add(v, depth[0]);
             }
             else if constexpr (G == Group_::side)
             {
@@ -476,7 +476,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                                                        depth_offset);
 
                 const auto v = Quads::make_vertexes(quad, texcoords, depth, center);
-                wsl.add(v, depth[0], nullptr);
+                wsl.add(v, depth[0]);
             }
             else if constexpr (G == Group_::top)
             {
@@ -529,7 +529,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                     const auto k = Quads::ccw_order[j];
                     v[j] = {quad[k] + center, texcoords[k], depth[k]};
                 }
-                wsl.add(v, depth[0], nullptr);
+                wsl.add(v, depth[0]);
             }
             else
                 static_assert(false);
@@ -575,7 +575,7 @@ void chunk::ensure_wall_mesh(SpriteBatch& sb)
             do_wall_tile<true>(*this, W, wall_static_mesh, coord, k);
         }
     }
-    sb.emit<true>(wall_static_mesh, false);
+    sb.emit(wall_static_mesh);
 }
 
 } // namespace floormat
