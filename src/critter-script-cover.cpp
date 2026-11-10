@@ -2,6 +2,7 @@
 #include "critter-script.hpp"
 #include "critter-walk.hpp"
 #include "critter-script-cover-movement-range.hpp"
+#include "critter-script-cover-peek-spot.hpp"
 #include "critter-script-cover-retreat-finder.hpp"
 #include "critter-script-cover-unreachable-spots.hpp"
 #include "cover-point.hpp"
@@ -54,7 +55,6 @@ constexpr u32 max_peek_spot_searches_per_update = 1;
 // hidden_at calls made by hidden_from_reach, each up to 6 microseconds among dense scenery. Rejecting a spot
 // may take a single call, so a spot that hidden_from_reach rejects counts against this cap only.
 constexpr u32 max_search_body_checks_per_update = 64;
-constexpr int max_peek_dist = 2*tile_size_xy;
 // A path_to call that finds no path costs a Dijkstra search over every node within max_dist, so a search for
 // cover or a retreat stops after this many of them.
 constexpr u32 max_failed_dijkstra_calls = 8;
@@ -74,17 +74,6 @@ auto blocks_all_but(object_id self)
     return [self](chunk&, collision_data x, Range2D) {
         return x.id == self ? path_search_continue::pass : path_search_continue::blocked;
     };
-}
-
-// Where the gun is when c's body is centered on pos and c faces threat: offset px to its right, or
-// half of c's bbox_size along across without offset. A negative offset puts it on the left.
-point gun_point(const critter& c, point pos, point threat, Vector2i across, Optional<int> offset)
-{
-    if (pos == threat)
-        return pos;
-    const auto dist = offset ? *offset : Math::dot(Vector2i(c.bbox_size), across)/2;
-    const auto f = Vector2(threat - pos);
-    return pos + Vector2i(Math::round(f.perpendicular() * ((float)dist / f.length())));
 }
 
 // A query's pos lies up to half a tile from its tile's center on each axis, so the list reaches a
@@ -1069,89 +1058,10 @@ void cover_script::face_threat(critter& c, usize i, point threat)
         c.rotate(i, r);
 }
 
-// The spot nearest `from` along one of 8 directions (±across, ±axis and the diagonals), within
-// max_peek_dist px, where a ray from threat reaches gun_point() of the body centered there, and that
-// gun point. A direction is stepped by half a body, then bisected, so a seen stretch shorter than a
-// step is missed. Empty when no direction has such a spot.
 Optional<Cover::Script::peek> cover_script::peek_spot(critter& c, point from, Vector2i axis, point threat)
 {
-    auto& w = c.world();
-    const auto body = Vector2i(c.bbox_size);
-    const auto across = Cover::Point::across_of(axis);
-    const auto pred = blocks_all_but(c.id);
-    // The spot is flush against a blocker along axis, so the last three run into it on the first
-    // step and cast no ray.
-    const Vector2i dirs[] = {
-        across, -across, -axis, across - axis, -across - axis, axis, across + axis, axis - across,
-    };
-
-    Vector2i best;
-    int best_len2 = 0;
-    for (const auto dir : dirs)
-    {
-        const auto diagonal = dir.x() && dir.y();
-        const auto step = Math::max(1, (diagonal ? Math::min(body.x(), body.y()) : Math::dot(body, Math::abs(dir)))/2);
-        const auto len2 = [&](int t) { return t*t*Math::dot(dir, dir); };
-        const auto seen = [&](int t) {
-            return sees(c, threat, gun_point(c, from + dir*t, threat, across, gun_offset));
-        };
-        // A walk from `from` along dir sweeps no more than the box spanning both ends. On a
-        // diagonal, that box also holds two corners the walk never reaches, so a collider there
-        // rejects a clear walk.
-        const auto clear = [&](int t) {
-            const auto lo = from.intra().center_shifted() - body/2 + Math::min(dir*t, Vector2i{});
-            const auto size = body + Math::abs(dir*t);
-            return Search::is_passable(w, from.chunk3(), Range2D{Vector2(lo), Vector2(lo + size)}, pred);
-        };
-
-        int lo = 0, hi = 0;
-        for (auto t = step; len2(t) <= max_peek_dist*max_peek_dist && !hi; t += step)
-        {
-            if (!clear(t))
-            {
-                // A longer walk's box holds a shorter one's, so the clear walks end before t.
-                auto clear_t = lo, blocked_t = t;
-                while (blocked_t - clear_t > 1)
-                {
-                    const auto mid = (clear_t + blocked_t)/2;
-                    if (clear(mid))
-                        clear_t = mid;
-                    else
-                        blocked_t = mid;
-                }
-                if (clear_t > lo && seen(clear_t))
-                    hi = clear_t;
-                break;
-            }
-            if (seen(t))
-                hi = t;
-            else
-            {
-                lo = t;
-                if (best_len2 && len2(t) >= best_len2)
-                    break;
-            }
-        }
-        if (!hi)
-            continue;
-        while (hi - lo > 1)
-        {
-            const auto mid = (lo + hi)/2;
-            if (seen(mid))
-                hi = mid;
-            else
-                lo = mid;
-        }
-        if (!best_len2 || len2(hi) < best_len2)
-        {
-            best = dir*hi;
-            best_len2 = len2(hi);
-        }
-    }
-    if (!best_len2)
-        return {};
-    const auto pos = from + best;
-    return Cover::Script::peek{pos, gun_point(c, pos, threat, across, gun_offset)};
+    return floormat::peek_spot(c, from, axis, threat, gun_offset, blocks_all_but(c.id),
+                               [&](point to) { return sees(c, threat, to); });
 }
 
 // peek_spot for c's cover. peek_pos and gun_pos hold the spot and its gun point when found, and

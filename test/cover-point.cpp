@@ -707,7 +707,7 @@ void test_cover_script_at_wall_end(point hidden)
 struct cover_cycle { point hidden, peek; };
 
 // Where cover_script puts the gun of a body centered on pos: offset px to the right of pos as it
-// faces threat, rounded to whole px. gun_point() in critter-script-cover.cpp has the same float
+// faces threat, rounded to whole px. gun_point() in src/critter-script-cover-peek-spot.cpp has the same float
 // expression, whose last bits may differ under fast math, so each component must lie at least
 // 1e-4 px from a half pixel.
 point gun_at(point pos, point threat, int offset)
