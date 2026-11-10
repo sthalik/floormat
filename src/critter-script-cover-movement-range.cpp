@@ -11,7 +11,7 @@
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 
-namespace floormat {
+namespace floormat::Cover {
 
 movement_range::movement_range()
 {
@@ -136,4 +136,4 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
     return points;
 }
 
-} // namespace floormat
+} // namespace floormat::Cover

@@ -8,7 +8,7 @@
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
-namespace floormat {
+namespace floormat::Cover {
 
 unreachable_spots::unreachable_spots() { arrayReserve(_spots, 16); }
 
@@ -68,4 +68,4 @@ bool unreachable_spots::stale(const world& w, point search_from) const
 
 u32 unreachable_spots::num_failed_dijkstra_calls() const { return _num_failed_dijkstra_calls; }
 
-} // namespace floormat
+} // namespace floormat::Cover

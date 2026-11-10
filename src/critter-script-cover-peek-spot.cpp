@@ -9,7 +9,7 @@
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
-namespace floormat {
+namespace floormat::Cover {
 
 namespace {
 
@@ -104,4 +104,4 @@ Optional<Cover::Script::peek> peek_spot(critter& c, point from, Vector2i axis, p
     return Cover::Script::peek{pos, gun_point(c, pos, threat, across, gun_offset)};
 }
 
-} // namespace floormat
+} // namespace floormat::Cover

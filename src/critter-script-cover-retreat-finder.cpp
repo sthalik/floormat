@@ -13,7 +13,7 @@
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
-namespace floormat {
+namespace floormat::Cover {
 
 namespace {
 
@@ -163,4 +163,4 @@ u32 retreat_finder::num_failed_dijkstra_calls() const { return _num_failed_dijks
 bool retreat_finder::all() const { return _all; }
 u32 retreat_finder::num_restarts() const { return _num_restarts; }
 
-} // namespace floormat
+} // namespace floormat::Cover

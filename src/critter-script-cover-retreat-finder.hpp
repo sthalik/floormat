@@ -7,7 +7,7 @@
 
 namespace floormat { class world; }
 
-namespace floormat {
+namespace floormat::Cover {
 
 class retreat_finder
 {
@@ -48,4 +48,4 @@ private:
     u32 _rays = 0;
 };
 
-} // namespace floormat
+} // namespace floormat::Cover

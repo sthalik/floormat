@@ -1888,7 +1888,7 @@ void test_movement_range_cache()
         for (i16 x = -1; x <= 1; x++)
             add_ground(w, {x, y, 0});
     Grid::GridRegistry pools;
-    movement_range range;
+    Cover::movement_range range;
     const point threat{ch, {8, 8}, {}};
     constexpr u32 side = 24, reach = 128;
     const auto n = range.border(w, pools, threat, side, reach).size();

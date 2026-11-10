@@ -98,7 +98,7 @@ private:
     void restart_search(critter& c);
     void resume_search(critter& c);
     void search_step(critter& c);
-    void end_search(critter& c, Optional<cover_search::reachable_cover> r);
+    void end_search(critter& c, Optional<Cover::cover_search::reachable_cover> r);
     path_search_result path_to(critter& c, point to);
     void begin_retreat(critter& c, bool restart = false);
     void retreat_step(critter& c);
@@ -124,9 +124,9 @@ private:
     critter_walk walk;
     Cover::Point::finder finder;
     Cover::Point::query query = {};
-    cover_search search;
-    movement_range threat_range;
-    retreat_finder retreat;
+    Cover::cover_search search;
+    Cover::movement_range threat_range;
+    Cover::retreat_finder retreat;
     search_then then = search_then::seek;
     // A retreat started since start_search, so a kept last_resort spot starts no other.
     bool search_retreated = false;
@@ -163,7 +163,7 @@ Cover::Script::status cover_script::status() const
         .gun_ray_from = gun_ray_from, .query = query, .num_searches = num_searches, .num_rays = num_rays,
         .num_body_checks = num_body_checks, .num_dijkstra_calls = num_dijkstra_calls,
         .search_tiles_left = search.tiles_left(), .search_tile = search.tile(),
-        .num_search_tiles = cover_search::num_tiles(),
+        .num_search_tiles = Cover::cover_search::num_tiles(),
         .retreat_spot = retreat.next(), .num_retreat_spots = retreat.num_spots(),
         .num_failed_retreat_dijkstra_calls = retreat.num_failed_dijkstra_calls(), .retreat_all = retreat.all(),
         .num_retreat_restarts = retreat.num_restarts(),
@@ -354,7 +354,7 @@ bool cover_script::sees(critter& c, point from, point to)
 // gun_ray_from then hold the ray's ends, for the status.
 bool cover_script::sees_gun(critter& c, point pos, point threat)
 {
-    const auto gun = gun_point(c, pos, threat, across(), gun_offset);
+    const auto gun = Cover::gun_point(c, pos, threat, across(), gun_offset);
     if (!sees(c, threat, gun))
         return false;
     gun_pos = gun;
@@ -471,7 +471,7 @@ void cover_script::search_step(critter& c)
         .hidden_from_reach = [&](point pos, Vector2i axis) {
             const auto n = num_body_checks;
             const auto hidden = hidden_from_reach(c, threat_pos, pos, axis);
-            return cover_search::hidden_result{hidden, num_body_checks - n};
+            return Cover::cover_search::hidden_result{hidden, num_body_checks - n};
         },
         .hidden_at = [&](point pos, Vector2i axis) { return hidden_at(c, threat_pos, pos, axis); },
         .cover_end = [&](const Cover::Point::spot& s) { return cover_end(c, s, threat_pos); },
@@ -483,12 +483,12 @@ void cover_script::search_step(critter& c)
 }
 
 // Takes r's cover, or continues the retreat, retreats or waits as `then` says when r is empty.
-void cover_script::end_search(critter& c, Optional<cover_search::reachable_cover> r)
+void cover_script::end_search(critter& c, Optional<Cover::cover_search::reachable_cover> r)
 {
     search.end();
     const auto from = search.from();
-    const auto radius = r ? Math::min(cover_search::radius, point::distance(from, r->spot.pos) + (u32)tile_size_xy)
-                          : cover_search::radius;
+    const auto radius = r ? Math::min(Cover::cover_search::radius, point::distance(from, r->spot.pos) + (u32)tile_size_xy)
+                          : Cover::cover_search::radius;
     query = {from, Vector2ui(c.bbox_size), threat_pos, radius, options.octants, options.listed_cover_end_dist()};
     has_query = true;
     num_searches++;
@@ -536,7 +536,7 @@ path_search_result cover_script::path_to(critter& c, point to)
     const auto from = c.position();
     const auto body = Vector2ui(c.bbox_size);
     const auto pred = blocks_all_but(c.id);
-    const auto max_dist = max_search_path_length(from, to);
+    const auto max_dist = Cover::max_search_path_length(from, to);
     num_dijkstra_calls++;
     auto path = A.Dijkstra<0, false>(w, from, to, max_dist, body, pred);
     if (path.is_found())
@@ -815,8 +815,8 @@ void cover_script::face_threat(critter& c, usize i, point threat)
 
 Optional<Cover::Script::peek> cover_script::peek_spot(critter& c, point from, Vector2i axis, point threat)
 {
-    return floormat::peek_spot(c, from, axis, threat, gun_offset, blocks_all_but(c.id),
-                               [&](point to) { return sees(c, threat, to); });
+    return Cover::peek_spot(c, from, axis, threat, gun_offset, blocks_all_but(c.id),
+                            [&](point to) { return sees(c, threat, to); });
 }
 
 // peek_spot for c's cover. peek_pos and gun_pos hold the spot and its gun point when found, and

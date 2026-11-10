@@ -7,7 +7,7 @@
 namespace floormat { struct critter; }
 namespace floormat::Cover::Script { struct peek; }
 
-namespace floormat {
+namespace floormat::Cover {
 
 // Where the gun is when c's body is centered on pos and c faces threat: offset px to its right, or
 // half of c's bbox_size along across without offset. A negative offset puts it on the left.
@@ -17,4 +17,4 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
 Optional<Cover::Script::peek> peek_spot(critter& c, point from, Vector2i axis, point threat, Optional<int> gun_offset,
                                         const Search::pred& pred, fu2::function_view<bool(point)> sees);
 
-} // namespace floormat
+} // namespace floormat::Cover

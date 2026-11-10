@@ -7,7 +7,7 @@
 namespace floormat { class world; }
 namespace floormat::Grid { class GridRegistry; }
 
-namespace floormat {
+namespace floormat::Cover {
 
 class movement_range
 {
@@ -32,4 +32,4 @@ private:
     u32 last_max_dist = 0;
 };
 
-} // namespace floormat
+} // namespace floormat::Cover

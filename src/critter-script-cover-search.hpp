@@ -11,7 +11,7 @@
 namespace floormat { class world; }
 namespace floormat::Grid { class GridRegistry; }
 
-namespace floormat {
+namespace floormat::Cover {
 
 // path_to's max_dist: twice the distance plus path_slack, as the way around a blocker can be many
 // times longer than the straight line.
@@ -86,4 +86,4 @@ private:
     bool _tile_listed = false;
 };
 
-} // namespace floormat
+} // namespace floormat::Cover

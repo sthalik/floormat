@@ -10,7 +10,7 @@
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
-namespace floormat {
+namespace floormat::Cover {
 
 namespace {
 
@@ -255,4 +255,4 @@ u32 cover_search::num_tiles() { return (u32)search_tiles().size(); }
 u32 cover_search::num_find_cover_point_calls() const { return _num_find_cover_point_calls; }
 bool cover_search::has_last_resort() const { return _peekless || _in_reach; }
 
-} // namespace floormat
+} // namespace floormat::Cover

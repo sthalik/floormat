@@ -5,7 +5,7 @@
 
 namespace floormat { class world; }
 
-namespace floormat {
+namespace floormat::Cover {
 
 class unreachable_spots
 {
@@ -38,4 +38,4 @@ private:
     u32 _num_failed_dijkstra_calls = 0;
 };
 
-} // namespace floormat
+} // namespace floormat::Cover
