@@ -3,6 +3,7 @@
 #include "critter-walk.hpp"
 #include "critter-script-cover-movement-range.hpp"
 #include "critter-script-cover-retreat-finder.hpp"
+#include "critter-script-cover-unreachable-spots.hpp"
 #include "cover-point.hpp"
 #include "critter.hpp"
 #include "grid-registry.hpp"
@@ -152,8 +153,6 @@ private:
     void search_step(critter& c);
     Optional<reachable_cover> take_last_resort(critter& c);
     void end_search(critter& c, Optional<reachable_cover> r);
-    bool joins_unreachable(critter& c, point to);
-    u64 reach_pass_gen(critter& c) const;
     path_search_result path_to(critter& c, point to);
     void begin_retreat(critter& c, bool restart = false);
     void retreat_step(critter& c);
@@ -179,8 +178,7 @@ private:
     critter_walk walk;
     Cover::Point::finder finder;
     Cover::Point::query query = {};
-    // The search's spots that have no path, or that joins_unreachable ties to one.
-    Array<point> unreachable;
+    unreachable_spots unreachable;
     // The spots of the search's tile search_tile, once tile_listed, of which tile_spot is next. They
     // were listed with the threat at tile_threat.
     Array<Cover::Point::spot> tile_spots;
@@ -192,11 +190,7 @@ private:
     Optional<Cover::Point::spot> peekless, in_reach;
     movement_range threat_range;
     retreat_finder retreat;
-    // How far from search_from the Dijkstra searches that put spots in unreachable could reach, and
-    // world::pass_gen() once the last of them ended.
-    u32 unreachable_reach = 0;
-    u64 search_pass_gen = 0;
-    u32 search_tile = 0, tile_spot = 0, num_failed_dijkstra_calls = 0, search_octant = 0;
+    u32 search_tile = 0, tile_spot = 0, search_octant = 0;
     // Tiles the search may still pass, and 0 once it ended. A restart or a change of octant moves search_tile
     // back only while the rest of the scan fits, so a moving threat can't keep the search near c.
     u32 search_tiles_left = 0;
@@ -233,7 +227,6 @@ cover_script::cover_script(astar& A, object_id threat, u32 div_size, Optional<in
     A{A}, threat_id{threat}, gun_offset{gun_offset}
 {
     options.div_size = div_size;
-    arrayReserve(unreachable, 16);
 }
 
 Cover::Script::status cover_script::status() const
@@ -514,12 +507,10 @@ bool cover_script::start_search(critter& c, search_then next)
     }
     st = state::search;
     then = next;
-    num_failed_dijkstra_calls = 0;
     peekless = {};
     in_reach = {};
     search_retreated = false;
-    arrayClear(unreachable);
-    unreachable_reach = 0;
+    unreachable.clear();
     const auto n = (u32)search_tiles().size();
     search_tiles_left = n + n/2;
     threat_pos = threat->position();
@@ -543,16 +534,15 @@ void cover_script::flee(critter& c)
     retreat_step(c);
 }
 
-// Keeps unreachable and num_failed_dijkstra_calls, so a spot with no path from where c stood stays skipped as c
-// walks. unreachable_reach grows by search_from's move, to hold every chunk those Dijkstra searches could cross.
+// Keeps unreachable, its failed Dijkstra calls included, so a spot with no path from where c stood stays skipped
+// as c walks.
 void cover_script::restart_search(critter& c)
 {
     // More than a scan stays left after the restart's tile, so the count stays nonzero until the search ends.
     if (search_tiles_left > search_tiles().size() + 1)
     {
         const auto from = st == state::retreat ? walk.dest() : c.position();
-        if (!unreachable.isEmpty())
-            unreachable_reach += point::distance(search_from, from);
+        unreachable.origin_moved(point::distance(search_from, from));
         search_from = from;
         search_tile = 0;
         search_tiles_left--;
@@ -590,12 +580,10 @@ void cover_script::search_step(critter& c)
     // only for the pass grids it ran in.
     const auto k = Cover::Point::nearest_octant(Vector2(threat_pos - search_from));
     const auto& tiles = search_tiles();
-    if (reach_pass_gen(c) > search_pass_gen)
+    if (unreachable.stale(w, search_from))
     {
-        num_failed_dijkstra_calls = 0;
-        arrayClear(unreachable);
+        unreachable.clear();
         arrayClear(tile_skipped);
-        unreachable_reach = 0;
         restart_search(c);
     }
     else if (k != search_octant)
@@ -617,7 +605,7 @@ void cover_script::search_step(critter& c)
 
     // With a spot kept for last_resort, the search ends in the update after its last spot, since that spot may
     // have used the update's one Dijkstra call.
-    if (search_tile == tiles.size() || num_failed_dijkstra_calls == max_failed_dijkstra_calls)
+    if (search_tile == tiles.size() || unreachable.num_failed_dijkstra_calls() == max_failed_dijkstra_calls)
     {
         end_search(c, take_last_resort(c));
         return;
@@ -662,14 +650,9 @@ void cover_script::search_step(critter& c)
             if (skipped)
                 continue;
             const auto at_spot = s.pos == here;
-            if (!at_spot && joins_unreachable(c, s.pos))
+            if (!at_spot && unreachable.joins(w, s.pos, Vector2i(c.bbox_size), pred))
             {
-                // A tile listed again lists its unreachable spots again.
-                bool known = false;
-                for (const auto& u : unreachable)
-                    known |= u == s.pos;
-                if (!known)
-                    arrayAppend(unreachable, s.pos);
+                unreachable.add(s.pos);
                 continue;
             }
             const auto num_checks = num_body_checks - checks_at_start;
@@ -707,11 +690,9 @@ void cover_script::search_step(critter& c)
                 return;
             }
             // c can walk straight from s.pos to end, so s.pos has no path either.
-            arrayAppend(unreachable, s.pos);
             const auto reach = max_search_path_length(here, end) + point::distance(here, search_from);
-            unreachable_reach = Math::max(unreachable_reach, reach);
-            search_pass_gen = w.pass_gen();
-            if (++num_failed_dijkstra_calls == max_failed_dijkstra_calls)
+            unreachable.add_failed(s.pos, reach, w.pass_gen());
+            if (unreachable.num_failed_dijkstra_calls() == max_failed_dijkstra_calls)
             {
                 if (!peekless && !in_reach)
                     end_search(c, {});
@@ -801,38 +782,6 @@ void cover_script::end_search(critter& c, Optional<reachable_cover> r)
         return;
     }
     fm_assert(false);
-}
-
-// True when c's body centered on `to` can move in a straight line to a spot in unreachable no more
-// than a tile away on each axis. Then path_to finds no path to `to` either, unless its max_dist
-// is larger.
-bool cover_script::joins_unreachable(critter& c, point to)
-{
-    const auto body = Vector2i(c.bbox_size);
-    const auto pred = blocks_all_but(c.id);
-    for (const auto& u : unreachable)
-    {
-        const auto d = to - u;
-        if (Math::abs(d).max() > tile_size_xy)
-            continue;
-        const auto a = u.intra().center_shifted(), b = a + d;
-        const auto lo = Math::min(a, b) - body/2;
-        const auto hi = Math::max(a, b) - body/2 + body;
-        if (Search::is_passable(c.world(), u.chunk3(), Range2D{Vector2(lo), Vector2(hi)}, pred))
-            return true;
-    }
-    return false;
-}
-
-// The newest chunk::pass_gen() among the chunks within unreachable_reach px of search_from,
-// and one ring more, since a pass grid goes stale when a neighbour's stamp is newer. 0 with
-// unreachable empty, so a change anywhere starts over no search that has a path to every spot.
-u64 cover_script::reach_pass_gen(critter& c) const
-{
-    if (unreachable.isEmpty())
-        return 0;
-    // search_from lies anywhere in its chunk, so the reach spans one chunk more than its length.
-    return c.world().max_pass_gen(search_from.chunk3(), unreachable_reach / chunk_size_xy + 2);
 }
 
 // A Dijkstra path from c to `to`, smoothed when string_pull can. Not found when no path within

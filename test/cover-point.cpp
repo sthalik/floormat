@@ -1678,7 +1678,7 @@ void test_cover_script_seek_no_path()
 }
 
 // As in test_cover_script_seek_no_path, with max_cover_end_dist 0, which leaves a walled-in spot in each cell
-// along the wall. joins_unreachable ties them to the first, which had no path, so the search tries no other.
+// along the wall. unreachable.joins() ties them to the first, which had no path, so the search tries no other.
 void test_cover_script_no_path_ties()
 {
     const point west{ch, {2, 8}, {}};
