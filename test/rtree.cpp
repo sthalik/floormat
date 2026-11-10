@@ -437,59 +437,40 @@ void test_bbox_offset_min()
     fm_assert(!w2[pos.chunk3()].can_place_object(proto2, pos.local()));
 }
 
-u32 entries_at(const chunk::RTree& t, Vector2 pt)
-{
-    u32 n = 0;
-    const auto pt2 = pt + Vector2{1e-4f};
-    t.Search(pt.data(), pt2.data(), [&](object_id, const chunk::RTree::Rect&) { n++; return true; });
-    return n;
-}
-
-// A light change on a dirty chunk waits for ensure_passability(), like a dynamic object's.
-// No light change dirties passability.
-void test_light_tree()
+// light::is_dynamic() is true, so without chunk's object_type::light checks a light would enter rtree().
+void test_light_never_collides()
 {
     auto w = world();
     constexpr auto ch = chunk_coords_{0, 0, 0};
     constexpr auto ch2 = chunk_coords_{1, 0, 0};
     auto& c = w[ch];
     auto& c2 = w[ch2];
-
-    fm_assert(!c2.light_rtree());
-    c2.mark_passability_modified();
-
-    fm_assert(c.is_passability_modified());
-    auto L = w.make_object<light>(w.make_id(), global_coords{ch, {2, 2}}, light_proto{});
-    fm_assert(c.is_passability_modified());
-    fm_assert(c.light_rtree() && c.light_rtree()->Count() == 1);
     fm_assert(c.rtree()->Count() == 0);
-    fm_assert(c.hole_rtree()->Count() == 0);
+    fm_assert(c2.rtree()->Count() == 0);
+
+    auto L = w.make_object<light>(w.make_id(), global_coords{ch, {2, 2}}, light_proto{});
+    fm_assert(!c.is_passability_modified());
+    fm_assert(c.rtree()->Count() == 0);
 
     auto index = L->index();
     L->teleport_to(index, global_coords{ch, {5, 5}}, {3, 4}, L->r);
     fm_assert(!c.is_passability_modified());
-    const auto ctr = Vector2{5, 5} * tile_size<Vector2> + Vector2{3, 4};
-    fm_assert(entries_at(*c.light_rtree(), Vector2{2, 2} * tile_size<Vector2>) == 0);
-    fm_assert(entries_at(*c.light_rtree(), ctr + Vector2{20, 0}) == 1);
+    fm_assert(c.rtree()->Count() == 0);
 
     L->set_bbox(L->offset, {}, Vector2ub{32, 16}, pass_mode::blocked);
     fm_assert(!c.is_passability_modified());
-    fm_assert(c.light_rtree()->Count() == 1);
-    fm_assert(entries_at(*c.light_rtree(), ctr + Vector2{12, 0}) == 1);
-    fm_assert(entries_at(*c.light_rtree(), ctr + Vector2{20, 0}) == 0);
     fm_assert(c.rtree()->Count() == 0);
 
-    fm_assert(c2.is_passability_modified());
     L->teleport_to(index, global_coords{ch2, {0, 0}}, {}, L->r);
     fm_assert(!c.is_passability_modified());
-    fm_assert(c.light_rtree()->Count() == 0);
-    fm_assert(c2.is_passability_modified());
-    fm_assert(c2.light_rtree() && c2.light_rtree()->Count() == 1);
+    fm_assert(!c2.is_passability_modified());
     fm_assert(c2.rtree()->Count() == 0);
 
     c2.mark_passability_modified();
+    fm_assert(c2.rtree()->Count() == 0);
+
     c2.remove_object(*L, L->index());
-    fm_assert(c2.light_rtree()->Count() == 0);
+    fm_assert(!c2.is_passability_modified());
 }
 
 // filter_bbox_through_holes() reads the hole tree and writes the cut pieces into the collision
@@ -870,7 +851,7 @@ void Test::test_rtree()
     test_same_rotation();
     test_rtree_rect_is_bbox();
     test_bbox_offset_min();
-    test_light_tree();
+    test_light_never_collides();
     test_hole_tree();
     test_odd_hole();
     test_hole_pass_modes();

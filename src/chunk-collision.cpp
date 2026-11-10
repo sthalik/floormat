@@ -28,7 +28,6 @@ bool collision_data::operator==(const collision_data&) const noexcept = default;
 bool chunk::bbox::operator==(const floormat::chunk::bbox& other) const noexcept = default;
 Chunk_RTree* chunk::rtree() noexcept { ensure_passability(); return &*_rtree; }
 Chunk_RTree* chunk::hole_rtree() noexcept { ensure_passability(); return &*_hole_rtree; }
-Chunk_RTree* chunk::light_rtree() noexcept { ensure_passability(); return _light_rtree.get(); }
 world& chunk::world() noexcept { return *_world; }
 const class world& chunk::world() const noexcept { return *_world; }
 
@@ -42,12 +41,6 @@ const chunk::RTree* chunk::hole_rtree() const noexcept
 {
     fm_assert(!is_passability_modified());
     return _hole_rtree.get();
-}
-
-const chunk::RTree* chunk::light_rtree() const noexcept
-{
-    fm_assert(!is_passability_modified());
-    return _light_rtree.get();
 }
 
 namespace {
@@ -202,8 +195,6 @@ void chunk::ensure_passability() noexcept
 
     _rtree->RemoveAll();
     _hole_rtree->RemoveAll();
-    if (_light_rtree)
-        _light_rtree->RemoveAll();
 
     //Debug{} << ".. reset passability" << _coord;
 
@@ -257,11 +248,7 @@ void chunk::ensure_passability() noexcept
     {
         auto& e = *eʹ;
         if (e.type() == object_type::light)
-        {
-            if (bbox bb; _bbox_for_scenery(e, bb))
-                _add_light_bbox(bb);
             continue;
-        }
         if (e.updates_passability())
             continue;
         if (Vector2ui{e.bbox_size}.product() == 0)
@@ -330,33 +317,6 @@ void chunk::_rtree_move(RTree& t, const bbox& x0, const bbox& x1)
     const auto id0 = std::bit_cast<object_id>(x0.data), id1 = std::bit_cast<object_id>(x1.data);
     if (!t.Move(start0.data(), end0.data(), id0, start1.data(), end1.data(), id1))
         t.Insert(start1.data(), end1.data(), id1);
-}
-
-void chunk::_add_light_bbox(const bbox& x)
-{
-    if (_pass_modified)
-        return;
-    if (!_light_rtree)
-        _light_rtree = Pointer<RTree>{InPlaceInit};
-    _rtree_insert(*_light_rtree, x);
-}
-
-void chunk::_remove_light_bbox(const bbox& x)
-{
-    if (_pass_modified)
-        return;
-    fm_assert(_light_rtree);
-    _rtree_remove(*_light_rtree, x);
-}
-
-void chunk::_replace_light_bbox(const bbox& x0, const bbox& x, bool b0, bool b)
-{
-    if (b0 && b && x0 == x)
-        return;
-    if (b0)
-        _remove_light_bbox(x0);
-    if (b)
-        _add_light_bbox(x);
 }
 
 void chunk::_remove_bbox_dynamic(const bbox& x)
@@ -441,11 +401,9 @@ void chunk::_replace_bbox_static(const bptr<object>& e, const bbox& x0, const bb
 void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x,
                            bool b0, bool b, bool upd, bool is_dynamic)
 {
-    if (e->type() == object_type::light)
-        _replace_light_bbox(x0, x, b0, b);
-    else if (!is_dynamic || upd)
+    if (!is_dynamic || upd)
         _replace_bbox_static(e, x0, x, b0, b);
-    else
+    else if (e->type() != object_type::light)
         _replace_bbox_dynamic(x0, x, b0, b);
 }
 

@@ -139,8 +139,6 @@ chunk::~chunk() noexcept
     _objects.clear();
     _rtree->RemoveAll();
     _hole_rtree->RemoveAll();
-    if (_light_rtree)
-        _light_rtree->RemoveAll();
 }
 
 void chunk::sort_objects()
@@ -159,14 +157,9 @@ void chunk::add_object_pre(const bptr<object>& e)
         mark_scenery_modified();
     // the static path isn't gated on _pass_modified because it only sets dirty flags,
     // and one of them lands on the neighbor chunks
-    if (e->type() == object_type::light)
-    {
-        if (bbox bb; _bbox_for_scenery(*e, bb))
-            _add_light_bbox(bb);
-    }
-    else if (!dyn || upd_passability)
+    if (!dyn || upd_passability)
         _add_bbox_static_(e);
-    else if (!_pass_modified) [[likely]]
+    else if (!_pass_modified && e->type() != object_type::light) [[likely]]
     {
         if (bbox bb; _bbox_for_scenery(*e, bb))
             _add_bbox_dynamic(bb);
@@ -210,14 +203,9 @@ void chunk::remove_object(const object& e, usize i)
         mark_scenery_modified();
     _maybe_empty = true;
 
-    if (e.type() == object_type::light)
-    {
-        if (bbox bb; _bbox_for_scenery(e, bb))
-            _remove_light_bbox(bb);
-    }
-    else if (!dyn || upd_passability)
+    if (!dyn || upd_passability)
         _remove_bbox_static_(eʹ);
-    else if (!_pass_modified) [[likely]]
+    else if (!_pass_modified && e.type() != object_type::light) [[likely]]
     {
         if (bbox bb; _bbox_for_scenery(e, bb))
             _remove_bbox_dynamic(bb);
