@@ -74,10 +74,9 @@ enum scenery_type door_scenery::scenery_type() const { return scenery_type::door
 
 void door_scenery::update(const bptr<object>&, usize&, const Ns& dt)
 {
-    if (!atlas || !active)
+    if (!active)
         return;
 
-    fm_assert(atlas);
     auto& anim = *atlas;
     const auto nframes = (int)anim.info().nframes;
     const auto n = (int)alloc_frame_time(dt, delta, atlas->frame_duration(), 1);

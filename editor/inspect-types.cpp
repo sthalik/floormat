@@ -68,7 +68,7 @@ struct entity_accessors<object, inspect_intent_t> {
                 &object::frame,
                 [](object& x, u16 value) { x.frame = value; },
                 [](const object& x) {
-                    return constraints::range<u16>{0, !x.atlas ? u16(0) : u16(x.atlas->info().nframes-1)};
+                    return constraints::range<u16>{0, u16(x.atlas->info().nframes-1)};
                 },
             },
             E::type<Vector3i>::field{"chunk"_s,
