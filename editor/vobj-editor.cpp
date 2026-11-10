@@ -51,7 +51,7 @@ void vobj_editor::place_vobj(world& w, global_coords pos, const vobj_* x, struct
         while (auto id = a.get_object_colliding_with_cursor(true))
         {
             auto eʹ = w.find_object(id);
-            if (!eʹ /*|| !eʹ->is_virtual()*/) // the pick searches only the hole and light trees
+            if (!eʹ /*|| !eʹ->is_virtual()*/) // the pick returns only virtual objects
                 break;
             eʹ->chunk().kill_object(*eʹ, eʹ->index());
         }

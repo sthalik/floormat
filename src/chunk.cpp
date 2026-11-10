@@ -159,7 +159,7 @@ void chunk::add_object_pre(const bptr<object>& e)
     // and one of them lands on the neighbor chunks
     if (!dyn || upd_passability)
         _add_bbox_static_(e);
-    else if (!_pass_modified && e->type() != object_type::light) [[likely]]
+    else if (!_pass_modified && !e->is_virtual()) [[likely]]
     {
         if (bbox bb; _bbox_for_scenery(*e, bb))
             _add_bbox_dynamic(bb);
@@ -205,7 +205,7 @@ void chunk::remove_object(const object& e, usize i)
 
     if (!dyn || upd_passability)
         _remove_bbox_static_(eʹ);
-    else if (!_pass_modified && e.type() != object_type::light) [[likely]]
+    else if (!_pass_modified && !e.is_virtual()) [[likely]]
     {
         if (bbox bb; _bbox_for_scenery(e, bb))
             _remove_bbox_dynamic(bb);

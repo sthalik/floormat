@@ -291,7 +291,7 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
         mark_neighbor_chunks_modified();
     else if (!dyn)
         c->mark_passability_modified();
-    else if (type() != object_type::light)
+    else if (!is_virtual())
     {
         if (chunk::type_is_in_objects_array(type()))
             c->mark_objects_modified();

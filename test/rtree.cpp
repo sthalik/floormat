@@ -437,7 +437,7 @@ void test_bbox_offset_min()
     fm_assert(!w2[pos.chunk3()].can_place_object(proto2, pos.local()));
 }
 
-// light::is_dynamic() is true, so without chunk's object_type::light checks a light would enter rtree().
+// light::is_dynamic() is true, so without the is_virtual() checks a light would enter rtree().
 void test_light_never_collides()
 {
     auto w = world();

@@ -70,8 +70,6 @@ void World_FindObject(benchmark::State& state)
     auto w = world();
     Array<object_id> ids{NoInit, num_objects};
     light_proto p;
-    // A zero bbox keeps the object out of the RTree.
-    p.bbox_size = {};
     u32 i = 0;
     for (i32 z = 0; z < num_z; z++)
         for (i16 y = 0; y < find_side; y++)

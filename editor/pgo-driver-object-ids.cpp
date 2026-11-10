@@ -60,10 +60,7 @@ task app::scene_object_ids()
         const auto n = i / per_chunk;
         const chunk_coords_ ch{(i16)(chunk_x0 + (int)(n % chunks_per_row)),
                                (i16)(chunk_y0 + (int)(n / chunks_per_row)), 0};
-        light_proto p;
-        // A zero bbox keeps the object out of the RTree, which nothing here is measuring.
-        p.bbox_size = {};
-        id = w.make_object<light>(w.make_id(), {ch, local_coords{i % per_chunk}}, p)->id;
+        id = w.make_object<light>(w.make_id(), {ch, local_coords{i % per_chunk}}, light_proto{})->id;
         id1 = Math::max(id1, id);
     }
     fm_assert_equal((usize)num_objects, (usize)(id1 - id0 + 1));

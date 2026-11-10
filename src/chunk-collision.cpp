@@ -247,7 +247,7 @@ void chunk::ensure_passability() noexcept
     for (const bptr<object>& eʹ : objects())
     {
         auto& e = *eʹ;
-        if (e.type() == object_type::light)
+        if (e.is_virtual())
             continue;
         if (e.updates_passability())
             continue;
@@ -403,7 +403,7 @@ void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x,
 {
     if (!is_dynamic || upd)
         _replace_bbox_static(e, x0, x, b0, b);
-    else if (e->type() != object_type::light)
+    else if (!e->is_virtual())
         _replace_bbox_dynamic(x0, x, b0, b);
 }
 

@@ -9,9 +9,6 @@
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
-#include "src/light.hpp"
-#include "src/object-storage.inl"
-#include "src/tile-bbox.hpp"
 #include "src/RTree-search.hpp"
 #include "src/spritebatch.hpp"
 #include "src/point.inl"
@@ -146,14 +143,6 @@ void app::draw_collision_boxes()
         };
         c.rtree()->Search(min2f, max2f, draw);
         c.hole_rtree()->Search(min2f, max2f, draw);
-        for (const light& L : c.objects().list<light>())
-        {
-            if (Vector2ui(L.bbox_size).product() == 0)
-                continue;
-            const auto [min, max] = scenery_tile(L.coord.local(), L.offset, L.bbox_offset, L.bbox_size);
-            const collision_data x{(u64)collision_type::scenery, (u64)L.pass, L.id};
-            draw(std::bit_cast<object_id>(x), {{(float)min.x(), (float)min.y()}, {(float)max.x(), (float)max.y()}});
-        }
     }
 
     shader.set_tint({1, 0, 1, 1});
@@ -194,14 +183,6 @@ void app::draw_collision_boxes()
             };
             c.rtree()->Search(t0.data(), t1.data(), draw);
             c.hole_rtree()->Search(t0.data(), t1.data(), draw);
-            for (const light& L : c.objects().list<light>())
-            {
-                if (Vector2ui(L.bbox_size).product() == 0)
-                    continue;
-                const auto [min, max] = scenery_tile(L.coord.local(), L.offset, L.bbox_offset, L.bbox_size);
-                const collision_data x{(u64)collision_type::scenery, (u64)L.pass, L.id};
-                draw(std::bit_cast<u64>(x), {{(float)min.x(), (float)min.y()}, {(float)max.x(), (float)max.y()}});
-            }
         }
     }
 
