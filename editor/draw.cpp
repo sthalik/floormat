@@ -135,6 +135,8 @@ void app::draw_collision_boxes()
                 if (x.pass == (u64)pass_mode::pass)
                     if (x.id < TILE_COUNT * 3 + 1)
                         return true;
+            if (x.type == (u64)collision_type::none)
+                return true;
             shader.set_tint(x.pass == (u64)pass_mode::pass ? pass_tint : tint);
             wireframe::draw_quad(shader, Vector2{rect.m_min}, Vector2{rect.m_max}, 3);
             return true;
@@ -169,6 +171,8 @@ void app::draw_collision_boxes()
                 if (x.tag == (u64)collision_type::geometry)
                     return true;
 #endif
+                if (x.type == (u64)collision_type::none)
+                    return true;
                 if (x.type == (u64)collision_type::geometry)
                     if (x.pass == (u64)pass_mode::pass)
                         if (x.id < TILE_COUNT*3+1)
