@@ -1,5 +1,5 @@
 #include "critter-script-cover-search.hpp"
-#include "cover-point.hpp"
+#include "critter-script-cover-point.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "tile-defs.hpp"

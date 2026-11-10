@@ -4,7 +4,7 @@
 #include "object-id.hpp"
 #include "point.hpp"
 #include "tile-defs.hpp"
-#include "cover-point.hpp"
+#include "critter-script-cover-point.hpp"
 #include <cr/Optional.h>
 
 namespace floormat { struct critter; struct object; class world; }

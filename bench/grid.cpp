@@ -1,7 +1,7 @@
 #include "src/grid-pass.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-registry.hpp"
-#include "src/cover-point.hpp"
+#include "src/critter-script-cover-point.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "src/search.hpp"

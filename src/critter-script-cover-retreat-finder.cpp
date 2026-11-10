@@ -1,5 +1,5 @@
 #include "critter-script-cover-retreat-finder.hpp"
-#include "cover-point.hpp"
+#include "critter-script-cover-point.hpp"
 #include "grid-cover.hpp"
 #include "point.inl"
 #include "intra-coord.inl"

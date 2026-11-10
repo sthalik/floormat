@@ -1,4 +1,4 @@
-#include "cover-point.hpp"
+#include "critter-script-cover-point.hpp"
 #include "grid-cover.hpp"
 #include "grid-registry.hpp"
 #include "collision.hpp"
