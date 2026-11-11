@@ -803,7 +803,7 @@ Grid Pool::operator[](chunk& c)
 
 void Pool::build_if_stale_all()
 {
-    for (auto* g : pool->live)
+    for (auto* g : pool->grids_in_use)
         static_cast<detail::grid::CoverGrid*>(g)->build_if_stale();
 }
 

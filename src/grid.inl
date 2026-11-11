@@ -77,9 +77,9 @@ template <typename T>
 Pool<T>::~Pool() noexcept
 {
     detach_all();
-    for (auto* g : live)
+    for (auto* g : grids_in_use)
         delete static_cast<T*>(g);
-    live = {};
+    grids_in_use = {};
     while (auto* base = freelist.take())
     {
         T* t = static_cast<T*>(base);

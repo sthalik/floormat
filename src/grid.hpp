@@ -45,7 +45,7 @@ struct GridBase
     std::array<chunk*, 8> neighbors{};
     u64 built_pass_gen = 0; // world::pass_gen() after the last build, or 0 when stale
     u64 build_no = 0;
-    u32 live_index = (u32)-1;
+    u32 in_use_index = (u32)-1;
 
     explicit GridBase(chunk& ch);
     fm_DISABLE_MOVE_COPY(GridBase);
@@ -94,7 +94,7 @@ struct grid_slots
 struct PoolBase
 {
     free_list freelist;
-    Array<GridBase*> live;
+    Array<GridBase*> grids_in_use;
     const u32 slot_index;
     Grid::Kind kind = Grid::Kind::dynamic;
     bool reads_ring2 = false;

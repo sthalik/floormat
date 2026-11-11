@@ -149,21 +149,21 @@ grid_slots::~grid_slots() noexcept
 
 PoolBase::PoolBase(): slot_index{take_slot_index()}
 {
-    arrayReserve(live, 16);
+    arrayReserve(grids_in_use, 16);
 }
 
 PoolBase::~PoolBase() noexcept
 {
-    fm_assert(live.isEmpty());
+    fm_assert(grids_in_use.isEmpty());
     put_slot_index(slot_index);
 }
 
 void PoolBase::attach(chunk& c, GridBase* g)
 {
-    fm_debug_assert(g->c == &c && g->live_index == (u32)-1);
+    fm_debug_assert(g->c == &c && g->in_use_index == (u32)-1);
     g->pool = this;
-    g->live_index = (u32)live.size();
-    arrayAppend(live, g);
+    g->in_use_index = (u32)grids_in_use.size();
+    arrayAppend(grids_in_use, g);
     if (!c._grid_slots)
         c._grid_slots.emplace();
     auto& s = c._grid_slots->slots;
@@ -175,19 +175,19 @@ void PoolBase::attach(chunk& c, GridBase* g)
 
 void PoolBase::release(GridBase* g) noexcept
 {
-    fm_debug_assert(g->pool == this && g->live_index < live.size() && live[g->live_index] == g);
-    auto* last = live.back();
-    live[g->live_index] = last;
-    last->live_index = g->live_index;
-    arrayRemoveSuffix(live);
-    g->live_index = (u32)-1;
+    fm_debug_assert(g->pool == this && g->in_use_index < grids_in_use.size() && grids_in_use[g->in_use_index] == g);
+    auto* last = grids_in_use.back();
+    grids_in_use[g->in_use_index] = last;
+    last->in_use_index = g->in_use_index;
+    arrayRemoveSuffix(grids_in_use);
+    g->in_use_index = (u32)-1;
     g->c = nullptr;
     freelist.put(g);
 }
 
 void PoolBase::detach_all() noexcept
 {
-    for (auto* g : live)
+    for (auto* g : grids_in_use)
     {
         auto& s = g->c->_grid_slots->slots;
         fm_debug_assert(s[slot_index] == g);
