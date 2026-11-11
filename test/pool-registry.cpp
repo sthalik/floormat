@@ -78,7 +78,6 @@ void test_cover_pool_shares_pass_pool()
         auto& c = w[chunk_coords_{0, 0, 0}];
         Grid::GridRegistry reg;
         auto& cover = reg.cover_pool(Grid::Cover::Params{8}, kind);
-        cover.maybe_mark_stale_all(w);
         cover[c].build_if_stale();
         // a grid this pool never built reads 0
         fm_assert(reg.pass_pool(Params{8, pass_mode::shoot_through}, kind)[c].build_no() != 0);

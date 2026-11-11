@@ -112,8 +112,6 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          fu2::function_view<bool(const line_cell&) const> visit)
 {
     fm_assert(first_step <= last_step && last_step <= line.steps());
-    if (pool)
-        pool->maybe_mark_stale_all(w);
 
     constexpr auto csize = chunk_size<i32>;
     const auto div = pool ? (i32)pool->params().div_size() : csize;
@@ -389,8 +387,6 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         .has_result = true,
         .success = false,
     };
-
-    pool.maybe_mark_stale_all(w);
 
     const auto params = pool.params();
     fm_assert(radius >= 0);

@@ -188,8 +188,6 @@ void cover_test::draw_overlay(app& a)
     if (!c)
         return;
 
-    pool->maybe_mark_stale_all(w);
-
     const auto sk = (u32)selected_octant;
     const auto r = (i32)chunk_span / 2;
     for (i32 dy = -r; dy <= r; dy++)
@@ -250,7 +248,6 @@ void cover_test::update_post(app& a, const Ns&)
     auto* c = w.at(result.from.chunk3());
     if (!c)
         return;
-    pool->maybe_mark_stale_all(w);
     const auto sk = (u32)selected_octant;
     if ((*pool)[*c].ensure_octant(sk))
         return;
@@ -276,8 +273,6 @@ base_test::Value cover_test::advance(app& a, Value)
     auto* c = w.at(result.from.chunk3());
     if (!c)
         return ret;
-    // The handle has to come after the stale sweep -- a pooled grid can be recycled by it.
-    pool->maybe_mark_stale_all(w);
     ret.u32 = (*pool)[*c].built_octants();
     ret.type = ValueType::u32;
     return ret;
@@ -290,7 +285,6 @@ void cover_test::extract(app& a, point pt)
     if (!c)
         return;
 
-    pool->maybe_mark_stale_all(w);
     Grid::Cover::Grid g = (*pool)[*c];
     g.build_if_stale();
 

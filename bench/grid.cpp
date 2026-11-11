@@ -96,7 +96,6 @@ void Grid_Build(benchmark::State& state)
         rebuild(*cʹ);
 
     Pass::Pool pool{Pass::Params{(u32)state.range(0), pass_mode::pass}, Search::without_critters()};
-    pool.maybe_mark_stale_all(w);
     pool.build_if_stale_all();
 
     Pass::Grid g1 = pool[c1];
@@ -188,7 +187,6 @@ void Cover_Build(benchmark::State& state)
     const auto div_size = (u32)state.range(0);
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[c];
 
     for (auto _ : state)
@@ -212,7 +210,6 @@ void Cover_Aligned(benchmark::State& state)
     const auto div_size = (u32)state.range(0);
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[c];
 
     for (auto _ : state)

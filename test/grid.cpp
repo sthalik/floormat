@@ -71,9 +71,8 @@ void rebuild_passability(chunk& c)
     c.ensure_passability();
 }
 
-void tick(world& w, Pass::Pool& pool)
+void tick(world&, Pass::Pool& pool)
 {
-    pool.maybe_mark_stale_all(w);
     pool.build_if_stale_all();
 }
 
@@ -859,7 +858,6 @@ void test_pool_reuse_after_collect(u32 div_size)
     w.collect(true, true);
     fm_assert(w.at(C11) == nullptr);
 
-    pool.maybe_mark_stale_all(w);
     fm_assert(pool.pooled_count() == before + 1);
 }
 
@@ -887,7 +885,6 @@ void test_pool_reuse_neighbors_collected(u32 div_size)
     fm_assert(w.at(A) == nullptr);
     fm_assert(w.at(B) == nullptr);
 
-    pool.maybe_mark_stale_all(w);
     fm_assert(pool.pooled_count() == before + 2);
 }
 
@@ -1398,7 +1395,6 @@ void test_cover_east_distance(u32 div_size)
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
     fm_assert(g.built_octants() & 1u);
@@ -1731,7 +1727,6 @@ void test_cover_matches_reference(u32 div_size, ArrayView<const u32> octants)
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[w[COORD]];
     g.build_if_stale();
     check_cover_octants(w, g, div_size, octants);
@@ -1740,7 +1735,6 @@ void test_cover_matches_reference(u32 div_size, ArrayView<const u32> octants)
     for (u8 i = 1; i < 15; i++)
         c[{i, 12}].wall_north() = wall_proto();
     rebuild_passability(c);
-    pool.maybe_mark_stale_all(w);
     g.build_if_stale();
     fm_assert(g.built_octants() == 1u);
     check_cover_octants(w, g, div_size, octants);
@@ -1763,7 +1757,6 @@ void test_cover_diagonal_tracks_ray(u32 div_size)
     auto& c = w[COORD];
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
     constexpr u32 k = 4;
@@ -1864,7 +1857,6 @@ void test_cover_stepped_tracks_ray(u32 div_size, ArrayView<const u32> octants)
     auto& c = w[COORD];
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
 
@@ -1925,7 +1917,6 @@ void test_cover_east_rounds(u32 div_size)
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[w[COORD]];
     g.build_if_stale();
 
@@ -1969,7 +1960,6 @@ void test_cover_blocked_cells(u32 div_size)
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
 
@@ -2010,7 +2000,6 @@ void test_cover_stepped_blocked_cells(u32 div_size, ArrayView<const u32> octants
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
 
@@ -2053,8 +2042,8 @@ void test_cover_stepped_blocked_cells(u32 div_size, ArrayView<const u32> octants
     }
 }
 
-// The pool skips its walk while world::pass_gen() stands still. Each neighbor change below moves
-// it through a different path: chunk creation, mark_passability_modified, chunk deletion.
+// Each neighbor change below marks the grid stale through a different path: chunk creation,
+// mark_passability_modified, chunk deletion.
 void test_cover_rebuilds_on_neighbor_change(u32 div_size)
 {
     auto w = world();
@@ -2064,29 +2053,28 @@ void test_cover_rebuilds_on_neighbor_change(u32 div_size)
 
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    const auto walk = [&] {
-        pool.maybe_mark_stale_all(w);
+    const auto build = [&] {
         Grid::Cover::Grid g = pool[c];
         g.build_if_stale();
         return g.build_no();
     };
-    auto n = walk();
-    fm_assert(walk() == n);
+    auto n = build();
+    fm_assert(build() == n);
 
     auto& e = w[COORD_E];
-    fm_assert(walk() != n);
-    n = walk();
-    fm_assert(walk() == n);
+    fm_assert(build() != n);
+    n = build();
+    fm_assert(build() == n);
 
     add_ground_all(e);
     rebuild_passability(e);
-    fm_assert(walk() != n);
+    fm_assert(build() != n);
 
     clear_ground_all(e);
-    n = walk();
+    n = build();
     w.collect(true, true);
     fm_assert(w.at(COORD_E) == nullptr);
-    fm_assert(walk() != n);
+    fm_assert(build() != n);
 }
 
 // An east ray from the last column runs almost to the east neighbor's far edge, where a blocker
@@ -2107,7 +2095,6 @@ void test_cover_rebuilds_on_ring2_change(u32 div_size)
     // a row through tile row 8, which the blocker spans
     const auto cell = Grid::Cover::Grid::get_cell_index(dc - 1, (u32)(tile_size_xy*8 + half_tile<int>) / div_size, dc);
     const auto east = [&](Grid::Cover::Pool& p) {
-        p.maybe_mark_stale_all(w);
         Grid::Cover::Grid g = p[w[COORD]];
         g.build_if_stale();
         (void)g.ensure_octant(0);
@@ -2149,7 +2136,6 @@ void test_cover_rebuilds_on_ring2_collect(u32 div_size)
     const auto dc = chunk_size_xy / div_size;
     const auto cell = Grid::Cover::Grid::get_cell_index(dc - 1, (u32)(tile_size_xy*8 + half_tile<int>) / div_size, dc);
     const auto east = [&] {
-        pool.maybe_mark_stale_all(w);
         Grid::Cover::Grid g = pool[w[COORD]];
         g.build_if_stale();
         (void)g.ensure_octant(0);
@@ -2172,26 +2158,17 @@ expect expect_stale(bool stale)
 }
 
 template<typename G>
-bool stale_before_walk(const G& g, u64 saved, expect e, const char* grid, const char* what, chunk_coords_ ch)
+void check_stale(G& g, u64& saved, expect e, const char* grid, const char* what, chunk_coords_ ch)
 {
-    fm_assert(!g.is_marked_stale());
-    const bool stale = g.is_stale();
+    const bool stale = g.is_marked_stale();
+    fm_assert(g.is_stale() == stale);
     fm_assert(g.is_stale(saved) == stale);
     if (e != expect::either && stale != (e == expect::stale))
     {
         ERR << "!!! fatal:" << grid << "grid" << (stale ? "stale" : "current") << "after" << what
             << "chunk" << (int)ch.x << (int)ch.y << (int)ch.z;
-        fm_abort("is_stale() is wrong");
+        fm_abort("is_marked_stale() is wrong");
     }
-    return stale;
-}
-
-template<typename G>
-void stale_after_walk(G& g, u64& saved, bool stale)
-{
-    fm_assert(g.is_marked_stale() == stale);
-    fm_assert(g.is_stale() == stale);
-    fm_assert(g.is_stale(saved) == stale);
     g.build_if_stale();
     fm_assert(!g.is_stale());
     fm_assert(g.is_stale(saved) == stale);
@@ -2208,8 +2185,6 @@ struct stale_grids
 
     explicit stale_grids(world& w): w{w}
     {
-        pass_pool.maybe_mark_stale_all(w);
-        cover_pool.maybe_mark_stale_all(w);
         auto pg = pass_pool[w[COORD]];
         auto cg = cover_pool[w[COORD]];
         pg.build_if_stale();
@@ -2223,12 +2198,8 @@ struct stale_grids
         change();
         auto pg = pass_pool[w[COORD]];
         auto cg = cover_pool[w[COORD]];
-        const bool pass_stale = stale_before_walk(pg, pass_saved, pass, "pass", what, ch);
-        const bool cover_stale = stale_before_walk(cg, cover_saved, cover, "cover", what, ch);
-        pass_pool.maybe_mark_stale_all(w);
-        cover_pool.maybe_mark_stale_all(w);
-        stale_after_walk(pg, pass_saved, pass_stale);
-        stale_after_walk(cg, cover_saved, cover_stale);
+        check_stale(pg, pass_saved, pass, "pass", what, ch);
+        check_stale(cg, cover_saved, cover, "cover", what, ch);
     }
 };
 
@@ -2293,12 +2264,7 @@ void test_is_stale_lifecycle()
     auto pg = pass_pool[w[COORD]];
     auto cg = cover_pool[w[COORD]];
     const auto each = [&](auto&& f) { f(pg); f(cg); };
-    const auto walk = [&] {
-        pass_pool.maybe_mark_stale_all(w);
-        cover_pool.maybe_mark_stale_all(w);
-    };
     const auto build = [&] {
-        walk();
         each([](auto& g) {
             g.build_if_stale();
             fm_assert(!g.is_stale());
@@ -2336,26 +2302,19 @@ void test_is_stale_lifecycle()
 
     rebuild_passability(w[F]);
     each([&](auto& g) {
-        fm_assert(!g.is_stale());
-        fm_assert(!g.is_stale(s0));
-    });
-    walk();
-    each([&](auto& g) {
         fm_assert(!g.is_marked_stale());
+        fm_assert(!g.is_stale());
         fm_assert(!g.is_stale(s0));
     });
 
     rebuild_passability(w[N]);
     each([&](auto& g) {
-        fm_assert(!g.is_marked_stale());
+        fm_assert(g.is_marked_stale());
         fm_assert(g.is_stale());
         fm_assert(g.is_stale(s0));
     });
-    walk();
-    each([](auto& g) { fm_assert(g.is_marked_stale()); });
     rebuild_passability(w[R]);
     rebuild_passability(w[N]);
-    walk();
     each([&](auto& g) {
         fm_assert(g.is_marked_stale());
         fm_assert(g.is_stale());
@@ -2368,7 +2327,6 @@ void test_is_stale_lifecycle()
     });
 
     rebuild_passability(w[N]);
-    walk();
     clear_ground_all(w[N]);
     w.collect(true, true);
     fm_assert(!w.at(N));
@@ -2437,7 +2395,6 @@ void test_pass_blocker_leaves_ring2_current(u32 div_size, u32 bbox_size)
             rebuild_passability(c);
 
         Pass::Pool pool{params, Search::without_critters()};
-        pool.maybe_mark_stale_all(w);
         u32 before[5][5];
         for (auto y = -2; y <= 2; y++)
             for (auto x = -2; x <= 2; x++)
@@ -2449,9 +2406,7 @@ void test_pass_blocker_leaves_ring2_current(u32 div_size, u32 bbox_size)
         fm_assert(blocker->bbox_offset == bbox_offset && blocker->bbox_size == blocker_size);
         const auto rect = scenery_tile(local, blocker->offset, blocker->bbox_offset, blocker->bbox_size);
 
-        pool.maybe_mark_stale_all(w);
         Pass::Pool fresh{params, Search::without_critters()};
-        fresh.maybe_mark_stale_all(w);
         for (auto y = -2; y <= 2; y++)
             for (auto x = -2; x <= 2; x++)
             {
@@ -2513,7 +2468,6 @@ void test_cover_diagonal_matches_ray(u32 div_size)
     auto& c = w[COORD];
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    pool.maybe_mark_stale_all(w);
     Grid::Cover::Grid g = pool[c];
     g.build_if_stale();
     constexpr u32 k = 4;
@@ -2578,8 +2532,6 @@ void test_registry_grids_after_door_changes()
             auto& d = fresh.pass_pool(p, Grid::Kind::dynamic);
             auto& kept = unregistered[j++];
             Pass::Pool both{p, Search::without_critters()};
-            for (auto* pool : { &a, &b, &ad, &d, &kept, &both })
-                pool->maybe_mark_stale_all(w);
             for_chunks([&](chunk& c, i16 x, i16 y) {
                 Pass::Grid ga = a[c], gb = b[c], gad = ad[c], gd = d[c], g_kept = kept[c], g_both = both[c];
                 for (auto* g : { &ga, &gb, &gad, &gd, &g_kept, &g_both })
@@ -2613,8 +2565,6 @@ void test_registry_grids_after_door_changes()
         {
             auto& a = reg.cover_pool(cover_params, kind);
             auto& b = fresh.cover_pool(cover_params, kind);
-            a.maybe_mark_stale_all(w);
-            b.maybe_mark_stale_all(w);
             for_chunks([&](chunk& c, i16 x, i16 y) {
                 Grid::Cover::Grid ga = a[c], gb = b[c];
                 ga.build_if_stale();
@@ -2752,33 +2702,40 @@ void test_grids_after_critter_changes()
     auto w = world();
     const auto for_chunks = [&](auto&& fun) {
         for (i16 y = -1; y <= 1; y++)
-            for (i16 x = -1; x <= 2; x++)
+            for (i16 x = -2; x <= 3; x++)
                 fun(w[chunk_coords_{x, y, 0}], x, y);
     };
     for_chunks([](chunk& c, i16, i16) { add_ground_all(c); rebuild_passability(c); });
 
     Grid::GridRegistry reg;
     auto& static_pool = reg.pass_pool(params, Grid::Kind::static_);
+    auto& static_cover = reg.cover_pool(Grid::Cover::Params{16}, Grid::Kind::static_);
     Pass::Pool critter_pool{params, Search::never_continue()};
+    Pass::Pool critter_cover_pass{Pass::Params{16, pass_mode::shoot_through}, Search::never_continue()};
+    Grid::Cover::Pool critter_cover{Grid::Cover::Params{16}, critter_cover_pass};
     const auto build = [&] {
         for (auto* pool : { &static_pool, &critter_pool })
-        {
-            pool->maybe_mark_stale_all(w);
             for_chunks([&](chunk& c, i16, i16) { (*pool)[c].build_if_stale(); });
-        }
+        for (auto* pool : { &static_cover, &critter_cover })
+            for_chunks([&](chunk& c, i16, i16) { (*pool)[c].build_if_stale(); });
     };
     const auto changed = [&](const char* what, std::initializer_list<chunk_coords_> stamped) {
         for_chunks([&](chunk& c, i16 x, i16 y) {
             auto dist = (int)limits<i16>::max;
             for (auto s : stamped)
                 dist = Math::min(dist, Math::max(Math::abs(x - s.x), Math::abs(y - s.y)));
-            fm_assert(!static_pool[c].is_stale());
+            fm_assert(!static_pool[c].is_marked_stale() && !static_pool[c].is_stale());
+            fm_assert(!static_cover[c].is_marked_stale() && !static_cover[c].is_stale());
+            fm_assert(!critter_pool[c].is_marked_stale());
             fm_assert_equal(dist <= 1, critter_pool[c].is_stale());
+            fm_assert(!critter_cover[c].is_marked_stale());
+            fm_assert_equal(dist <= 2, critter_cover[c].is_stale());
         });
         build();
         Pass::Pool fresh{params, Search::never_continue()};
         for_chunks([&](chunk& c, i16 x, i16 y) {
             auto a = critter_pool[c], b = fresh[c];
+            fm_assert(!a.is_stale() && !critter_cover[c].is_stale());
             b.build_if_stale();
             const auto dc = a.div_count();
             for (auto i = 0u; i < dc*dc; i++)
@@ -2800,6 +2757,8 @@ void test_grids_after_critter_changes()
     auto i = npc->index();
     npc->teleport_to(i, {COORD, local_coords{12, 8}}, {}, npc->r);
     changed("moved within the chunk", {COORD});
+    npc->teleport_to(i, {COORD, local_coords{15, 8}}, {24, 0}, npc->r);
+    changed("box moved across the east border", {COORD});
     npc->teleport_to(i, {COORD_E, local_coords{2, 8}}, {}, npc->r);
     fm_assert(&npc->chunk() == &w[COORD_E]);
     changed("moved into the east chunk", {COORD, COORD_E});

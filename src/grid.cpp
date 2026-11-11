@@ -6,6 +6,7 @@
 #include "compat/spinlock.hpp"
 #include <bit>
 #include <cr/GrowableArray.h>
+#include <mg/Functions.h>
 
 namespace floormat::detail::grid {
 
@@ -82,14 +83,6 @@ bool GridBase::is_current() const
         if (auto* nb = w.at(coord + off); nb && newer(*nb))
             return false;
     return true;
-}
-
-void GridBase::maybe_mark_stale()
-{
-    fm_debug3_assert(c && c->world().at(coord) == c);
-
-    if (!is_marked_stale() && !is_current())
-        mark_stale();
 }
 
 u32 GridBase::pack_bit_index(u32 i, u32 j, u32 div_count)
@@ -203,15 +196,19 @@ void PoolBase::detach_all() noexcept
     }
 }
 
-bool PoolBase::update_checked_pass_gen(const world& w) noexcept
+void mark_grids_stale(world& w, chunk_coords_ coord) noexcept
 {
-    // is_current() fails only on a chunk stamp newer than the build, and every stamp comes from
-    // world::next_pass_gen(). While the counter hasn't moved, the walk would find nothing.
-    const auto gen = w.pass_gen();
-    if (gen == checked_pass_gen)
-        return false;
-    checked_pass_gen = gen;
-    return true;
+    for (auto dy = -2; dy <= 2; dy++)
+        for (auto dx = -2; dx <= 2; dx++)
+        {
+            auto* ch = w.at(coord + Vector2i{dx, dy});
+            if (!ch || !ch->_grid_slots)
+                continue;
+            const bool ring2 = Math::abs(dx) == 2 || Math::abs(dy) == 2;
+            for (auto* g : ch->_grid_slots->slots)
+                if (g && (!ring2 || g->pool->reads_ring2))
+                    g->mark_stale();
+        }
 }
 
 void cascade_mark_neighbors_stale(

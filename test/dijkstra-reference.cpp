@@ -240,7 +240,6 @@ void check_map(bool for_large_pools, ArrayView<const pool_size> pools)
     {
         auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, bbox, pass_mode::pass}, pred};
         fm_assert(pool.params().div_size() == cell);
-        pool.maybe_mark_stale_all(w);
 
         auto L = lattice{(int)cell};
         auto dist = Array<u32>{NoInit, (usize)(L.n*L.n)};

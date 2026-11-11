@@ -224,7 +224,6 @@ task app::scene_npcs()
             {
                 searcher = a.id;
                 // The bits depend on searcher, which no chunk stamp tracks.
-                crit_pool.maybe_mark_stale_all(w);
                 for (auto* c : room)
                     crit_pool[*c].mark_stale();
                 auto res = M->astar().Dijkstra<0, false>(w, crit_pool, pos, a.dest, max_dist(pos, a.dest),

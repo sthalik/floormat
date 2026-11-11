@@ -25,6 +25,14 @@ inline GridBase* PoolBase::find(chunk& c) const noexcept
     return slot_index < s.size() ? s[slot_index] : nullptr;
 }
 
+constexpr inline std::array<Vector2b, 16> ring2_offsets = {{
+    {-2, -2}, {-1, -2}, { 0, -2}, { 1, -2}, { 2, -2},
+    {-2, -1},                               { 2, -1},
+    {-2,  0},                               { 2,  0},
+    {-2,  1},                               { 2,  1},
+    {-2,  2}, {-1,  2}, { 0,  2}, { 1,  2}, { 2,  2},
+}};
+
 template <BitGrid Self, typename... Args>
 requires requires(Self& s, chunk* sc, Args&&... a) {
     s.build_impl(sc, forward<Args>(a)...);
@@ -32,7 +40,23 @@ requires requires(Self& s, chunk* sc, Args&&... a) {
 void GridBase::build_if_stale(this Self& self, Args&&... args)
 {
     if (!self.is_marked_stale())
-        return;
+    {
+        if (self.pool->kind == Grid::Kind::static_)
+            return;
+        // An objects_gen() stamp marks no grid, so a moving critter never visits its neighbours' grids.
+        const auto newer = [gen = self.built_pass_gen](const chunk* ch) { return ch && ch->objects_gen() > gen; };
+        bool changed = newer(self.c);
+        for (const auto* nb : self.neighbors)
+            changed |= newer(nb);
+        if (!changed && self.pool->reads_ring2)
+        {
+            auto& w = self.c->world();
+            for (auto off : ring2_offsets)
+                changed |= newer(w.at(self.coord + off));
+        }
+        if (!changed)
+            return;
+    }
 
     chunk* sc = self.c;
     fm_debug3_assert(sc);

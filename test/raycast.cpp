@@ -128,7 +128,6 @@ void test_window(pass_mode hole_pass)
     Pass::Pool shoot{Pass::Params{8, 8, pass_mode::shoot_through}, Search::never_continue()};
     Pass::Pool walk{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
     const auto open_at = [&](Pass::Pool& pool, i8 x) {
-        pool.maybe_mark_stale_all(w);
         auto g = pool[c];
         g.build_if_stale();
         return g.bit(g.get_bitmask_index_from_coord(intra_coord{pos.local(), {x, mid_y}}));

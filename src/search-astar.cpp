@@ -1281,7 +1281,6 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     const auto params = pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert(params.min_pass == pass_mode::pass);
-    pool.maybe_mark_stale_all(w);
 
     // A step is one cell, so a cell holds one node.
     const auto step = (int)params.div_size();
@@ -1405,7 +1404,6 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
     const auto own_lo = Vector2(own_size/2u), own_hi = Vector2(own_size) - own_lo;
     fm_assert(pool.params().bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert_equal(result.div_size(), pool.params().div_size());
-    pool.maybe_mark_stale_all(w);
     const auto cell = (int)pool.params().div_size();
 
     auto& P = temp_nodes;

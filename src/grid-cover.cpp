@@ -129,14 +129,6 @@ constexpr std::array<u8, octant_count> octant_order = {
     17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31,
 };
 
-constexpr std::array<Vector2b, 16> ring2_offsets = {{
-    {-2, -2}, {-1, -2}, { 0, -2}, { 1, -2}, { 2, -2},
-    {-2, -1},                               { 2, -1},
-    {-2,  0},                               { 2,  0},
-    {-2,  1},                               { 2,  1},
-    {-2,  2}, {-1,  2}, { 0,  2}, { 1,  2}, { 2,  2},
-}};
-
 // fill_aligned() carries pixels in 1/fixed_one px in u16. Carries saturate at UINT16_MAX,
 // which rounds to dc, the cap.
 constexpr u32 fixed_one = (UINT16_MAX + 1) / chunk_size_xy; // xxx todo assumes power of two chunk size
@@ -376,9 +368,8 @@ struct CoverGrid : GridBase
     void reset_for_reuse(chunk& ch, Params new_params);
     void apply_params();
     // A ray reads the pass grids and RTrees of the 3×3 around the chunk, and those hold objects of
-    // the next ring out. Only maybe_mark_stale() calls this, as check_current() runs on reads.
+    // the next ring out. check_current() doesn't call this, so the accessors' Debug check skips ring 2.
     bool ring2_is_current() const;
-    void maybe_mark_stale();
     /// @copydoc floormat::Grid::Cover::Grid::is_stale()
     bool is_stale() const;
     /// @copydoc floormat::Grid::Cover::Grid::is_stale(u64)
@@ -411,6 +402,7 @@ CoverPool::CoverPool(Params p, Pass::Pool& pass_pool):
 {
     fm_assert(pass_pool.params() == Pass::Params{params.div_size, pass_mode::shoot_through});
     kind = pass_pool.kind();
+    reads_ring2 = true;
 }
 
 u32 CoverGrid::get_cell_index(u32 x, u32 y, u32 div_count)
@@ -452,14 +444,6 @@ bool CoverGrid::is_stale(u64 pass_gen) const
     return pass_gen != built_pass_gen || !is_current() || !ring2_is_current();
 }
 
-void CoverGrid::maybe_mark_stale()
-{
-    fm_debug3_assert(c && c->world().at(coord) == c);
-
-    if (!is_marked_stale() && (!is_current() || !ring2_is_current()))
-        mark_stale();
-}
-
 bool CoverGrid::fill_octant(u32 k, chunk& self)
 {
     fm_debug_assert(k < octant_count);
@@ -470,7 +454,6 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
     auto& P = *static_cast<CoverPool*>(pool);
     auto& pass_pool = P.pass_pool;
     fm_assert(pass_pool.params().div_size() == div_size);
-    pass_pool.maybe_mark_stale_all(self.world());
     auto t = Time::now();
 
     const u32 dc = chunk_size_xy / div_size;
@@ -786,7 +769,6 @@ detail::grid::CoverGrid* Grid::raw() const noexcept { return grid; }
 
 bool Grid::is_marked_stale() const { return grid->is_marked_stale(); }
 void Grid::mark_stale() { grid->mark_stale(); }
-void Grid::maybe_mark_stale() { grid->maybe_mark_stale(); }
 bool Grid::is_stale() const { return grid->is_stale(); }
 bool Grid::is_stale(u64 pass_gen) const { return grid->is_stale(pass_gen); }
 
@@ -804,7 +786,6 @@ bool Grid::ensure_octant(u32 k)
 
 bool Grid::fill_next_unfilled()
 {
-    detail::grid::check_current(grid);
     grid->build_if_stale();
     return grid->fill_next_unfilled(*grid->c);
 }
@@ -818,14 +799,6 @@ u32 Grid::built_octants() const
 Grid Pool::operator[](chunk& c)
 {
     return Grid{detail::grid::pool_subscript(pool, c)};
-}
-
-void Pool::maybe_mark_stale_all(const world& w)
-{
-    if (!pool->update_checked_pass_gen(w))
-        return;
-    for (auto* g : pool->live)
-        static_cast<detail::grid::CoverGrid*>(g)->maybe_mark_stale();
 }
 
 void Pool::build_if_stale_all()

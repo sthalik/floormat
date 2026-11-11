@@ -14,9 +14,12 @@
 #include <cr/Pointer.h>
 #include <mg/Range.h>
 
+namespace floormat { class world; }
+
 namespace floormat::detail::grid {
 struct grid_slots;
 struct PoolBase;
+void mark_grids_stale(world& w, chunk_coords_ coord) noexcept;
 } // namespace floormat::detail::grid
 
 namespace floormat {
@@ -36,6 +39,7 @@ public:
     friend struct object;
     friend class world;
     friend struct detail::grid::PoolBase;
+    friend void detail::grid::mark_grids_stale(world& w, chunk_coords_ coord) noexcept;
 
     tile_ref operator[](usize idx) noexcept;
     const_tile_ref operator[](usize idx) const noexcept;

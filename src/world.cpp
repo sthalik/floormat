@@ -173,7 +173,10 @@ void world::collect(bool force, bool quiet)
             for (auto dy = -2; dy <= 2; dy++)
                 for (auto dx = -2; dx <= 2; dx++)
                     if (auto* nb = dx || dy ? at(coord + Vector2i{dx, dy}) : nullptr)
+                    {
                         nb->_pass_gen = next_pass_gen();
+                        detail::grid::mark_grids_stale(*this, nb->coord());
+                    }
             deleted++;
         }
         c = next;

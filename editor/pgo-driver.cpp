@@ -1803,9 +1803,8 @@ task app::scene_grids()
     // Pins per occupancy sample, and samples per frame. The work is the sample count -- each is
     // 16 pins and three pool builds -- and steps_per_frame does not change it. Frames are not
     // work: 84% of a fill frame is draw_world() re-emitting every stool placed so far, which grows
-    // with the pin count and has nothing to do with the grids. maybe_mark_stale_all() is not
-    // frame-gated (src/grid-pass.cpp:455), so a second sample in the same frame still sees the new
-    // pins as stale and rebuilds for real.
+    // with the pin count and has nothing to do with the grids. A pin marks the grids stale when
+    // placed, so a second sample in the same frame still rebuilds for real.
     constexpr u32 pins_per_step = 16, steps_per_frame = 8, max_pins = 1u << 14;
     constexpr u32 short_steps_per_frame = 128;
     // Stop once the bitmap is this full. Past it a new pin only takes cells an earlier one had
@@ -1831,14 +1830,7 @@ task app::scene_grids()
     Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
     Pass::Pool pass_critter{Pass::Params{astar::default_div_size, C->bbox_size.max(), pass_mode::pass}, Search::never_continue()};
 
-    // maybe_mark_stale_all() is where the version compare and the eager ensure_passability() of
-    // the chunk and its neighbours live, so it does the whole per-frame discipline for us. The
-    // handle has to be taken after it: a pooled grid can be recycled by that call.
-    const auto rebuild = [&](Pass::Pool& pool)
-    {
-        pool.maybe_mark_stale_all(w);
-        pool[c].build_if_stale();
-    };
+    const auto rebuild = [&](Pass::Pool& pool) { pool[c].build_if_stale(); };
 
     const auto fill_ratio = [](Pass::Grid g)
     {
@@ -1899,7 +1891,6 @@ task app::scene_grids()
 
     // The pins are 8 px in a 1024-px chunk, so a bitmap that came back empty would mean the
     // objects never reached the RTree at all.
-    pass_raycast.maybe_mark_stale_all(w);
     fm_assert(!pass_raycast[c].is_all_empty());
 
     tests().switch_to(floormat::tests::Test::cover);

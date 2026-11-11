@@ -49,7 +49,6 @@ struct GridBase
     void mark_stale();
     void reset_base_for_reuse(chunk& ch);
     bool is_current() const;
-    void maybe_mark_stale();
 
     static u32 pack_bit_index(u32 i, u32 j, u32 div_count);
     static u32 pack_bit_index_from_coord(intra_coord pos, u32 div_count);
@@ -91,8 +90,8 @@ struct PoolBase
     free_list freelist;
     Array<GridBase*> live;
     const u32 slot_index;
-    u64 checked_pass_gen = (u64)-1;
     Grid::Kind kind = Grid::Kind::dynamic;
+    bool reads_ring2 = false;
 
     PoolBase();
     ~PoolBase() noexcept;
@@ -102,9 +101,10 @@ struct PoolBase
     void attach(chunk& c, GridBase* g);
     void release(GridBase* g) noexcept;
     void detach_all() noexcept;
-    bool update_checked_pass_gen(const world& w) noexcept;
 };
 
+/// @brief Call after writing a new pass_gen() stamp into the chunk at @p coord.
+void mark_grids_stale(world& w, chunk_coords_ coord) noexcept;
 void cascade_mark_neighbors_stale(chunk_coords_ coord, fu2::function_view<GridBase*(chunk_coords_)> find);
 
 template <typename T> struct Pool;

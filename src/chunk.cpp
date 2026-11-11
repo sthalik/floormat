@@ -103,6 +103,7 @@ void chunk::mark_passability_modified() noexcept
         fm_debug("pass reload %zu (%d:%d:%d)", ++_reload_no_, int{_coord.x}, int{_coord.y}, int{_coord.z});
     _pass_modified = true;
     _pass_gen = _world->next_pass_gen();
+    detail::grid::mark_grids_stale(*_world, _coord);
 }
 
 void chunk::mark_objects_modified() noexcept
@@ -130,6 +131,7 @@ chunk::chunk(class world& w, chunk_coords_ ch) noexcept :
     _pass_gen{w.next_pass_gen()}
 {
     _world->register_chunk(this);
+    detail::grid::mark_grids_stale(w, ch);
 }
 
 chunk::~chunk() noexcept

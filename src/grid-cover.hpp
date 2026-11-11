@@ -63,7 +63,6 @@ public:
     /// @copydoc floormat::Grid::Pass::Grid::is_marked_stale()
     bool is_marked_stale() const;
     void mark_stale();
-    void maybe_mark_stale();
     void build_if_stale();
     /// @brief True when the grid is marked stale, or a chunk up to two away from its own, its own included,
     /// changed after its build.
@@ -88,7 +87,6 @@ public:
 
     [[nodiscard]] Grid operator[](chunk& c);
 
-    void maybe_mark_stale_all(const world& w);
     void build_if_stale_all();
 
     Params params() const;

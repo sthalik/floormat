@@ -405,28 +405,8 @@ void Grid::mark_stale()
     });
 }
 
-void Grid::maybe_mark_stale()
-{
-    grid->maybe_mark_stale();
-}
-
 detail::grid::PassGrid* Grid::raw() const noexcept { return grid; }
 void Grid::build_if_stale() { grid->build_if_stale(pool->predicate); }
-
-void Pool::maybe_mark_stale_all(const world& w)
-{
-    if (!pool->update_checked_pass_gen(w))
-        return;
-    for (auto* base : pool->live)
-    {
-        auto* g = static_cast<detail::grid::PassGrid*>(base);
-        Grid{g, pool}.maybe_mark_stale();
-        g->c->ensure_passability();
-        for (auto* nb : g->c->world().neighbors(g->coord))
-            if (nb)
-                nb->ensure_passability();
-    }
-}
 
 void Pool::build_if_stale_all()
 {

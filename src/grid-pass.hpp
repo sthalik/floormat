@@ -84,8 +84,6 @@ public:
 
     void mark_stale();
 
-    void maybe_mark_stale();
-
     void build_if_stale();
 
     static constexpr u32 min_bbox_size = 4;
@@ -111,8 +109,6 @@ public:
     fm_DISABLE_MOVE_COPY(Pool);
 
     [[nodiscard]] Grid operator[](chunk& c);
-
-    void maybe_mark_stale_all(const world& w);
 
     void build_if_stale_all();
 
