@@ -238,6 +238,8 @@ constexpr auto view<R>::end() const noexcept -> end_type<const base_type>
 
 namespace floormat {
 
+/// @param r A range of lvalues. The view keeps a reference to an lvalue r and moves an rvalue r into itself.
+/// @return A view whose elements bind as [i, x], with x an element of r and i its u32 index.
 template<typename R>
 constexpr detail_enumerate::view<R> enumerate(R&& r) noexcept(std::is_nothrow_constructible_v<detail_enumerate::view<R>, R>)
 {
