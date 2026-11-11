@@ -6,54 +6,60 @@ namespace floormat::Grid {
 GridRegistry::GridRegistry() = default;
 GridRegistry::~GridRegistry() noexcept = default;
 
-Pass::Pool& GridRegistry::pass_pool(const Pass::Params& pʹ, Kind kind)
+template<typename Pool, typename... Args>
+Pool& GridRegistry::find_or_add(pools_by_params<Pool>& pools, const Pass::Params& pʹ, Args&&... args)
 {
-    fm_assert(kind < Kind::COUNT);
     const auto p = pʹ.validate();
     const auto div_size = p.div_size();
-    const auto& predicate = kind == Kind::static_ ? Search::without_dynamic_objects() : Search::dynamic_scenery();
-    auto& pass = pass_[(u32)kind];
     // The table is indexed by countr_zero(div_size), which gives two different sizes the same
     // slot unless div_size is a power of two. Other sizes take the linear search below.
     if (p.bbox_size <= direct_max_bbox && std::has_single_bit(div_size))
     {
         const auto mode = (u32)p.min_pass - 1;
         const auto div_shift = (u32)std::countr_zero(div_size);
-        auto& slot = pass.direct[mode][div_shift][p.bbox_size - Pass::Grid::min_bbox_size];
+        auto& slot = pools.direct[mode][div_shift][p.bbox_size - Pass::Grid::min_bbox_size];
         if (!slot)
-            slot.emplace(p, predicate, kind);
+            slot.emplace(p, forward<Args>(args)...);
         return *slot;
     }
 
-    for (auto& pool : pass.fallback)
+    for (auto& pool : pools.fallback)
         if (pool->params() == p)
             return *pool;
-    arrayReserve(pass.fallback, 4);
-    arrayAppend(pass.fallback, InPlaceInit, InPlaceInit, p, predicate, kind);
-    return *pass.fallback.back();
+    arrayReserve(pools.fallback, 4);
+    arrayAppend(pools.fallback, InPlaceInit, InPlaceInit, p, forward<Args>(args)...);
+    return *pools.fallback.back();
 }
 
-Cover::Pool& GridRegistry::cover_pool(const Cover::Params& pʹ, Kind kind)
+Pass::Pool& GridRegistry::pass_pool(const Pass::Params& p)
 {
-    fm_assert(kind < Kind::COUNT);
+    return find_or_add(pass_, p, Search::without_dynamic_objects(), Kind::static_);
+}
+
+Object::Pool& GridRegistry::object_pool(const Object::Params& p)
+{
+    return find_or_add(object_, p);
+}
+
+Cover::Pool& GridRegistry::cover_pool(const Cover::Params& pʹ)
+{
     const auto p = pʹ.validate();
     const Pass::Params pass_params{p.div_size, pass_mode::shoot_through};
-    auto& cover = cover_[(u32)kind];
     // As in pass_pool(), countr_zero(div_size) is an exact index only for a power-of-two div_size.
     if (std::has_single_bit(p.div_size))
     {
-        auto& slot = cover.direct[(u32)std::countr_zero(p.div_size)];
+        auto& slot = cover_.direct[(u32)std::countr_zero(p.div_size)];
         if (!slot)
-            slot.emplace(p, pass_pool(pass_params, kind));
+            slot.emplace(p, pass_pool(pass_params));
         return *slot;
     }
 
-    for (auto& pool : cover.fallback)
+    for (auto& pool : cover_.fallback)
         if (pool->params() == p)
             return *pool;
-    arrayReserve(cover.fallback, 4);
-    arrayAppend(cover.fallback, InPlaceInit, InPlaceInit, p, pass_pool(pass_params, kind));
-    return *cover.fallback.back();
+    arrayReserve(cover_.fallback, 4);
+    arrayAppend(cover_.fallback, InPlaceInit, InPlaceInit, p, pass_pool(pass_params));
+    return *cover_.fallback.back();
 }
 
 } // namespace floormat::Grid

@@ -9,6 +9,10 @@
 #include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "src/grid-pass.hpp"
+#include "src/grid-object.hpp"
+#include "src/grid-registry.hpp"
+#include "src/search-astar.hpp"
+#include "src/sweep-aabb.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
 #include "src/hole.hpp"
@@ -551,6 +555,56 @@ void test_supercover_hits()
     fm_assert(hits >= 64 && orthogonal_hits >= 16);
 }
 
+// At div 1, three 64 px critters in a row need more run entries than u16 cells can index, so their chunk's object
+// grid is u32. One critter keeps each grid north and south of it u16.
+void test_u32_object_grid()
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    constexpr u32 size = 64;
+    auto w = world();
+    const auto at = [&](Vector2i px) { return point::normalize_coords(point{ch, {}, {}}, px); };
+    const auto add = [&](Vector2i px) {
+        const auto pt = at(px);
+        auto cp = critter_proto{};
+        cp.bbox_size = Vector2ub{size};
+        cp.offset = pt.offset();
+        cp.pass = pass_mode::blocked;
+        return w.make_object<critter>(w.make_id(), pt.coord(), cp);
+    };
+    for (auto x : { 300, 364 })
+        (void)add({x, 400});
+    const auto C = add({428, 400});
+    const auto N = add({100, -500});
+    const auto D = add({600, 1300});
+
+    auto A = astar{};
+    const auto params = Pass::Params{1, size, pass_mode::pass};
+    auto& pass_pool = A.pool_registry().pass_pool(params);
+    auto& objects = A.pool_registry().object_pool(params);
+    const auto& all = Search::never_continue();
+    const auto check = [&](Vector2i from, Vector2i to, object_id id) {
+        const auto line = rc::bresenham_line{at(from) - point{ch, {}, {}}, at(to) - point{ch, {}, {}}};
+        Array<bool> entry_blocked;
+        const auto hit = find_swept_collider(w, ch, line, 0, line.steps(), Vector2ui{size}, all, &pass_pool, &objects,
+                                             &entry_blocked);
+        fm_assert(hit.has_collider && hit.collider.id == id);
+    };
+    check({428, -400}, {428, 550}, C->id);
+    check({600, 250}, {600, 1600}, D->id);
+    check({878, -50}, {378, 450}, C->id);
+    fm_assert(objects[w[ch]].uses_u32());
+    fm_assert(!objects[w[chunk_coords_{0, -1, 0}]].uses_u32() && !objects[w[chunk_coords_{0, 1, 0}]].uses_u32());
+
+    auto& north = N->chunk();
+    north.remove_object(*N, N->index());
+    auto north_pass = pass_pool[north];
+    north_pass.build_if_stale();
+    auto north_objects = objects[north];
+    north_objects.build_if_stale();
+    fm_assert(north_pass.is_all_empty() && north_objects.entry_data().isEmpty());
+    check({878, -50}, {378, 450}, C->id);
+}
+
 static_assert(rc::min_pool_bbox_size(6) == 15);
 static_assert(rc::min_pool_bbox_size(6.25f) == 16);
 static_assert(rc::min_pool_bbox_size(6.5f) == 16);
@@ -563,6 +617,7 @@ void Test::test_raycast()
     test_window(pass_mode::shoot_through);
     test_edit_in_same_frame();
     test_supercover_hits();
+    test_u32_object_grid();
 
     constexpr u32 sizes[][2] = {
         {4, 4}, {4, 16}, {8, 8}, {8, 13}, {16, 16}, {16, 64}, {32, 32}, {64, 64},

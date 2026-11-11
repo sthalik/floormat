@@ -507,7 +507,7 @@ task app::scene_cover_ai()
     check_alternating();
     {
         // what the script's sees() casts
-        auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{cover_div, pass_mode::shoot_through}, Grid::Kind::static_);
+        auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{cover_div, pass_mode::shoot_through});
         const auto sees = [&](point to) {
             return raycast(w, threat, to, npc_id, pool, Search::without_critters()).success;
         };
@@ -650,7 +650,7 @@ task app::scene_cover_ai_map()
         return *s;
     };
     // what the script's sees() casts
-    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{cover_div, pass_mode::shoot_through}, Grid::Kind::static_);
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{cover_div, pass_mode::shoot_through});
     const auto sees = [&](point from, point to) {
         return raycast(w, from, to, npc_id, pool, Search::without_critters()).success;
     };

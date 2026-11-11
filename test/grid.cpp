@@ -25,6 +25,8 @@
 #include "loader/scenery-cell.hpp"
 #include <mg/Functions.h>
 #include <mg/Range.h>
+#include <algorithm>
+#include <bit>
 
 namespace floormat::Test {
 
@@ -2494,6 +2496,14 @@ void test_cover_diagonal_matches_ray(u32 div_size)
     fm_assert(hits >= dc / 4);
 }
 
+bool holds_object(const Grid::Object::Grid& g, object_id id)
+{
+    for (const auto& x : g.entry_data())
+        if (x.id == id)
+            return true;
+    return false;
+}
+
 void test_registry_grids_after_door_changes()
 {
     constexpr auto cover_div_size = 32u;
@@ -2522,72 +2532,76 @@ void test_registry_grids_after_door_changes()
         Pass::Pool{pass_params[0], Search::without_critters()},
         Pass::Pool{pass_params[1], Search::without_critters()},
     };
+    Array<bool> entry_blocked;
+    // The object grid's cells blocked under a predicate, cleared from the static grid's bits, give the bits of a
+    // grid built with that predicate.
     const auto check_pass = [&](const char* what) {
         Grid::GridRegistry fresh;
         for (auto j = 0u; const auto& p : pass_params)
         {
-            auto& a = reg.pass_pool(p, Grid::Kind::static_);
-            auto& b = fresh.pass_pool(p, Grid::Kind::static_);
-            auto& ad = reg.pass_pool(p, Grid::Kind::dynamic);
-            auto& d = fresh.pass_pool(p, Grid::Kind::dynamic);
+            auto& a = reg.pass_pool(p);
+            auto& b = fresh.pass_pool(p);
+            auto& objects = reg.object_pool(p);
             auto& kept = unregistered[j++];
-            Pass::Pool both{p, Search::without_critters()};
+            Pass::Pool both{p, Search::without_critters()}, all{p, Search::never_continue()};
             for_chunks([&](chunk& c, i16 x, i16 y) {
-                Pass::Grid ga = a[c], gb = b[c], gad = ad[c], gd = d[c], g_kept = kept[c], g_both = both[c];
-                for (auto* g : { &ga, &gb, &gad, &gd, &g_kept, &g_both })
+                Pass::Grid ga = a[c], gb = b[c], g_kept = kept[c], g_both = both[c], g_all = all[c];
+                Grid::Object::Grid go = objects[c];
+                for (auto* g : { &ga, &gb, &g_kept, &g_both, &g_all })
                     g->build_if_stale();
+                go.build_if_stale();
                 const auto dc = ga.div_count();
                 for (auto i = 0u; i < dc*dc; i++)
-                {
-                    if (ga.bit(i) != gb.bit(i) || gad.bit(i) != gd.bit(i) || g_kept.bit(i) != g_both.bit(i))
+                    if (ga.bit(i) != gb.bit(i) || g_kept.bit(i) != g_both.bit(i))
                     {
                         ERR << "!!! fatal:" << what << "min_pass" << (int)p.min_pass << "chunk" << x << y
                             << "cell" << i % dc << i / dc << "static" << ga.bit(i) << "but fresh" << gb.bit(i)
-                            << "dynamic" << gad.bit(i) << "but fresh" << gd.bit(i)
                             << "without_critters()" << g_kept.bit(i) << "but fresh" << g_both.bit(i);
                         fm_abort("a pass grid differs from a fresh one");
                     }
-                    if ((gb.bit(i) && gd.bit(i)) != g_both.bit(i))
-                    {
-                        ERR << "!!! fatal:" << what << "min_pass" << (int)p.min_pass << "chunk" << x << y
-                            << "cell" << i % dc << i / dc << "static" << gb.bit(i) << "dynamic" << gd.bit(i)
-                            << "but without_critters()" << g_both.bit(i);
-                        fm_abort("the static and dynamic grids don't add up to one without critters");
-                    }
-                }
+                const auto check_objects = [&](const char* name, const Search::pred& pred, const Pass::Grid& g) {
+                    (void)go.blocked_objects(pred, entry_blocked);
+                    for (auto i = 0u; i < dc*dc; i++)
+                        if ((ga.bit(i) && !go.is_blocked<u16>(i, entry_blocked)) != g.bit(i))
+                        {
+                            ERR << "!!! fatal:" << what << "min_pass" << (int)p.min_pass << "chunk" << x << y
+                                << "cell" << i % dc << i / dc << "static" << ga.bit(i)
+                                << "object" << go.is_blocked<u16>(i, entry_blocked) << "but" << name << g.bit(i);
+                            fm_abort("the static and object grids don't add up to a pass grid");
+                        }
+                };
+                check_objects("without_critters()", Search::without_critters(), g_both);
+                check_objects("never_continue()", Search::never_continue(), g_all);
             });
         }
     };
     const auto check = [&](const char* what) {
         check_pass(what);
         Grid::GridRegistry fresh;
-        for (auto kind : { Grid::Kind::static_, Grid::Kind::dynamic })
-        {
-            auto& a = reg.cover_pool(cover_params, kind);
-            auto& b = fresh.cover_pool(cover_params, kind);
-            for_chunks([&](chunk& c, i16 x, i16 y) {
-                Grid::Cover::Grid ga = a[c], gb = b[c];
-                ga.build_if_stale();
-                gb.build_if_stale();
-                const auto dc = ga.div_count();
-                for (auto k : octants)
-                {
-                    (void)ga.ensure_octant(k);
-                    (void)gb.ensure_octant(k);
-                    for (auto i = 0u; i < dc*dc; i++)
-                        if (ga.distance(i, k) != gb.distance(i, k))
-                        {
-                            ERR << "!!! fatal:" << what << "kind" << (int)kind << "chunk" << x << y
-                                << "octant" << k << "cell" << i % dc << i / dc
-                                << "distance" << ga.distance(i, k) << "but fresh" << gb.distance(i, k);
-                            fm_abort("a cover grid differs from a fresh one");
-                        }
-                }
-            });
-        }
+        auto& a = reg.cover_pool(cover_params);
+        auto& b = fresh.cover_pool(cover_params);
+        for_chunks([&](chunk& c, i16 x, i16 y) {
+            Grid::Cover::Grid ga = a[c], gb = b[c];
+            ga.build_if_stale();
+            gb.build_if_stale();
+            const auto dc = ga.div_count();
+            for (auto k : octants)
+            {
+                (void)ga.ensure_octant(k);
+                (void)gb.ensure_octant(k);
+                for (auto i = 0u; i < dc*dc; i++)
+                    if (ga.distance(i, k) != gb.distance(i, k))
+                    {
+                        ERR << "!!! fatal:" << what << "chunk" << x << y
+                            << "octant" << k << "cell" << i % dc << i / dc
+                            << "distance" << ga.distance(i, k) << "but fresh" << gb.distance(i, k);
+                        fm_abort("a cover grid differs from a fresh one");
+                    }
+            }
+        });
     };
     // A door's changes stamp only objects_gen(), so the static grids stay current. Grids that read doors go
-    // stale within one chunk of a stamped one, and cover grids within two.
+    // stale within one chunk of a stamped one.
     const auto changed = [&](std::initializer_list<chunk_coords_> stamped) {
         for_chunks([&](chunk& c, i16 x, i16 y) {
             fm_assert(!c.is_passability_modified());
@@ -2596,12 +2610,11 @@ void test_registry_grids_after_door_changes()
                 dist = Math::min(dist, Math::max(Math::abs(x - s.x), Math::abs(y - s.y)));
             for (auto j = 0u; const auto& p : pass_params)
             {
-                fm_assert(!reg.pass_pool(p, Grid::Kind::static_)[c].is_stale());
-                fm_assert_equal(dist <= 1, reg.pass_pool(p, Grid::Kind::dynamic)[c].is_stale());
+                fm_assert(!reg.pass_pool(p)[c].is_stale());
+                fm_assert_equal(dist <= 1, reg.object_pool(p)[c].is_stale());
                 fm_assert_equal(dist <= 1, unregistered[j++][c].is_stale());
             }
-            fm_assert(!reg.cover_pool(cover_params, Grid::Kind::static_)[c].is_stale());
-            fm_assert_equal(dist <= 2, reg.cover_pool(cover_params, Grid::Kind::dynamic)[c].is_stale());
+            fm_assert(!reg.cover_pool(cover_params)[c].is_stale());
         });
     };
     // set_bbox() moves the door's RTree entry, whose id holds the pass mode, and a rebuilt tree must agree.
@@ -2686,9 +2699,13 @@ void test_registry_grids_after_door_changes()
     critter_proto cp;
     cp.name = "npc"_s;
     const auto npc = w.make_object<critter>(w.make_id(), {COORD, local_coords{15, 8}}, move(cp));
+    changed({COORD});
     check_pass("critter placed");
+    for (const auto& p : pass_params)
+        fm_assert(holds_object(reg.object_pool(p)[w[COORD]], npc->id));
     i = npc->index();
     npc->teleport_to(i, {COORD_E, local_coords{2, 8}}, {}, npc->r);
+    changed({COORD, COORD_E});
     check_pass("critter moved");
     fm_assert(w[COORD].pass_gen() == pass_gen && w[COORD_E].pass_gen() == pass_gen_e);
     fm_assert(w[COORD].objects_gen() > objects_gen && w[COORD_E].objects_gen() > objects_gen_e);
@@ -2708,16 +2725,19 @@ void test_grids_after_critter_changes()
     for_chunks([](chunk& c, i16, i16) { add_ground_all(c); rebuild_passability(c); });
 
     Grid::GridRegistry reg;
-    auto& static_pool = reg.pass_pool(params, Grid::Kind::static_);
-    auto& static_cover = reg.cover_pool(Grid::Cover::Params{16}, Grid::Kind::static_);
+    auto& static_pool = reg.pass_pool(params);
+    auto& static_cover = reg.cover_pool(Grid::Cover::Params{16});
+    auto& objects = reg.object_pool(params);
     Pass::Pool critter_pool{params, Search::never_continue()};
     Pass::Pool critter_cover_pass{Pass::Params{16, pass_mode::shoot_through}, Search::never_continue()};
     Grid::Cover::Pool critter_cover{Grid::Cover::Params{16}, critter_cover_pass};
+    Array<bool> entry_blocked;
     const auto build = [&] {
         for (auto* pool : { &static_pool, &critter_pool })
             for_chunks([&](chunk& c, i16, i16) { (*pool)[c].build_if_stale(); });
         for (auto* pool : { &static_cover, &critter_cover })
             for_chunks([&](chunk& c, i16, i16) { (*pool)[c].build_if_stale(); });
+        for_chunks([&](chunk& c, i16, i16) { objects[c].build_if_stale(); });
     };
     const auto changed = [&](const char* what, std::initializer_list<chunk_coords_> stamped) {
         for_chunks([&](chunk& c, i16 x, i16 y) {
@@ -2730,20 +2750,25 @@ void test_grids_after_critter_changes()
             fm_assert_equal(dist <= 1, critter_pool[c].is_stale());
             fm_assert(!critter_cover[c].is_marked_stale());
             fm_assert_equal(dist <= 2, critter_cover[c].is_stale());
+            fm_assert(!objects[c].is_marked_stale());
+            fm_assert_equal(dist <= 1, objects[c].is_stale());
         });
         build();
         Pass::Pool fresh{params, Search::never_continue()};
         for_chunks([&](chunk& c, i16 x, i16 y) {
-            auto a = critter_pool[c], b = fresh[c];
-            fm_assert(!a.is_stale() && !critter_cover[c].is_stale());
+            auto a = critter_pool[c], b = fresh[c], s = static_pool[c];
+            auto o = objects[c];
+            fm_assert(!a.is_stale() && !o.is_stale() && !critter_cover[c].is_stale());
             b.build_if_stale();
+            (void)o.blocked_objects(Search::never_continue(), entry_blocked);
             const auto dc = a.div_count();
             for (auto i = 0u; i < dc*dc; i++)
-                if (a.bit(i) != b.bit(i))
+                if (a.bit(i) != b.bit(i) || (s.bit(i) && !o.is_blocked<u16>(i, entry_blocked)) != b.bit(i))
                 {
                     ERR << "!!! fatal:" << what << "chunk" << x << y << "cell" << i % dc << i / dc
-                        << "bit" << a.bit(i) << "but fresh" << b.bit(i);
-                    fm_abort("a pass grid differs from a fresh one");
+                        << "bit" << a.bit(i) << "static" << s.bit(i) << "object" << o.is_blocked<u16>(i, entry_blocked)
+                        << "but fresh" << b.bit(i);
+                    fm_abort("a pass or object grid differs from a fresh pass grid");
                 }
         });
     };
@@ -2759,6 +2784,7 @@ void test_grids_after_critter_changes()
     changed("moved within the chunk", {COORD});
     npc->teleport_to(i, {COORD, local_coords{15, 8}}, {24, 0}, npc->r);
     changed("box moved across the east border", {COORD});
+    fm_assert(holds_object(objects[w[COORD_E]], npc->id));
     npc->teleport_to(i, {COORD_E, local_coords{2, 8}}, {}, npc->r);
     fm_assert(&npc->chunk() == &w[COORD_E]);
     changed("moved into the east chunk", {COORD, COORD_E});
@@ -2766,6 +2792,365 @@ void test_grids_after_critter_changes()
     changed("turned", {COORD_E});
     npc->chunk().remove_object(*npc, npc->index());
     changed("removed", {COORD_E});
+}
+
+bptr<critter> add_critter_at(world& w, Vector2i px, u8 size, pass_mode pass)
+{
+    const auto pt = point::normalize_coords(point{COORD, {}, {}}, px);
+    critter_proto p;
+    p.name = "npc"_s;
+    p.bbox_size = Vector2ub{size};
+    p.offset = pt.offset();
+    p.pass = pass;
+    auto C = w.make_object<critter>(w.make_id(), pt.coord(), move(p));
+    fm_assert(C->position() == pt);
+    return C;
+}
+
+struct placed_critter
+{
+    Vector2i px;
+    u8 size;
+    pass_mode pass = pass_mode::blocked;
+};
+
+u8 entry_chunk_of(chunk_coords_ ch)
+{
+    const auto off = Vector2b{(i8)(ch.x - COORD.x), (i8)(ch.y - COORD.y)};
+    if (off == Vector2b{})
+        return 0;
+    for (auto n = 0u; n < 8; n++)
+        if (world::neighbor_offsets[n] == off)
+            return (u8)(1 + n);
+    fm_abort("chunk isn't a neighbor of COORD");
+}
+
+u32 index_of(ArrayView<const object_id> ids, object_id id)
+{
+    auto n = 0u;
+    while (n < ids.size() && ids[n] != id)
+        n++;
+    fm_assert(n < ids.size());
+    return n;
+}
+
+// For each entry of g, the index in ids of the entry's object.
+void entry_placement(const Grid::Object::Grid& g, ArrayView<const object_id> ids, Array<u32>& out)
+{
+    arrayClear(out);
+    arrayReserve(out, g.entry_data().size());
+    for (const auto& x : g.entry_data())
+        arrayAppend(out, index_of(ids, x.id));
+}
+
+// The indices in ids of the objects covering cell i, ascending.
+template<typename T>
+void objects_in_cell(const Grid::Object::Grid& g, u32 i, ArrayView<const object_id> ids, Array<u32>& out)
+{
+    arrayClear(out);
+    for (const auto& x : g.objects_at_cell<T>(i))
+        arrayAppend(out, index_of(ids, x.id));
+    std::sort(out.begin(), out.end());
+}
+
+void objects_in_cell(const Grid::Object::Grid& g, u32 i, ArrayView<const object_id> ids, Array<u32>& out)
+{
+    if (g.uses_u32())
+        objects_in_cell<u32>(g, i, ids, out);
+    else
+        objects_in_cell<u16>(g, i, ids, out);
+}
+
+// Every cell of COORD's object grid against Search::is_passable_ at every position the cell holds, with a
+// predicate blocking one critter at a time. Positions are in COORD's frame.
+void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initializer_list<placed_critter> placed,
+                       bool overlapping)
+{
+    auto w = world();
+    for (i16 y = -1; y <= 1; y++)
+        for (i16 x = -1; x <= 1; x++)
+            add_ground_all(w[chunk_coords_{x, y, 0}]);
+    Array<object_id> ids;
+    Array<u8> chunks;
+    arrayReserve(ids, placed.size());
+    arrayReserve(chunks, placed.size());
+    for (const auto& p : placed)
+    {
+        const auto C = add_critter_at(w, p.px, p.size, p.pass);
+        arrayAppend(ids, C->id);
+        arrayAppend(chunks, entry_chunk_of(C->chunk().coord()));
+    }
+    for (i16 y = -1; y <= 1; y++)
+        for (i16 x = -1; x <= 1; x++)
+            rebuild_passability(w[chunk_coords_{x, y, 0}]);
+
+    Grid::Object::Pool pool{Pass::Params{div_size, bbox_size, pass_mode::pass}};
+    auto& c = w[COORD];
+    Grid::Object::Grid g = pool[c];
+    g.build_if_stale();
+    fm_assert(!g.uses_u32());
+    const int dc = (int)g.div_count(), d = (int)div_size;
+    const auto bb_lo = (float)(bbox_size / 2), bb_hi = (float)bbox_size - bb_lo;
+    const auto nbs = w.neighbors(COORD);
+
+    auto expected = Array<u32>{ValueInit, (usize)(dc*dc)};
+    auto rects = Array<Range2D>{ValueInit, ids.size()};
+    u32 covering = 0;
+    for (auto k = 0u; k < ids.size(); k++)
+    {
+        const auto id = ids[k];
+        const auto only = [id, &rect = rects[k]](chunk&, collision_data x, Range2D r) {
+            if (x.id != id)
+                return path_search_continue::pass;
+            rect = r;
+            return path_search_continue::blocked;
+        };
+        const Search::pred pred{only};
+        const auto& p = placed.begin()[k];
+        const int pad = (int)bbox_size + 2*d + p.size;
+        const int i_lo = Math::max(0, (p.px.x() - pad + half_tile<int>) / d),
+                  i_hi = Math::min(dc - 1, (p.px.x() + pad + half_tile<int>) / d),
+                  j_lo = Math::max(0, (p.px.y() - pad + half_tile<int>) / d),
+                  j_hi = Math::min(dc - 1, (p.px.y() + pad + half_tile<int>) / d);
+        for (int j = j_lo; j <= j_hi; j++)
+            for (int i = i_lo; i <= i_hi; i++)
+            {
+                bool hit = false;
+                for (int py = j*d - half_tile<int>; py < (j+1)*d - half_tile<int> && !hit; py++)
+                    for (int px = i*d - half_tile<int>; px < (i+1)*d - half_tile<int> && !hit; px++)
+                        hit = !Search::is_passable_(&c, nbs, Vector2{(float)px - bb_lo, (float)py - bb_lo},
+                                                    Vector2{(float)px + bb_hi, (float)py + bb_hi}, pred);
+                if (hit)
+                {
+                    expected[(usize)(j*dc + i)] |= 1u << k;
+                    covering |= 1u << k;
+                }
+            }
+    }
+
+    Array<u32> placement, objects;
+    arrayReserve(objects, 16);
+    entry_placement(g, ids, placement);
+    bool any_shared = false;
+    for (auto idx = 0u; idx < (u32)(dc*dc); idx++)
+    {
+        objects_in_cell(g, idx, ids, objects);
+        u32 mask = 0;
+        for (auto k : objects)
+            mask |= 1u << k;
+        any_shared |= objects.size() >= 2;
+        if (mask != expected[idx] || objects.size() != (u32)std::popcount(mask))
+        {
+            ERR << "!!! fatal:" << what << "div_size" << d << "bbox_size" << bbox_size << "cell" << idx % (u32)dc
+                << idx / (u32)dc << "holds" << objects.size() << "objects" << mask << "but positions say"
+                << expected[idx];
+            fm_abort("an object grid cell differs from its positions");
+        }
+    }
+    fm_assert(any_shared == overlapping);
+    fm_assert(placement.size() == (u32)std::popcount(covering));
+    for (auto e = 0u; e < placement.size(); e++)
+    {
+        fm_assert(covering & 1u << placement[e]);
+        fm_assert(g.entry_chunks()[e] == chunks[placement[e]]);
+    }
+
+    const auto bytes = detail::grid::bitmask_size((u32)dc) / 8;
+    const auto all_set = Array<u8>{DirectInit, bytes, (u8)0xff};
+    auto masked = Array<u8>{NoInit, bytes};
+    Array<bool> entry_blocked;
+    for (auto k = 0u; k < ids.size(); k++)
+    {
+        const auto id = ids[k];
+        const auto only = [id, rect = rects[k]](chunk&, collision_data x, Range2D r) {
+            return x.id == id && r == rect ? path_search_continue::blocked : path_search_continue::pass;
+        };
+        fm_assert(g.blocked_objects(Search::pred{only}, entry_blocked) == !!(covering & 1u << k));
+        g.mask_pass_bits(all_set.data(), masked.data(), entry_blocked);
+        for (auto idx = 0u; idx < (u32)(dc*dc); idx++)
+        {
+            const bool blocked = expected[idx] & 1u << k;
+            if (g.is_blocked<u16>(idx, entry_blocked) != blocked || (masked[idx / 8] >> idx % 8 & 1) == blocked)
+            {
+                ERR << "!!! fatal:" << what << "div_size" << d << "bbox_size" << bbox_size << "cell" << idx % (u32)dc
+                    << idx / (u32)dc << "critter" << k << "blocks" << g.is_blocked<u16>(idx, entry_blocked)
+                    << "masked" << (masked[idx / 8] >> idx % 8 & 1) << "but positions say" << blocked;
+                fm_abort("an object grid cell blocks differently from its positions");
+            }
+        }
+    }
+}
+
+void test_object_grid_matches_positions(u32 div_size, u32 bbox_size)
+{
+    check_object_grid("one critter", div_size, bbox_size, { {{300, 400}, 32} }, false);
+    check_object_grid("two overlapping critters", div_size, bbox_size,
+                      { {{300, 400}, 32}, {{330, 410}, 24} }, true);
+    check_object_grid("pass and see-through critters", div_size, bbox_size,
+                      { {{300, 400}, 32, pass_mode::pass}, {{600, 600}, 32, pass_mode::see_through} }, false);
+    check_object_grid("critters in neighbor chunks", div_size, bbox_size,
+                      { {{1000, 400}, 32}, {{-40, -40}, 24}, {{500, 1010}, 20} }, false);
+    check_object_grid("no critters", div_size, bbox_size, {}, false);
+}
+
+void check_same_cells(const char* what, const Grid::Object::Grid& g, chunk& c, const Pass::Params& params,
+                      ArrayView<const object_id> ids)
+{
+    Grid::Object::Pool pool{params};
+    Grid::Object::Grid fresh = pool[c];
+    fresh.build_if_stale();
+    fm_assert(g.entry_data().size() == fresh.entry_data().size());
+    const auto dc = g.div_count();
+    Array<u32> a, b;
+    arrayReserve(a, 16);
+    arrayReserve(b, 16);
+    for (auto i = 0u; i < dc*dc; i++)
+    {
+        objects_in_cell(g, i, ids, a);
+        objects_in_cell(fresh, i, ids, b);
+        bool same = a.size() == b.size();
+        for (auto k = 0u; same && k < a.size(); k++)
+            same = a[k] == b[k];
+        if (!same)
+        {
+            ERR << "!!! fatal:" << what << "cell" << i % dc << i / dc << "holds" << a.size() << "objects but"
+                << b.size() << "in a fresh grid";
+            fm_abort("a rebuilt object grid differs from a fresh one");
+        }
+    }
+}
+
+// A critter on every tile needs more run entries than u16 cells can index. Critters two tiles apart share no
+// cell, so a u16 grid of each such set says which cells each critter covers.
+void test_object_grid_crowd()
+{
+    constexpr auto params = Pass::Params{8, 32, pass_mode::pass};
+    constexpr auto n = (u32)TILE_COUNT;
+    constexpr auto size = (u8)tile_size_xy;
+    const auto tile_px = [](u32 k) {
+        return Vector2i{(int)(k % TILE_MAX_DIM), (int)(k / TILE_MAX_DIM)} * tile_size_xy;
+    };
+    const auto tile_parity = [](u32 k) { return k % 2 + k / TILE_MAX_DIM % 2 * 2; };
+
+    auto w = world();
+    Array<bptr<critter>> crowd;
+    Array<object_id> ids;
+    arrayReserve(crowd, n);
+    arrayReserve(ids, n);
+    for (auto k = 0u; k < n; k++)
+    {
+        const auto C = add_critter_at(w, tile_px(k), size, pass_mode::blocked);
+        arrayAppend(crowd, C);
+        arrayAppend(ids, C->id);
+    }
+    Grid::Object::Pool pool{params};
+    Grid::Object::Grid g = pool[w[COORD]];
+    g.build_if_stale();
+    Array<u32> placement, objects;
+    arrayReserve(objects, 16);
+    entry_placement(g, ids, placement);
+    fm_assert(placement.size() == n);
+
+    const auto dc = g.div_count();
+    auto expected = Array<u32>{DirectInit, dc*dc*4, (u32)-1};
+    for (auto s = 0u; s < 4; s++)
+    {
+        auto ws = world();
+        auto ids_s = Array<object_id>{ValueInit, n};
+        for (auto k = 0u; k < n; k++)
+            if (tile_parity(k) == s)
+                ids_s[k] = add_critter_at(ws, tile_px(k), size, pass_mode::blocked)->id;
+        Grid::Object::Pool pool_s{params};
+        Grid::Object::Grid gs = pool_s[ws[COORD]];
+        gs.build_if_stale();
+        fm_assert(!gs.uses_u32());
+        for (auto i = 0u; i < dc*dc; i++)
+        {
+            objects_in_cell(gs, i, ids_s, objects);
+            fm_assert(objects.size() <= 1);
+            if (!objects.isEmpty())
+                expected[i*4 + s] = objects[0];
+        }
+    }
+    for (auto i = 0u; i < dc*dc; i++)
+    {
+        auto* e = expected.data() + i*4;
+        std::sort(e, e + 4);
+        auto count = 0u;
+        while (count < 4 && e[count] != (u32)-1)
+            count++;
+        objects_in_cell(g, i, ids, objects);
+        bool same = objects.size() == count;
+        for (auto k = 0u; same && k < count; k++)
+            same = objects[k] == e[k];
+        if (!same)
+        {
+            ERR << "!!! fatal: cell" << i % dc << i / dc << "holds" << objects.size() << "objects but" << count;
+            fm_abort("a crowded object grid differs from the grids of its critters two tiles apart");
+        }
+    }
+    fm_assert(g.uses_u32());
+
+    const auto bytes = detail::grid::bitmask_size(dc) / 8;
+    const auto all_set = Array<u8>{DirectInit, bytes, (u8)0xff};
+    auto masked = Array<u8>{NoInit, bytes};
+    Array<bool> entry_blocked;
+    fm_assert(g.blocked_objects(Search::never_continue(), entry_blocked));
+    g.mask_pass_bits(all_set.data(), masked.data(), entry_blocked);
+    for (auto i = 0u; i < dc*dc; i++)
+    {
+        const bool covered = expected[i*4] != (u32)-1;
+        if ((masked[i / 8] >> i % 8 & 1) == covered)
+        {
+            ERR << "!!! fatal: cell" << i % dc << i / dc << "masked" << (masked[i / 8] >> i % 8 & 1)
+                << "but covered" << covered;
+            fm_abort("a crowded object grid masks pass bits differently from its cells");
+        }
+    }
+
+    for (auto k = 0u; k < n; k++)
+        if (k % 64 != 0)
+            crowd[k]->chunk().remove_object(*crowd[k], crowd[k]->index());
+    g.build_if_stale();
+    fm_assert(g.uses_u32());
+    check_same_cells("after the crowd went", g, w[COORD], params, ids);
+    crowd[64]->chunk().remove_object(*crowd[64], crowd[64]->index());
+    g.build_if_stale();
+    fm_assert(!g.uses_u32());
+    check_same_cells("after one more went", g, w[COORD], params, ids);
+}
+
+void test_object_grid_rebuild()
+{
+    constexpr auto params = Pass::Params{8, 32, pass_mode::pass};
+    Grid::Object::Pool pool{params};
+    Array<object_id> ids;
+    arrayReserve(ids, 5);
+    {
+        auto w = world();
+        const auto A = add_critter_at(w, {300, 400}, 32, pass_mode::blocked);
+        const auto B = add_critter_at(w, {330, 410}, 24, pass_mode::blocked);
+        const auto C = add_critter_at(w, {600, 600}, 32, pass_mode::blocked);
+        arrayAppend(ids, A->id);
+        arrayAppend(ids, B->id);
+        arrayAppend(ids, C->id);
+        Grid::Object::Grid g = pool[w[COORD]];
+        g.build_if_stale();
+        auto i = A->index();
+        A->teleport_to(i, point::normalize_coords(point{COORD, {}, {}}, Vector2i{800, 200}), A->r);
+        B->chunk().remove_object(*B, B->index());
+        fm_assert(g.is_stale());
+        g.build_if_stale();
+        check_same_cells("after a critter moved and one went", g, w[COORD], params, ids);
+    }
+    fm_assert(pool.pooled_count() == 1);
+    auto w = world();
+    arrayAppend(ids, add_critter_at(w, {500, 200}, 32, pass_mode::blocked)->id);
+    arrayAppend(ids, add_critter_at(w, {520, 230}, 24, pass_mode::blocked)->id);
+    Grid::Object::Grid g = pool[w[COORD]];
+    fm_assert(pool.pooled_count() == 0);
+    g.build_if_stale();
+    check_same_cells("in a grid reused for another chunk", g, w[COORD], params, ids);
 }
 
 } // namespace
@@ -2875,6 +3260,11 @@ void test_grid()
     test_is_stale_lifecycle();
     test_registry_grids_after_door_changes();
     test_grids_after_critter_changes();
+    test_object_grid_matches_positions(8, 32);
+    test_object_grid_matches_positions(16, 16);
+    test_object_grid_matches_positions(4, 7);
+    test_object_grid_crowd();
+    test_object_grid_rebuild();
     // Below 8, planes are u16, and one octant of each step, turned and mirrored, keeps the rays few.
     constexpr u32 some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
     // sizes below 16 add ~17 s under ASan

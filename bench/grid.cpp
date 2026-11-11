@@ -303,8 +303,8 @@ void Cover_Find_Octants(benchmark::State& state)
         state.PauseTiming();
         pools = NullOpt;
         pools.emplace();
-        auto& pass_pool = pools->pass_pool(Pass::Params{params.div_size, pass_mode::shoot_through}, Grid::Kind::static_);
-        auto& cover_pool = pools->cover_pool(params, Grid::Kind::static_);
+        auto& pass_pool = pools->pass_pool(Pass::Params{params.div_size, pass_mode::shoot_through});
+        auto& cover_pool = pools->cover_pool(params);
         for_cover_chunks([&](chunk_coords_ ch) {
             pass_pool[w[ch]].build_if_stale();
             cover_pool[w[ch]].build_if_stale();
@@ -313,7 +313,7 @@ void Cover_Find_Octants(benchmark::State& state)
         r = finder.find(w, *pools, params, q, Search::never_continue());
     }
     set_find_counters(state, r);
-    set_fill_counters(state, w, pools->cover_pool(params, Grid::Kind::static_), 9);
+    set_fill_counters(state, w, pools->cover_pool(params), 9);
 }
 
 // The first seek in an area: every grid the query reads is built from nothing.
@@ -335,7 +335,7 @@ void Cover_Find_Fresh(benchmark::State& state)
         r = finder.find(w, *pools, params, q, Search::never_continue());
     }
     set_find_counters(state, r);
-    set_fill_counters(state, w, pools->cover_pool(params, Grid::Kind::static_), 0);
+    set_fill_counters(state, w, pools->cover_pool(params), 0);
 }
 
 void find_args(benchmark::Benchmark* b)

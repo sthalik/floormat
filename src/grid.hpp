@@ -15,7 +15,7 @@ struct local_coords;
 } // namespace floormat
 
 namespace floormat::Grid {
-enum class Kind : unsigned char { static_, dynamic, COUNT };
+enum class Kind : unsigned char { static_, dynamic };
 } // namespace floormat::Grid
 
 namespace floormat::detail::grid {

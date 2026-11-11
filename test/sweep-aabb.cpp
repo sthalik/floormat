@@ -137,13 +137,13 @@ void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, u3
                  pool ? (int)pool->params().div_size() : 0, res.step, expected);
 
     u32 nearest = last + 1, calls = 0;
-    find_swept_collider(w, ch, line, first, last, size, Search::never_continue(), pool, [&](const swept_collider_result& r) {
+    find_swept_collider(w, ch, line, first, last, size, Search::never_continue(), pool, nullptr, nullptr, [&](const swept_collider_result& r) {
         fm_assert(r.has_collider && r.step >= first && r.step <= last);
         nearest = Math::min(nearest, r.step);
         return true;
     });
     fm_assert(nearest == expected);
-    find_swept_collider(w, ch, line, first, last, size, Search::never_continue(), pool, [&](const swept_collider_result&) {
+    find_swept_collider(w, ch, line, first, last, size, Search::never_continue(), pool, nullptr, nullptr, [&](const swept_collider_result&) {
         calls++;
         return false;
     });

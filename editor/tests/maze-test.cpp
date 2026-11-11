@@ -10,6 +10,7 @@
 #include "src/grid-registry.hpp"
 #include "src/point.inl"
 #include "src/world.hpp"
+#include "compat/function2.hpp"
 #include "floormat/main.hpp"
 #include <cr/Optional.h>
 
@@ -44,8 +45,7 @@ void maze_test::build(app& a)
     auto& m = a.main();
     auto& w = m.world();
     auto C = a.ensure_player_character(w);
-    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, C->bbox_size.max(), pass_mode::pass},
-                                                     Grid::Kind::static_);
+    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, C->bbox_size.max(), pass_mode::pass});
     route = mazes::replace(w, {0, 0, 0}, mazes::exit_cells, seed, pool, C->id);
     auto i = C->index();
     C->teleport_to(i, route->from, rotation_COUNT);
@@ -62,13 +62,13 @@ void maze_test::solve(app& a)
     C->teleport_to(i, route->from, rotation_COUNT);
     a.center_camera_on(route->from);
     const auto bb = C->circumscribed_bbox_size();
-    auto res = m.astar().Dijkstra(w, route->from, route->to, route->max_dist, bb, Search::without_critters());
+    auto res = m.astar().Dijkstra(w, route->from, route->to, route->max_dist, bb, Search::blocks_all_but(C->id));
     if (!res.is_found())
     {
         fm_warn("maze: seed %llu has no path", (unsigned long long)seed);
         return;
     }
-    (void)m.astar().string_pull(w, res, bb, Search::without_critters());
+    (void)m.astar().string_pull(w, res, bb, Search::blocks_all_but(C->id));
     C->speed = 50;
     C->script.do_reassign(critter_script::make_walk_script(move(res)), C);
 }

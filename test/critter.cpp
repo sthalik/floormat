@@ -472,10 +472,10 @@ struct script_walker
     path_search_result find_path(point from, point to, bool smooth)
     {
         const auto size = npc->circumscribed_bbox_size();
-        auto res = A.Dijkstra(w, from, to, 4096, size, Search::without_critters());
+        auto res = A.Dijkstra(w, from, to, 4096, size, Search::blocks_all_but(npc->id));
         fm_assert(res.is_found());
         if (smooth)
-            fm_assert(A.string_pull(w, res, size, Search::without_critters()));
+            fm_assert(A.string_pull(w, res, size, Search::blocks_all_but(npc->id)));
         return res;
     }
 

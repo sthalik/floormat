@@ -8,6 +8,7 @@
 namespace floormat::Search { struct cache; }
 namespace floormat::Grid { class GridRegistry; }
 namespace floormat::Grid::Pass { class Pool; }
+namespace floormat::Grid::Object { class Pool; }
 
 namespace floormat {
 
@@ -38,16 +39,18 @@ public:
     Grid::GridRegistry& pool_registry();
     u32 last_node_count() const { return node_count; }
 
+    // To path around critters and doors, p must block them, as Search::blocks_all_but(self) does.
     // todo add simple bresenham short-circuit
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, point from, point to,
                                 u32 max_dist, Vector2ui own_size,
                                 const pred& p);
 
+    // Without objects, only pool's bits and p decide what blocks. objects needs pool's params.
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, Grid::Pass::Pool& pool, point from, point to,
                                 u32 max_dist, Vector2ui own_size,
-                                const pred& p);
+                                const pred& p, Grid::Object::Pool* objects = nullptr);
 
     struct string_pull_result
     {
@@ -59,11 +62,11 @@ public:
 
     // Han, Uras, Koenig, "Toward a String-Pulling Approach to Path Smoothing on Grid Graphs",
     // SoCS 2020, Algorithm 1, over the steps of the raw path, one cell of the pool for own_size
-    // each. Not smoothed when it gives up, with smoothings() left empty.
+    // each. Not smoothed when it gives up, with smoothings() left empty. p as for Dijkstra.
     string_pull_result string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p);
     // `pool` is the one the search ran on: steps of another cell size split its segments wrong.
     string_pull_result string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,
-                                   Vector2ui own_size, const pred& p);
+                                   Vector2ui own_size, const pred& p, Grid::Object::Pool* objects = nullptr);
 
 private:
     struct seed_search;
@@ -72,7 +75,7 @@ private:
     static constexpr u32 initial_capacity = 1u << 17;
 
     bucket_queue make_queue(u32 bucket_count);
-    chunk_bitmaps make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p);
+    chunk_bitmaps make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::Object::Pool* objects);
     bool seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist);
     visited run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist);
     visited run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, const endpoint& goal);
@@ -89,6 +92,8 @@ private:
     Array<u32> bucket_sizes;
     Array<point> temp_nodes;
     Array<const u8*> chunk_bits;
+    Array<u8> masked_bits;
+    Array<bool> entry_blocked;
     Array<u32> seed_search_state;
     Array<Range2D> seed_rects;
     Array<goal_seed> goal_seeds;

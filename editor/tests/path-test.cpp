@@ -2,6 +2,7 @@
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
 #include "compat/format.inl"
+#include "compat/function2.hpp"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"
 #include "floormat/main.hpp"
@@ -13,6 +14,7 @@
 #include "shaders/shader.hpp"
 #include <cr/Optional.h>
 #include <mg/Color.h>
+#include <mg/Range.h>
 
 namespace floormat::tests {
 
@@ -33,6 +35,7 @@ struct path_test final : base_test
         point from, to;
         u32 max_dist;
         Vector2ui own_size;
+        object_id self;
     } pending = {};
 
     struct result_s
@@ -74,7 +77,7 @@ bool path_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_
             has_pending = true;
             pending = { .from = pt0, .to = *pt,
                         .max_dist = dist,
-                        .own_size = C->circumscribed_bbox_size(), };
+                        .own_size = C->circumscribed_bbox_size(), .self = C->id, };
         }
         return true;
     }
@@ -180,7 +183,8 @@ void path_test::update_pre(app& a, const Ns&)
     auto& astar = M.astar();
 
     result.res = {}; // return back to the pool to preserve cpu cache
-    const auto& p = Search::without_critters();
+    const auto pred = Search::blocks_all_but(pending.self);
+    const Search::pred p{pred};
     const auto t0 = Time::now();
     auto res = closest_on_failure
              ? astar.Dijkstra<1, true>(w, pending.from, pending.to, pending.max_dist, pending.own_size, p)

@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/function2.fwd.hpp"
 #include "collision.hpp"
+#include "object-id.hpp"
 
 namespace floormat {
 
@@ -21,6 +22,13 @@ template<typename Chunk = chunk> const Pred<Chunk>& never_continue() noexcept;
 template<typename Chunk = chunk> const Pred<Chunk>& always_continue() noexcept;
 template<typename Chunk = chunk> const Pred<Chunk>& without_critters() noexcept;
 template<typename Chunk = chunk> const Pred<Chunk>& without_dynamic_objects() noexcept;
-template<typename Chunk = chunk> const Pred<Chunk>& dynamic_scenery() noexcept;
+
+// Every collider but self blocks. A pred made from the returned lambda must not outlive it.
+inline auto blocks_all_but(object_id self)
+{
+    return [self](chunk&, collision_data x, const Range2D&) {
+        return x.id == self ? path_search_continue::pass : path_search_continue::blocked;
+    };
+}
 
 } // namespace floormat::Search

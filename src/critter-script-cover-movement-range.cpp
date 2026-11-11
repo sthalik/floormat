@@ -38,7 +38,7 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
         return points;
     fm_assert(R < (u16)-1);
 
-    auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass}, Grid::Kind::static_);
+    auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
     const auto div = (int)pool.params().div_size(), dc = (int)pool.params().div_count;
     // A cell farther than n from the cell of from lies over R px away.
     const auto n = R/div + 1, side = 2*n + 1;

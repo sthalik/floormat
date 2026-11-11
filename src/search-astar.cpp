@@ -259,10 +259,13 @@ struct astar::chunk_bitmaps
 {
     world& w;
     Grid::Pass::Pool& pool;
+    Grid::Object::Pool* objects;
     Search::cache& cache;
     const astar::pred& p;
     const u8** bits;
-    u32 div_size, div_shift, div_count;
+    u8* masked_bits;
+    Array<bool>& entry_blocked;
+    u32 div_size, div_shift, div_count, bitmask_bytes;
 
     CORRADE_ALWAYS_INLINE bool test_bit(const u8* b, Vector2ui pix) const
     {
@@ -286,7 +289,19 @@ struct astar::chunk_bitmaps
             return bits[chunk_idx] = std::bit_cast<const u8*>(uptr{1});
         auto grid = pool[*c];
         grid.build_if_stale();
-        return bits[chunk_idx] = grid.bits().data;
+        const u8* b = grid.bits().data;
+        if (objects)
+        {
+            auto og = (*objects)[*c];
+            og.build_if_stale();
+            if (og.blocked_objects(p, entry_blocked))
+            {
+                auto* out = masked_bits + chunk_idx * bitmask_bytes;
+                og.mask_pass_bits(b, out, entry_blocked);
+                b = out;
+            }
+        }
+        return bits[chunk_idx] = b;
     }
 
     CORRADE_NEVER_INLINE bool is_passable_slow(point pt, usize chunk_idx)
@@ -600,7 +615,7 @@ bool can_reach_goal(chunk_bitmaps& bm, const endpoint& start, const endpoint& go
         {
             const auto pt = point::normalize_coords(origin, lo + Vector2i{i, j} * step);
             if (point::distance_squared(pt, to) <= goal_thres_sq(step)
-                && bm.cache.is_passable_for_bbox(bm.w, bm.pool, pt, bm.p)
+                && bm.is_passable(pt)
                 && goal.is_passable_to(pt, bm.p))
                 return true;
         }
@@ -985,8 +1000,10 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    u32 max_dist, Vector2ui own_size,
                                    const pred& p)
 {
-    auto& pool = _pool_registry->pass_pool(default_pool_params(own_size), Grid::Kind::static_);
-    return Dijkstra<Debug, FindClosestOnFailure>(w, pool, from, to, max_dist, own_size, p);
+    const auto params = default_pool_params(own_size);
+    auto& pool = _pool_registry->pass_pool(params);
+    auto& objects = _pool_registry->object_pool(params);
+    return Dijkstra<Debug, FindClosestOnFailure>(w, pool, from, to, max_dist, own_size, p, &objects);
 }
 
 auto astar::make_queue(u32 bucket_count) -> bucket_queue
@@ -1000,7 +1017,7 @@ auto astar::make_queue(u32 bucket_count) -> bucket_queue
     return bucket_queue{ .B = buckets.data(), .sizes = bucket_sizes.data(), .mask = bucket_count - 1, };
 }
 
-auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p) -> chunk_bitmaps
+auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::Object::Pool* objects) -> chunk_bitmaps
 {
     auto& cache = *_cache;
     const auto params = pool.params();
@@ -1010,12 +1027,23 @@ auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p) -> chu
     else
         fill(chunk_bits.prefix(nchunks), nullptr);
 
+    const auto bitmask_bytes = detail::grid::bitmask_size(params.div_count) / 8;
+    if (const auto n = (u32)(nchunks * bitmask_bytes); objects)
+    {
+        if (arrayCapacity(masked_bits) < n)
+            arrayReserve(masked_bits, n + n/2);
+        arrayResize(masked_bits, NoInit, n);
+    }
+
     return chunk_bitmaps{
-        .w = w, .pool = pool, .cache = cache, .p = p,
+        .w = w, .pool = pool, .objects = objects, .cache = cache, .p = p,
         .bits = chunk_bits.data(),
+        .masked_bits = masked_bits.data(),
+        .entry_blocked = entry_blocked,
         .div_size = params.div_size(),
         .div_shift = (u32)std::countr_zero(params.div_size()), // xxx todo assumes power of two chunk size
         .div_count = params.div_count,
+        .bitmask_bytes = bitmask_bytes,
     };
 }
 
@@ -1259,7 +1287,7 @@ path_search_result astar::make_result(const closest& best, point from, point to,
 template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point from, const point to,
                                    u32 max_dist, Vector2ui own_size,
-                                   const pred& p)
+                                   const pred& p, Grid::Object::Pool* objects)
 {
     reserve(initial_capacity);
 
@@ -1281,6 +1309,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     const auto params = pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert(params.min_pass == pass_mode::pass);
+    fm_assert(!objects || objects->params() == params);
 
     // A step is one cell, so a cell holds one node.
     const auto step = (int)params.div_size();
@@ -1300,7 +1329,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
         if (!to_in_cache)
             return {};
 
-    auto bm = make_bitmaps(w, pool, p);
+    auto bm = make_bitmaps(w, pool, p, objects);
     // Seeds lie up to seed_radius px from `from` per axis, so their f spreads by up to twice its
     // octile. A step raises f by at most 2*diag.
     const auto seed_radius = 2*step - 1;
@@ -1369,30 +1398,31 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     return make_result<Debug>(best, from, to, max_dist, elapsed());
 }
 
-template path_search_result astar::Dijkstra<0, true>(world&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<1, true>(world&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<2, true>(world&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<3, true>(world&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<0, true>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<1, true>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<2, true>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<3, true>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<0, false>(world&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<1, false>(world&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<2, false>(world&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<3, false>(world&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<0, false>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<1, false>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<2, false>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
-template path_search_result astar::Dijkstra<3, false>(world&, Grid::Pass::Pool&, point, point, u32, Vector2ui, const pred&);
+#define FM_DIJKSTRA(Debug, FindClosest)                                                                   \
+    template path_search_result astar::Dijkstra<Debug, FindClosest>(world&, point, point, u32, Vector2ui,     \
+                                                                    const pred&);                          \
+    template path_search_result astar::Dijkstra<Debug, FindClosest>(world&, Grid::Pass::Pool&, point, point, \
+                                                                    u32, Vector2ui, const pred&,           \
+                                                                    Grid::Object::Pool*)
+FM_DIJKSTRA(0, true);
+FM_DIJKSTRA(1, true);
+FM_DIJKSTRA(2, true);
+FM_DIJKSTRA(3, true);
+FM_DIJKSTRA(0, false);
+FM_DIJKSTRA(1, false);
+FM_DIJKSTRA(2, false);
+FM_DIJKSTRA(3, false);
+#undef FM_DIJKSTRA
 
 auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p) -> string_pull_result
 {
-    return string_pull(w, _pool_registry->pass_pool(default_pool_params(own_size), Grid::Kind::static_), result, own_size, p);
+    const auto params = default_pool_params(own_size);
+    auto& pool = _pool_registry->pass_pool(params);
+    return string_pull(w, pool, result, own_size, p, &_pool_registry->object_pool(params));
 }
 
 auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,
-                        Vector2ui own_size, const pred& p) -> string_pull_result
+                        Vector2ui own_size, const pred& p, Grid::Object::Pool* objects) -> string_pull_result
 {
     u32 corners_added = 0, los_checks = 0;
     auto& sp = result.smoothings();
@@ -1404,6 +1434,7 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
     const auto own_lo = Vector2(own_size/2u), own_hi = Vector2(own_size) - own_lo;
     fm_assert(pool.params().bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert_equal(result.div_size(), pool.params().div_size());
+    fm_assert(!objects || objects->params() == pool.params());
     const auto cell = (int)pool.params().div_size();
 
     auto& P = temp_nodes;
@@ -1428,7 +1459,8 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
         const auto line = rc::bresenham_line{o, to - origin};
         los_result res = {};
         los_checks++;
-        find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, &pool, [&](const swept_collider_result& r) {
+        find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, &pool, objects, &entry_blocked,
+                            [&](const swept_collider_result& r) {
             res.blocked = true;
             const auto x0 = (i32)Math::floor(r.rect.min().x() - own_hi.x()), x1 = (i32)Math::ceil(r.rect.max().x() + own_lo.x());
             const auto y0 = (i32)Math::floor(r.rect.min().y() - own_hi.y()), y1 = (i32)Math::ceil(r.rect.max().y() + own_lo.y());

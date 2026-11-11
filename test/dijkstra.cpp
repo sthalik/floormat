@@ -9,6 +9,9 @@
 #include "src/search-result.hpp"
 #include "src/search-cache.hpp"
 #include "src/search.hpp"
+#include "src/sweep-aabb.hpp"
+#include "src/raycast-line.hpp"
+#include "compat/function2.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-registry.hpp"
 #include "src/point.inl"
@@ -16,6 +19,7 @@
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/scenery-proto.hpp"
+#include "src/scenery.hpp"
 #include "src/tile-constants.hpp"
 #include "src/wall-atlas.hpp"
 #include "loader/loader.hpp"
@@ -87,8 +91,7 @@ void check_flush_goal(const char* name, u32 bbox, F&& setup, Vector2b goal_offse
 
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto& pool16 = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass},
-                                               Grid::Kind::static_);
+    auto& pool16 = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass});
     auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, bbox, pass_mode::pass}, pred};
 
     for (auto* pool : { &pool16, &pool8 })
@@ -223,7 +226,7 @@ void test_odd_body_corridor(u32 bbox)
 
     auto r1 = A.Dijkstra<0, false>(w, exact, from, goal, max_dist, Vector2ui(bbox), pred);
     fm_assert(r1.is_found());
-    auto r2 = A.Dijkstra<0, false>(w, from, goal, max_dist, Vector2ui(bbox), pred);
+    auto r2 = A.Dijkstra<0, false>(w, from, goal, max_dist, Vector2ui(bbox), Search::never_continue());
     if (!r2.is_found())
         fm_abort("odd body corridor bbox %u: registry pool has bbox %u", bbox, registry_params.bbox_size);
     fm_assert(r2.cost() == r1.cost());
@@ -273,9 +276,8 @@ void test_large_search_limit()
 
     auto w = world();
     auto A = astar{};
-    const auto& pred = Search::without_critters();
     const auto search = [&](Vector2i off, u32 dist) {
-        return A.Dijkstra<0, false>(w, from, from + off, dist, Vector2ui{cell}, pred);
+        return A.Dijkstra<0, false>(w, from, from + off, dist, Vector2ui{cell}, Search::never_continue());
     };
     const auto near = Vector2i{97, 53};
     const auto small = search(near, 1024), large = search(near, max_dist);
@@ -307,14 +309,19 @@ void check_one_move(world& w, point pt, u32 size, Vector2i open)
                 fm_assert(box_free(w, point::normalize_coords(pt, {dx, dy}), Vector2ui(size)) == (Vector2i{dx, dy} == open));
 }
 
-bptr<critter> add_walker(world& w, point from, u32 size)
+bptr<critter> add_npc(world& w, point at, u32 size)
 {
     critter_proto p;
     p.name = "npc"_s;
     p.speed = 1;
     p.bbox_size = Vector2ub((u8)size);
-    p.offset = from.offset();
-    auto C = w.make_object<critter>(w.make_id(), from.coord(), move(p));
+    p.offset = at.offset();
+    return w.make_object<critter>(w.make_id(), at.coord(), move(p));
+}
+
+bptr<critter> add_walker(world& w, point from, u32 size)
+{
+    auto C = add_npc(w, from, size);
     w.init_scripts();
     return C;
 }
@@ -558,6 +565,250 @@ void check_walled_off_goal(bool open)
         fm_assert(r1.path().isEmpty());
 }
 
+point at_px(Vector2i px)
+{
+    return point::normalize_coords(point{flush_ch, {}, {}}, px);
+}
+
+// A blocked scenery covering [min, max) in flush_ch's frame. Sides are even and under 256 px.
+void add_rect(world& w, Vector2i min, Vector2i max)
+{
+    const auto size = max - min, center = (min + max)/2;
+    fm_assert(size.x() > 0 && size.y() > 0 && size.x() < 256 && size.y() < 256);
+    fm_assert(size.x() % 2 == 0 && size.y() % 2 == 0);
+    const auto tile = (center + half_tile<Vector2i>) / tile_size<int>;
+    add_block(w, local_coords{(u8)tile.x(), (u8)tile.y()}, Vector2ub(size), Vector2b(center - tile*tile_size<int>));
+}
+
+bool is_segment_clear(world& w, point a, point b, Vector2ui size, const Search::pred& p)
+{
+    const auto origin = point{a.chunk3(), {}, {}};
+    const auto line = rc::bresenham_line{a - origin, b - origin};
+    return !find_swept_collider(w, a.chunk3(), line, 0, line.steps(), size, p).has_collider;
+}
+
+swept_collider_result sweep_with_grids(world& w, point a, point b, Vector2ui size, const Search::pred& p,
+                                       Grid::Pass::Pool& pool, Grid::Object::Pool& objects)
+{
+    const auto origin = point{a.chunk3(), {}, {}};
+    const auto line = rc::bresenham_line{a - origin, b - origin};
+    Array<bool> entry_blocked;
+    return find_swept_collider(w, a.chunk3(), line, 0, line.steps(), size, p, &pool, &objects, &entry_blocked);
+}
+
+// A critter standing in a sealed corridor closes it to other critters of its size, wherever it moves.
+void check_critter_corridor(u32 cell)
+{
+    constexpr u32 max_dist = 1024, size = 32;
+    const auto west = at_px({224, 512}), east = at_px({800, 512});
+    auto w = world();
+    add_floors(w, west, max_dist, cell);
+    for (auto y : { 464, 544 })
+        for (auto x : { 176, 400, 624 })
+            add_rect(w, {x, y}, {x + 224, y + 16});
+    add_rect(w, {176, 480}, {192, 544});
+    add_rect(w, {832, 480}, {848, 544});
+    const auto S = add_walker(w, west, size);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    auto A = astar{};
+    const auto params = Grid::Pass::Params{cell, size, pass_mode::pass};
+    auto& pool = A.pool_registry().pass_pool(params);
+    auto& objects = A.pool_registry().object_pool(params);
+    const auto search = [&]<bool closest = false>(const bptr<critter>& C, point to) {
+        const auto pred = Search::blocks_all_but(C->id);
+        return A.Dijkstra<0, closest>(w, pool, C->position(), to, max_dist, Vector2ui{size}, Search::pred{pred},
+                                      &objects);
+    };
+    const auto expect = [&](const char* what, const bptr<critter>& C, point to, bool found) {
+        if (const auto r = search(C, to); r.is_found() != found)
+            fm_abort("critter corridor at div %u, %s: found %d", cell, what, (int)r.is_found());
+    };
+    const auto move_to = [](const bptr<critter>& C, Vector2i px) {
+        auto i = C->index();
+        C->teleport_to(i, at_px(px), rotation_COUNT);
+    };
+
+    expect("alone", S, east, true);
+    const auto B = add_npc(w, at_px({512, 512}), size);
+    expect("past a critter", S, east, false);
+    {
+        const auto r = search.operator()<true>(S, east);
+        fm_assert(!r.is_found() && !r.path().isEmpty());
+        fm_assert(Vector3i(r.path().back()).x() <= 512 - (int)size);
+        const auto pred = Search::blocks_all_but(S->id);
+        fm_assert(A.Dijkstra<0, false>(w, pool, west, east, max_dist, Vector2ui{size}, Search::pred{pred}).is_found());
+    }
+    const auto& any = Search::without_critters();
+    {
+        auto r = A.Dijkstra<0, false>(w, pool, west, east, max_dist, Vector2ui{size}, any, &objects);
+        fm_assert(r.is_found());
+        fm_assert(A.string_pull(w, pool, r, Vector2ui{size}, any, &objects));
+        const auto sp = std::as_const(r).smoothings();
+        const auto pred = Search::blocks_all_but(S->id);
+        bool crosses = false;
+        for (auto k = 0uz; k + 1 < sp.size(); k++)
+        {
+            fm_assert(is_segment_clear(w, sp[k].pt, sp[k+1].pt, Vector2ui{size}, any));
+            crosses |= !is_segment_clear(w, sp[k].pt, sp[k+1].pt, Vector2ui{size}, Search::pred{pred});
+        }
+        fm_assert(crosses);
+    }
+    move_to(B, {512, 704});
+    expect("after the critter left", S, east, true);
+    move_to(B, {704, 512});
+    expect("after the critter came back farther east", S, east, false);
+    // 8 px apart, so the cells between them hold both.
+    move_to(S, {300, 512});
+    move_to(B, {340, 512});
+    expect("east past a critter beside it", S, east, false);
+    expect("west past a critter beside it", B, west, false);
+    fm_assert(A.Dijkstra<0, false>(w, pool, S->position(), east, max_dist, Vector2ui{size}, any, &objects).is_found());
+    {
+        const auto pred = Search::blocks_all_but(S->id);
+        const auto hit = sweep_with_grids(w, S->position(), east, Vector2ui{size}, Search::pred{pred}, pool, objects);
+        fm_assert(hit.has_collider && hit.collider.id == B->id);
+        fm_assert(!sweep_with_grids(w, S->position(), east, Vector2ui{size}, any, pool, objects).has_collider);
+    }
+    move_to(B, {512, 704});
+    auto r = search(S, east);
+    fm_assert(r.is_found());
+    walk_to(w, S, move(r), east, "critter corridor", cell);
+}
+
+// The searcher's body covers every cell its seed search can reach, so only self keeps it from blocking the search.
+void check_searcher_own_body(u32 cell)
+{
+    constexpr u32 max_dist = 1024, size = 160;
+    const auto from = at_px({512, 512}), goal = at_px({128, 512});
+    auto w = world();
+    add_floors(w, from, max_dist, cell);
+    const auto S = add_npc(w, from, size);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    auto A = astar{};
+    const auto params = Grid::Pass::Params{cell, size, pass_mode::pass};
+    auto& pool = A.pool_registry().pass_pool(params);
+    auto& objects = A.pool_registry().object_pool(params);
+    const auto pred_fn = Search::blocks_all_but(S->id);
+    const Search::pred pred{pred_fn};
+    if (!A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui{size}, pred, &objects).is_found())
+        fm_abort("searcher's own body at div %u: no path", cell);
+    const auto& all = Search::never_continue();
+    fm_assert(!A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui{size}, all, &objects).is_found());
+}
+
+// A searcher touching a wall and another critter walks away from both.
+void check_searcher_pressed(u32 cell)
+{
+    constexpr u32 max_dist = 1024, size = 32;
+    const auto from = at_px({512, 512}), goal = at_px({256, 512});
+    auto w = world();
+    add_floors(w, from, max_dist, cell);
+    add_rect(w, {528, 448}, {560, 576});
+    const auto S = add_walker(w, from, size);
+    (void)add_npc(w, at_px({512, 480}), size);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+    fm_assert(box_free(w, from, Vector2ui{size}));
+
+    auto A = astar{};
+    const auto params = Grid::Pass::Params{cell, size, pass_mode::pass};
+    auto& pool = A.pool_registry().pass_pool(params);
+    auto& objects = A.pool_registry().object_pool(params);
+    const auto pred_fn = Search::blocks_all_but(S->id);
+    auto r = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui{size}, Search::pred{pred_fn}, &objects);
+    if (!r.is_found())
+        fm_abort("searcher pressed at div %u: no path", cell);
+    walk_to(w, S, move(r), goal, "searcher pressed", cell);
+}
+
+// A critter stands halfway along a straight path. The smoothed path goes around it and walks to its end.
+void check_pull_around_critter(u32 cell)
+{
+    constexpr u32 max_dist = 1024, size = 32;
+    const auto from = at_px({256, 512}), goal = at_px({768, 512});
+    auto w = world();
+    add_floors(w, from, max_dist, cell);
+    const auto S = add_walker(w, from, size);
+    (void)add_npc(w, at_px({512, 512}), 64);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    auto A = astar{};
+    const auto params = Grid::Pass::Params{cell, size, pass_mode::pass};
+    auto& pool = A.pool_registry().pass_pool(params);
+    auto& objects = A.pool_registry().object_pool(params);
+    const auto pred_fn = Search::blocks_all_but(S->id);
+    const Search::pred pred{pred_fn};
+    auto r = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui{size}, pred, &objects);
+    fm_assert(r.is_found());
+    fm_assert(A.string_pull(w, pool, r, Vector2ui{size}, pred, &objects));
+    const auto sp = std::as_const(r).smoothings();
+    fm_assert(sp.size() >= 3);
+    for (auto k = 0uz; k + 1 < sp.size(); k++)
+        if (!is_segment_clear(w, sp[k].pt, sp[k+1].pt, Vector2ui{size}, pred))
+            fm_abort("pull around a critter at div %u: segment %zu crosses a collider", cell, k);
+    walk_to(w, S, move(r), goal, "pull around a critter", cell);
+}
+
+// A closed door fills the gap in a wall, so the path and its smoothing go around the wall. The static grid alone
+// lets the path through the door, and so does the door once it opens.
+void check_door_in_wall_gap()
+{
+    constexpr u32 max_dist = 1024, size = 32;
+    const auto from = at_px({512, 320}), goal = at_px({512, 704});
+    const auto own = Vector2ui{size};
+    auto w = world();
+    add_floors(w, from, max_dist, astar::default_div_size);
+    add_rect(w, {256, 472}, {480, 488});
+    add_rect(w, {544, 472}, {768, 488});
+    auto proto = loader.scenery("door1");
+    proto.pass = pass_mode::blocked;
+    proto.frame = (u16)(proto.atlas->info().nframes - 1);
+    const auto doorʹ = w.make_scenery(w.make_id(), {flush_ch, {8, 8}}, move(proto));
+    fm_assert(doorʹ->scenery_type() == scenery_type::door && doorʹ->is_dynamic());
+    auto& door = static_cast<door_scenery&>(*doorʹ);
+    const auto S = add_npc(w, from, size);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    auto A = astar{};
+    const auto pred_fn = Search::blocks_all_but(S->id);
+    const Search::pred pred{pred_fn};
+    const auto search = [&] {
+        auto r = A.Dijkstra<0, false>(w, from, goal, max_dist, own, pred);
+        fm_assert(r.is_found());
+        fm_assert(A.string_pull(w, r, own, pred));
+        const auto sp = std::as_const(r).smoothings();
+        for (auto k = 0uz; k + 1 < sp.size(); k++)
+            if (!is_segment_clear(w, sp[k].pt, sp[k+1].pt, own, pred))
+                fm_abort("door in a wall gap: smoothed segment %zu crosses a collider", k);
+        return r.cost();
+    };
+    auto& pool = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, size, pass_mode::pass});
+    const auto through = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, own, pred);
+    fm_assert(through.is_found());
+    fm_assert(search() > through.cost());
+
+    auto i = door.index();
+    fm_assert(door.activate(i));
+    for (auto n = 0u; door.active; n++)
+    {
+        fm_assert(n < 100);
+        door.update(doorʹ, i, Second);
+    }
+    fm_assert(door.pass == pass_mode::pass);
+    fm_assert(search() == through.cost());
+}
+
 } // namespace
 
 void Test::test_dijkstra()
@@ -574,8 +825,7 @@ void Test::test_dijkstra()
     constexpr auto wpos = global_coords{wch, wt};
     const auto from = point{{0, 0, 0}, {11, 9}};
     constexpr auto own_size = Vector2ui{16};
-    auto& pool = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, own_size.x(), pass_mode::pass},
-                                             Grid::Kind::static_);
+    auto& pool = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, own_size.x(), pass_mode::pass});
 
     add_floors(w, from, max_dist, pool.params().div_size());
     auto& ch = w[wch];
@@ -694,6 +944,14 @@ void Test::test_dijkstra()
     check_post_field();
     check_walled_off_goal(false);
     check_walled_off_goal(true);
+    for (auto cell : { 8u, 16u })
+    {
+        check_critter_corridor(cell);
+        check_searcher_own_body(cell);
+        check_searcher_pressed(cell);
+        check_pull_around_critter(cell);
+    }
+    check_door_in_wall_gap();
 }
 
 } // namespace floormat

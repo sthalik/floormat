@@ -1,9 +1,11 @@
 #include "sweep-aabb.hpp"
 #include "collision.hpp"
 #include "chunk.hpp"
+#include "world.hpp"
 #include "raycast-line.hpp"
 #include "raycast-loop.hpp"
 #include "grid-pass.hpp"
+#include "grid-object.hpp"
 #include "RTree-search.hpp"
 #include "compat/function2.hpp"
 #include <bit>
@@ -19,7 +21,8 @@ namespace {
 template<typename F>
 void sweep_aabb(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                 u32 first_step, u32 last_step, Vector2ui bbox_size,
-                const Search::pred& p, Grid::Pass::Pool* pool, F&& on_blocker)
+                const Search::pred& p, Grid::Pass::Pool* pool, Grid::Object::Pool* objects, Array<bool>* entry_blocked,
+                F&& on_blocker)
 {
     fm_assert(!pool || pool->params().bbox_size >= Math::max(bbox_size.x(), bbox_size.y()));
     // a box spans [center - lo, center + hi), as scenery_tile()
@@ -82,17 +85,40 @@ void sweep_aabb(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
         return bound > (i64)k1 + 1;
     };
 
-    rc::detail::traverse_line_cells(w, ch, line, first_step, last_step, true, pool, visit);
+    const auto visit_objects = [&]<typename T>(const rc::detail::line_cell& cell, const Grid::Object::Grid& g,
+                                               Grid::Object::cell_object_view<T> objects) {
+        const auto k0 = cell.first_step, k1 = cell.last_step;
+        const auto rects = g.entry_rects();
+        const auto chunks = g.entry_chunks();
+        for (auto i = 0u; i < objects.size(); i++)
+        {
+            const auto e = objects.entry_index(i);
+            if (!(*entry_blocked)[e])
+                continue;
+            const auto off = chunks[e] ? Vector2i(world::neighbor_offsets[chunks[e] - 1]) : Vector2i{};
+            const auto shift = (cell.chunk_offset + off) * chunk_size<i32>;
+            const auto r0 = rects[e].min() + shift, r1 = rects[e].max() + shift;
+            const auto step = first_blocked(r0, r1, k0, k1);
+            if (step >= bound)
+                continue;
+            bound = on_blocker(step, objects[i], Range2D{Vector2(r0), Vector2(r1)});
+        }
+        return bound > (i64)k1 + 1;
+    };
+
+    rc::detail::traverse_line_cells(w, ch, line, first_step, last_step, true, pool, objects, p, entry_blocked,
+                                    visit, visit_objects, visit_objects);
 }
 
 } // namespace
 
 swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                                           u32 first_step, u32 last_step, Vector2ui bbox_size,
-                                          const Search::pred& p, Grid::Pass::Pool* pool)
+                                          const Search::pred& p, Grid::Pass::Pool* pool,
+                                          Grid::Object::Pool* objects, Array<bool>* entry_blocked)
 {
     swept_collider_result res = { .step = last_step + 1, .collider = {}, .rect = {}, .has_collider = false };
-    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, [&](i64 step, collision_data x, Range2D rect) {
+    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, objects, entry_blocked, [&](i64 step, collision_data x, Range2D rect) {
         res = { .step = (u32)step, .collider = x, .rect = rect, .has_collider = true };
         return step;
     });
@@ -102,9 +128,10 @@ swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::
 void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Grid::Pass::Pool* pool,
+                         Grid::Object::Pool* objects, Array<bool>* entry_blocked,
                          fu2::function_view<bool(const swept_collider_result&) const> f)
 {
-    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, [&](i64 step, collision_data x, Range2D rect) {
+    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, objects, entry_blocked, [&](i64 step, collision_data x, Range2D rect) {
         const bool more = f(swept_collider_result{ .step = (u32)step, .collider = x, .rect = rect, .has_collider = true });
         return more ? (i64)last_step + 1 : 0;
     });

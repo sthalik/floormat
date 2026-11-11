@@ -69,13 +69,11 @@ task app::scene_npcs()
     auto wall = loader.wall_atlas("test1", loader_policy::warn);
     const auto depth = (int)wall->info().depth;
 
-    chunk* room[room_chunks*room_chunks];
     for (i16 cy = r0; cy < r1; cy++)
         for (i16 cx = r0; cx < r1; cx++)
         {
             auto& c = w[chunk_coords_{cx, cy, 0}];
             maybe_initialize_chunk_(c.coord(), c);
-            room[(cy - r0)*room_chunks + (cx - r0)] = &c;
         }
     for (i16 k = r0; k < r1; k++)
     {
@@ -147,9 +145,6 @@ task app::scene_npcs()
     };
     const Search::pred except_searcher_pred{except_searcher};
 
-    // Its own pool, since the registry's pools always build with without_critters().
-    Pass::Pool crit_pool{Pass::Params{astar::default_div_size, critter_size, pass_mode::pass}, except_searcher_pred};
-
     u64 rng = 0x9e3779b97f4a7c15u;
     const auto next_angle = [&rng] {
         rng = rng*6364136223846793005u + 1442695040888963407u;
@@ -220,13 +215,10 @@ task app::scene_npcs()
                 continue;
             }
 
+            searcher = a.id;
             if (collided)
             {
-                searcher = a.id;
-                // The bits depend on searcher, which no chunk stamp tracks.
-                for (auto* c : room)
-                    crit_pool[*c].mark_stale();
-                auto res = M->astar().Dijkstra<0, false>(w, crit_pool, pos, a.dest, max_dist(pos, a.dest),
+                auto res = M->astar().Dijkstra<0, false>(w, pos, a.dest, max_dist(pos, a.dest),
                                                          C->circumscribed_bbox_size(), except_searcher_pred);
                 searches++;
                 critter_searches++;
@@ -246,7 +238,7 @@ task app::scene_npcs()
             if (goal == pos)
                 continue;
             auto res = M->astar().Dijkstra<0, false>(w, pos, goal, max_dist(pos, goal),
-                                                     C->circumscribed_bbox_size(), Search::without_critters());
+                                                     C->circumscribed_bbox_size(), except_searcher_pred);
             searches++;
             if (!res.is_found())
             {
@@ -262,7 +254,7 @@ task app::scene_npcs()
     while (M->world().game_time() < hold);
 
     fm_debug("npcs: %u critters, %u frames, %.0f%% of critter-frames moving, %u walks, "
-             "%u collisions, %u searches (%u with critters), %u not found, %u blockers placed",
+             "%u collisions, %u searches (%u after a collision), %u not found, %u blockers placed",
              num_critters, frames, (double)moving*100/((double)frames*num_critters), walks,
              collisions, searches, critter_searches, not_found, blockers_placed);
 }

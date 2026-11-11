@@ -44,6 +44,7 @@
 #include "compat/array-size.hpp"
 #include "compat/assert.hpp"
 #include "compat/enum-bitset.hpp"
+#include "compat/function2.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
 #include "compat/nanosecond.hpp"
@@ -1105,7 +1106,7 @@ task app::scene_walk()
                           local_coords{col, TILE_MAX_DIM-3}, {}};
     const auto dist = point::distance(from, to)*2 + chunk_size_xy;
     auto res = M->astar().Dijkstra(w, from, to, dist, C->circumscribed_bbox_size(),
-                                   Search::without_critters());
+                                   Search::blocks_all_but(C->id));
     // A search that gives up still returns the route to the closest node it reached, so
     // empty() stays false and the walk below runs that route to its end and reports success.
     if (!res.is_found())
@@ -1220,7 +1221,7 @@ task app::scene_maze1()
         // Every cell walked once bounds the true path; the ratio never gets near that.
         const auto max_dist = point::distance(from, to) * 31;
         auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, C->circumscribed_bbox_size(),
-                                          Search::without_critters());
+                                          Search::blocks_all_but(C->id));
         // Same partial-route trap as scene_walk.
         if (!res.is_found())
         {
@@ -1448,7 +1449,7 @@ task app::scene_maze2()
     const auto to = maze2_goal();
     const auto max_dist = point::distance(from, to) * 13;
     auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, C->circumscribed_bbox_size(),
-                                      Search::without_critters());
+                                      Search::blocks_all_but(C->id));
     // Same partial-route trap as scene_walk.
     if (!res.is_found())
     {
@@ -1470,8 +1471,7 @@ task app::scene_maze3()
     using mazes::kind;
     constexpr auto n = (u32)kind::COUNT;
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass},
-                                                      Grid::Kind::static_);
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, mazes::bbox_size, pass_mode::pass});
     mazes::route routes[n];
     for (auto k = 0u; k < n; k++)
     {
@@ -1489,7 +1489,7 @@ task app::scene_maze3()
         co_yield {};
 
         auto res = M->astar().Dijkstra<1>(w, r.from, r.to, r.max_dist, Vector2ui{mazes::bbox_size},
-                                          Search::without_critters());
+                                          Search::blocks_all_but(C->id));
         if (!res.is_found())
         {
             ERR_nospace << "driver: maze3 " << mazes::name(kind(k)) << " has no path "
@@ -1524,10 +1524,8 @@ task app::scene_maze_exit()
     constexpr u8 size = 24;
     constexpr auto bbox = Vector2ui{size};
     auto& w = M->world();
-    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, size, pass_mode::pass},
-                                                      Grid::Kind::static_);
-    // reset_world() spawns the player inside the footprint. A critter in a corridor blocks the
-    // walk, while the search, run without_critters(), routes through it.
+    auto& pool = M->astar().pool_registry().pass_pool(Pass::Params{astar::default_div_size, size, pass_mode::pass});
+    // reset_world() spawns the player inside the footprint, where it would block the search and the walk.
     auto P = ensure_player_character(w);
     auto P_index = P->index();
     P->teleport_to(P_index, point{chunk_coords_{-1, -1, 0}, local_coords{}, {}}, rotation_COUNT);
@@ -1548,7 +1546,7 @@ task app::scene_maze_exit()
         center_camera_on(r.from);
         co_yield {};
 
-        auto res = M->astar().Dijkstra<1>(w, r.from, r.to, r.max_dist, bbox, Search::without_critters());
+        auto res = M->astar().Dijkstra<1>(w, r.from, r.to, r.max_dist, bbox, Search::blocks_all_but(C->id));
         // Same partial-route trap as scene_walk.
         if (!res.is_found())
         {
@@ -1557,7 +1555,7 @@ task app::scene_maze_exit()
             fm_abort("%s", "maze-exit: unroutable");
         }
         const auto len = res.cost();
-        if (!M->astar().string_pull(w, res, bbox, Search::without_critters()))
+        if (!M->astar().string_pull(w, res, bbox, Search::blocks_all_but(C->id)))
             fm_warn("maze-exit: seed %llu: string pull gave up", (unsigned long long)seed);
         if (i >= walks)
         {

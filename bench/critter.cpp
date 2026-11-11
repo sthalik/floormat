@@ -437,7 +437,7 @@ void Critter_walk_5x5(benchmark::State& st)
     Pass::Pool shoot_pool{Pass::Params{16, pass_mode::shoot_through}, Search::never_continue()};
     Grid::Cover::Pool cover_pool{Grid::Cover::Params{16}, shoot_pool};
     Grid::GridRegistry reg;
-    auto& ray_pool = reg.pass_pool(Pass::Params{16, pass_mode::shoot_through}, Grid::Kind::static_);
+    auto& ray_pool = reg.pass_pool(Pass::Params{16, pass_mode::shoot_through});
     const bool rays = st.range(1);
     if (st.range(0))
         for (auto& c : w.chunks())

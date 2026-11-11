@@ -6,6 +6,7 @@
 #include "pass-mode.hpp"
 #include "world.hpp"
 #include "grid-pass.hpp"
+#include "grid-object.hpp"
 #include "search-pred.hpp"
 #include "RTree-search.hpp"
 #include "compat/function2.hpp"
@@ -108,10 +109,13 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
 
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
-                         Grid::Pass::Pool* pool,
-                         fu2::function_view<bool(const line_cell&) const> visit)
+                         Grid::Pass::Pool* pool, Grid::Object::Pool* objects,
+                         const Search::pred& p, Array<bool>* entry_blocked,
+                         fu2::function_view<bool(const line_cell&) const> visit,
+                         object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32)
 {
     fm_assert(first_step <= last_step && last_step <= line.steps());
+    fm_assert(!objects || pool && entry_blocked && objects->params() == pool->params());
 
     constexpr auto csize = chunk_size<i32>;
     const auto div = pool ? (i32)pool->params().div_size() : csize;
@@ -162,23 +166,36 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     line_cell cell = {};
     Vector2i loaded{INT32_MAX, INT32_MAX};
     Pass::Grid grid{nullptr, nullptr};
-    bool has_grid = false, chunk_empty = false;
+    Grid::Object::Grid object_grid{nullptr};
+    bool has_grid = false, has_objects = false, chunk_empty = false;
 
+    const auto chunks_3x3 = [&](Vector2i off) -> std::array<chunk*, 9> {
+        std::array<chunk*, 9> chunks;
+        for (int j = 0; j < 3; j++)
+            for (int i = 0; i < 3; i++)
+                chunks[(usize)(j*3 + i)] = w.at(chunk_coords_{
+                    (i16)(ch.x + off.x() + i - 1), (i16)(ch.y + off.y() + j - 1), ch.z });
+        return chunks;
+    };
     // Callers compare with loaded first, so a cell in the loaded chunk makes no call.
     const auto load = [&](Vector2i off) {
         loaded = off;
         cell.chunk_offset = off;
-        for (int j = 0; j < 3; j++)
-            for (int i = 0; i < 3; i++)
-                cell.chunks[(usize)(j*3 + i)] = w.at(chunk_coords_{
-                    (i16)(ch.x + off.x() + i - 1), (i16)(ch.y + off.y() + j - 1), ch.z });
+        cell.chunks = chunks_3x3(off);
         auto* c = cell.chunks[4];
         has_grid = pool && c;
+        has_objects = false;
         if (has_grid)
         {
             grid = (*pool)[*c];
             grid.build_if_stale();
-            chunk_empty = grid.is_all_empty();
+            if (objects)
+            {
+                object_grid = (*objects)[*c];
+                object_grid.build_if_stale();
+                has_objects = object_grid.blocked_objects(p, *entry_blocked);
+            }
+            chunk_empty = grid.is_all_empty() && !has_objects;
         }
         else if (!c)
         {
@@ -206,91 +223,111 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     // away. While stepped, step k's cell comes from the previous cell's exit.
     Vector2i global_cell;
     bool stepped = false;
-    for (auto k = first_step; ; )
-    {
-        if (!stepped)
-            global_cell = cell_of(line.point_at(k));
-        const auto chunk_off = chunk_of(global_cell);
-        const auto local_cell = Vector2i{global_cell.x() & count_mask, global_cell.y() & count_mask};
-        if (chunk_off != loaded)
-            load(chunk_off);
-        Vector2i lo, hi;
-        bool skip = chunk_empty;
-        if (chunk_empty)
+    auto k = first_step;
+    // Returns false after loading a chunk whose object grid isn't T, so the other width's walk goes on.
+    const auto walk = [&]<typename T>() -> bool {
+        constexpr bool is_u32 = std::is_same_v<T, u32>;
+        for (;;)
         {
-            lo = chunk_off * csize - origin;
-            hi = lo + Vector2i{csize - 1};
-        }
-        else
-        {
-            lo = chunk_off * csize + local_cell * div - origin;
-            hi = lo + Vector2i{div - 1};
-            skip = has_grid && grid.bit(Pass::Grid::get_bitmask_index((u32)local_cell.x(), (u32)local_cell.y(), div_count));
-        }
-        fm_debug3_assert((line.point_at(k) >= lo).all() && (line.point_at(k) <= hi).all());
-        const auto b = line.sign(minor) > 0 ? (i64)on(hi, minor) - on(from, minor) : (i64)on(from, minor) - on(lo, minor);
-        const auto last_major = line.interval_bounds_to_steps(major, on(lo, major), on(hi, major)).last, last_minor = last_within_minor(b);
-        const auto last = Math::min(Math::min(last_major, last_minor), last_step);
-        if (!skip)
-        {
+            if (!stepped)
+                global_cell = cell_of(line.point_at(k));
+            const auto chunk_off = chunk_of(global_cell);
+            const auto local_cell = Vector2i{global_cell.x() & count_mask, global_cell.y() & count_mask};
+            if (chunk_off != loaded)
+            {
+                load(chunk_off);
+                if (has_objects && object_grid.uses_u32() != is_u32)
+                    return false;
+            }
+            Vector2i lo, hi;
+            bool skip = chunk_empty;
+            u32 idx = 0;
+            if (chunk_empty)
+            {
+                lo = chunk_off * csize - origin;
+                hi = lo + Vector2i{csize - 1};
+            }
+            else
+            {
+                lo = chunk_off * csize + local_cell * div - origin;
+                hi = lo + Vector2i{div - 1};
+                idx = Pass::Grid::get_bitmask_index((u32)local_cell.x(), (u32)local_cell.y(), div_count);
+                skip = has_grid && grid.bit(idx);
+            }
+            fm_debug3_assert((line.point_at(k) >= lo).all() && (line.point_at(k) <= hi).all());
+            const auto b = line.sign(minor) > 0 ? (i64)on(hi, minor) - on(from, minor) : (i64)on(from, minor) - on(lo, minor);
+            const auto last_major = line.interval_bounds_to_steps(major, on(lo, major), on(hi, major)).last, last_minor = last_within_minor(b);
+            const auto last = Math::min(Math::min(last_major, last_minor), last_step);
             cell.first_step = k;
             cell.last_step = last;
-            if (!visit(cell))
-                return;
-        }
-        if (last == last_step)
-            return;
-
-        if (!chunk_empty)
-        {
-            const bool exit_major = last == last_major, exit_minor = last == last_minor;
-            const auto next = global_cell + (exit_major ? major_step : Vector2i{}) + (exit_minor ? minor_step : Vector2i{});
-            // Only a step leaving through both sides at once has orthogonal points outside this cell and the next.
-            // Orthogonal point i moves along axis i first, and the minor offset at last is b, as in orthogonal_at().
-            if (exit_major && exit_minor)
+            if (!skip)
             {
-                const auto e = (i64)((2*(u64)last + 1)*minor_len) - (i64)((2*(u64)b + 1)*len);
+                if (!visit(cell))
+                    return true;
+            }
+            else if (has_objects && object_grid.is_blocked<T>(idx, *entry_blocked))
+            {
+                bool more;
+                if constexpr (is_u32)
+                    more = visit_objects_u32(cell, object_grid, object_grid.objects_at_cell<T>(idx));
+                else
+                    more = visit_objects_u16(cell, object_grid, object_grid.objects_at_cell<T>(idx));
+                if (!more)
+                    return true;
+            }
+            if (last == last_step)
+                return true;
+
+            if (!chunk_empty)
+            {
+                const bool exit_major = last == last_major, exit_minor = last == last_minor;
+                const auto next = global_cell + (exit_major ? major_step : Vector2i{}) + (exit_minor ? minor_step : Vector2i{});
+                // Only a step out through both sides at once has orthogonal points outside this cell and the next.
+                // Point i moves along axis i first, and the minor offset at last is b, as in orthogonal_at().
+                if (exit_major && exit_minor)
+                {
+                    const auto e = (i64)((2*(u64)last + 1)*minor_len) - (i64)((2*(u64)b + 1)*len);
+                    for (auto i = 0u; i < 2; i++)
+                    {
+                        if (!both_orthogonal && !(i == major ? e <= 0 : e >= 0))
+                            continue;
+                        const auto corner = i == 0 ? Vector2i{next.x(), global_cell.y()} : Vector2i{global_cell.x(), next.y()};
+                        const auto corner_off = chunk_of(corner);
+                        const auto chunks = corner_off == loaded ? cell.chunks : chunks_3x3(corner_off);
+                        if (!visit(line_cell{chunks, corner_off, last + 1, last + 1}))
+                            return true;
+                    }
+                }
+                global_cell = next;
+                stepped = true;
+                k = last + 1;
+                continue;
+            }
+
+            // A diagonal step through the corner of four cells puts its orthogonal points in two cells
+            // neither end of the step is in. Visited without a bit lookup, since it's rare.
+            stepped = false;
+            if (const auto o = line.orthogonal_at(last); o.diagonal)
+            {
+                const auto c0 = cell_of(line.point_at(last)), c1 = cell_of(line.point_at(last + 1));
                 for (auto i = 0u; i < 2; i++)
                 {
-                    if (!both_orthogonal && !(i == major ? e <= 0 : e >= 0))
+                    if (!both_orthogonal && !o.in_supercover[i])
                         continue;
-                    const auto corner = i == 0 ? Vector2i{next.x(), global_cell.y()} : Vector2i{global_cell.x(), next.y()};
-                    const auto corner_off = chunk_of(corner);
-                    if (corner_off != loaded)
-                        load(corner_off);
-                    cell.first_step = cell.last_step = last + 1;
-                    if (!visit(cell))
-                        return;
+                    const auto c = cell_of(o.points[i]);
+                    if (c == c0 || c == c1)
+                        continue;
+                    const auto c_off = chunk_of(c);
+                    const auto chunks = c_off == loaded ? cell.chunks : chunks_3x3(c_off);
+                    if (!visit(line_cell{chunks, c_off, last + 1, last + 1}))
+                        return true;
                 }
             }
-            global_cell = next;
-            stepped = true;
             k = last + 1;
-            continue;
         }
-
-        // A diagonal step through the corner of four cells puts its orthogonal points in two cells
-        // neither end of the step is in. Visited without a bit lookup, since it's rare.
-        stepped = false;
-        if (const auto o = line.orthogonal_at(last); o.diagonal)
-        {
-            const auto c0 = cell_of(line.point_at(last)), c1 = cell_of(line.point_at(last + 1));
-            for (auto i = 0u; i < 2; i++)
-            {
-                if (!both_orthogonal && !o.in_supercover[i])
-                    continue;
-                const auto c = cell_of(o.points[i]);
-                if (c == c0 || c == c1)
-                    continue;
-                if (chunk_of(c) != loaded)
-                    load(chunk_of(c));
-                cell.first_step = cell.last_step = last + 1;
-                if (!visit(cell))
-                    return;
-            }
-        }
-        k = last + 1;
-    }
+    };
+    for (bool done = false; !done; )
+        done = walk.template operator()<u16>() || walk.template operator()<u32>();
 }
 
 namespace {

@@ -7,6 +7,7 @@
 #include <mg/Range.h>
 
 namespace floormat::rc { class bresenham_line; }
+namespace floormat::Grid::Object { class Pool; class Grid; template<typename T> class cell_object_view; }
 
 namespace floormat::rc::detail {
 
@@ -21,13 +22,20 @@ struct line_cell
     u32 first_step, last_step;
 };
 
-// Visits the cells of the line's pixels, in chunk ch's frame, from first_step to last_step until
-// visit returns false. Cells are the pool's, skipping set bits, or chunks without a pool.
-// Orthogonal points count when in the supercover, or always with both_orthogonal.
+// Called instead of visit for a cell whose bit is set and where p blocks an object, with the cell's objects.
+template<typename T>
+using object_cell_visitor = fu2::function_view<bool(const line_cell&, const Grid::Object::Grid&,
+                                                    Grid::Object::cell_object_view<T>) const>;
+
+// Visits the cells of the line's pixels, in chunk ch's frame, from first_step to last_step until a visitor
+// returns false. Cells are the pool's, skipping set bits where p blocks no object of objects, or chunks
+// without a pool. Orthogonal points count when in the supercover, or always with both_orthogonal.
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
-                         Grid::Pass::Pool* pool,
-                         fu2::function_view<bool(const line_cell&) const> visit);
+                         Grid::Pass::Pool* pool, Grid::Object::Pool* objects,
+                         const Search::pred& p, Array<bool>* entry_blocked,
+                         fu2::function_view<bool(const line_cell&) const> visit,
+                         object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32);
 
 struct aabb_result
 {

@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/combinations.hpp"
+#include "compat/function2.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/zip.hpp"
 #include "loader/loader.hpp"
@@ -202,7 +203,7 @@ void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, loc
     fm_assert(point::distance(npc, r.pos) <= radius + tile_size_xy);
 
     auto A = astar{};
-    const auto path = A.Dijkstra<0, false>(w, npc, r.pos, chunk_size_xy, size, Search::without_critters());
+    const auto path = A.Dijkstra<0, false>(w, npc, r.pos, chunk_size_xy, size, Search::never_continue());
     fm_assert(path.is_found());
     fm_assert(path.path().back() == r.pos);
     fm_assert(cant_be_shot(w, threat, r.pos, size));
@@ -1893,7 +1894,7 @@ void test_movement_range_cache()
     constexpr u32 side = 24, reach = 128;
     const auto n = range.border(w, pools, threat, side, reach).size();
     fm_assert(n > 1);
-    auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, side, pass_mode::pass}, Grid::Kind::static_);
+    auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, side, pass_mode::pass});
     auto g = pool[w[ch]];
     fm_assert(!g.is_marked_stale());
 
@@ -2452,7 +2453,7 @@ void test_cover_script_far_cover(bool turned)
     w.init_scripts();
     auto A = astar{};
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
-    const auto& pool = A.pool_registry().cover_pool(Grid::Cover::Params{8}, Grid::Kind::static_);
+    const auto& pool = A.pool_registry().cover_pool(Grid::Cover::Params{8});
     const auto frame = Second / npc->atlas->info().fps;
     const auto status = [&] { return *Cover::Script::get_status(*npc); };
     const auto step = [&] { step_critter(w, npc, frame); };
@@ -2564,7 +2565,7 @@ void test_cover_script_div_change()
     const auto status = [&] { return *Cover::Script::get_status(*npc); };
     const auto step = [&] { step_critter(w, npc, frame); };
     const auto fills = [&](u32 div) {
-        return A.pool_registry().cover_pool(Grid::Cover::Params{div}, Grid::Kind::static_).octant_fills();
+        return A.pool_registry().cover_pool(Grid::Cover::Params{div}).octant_fills();
     };
 
     for (auto updates = 0u; status().search_tile <= 32; updates++)
@@ -2727,7 +2728,8 @@ path_search_result flank_route(cover_scene& s)
             return {};
         if (!passable(s.w, p, body) || !flanked_from(s, p))
             return {};
-        const auto toward = s.A.Dijkstra<0, false>(s.w, from, p, chunk_size_xy, size, Search::without_critters());
+        const auto toward = s.A.Dijkstra<0, false>(s.w, from, p, chunk_size_xy, size,
+                                                    Search::blocks_all_but(s.threat->id));
         if (!toward.is_found())
             return {};
         path_points(toward.path(), pts);
@@ -2737,7 +2739,7 @@ path_search_result flank_route(cover_scene& s)
         if (first == 0 || first == pts.size())
             return {};
         const auto end = pts[Math::min(first + half_tile<u32>, (u32)pts.size() - 1)];
-        auto route = s.A.Dijkstra<0, false>(s.w, from, end, chunk_size_xy, size, Search::without_critters());
+        auto route = s.A.Dijkstra<0, false>(s.w, from, end, chunk_size_xy, size, Search::blocks_all_but(s.threat->id));
         if (!route.is_found() || !flanked_from(s, end))
             return {};
         path_points(route.path(), pts);
@@ -2824,7 +2826,7 @@ void test_cover_script_rehides()
         }
         const auto cover = s.status().cover;
         const auto shortest = s.A.Dijkstra<0, false>(s.w, flanked_at, cover, chunk_size_xy, body,
-                                                     Search::without_critters());
+                                                     Search::blocks_all_but(s.npc->id));
         fm_assert(shortest.is_found());
         // The threat and the npc are made alike, so they walk as fast.
         const auto px_per_update = route_len / walked;

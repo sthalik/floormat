@@ -41,14 +41,7 @@ struct cover_script;
 constexpr StringView script_name = name_of<cover_script>;
 using ScriptPtr = Pointer<critter_script>;
 using walk_result = critter::walk_result;
-
-// Every collider but the critter itself blocks, other critters included, as when it moves.
-auto blocks_all_but(object_id self)
-{
-    return [self](chunk&, collision_data x, Range2D) {
-        return x.id == self ? path_search_continue::pass : path_search_continue::blocked;
-    };
-}
+using Search::blocks_all_but;
 
 // Takes cover from a critter and steps out of it and back, each phase lasting until its wait runs out.
 // Only updates that start with the critter standing spend the wait.
@@ -346,7 +339,7 @@ bptr<object> cover_script::find_threat(critter& c)
 bool cover_script::sees(critter& c, point from, point to)
 {
     num_rays++;
-    auto& pool = A.pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through}, Grid::Kind::static_);
+    auto& pool = A.pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through});
     return raycast(c.world(), from, to, c.id, pool, Search::without_critters()).success;
 }
 

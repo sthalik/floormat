@@ -8,7 +8,9 @@
 #include "src/search-astar.hpp"
 #include "src/grid-pass.hpp"
 #include "floormat/main.hpp"
+#include "compat/function2.hpp"
 #include <mg/Functions.h>
+#include <mg/Range.h>
 
 namespace floormat::tests {
 
@@ -60,11 +62,11 @@ bool pf_test::handle_mouse_click(app& a, const mouse_button_event& e, bool is_do
             else
             {
                 auto res = m.astar().Dijkstra(m.world(), C->position(), *ptʹ, dist, bb,
-                                              Search::without_critters());
+                                              Search::blocks_all_but(C->id));
                 if (!res.empty())
                 {
                     if (smoothing)
-                        (void)m.astar().string_pull(m.world(), res, bb, Search::without_critters());
+                        (void)m.astar().string_pull(m.world(), res, bb, Search::blocks_all_but(C->id));
                     auto S = critter_script::make_walk_script(move(res));
                     C->script.do_reassign(move(S), move(C));
                 }
