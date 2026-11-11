@@ -4,6 +4,11 @@
 #include "compat/constantly.hpp"
 #include "compat/nanosecond.inl"
 #include "src/critter.hpp"
+#include "src/grid-pass.hpp"
+#include "src/grid-cover.hpp"
+#include "src/grid-registry.hpp"
+#include "src/raycast.hpp"
+#include "src/search-pred.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/log.hpp"
@@ -413,6 +418,72 @@ void Critter_walk(benchmark::State& st)
 BENCHMARK(Critter_walk)
     ->ArgNames({"path", "diag", "speed", "hz", "wall"})
     ->ArgsProduct({{0, 1}, {0, 1}, {1, 10, 50}, {60, 10}, {1, 0}})
+    ->Unit(benchmark::kMicrosecond);
+
+void Critter_walk_5x5(benchmark::State& st)
+{
+    constexpr u32 max_updates = 4000;
+    const auto dt = Second / 60;
+    const auto start = point{{0,0,0}, {8,15}, {-8, 8}}, dest = point{{0,0,0}, {8,3}, {-8, 8}};
+
+    auto w = world();
+    for (i16 y = -2; y <= 2; y++)
+        for (i16 x = -2; x <= 2; x++)
+            (void)w[{x, y, 0}];
+    mark_all_modified(w);
+
+    // Only the rays read a grid, from ray_pool. The others are there for the critter's steps to mark stale.
+    Pass::Pool walk_pool{Pass::Params{16, pass_mode::pass}, Search::without_critters()};
+    Pass::Pool shoot_pool{Pass::Params{16, pass_mode::shoot_through}, Search::never_continue()};
+    Grid::Cover::Pool cover_pool{Grid::Cover::Params{16}, shoot_pool};
+    Grid::GridRegistry reg;
+    auto& ray_pool = reg.pass_pool(Pass::Params{16, pass_mode::shoot_through}, Grid::Kind::static_);
+    const bool rays = st.range(1);
+    if (st.range(0))
+        for (auto& c : w.chunks())
+        {
+            walk_pool[c].build_if_stale();
+            cover_pool[c].build_if_stale();
+            ray_pool[c].build_if_stale();
+        }
+
+    object_id id = 0;
+    auto npc = w.ensure_player_character(id, make_proto(10));
+    const auto target = point{{1,0,0}, {8,8}, {}};
+    u32 updates = 0;
+
+    const auto walk = [&] {
+        auto index = npc->index();
+        npc->teleport_to(index, start, N);
+        npc->delta = 0;
+        for (updates = 1; updates < max_updates; updates++)
+        {
+            auto t = dt;
+            if (npc->move_toward(index, t, dest).blocked || npc->position() == dest)
+                break;
+            if (rays)
+            {
+                auto res = raycast(w, npc->position(), target, npc->id, ray_pool, Search::never_continue());
+                benchmark::DoNotOptimize(res);
+            }
+        }
+    };
+
+    for (int i = 0; i < 3; i++)
+        walk();
+    for (auto _ : st)
+        walk();
+    st.counters["updates"] = updates;
+
+    auto& c = npc->chunk();
+    c.sort_objects();
+    c.remove_object(*npc, npc->index());
+    npc.destroy();
+}
+
+BENCHMARK(Critter_walk_5x5)
+    ->ArgNames({"grids", "rays"})
+    ->Args({0, 0})->Args({1, 0})->Args({1, 1})
     ->Unit(benchmark::kMicrosecond);
 
 } // namespace
