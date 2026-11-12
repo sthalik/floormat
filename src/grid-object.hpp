@@ -1,5 +1,6 @@
 #pragma once
 #include "grid-pass.hpp"
+#include "search-pred.hpp"
 #include "collision.hpp"
 #include <cr/ArrayView.h>
 

@@ -433,8 +433,8 @@ void Critter_walk_5x5(benchmark::State& st)
     mark_all_modified(w);
 
     // Only the rays read a grid, from ray_pool, and with objects:1 from object_pool too.
-    Pass::Pool walk_pool{Pass::Params{16, pass_mode::pass}, Search::without_critters()};
-    Pass::Pool shoot_pool{Pass::Params{16, pass_mode::shoot_through}, Search::never_continue()};
+    Pass::Pool walk_pool{Pass::Params{16, pass_mode::pass}};
+    Pass::Pool shoot_pool{Pass::Params{16, pass_mode::shoot_through}};
     Grid::Cover::Pool cover_pool{Grid::Cover::Params{16}, shoot_pool};
     Grid::GridRegistry reg;
     constexpr auto ray_params = Pass::Params{16, pass_mode::shoot_through};

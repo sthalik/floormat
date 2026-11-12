@@ -107,7 +107,7 @@ bptr<critter> add_critter(world& w, point pos, Vector2ui size = body)
 // at each corner's slope and between each adjacent pair cover every aim.
 bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vector2ui size, object_id id)
 {
-    Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::never_continue()};
+    Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}};
     Grid::Object::Pool objects{pool};
     const auto T = Vector3i(threat).xy();
     const auto shot = [&](Vector2i to) {
@@ -785,7 +785,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
 
     const auto peek_offset = Vector3i(peek.pos).xy() - Vector3i(hidden.pos).xy();
     fm_assert(peek_offset.x() == 0 && peek_offset.y() != 0);
-    Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
+    Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}};
     // The peek is along y, so the body's width along the wall is body.y().
     const auto seen = [&](point p) {
         const auto gun = gun_at(p, threat_pos, (int)body.y()/2);
@@ -805,7 +805,7 @@ struct cover_scene
 {
     world w;
     astar A;
-    Grid::Pass::Pool ray_pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
+    Grid::Pass::Pool ray_pool{Pass::Params{8, pass_mode::shoot_through}};
     bptr<critter> threat, npc;
     bptr<scenery> wall;
     u32 fps = 0;
@@ -1213,7 +1213,7 @@ void test_cover_script_peek_beside_critter()
 // make_cover_script puts it for a cover spot with its axis along x.
 bool gun_seen(world& w, point threat, point pos)
 {
-    Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
+    Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}};
     return raycast(w, threat, gun_at(pos, threat, (int)body.y()/2), 0, pool, Search::without_critters()).success;
 }
 

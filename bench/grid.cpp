@@ -96,7 +96,7 @@ void Grid_Build(benchmark::State& state)
     for (auto* cʹ : { &c1, &c2, &c3, &c4, &c5, &c6, &c7 })
         rebuild(*cʹ);
 
-    Pass::Pool pool{Pass::Params{(u32)state.range(0), pass_mode::pass}, Search::without_critters()};
+    Pass::Pool pool{Pass::Params{(u32)state.range(0), pass_mode::pass}};
     pool.build_if_stale_all();
 
     Pass::Grid g1 = pool[c1];
@@ -159,7 +159,7 @@ void Object_Grid_Build(benchmark::State& state)
             }
         }
 
-    Pass::Pool pass_pool{Pass::Params{(u32)state.range(0), pass_mode::pass}, Search::without_critters()};
+    Pass::Pool pass_pool{Pass::Params{(u32)state.range(0), pass_mode::pass}};
     Grid::Object::Pool pool{pass_pool};
     auto g = pool[w[chunk_coords_{0, 0, 0}]];
     g.build_if_stale();
@@ -223,7 +223,7 @@ void Cover_Build(benchmark::State& state)
     auto& c = w[{0, 0, 0}];
 
     const auto div_size = (u32)state.range(0);
-    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
     Grid::Cover::Grid g = pool[c];
 
@@ -246,7 +246,7 @@ void Cover_Aligned(benchmark::State& state)
     auto& c = w[{0, 0, 0}];
 
     const auto div_size = (u32)state.range(0);
-    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters()};
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
     Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
     Grid::Cover::Grid g = pool[c];
 

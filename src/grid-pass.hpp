@@ -1,6 +1,5 @@
 #pragma once
 #include "grid.hpp"
-#include "search-pred.hpp"
 #include "pass-mode.hpp"
 #include <bit>
 
@@ -44,7 +43,6 @@ constexpr u32 calc_div_size(u32 div_sizeʹ, u32 bbox_size)
 
 namespace floormat::Grid::Pass {
 
-using pred = Search::pred;
 using BitView = detail::grid::BitView;
 
 struct Params
@@ -114,14 +112,13 @@ constexpr Params::Params(u32 div_size, u32 bbox_size, pass_mode min_pass):
     div_count = chunk_size_xy / detail::grid::calc_div_size(div_size, this->bbox_size);
 }
 
-// The pool keeps a copy of the view, so the callable it refers to must outlive the pool.
+// Its grids leave out critters and dynamic scenery, which Grid::Object::Pool holds.
 class Pool final
 {
     detail::grid::PassPool* pool;
 
 public:
-    /// @param predicate Sees static colliders only. Critters and dynamic scenery are in Grid::Object::Pool.
-    explicit Pool(Params params, const pred& predicate);
+    explicit Pool(Params params);
     ~Pool() noexcept;
     fm_DISABLE_MOVE_COPY(Pool);
 
@@ -130,7 +127,6 @@ public:
     void build_if_stale_all();
 
     const Params& params() const;
-    const pred& predicate() const;
     u32 pooled_count() const;
 };
 

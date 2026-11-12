@@ -171,7 +171,7 @@ void test_swept_collider_cell_corner()
     fill_ground(w[ch]);
     place_pillar(w, ch, {0, 0}, Vector2b{18, 12}, Vector2ub{2, 4});
     w[ch].mark_modified();
-    Pass::Pool pool{Pass::Params{4, 4, pass_mode::pass}, Search::never_continue()};
+    Pass::Pool pool{Pass::Params{4, 4, pass_mode::pass}};
     check_swept_line(w, ch, {8, 8}, {24, 24}, 0, 16, Vector2ui{4}, &pool);
     const auto res = find_swept_collider(w, ch, rc::bresenham_line{{8, 8}, {24, 24}}, 0, 16, Vector2ui{4},
                                          Search::never_continue(), &pool);
@@ -210,8 +210,8 @@ void test_swept_collider_line()
     for (auto size : { Vector2ui{1}, Vector2ui{3}, Vector2ui{4, 9}, Vector2ui{8}, Vector2ui{13, 6}, Vector2ui{24} })
     {
         const auto pool_bbox = (size.max() + 1) & ~1u;
-        Pass::Pool pool8{Pass::Params{8, pool_bbox, pass_mode::pass}, Search::never_continue()};
-        Pass::Pool pool16{Pass::Params{16, pool_bbox, pass_mode::pass}, Search::never_continue()};
+        Pass::Pool pool8{Pass::Params{8, pool_bbox, pass_mode::pass}};
+        Pass::Pool pool16{Pass::Params{16, pool_bbox, pass_mode::pass}};
         for (auto i = 0u; i < 24; i++)
         {
             const auto from = Vector2i{(i32)next(1900) - 32, (i32)next(1900) - 32};
@@ -260,7 +260,7 @@ void test_swept_collider_flush()
                 fm_assert(res.step == (deeper ? steps : steps + 1));
 
                 const auto pool_bbox = (size.max() + 1) & ~1u;
-                Pass::Pool pool8{Pass::Params{8, pool_bbox, pass_mode::pass}, Search::never_continue()};
+                Pass::Pool pool8{Pass::Params{8, pool_bbox, pass_mode::pass}};
                 check_swept_line(w, ch, from, from + d * i32(steps), 0, steps, size, nullptr);
                 check_swept_line(w, ch, from, from + d * i32(steps), 0, steps, size, &pool8);
             }

@@ -4,7 +4,7 @@
 #include "world.hpp"
 #include "collision.hpp"
 #include "object.hpp"
-#include "search.hpp"
+#include "search-pred.hpp"
 #include "RTree-search.hpp"
 #include "compat/function2.hpp"
 #include <bit>
@@ -122,7 +122,6 @@ cell_range inflated_cells::operator()(float x0, float y0, float x1, float y1) co
 }
 
 using floormat::Grid::Pass::Params;
-using floormat::Grid::Pass::pred;
 
 struct PassGrid : GridBase
 {
@@ -143,7 +142,7 @@ struct PassGrid : GridBase
     Range2D get_coord_from_div(u32 x, u32 y) const;
     bool is_all_empty() const noexcept { return all_empty; }
 
-    void build_impl(chunk* self, const pred& predicate);
+    void build_impl(chunk* self);
 };
 
 u32 PassGrid::get_bitmask_index(u32 x, u32 y, u32 div_count)
@@ -161,7 +160,7 @@ Range2D PassGrid::get_coord_from_div(u32 x, u32 y) const
     return GridBase::coord_range_from_div(x, y, params.div_size(), params.bbox_size);
 }
 
-void PassGrid::build_impl(chunk* self, const pred& predicate)
+void PassGrid::build_impl(chunk* self)
 {
     bitmask.setAll();
     fm_debug_assert(bitmask.offset() == 0);
@@ -206,9 +205,7 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
                 fm_debug3_assert(x.type != (u64)collision_type::none);
                 if (x.pass >= min_pass)
                     return true;
-                auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-                if (Search::without_dynamic_objects()(*c, x, range) == path_search_continue::pass ||
-                    predicate(*c, x, range) == path_search_continue::pass)
+                if (Search::is_dynamic_object(*c, x))
                     return true;
                 all_empty = false;
 
@@ -269,12 +266,7 @@ template struct Pool<PassGrid>;
 
 struct PassPool final : Pool<PassGrid>
 {
-    Search::pred predicate;
-
-    PassPool(Grid::Pass::Params params, const Search::pred& p):
-        Pool<PassGrid>{params}, predicate{p}
-    {
-    }
+    using Pool<PassGrid>::Pool;
 };
 
 namespace {
@@ -412,19 +404,17 @@ void Grid::mark_stale()
 }
 
 detail::grid::PassGrid* Grid::raw() const noexcept { return grid; }
-void Grid::build_if_stale() { grid->build_if_stale(pool->predicate); }
+void Grid::build_if_stale() { grid->build_if_stale(); }
 
 void Pool::build_if_stale_all()
 {
     for (auto* g : pool->grids_in_use)
-        static_cast<detail::grid::PassGrid*>(g)->build_if_stale(pool->predicate);
+        static_cast<detail::grid::PassGrid*>(g)->build_if_stale();
 }
 
-Pool::Pool(Params params, const pred& predicate):
-    pool{new detail::grid::PassPool{params, predicate}} { }
+Pool::Pool(Params params): pool{new detail::grid::PassPool{params}} { }
 Pool::~Pool() noexcept { delete pool; }
 const Params& Pool::params() const { return pool->params; }
-const pred& Pool::predicate() const { return pool->predicate; }
 u32 Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Pass

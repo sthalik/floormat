@@ -238,7 +238,7 @@ void check_map(bool for_large_pools, ArrayView<const pool_size> pools)
 
     for (auto [cell, bbox] : pools)
     {
-        auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, bbox, pass_mode::pass}, pred};
+        auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, bbox, pass_mode::pass}};
         fm_assert(pool.params().div_size() == cell);
 
         auto L = lattice{(int)cell};

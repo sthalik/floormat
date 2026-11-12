@@ -1263,7 +1263,7 @@ task app::scene_raycast()
     auto C = ensure_player_character(w);
     const auto from = C->position();
     center_camera_on(from);
-    Pass::Pool pool{raycast_params, Search::never_continue()};
+    Pass::Pool pool{raycast_params};
 
     // The distinct integer endpoints on the circle, in angular order. Sampling 8*r evenly spaced
     // angles -- one per pixel of circumference -- both repeats and misses: a fifth of the samples
@@ -1825,9 +1825,9 @@ task app::scene_grids()
     const auto center = C->position();
     center_camera_on(center);
 
-    Pass::Pool pass_raycast{raycast_params, Search::never_continue()};
-    Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
-    Pass::Pool pass_critter{Pass::Params{astar::default_div_size, C->bbox_size.max(), pass_mode::pass}, Search::never_continue()};
+    Pass::Pool pass_raycast{raycast_params};
+    Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}};
+    Pass::Pool pass_critter{Pass::Params{astar::default_div_size, C->bbox_size.max(), pass_mode::pass}};
 
     const auto rebuild = [&](Pass::Pool& pool) { pool[c].build_if_stale(); };
 

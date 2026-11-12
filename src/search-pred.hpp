@@ -23,6 +23,8 @@ template<typename Chunk = chunk> const Pred<Chunk>& always_continue() noexcept;
 template<typename Chunk = chunk> const Pred<Chunk>& without_critters() noexcept;
 template<typename Chunk = chunk> const Pred<Chunk>& without_dynamic_objects() noexcept;
 
+bool is_dynamic_object(const chunk& c, collision_data x);
+
 // Every collider but self blocks. A pred made from the returned lambda must not outlive it.
 inline auto blocks_all_but(object_id self)
 {

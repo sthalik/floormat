@@ -33,7 +33,7 @@ Pool& GridRegistry::find_or_add(pools_by_params<Pool>& pools, const Pass::Params
 
 Pass::Pool& GridRegistry::pass_pool(const Pass::Params& p)
 {
-    return find_or_add(pass_, p, p, Search::never_continue());
+    return find_or_add(pass_, p, p);
 }
 
 Object::Pool& GridRegistry::object_pool(const Object::Params& p)

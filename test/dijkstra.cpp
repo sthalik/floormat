@@ -92,7 +92,7 @@ void check_flush_goal(const char* name, u32 bbox, F&& setup, Vector2b goal_offse
     const auto& pred = Search::without_critters();
     auto A = astar{};
     auto& pool16 = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass});
-    auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, bbox, pass_mode::pass}, pred};
+    auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, bbox, pass_mode::pass}};
 
     for (auto* pool : { &pool16, &pool8 })
     {
@@ -177,7 +177,7 @@ void check_closed_start_cell(u32 bbox, i8 start_x)
 
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto pool = Grid::Pass::Pool{Grid::Pass::Params{bbox, bbox, pass_mode::pass}, pred};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{bbox, bbox, pass_mode::pass}};
     fm_assert(pool.params().div_size() == bbox);
     fm_assert(box_free(w, from, Vector2ui(bbox)));
     fm_assert(!box_free(w, point::normalize_coords(from, {1, 0}), Vector2ui(bbox)));
@@ -204,8 +204,8 @@ void test_odd_body_corridor(u32 bbox)
     auto A = astar{};
     const auto registry_params = Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass};
     const auto d = (int)registry_params.div_size();
-    auto exact = Grid::Pass::Pool{Grid::Pass::Params{(u32)d, bbox, pass_mode::pass}, pred};
-    auto wider = Grid::Pass::Pool{Grid::Pass::Params{(u32)d, bbox + 1, pass_mode::pass}, pred};
+    auto exact = Grid::Pass::Pool{Grid::Pass::Params{(u32)d, bbox, pass_mode::pass}};
+    auto wider = Grid::Pass::Pool{Grid::Pass::Params{(u32)d, bbox + 1, pass_mode::pass}};
     fm_assert(exact.params().div_size() == (u32)d && wider.params().div_size() == (u32)d);
 
     const auto x = (int)flush_tile.x * t + goal_x;
@@ -242,7 +242,7 @@ void test_cache_margin()
     const auto max_dist = [&](point to) { return point::distance(from, to) + 7; };
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, cell, pass_mode::pass}, pred};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, cell, pass_mode::pass}};
 
     auto w = world();
     add_floors(w, from, max_dist(goal(TILE_MAX_DIM - 1, half_tile<int> - 1)), cell);
@@ -356,7 +356,7 @@ void check_pocket(u32 cell, bool boxed_goal)
     const char* const name = boxed_goal ? "pocket, boxed goal" : "pocket";
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
     fm_assert(pool.params().div_size() == cell);
 
     auto w = world();
@@ -402,7 +402,7 @@ void check_seeds_past_max_dist(u32 cell)
     const auto open = point{global_coords{flush_ch, {11, 8}}, {-5, 7}};
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
 
     auto w = world();
     add_floors(w, pocket, 1024, cell);
@@ -436,7 +436,7 @@ void check_corridor_goal(u32 cell)
     const auto goal = point{global_coords{flush_ch, room_tile}, {5, 0}};
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
 
     auto w = world();
     add_floors(w, from, max_dist, cell);
@@ -485,7 +485,7 @@ void check_post_field()
     const auto goal = point{global_coords{flush_ch, {12, 8}}, {}};
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
 
     auto w = world();
     add_floors(w, from, max_dist, cell);
@@ -523,7 +523,7 @@ void check_walled_off_goal(bool open)
     const char* const name = open ? "open room" : "closed room";
     const auto& pred = Search::without_critters();
     auto A = astar{};
-    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}, pred};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
     fm_assert(pool.params().div_size() == cell);
 
     auto w = world();

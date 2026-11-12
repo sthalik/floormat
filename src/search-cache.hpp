@@ -1,6 +1,7 @@
 #pragma once
 #include "compat/defs.hpp"
 #include "grid-pass.hpp"
+#include "search-pred.hpp"
 #include <cr/Array.h>
 #include <mg/Vector2.h>
 

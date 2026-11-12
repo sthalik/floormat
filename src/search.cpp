@@ -48,14 +48,7 @@ template<typename Chunk> constexpr inline auto without_crittersʹ = Pred<Chunk>{
 
 template<typename Chunk>
 constexpr inline auto without_dynamic_objectsʹʹ = [](Chunk& self, collision_data data, Range2D) -> path_search_continue {
-    if (data.type == (u64)collision_type::scenery)
-    {
-        auto obj = self.world().find_object(data.id);
-        fm_assert(obj);
-        if (obj->is_dynamic())
-            return path_search_continue::pass;
-    }
-    return path_search_continue::blocked;
+    return is_dynamic_object(self, data) ? path_search_continue::pass : path_search_continue::blocked;
 };
 template<typename Chunk> constexpr inline auto without_dynamic_objectsʹ = Pred<Chunk>{without_dynamic_objectsʹʹ<Chunk>};
 
@@ -147,6 +140,15 @@ bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const Pred<chunk
 { return detail::is_passable(w, ch, bb, p); }
 bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb, const Pred<const chunk>& p)
 { return detail::is_passable(w, ch, bb, p); }
+
+bool is_dynamic_object(const chunk& c, collision_data x)
+{
+    if (x.type != (u64)collision_type::scenery)
+        return false;
+    const auto* obj = c.world().find_object(x.id);
+    fm_assert(obj);
+    return obj->is_dynamic();
+}
 
 template<typename Chunk> const Pred<Chunk>& never_continue() noexcept { return detail::never_continueʹ<Chunk>; }
 template<typename Chunk> const Pred<Chunk>& always_continue() noexcept { return detail::always_continueʹ<Chunk>; }

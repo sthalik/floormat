@@ -550,7 +550,7 @@ void test_string_pull_random(u32 cell)
         w[pull_ch].mark_modified();
         const auto from = point{pull_ch, {1, (u8)rnd(16)}, {(i8)((int)rnd(41) - 20), (i8)((int)rnd(41) - 20)}};
         const auto to = point{pull_ch, {14, (u8)rnd(16)}, {(i8)((int)rnd(41) - 20), (i8)((int)rnd(41) - 20)}};
-        auto pool = Pass::Pool{Pass::Params{cell, size.x(), pass_mode::pass}, without_critters()};
+        auto pool = Pass::Pool{Pass::Params{cell, size.x(), pass_mode::pass}};
         auto res = A.Dijkstra(w, pool, from, to, pull_max_dist, size, without_critters());
         if (!res.is_found())
             continue;
@@ -577,7 +577,7 @@ void check_seed_search(std::initializer_list<pillar> pillars, Vector2b from_offs
     {
         if (cell > bbox)
             continue;
-        auto pool = Pass::Pool{Pass::Params{cell, bbox, pass_mode::pass}, without_critters()};
+        auto pool = Pass::Pool{Pass::Params{cell, bbox, pass_mode::pass}};
         auto res = A.Dijkstra<0, true>(w, pool, from, to, pull_max_dist, size, without_critters());
         const auto res2 = A.Dijkstra<0, false>(w, pool, from, to, pull_max_dist, size, without_critters());
         if (res.is_found() != found || res2.is_found() != found)

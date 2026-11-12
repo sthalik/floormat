@@ -132,8 +132,8 @@ void test_window(pass_mode hole_pass)
     hp.pass = hole_pass;
     (void)w.make_object<hole>(w.make_id(), pos, hp);
 
-    Pass::Pool shoot{Pass::Params{8, 8, pass_mode::shoot_through}, Search::never_continue()};
-    Pass::Pool walk{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
+    Pass::Pool shoot{Pass::Params{8, 8, pass_mode::shoot_through}};
+    Pass::Pool walk{Pass::Params{8, 8, pass_mode::pass}};
     const auto open_at = [&](Pass::Pool& pool, i8 x) {
         auto g = pool[c];
         g.build_if_stale();
@@ -158,7 +158,7 @@ void test_edit_in_same_frame()
     constexpr auto ch = chunk_coords_{0, 0, 0};
     auto w = world();
     auto& c = w[ch];
-    Pass::Pool pool{Pass::Params{8, 8, pass_mode::pass}, Search::never_continue()};
+    Pass::Pool pool{Pass::Params{8, 8, pass_mode::pass}};
     const auto frame = w.frame_no();
     const auto ray_passes = [&] {
         return raycast(w, point{ch, {2, 8}, {}}, point{ch, {14, 8}, {}}, 0,
@@ -185,7 +185,7 @@ void test_edit_in_same_frame()
 
 void test_rays(const Pass::Params& params, world& w)
 {
-    Pass::Pool pool{params, Search::never_continue()};
+    Pass::Pool pool{params};
     Grid::Object::Pool objects{pool};
     const auto ray = [&](world& w, point from, point to, object_id self) {
         return raycast(w, from, to, self, objects, Search::never_continue());
@@ -497,9 +497,9 @@ void test_supercover_hits()
         w[c].mark_modified();
 
     Pass::Pool pools[] = {
-        Pass::Pool{Pass::Params{4, 16, pass_mode::pass}, Search::never_continue()},
-        Pass::Pool{Pass::Params{8, 16, pass_mode::pass}, Search::never_continue()},
-        Pass::Pool{Pass::Params{16, 16, pass_mode::pass}, Search::never_continue()},
+        Pass::Pool{Pass::Params{4, 16, pass_mode::pass}},
+        Pass::Pool{Pass::Params{8, 16, pass_mode::pass}},
+        Pass::Pool{Pass::Params{16, 16, pass_mode::pass}},
     };
     const auto origin = point{ch, {}, {}};
     u32 hits = 0, orthogonal_hits = 0;

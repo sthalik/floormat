@@ -74,7 +74,7 @@ struct cover_test final : base_test
 };
 
 cover_test::cover_test():
-    pass_pool{InPlaceInit, Pass::Params{default_div_size, pass_mode::shoot_through}, Search::without_critters()},
+    pass_pool{InPlaceInit, Pass::Params{default_div_size, pass_mode::shoot_through}},
     pool{InPlaceInit, Grid::Cover::Params{default_div_size}, *pass_pool}
 {}
 
@@ -304,7 +304,7 @@ void cover_test::set_div_size(app& a, u32 div_size)
     if (div_size == pool->params().div_size)
         return;
     pool = nullptr;
-    pass_pool.emplace(Pass::Params{div_size, pass_mode::shoot_through}, Search::without_critters());
+    pass_pool.emplace(Pass::Params{div_size, pass_mode::shoot_through});
     pool.emplace(Grid::Cover::Params{div_size}, *pass_pool);
     if (has_result)
     {

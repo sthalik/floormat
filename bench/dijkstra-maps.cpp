@@ -35,7 +35,7 @@ struct map_world
     mazes::route r;
 
     map_world(kind k, u32 cell):
-        pool{Pass::Params{cell, mazes::bbox_size, pass_mode::pass}, Search::without_critters()},
+        pool{Pass::Params{cell, mazes::bbox_size, pass_mode::pass}},
         r{mazes::build(w, k, chunk_coords_{0, 0, 0}, pool)}
     {}
 };
@@ -192,7 +192,7 @@ struct missing_chunks_world
     u32 max_dist;
 
     missing_chunks_world():
-        pool{Pass::Params{default_cell, mazes::bbox_size, pass_mode::pass}, Search::without_critters()}
+        pool{Pass::Params{default_cell, mazes::bbox_size, pass_mode::pass}}
     {
         const auto r = mazes::build(w, kind::prim, chunk_coords_{0, 0, 0}, pool);
         const auto ground = tile_image_proto{loader.ground_atlas("floor-tiles"), 0};
