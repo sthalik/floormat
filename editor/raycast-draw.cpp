@@ -1,6 +1,7 @@
 #include "raycast-draw.hpp"
 #include "app.hpp"
 #include "imgui-raii.hpp"
+#include "imgui-color.hpp"
 #include "src/raycast-diag.hpp"
 #include "shaders/shader.hpp"
 #include "compat/enumerate.hpp"
@@ -30,8 +31,7 @@ void draw_boxes(app& a, ImDrawList& draw, ArrayView<const detail_rc::bbox> boxes
 
 ImU32 line_color(const rc::raycast_result_s& r)
 {
-    return ImGui::ColorConvertFloat4ToU32(r.success ? ImVec4{0, .8f, .8f, .75f}
-                                                    : ImVec4{1, 0, .75f, 1});
+    return r.success ? 0x00ccccbf_imcol : 0xff00bfff_imcol;
 }
 
 } // namespace
@@ -39,9 +39,8 @@ ImU32 line_color(const rc::raycast_result_s& r)
 void draw_raycast_line(app& a, const rc::raycast_result_s& r, float dot_size, float radius)
 {
     const bool hit = !r.success;
-    const auto ring_color = ImGui::ColorConvertFloat4ToU32(ImVec4{0, 0, 1, 1}),
-               dot_color  = ImGui::ColorConvertFloat4ToU32(hit ? ImVec4{1, 0, 0, 1}
-                                                               : ImVec4{0, 1, 0, 1});
+    constexpr auto ring_color = 0x0000ffff_imcol;
+    const auto dot_color = hit ? 0xff0000ff_imcol : 0x00ff00ff_imcol;
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
     // Where the ray stopped -- the collider it met, or the target it reached. Every ray gets
@@ -93,14 +92,14 @@ void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::ra
         const auto theta = Rad{(float)i * step};
         pt = to_pixel(end + Vector2{Math::cos(theta), Math::sin(theta)} * diag.radius);
     }
-    draw.AddPolyline(pts, (int)n, ImGui::ColorConvertFloat4ToU32(ImVec4{1, .5f, 0, 1}), 2.f, ImDrawFlags_Closed);
+    draw.AddPolyline(pts, (int)n, 0xff8000ff_imcol, 2.f, ImDrawFlags_Closed);
 }
 
 void draw_raycast_diag(app& a, const rc::raycast_diag_s& diag)
 {
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
-    draw_boxes(a, draw, diag.path, ImGui::ColorConvertFloat4ToU32(ImVec4{1, 0, 0, 1}), 1);
-    draw_boxes(a, draw, diag.queries, ImGui::ColorConvertFloat4ToU32(ImVec4{1, 1, 0, 1}), 2);
+    draw_boxes(a, draw, diag.path, 0xff0000ff_imcol, 1);
+    draw_boxes(a, draw, diag.queries, 0xffff00ff_imcol, 2);
 }
 
 } // namespace floormat

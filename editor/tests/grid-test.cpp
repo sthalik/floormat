@@ -1,6 +1,7 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
+#include "../imgui-color.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/grid-pass.hpp"
@@ -67,7 +68,7 @@ void grid_test::draw_overlay(app& a)
         return;
 
     constexpr float dot_radius = 3;
-    const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0, 1, 1});
+    constexpr auto dot_color = 0xff00ffff_imcol;
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
 
     const auto dc = (int)result.div_count;

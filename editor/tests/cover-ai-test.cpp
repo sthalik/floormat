@@ -1,6 +1,7 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
+#include "../imgui-color.hpp"
 #include "../raycast-draw.hpp"
 #include "compat/array-size.hpp"
 #include "compat/enumerate.hpp"
@@ -98,9 +99,9 @@ void do_column(StringView name)
     ImGui::TableNextColumn();
 }
 
-void draw_dot(ImDrawList& draw, app& a, point pt, float radius, ImVec4 color)
+void draw_dot(ImDrawList& draw, app& a, point pt, float radius, ImU32 color)
 {
-    draw.AddCircleFilled(ImVec2(a.point_to_pixel(pt)), radius, ImGui::ColorConvertFloat4ToU32(color));
+    draw.AddCircleFilled(ImVec2(a.point_to_pixel(pt)), radius, color);
 }
 
 critter_proto npc_proto(point at)
@@ -761,9 +762,9 @@ void cover_ai_test::draw_overlay(app& a)
         ImDrawList& bg = *ImGui::GetBackgroundDrawList();
         for (const auto& [spot, st] : zip(spots, spot_states))
         {
-            draw_dot(bg, a, spot.pos, 3, {0.3f, 0.7f, 1, 0.9f});
+            draw_dot(bg, a, spot.pos, 3, 0x4db3ffe6_imcol);
             if (st.has_peek)
-                draw_dot(bg, a, st.peek.pos, 2.5f, {1, 0.55f, 0.15f, 0.9f});
+                draw_dot(bg, a, st.peek.pos, 2.5f, 0xff8c26e6_imcol);
         }
     }
     const auto c = npc.lock();
@@ -774,11 +775,11 @@ void cover_ai_test::draw_overlay(app& a)
         return;
     ImDrawList& fg = *ImGui::GetForegroundDrawList();
     if (s->has_cover)
-        draw_dot(fg, a, s->cover, 6, {0.2f, 1, 0.2f, 1});
+        draw_dot(fg, a, s->cover, 6, 0x33ff33ff_imcol);
     if (s->has_peek)
     {
-        draw_dot(fg, a, s->peek, 5, {1, 0.85f, 0, 1});
-        draw_dot(fg, a, s->gun, 4, {1, 0.2f, 0.2f, 1});
+        draw_dot(fg, a, s->peek, 5, 0xffd900ff_imcol);
+        draw_dot(fg, a, s->gun, 4, 0xff3333ff_imcol);
     }
 }
 

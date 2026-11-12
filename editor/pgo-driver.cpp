@@ -8,6 +8,7 @@
 #include "tests-private.hpp"
 #include "mazes.hpp"
 #include "raycast-draw.hpp"
+#include "imgui-color.hpp"
 #include "random/random.hpp"
 #include "loader/loader.hpp"
 #include "loader/ground-cell.hpp"
@@ -1945,8 +1946,7 @@ void app::driver_draw_overlay()
     // thousands of pixels long, so without the line there is nothing saying where the rest runs.
     if (!D.route.isEmpty())
     {
-        const auto route_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0.25f, 1}),
-                   goal_color  = ImGui::ColorConvertFloat4ToU32({0, 0,   1.f, 1});
+        constexpr auto route_color = 0x00ff40ff_imcol, goal_color = 0x0000ffff_imcol;
         const auto n = (u32)D.route.size();
         auto prev = point_to_pixel(D.route.front());
         draw.AddCircle(ImVec2(prev), 9, route_color, 0, 3);

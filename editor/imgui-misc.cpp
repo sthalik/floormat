@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "imgui-raii.hpp"
+#include "imgui-color.hpp"
 #include "floormat/main.hpp"
 #include "compat/format.inl"
 #include <imgui_internal.h>
@@ -16,7 +17,7 @@ void app::draw_fps()
     const ImVec2 size = ImGui::CalcTextSize(buf);
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw.AddText(nullptr, ImGui::GetCurrentContext()->FontSize,
-                 {M->window_size()[0] - size.x - 3.5f*dpi[0], 3*dpi[1]}, ImGui::ColorConvertFloat4ToU32({0, 1, 0, 1}), buf);
+                 {M->window_size()[0] - size.x - 3.5f*dpi[0], 3*dpi[1]}, 0x00ff00ff_imcol, buf);
 #if 0
     static auto timer = Time::now();
     if (const auto now = Time::now(); now - timer >= 2*Second)
@@ -66,8 +67,8 @@ void app::draw_z_level()
         const auto font_size = ImGui::GetCurrentContext()->FontSize+3;
         auto shadow_offset = Vector2(1, 1)/* * dpi */;
         auto px = Vector2(*cursor.pixel) + offset, px2 = px + shadow_offset;
-        draw.AddText(nullptr, font_size, ImVec2(px2), ImGui::ColorConvertFloat4ToU32({0, 0, 0, .75f}), buf);
-        draw.AddText(nullptr, font_size, ImVec2(px), ImGui::ColorConvertFloat4ToU32({1, 0, 1, 1}), buf);
+        draw.AddText(nullptr, font_size, ImVec2(px2), 0x000000bf_imcol, buf);
+        draw.AddText(nullptr, font_size, ImVec2(px), 0xff00ffff_imcol, buf);
     }
 }
 

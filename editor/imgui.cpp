@@ -7,6 +7,7 @@
 #include "scenery-editor.hpp"
 #include "imgui-raii.hpp"
 #include "imgui-text.hpp"
+#include "imgui-color.hpp"
 #include "src/tile-constants.hpp"
 #include "src/world.hpp"
 #include "src/object-storage.inl"
@@ -255,7 +256,7 @@ void app::draw_ui()
 void app::draw_clickables()
 {
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
-    const auto color = ImGui::ColorConvertFloat4ToU32({0, .8f, .8f, .95f});
+    constexpr auto color = 0x00ccccf2_imcol;
     constexpr float thickness = 2.5f;
 
     for (const auto& x : M->clickable_scenery())
@@ -318,8 +319,8 @@ void app::draw_light_info()
     const auto& style = ImGui::GetStyle();
     const float pad_x = style.FramePadding.x * .5f;
 
-    const auto yellow = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1});
-    const auto bg_col = ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1});
+    constexpr auto yellow = 0xffff00ff_imcol;
+    constexpr auto bg_col = 0x000000ff_imcol;
     const float font_size = ImGui::GetCurrentContext()->FontSize;
 
     const auto& w = M->world();
@@ -371,17 +372,17 @@ void app::draw_text_painter_test()
     const float font_size = ImGui::GetCurrentContext()->FontSize;
     const float line_h = font_size + 6 * dpi.y();
 
-    const auto white   = ImGui::ColorConvertFloat4ToU32({ 1.0f, 1.0f, 1.0f, 1.0f });
-    const auto gray    = ImGui::ColorConvertFloat4ToU32({ 0.55f, 0.55f, 0.55f, 1.0f });
-    const auto yellow  = ImGui::ColorConvertFloat4ToU32({ 1.0f, 1.0f, 0.2f, 1.0f });
-    const auto red     = ImGui::ColorConvertFloat4ToU32({ 1.0f, 0.3f, 0.3f, 1.0f });
-    const auto green   = ImGui::ColorConvertFloat4ToU32({ 0.3f, 1.0f, 0.3f, 1.0f });
-    const auto blue    = ImGui::ColorConvertFloat4ToU32({ 0.4f, 0.6f, 1.0f, 1.0f });
-    const auto cyan    = ImGui::ColorConvertFloat4ToU32({ 0.3f, 1.0f, 1.0f, 1.0f });
-    const auto magenta = ImGui::ColorConvertFloat4ToU32({ 1.0f, 0.3f, 1.0f, 1.0f });
-    const auto black   = ImGui::ColorConvertFloat4ToU32({ 0.0f, 0.0f, 0.0f, 1.0f });
-    const auto darkbg  = ImGui::ColorConvertFloat4ToU32({ 0.10f, 0.10f, 0.20f, 0.85f });
-    const auto frame_c = ImGui::ColorConvertFloat4ToU32({ 0.0f, 0.7f, 0.7f, 1.0f });
+    constexpr auto white   = 0xffffffff_imcol;
+    constexpr auto gray    = 0x8c8c8cff_imcol;
+    constexpr auto yellow  = 0xffff33ff_imcol;
+    constexpr auto red     = 0xff4d4dff_imcol;
+    constexpr auto green   = 0x4dff4dff_imcol;
+    constexpr auto blue    = 0x6699ffff_imcol;
+    constexpr auto cyan    = 0x4dffffff_imcol;
+    constexpr auto magenta = 0xff4dffff_imcol;
+    constexpr auto black   = 0x000000ff_imcol;
+    constexpr auto darkbg  = 0x1a1a33d9_imcol;
+    constexpr auto frame_c = 0x00b3b3ff_imcol;
 
     Vector2 cursor{ 60 * dpi.x(), 70 * dpi.y() };
 

@@ -1,12 +1,12 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
+#include "../imgui-color.hpp"
 #include "src/tile-constants.hpp"
 #include "src/hole-cut.hpp"
 #include "src/object.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
-#include <mg/Color.h>
 #include <mg/Range.h>
 #include <imgui_internal.h>
 
@@ -41,27 +41,25 @@ bool hole_test::handle_mouse_click(app&, const mouse_button_event&, bool) { retu
 bool hole_test::handle_mouse_move(app&, const mouse_move_event&) { return false; }
 void hole_test::draw_overlay(app&) {}
 
-u32 to_color(Color4 val) { return ImGui::ColorConvertFloat4ToU32(ImVec4(val)); }
-
 constexpr auto colors = std::array{
-    0x488f31_rgbf, // rect 1
-    0x91ac56_rgbf, // rect 2
-    0xcdca85_rgbf, // rect 3
-    0xffebbc_rgbf, // rect 4
-    0xf8d29d_rgbf, // rect 5
-    0xec9c6d_rgbf, // rect 6
-    0xda58de_rgbf, // rect 7
-    0x6dd4ff_rgbf, // rect 8
+    0x488f31ff_imcol, // rect 1
+    0x91ac56ff_imcol, // rect 2
+    0xcdca85ff_imcol, // rect 3
+    0xffebbcff_imcol, // rect 4
+    0xf8d29dff_imcol, // rect 5
+    0xec9c6dff_imcol, // rect 6
+    0xda58deff_imcol, // rect 7
+    0x6dd4ffff_imcol, // rect 8
 };
 
 void hole_test::draw_ui(app&, float)
 {
     const auto width = Math::min(ImGui::GetWindowSize().x, 400.f);
     const auto window_size = ImVec2{width, width};
-    const auto bgcolor = ImGui::ColorConvertFloat4ToU32({0, 0, 0, 1});
-    const auto blue = ImGui::ColorConvertFloat4ToU32({0, .5f, 1, 1});
-    const auto red = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
-    const auto gray = ImGui::ColorConvertFloat4ToU32({.7f, .7f, .7f, 1});
+    constexpr auto bgcolor = 0x000000ff_imcol;
+    constexpr auto blue = 0x0080ffff_imcol;
+    constexpr auto red = 0xff0000ff_imcol;
+    constexpr auto gray = 0xb3b3b3ff_imcol;
     const auto& style = ImGui::GetStyle();
     constexpr auto igcf = ImGuiChildFlags_None;
     constexpr auto igwf = 0;//ImGuiWindowFlags_NoDecoration;
@@ -91,7 +89,7 @@ void hole_test::draw_ui(app&, float)
         for (auto i = 0u; i < res.size; i++)
         {
             auto r = res.array[i];
-            draw.AddRectFilled(ImVec2(center + Vector2(r.min())*mult), ImVec2(center + Vector2(r.max())*mult), to_color(colors[i])); // rects filled
+            draw.AddRectFilled(ImVec2(center + Vector2(r.min())*mult), ImVec2(center + Vector2(r.max())*mult), colors[i]); // rects filled
         }
 
         for (auto i = 0u; i < res.size; i++)

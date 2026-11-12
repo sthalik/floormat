@@ -1,6 +1,7 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
+#include "../imgui-color.hpp"
 #include "compat/format.inl"
 #include "src/point.hpp"
 #include "src/intra-coord.inl"
@@ -165,7 +166,7 @@ void cover_test::draw_chunk(app& a, chunk& c, u32 sk)
         }
         return ImGui::ColorConvertFloat4ToU32({r, g, b, 0.45f});
     };
-    const auto blocked_color = ImGui::ColorConvertFloat4ToU32({0.5f, 0.5f, 0.5f, 0.45f});
+    constexpr auto blocked_color = 0x80808073_imcol;
 
     for (u32 cy = 0; cy < dc; cy++)
         for (u32 cx = 0; cx < dc; cx++)
@@ -202,7 +203,7 @@ void cover_test::draw_overlay(app& a)
     const auto pos = a.point_to_pixel(result.from);
 
     const auto ds = (int)pool->params().div_size;
-    const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 1, 0, 0.6f});
+    constexpr auto line_color = 0x00ff0099_imcol;
 
     const auto built = cg.built_octants();
     for (u32 k = 0; k < Grid::Cover::octant_count; k++)
@@ -222,14 +223,14 @@ void cover_test::draw_overlay(app& a)
         const auto len_px = (int)cg.distance(result.cell_idx, sk) * ds;
         const auto end_pt = point::normalize_coords(result.from, Vector2i(dir * (float)len_px));
         const auto end_px = a.point_to_pixel(end_pt);
-        const auto hi_color = ImGui::ColorConvertFloat4ToU32({1, 0.2f, 0.2f, 0.95f});
+        constexpr auto hi_color = 0xff3333f2_imcol;
         constexpr float hi_thickness = 2.5f;
         draw.AddLine(ImVec2(pos), ImVec2(end_px), hi_color, hi_thickness);
         constexpr float marker_radius = 4;
         draw.AddCircleFilled(ImVec2(end_px), marker_radius, hi_color);
     }
 
-    const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0.5f, 0, 1});
+    constexpr auto dot_color = 0xff8000ff_imcol;
     constexpr float dot_radius = 5;
     draw.AddCircleFilled(ImVec2(pos), dot_radius, dot_color);
 }

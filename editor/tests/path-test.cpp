@@ -1,6 +1,7 @@
 #include "../tests-private.hpp"
 #include "../app.hpp"
 #include "../imgui-raii.hpp"
+#include "../imgui-color.hpp"
 #include "compat/format.inl"
 #include "compat/function2.hpp"
 #include "compat/nanosecond.hpp"
@@ -117,8 +118,8 @@ void path_test::draw_overlay(app& a)
 
     const bool smoothed = !res.smoothings().isEmpty();
     const float raw_alpha = smoothed ? .35f : 1;
-    const auto line_color = ImGui::ColorConvertFloat4ToU32({0, 0, 1, 1});
-    const auto dot_color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, 1});
+    constexpr auto line_color = 0x0000ffff_imcol;
+    constexpr auto dot_color = 0xff0000ff_imcol;
     const auto raw_line_color = ImGui::ColorConvertFloat4ToU32({0, 0, 1, raw_alpha});
     const auto raw_dot_color = ImGui::ColorConvertFloat4ToU32({1, 0, 0, raw_alpha});
     constexpr float line_thickness = 3, raw_line_thickness = 5, dot_radius = 5;
@@ -139,7 +140,7 @@ void path_test::draw_overlay(app& a)
 
     if (const auto sp = res.smoothings(); !sp.isEmpty())
     {
-        const auto sp_dot_color = ImGui::ColorConvertFloat4ToU32({1, 1, 0, 1});
+        constexpr auto sp_dot_color = 0xffff00ff_imcol;
         auto prev = a.point_to_pixel(sp[0].pt);
         for (const auto& x : sp)
         {
