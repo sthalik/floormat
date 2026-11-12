@@ -4,6 +4,7 @@
 #include "editor.hpp"
 #include "ground-editor.hpp"
 #include "wall-editor.hpp"
+#include "vobj-editor.hpp"
 #include "keys.hpp"
 #include "tests-private.hpp"
 #include "mazes.hpp"
@@ -86,6 +87,7 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_input_events, coverage),
         FM_SCENE(scene_popup_target, coverage),
         FM_SCENE(scene_door, coverage),
+        FM_SCENE(scene_vobj_click, coverage),
         FM_SCENE(scene_ground_editor, coverage),
         FM_SCENE(scene_drag_paint, coverage),
         FM_SCENE(scene_maze_test, coverage),
@@ -768,6 +770,68 @@ task app::scene_door()
     fm_assert_equal(false, door.closing);
 
     co_yield {dwell};
+}
+
+task app::scene_vobj_click()
+{
+    do_set_mode(editor_mode::none);
+    fm_assert(!_render_clickables);
+    fm_assert(_render_vobjs);
+    fm_assert(_popup_target.target == popup_target_type::none);
+    auto& w = M->world();
+
+    const global_coords coord{chunk_coords_{0, 0, 0}, local_coords{8, 8}};
+    const auto light_id = w.make_object<light>(w.make_id(), coord, light_proto{})->id;
+    center_camera_on(point{coord, {}});
+    co_yield {};
+
+    const auto pixel = sprite_center_pixel(*this, *w.find_object(light_id));
+    fm_assert(find_clickable_scenery(pixel + Vector2i{30, 0}) != light_id);
+
+    co_await inject_click(pixel, mouse_button_right);
+    fm_assert(_popup_target.target == popup_target_type::scenery);
+    fm_assert_equal(light_id, _popup_target.id);
+    co_await inject_key_press(key_escape, 1);
+    fm_assert(_popup_target.target == popup_target_type::none);
+    fm_assert(!_pending_popup);
+
+    co_await inject_click(pixel, mouse_button_left);
+    fm_assert(w.find_object(light_id));
+    fm_assert(_popup_target.target == popup_target_type::none);
+
+    do_key(key_render_clickables);
+    fm_assert(_render_clickables);
+    co_yield {};
+    bool listed = false;
+    for (const auto& c : M->clickable_scenery())
+        if (c.id == light_id)
+            listed = true;
+    fm_assert(listed);
+    fm_assert_equal(light_id, find_clickable_scenery(pixel));
+    do_key(key_render_clickables);
+    fm_assert(!_render_clickables);
+
+    const global_coords coord2{chunk_coords_{0, 0, 0}, local_coords{10, 8}};
+    const auto table_id = w.make_scenery(w.make_id(), coord2, scenery_proto(loader.scenery("table1")))->id;
+    center_camera_on(point{coord2, {}});
+    co_yield {};
+
+    // The vobj pick takes lights whose bbox holds the cursor and never scenery.
+    const auto light2_id = w.make_object<light>(w.make_id(), coord2, light_proto{})->id;
+    const auto light3_id = w.make_object<light>(w.make_id(), coord2, light_proto{})->id;
+    const auto& light2 = *w.find_object(light2_id);
+    const auto cl2 = clickable_for_object(light2, M->drawn_window_size(), M->drawn_camera_offset());
+    fm_assert(cl2);
+    do_set_mode(editor_mode::vobj);
+    fm_assert(!_editor->current_vobj_editor()->is_anything_selected());
+    co_await inject_click(cl2->dest.center(), mouse_button_middle);
+    fm_assert(!w.find_object(light2_id));
+    fm_assert(!w.find_object(light3_id));
+    fm_assert(w.find_object(table_id));
+    fm_assert(w.find_object(light_id));
+
+    do_set_mode(editor_mode::none);
+    co_yield {};
 }
 
 task app::scene_ground_editor()

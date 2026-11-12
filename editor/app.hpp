@@ -229,6 +229,7 @@ private:
     pgo::task scene_input_events();
     pgo::task scene_popup_target();
     pgo::task scene_door();
+    pgo::task scene_vobj_click();
     pgo::task scene_ground_editor();
     pgo::task scene_drag_paint();
     pgo::task scene_benchmark();
