@@ -5,7 +5,10 @@
 #include "src/anim-atlas.hpp"
 #include "src/fps-counter.hpp"
 #include "src/chunk.hpp"
+#include "src/object.hpp"
+#include "src/object-storage.inl"
 #include "shaders/shader.hpp"
+#include "compat/function2.hpp"
 #include "compat/fwd/algorithm/sort.hpp"
 #include "compat/nanosecond.inl"
 #include <cr/GrowableArray.h>
@@ -151,11 +154,13 @@ void main_impl::draw_world() noexcept
     const auto z_bounds = app.get_z_bounds();
     const auto chunks  = get_draw_bounds(_chunk_bounds_array, {});
     const auto sz = window_size();
+    _drawn_camera_offset = _shader.camera_offsetʹ();
+    _drawn_window_size = sz;
 
     // Front-to-back, so the opaque pass rejects more fragments early. get_draw_bounds() emits
     // z-major, but depth is dominated by x+y: z spans 16 levels against a much wider visible xy.
-    // Sorted here rather than there because update_world() and the editor's cursor hit test read
-    // the same array and both change behaviour with its order.
+    // Sorted here rather than there because update_world() reads the same array and changes
+    // behaviour with its order.
     std::sort(chunks.begin(), chunks.end(), [](chunk_coords_ a, chunk_coords_ b) {
         constexpr auto w = chunk_size<i32>;
         return w * ((i32)a.x + a.y) + tile_size_z * a.z
@@ -208,13 +213,49 @@ void main_impl::draw_world() noexcept
 
     draw_batches([&](chunk& c, i16, i16, i8) {
         c.ensure_scenery_mesh(_sprite_batch, _do_render_vobjs);
-        c.add_clickables(_shader, sz, _clickable_scenery, _do_render_vobjs);
     }, true);
 
     GL::Renderer::setDepthMask(true);
 
     GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
+
+    if (_do_collect_clickables)
+        draw_world_0([&](chunk& c, i16, i16, i8) {
+            for (const auto& eʹ : c.objects())
+                if (_do_render_vobjs || !eʹ->is_virtual())
+                    if (auto cl = clickable_for_object(*eʹ, sz, _drawn_camera_offset))
+                        arrayAppend(_clickable_scenery, *cl);
+        }, chunks);
+}
+
+void main_impl::pick_clickable(Vector2i pixel, fu2::function_view<void(const clickable&) const> on_pick)
+{
+    Optional<clickable> best;
+    u32 depth = 0;
+
+    draw_world_0([&](chunk& c, i16, i16, i8) {
+        for (const auto& eʹ : c.objects())
+        {
+            const object& e = *eʹ;
+            if (!_do_render_vobjs && e.is_virtual())
+                continue;
+            auto cl = clickable_for_object(e, _drawn_window_size, _drawn_camera_offset);
+            if (cl && cl->depth > depth && clickable_hit_test(*cl, pixel))
+            {
+                depth = cl->depth;
+                best = cl;
+            }
+        }
+    }, _chunk_bounds_array);
+
+    if (best)
+        on_pick(*best);
+}
+
+ArrayView<const chunk_coords_> main_impl::drawn_chunks() const noexcept
+{
+    return { _chunk_bounds_array.data(), _chunk_bounds_array.size() };
 }
 
 void main_impl::bind() noexcept

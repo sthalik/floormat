@@ -68,7 +68,7 @@ void app::reset_camera_offset()
 
 object_id app::get_object_colliding_with_cursor(bool virtual_objects)
 {
-    const auto chunks = M->get_draw_bounds(_chunk_bounds_array, {});
+    const auto chunks = M->drawn_chunks();
 
     auto& world = M->world();
 
@@ -77,7 +77,7 @@ object_id app::get_object_colliding_with_cursor(bool virtual_objects)
 
     if (cursor.pixel)
     {
-        const auto pt = M->pixel_to_point(*cursor.pixel, _z_level);
+        const auto pt = tile_shader::pixel_to_point(*cursor.pixel, M->drawn_window_size(), M->drawn_camera_offset(), _z_level);
 
         for (auto ch : chunks)
         {

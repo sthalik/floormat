@@ -13,7 +13,6 @@
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include "src/tile-constants.hpp"
-#include "main/clickable.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 #include "floormat/draw-bounds.hpp"
@@ -49,8 +48,8 @@ void app::do_mouse_up_down(u8 button, bool is_down, int mods)
         case editor_mode::none:
             if (button == mouse_button_left)
             {
-                if (auto* cl = find_clickable_scenery(*cursor.pixel))
-                    if (auto e = w.find_object(cl->id))
+                if (auto id = find_clickable_scenery(*cursor.pixel))
+                    if (auto e = w.find_object(id))
                     {
                         const auto i = e->index();
                         return e->can_activate(i) ? (void)e->activate(i) : void();
@@ -58,10 +57,10 @@ void app::do_mouse_up_down(u8 button, bool is_down, int mods)
             }
             // TODO it should open on mouseup if still on the same item as on mousedown
             else if (button == mouse_button_right)
-                if (auto* cl = find_clickable_scenery(*cursor.pixel))
+                if (auto id = find_clickable_scenery(*cursor.pixel))
                 {
                     _pending_popup = true;
-                    _popup_target = { .id = cl->id, .target = popup_target_type::scenery, };
+                    _popup_target = { .id = id, .target = popup_target_type::scenery, };
                 }
             break;
         case editor_mode::floor:
@@ -104,9 +103,9 @@ void app::do_rotate(bool backward)
     {
         if (ed->is_anything_selected())
             backward ? ed->prev_rotation() : ed->next_rotation();
-        else if (auto* cl = find_clickable_scenery(cursor.pixel))
+        else if (auto id = find_clickable_scenery(cursor.pixel))
         {
-            if (auto e = M->world().find_object(cl->id))
+            if (auto e = M->world().find_object(id))
             {
                 auto i = e->index();
                 auto r = backward ? e->atlas->prev_rotation_from(e->r) : e->atlas->next_rotation_from(e->r);
@@ -189,7 +188,7 @@ void app::do_key(key k, int mods, int keycode)
     case key_render_collision_boxes:
         return void(_render_bboxes = !_render_bboxes);
     case key_render_clickables:
-        return void(_render_clickables = !_render_clickables);
+        return M->set_collect_clickables(_render_clickables = !_render_clickables);
     case key_render_vobjs:
         return M->set_render_vobjs(_render_vobjs = !_render_vobjs);
     case key_render_all_z_levels:
@@ -293,7 +292,7 @@ void app::set_cursor()
 {
     if (!cursor.in_imgui)
     {
-        if ([[maybe_unused]] auto* cl = find_clickable_scenery(cursor.pixel))
+        if (find_clickable_scenery(cursor.pixel))
             M->set_cursor(u32(Cursor::Hand));
         else
             M->set_cursor(u32(Cursor::Arrow));
@@ -312,6 +311,7 @@ void app::update(Ns dt)
     auto& w = M->world();
     w.collect(true);
     update_cursor_tile(cursor.pixel);
+    set_cursor();
     tests_pre_update(dt);
     apply_commands(*keys_);
     { auto status = w.script_status();
@@ -322,7 +322,6 @@ void app::update(Ns dt)
     update_world(dt);
     do_camera(dt, *keys_, get_key_modifiers());
     clear_non_repeated_keys();
-    set_cursor();
     tests_post_update(dt);
     // Last, so a step's actions land after this frame's world update and before the next draw.
     driver_tick();

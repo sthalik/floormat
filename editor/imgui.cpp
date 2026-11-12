@@ -324,42 +324,49 @@ void app::draw_light_info()
     const float font_size = ImGui::GetCurrentContext()->FontSize;
 
     const auto& w = M->world();
-    for (const auto& x : M->clickable_scenery())
+    const auto win_size = M->drawn_window_size();
+    const auto camera = M->drawn_camera_offset();
+    for (const auto ch : M->drawn_chunks())
     {
-        const auto* obj = w.find_object(x.id);
-        if (!obj || obj->type() != object_type::light)
+        const auto* c = w.at(ch);
+        if (!c)
             continue;
-        const auto& e = static_cast<const light&>(*obj);
-        const auto dest = Math::Range2D<float>(x.dest);
-
-        StringView falloff;
-        switch (e.falloff)
+        for (const light& e : c->objects().list<light>())
         {
-        default: falloff = "?"_s; break;
-        case light_falloff::constant: falloff = "constant"_s; break;
-        case light_falloff::linear: falloff = "linear"_s; break;
-        case light_falloff::quadratic: falloff = "quadratic"_s; break;
+            const auto cl = clickable_for_object(e, win_size, camera);
+            if (!cl)
+                continue;
+            const auto dest = Math::Range2D<float>(cl->dest);
+
+            StringView falloff;
+            switch (e.falloff)
+            {
+            default: falloff = "?"_s; break;
+            case light_falloff::constant: falloff = "constant"_s; break;
+            case light_falloff::linear: falloff = "linear"_s; break;
+            case light_falloff::quadratic: falloff = "quadratic"_s; break;
+            }
+
+            constexpr auto inv_255 = 1.f/255;
+            const auto col = Vector4(e.color)*inv_255 * float(e.color.a())*inv_255;
+            const auto swatch_col = ImGui::ColorConvertFloat4ToU32({col.x(), col.y(), col.z(), 1});
+
+            auto p = _text_pool->make(font_size);
+            p.with_background(bg_col, {pad_x, 0});
+            p.rect(swatch_col, 5*dpi.x(), 3*dpi.y());
+            p.gap(pad_x);
+            p.text(yellow, falloff);
+            if (e.max_distance > 0)
+                p.text(yellow, " "_s).format(yellow, "range={}", e.max_distance);
+            if (e.radius > 0)
+                p.text(yellow, " "_s).format(yellow, "radius={}", e.radius);
+
+            const auto sz = p.size();
+            const float offx = dest.centerX() - sz.x()*.5f;
+            const float offy = dest.max().y() + 5 * dpi.y();
+
+            p.render(draw, {offx, offy});
         }
-
-        constexpr auto inv_255 = 1.f/255;
-        const auto col = Vector4(e.color)*inv_255 * float(e.color.a())*inv_255;
-        const auto swatch_col = ImGui::ColorConvertFloat4ToU32({col.x(), col.y(), col.z(), 1});
-
-        auto p = _text_pool->make(font_size);
-        p.with_background(bg_col, {pad_x, 0});
-        p.rect(swatch_col, 5*dpi.x(), 3*dpi.y());
-        p.gap(pad_x);
-        p.text(yellow, falloff);
-        if (e.max_distance > 0)
-            p.text(yellow, " "_s).format(yellow, "range={}", e.max_distance);
-        if (e.radius > 0)
-            p.text(yellow, " "_s).format(yellow, "radius={}", e.radius);
-
-        const auto sz = p.size();
-        const float offx = dest.centerX() - sz.x()*.5f;
-        const float offy = dest.max().y() + 5 * dpi.y();
-
-        p.render(draw, {offx, offy});
     }
 }
 

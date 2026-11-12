@@ -29,8 +29,6 @@ class wall_atlas;
 struct object;
 struct object_proto;
 class SpriteBatch;
-struct tile_shader;
-struct clickable;
 
 class chunk final
 {
@@ -86,7 +84,6 @@ public:
     ground_atlas* ground_atlas_at(usize i) const noexcept;
     void ensure_wall_mesh(SpriteBatch& sb);
     void ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs);
-    void add_clickables(const tile_shader& shader, Vector2i win_size, Array<clickable>& array, bool draw_vobjs);
 
     void ensure_passability() noexcept;
     u64 pass_gen() const noexcept;

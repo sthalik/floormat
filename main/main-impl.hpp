@@ -70,6 +70,7 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
 
     ArrayView<const clickable> clickable_scenery() const noexcept override;
     ArrayView<clickable> clickable_scenery() noexcept override;
+    void pick_clickable(Vector2i pixel, fu2::function_view<void(const clickable&) const> on_pick) override;
 
     Platform::Sdl2Application& application() noexcept override;
     const Platform::Sdl2Application& application() const noexcept override;
@@ -98,6 +99,9 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     void do_update(Ns dt);
     struct meshes meshes() noexcept override;
     ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept override;
+    ArrayView<const chunk_coords_> drawn_chunks() const noexcept override;
+    Vector2i drawn_camera_offset() const noexcept override;
+    Vector2i drawn_window_size() const noexcept override;
 
     bool is_text_input_active() const noexcept override;
     void start_text_input() noexcept override;
@@ -135,6 +139,7 @@ private:
     Time _fps_log_time{0};
 
     Array<chunk_coords_> _chunk_bounds_array;
+    Vector2i _drawn_camera_offset, _drawn_window_size;
     fm_settings s;
     [[maybe_unused]] char _dummy = (register_debug_callback(), '\0');
     floormat_app& app;

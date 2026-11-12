@@ -1,6 +1,7 @@
 #pragma once
 
 #include "compat/defs.hpp"
+#include "compat/function2.fwd.hpp"
 #include <mg/Vector2.h>
 
 struct SDL_Window;
@@ -63,12 +64,16 @@ struct floormat_main
 
     virtual ArrayView<const clickable> clickable_scenery() const noexcept = 0;
     virtual ArrayView<clickable> clickable_scenery() noexcept = 0;
+    virtual void pick_clickable(Vector2i pixel, fu2::function_view<void(const clickable&) const> on_pick) = 0;
     virtual void set_cursor(u32 cursor) noexcept = 0;
 
     virtual global_coords pixel_to_tile(Vector2i position, i8 z_level = 0) const noexcept = 0;
     virtual point pixel_to_point(Vector2i position, i8 z_level = 0) const noexcept = 0;
 
     virtual ArrayView<chunk_coords_> get_draw_bounds(Array<chunk_coords_>& output, Range2Di extra_pixels) const noexcept = 0;
+    virtual ArrayView<const chunk_coords_> drawn_chunks() const noexcept = 0;
+    virtual Vector2i drawn_camera_offset() const noexcept = 0;
+    virtual Vector2i drawn_window_size() const noexcept = 0;
 
     virtual struct meshes meshes() noexcept = 0;
 
@@ -81,6 +86,7 @@ struct floormat_main
 
     void set_render_vobjs(bool value);
     bool is_rendering_vobjs() const;
+    void set_collect_clickables(bool value);
 
     // Set for a driver run: viewport events are dropped so the framebuffer keeps the size the run
     // started at, and real input never reaches the editor. Ctrl+Q and SDL_QUIT still get through.
@@ -107,6 +113,7 @@ protected:
     Vector2 _virtual_scale{ 1, 1 };
     Vector2i _framebuffer_size;
     bool _do_render_vobjs : 1 = true; // todo thread safety
+    bool _do_collect_clickables : 1 = false;
     bool _first_frame : 1 = true; // todo thread safety
     bool _events_ignored : 1 = false; // todo thread safety
     bool _is_clipcontroL_zero_to_one_enabled = false;

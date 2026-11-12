@@ -47,8 +47,6 @@ struct cursor_state final
     Optional<struct point> point() const;
 };
 
-struct clickable;
-
 enum class Cursor: u32 {
     Arrow, TextInput, Wait, Crosshair, WaitArrow,
     ResizeNWSE, ResizeNESW, ResizeWE, ResizeNS, ResizeAll,
@@ -73,7 +71,7 @@ struct app final : floormat_app
     object_id get_object_colliding_with_cursor(bool virtual_objects);
     floormat_main& main();
     const struct cursor_state& cursor_state();
-    clickable* find_clickable_scenery(const Optional<Vector2i>& pixel);
+    object_id find_clickable_scenery(const Optional<Vector2i>& pixel);
     /// See tile_shader::point_to_pixel(): y ends in .5 when x+y is odd.
     Vector2 point_to_pixel(point pt);
     /// See tile_shader::point_to_pixelʹ(): the pixel whose pick is pt.

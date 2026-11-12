@@ -18,6 +18,7 @@
 #include "shaders/texture-unit-cache.hpp"
 #include "main/clickable.hpp"
 #include "draw/wireframe.hpp"
+#include "compat/function2.hpp"
 #include <bit>
 #include <mg/Color.h>
 #include <mg/ImGuiIntegration/Context.h>
@@ -102,7 +103,7 @@ void app::draw_cursor()
 void app::draw_collision_boxes()
 {
     auto [z_cur, only] = get_z_bounds();
-    const auto chunks = M->get_draw_bounds(_chunk_bounds_array, {});
+    const auto chunks = M->drawn_chunks();
     auto& world = M->world();
     auto& shader = M->shader();
 
@@ -211,39 +212,14 @@ void app::draw()
     M->texture_unit_cache().output_stats();
 }
 
-clickable* app::find_clickable_scenery(const Optional<Vector2i>& pixel)
+object_id app::find_clickable_scenery(const Optional<Vector2i>& pixel)
 {
     if (!pixel || _editor->mode() != editor_mode::none)
-        return nullptr;
+        return 0;
 
-    clickable* item = nullptr;
-
-    const auto array = M->clickable_scenery();
-    const auto p = *pixel;
-    u32 depth = 0;
-
-    for (clickable& c : array)
-    {
-        const u32 d = c.depth;
-        if (d > depth && c.dest.contains(p))
-        {
-            // mirror inside the frame, before adding the frame's atlas offset
-            const auto posʹ = *pixel - c.dest.min();
-            const auto posʹʹ = !c.mirrored ? posʹ : Vector2i(int(c.src.sizeX()) - 1 - posʹ[0], posʹ[1]);
-            const auto pos = posʹʹ + Vector2i(c.src.min());
-            usize idx = unsigned(pos.y()) * c.stride + unsigned(pos.x());
-            fm_assert(c.bitmask.isEmpty() || idx < c.bitmask.size());
-            if (c.bitmask.isEmpty() || c.bitmask[idx])
-            {
-                depth = d;
-                item = &c;
-            }
-        }
-    }
-    if (item)
-        return item;
-    else
-        return nullptr;
+    object_id id = 0;
+    M->pick_clickable(*pixel, [&](const clickable& c) { id = c.id; });
+    return id;
 }
 
 } // namespace floormat

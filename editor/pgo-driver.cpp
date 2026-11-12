@@ -269,15 +269,13 @@ u32 frame_stride(u32 num_frames)
 
 Vector2i sprite_center_pixel(app& A, const object& e)
 {
-    for (const auto& cl : A.main().clickable_scenery())
-        if (cl.id == e.id)
-        {
-            const auto pixel = cl.dest.center();
-            const auto* hit = A.find_clickable_scenery(pixel);
-            fm_assert(hit && hit->id == e.id);
-            return pixel;
-        }
-    fm_abort("no clickable for object %zu", (usize)e.id);
+    auto& M = A.main();
+    const auto cl = clickable_for_object(e, M.drawn_window_size(), M.drawn_camera_offset());
+    if (!cl)
+        fm_abort("no clickable for object %zu", (usize)e.id);
+    const auto pixel = cl->dest.center();
+    fm_assert(A.find_clickable_scenery(pixel) == e.id);
+    return pixel;
 }
 
 // The k-th cell of a chunk walked in one of five orders. Each order visits every cell once, so an
@@ -960,17 +958,18 @@ task app::scene_clickables()
 #endif
     const auto hold = pgo_driver_use_short_scenes() ? short_hold_dt : hold_dt;
     auto& w = M->world();
+    do_set_mode(editor_mode::none);
     center_camera_on(ensure_player_character(w)->position());
     populate_scene_clickables();
 
-    u32 calls = 0, chunks = 0;
+    unsigned calls = 0, chunks = 0;
     for (const auto ch : M->get_draw_bounds(_chunk_bounds_array, {}))
         if (const auto* c = w.at(ch))
         {
-            calls += (u32)c->objects().size();
+            calls += (unsigned)c->objects().size();
             chunks++;
         }
-    fm_debug("clickables: %u add_clickable calls a frame over %u chunks", calls, chunks);
+    fm_debug("clickables: %u clickable_for_object calls per pick over %u chunks", calls, chunks);
 
     do
         co_yield {};

@@ -7,7 +7,6 @@
 #include "sprite-list.hpp"
 #include "sprite-atlas.hpp"
 #include "hwy.hpp"
-#include "main/clickable.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include "compat/assume-aligned.hpp"
@@ -572,29 +571,6 @@ void SpriteBatch::emit_quick(tile_shader& shader, const anim_atlas& atlas, rotat
         fm_debug3_assert(mesh.isIndexed());
     }
     shader.draw(loader.atlas().texture(), quick._mesh);
-}
-
-void SpriteBatch::add_clickable(const object& s, const tile_shader& shader, Vector2i win_size, Array<clickable>& array)
-{
-    const auto& a = *s.atlas;
-    const auto& g = a.group(s.r);
-    const auto& f = a.frame(s.r, s.frame);
-    const auto offset = tile_shader::point_to_pixelʹ(Vector3i(s.position()) + Vector3i(g.offset), win_size, shader.camera_offsetʹ())
-                        - f.ground;
-    if (offset < win_size && offset + Vector2i(f.size) >= Vector2i())
-    {
-        arrayAppend(array, NoInit, 1);
-        array.back() =
-            clickable {
-                .src = {f.offset, f.offset + f.size},
-                .dest = {offset, offset + Vector2i(f.size)},
-                .bitmask = a.bitmask(),
-                .id = s.id,
-                .depth = Depth::value_atʹ(s.position()),
-                .stride = a.info().pixel_size[0],
-                .mirrored = !g.mirror_from.isEmpty(),
-            };
-    }
 }
 
 } // namespace floormat

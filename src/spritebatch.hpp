@@ -9,7 +9,6 @@ namespace floormat {
 struct point;
 struct tile_shader;
 struct object;
-struct clickable;
 class anim_atlas;
 class chunk;
 struct SpriteList;
@@ -34,7 +33,6 @@ public:
     ArrayView<const u32> merged_order() const;
     void unsort_vertex_buffer();
 
-    static void add_clickable(const object& s, const tile_shader& shader, Vector2i win_size, Array<clickable>& array);
     void emit(const Quads::vertexes& vertexes, float depth);
 
     void emit(SpriteList& list);

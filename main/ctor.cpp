@@ -45,6 +45,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
 class world& main_impl::reset_world(class world&& w) noexcept
 {
     arrayResize(_clickable_scenery, 0);
+    arrayClear(_chunk_bounds_array);
 
     for (auto& cʹ : _world.chunks())
         for (const auto& eʹ : cʹ.objects())
