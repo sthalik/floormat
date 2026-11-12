@@ -7,7 +7,7 @@
 #include "grid-pass.hpp"
 #include "grid-object.hpp"
 #include "RTree-search.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <bit>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -127,7 +127,7 @@ template<typename Pool>
 void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Pool pool, Array<bool>* entry_blocked,
-                         fu2::function_view<bool(const swept_collider_result&) const> f)
+                         function_view<bool(const swept_collider_result&) const> f)
 {
     sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, entry_blocked, [&](i64 step, collision_data x, Range2D rect) {
         const bool more = f(swept_collider_result{ .step = (u32)step, .collider = x, .rect = rect, .has_collider = true });
@@ -158,7 +158,7 @@ swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::
 void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Grid::Pass::Pool* pool,
-                         fu2::function_view<bool(const swept_collider_result&) const> f)
+                         function_view<bool(const swept_collider_result&) const> f)
 {
     if (pool)
         find_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, pool, nullptr, f);
@@ -169,7 +169,7 @@ void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& l
 void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Grid::Object::Pool& objects, Array<bool>& entry_blocked,
-                         fu2::function_view<bool(const swept_collider_result&) const> f)
+                         function_view<bool(const swept_collider_result&) const> f)
 {
     find_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, &objects, &entry_blocked, f);
 }

@@ -13,7 +13,7 @@
 #include "compat/iota.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
 #include <array>
 #include <cr/ArrayView.h>

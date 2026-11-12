@@ -7,7 +7,7 @@
 #include "raycast-loop.hpp"
 #include "point.inl"
 #include "compat/assume-aligned.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/map.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/timer.hpp"

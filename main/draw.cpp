@@ -8,7 +8,7 @@
 #include "src/object.hpp"
 #include "src/object-storage.inl"
 #include "shaders/shader.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/fwd/algorithm/sort.hpp"
 #include "compat/nanosecond.inl"
 #include <cr/GrowableArray.h>
@@ -229,7 +229,7 @@ void main_impl::draw_world() noexcept
         }, chunks);
 }
 
-void main_impl::pick_clickable(Vector2i pixel, fu2::function_view<void(const clickable&) const> on_pick)
+void main_impl::pick_clickable(Vector2i pixel, function_view<void(const clickable&) const> on_pick)
 {
     Optional<clickable> best;
     u32 depth = 0;

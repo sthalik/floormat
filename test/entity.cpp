@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "compat/limits.hpp"
+#include "compat/function-view.hpp"
 #include "entity/metadata.hpp"
 #include "entity/accessor.hpp"
 #include <tuple>
@@ -100,8 +101,8 @@ void test_fun2() {
     using entity = Entity<TestAccessors>;
     static constexpr auto read_fn = [](const TestAccessors& x) constexpr { return x.bar(); };
     static constexpr auto write_fn = [](TestAccessors& x, int value) constexpr { x.set_bar(value); };
-    constexpr auto read_bar = fu2::function_view<int(const TestAccessors&) const>{read_fn};
-    constexpr auto write_bar = fu2::function_view<void(TestAccessors&, int) const>{write_fn};
+    constexpr auto read_bar = function_view<int(const TestAccessors&) const>{read_fn};
+    constexpr auto write_bar = function_view<void(TestAccessors&, int) const>{write_fn};
     constexpr auto m_bar2 = entity::type<int>::field{"bar"_s, read_bar, write_bar};
 
     auto x = TestAccessors{1, 2, 3};

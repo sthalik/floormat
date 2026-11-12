@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/inplace-function.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <cr/Pointer.h>
 #include <functional>
 #include <memory>
@@ -289,8 +289,7 @@ static_assert(!std::is_constructible_v<F, throwing_move>);
 static_assert(!std::is_constructible_v<F, throwing_dtor>);
 static_assert(!std::is_constructible_v<F, wrong_signature>);
 
-static_assert(!std::is_constructible_v<F, fu2::unique_function<u64(u64)>>);
-static_assert(!std::is_constructible_v<F, fu2::function_view<u64(u64)>>);
+static_assert(!std::is_constructible_v<F, function_view<u64(u64)>>);
 static_assert(std::is_constructible_v<F, inplace_function<u64(u64), 16, 8>>);
 
 static_assert(std::is_constructible_v<F, decltype(triple)&>);
@@ -304,8 +303,6 @@ static_assert(std::is_constructible_v<F, const_call_deleted>);
 static_assert(!std::is_constructible_v<C, const_call_deleted>);
 static_assert(std::is_constructible_v<F, inplace_function<u64(u64) const, 16, 8>>);
 static_assert(!std::is_constructible_v<C, inplace_function<u64(u64), 16, 8>>);
-static_assert(std::is_constructible_v<fu2::function_view<u64(u64) const>, const C&>);
-static_assert(std::is_constructible_v<fu2::function_view<u64(u64)>, F&>);
 
 static_assert(std::is_invocable_v<Q<u64(u64)>&&, u64>);
 static_assert(std::is_invocable_v<Q<u64(u64) &>&, u64>);
@@ -327,7 +324,6 @@ static_assert(!std::is_constructible_v<Q<u64(u64) volatile>, sized<8>>);
 static_assert(std::is_constructible_v<Q<u64(u64) volatile>, u64(*)(u64)>);
 static_assert(std::is_constructible_v<inplace_function<u64(), 8, 8>, returns_value>);
 static_assert(!std::is_constructible_v<inplace_function<const u64&(), 8, 8>, returns_value>);
-static_assert(std::is_constructible_v<fu2::function_view<u64(u64) volatile>, volatile Q<u64(u64) volatile>&>);
 
 static_assert(std::is_copy_constructible_v<CF>);
 static_assert(std::is_copy_assignable_v<CF>);
@@ -742,32 +738,6 @@ void test_move_only()
     fm_assert(by_pointer(p, 1) == 51);
 }
 
-void test_fu2()
-{
-    F overloaded = fu2::overload([](u64 x) noexcept { return x * 5; }, [](const char*) noexcept { return u64{0}; });
-    fm_assert(overloaded(10) == 50);
-
-    const C c = [k = u64{7}](u64 x) noexcept { return x * k; };
-    fu2::function_view<u64(u64) const> cv = c;
-    fm_assert(cv(3) == 21);
-
-    F f = [k = u64{5}](u64 x) noexcept { return x + k; };
-    fu2::function_view<u64(u64)> fv = f;
-    fm_assert(fv(3) == 8);
-
-    const C both_c = both_calls{};
-    fu2::function_view<u64(u64) const> both_cv = both_c;
-    fm_assert(both_cv(10) == 12);
-    F both_f = both_calls{};
-    fu2::function_view<u64(u64)> both_fv = both_f;
-    fm_assert(both_fv(10) == 11);
-
-    Q<u64(u64) volatile> v = qualified_probe{};
-    volatile auto& vr = v;
-    fu2::function_view<u64(u64) volatile> vv = vr;
-    fm_assert(vv(100) == 103);
-}
-
 } // namespace
 
 void Test::test_inplace_function()
@@ -780,7 +750,6 @@ void Test::test_inplace_function()
     fm_assert(test_self_replacement());
     test_inplace();
     test_move_only();
-    test_fu2();
 }
 
 } // namespace floormat

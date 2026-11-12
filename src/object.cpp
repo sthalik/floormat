@@ -5,7 +5,7 @@
 #include "anim-atlas.hpp"
 #include "search.hpp"
 #include "log.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/exception.hpp"
 #include "compat/limits.hpp"
 #include "compat/non-const.hpp"

@@ -16,7 +16,7 @@
 #include "loader/loader.hpp"
 #include "loader/anim-cell.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/constantly.hpp"
 #include "compat/nanosecond.inl"
 #include <cr/GrowableArray.h>

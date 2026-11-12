@@ -66,6 +66,12 @@
 #define fm_no_unique_address no_unique_address
 #endif
 
+#if __has_cpp_attribute(clang::lifetimebound)
+#define fm_lifetimebound clang::lifetimebound
+#else
+#define fm_lifetimebound
+#endif
+
 #ifdef _MSC_VER
 #define fm_UNROLL_disable
 #define fm_UNROLL _Pragma("loop(ivdep)")

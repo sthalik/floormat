@@ -38,10 +38,10 @@ swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::
 void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Grid::Pass::Pool* pool,
-                         fu2::function_view<bool(const swept_collider_result&) const> f);
+                         function_view<bool(const swept_collider_result&) const> f);
 void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Grid::Object::Pool& objects, Array<bool>& entry_blocked,
-                         fu2::function_view<bool(const swept_collider_result&) const> f);
+                         function_view<bool(const swept_collider_result&) const> f);
 
 } // namespace floormat

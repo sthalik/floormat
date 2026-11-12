@@ -2,7 +2,7 @@
 #include "point.hpp"
 #include "search-pred.hpp"
 #include "search-result.hpp"
-#include "compat/function2.fwd.hpp"
+#include "compat/function-view-fwd.hpp"
 #include <cr/Array.h>
 
 namespace floormat { class world; }
@@ -20,11 +20,11 @@ public:
     // One update's work of the retreat, within the max_retreat_*_per_update limits. Each of its two passes ends
     // after max_failed_dijkstra_calls spots with no path, the first also when _rays runs out.
     result step(world& w, point from, point threat, Vector2i body, const Search::pred& pred,
-                u32 max_failed_dijkstra_calls, fu2::function_view<bool(point)> sees,
-                fu2::function_view<path_search_result(point)> path_to);
+                u32 max_failed_dijkstra_calls, function_view<bool(point)> sees,
+                function_view<path_search_result(point)> path_to);
     // True when `to`, the end of step()'s last found path, is still over min_retreat_gain px farther from threat
     // than that path's start, and the second pass found it or sees(to) is false.
-    bool keeps(point to, point threat, fu2::function_view<bool(point)> sees) const;
+    bool keeps(point to, point threat, function_view<bool(point)> sees) const;
 
     u32 next() const;
     u32 num_spots() const;

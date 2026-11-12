@@ -9,7 +9,7 @@
 #include "grid-object.hpp"
 #include "search-pred.hpp"
 #include "RTree-search.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <cfloat>
 #include <bit>
 #include <cr/GrowableArray.h>
@@ -111,7 +111,7 @@ template<typename Pool>
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
                          Pool pool, const Search::pred& p, Array<bool>* entry_blocked,
-                         fu2::function_view<bool(const line_cell&) const> visit,
+                         function_view<bool(const line_cell&) const> visit,
                          object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32)
 {
     static_assert(std::is_null_pointer_v<Pool> || std::is_same_v<Pool, Grid::Pass::Pool*> ||
@@ -800,15 +800,15 @@ template raycast_result_s do_raycasting<true, true>(raycast_diag_s&, world&, poi
 
 template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
                                   std::nullptr_t, const Search::pred&, Array<bool>*,
-                                  fu2::function_view<bool(const line_cell&) const>,
+                                  function_view<bool(const line_cell&) const>,
                                   object_cell_visitor<u16>, object_cell_visitor<u32>);
 template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
                                   Grid::Pass::Pool*, const Search::pred&, Array<bool>*,
-                                  fu2::function_view<bool(const line_cell&) const>,
+                                  function_view<bool(const line_cell&) const>,
                                   object_cell_visitor<u16>, object_cell_visitor<u32>);
 template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
                                   Grid::Object::Pool*, const Search::pred&, Array<bool>*,
-                                  fu2::function_view<bool(const line_cell&) const>,
+                                  function_view<bool(const line_cell&) const>,
                                   object_cell_visitor<u16>, object_cell_visitor<u32>);
 
 } // namespace floormat::rc::detail

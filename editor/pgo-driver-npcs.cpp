@@ -17,7 +17,7 @@
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/enumerate.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
 #include "floormat/main.hpp"
 #include <mg/Functions.h>

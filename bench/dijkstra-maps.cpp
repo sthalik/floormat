@@ -15,7 +15,7 @@
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <benchmark/benchmark.h>
 #include <mg/Functions.h>
 

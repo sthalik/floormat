@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "compat/function2.fwd.hpp"
+#include "compat/function-view-fwd.hpp"
 #include "global-coords.hpp"
 #include "tile-defs.hpp"
 #include "intra-coord-fwd.hpp"
@@ -107,7 +107,7 @@ struct PoolBase
 
 /// @brief Call after writing a new pass_gen() stamp into the chunk at @p coord.
 void mark_grids_stale(world& w, chunk_coords_ coord) noexcept;
-void cascade_mark_neighbors_stale(chunk_coords_ coord, fu2::function_view<GridBase*(chunk_coords_)> find);
+void cascade_mark_neighbors_stale(chunk_coords_ coord, function_view<GridBase*(chunk_coords_)> find);
 
 template <typename T> struct Pool;
 

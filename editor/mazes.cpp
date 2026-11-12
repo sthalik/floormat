@@ -14,7 +14,7 @@
 #include "src/hole.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/floor-divmod.hpp"
 #include <utility>
 #include <cr/GrowableArray.h>

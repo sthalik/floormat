@@ -10,7 +10,7 @@
 #include "src/grid-registry.hpp"
 #include "src/point.inl"
 #include "src/world.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "floormat/main.hpp"
 #include <cr/Optional.h>
 

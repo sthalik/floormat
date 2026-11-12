@@ -2,7 +2,7 @@
 #include "intra-coord.inl"
 #include "chunk.hpp"
 #include "world.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/spinlock.hpp"
 #include <bit>
 #include <cr/GrowableArray.h>
@@ -209,7 +209,7 @@ void mark_grids_stale(world& w, chunk_coords_ coord) noexcept
 
 void cascade_mark_neighbors_stale(
     chunk_coords_ coord,
-    fu2::function_view<GridBase*(chunk_coords_)> find)
+    function_view<GridBase*(chunk_coords_)> find)
 {
     for (auto off : world::neighbor_offsets)
         if (auto* g = find(coord + off))

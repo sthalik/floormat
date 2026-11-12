@@ -10,7 +10,7 @@
 #include "rect-intersects.hpp"
 #include "point.inl"
 #include "compat/array-size.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/zip.hpp"
 #include <bit>
 #include <mg/Range.h>

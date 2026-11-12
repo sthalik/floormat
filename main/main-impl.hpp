@@ -70,7 +70,7 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
 
     ArrayView<const clickable> clickable_scenery() const noexcept override;
     ArrayView<clickable> clickable_scenery() noexcept override;
-    void pick_clickable(Vector2i pixel, fu2::function_view<void(const clickable&) const> on_pick) override;
+    void pick_clickable(Vector2i pixel, function_view<void(const clickable&) const> on_pick) override;
 
     Platform::Sdl2Application& application() noexcept override;
     const Platform::Sdl2Application& application() const noexcept override;

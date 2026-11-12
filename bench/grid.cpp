@@ -16,7 +16,7 @@
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <bit>
 #include <cr/Optional.h>
 #include <mg/Functions.h>

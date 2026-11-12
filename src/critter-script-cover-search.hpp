@@ -3,7 +3,7 @@
 #include "critter-script-cover-unreachable-spots.hpp"
 #include "grid-cover.hpp"
 #include "search-result.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <array>
 #include <cr/Array.h>
 #include <cr/Optional.h>
@@ -29,11 +29,11 @@ public:
     // The script's tests of a spot, each with the threat at step()'s `threat`.
     struct calls
     {
-        fu2::function_view<hidden_result(point pos, Vector2i axis) const> hidden_from_reach;
-        fu2::function_view<bool(point pos, Vector2i axis) const> hidden_at;
-        fu2::function_view<point(const Cover::Point::spot& s) const> cover_end;
-        fu2::function_view<bool(point end, Vector2i axis) const> has_peek;
-        fu2::function_view<path_search_result(point to) const> path_to;
+        function_view<hidden_result(point pos, Vector2i axis) const> hidden_from_reach;
+        function_view<bool(point pos, Vector2i axis) const> hidden_at;
+        function_view<point(const Cover::Point::spot& s) const> cover_end;
+        function_view<bool(point end, Vector2i axis) const> has_peek;
+        function_view<path_search_result(point to) const> path_to;
     };
 
     static constexpr u32 radius = 2*chunk_size_xy;

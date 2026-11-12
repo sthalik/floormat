@@ -7,7 +7,7 @@
 #include "tile-defs.hpp"
 #include "world.hpp"
 #include "compat/assert.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <algorithm>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
@@ -70,8 +70,8 @@ void retreat_finder::begin(Vector2i body, u32 threat_octant, bool restart)
 
 retreat_finder::result retreat_finder::step(world& w, point from, point threat, Vector2i body,
                                             const Search::pred& pred, u32 max_failed_dijkstra_calls,
-                                            fu2::function_view<bool(point)> sees,
-                                            fu2::function_view<path_search_result(point)> path_to)
+                                            function_view<bool(point)> sees,
+                                            function_view<path_search_result(point)> path_to)
 {
     if (const auto k = Cover::Point::nearest_octant(Vector2(threat - from)); k != _octant)
     {
@@ -149,7 +149,7 @@ retreat_finder::result retreat_finder::step(world& w, point from, point threat, 
     }
 }
 
-bool retreat_finder::keeps(point to, point threat, fu2::function_view<bool(point)> sees) const
+bool retreat_finder::keeps(point to, point threat, function_view<bool(point)> sees) const
 {
     fm_debug_assert(_next > 0);
     const auto from = to - _spots[_next - 1].offset;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "compat/defs.hpp"
-#include "compat/function2.fwd.hpp"
+#include "compat/function-view-fwd.hpp"
 #include <mg/Vector2.h>
 
 struct SDL_Window;
@@ -64,7 +64,7 @@ struct floormat_main
 
     virtual ArrayView<const clickable> clickable_scenery() const noexcept = 0;
     virtual ArrayView<clickable> clickable_scenery() noexcept = 0;
-    virtual void pick_clickable(Vector2i pixel, fu2::function_view<void(const clickable&) const> on_pick) = 0;
+    virtual void pick_clickable(Vector2i pixel, function_view<void(const clickable&) const> on_pick) = 0;
     virtual void set_cursor(u32 cursor) noexcept = 0;
 
     virtual global_coords pixel_to_tile(Vector2i position, i8 z_level = 0) const noexcept = 0;

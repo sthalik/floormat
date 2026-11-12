@@ -6,7 +6,7 @@
 #include "object.hpp"
 #include "search-pred.hpp"
 #include "RTree-search.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <bit>
 #include <array>
 #include <cstring>

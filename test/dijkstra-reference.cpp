@@ -17,7 +17,7 @@
 #include "compat/enumerate.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/fill.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <cr/GrowableArray.h>
 #include <algorithm>
 

@@ -1,6 +1,6 @@
 #include "run.hpp"
 #include "compat/debug.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
 #include "src/point.inl"
 #include "src/tile-constants.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 #include "point.hpp"
 #include "search-pred.hpp"
-#include "compat/function2.fwd.hpp"
+#include "compat/function-view-fwd.hpp"
 #include <cr/Optional.h>
 
 namespace floormat { struct critter; }
@@ -15,6 +15,6 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
 // The spot nearest `from`, up to 2 tiles away along ±axis, across it or diagonally, where sees() is true for
 // gun_point() of c's body there, and that gun point. A seen stretch shorter than half a body can be missed.
 Optional<Cover::Script::peek> peek_spot(critter& c, point from, Vector2i axis, point threat, Optional<int> gun_offset,
-                                        const Search::pred& pred, fu2::function_view<bool(point)> sees);
+                                        const Search::pred& pred, function_view<bool(point)> sees);
 
 } // namespace floormat::Cover

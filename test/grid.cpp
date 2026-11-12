@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/debug.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/nanosecond.hpp"
 #include "compat/valgrind.hpp"
 #include "src/grid-pass.hpp"

@@ -18,7 +18,7 @@
 #include "shaders/texture-unit-cache.hpp"
 #include "main/clickable.hpp"
 #include "draw/wireframe.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <bit>
 #include <mg/Color.h>
 #include <mg/ImGuiIntegration/Context.h>

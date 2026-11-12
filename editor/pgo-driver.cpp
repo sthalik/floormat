@@ -46,7 +46,7 @@
 #include "compat/array-size.hpp"
 #include "compat/assert.hpp"
 #include "compat/enum-bitset.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
 #include "compat/nanosecond.hpp"

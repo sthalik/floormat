@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/combinations.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/zip.hpp"
 #include "loader/loader.hpp"

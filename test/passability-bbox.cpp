@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "loader/wall-cell.hpp"

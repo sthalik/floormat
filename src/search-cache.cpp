@@ -5,7 +5,7 @@
 #include "intra-coord.inl"
 #include "world.hpp"
 #include "tile-defs.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/fill.hpp"
 #include <bit>
 

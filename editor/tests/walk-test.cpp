@@ -8,7 +8,7 @@
 #include "src/search-astar.hpp"
 #include "src/grid-pass.hpp"
 #include "floormat/main.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <mg/Functions.h>
 #include <mg/Range.h>
 

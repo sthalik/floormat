@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
 #include "loader/scenery-cell.hpp"

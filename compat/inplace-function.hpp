@@ -3,7 +3,8 @@
 #include "fwd/construct_at.hpp"
 #include "inplace-function-fwd.hpp"
 #include "assert.hpp"
-#include "function2.fwd.hpp"
+#include "common-function.hpp"
+#include "function-view-fwd.hpp"
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -14,9 +15,10 @@ template<bool Const, bool Volatile, typename T>
 using add_cv = std::conditional_t<Const, std::conditional_t<Volatile, const volatile T, const T>,
                                          std::conditional_t<Volatile, volatile T, T>>;
 
-template<typename T> constexpr inline bool is_fu2_function = false;
-template<typename Config, typename Property>
-constexpr inline bool is_fu2_function<fu2::detail::function<Config, Property>> = true;
+using common_function_impl::invoke_target;
+using common_function_impl::reference_converts_from_temporary;
+using common_function_impl::pointers_equal;
+using common_function_impl::is_empty_callable;
 
 template<typename T, typename U> constexpr inline bool same_signature = false;
 template<bool C1, bool C2, bool Const, bool Volatile, ref_qualifier Ref, bool Noexcept,
@@ -27,53 +29,9 @@ constexpr inline bool same_signature<function<C1, Const, Volatile, Ref, Noexcept
 // Class types go by reference, so that a signature can name an incomplete one.
 template<typename T> using param = std::conditional_t<std::is_reference_v<T> || std::is_scalar_v<T>, T, T&&>;
 
-template<typename T> constexpr inline bool is_reference_wrapper = !std::is_same_v<std::unwrap_reference_t<T>, T>;
-
-// MSVC 19.52 can't constant-evaluate a write through `call().*f`, so the object comes in as a
-// parameter.
-template<typename M, typename C, typename O, typename... Args>
-constexpr decltype(auto) invoke_member_of(M C::* f, O&& object, Args&&... args)
-{
-    if constexpr (std::is_function_v<M>)
-        return (static_cast<O&&>(object).*f)(std::forward<Args>(args)...);
-    else
-        return static_cast<O&&>(object).*f;
-}
-
-// INVOKE ([func.require]) for a member pointer, without <functional>.
-template<typename M, typename C, typename T, typename... Args>
-constexpr decltype(auto) invoke_member(M C::* f, T&& t, Args&&... args)
-{
-    using U = std::remove_cvref_t<T>;
-    if constexpr (std::is_base_of_v<C, U>)
-        return invoke_member_of(f, static_cast<T&&>(t), std::forward<Args>(args)...);
-    else if constexpr (is_reference_wrapper<U>)
-        return invoke_member_of(f, t.get(), std::forward<Args>(args)...);
-    else
-        return invoke_member_of(f, *static_cast<T&&>(t), std::forward<Args>(args)...);
-}
-
-template<typename F, typename... Args>
-constexpr decltype(auto) invoke_target(F&& f, Args&&... args)
-{
-    if constexpr (std::is_member_pointer_v<std::remove_cvref_t<F>>)
-        return invoke_member(f, std::forward<Args>(args)...);
-    else
-        return std::forward<F>(f)(std::forward<Args>(args)...);
-}
-
-#ifdef __cpp_lib_reference_from_temporary
-template<typename R, typename T>
-constexpr inline bool reference_converts_from_temporary = std::reference_converts_from_temporary_v<R, T>;
-#else
-// libc++ 19 lacks the trait. Later libc++ has it but doesn't define the feature macro.
-template<typename R, typename T>
-constexpr inline bool reference_converts_from_temporary = __reference_converts_from_temporary(R, T);
-#endif
-
 template<typename F, typename Self, typename Call, bool Copyable, bool Noexcept, typename R, usize Capacity, usize Alignment, typename... Args>
 concept fits = !same_signature<std::remove_cvref_t<F>, Self> &&
-               !is_fu2_function<std::remove_cvref_t<F>> &&
+               !function_view_impl::is_function_view<std::remove_cvref_t<F>> &&
                sizeof(std::decay_t<F>) <= Capacity &&
                alignof(std::decay_t<F>) <= Alignment &&
                std::is_nothrow_move_constructible_v<std::decay_t<F>> &&
@@ -82,35 +40,6 @@ concept fits = !same_signature<std::remove_cvref_t<F>, Self> &&
                (!Copyable || std::is_copy_constructible_v<std::decay_t<F>>) &&
                (Noexcept ? std::is_nothrow_invocable_r_v<R, Call, Args...> : std::is_invocable_r_v<R, Call, Args...>) &&
                !reference_converts_from_temporary<R, std::invoke_result_t<Call, Args...>>;
-
-// Under UBSan, gcc can't fold a comparison of a function's address to another function's or to
-// null in constant evaluation (PR 71962). The ones it can't fold are false.
-template<typename P, typename Q> constexpr bool pointers_equal(P a, Q b) noexcept
-{
-#if defined __GNUC__ && !defined __clang__
-    if consteval
-    {
-        if (!__builtin_constant_p(a == b))
-            return false;
-    }
-#endif
-    return a == b;
-}
-
-// As in fu2, a callable that converts to false, such as a null pointer or an empty function,
-// leaves the function empty.
-template<typename F> constexpr bool is_empty_callable(F& f)
-{
-    if constexpr (std::is_pointer_v<std::remove_cv_t<F>> || std::is_member_pointer_v<std::remove_cv_t<F>>)
-        return pointers_equal(f, nullptr);
-    // A captureless lambda, through its function pointer.
-    else if constexpr (std::is_class_v<F> && requires (F& g) { requires std::is_pointer_v<decltype(+g)>; })
-        return pointers_equal(+f, nullptr);
-    else if constexpr (std::is_class_v<F> && requires (F& g) { static_cast<bool>(g); })
-        return !static_cast<bool>(f);
-    else
-        return false;
-}
 
 // Constant evaluation can't create an object inside a byte array, so there the callable lives
 // on the heap, freed before the evaluation ends.

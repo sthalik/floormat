@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "run.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"

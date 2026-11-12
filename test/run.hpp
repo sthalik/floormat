@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/function2.fwd.hpp"
+#include "compat/function-view-fwd.hpp"
 #include "compat/nanosecond.hpp"
 #include "src/rotation.hpp"
 #include "src/log.hpp"
@@ -8,7 +8,6 @@
 namespace floormat::Run {
 
 using enum rotation;
-using fu2::function_view;
 using Function = function_view<Ns() const>;
 
 critter_proto make_proto(float accel);

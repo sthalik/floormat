@@ -1,6 +1,5 @@
 #pragma once
 #include "util.hpp"
-#include "compat/function2.hpp"
 #include "compat/assert.hpp"
 #include <concepts>
 
@@ -78,12 +77,6 @@ struct read_field<Obj, Type, Type Obj::*> {
     static constexpr Type read(const Obj& x, Type Obj::*r) { return x.*r; }
 };
 
-template<typename Obj, typename Type, bool Owning, bool Copyable, typename Capacity, bool Throwing, bool ExcGuarantee>
-struct read_field<Obj, Type, fu2::function_base<Owning, Copyable, Capacity, Throwing, ExcGuarantee, void(const Obj&, move_qualified<Type>) const>>
-{
-    template<typename F> static constexpr Type read(const Obj& x, F&& fun) { return fun(x); }
-};
-
 template<typename Obj, typename FieldType, FieldWriter<Obj, FieldType> W> struct write_field {
     static constexpr void write(Obj& x, W w, move_qualified<FieldType> value) { w(x, value); }
 };
@@ -96,11 +89,6 @@ struct write_field<Obj, FieldType, void(Obj::*)(move_qualified<FieldType>)> {
 template<typename Obj, typename FieldType>
 struct write_field<Obj, FieldType, FieldType Obj::*> {
     static constexpr void write(Obj& x, FieldType Obj::* w, move_qualified<FieldType> value) { x.*w = value; }
-};
-
-template<typename Obj, typename Type, bool Owning, bool Copyable, typename Capacity, bool Throwing, bool ExcGuarantee>
-struct write_field<Obj, Type, fu2::function_base<Owning, Copyable, Capacity, Throwing, ExcGuarantee, void(Obj&, move_qualified<Type>) const>> {
-    template<typename F> static constexpr void write(Obj& x, F&& fun, move_qualified<Type> value) { fun(x, value); }
 };
 
 template<typename Obj, typename FieldType>

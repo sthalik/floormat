@@ -44,6 +44,7 @@ void test_event_count();
 void test_float();
 void test_format();
 void test_fps();
+void test_function_view();
 void test_getopt();
 void test_grid();
 void test_hash();

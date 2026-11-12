@@ -6,7 +6,7 @@
 #include "scenery.hpp"
 #include "tile-bbox.hpp"
 #include "object-storage.inl"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat::detail::grid {

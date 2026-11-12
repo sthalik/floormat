@@ -11,7 +11,7 @@
 #include "src/search.hpp"
 #include "src/sweep-aabb.hpp"
 #include "src/raycast-line.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-registry.hpp"
 #include "src/point.inl"

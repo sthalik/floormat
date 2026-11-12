@@ -9,7 +9,7 @@
 #include "chunk.hpp"
 #include "RTree-search.hpp"
 #include "compat/floor-divmod.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/fwd/algorithm/sort.hpp"
 #include <array>
 #include <bit>

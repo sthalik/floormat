@@ -1,6 +1,6 @@
 #include "compat/debug.hpp"
 #include "compat/assert.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/constantly.hpp"
 #include "compat/nanosecond.inl"
 #include "src/critter.hpp"
@@ -22,7 +22,6 @@ namespace {
 
 namespace fm_debug = floormat::debug::detail;
 using enum rotation;
-using fu2::function_view;
 using Function = function_view<Ns() const>;
 
 critter_proto make_proto(float accel)

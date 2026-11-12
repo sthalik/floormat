@@ -9,7 +9,7 @@
 #include "renderer.hpp"
 #include "hole-cut.hpp"
 #include "sprite-atlas.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include <cr/GrowableArray.h>

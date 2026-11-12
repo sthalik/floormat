@@ -12,7 +12,7 @@
 #include "rotation.inl"
 #include "tile-bbox.hpp"
 #include "wall-atlas.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/constantly.hpp"
 #include "compat/zip.hpp"
 #include <bit>

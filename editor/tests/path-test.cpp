@@ -3,7 +3,7 @@
 #include "../imgui-raii.hpp"
 #include "../imgui-color.hpp"
 #include "compat/format.inl"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"
 #include "floormat/main.hpp"

@@ -18,7 +18,7 @@
 #include "world.hpp"
 #include "entity/name-of.hpp"
 #include "compat/floor-divmod.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/timer.hpp"
 #include <cr/GrowableArray.h>

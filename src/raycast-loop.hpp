@@ -24,8 +24,8 @@ struct line_cell
 
 // Called instead of visit for a cell whose bit is set and where p blocks an object, with the cell's objects.
 template<typename T>
-using object_cell_visitor = fu2::function_view<bool(const line_cell&, const Grid::Object::Grid&,
-                                                    Grid::Object::cell_object_view<T>) const>;
+using object_cell_visitor = function_view<bool(const line_cell&, const Grid::Object::Grid&,
+                                               Grid::Object::cell_object_view<T>) const>;
 
 // Visits the cells of the line's pixels, in chunk ch's frame, from first_step to last_step until a visitor
 // returns false. Cells are the pool's, skipping set bits where p blocks no object of an object pool, or chunks
@@ -34,7 +34,7 @@ template<typename Pool>
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
                          Pool pool, const Search::pred& p, Array<bool>* entry_blocked,
-                         fu2::function_view<bool(const line_cell&) const> visit,
+                         function_view<bool(const line_cell&) const> visit,
                          object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32);
 
 struct aabb_result

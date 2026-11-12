@@ -5,7 +5,7 @@
 #include "intra-coord.inl"
 #include "search.hpp"
 #include "tile-defs.hpp"
-#include "compat/function2.hpp"
+#include "compat/function-view.hpp"
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -27,7 +27,7 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
 }
 
 Optional<Cover::Script::peek> peek_spot(critter& c, point from, Vector2i axis, point threat, Optional<int> gun_offset,
-                                        const Search::pred& pred, fu2::function_view<bool(point)> sees)
+                                        const Search::pred& pred, function_view<bool(point)> sees)
 {
     auto& w = c.world();
     const auto body = Vector2i(c.bbox_size);
