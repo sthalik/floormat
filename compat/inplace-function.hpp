@@ -9,6 +9,20 @@
 #include <type_traits>
 #include <utility>
 
+#define FM_INPLACE_FUNCTION_QUALIFIERS(X)              \
+    X(, , false, false, none)                          \
+    X(const, , true, false, none)                      \
+    X(volatile, , false, true, none)                   \
+    X(const volatile, , true, true, none)              \
+    X(, &, false, false, lvalue)                       \
+    X(const, &, true, false, lvalue)                   \
+    X(volatile, &, false, true, lvalue)                \
+    X(const volatile, &, true, true, lvalue)           \
+    X(, &&, false, false, rvalue)                      \
+    X(const, &&, true, false, rvalue)                  \
+    X(volatile, &&, false, true, rvalue)               \
+    X(const volatile, &&, true, true, rvalue)
+
 namespace floormat::detail::inplace_function_impl {
 
 template<bool Const, bool Volatile, typename T>
@@ -20,17 +34,24 @@ using common_function_impl::reference_converts_from_temporary;
 using common_function_impl::pointers_equal;
 using common_function_impl::is_empty_callable;
 
-template<typename T, typename U> constexpr inline bool same_signature = false;
-template<bool C1, bool C2, bool Const, bool Volatile, ref_qualifier Ref, bool Noexcept,
-         usize Capacity1, usize Alignment1, usize Capacity2, usize Alignment2, typename R, typename... Args>
-constexpr inline bool same_signature<function<C1, Const, Volatile, Ref, Noexcept, Capacity1, Alignment1, R, Args...>,
-                                     function<C2, Const, Volatile, Ref, Noexcept, Capacity2, Alignment2, R, Args...>> = true;
+template<typename T, typename U> struct same_signature
+{
+    static constexpr bool value = false;
+};
+template<typename T, bool C1, bool Const, bool Volatile, ref_qualifier Ref, bool Noexcept,
+         usize Capacity1, usize Alignment1, typename R, typename... Args>
+struct same_signature<T, function_base<C1, Const, Volatile, Ref, Noexcept, Capacity1, Alignment1, R, Args...>>
+{
+    template<bool C, usize Capacity, usize Alignment>
+    static void test(const function_base<C, Const, Volatile, Ref, Noexcept, Capacity, Alignment, R, Args...>*);
+    static constexpr bool value = requires(const T* p) { test(p); };
+};
 
 // Class types go by reference, so that a signature can name an incomplete one.
 template<typename T> using param = std::conditional_t<std::is_reference_v<T> || std::is_scalar_v<T>, T, T&&>;
 
 template<typename F, typename Self, typename Call, bool Copyable, bool Noexcept, typename R, usize Capacity, usize Alignment, typename... Args>
-concept fits = !same_signature<std::remove_cvref_t<F>, Self> &&
+concept fits = !same_signature<std::remove_cvref_t<F>, Self>::value &&
                !function_view_impl::is_function_view<std::remove_cvref_t<F>> &&
                sizeof(std::decay_t<F>) <= Capacity &&
                alignof(std::decay_t<F>) <= Alignment &&
@@ -154,15 +175,15 @@ struct invoker
 };
 
 template<bool Copyable, bool Const, bool Volatile, ref_qualifier Ref, bool Noexcept, usize Capacity, usize Alignment, typename R, typename... Args>
-class function final
+class function_base
 {
     static_assert(Capacity > 0);
 
-    template<bool, bool, bool, ref_qualifier, bool, usize, usize, typename, typename...> friend class function;
+    template<bool, bool, bool, ref_qualifier, bool, usize, usize, typename, typename...> friend class function_base;
 
     using invoker_type = invoker<Const, Volatile, Ref, Noexcept, R, Args...>;
     template<typename F> using callable = typename invoker_type::template callable<F>;
-    template<bool C, usize Cap, usize Al> using similar = function<C, Const, Volatile, Ref, Noexcept, Cap, Al, R, Args...>;
+    template<bool C, usize Cap, usize Al> using similar = function_base<C, Const, Volatile, Ref, Noexcept, Cap, Al, R, Args...>;
 
     // Outside the vtable, so that a call loads one pointer.
     typename invoker_type::fn* _invoke = &invoker_type::invoke_empty;
@@ -256,17 +277,17 @@ class function final
     // so moving a target through it never splits a line or a page.
     static consteval usize local_alignment() noexcept
     {
-        usize a = alignof(function);
-        while (a < sizeof(function) && a < 64)
+        usize a = alignof(function_base);
+        while (a < sizeof(function_base) && a < 64)
             a *= 2;
         return a;
     }
 
     // The old target may own the source, as when a running continuation assigns its successor,
     // so the source moves out first.
-    template<typename Source> constexpr void replace(Source&& source) noexcept(std::is_nothrow_constructible_v<function, Source>)
+    template<typename Source> constexpr void replace(Source&& source) noexcept(std::is_nothrow_constructible_v<function_base, Source>)
     {
-        alignas(local_alignment()) function next{std::forward<Source>(source)};
+        alignas(local_alignment()) function_base next{std::forward<Source>(source)};
         destroy();
         take(next);
     }
@@ -287,12 +308,12 @@ class function final
 
 public:
     // gcc rejects a constexpr variable whose union has no active member.
-    constexpr function() noexcept: _heap{nullptr} {}
-    constexpr function(decltype(nullptr)) noexcept: _heap{nullptr} {}
+    constexpr function_base() noexcept: _heap{nullptr} {}
+    constexpr function_base(decltype(nullptr)) noexcept: _heap{nullptr} {}
 
     template<typename F>
-    requires fits<F, function, callable<std::decay_t<F>>, Copyable, Noexcept, R, Capacity, Alignment, Args...>
-    constexpr function(F&& f) noexcept(std::is_nothrow_constructible_v<std::decay_t<F>, F>):
+    requires fits<F, function_base, callable<std::decay_t<F>>, Copyable, Noexcept, R, Capacity, Alignment, Args...>
+    constexpr function_base(F&& f) noexcept(std::is_nothrow_constructible_v<std::decay_t<F>, F>):
         _invoke{&invoker_type::template invoke<std::decay_t<F>>}, _vt{&table<std::decay_t<F>>}
     {
         if (is_empty_callable(f))
@@ -306,20 +327,20 @@ public:
         }
     }
 
-    constexpr function(function&& other) noexcept: _invoke{other._invoke}, _vt{other._vt} { relocate(other); }
+    constexpr function_base(function_base&& other) noexcept: _invoke{other._invoke}, _vt{other._vt} { relocate(other); }
 
     template<bool C, usize Cap, usize Al>
     requires (Cap <= Capacity && Al <= Alignment && (C || !Copyable))
-    constexpr function(similar<C, Cap, Al>&& other) noexcept: _invoke{other._invoke}, _vt{other._vt} { relocate(other); }
+    constexpr function_base(similar<C, Cap, Al>&& other) noexcept: _invoke{other._invoke}, _vt{other._vt} { relocate(other); }
 
-    constexpr function(const function& other) requires Copyable { copy_from(other); }
-    function(const function&) requires (!Copyable) = delete;
+    constexpr function_base(const function_base& other) requires Copyable { copy_from(other); }
+    function_base(const function_base&) requires (!Copyable) = delete;
 
     template<usize Cap, usize Al>
     requires (Cap <= Capacity && Al <= Alignment)
-    constexpr function(const similar<true, Cap, Al>& other) { copy_from(other); }
+    constexpr function_base(const similar<true, Cap, Al>& other) { copy_from(other); }
 
-    constexpr function& operator=(function&& other) noexcept
+    constexpr function_base& operator=(function_base&& other) noexcept
     {
         replace(std::move(other));
         return *this;
@@ -327,28 +348,28 @@ public:
 
     template<bool C, usize Cap, usize Al>
     requires (Cap <= Capacity && Al <= Alignment && (C || !Copyable))
-    constexpr function& operator=(similar<C, Cap, Al>&& other) noexcept
+    constexpr function_base& operator=(similar<C, Cap, Al>&& other) noexcept
     {
         replace(std::move(other));
         return *this;
     }
 
-    constexpr function& operator=(const function& other) requires Copyable
+    constexpr function_base& operator=(const function_base& other) requires Copyable
     {
         replace(other);
         return *this;
     }
-    function& operator=(const function&) requires (!Copyable) = delete;
+    function_base& operator=(const function_base&) requires (!Copyable) = delete;
 
     template<usize Cap, usize Al>
     requires (Cap <= Capacity && Al <= Alignment)
-    constexpr function& operator=(const similar<true, Cap, Al>& other)
+    constexpr function_base& operator=(const similar<true, Cap, Al>& other)
     {
         replace(other);
         return *this;
     }
 
-    constexpr function& operator=(std::nullptr_t) noexcept
+    constexpr function_base& operator=(std::nullptr_t) noexcept
     {
         destroy();
         clear();
@@ -356,8 +377,8 @@ public:
     }
 
     template<typename F>
-    requires fits<F, function, callable<std::decay_t<F>>, Copyable, Noexcept, R, Capacity, Alignment, Args...>
-    constexpr function& operator=(F&& f) noexcept(std::is_nothrow_constructible_v<std::decay_t<F>, F>)
+    requires fits<F, function_base, callable<std::decay_t<F>>, Copyable, Noexcept, R, Capacity, Alignment, Args...>
+    constexpr function_base& operator=(F&& f) noexcept(std::is_nothrow_constructible_v<std::decay_t<F>, F>)
     {
         using D = std::decay_t<F>;
         if (is_empty_callable(f))
@@ -377,19 +398,19 @@ public:
         return *this;
     }
 
-    constexpr ~function() noexcept { _vt->destroy(storage(*this)); }
+    constexpr ~function_base() noexcept { _vt->destroy(storage(*this)); }
 
-    constexpr void swap(function& other) noexcept
+    constexpr void swap(function_base& other) noexcept
     {
         if (this != &other)
         {
-            alignas(local_alignment()) function tmp{std::move(other)};
+            alignas(local_alignment()) function_base tmp{std::move(other)};
             other.take(*this);
             take(tmp);
         }
     }
 
-    friend constexpr void swap(function& a, function& b) noexcept { a.swap(b); }
+    friend constexpr void swap(function_base& a, function_base& b) noexcept { a.swap(b); }
 
 #define FM_INPLACE_FUNCTION_CALL(CV, REF, IS_CONST, IS_VOLATILE, REF_KIND)                         \
     constexpr R operator()(Args... args) CV REF noexcept(Noexcept)                                  \
@@ -405,9 +426,33 @@ public:
     constexpr explicit operator bool() const noexcept { return !empty(); }
     constexpr explicit operator bool() const volatile noexcept { return !empty(); }
 
-    friend constexpr bool operator==(const function& f, std::nullptr_t) noexcept { return f.empty(); }
+    friend constexpr bool operator==(const function_base& f, std::nullptr_t) noexcept { return f.empty(); }
 };
 
 } // namespace floormat::detail::inplace_function_impl
+
+namespace floormat {
+
+#define FM_INPLACE_FUNCTION_CLASS(NAME, COPYABLE, CV, REF, IS_CONST, IS_VOLATILE, REF_KIND)                     \
+    template<typename R, typename... Args, bool Noexcept, usize Capacity, usize Alignment>                      \
+    class NAME<R(Args...) CV REF noexcept(Noexcept), Capacity, Alignment> final:                                \
+        public detail::inplace_function_impl::function_base<COPYABLE, IS_CONST, IS_VOLATILE,                    \
+            detail::inplace_function_impl::ref_qualifier::REF_KIND, Noexcept, Capacity, Alignment, R, Args...>  \
+    {                                                                                                           \
+        using base_type = detail::inplace_function_impl::function_base<COPYABLE, IS_CONST, IS_VOLATILE,         \
+            detail::inplace_function_impl::ref_qualifier::REF_KIND, Noexcept, Capacity, Alignment, R, Args...>; \
+                                                                                                                \
+    public:                                                                                                     \
+        using base_type::base_type;                                                                             \
+        using base_type::operator=;                                                                             \
+    };
+#define FM_INPLACE_FUNCTION_SIGNATURE(CV, REF, IS_CONST, IS_VOLATILE, REF_KIND)                     \
+    FM_INPLACE_FUNCTION_CLASS(inplace_function, false, CV, REF, IS_CONST, IS_VOLATILE, REF_KIND)    \
+    FM_INPLACE_FUNCTION_CLASS(inplace_copyable_function, true, CV, REF, IS_CONST, IS_VOLATILE, REF_KIND)
+FM_INPLACE_FUNCTION_QUALIFIERS(FM_INPLACE_FUNCTION_SIGNATURE)
+#undef FM_INPLACE_FUNCTION_SIGNATURE
+#undef FM_INPLACE_FUNCTION_CLASS
+
+} // namespace floormat
 
 #undef FM_INPLACE_FUNCTION_QUALIFIERS

@@ -218,6 +218,9 @@ struct maybe_empty
 
 constexpr u64 triple(u64 x) noexcept { return 3 * x; }
 
+template<typename T, usize N, usize A> constexpr T call_with(const inplace_function<T(T) const, N, A>& f, T x) { return f(x); }
+template<typename T, usize N, usize A> constexpr T call_copy(inplace_copyable_function<T(T), N, A> f, T x) { return f(x); }
+
 using CF = inplace_copyable_function<u64(u64), 40, 8>;
 using add_fn = u64 (member_probe::*)(u64) const noexcept;
 
@@ -337,6 +340,18 @@ static_assert(std::is_assignable_v<F&, const CF&>);
 static_assert(!std::is_constructible_v<CF, F>);
 static_assert(!std::is_assignable_v<CF&, F>);
 
+template<usize Capacity> using u64_function_base =
+    detail::inplace_function_impl::function_base<false, false, false, detail::inplace_function_impl::ref_qualifier::none,
+                                                 false, Capacity, 8, u64, u64>;
+template<typename T> constexpr inline bool same_signature_as_F =
+    detail::inplace_function_impl::same_signature<T, u64_function_base<40>>::value;
+struct derived_function final : u64_function_base<16> {};
+static_assert(same_signature_as_F<inplace_function<u64(u64), 16, 8>>);
+static_assert(same_signature_as_F<CF>);
+static_assert(same_signature_as_F<derived_function>);
+static_assert(!same_signature_as_F<inplace_function<u64(u64) const, 16, 8>>);
+static_assert(!same_signature_as_F<sized<40>>);
+
 // The source is bigger than the target's capacity, so only moving its target across works.
 static_assert(std::is_nothrow_constructible_v<inplace_function<u64(u64), 16, 8>, inplace_function<u64(u64), 8, 8>>);
 static_assert(std::is_constructible_v<inplace_function<u64(u64), 40, 16>, inplace_function<u64(u64), 16, 8>>);
@@ -409,6 +424,7 @@ constexpr bool test_semantics()
 
     const C c = [k = u64{7}](u64 x) noexcept { return x * k; };
     fm_assert(c(3) == 21);
+    fm_assert(call_with(c, u64{5}) == 35);
     C sum = mutable_sum{};
     sum(11);
     fm_assert(sum(13) == 24);
@@ -646,6 +662,8 @@ constexpr bool test_copyable()
     CF copy = counter;
     fm_assert(counter(1) == 6);
     fm_assert(copy(2) == 7);
+    fm_assert(call_copy(counter, u64{3}) == 9);
+    fm_assert(counter(1) == 7);
 
     inplace_copyable_function<u64(u64), 16, 8> small = triple;
     CF big = small;
