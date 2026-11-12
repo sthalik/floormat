@@ -12,17 +12,6 @@ namespace floormat {
 template class basic_bptr<hole, non_atomic_refcount>;
 template class basic_bptr<const hole, non_atomic_refcount>;
 
-namespace {
-
-void mark_chunk_modifiedʹ(chunk& c)
-{
-    c.mark_passability_modified();
-    //c.mark_ground_modified(); // todo!
-    c.mark_walls_modified();
-}
-
-} // namespace
-
 hole_proto::~hole_proto() noexcept = default;
 hole_proto::hole_proto(const hole_proto&) = default;
 hole_proto& hole_proto::operator=(const hole_proto&) = default;
@@ -75,10 +64,11 @@ hole::operator hole_proto() const
 
 void hole::mark_neighbor_chunks_modified()
 {
+    //c->mark_ground_modified(); // todo!
     for (auto* const cʹ : c->world().neighbors(c->coord()))
         if (cʹ)
-            mark_chunk_modifiedʹ(*cʹ);
-    mark_chunk_modifiedʹ(*c);
+            cʹ->mark_modified_by_neighbor();
+    c->mark_walls_modified();
 }
 
 i32 hole::depth_offset() const

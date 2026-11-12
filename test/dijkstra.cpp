@@ -631,6 +631,15 @@ void check_critter_corridor(u32 cell)
     };
 
     expect("alone", S, east, true);
+    {
+        const auto g = objects[c];
+        fm_assert(!g.is_stale());
+        const auto far = Vector2i{2*(i32)chunk_size_xy + 512, 512};
+        const auto F = add_npc(w, at_px(far), size);
+        move_to(F, far + Vector2i{0, 192});
+        fm_assert(!g.is_marked_stale() && !g.is_stale());
+        expect("alone, with a critter two chunks east", S, east, true);
+    }
     const auto B = add_npc(w, at_px({512, 512}), size);
     expect("past a critter", S, east, false);
     {
@@ -765,12 +774,26 @@ void check_door_in_wall_gap()
     add_floors(w, from, max_dist, astar::default_div_size);
     add_rect(w, {256, 472}, {480, 488});
     add_rect(w, {544, 472}, {768, 488});
-    auto proto = loader.scenery("door1");
-    proto.pass = pass_mode::blocked;
-    proto.frame = (u16)(proto.atlas->info().nframes - 1);
-    const auto doorʹ = w.make_scenery(w.make_id(), {flush_ch, {8, 8}}, move(proto));
-    fm_assert(doorʹ->scenery_type() == scenery_type::door && doorʹ->is_dynamic());
-    auto& door = static_cast<door_scenery&>(*doorʹ);
+    const auto make_door = [&](global_coords pos) {
+        auto proto = loader.scenery("door1");
+        proto.pass = pass_mode::blocked;
+        proto.frame = (u16)(proto.atlas->info().nframes - 1);
+        auto sc = w.make_scenery(w.make_id(), pos, move(proto));
+        fm_assert(sc->scenery_type() == scenery_type::door && sc->is_dynamic());
+        return sc;
+    };
+    const auto open = [](const bptr<scenery>& sc) {
+        auto& d = static_cast<door_scenery&>(*sc);
+        auto i = d.index();
+        fm_assert(d.activate(i));
+        for (auto n = 0u; d.active; n++)
+        {
+            fm_assert(n < 100);
+            d.update(sc, i, Second);
+        }
+        fm_assert(d.pass == pass_mode::pass);
+    };
+    const auto doorʹ = make_door({flush_ch, {8, 8}});
     const auto S = add_npc(w, from, size);
     auto& c = w[flush_ch];
     c.mark_passability_modified();
@@ -789,19 +812,22 @@ void check_door_in_wall_gap()
                 fm_abort("door in a wall gap: smoothed segment %zu crosses a collider", k);
         return r.cost();
     };
-    auto& pool = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, size, pass_mode::pass});
+    const auto params = Grid::Pass::Params{astar::default_div_size, size, pass_mode::pass};
+    auto& pool = A.pool_registry().pass_pool(params);
     const auto through = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, own, pred);
     fm_assert(through.is_found());
-    fm_assert(search() > through.cost());
+    const auto shut = search();
+    fm_assert(shut > through.cost());
 
-    auto i = door.index();
-    fm_assert(door.activate(i));
-    for (auto n = 0u; door.active; n++)
     {
-        fm_assert(n < 100);
-        door.update(doorʹ, i, Second);
+        const auto g = A.pool_registry().object_pool(params)[c];
+        fm_assert(!g.is_stale());
+        open(make_door({chunk_coords_{2, 0, 0}, {8, 8}}));
+        fm_assert(!g.is_marked_stale() && !g.is_stale());
+        fm_assert(search() == shut);
     }
-    fm_assert(door.pass == pass_mode::pass);
+
+    open(doorʹ);
     fm_assert(search() == through.cost());
 }
 

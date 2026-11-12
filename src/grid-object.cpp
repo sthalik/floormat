@@ -393,11 +393,13 @@ void Grid::mask_pass_bits(const u8* pass_bits, u8* out, ArrayView<const bool> en
 }
 
 u32 Grid::div_count() const { return grid->params.div_count; }
+u64 Grid::built_pass_gen() const { return grid->built_pass_gen; }
 bool Grid::is_marked_stale() const { return grid->is_marked_stale(); }
 bool Grid::is_stale() const
 {
     return grid->is_marked_stale() || !grid->is_current() || grid->objects_maybe_dirty();
 }
+bool Grid::is_stale(u64 pass_gen) const { return pass_gen != grid->built_pass_gen || is_stale(); }
 void Grid::mark_stale() { grid->mark_stale(); }
 void Grid::build_if_stale() { grid->build_if_stale(); }
 

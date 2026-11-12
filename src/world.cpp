@@ -167,16 +167,14 @@ void world::collect(bool force, bool quiet)
         chunk* next = c->_next;
         if (c->empty(force))
         {
-            // Grids skip a missing chunk, so deleting one moves the stamps of the chunks whose cover grids read it.
+            // max_pass_gen() skips a missing chunk, so deleting one moves the stamps of the chunks around it.
             const auto coord = c->coord();
             delete c;
             for (auto dy = -2; dy <= 2; dy++)
                 for (auto dx = -2; dx <= 2; dx++)
                     if (auto* nb = dx || dy ? at(coord + Vector2i{dx, dy}) : nullptr)
-                    {
-                        nb->_pass_gen = next_pass_gen();
-                        detail::grid::mark_grids_stale(*this, nb->coord());
-                    }
+                        nb->_neighbor_pass_gen = next_pass_gen();
+            detail::grid::mark_grids_stale(*this, coord);
             deleted++;
         }
         c = next;
@@ -416,7 +414,7 @@ u64 world::max_pass_gen(chunk_coords_ ch, u32 radius) const noexcept
     for (auto y = -n; y <= n; y++)
         for (auto x = -n; x <= n; x++)
             if (const auto* c = at(ch + Vector2i{x, y}))
-                gen = Math::max(gen, c->pass_gen());
+                gen = Math::max(gen, Math::max(c->pass_gen(), c->neighbor_pass_gen()));
     return gen;
 }
 

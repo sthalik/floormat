@@ -77,9 +77,13 @@ public:
     void mask_pass_bits(const u8* pass_bits, u8* out, ArrayView<const bool> entry_blocked) const;
 
     u32 div_count() const;
+    /// @copydoc floormat::Grid::Pass::Grid::built_pass_gen()
+    u64 built_pass_gen() const;
     /// @copydoc floormat::Grid::Pass::Grid::is_marked_stale()
     bool is_marked_stale() const;
     bool is_stale() const;
+    /// @copydoc floormat::Grid::Pass::Grid::is_stale(u64)
+    bool is_stale(u64 pass_gen) const;
     void mark_stale();
     void build_if_stale();
 };

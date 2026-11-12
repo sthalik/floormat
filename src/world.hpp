@@ -53,10 +53,8 @@ private:
     void register_chunk(chunk* c) noexcept;
     void unregister_chunk(chunk* c) noexcept;
     chunk& make_chunk_(chunk_coords_ coord);
-    /// Allocate the next passability-generation stamp: chunks store it in _pass_gen at construction and on
-    /// each change, or in _objects_gen for critters and dynamic scenery. A grid is stale once a chunk in its
-    /// range holds a newer _pass_gen than its build, or for an object grid, a newer _objects_gen.
-    /// Monotonic uint64, so a chunk reused at a recycled address can't collide (ABA).
+    /// Allocate the next stamp for chunk::_pass_gen, _objects_gen or _neighbor_pass_gen. Monotonic, so a
+    /// chunk reused at a recycled address can't collide (ABA).
     u64 next_pass_gen() noexcept;
 
     [[noreturn]] static void throw_on_wrong_object_type(object_id id, object_type actual, object_type expected);
@@ -113,7 +111,8 @@ public:
     Ns game_time() const;
     void advance_game_time(Ns dt);
     u64 pass_gen() const noexcept;
-    /// @return The largest chunk::pass_gen() within @p radius chunks of @p ch on each axis. Ignores objects_gen().
+    /// @return The largest chunk::pass_gen() or neighbor_pass_gen() within @p radius chunks of @p ch on each axis.
+    /// Ignores objects_gen().
     u64 max_pass_gen(chunk_coords_ ch, u32 radius) const noexcept;
 
     template<typename T, bool sorted = true, typename... Xs>

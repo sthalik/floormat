@@ -1906,6 +1906,11 @@ void test_movement_range_cache()
     fm_assert_equal(n, range.border(w, pools, threat, side, reach).size());
     fm_assert(g.is_marked_stale());
 
+    const auto radius = (i16)((reach + 2*astar::default_div_size)/chunk_size_xy + 2);
+    (void)add_blocker(w, global_coords{chunk_coords_{(i16)(radius + 1), 0, 0}, {0, 8}}, {16, 16});
+    fm_assert_equal(n, range.border(w, pools, threat, side, reach).size());
+    fm_assert(g.is_marked_stale());
+
     (void)add_blocker(w, global_coords{chunk_coords_{1, 0, 0}, {0, 8}}, {16, 16});
     fm_assert_equal(n, range.border(w, pools, threat, side, reach).size());
     fm_assert(!g.is_marked_stale());

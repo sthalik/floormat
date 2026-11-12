@@ -156,19 +156,21 @@ void test_neighbor_dirty()
     // _pass_modified starts out set, which is what used to swallow the neighbor marking
     fm_assert(c.is_passability_modified());
 
-    const auto gen0 = n.pass_gen();
+    const auto pass_gen = n.pass_gen();
+    const auto gen0 = n.neighbor_pass_gen();
     auto h = w.make_object<hole>(w.make_id(), global_coords{C, {8, 8}}, hole_proto{});
     fm_assert(n.is_passability_modified());
-    fm_assert_not_equal(gen0, n.pass_gen());
+    fm_assert_not_equal(gen0, n.neighbor_pass_gen());
 
     n.ensure_passability();
     fm_assert(!n.is_passability_modified());
     fm_assert(c.is_passability_modified());
 
-    const auto gen1 = n.pass_gen();
+    const auto gen1 = n.neighbor_pass_gen();
     c.remove_object(*h, h->index());
     fm_assert(n.is_passability_modified());
-    fm_assert_not_equal(gen1, n.pass_gen());
+    fm_assert_not_equal(gen1, n.neighbor_pass_gen());
+    fm_assert_equal(pass_gen, n.pass_gen());
 }
 
 } // namespace

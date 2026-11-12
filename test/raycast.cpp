@@ -166,7 +166,18 @@ void test_edit_in_same_frame()
     };
 
     fm_assert(ray_passes());
-    c[{8, 8}].wall_west() = wall_image_proto{loader.invalid_wall_atlas().atlas, (variant_t)-1};
+    const auto wall = wall_image_proto{loader.invalid_wall_atlas().atlas, (variant_t)-1};
+    {
+        auto g = pool[c];
+        const auto build_no = g.build_no();
+        auto& far = w[chunk_coords_{2, 0, 0}];
+        far[{8, 8}].wall_west() = wall;
+        far.mark_passability_modified();
+        fm_assert(!g.is_marked_stale() && !g.is_stale());
+        fm_assert(ray_passes());
+        fm_assert(g.build_no() == build_no);
+    }
+    c[{8, 8}].wall_west() = wall;
     c.mark_passability_modified();
     fm_assert(w.frame_no() == frame);
     fm_assert(!ray_passes());
@@ -565,6 +576,25 @@ void test_object_pool()
 {
     constexpr auto ch = chunk_coords_{0, 0, 0};
     auto w = world();
+    const auto make_door = [&](global_coords pos) {
+        auto proto = loader.scenery("door1");
+        proto.pass = pass_mode::blocked;
+        proto.frame = (u16)(proto.atlas->info().nframes - 1);
+        auto sc = w.make_scenery(w.make_id(), pos, move(proto));
+        fm_assert(sc->scenery_type() == scenery_type::door && sc->is_dynamic());
+        return sc;
+    };
+    const auto open = [](const bptr<scenery>& sc) {
+        auto& d = static_cast<door_scenery&>(*sc);
+        auto i = d.index();
+        fm_assert(d.activate(i));
+        for (auto n = 0u; d.active; n++)
+        {
+            fm_assert(n < 100);
+            d.update(sc, i, Second);
+        }
+        fm_assert(d.pass == pass_mode::pass);
+    };
     const auto add_static = [&](global_coords pos, Vector2ub size, Vector2b offset) {
         scenery_proto p;
         p.atlas = loader.invalid_scenery_atlas().proto->atlas;
@@ -576,11 +606,7 @@ void test_object_pool()
         fm_assert(!sc->is_dynamic());
         return sc;
     };
-    auto proto = loader.scenery("door1");
-    proto.pass = pass_mode::blocked;
-    proto.frame = (u16)(proto.atlas->info().nframes - 1);
-    const auto doorʹ = w.make_scenery(w.make_id(), {ch, {8, 8}}, move(proto));
-    fm_assert(doorʹ->scenery_type() == scenery_type::door && doorʹ->is_dynamic());
+    const auto doorʹ = make_door({ch, {8, 8}});
     auto& door = static_cast<door_scenery&>(*doorʹ);
     auto cp = critter_proto{};
     cp.bbox_size = Vector2ub{32};
@@ -641,13 +667,15 @@ void test_object_pool()
     fm_assert(sweep(row_east, row_west, &object_pool, Search::never_continue()).collider.id == C3->id);
     fm_assert(sweep(row_east, row_west, &object_pool, Search::without_critters()).collider.id == S3->id);
 
-    auto i = door.index();
-    fm_assert(door.activate(i));
-    for (auto n = 0u; door.active; n++)
     {
-        fm_assert(n < 100);
-        door.update(doorʹ, i, Second);
+        const auto g = object_pool[w[ch]];
+        fm_assert(!g.is_stale());
+        open(make_door({chunk_coords_{2, 0, 0}, {8, 8}}));
+        fm_assert(!g.is_marked_stale() && !g.is_stale());
+        fm_assert(!ray(door_from, door_to, &object_pool, Search::without_critters()).success);
     }
+
+    open(doorʹ);
     fm_assert(door.pass == pass_mode::pass);
     fm_assert(ray(door_from, door_to, &object_pool, Search::without_critters()).success);
 }

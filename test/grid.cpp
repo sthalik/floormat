@@ -97,6 +97,38 @@ u32 count_passable_built(Pass::Pool& pool, chunk& c)
     return count_passable(g);
 }
 
+template<typename Pool>
+struct far_grid
+{
+    world& w;
+    Pool& pool;
+    chunk_coords_ ch;
+    u64 build_no;
+
+    far_grid(world& w, Pool& pool, chunk_coords_ changed, i32 dist):
+        w{w}, pool{pool}, ch{changed + Vector2i{dist, 0}}
+    {
+        auto& c = w[ch];
+        add_ground_all(c);
+        rebuild_passability(c);
+        auto g = pool[c];
+        g.build_if_stale();
+        build_no = g.build_no();
+    }
+
+    void check(const char* what) const
+    {
+        auto g = pool[*w.at(ch)];
+        if (g.is_marked_stale() || g.is_stale())
+        {
+            ERR << "!!! fatal: grid of chunk" << (int)ch.x << (int)ch.y << "stale after" << what;
+            fm_abort("a change two or more chunks away made a grid stale");
+        }
+        g.build_if_stale();
+        fm_assert(g.build_no() == build_no);
+    }
+};
+
 void test_ground_only_is_fully_passable(u32 div_size)
 {
     auto w = world();
@@ -130,9 +162,11 @@ void test_wall_blocks_some_cells(u32 div_size)
         const auto dc = grid.div_count();
         fm_assert(count_passable(grid) == dc * dc);
     }
+    const far_grid far{w, pool, COORD, 2};
 
     add_wall_north(c, {8, 8});
     rebuild_passability(c);
+    far.check("a wall");
 
     tick(w, pool);
     {
@@ -182,9 +216,11 @@ void test_neighbor_cascade(u32 div_size)
     g0.build_if_stale();
     g1.build_if_stale();
     const auto base1 = count_passable(g1);
+    const far_grid far{w, pool, COORD_E, 2};
 
     add_wall_north(c1, {0, 0});
     rebuild_passability(c1);
+    far.check("a wall");
 
     tick(w, pool);
     Pass::Grid g1ʹ = pool[c1];
@@ -226,15 +262,18 @@ void test_add_remove_wall_restores_baseline(u32 div_size)
     Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}, Search::without_critters()};
     tick(w, pool);
     const auto baseline = count_passable_built(pool, c);
+    const far_grid far{w, pool, COORD, 2};
 
     add_wall_north(c, {8, 8});
     rebuild_passability(c);
+    far.check("adding a wall");
     tick(w, pool);
     const auto with_wall = count_passable_built(pool, c);
     fm_assert(with_wall < baseline);
 
     c[{8, 8}].wall_north() = wall_image_proto{};
     rebuild_passability(c);
+    far.check("removing a wall");
     tick(w, pool);
     const auto restored = count_passable_built(pool, c);
     fm_assert(restored == baseline);
@@ -253,10 +292,12 @@ void test_neighbor_west_wall_affects_east_edge(u32 div_size)
     Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}, Search::without_critters()};
     tick(w, pool);
     const auto base0 = count_passable_built(pool, c0);
+    const far_grid far{w, pool, COORD_E, 2};
 
     for (auto y = 0u; y < TILE_MAX_DIM; y++)
         c1[{0, (u8)y}].wall_west() = wall_proto();
     rebuild_passability(c1);
+    far.check("a west wall");
 
     tick(w, pool);
     const auto after0 = count_passable_built(pool, c0);
@@ -452,16 +493,19 @@ void test_chunk_reinsertion_after_collect(u32 div_size)
     { Pass::Grid g = pool[*w.at(COORD)];
       g.build_if_stale();
       fm_assert(count_passable(g) > 0); }
+    const far_grid far{w, pool, COORD, 2};
 
     clear_ground_all(*w.at(COORD));
     w.collect(true, true);
     fm_assert(w.at(COORD) == nullptr);
+    far.check("collecting");
 
     tick(w, pool);
 
     auto& c2 = w[COORD];
     add_ground_all(c2);
     rebuild_passability(c2);
+    far.check("reinserting");
 
     tick(w, pool);
     Pass::Grid g2 = pool[c2];
@@ -663,15 +707,18 @@ void test_many_walls_strictly_reduce_passable(u32 div_size)
     Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}, Search::without_critters()};
     tick(w, pool);
     const auto base = count_passable_built(pool, c);
+    const far_grid far{w, pool, COORD, 2};
 
     add_wall_north(c, {4, 4});
     rebuild_passability(c);
+    far.check("the first wall");
     tick(w, pool);
     const auto one = count_passable_built(pool, c);
     fm_assert(one < base);
 
     add_wall_north(c, {8, 8});
     rebuild_passability(c);
+    far.check("the second wall");
     tick(w, pool);
     const auto two = count_passable_built(pool, c);
     fm_assert(two < one);
@@ -705,6 +752,7 @@ void test_explicit_wrapper_mark_stale_rebuilds(u32 div_size)
     rebuild_passability(c);
 
     Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}, Search::without_critters()};
+    const far_grid far{w, pool, COORD, 2};
     tick(w, pool);
     const auto base = count_passable_built(pool, c);
 
@@ -713,6 +761,7 @@ void test_explicit_wrapper_mark_stale_rebuilds(u32 div_size)
     fm_assert(!g.is_stale());
     fm_assert(!g.is_stale(pass_gen));
     g.mark_stale();
+    far.check("mark_stale()");
     fm_assert(g.is_stale());
     fm_assert(g.is_stale(pass_gen));
     g.build_if_stale();
@@ -733,9 +782,11 @@ void test_mark_modified_only_without_ensure_passability(u32 div_size)
     const auto base = count_passable_built(pool, c);
     const auto g = pool[c];
     const auto pass_gen = g.built_pass_gen();
+    const far_grid far{w, pool, COORD, 2};
 
     add_wall_north(c, {8, 8});
     c.mark_passability_modified();
+    far.check("mark_passability_modified()");
     fm_assert(g.is_stale());
     fm_assert(g.is_stale(pass_gen));
 
@@ -762,10 +813,12 @@ void test_neighbor_mark_only_without_ensure_detected(u32 div_size)
     const auto base0 = count_passable_built(pool, c0);
     const auto g0 = pool[c0];
     const auto pass_gen = g0.built_pass_gen();
+    const far_grid far{w, pool, COORD_E, 2};
 
     for (auto y = 0u; y < TILE_MAX_DIM; y++)
         c1[{0, (u8)y}].wall_west() = wall_proto();
     c1.mark_passability_modified();
+    far.check("mark_passability_modified()");
     fm_assert(g0.is_stale());
     fm_assert(g0.is_stale(pass_gen));
 
@@ -901,8 +954,10 @@ void test_neighbor_lifecycle(u32 div_size)
     Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}, Search::without_critters()};
     tick(w, pool);
     fm_assert(count_passable_built(pool, *w.at(A)) > 0);
+    const far_grid far{w, pool, B, 2};
 
     { auto& cb = w[B]; add_ground_all(cb); rebuild_passability(cb); }
+    far.check("creating");
     tick(w, pool);
     fm_assert(count_passable_built(pool, *w.at(A)) > 0);
     fm_assert(count_passable_built(pool, *w.at(B)) > 0);
@@ -911,12 +966,14 @@ void test_neighbor_lifecycle(u32 div_size)
     clear_ground_all(*w.at(B));
     w.collect(true, true);
     fm_assert(w.at(B) == nullptr);
+    far.check("collecting");
     tick(w, pool);
     fm_assert(pool.pooled_count() == pooled0 + 1);
     fm_assert(count_passable_built(pool, *w.at(A)) > 0);
 
     const auto pooled1 = pool.pooled_count();
     { auto& cb = w[B]; add_ground_all(cb); rebuild_passability(cb); }
+    far.check("recreating");
     tick(w, pool);
     fm_assert(count_passable_built(pool, *w.at(B)) > 0);
     fm_assert(pool.pooled_count() == pooled1 - 1);
@@ -935,12 +992,14 @@ void test_self_collect_with_neighbor(u32 div_size)
     tick(w, pool);
     (void)count_passable_built(pool, *w.at(A));
     (void)count_passable_built(pool, *w.at(B));
+    const far_grid far{w, pool, A, 2};
 
     const auto pooled0 = pool.pooled_count();
     clear_ground_all(*w.at(A));
     w.collect(true, true);
     fm_assert(w.at(A) == nullptr);
     fm_assert(w.at(B) != nullptr);
+    far.check("collecting");
 
     tick(w, pool);
     fm_assert(pool.pooled_count() == pooled0 + 1);
@@ -1746,11 +1805,13 @@ void test_cover_matches_reference(u32 div_size, ArrayView<const u32> octants)
     Grid::Cover::Grid g = pool[w[COORD]];
     g.build_if_stale();
     check_cover_octants(w, g, div_size, octants);
+    const far_grid far{w, pool, COORD, 3};
 
     auto& c = w[COORD];
     for (u8 i = 1; i < 15; i++)
         c[{i, 12}].wall_north() = wall_proto();
     rebuild_passability(c);
+    far.check("walls");
     g.build_if_stale();
     fm_assert(g.built_octants() == 1u);
     check_cover_octants(w, g, div_size, octants);
@@ -2076,20 +2137,24 @@ void test_cover_rebuilds_on_neighbor_change(u32 div_size)
     };
     auto n = build();
     fm_assert(build() == n);
+    const far_grid far{w, pool, COORD_E, 3};
 
     auto& e = w[COORD_E];
+    far.check("creating");
     fm_assert(build() != n);
     n = build();
     fm_assert(build() == n);
 
     add_ground_all(e);
     rebuild_passability(e);
+    far.check("adding ground");
     fm_assert(build() != n);
 
     clear_ground_all(e);
     n = build();
     w.collect(true, true);
     fm_assert(w.at(COORD_E) == nullptr);
+    far.check("collecting");
     fm_assert(build() != n);
 }
 
@@ -2117,10 +2182,12 @@ void test_cover_rebuilds_on_ring2_change(u32 div_size)
         return (u32)g.distance(cell, 0);
     };
     fm_assert(east(pool) == dc);
+    const far_grid far{w, pool, E2, 3};
 
     // x from 2048 - 80 to 2048 - 48 in COORD's frame
     add_blocker(w, {E2, local_coords{0, 8}}, {-64, 0}, {32, 64});
     rebuild_passability(w[E2]);
+    far.check("a blocker");
     const auto face = 2*(int)chunk_size_xy - 80, center = (int)chunk_size_xy - half_tile<int> - (int)div_size/2;
     const auto expected = (u32)(2*(face - center) + (int)div_size) / (2*div_size);
     fm_assert(expected < dc);
@@ -2158,11 +2225,13 @@ void test_cover_rebuilds_on_ring2_collect(u32 div_size)
         return (u32)g.distance(cell, 0);
     };
     fm_assert(east() < dc);
+    const far_grid far{w, pool, E2, 3};
 
     w[E2].kill_object(*blocker, blocker->index());
     clear_ground_all(w[E2]);
     w.collect(true, true);
     fm_assert(!w.at(E2));
+    far.check("collecting");
     fm_assert_equal(dc, east());
 }
 
@@ -2195,17 +2264,21 @@ struct stale_grids
 {
     world& w;
     Pass::Pool pass_pool{Pass::Params{16, pass_mode::pass}, Search::without_critters()};
+    Grid::Object::Pool object_pool{pass_pool};
     Pass::Pool cover_pass_pool{Pass::Params{16, pass_mode::shoot_through}, Search::without_critters()};
     Grid::Cover::Pool cover_pool{Grid::Cover::Params{16}, cover_pass_pool};
-    u64 pass_saved = 0, cover_saved = 0;
+    u64 pass_saved = 0, object_saved = 0, cover_saved = 0;
 
     explicit stale_grids(world& w): w{w}
     {
         auto pg = pass_pool[w[COORD]];
+        auto og = object_pool[w[COORD]];
         auto cg = cover_pool[w[COORD]];
         pg.build_if_stale();
+        og.build_if_stale();
         cg.build_if_stale();
         pass_saved = pg.built_pass_gen();
+        object_saved = og.built_pass_gen();
         cover_saved = cg.built_pass_gen();
     }
 
@@ -2213,9 +2286,22 @@ struct stale_grids
     {
         change();
         auto pg = pass_pool[w[COORD]];
+        auto og = object_pool[w[COORD]];
         auto cg = cover_pool[w[COORD]];
         check_stale(pg, pass_saved, pass, "pass", what, ch);
+        check_stale(og, object_saved, pass, "object", what, ch);
         check_stale(cg, cover_saved, cover, "cover", what, ch);
+
+        Pass::Pool fresh{pass_pool.params(), pass_pool.predicate()};
+        auto f = fresh[w[COORD]];
+        f.build_if_stale();
+        for (auto k = 0u; k < pg.div_count() * pg.div_count(); k++)
+            if (pg.bit(k) != f.bit(k))
+            {
+                ERR << "!!! fatal: pass grid differs from a fresh build after" << what
+                    << "chunk" << (int)ch.x << (int)ch.y << (int)ch.z;
+                fm_abort("pass grid differs from a fresh build");
+            }
     }
 };
 
@@ -2250,19 +2336,20 @@ void test_is_stale_on_chunk_create_and_collect()
     rebuild_passability(w[COORD]);
 
     stale_grids s{w};
-    const auto check = [&](chunk_coords_ ch, expect pass, expect pass_collect, expect cover) {
+    const auto check = [&](chunk_coords_ ch, expect pass, expect cover, bool restamps) {
         s.check(ch, "creating", [&] { (void)w[ch]; }, pass, cover);
-        s.check(ch, "collecting", [&] { w.collect(true, true); fm_assert(!w.at(ch)); }, pass_collect, cover);
+        const auto gen = w.max_pass_gen(COORD, 0);
+        s.check(ch, "collecting", [&] { w.collect(true, true); fm_assert(!w.at(ch)); }, pass, cover);
+        fm_assert((w.max_pass_gen(COORD, 0) > gen) == restamps);
     };
     for (auto y = -3; y <= 3; y++)
         for (auto x = -3; x <= 3; x++)
             if (x || y)
             {
                 const auto d = Math::max(Math::abs(x), Math::abs(y));
-                const auto pass = expect_stale(d <= 1);
-                check({(i16)x, (i16)y, 0}, pass, d == 2 ? expect::either : pass, expect_stale(d <= 2));
+                check({(i16)x, (i16)y, 0}, expect_stale(d <= 1), expect_stale(d <= 2), d <= 2);
             }
-    check({0, 0, 1}, expect::current, expect::current, expect::current);
+    check({0, 0, 1}, expect::current, expect::current, false);
 }
 
 void test_is_stale_lifecycle()
@@ -2464,6 +2551,135 @@ void test_pass_blocker_leaves_ring2_current(u32 div_size, u32 bbox_size)
                 fm_assert(pool[w[at(x, y)]].is_marked_stale() == near);
             }
     }
+}
+
+void test_hole_change_leaves_far_grids_current()
+{
+    constexpr auto H = COORD, N = COORD_E;
+    constexpr u32 west_octant = Grid::Cover::octant_count / 2;
+    const auto at = [](i32 x) { return chunk_coords_{(i16)x, 0, 0}; };
+    const auto& p = Search::never_continue();
+    auto w = world();
+    for (auto x = -1; x <= 4; x++)
+        add_ground_all(w[at(x)]);
+    add_blocked_ground_all(w[N]);
+    for (auto& c : w.chunks())
+        rebuild_passability(c);
+
+    Pass::Pool small{Pass::Params{16, pass_mode::pass}, p};
+    Pass::Pool large{Pass::Params{16, chunk_size_xy, pass_mode::pass}, p};
+    Grid::Object::Pool small_objects{small}, large_objects{large};
+    Pass::Pool cover_pass{Pass::Params{16, pass_mode::shoot_through}, p};
+    Grid::Cover::Pool cover{Grid::Cover::Params{16}, cover_pass};
+    Pass::Pool* const pass_pools[] = { &small, &large };
+    Grid::Object::Pool* const object_pools[] = { &small_objects, &large_objects };
+
+    const auto check = [&](const char* what, auto&& change) {
+        u64 build_no[6][3], pass_gen[6], neighbor_gen[6];
+        for (auto x = -1; x <= 4; x++)
+        {
+            auto& c = w[at(x)];
+            for (auto i = 0u; i < 2; i++)
+            {
+                auto g = (*pass_pools[i])[c];
+                g.build_if_stale();
+                build_no[x+1][i] = g.build_no();
+                (*object_pools[i])[c].build_if_stale();
+            }
+            auto g = cover[c];
+            g.build_if_stale();
+            (void)g.ensure_octant(west_octant);
+            build_no[x+1][2] = g.build_no();
+        }
+        for (auto x = -1; x <= 4; x++)
+        {
+            auto& c = w[at(x)];
+            c.ensure_passability();
+            pass_gen[x+1] = c.pass_gen();
+            neighbor_gen[x+1] = c.neighbor_pass_gen();
+        }
+        const auto gen = w.max_pass_gen(N, 0);
+        change();
+        fm_assert(w.max_pass_gen(N, 0) > gen);
+        for (auto x = -1; x <= 4; x++)
+        {
+            const auto& c = w[at(x)];
+            const auto d = Math::abs(x);
+            if (c.is_passability_modified() != (d <= 1) || (c.pass_gen() != pass_gen[x+1]) != (d == 0) ||
+                (c.neighbor_pass_gen() != neighbor_gen[x+1]) != (d == 1))
+            {
+                ERR << "!!! fatal: chunk" << x << "has the wrong dirty flag or stamps after" << what;
+                fm_abort("a hole change touched the wrong chunks");
+            }
+        }
+
+        Pass::Pool fresh_small{small.params(), p}, fresh_large{large.params(), p};
+        Pass::Pool fresh_cover_pass{cover_pass.params(), p};
+        Grid::Cover::Pool fresh_cover{Grid::Cover::Params{16}, fresh_cover_pass};
+        Pass::Pool* const fresh_pools[] = { &fresh_small, &fresh_large };
+        for (auto x = -1; x <= 4; x++)
+        {
+            auto& c = w[at(x)];
+            const auto d = Math::abs(x);
+            const auto fail = [&](const char* grid, const char* why) {
+                ERR << "!!! fatal:" << grid << "grid of chunk" << x << why << "after" << what;
+                fm_abort("wrong grid after a hole change");
+            };
+            for (auto i = 0u; i < 2; i++)
+            {
+                auto g = (*pass_pools[i])[c];
+                auto og = (*object_pools[i])[c];
+                if (g.is_marked_stale() != (d <= 1) || g.is_stale() != (d <= 1))
+                    fail("pass", "has the wrong staleness");
+                if (og.is_marked_stale() != (d <= 1) || og.is_stale() != (d <= 1))
+                    fail("object", "has the wrong staleness");
+                g.build_if_stale();
+                og.build_if_stale();
+                if (d > 1 && g.build_no() != build_no[x+1][i])
+                    fail("pass", "was rebuilt");
+                auto f = (*fresh_pools[i])[c];
+                f.build_if_stale();
+                for (auto k = 0u; k < g.div_count() * g.div_count(); k++)
+                    if (g.bit(k) != f.bit(k))
+                        fail("pass", "differs from a fresh build");
+            }
+            auto g = cover[c];
+            if (g.is_marked_stale() != (d <= 2) || g.is_stale() != (d <= 2))
+                fail("cover", "has the wrong staleness");
+            g.build_if_stale();
+            (void)g.ensure_octant(west_octant);
+            if (d > 2 && g.build_no() != build_no[x+1][2])
+                fail("cover", "was rebuilt");
+            auto f = fresh_cover[c];
+            f.build_if_stale();
+            (void)f.ensure_octant(west_octant);
+            for (auto k = 0u; k < g.div_count() * g.div_count(); k++)
+                if (g.distance(k, west_octant) != f.distance(k, west_octant))
+                    fail("cover", "differs from a fresh build");
+        }
+    };
+
+    auto proto = hole_proto{};
+    proto.offset = {31, 0};
+    proto.bbox_offset = {127, 0};
+    proto.bbox_size = {255, 255};
+    proto.pass = pass_mode::pass;
+    bptr<hole> h;
+    check("adding", [&] { h = w.make_object<hole>(w.make_id(), global_coords{H, {15, 8}}, proto); });
+    const auto rect = scenery_tile(h->coord.local(), h->offset, h->bbox_offset, h->bbox_size);
+    fm_assert_equal(254, rect.second().x() - ((i32)chunk_size_xy - half_tile<i32>));
+    fm_assert(count_passable_built(small, w[N]) > 0);
+    check("disabling", [&] { h->set_enabled(false); });
+    fm_assert_equal(0u, count_passable_built(small, w[N]));
+    check("enabling", [&] { h->set_enabled(true); });
+    check("resizing", [&] { h->set_bbox(h->offset, h->bbox_offset, {254, 255}, h->pass); });
+    check("moving", [&] {
+        auto i = h->index();
+        h->teleport_to(i, h->coord, {30, 0}, h->r);
+    });
+    fm_assert(count_passable_built(small, w[N]) > 0);
+    check("removing", [&] { w[H].remove_object(*h, h->index()); });
+    fm_assert_equal(0u, count_passable_built(small, w[N]));
 }
 
 // The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
@@ -3309,6 +3525,7 @@ void test_grid()
         test_cover_rebuilds_on_ring2_collect(ds);
     }
     test_is_stale_on_chunk_change();
+    test_hole_change_leaves_far_grids_current();
     test_is_stale_on_chunk_create_and_collect();
     test_is_stale_lifecycle();
     test_registry_grids_after_door_changes();

@@ -111,14 +111,29 @@ void chunk::mark_objects_modified() noexcept
     _objects_gen = _world->next_pass_gen();
 }
 
+void chunk::mark_modified_by_neighbor() noexcept
+{
+    _pass_modified = true;
+    _walls_modified = true;
+    _maybe_empty = true;
+    _neighbor_pass_gen = _world->next_pass_gen();
+}
+
+u64 chunk::neighbor_pass_gen() const noexcept { return _neighbor_pass_gen; }
+
 bool chunk::is_passability_modified() const noexcept { return _pass_modified; }
 bool chunk::is_scenery_modified() const noexcept { return _scenery_modified; }
 bool chunk::are_walls_modified() const noexcept { return _walls_modified; }
 
 void chunk::mark_modified() noexcept
 {
-    mark_ground_modified();
-    mark_walls_modified();
+    if (!_ground_modified && is_log_verbose()) [[unlikely]]
+        fm_debug("ground reload %zu", ++_reload_no_);
+    if (!_walls_modified && is_log_verbose()) [[unlikely]]
+        fm_debug("wall reload %zu", ++_reload_no_);
+    _ground_modified = true;
+    _walls_modified = true;
+    _maybe_empty = true;
     mark_scenery_modified();
     mark_passability_modified();
 }
@@ -168,7 +183,7 @@ void chunk::add_object_pre(const bptr<object>& e)
     }
     if (dyn && type_is_in_objects_array(e->type()))
         mark_objects_modified();
-    if (upd_walls)
+    if (upd_walls && !_walls_modified)
         mark_walls_modified();
 }
 
@@ -214,7 +229,7 @@ void chunk::remove_object(const object& e, usize i)
     }
     if (dyn && type_is_in_objects_array(e.type()))
         mark_objects_modified();
-    if (upd_walls)
+    if (upd_walls && !_walls_modified)
         mark_walls_modified();
 
     _objects.erase(e, i);
