@@ -626,8 +626,10 @@ void cover_ai_test::update_ray(app& a, const critter& c, const Cover::Script::st
     if (s.st != state::exposed || !s.has_peek)
         return;
     auto& m = a.main();
-    auto& pool = m.astar().pool_registry().pass_pool(Pass::Params{options.div_size, pass_mode::shoot_through});
-    ray = raycast(m.world(), s.gun_ray_from, s.gun, c.id, pool, Search::without_critters());
+    const auto params = Pass::Params{options.div_size, pass_mode::shoot_through};
+    auto& reg = m.astar().pool_registry();
+    ray = raycast(m.world(), s.gun_ray_from, s.gun, c.id, reg.pass_pool(params), &reg.object_pool(params),
+                  Search::without_critters());
 }
 
 void cover_ai_test::update_post(app& a, const Ns&)

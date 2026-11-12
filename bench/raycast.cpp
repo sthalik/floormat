@@ -77,7 +77,7 @@ auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
 {
     constexpr float fuzz = TILE_SIZE2.x();
     auto diag = rc::raycast_diag_s{};
-    auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue());
+    auto res = raycast_with_diag(diag, w, from, to, 0, pool, nullptr, Search::never_continue());
     if (res.success != b)
     {
         fm_error("success != %s", b ? "true" : "false");
@@ -187,7 +187,7 @@ bool run_dense(Pass::Pool& pool, point from, point to_orig, world& w)
         return false;
     }
     auto to = project_to(from, to_orig, 2);
-    auto res = raycast(w, from, to, 0, pool, Search::never_continue());
+    auto res = raycast(w, from, to, 0, pool, nullptr, Search::never_continue());
     if (res.success)
     {
         fm_error("ray did not hit (success=true means no collision)");

@@ -57,6 +57,7 @@ struct ObjectGrid : GridBase
                                              ArrayView<const bool> entry_blocked) const;
     template<typename T> Grid::Object::cell_object_view<T> objects_at_cell(const Array<T>& cells,
                                                                            const Array<T>& runs, u32 index) const;
+    bool is_entry_blocked(u32 k, const Search::pred& p) const;
     void build_impl(chunk* self);
     template<typename T> bool build_impl(Array<T>& cells, Array<T>& runs, Array<u32>& scratch_runs);
 };
@@ -156,6 +157,13 @@ Grid::Object::cell_object_view<T> ObjectGrid::objects_at_cell(const Array<T>& ce
         return { v, entry_data.data(), 1 };
     const auto* r = runs.data() + (*v & ~run_bit<T>);
     return { r + 1, entry_data.data(), r[0] };
+}
+
+bool ObjectGrid::is_entry_blocked(u32 k, const Search::pred& p) const
+{
+    const auto n = entry_chunks[k];
+    auto& ch = n ? *neighbors[n - 1] : *c;
+    return p(ch, entry_data[k], Range2D(entry_rects[k])) == path_search_continue::blocked;
 }
 
 void ObjectGrid::build_impl(chunk* self)
@@ -330,13 +338,20 @@ bool Grid::blocked_objects(const Search::pred& p, Array<bool>& entry_blocked) co
     bool any = false;
     for (auto i = 0u; i < n; i++)
     {
-        const auto k = grid->entry_chunks[i];
-        auto& ch = k ? *grid->neighbors[k - 1] : *grid->c;
-        const bool blocked = p(ch, grid->entry_data[i], Range2D(grid->entry_rects[i])) == path_search_continue::blocked;
+        const bool blocked = grid->is_entry_blocked(i, p);
         entry_blocked[i] = blocked;
         any |= blocked;
     }
     return any;
+}
+
+bool Grid::blocked_objects(const Search::pred& p) const
+{
+    detail::grid::check_current(grid);
+    for (auto i = 0u; i < (u32)grid->entry_data.size(); i++)
+        if (grid->is_entry_blocked(i, p))
+            return true;
+    return false;
 }
 
 template<typename T> bool Grid::is_blocked(u32 index, ArrayView<const bool> entry_blocked) const

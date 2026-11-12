@@ -173,7 +173,7 @@ float raycast_one(chunk& self,
     const point from{self.coord(), intra_coord{origin_local}};
     const point to = from + delta;
 
-    const auto r = rc::detail::do_raycasting<false>(nullptr, self.world(), from, to, 0, pass_pool,
+    const auto r = rc::detail::do_raycasting<false>(nullptr, self.world(), from, to, 0, pass_pool, nullptr,
                                                     pass_pool.predicate(), 0);
 
     if (!r.has_result || r.success)

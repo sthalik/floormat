@@ -366,10 +366,12 @@ line_pixel first_pixel_in_bounds(const bresenham_line& line, Vector2i lo, Vector
 template<bool EnableDiagnostics>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
                                world& w, point from, point to, object_id self,
-                               Grid::Pass::Pool& pool, const Search::pred& pred, float radius)
+                               Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
+                               const Search::pred& pred, float radius)
 {
     raycast_result_s result;
     fm_assert(from.chunk3().z == to.chunk3().z);
+    fm_assert(!objects || objects->params() == pool.params());
 
     using Math::abs;
     using Math::floor;
@@ -482,7 +484,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     chunk* last_nb[9] = {};
     chunk* last_c = nullptr;
     Pass::Grid last_g{nullptr, nullptr};
-    bool last_g_built = false;
+    Grid::Object::Grid last_og{nullptr};
+    bool last_g_built = false, last_has_objects = false;
     bool last_chunk_empty = true;
 
     float min_tmin = FLT_MAX;
@@ -491,214 +494,257 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     bool b = true;
     float t_entry = 0;
 
-    // a hit's tmin can lie up to a full rect extent past the cell that found it,
-    // so keep walking until the cell entry distance passes the best hit
-    while (t_entry <= ray_len + eps && (b || t_entry <= min_tmin))
-    {
-        Vector2i this_chunk_off{chunk_off_x, chunk_off_y};
-        if (this_chunk_off != last_chunk_off)
+    const auto find_intersecting_collider = [&]<bool UsingRayPredicate>(std::bool_constant<UsingRayPredicate>,
+                                                                        chunk& nb, Vector2i nb_world,
+                                                                        collision_data x, const Range2D& range) {
+        if (radius == 0)
         {
-            last_chunk_off = this_chunk_off;
-            for (int j = 0; j < 3; j++)
-                for (int i = 0; i < 3; i++)
-                {
-                    chunk_coords_ co {
-                        (i16)(from.chunk().x + chunk_off_x + i - 1),
-                        (i16)(from.chunk().y + chunk_off_y + j - 1),
-                        from.chunk3().z };
-                    last_nb[j*3 + i] = w.at(co);
-                }
-            last_c = last_nb[4];
-            last_g_built = false;
-
-            if constexpr(EnableDiagnostics)
-            {
-                chunk_coords_ ch_coord {
-                    (i16)(from.chunk().x + chunk_off_x),
-                    (i16)(from.chunk().y + chunk_off_y),
-                    from.chunk3().z };
-                arrayAppend(diag.path, bbox{
-                    point{ch_coord, intra_coord{chunk_size<Vector2i> / 2}},
-                    chunk_size<Vector2ui>,
-                });
-            }
-        }
-
-        bool bit = true;
-        if (last_c)
-        {
-            if (!last_g_built)
-            {
-                last_g = pool[*last_c];
-                last_g.build_if_stale();
-                last_chunk_empty = last_g.is_all_empty();
-                last_g_built = true;
-            }
-            if (!last_chunk_empty)
-            {
-                auto bit_idx = Pass::Grid::get_bitmask_index(
-                    (u32)local_cell_x, (u32)local_cell_y, (u32)cells_per_chunk);
-                bit = last_g.bit(bit_idx);
-            }
+            // a rect owns the pixels in [min, max), as walking does
+            const auto hit = first_pixel_in_bounds(line, Vector2i(Math::ceil(range.min())) + nb_world,
+                                                   Vector2i(Math::ceil(range.max())) - Vector2i{1} + nb_world,
+                                                   best_key);
+            if (hit.key >= best_key) [[likely]]
+                return;
+            // last, since without_critters looks up the object
+            if constexpr (UsingRayPredicate)
+                if (pred(nb, x, range) == path_search_continue::pass)
+                    return;
+            best_key = hit.key;
+            best_px = hit.pixel;
+            // The ray crosses the square of a pixel with a lower key by step key/2, in a
+            // cell that finds its rect. One more step covers t_entry's rounding.
+            min_tmin = (float)(hit.key/2 + 1) * step_len;
+            result.collision = point::normalize_coords(from, hit.pixel - from_px);
         }
         else
         {
-            if (!last_g_built)
-            {
-                // colliders overhang from loaded neighbors into a missing chunk.
-                // skip it only when the whole 3x3 area is unloaded.
-                last_chunk_empty = true;
-                for (auto* nb : last_nb)
-                    last_chunk_empty &= !nb;
-                last_g_built = true;
-            }
-            bit = last_chunk_empty;
+            const auto origin = from_center - Vector2(nb_world);
+            const auto ret = ray_rounded_rect_intersection(origin, dir, dir_inv_norm,
+                                                           {{range.min() - Vector2{fuzz2},
+                                                             range.max() - Vector2{fuzz2}}},
+                                                           radius, signs);
+            if (!ret.result || ret.tmin > ray_len || ret.tmin >= min_tmin)
+                return;
+            if constexpr (UsingRayPredicate)
+                if (pred(nb, x, range) == path_search_continue::pass)
+                    return;
+            min_tmin = ret.tmin;
+            const auto contact = Math::clamp(origin + dir * min_tmin, range.min(), range.max() - Vector2{1});
+            result.collision = point::normalize_coords(from, Vector2i(contact - origin));
         }
+        result.collider = x;
+        result.rect = Range2D{range.min() + Vector2(nb_world), range.max() + Vector2(nb_world)};
+        b = false;
+    };
 
-        if (!bit)
+    // Returns false after building a chunk's object grid that isn't T, so the other width's walk goes on.
+    const auto walk = [&]<typename T>() -> bool {
+        // a hit's tmin can lie up to a full rect extent past the cell that found it,
+        // so keep walking until the cell entry distance passes the best hit
+        while (t_entry <= ray_len + eps && (b || t_entry <= min_tmin))
         {
-            const auto query_size = Vector2i{div_size_i + 2*grow};
-            const auto query_min = Vector2i{cell_x, cell_y} * div_size_i - Vector2i{half_tile<i32> + grow};
-            const auto query_max = query_min + query_size;
-            if constexpr(EnableDiagnostics)
-                arrayAppend(diag.queries, bbox{point{from.chunk3(), {}, {}} + (query_min + query_size/2), Vector2ui(query_size)});
-
-            for (int i = 0; i < 3; i++)
+            Vector2i this_chunk_off{chunk_off_x, chunk_off_y};
+            if (this_chunk_off != last_chunk_off)
             {
+                last_chunk_off = this_chunk_off;
                 for (int j = 0; j < 3; j++)
-                {
-                    auto* nb = last_nb[j*3 + i];
-                    if (!nb)
-                        continue;
-                    i32 nb_off_x = chunk_off_x + i - 1;
-                    i32 nb_off_y = chunk_off_y + j - 1;
-
-                    const auto nb_world = Vector2i{nb_off_x, nb_off_y} * chunk_size<i32>;
-                    const auto fmin = Vector2(query_min - nb_world), fmax = Vector2(query_max - nb_world);
-
-                    if (!within_chunk_bounds(fmin, fmax))
-                        continue;
-
-                    const auto origin = from_center - Vector2(nb_world);
-
-                    nb->rtree()->Search(fmin.data(), fmax.data(), [&, min_pass](u64 data, const Rect& r)
+                    for (int i = 0; i < 3; i++)
                     {
-                        auto x = std::bit_cast<collision_data>(data);
-                        fm_debug3_assert(x.type != (u64)collision_type::none);
-                        if (x.id == self || x.pass >= min_pass)
-                            return true;
-                        // a rect owns the pixels in [min, max), as walking does
-                        const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-                        if (radius == 0)
-                        {
-                            const auto hit = first_pixel_in_bounds(line, Vector2i(Math::ceil(range.min())) + nb_world,
-                                                                   Vector2i(Math::ceil(range.max())) - Vector2i{1} + nb_world,
-                                                                   best_key);
-                            if (hit.key >= best_key) [[likely]]
-                                return true;
-                            // last, since without_critters looks up the object
-                            if (pred(*nb, x, range) == path_search_continue::pass)
-                                return true;
-                            best_key = hit.key;
-                            best_px = hit.pixel;
-                            // The ray crosses the square of a pixel with a lower key by step key/2, in a cell
-                            // whose query finds its rect. One more step covers t_entry's rounding.
-                            min_tmin = (float)(hit.key/2 + 1) * step_len;
-                            result.collision = point::normalize_coords(from, hit.pixel - from_px);
-                        }
-                        else
-                        {
-                            const auto ret = ray_rounded_rect_intersection(origin, dir, dir_inv_norm,
-                                                                           {{range.min() - Vector2{fuzz2},
-                                                                             range.max() - Vector2{fuzz2}}},
-                                                                           radius, signs);
-                            if (!ret.result || ret.tmin > ray_len || ret.tmin >= min_tmin)
-                                return true;
-                            if (pred(*nb, x, range) == path_search_continue::pass)
-                                return true;
-                            min_tmin = ret.tmin;
-                            const auto contact = Math::clamp(origin + dir * min_tmin, range.min(), range.max() - Vector2{1});
-                            result.collision = point::normalize_coords(from, Vector2i(contact - origin));
-                        }
-                        result.collider = x;
-                        result.rect = Range2D{range.min() + Vector2(nb_world), range.max() + Vector2(nb_world)};
-                        b = false;
-                        return true;
+                        chunk_coords_ co {
+                            (i16)(from.chunk().x + chunk_off_x + i - 1),
+                            (i16)(from.chunk().y + chunk_off_y + j - 1),
+                            from.chunk3().z };
+                        last_nb[j*3 + i] = w.at(co);
+                    }
+                last_c = last_nb[4];
+                last_g_built = false;
+
+                if constexpr(EnableDiagnostics)
+                {
+                    chunk_coords_ ch_coord {
+                        (i16)(from.chunk().x + chunk_off_x),
+                        (i16)(from.chunk().y + chunk_off_y),
+                        from.chunk3().z };
+                    arrayAppend(diag.path, bbox{
+                        point{ch_coord, intra_coord{chunk_size<Vector2i> / 2}},
+                        chunk_size<Vector2ui>,
                     });
                 }
             }
-        }
 
-        if (last_chunk_empty)
-        {
-            i32 nx = (step_x > 0) ? (cells_per_chunk - local_cell_x)
-                       : (step_x < 0) ? (local_cell_x + 1)
-                       : INT32_MAX;
-            i32 ny = (step_y > 0) ? (cells_per_chunk - local_cell_y)
-                       : (step_y < 0) ? (local_cell_y + 1)
-                       : INT32_MAX;
-
-            float t_x_chunk = (step_x == 0) ? FLT_MAX : t_max_x + (float)(nx - 1) * t_delta_x;
-            float t_y_chunk = (step_y == 0) ? FLT_MAX : t_max_y + (float)(ny - 1) * t_delta_y;
-
-            if (t_x_chunk <= t_y_chunk)
+            bool bit = true;
+            if (last_c)
             {
-                i32 y_crossings = 0;
-                if (step_y != 0 && t_max_y <= t_x_chunk)
-                    y_crossings = (i32)floor((t_x_chunk - t_max_y) / t_delta_y) + 1;
-                if (y_crossings >= ny) y_crossings = ny - 1;
-                if (y_crossings < 0) y_crossings = 0;
-
-                cell_x += step_x * nx;
-                local_cell_x = (step_x > 0) ? 0 : cells_per_chunk - 1;
-                chunk_off_x += step_x;
-                t_entry = t_x_chunk;
-                t_max_x = t_x_chunk + t_delta_x;
-
-                cell_y += step_y * y_crossings;
-                local_cell_y += step_y * y_crossings;
-                if (step_y != 0)
-                    t_max_y += (float)y_crossings * t_delta_y;
+                if (!last_g_built)
+                {
+                    last_g = pool[*last_c];
+                    last_g.build_if_stale();
+                    last_g_built = true;
+                    last_has_objects = false;
+                    if (objects)
+                    {
+                        last_og = (*objects)[*last_c];
+                        last_og.build_if_stale();
+                        last_has_objects = last_og.blocked_objects(pred);
+                    }
+                    last_chunk_empty = last_g.is_all_empty() && !last_has_objects;
+                    if (last_has_objects && last_og.uses_u32() != std::is_same_v<T, u32>)
+                        return false;
+                }
+                if (!last_chunk_empty)
+                {
+                    auto bit_idx = Pass::Grid::get_bitmask_index(
+                        (u32)local_cell_x, (u32)local_cell_y, (u32)cells_per_chunk);
+                    bit = last_g.bit(bit_idx);
+                    if (bit && last_has_objects)
+                    {
+                        const auto objects = last_og.objects_at_cell<T>(bit_idx);
+                        const auto rects = last_og.entry_rects();
+                        const auto chunks = last_og.entry_chunks();
+                        for (auto i = 0u; i < objects.size(); i++)
+                        {
+                            const auto& x = objects[i];
+                            if (x.id == self)
+                                continue;
+                            const auto e = objects.entry_index(i);
+                            const auto off = chunks[e] ? Vector2i(world::neighbor_offsets[chunks[e] - 1]) : Vector2i{};
+                            auto* nb = last_nb[(off.y() + 1)*3 + off.x() + 1];
+                            fm_debug3_assert(nb);
+                            const auto range = Range2D(rects[e]);
+                            if (pred(*nb, x, range) == path_search_continue::pass)
+                                continue;
+                            find_intersecting_collider(std::false_type{}, *nb,
+                                                       (this_chunk_off + off) * chunk_size<i32>, x, range);
+                        }
+                    }
+                }
             }
             else
             {
-                i32 x_crossings = 0;
-                if (step_x != 0 && t_max_x <= t_y_chunk)
-                    x_crossings = (i32)floor((t_y_chunk - t_max_x) / t_delta_x) + 1;
-                if (x_crossings >= nx) x_crossings = nx - 1;
-                if (x_crossings < 0) x_crossings = 0;
+                if (!last_g_built)
+                {
+                    // colliders overhang from loaded neighbors into a missing chunk.
+                    // skip it only when the whole 3x3 area is unloaded.
+                    last_chunk_empty = true;
+                    for (auto* nb : last_nb)
+                        last_chunk_empty &= !nb;
+                    last_g_built = true;
+                }
+                bit = last_chunk_empty;
+            }
 
-                cell_y += step_y * ny;
-                local_cell_y = (step_y > 0) ? 0 : cells_per_chunk - 1;
-                chunk_off_y += step_y;
-                t_entry = t_y_chunk;
-                t_max_y = t_y_chunk + t_delta_y;
+            if (!bit)
+            {
+                const auto query_size = Vector2i{div_size_i + 2*grow};
+                const auto query_min = Vector2i{cell_x, cell_y} * div_size_i - Vector2i{half_tile<i32> + grow};
+                const auto query_max = query_min + query_size;
+                if constexpr(EnableDiagnostics)
+                    arrayAppend(diag.queries, bbox{point{from.chunk3(), {}, {}} + (query_min + query_size/2), Vector2ui(query_size)});
 
-                cell_x += step_x * x_crossings;
-                local_cell_x += step_x * x_crossings;
-                if (step_x != 0)
-                    t_max_x += (float)x_crossings * t_delta_x;
+                for (int i = 0; i < 3; i++)
+                {
+                    for (int j = 0; j < 3; j++)
+                    {
+                        auto* nb = last_nb[j*3 + i];
+                        if (!nb)
+                            continue;
+                        i32 nb_off_x = chunk_off_x + i - 1;
+                        i32 nb_off_y = chunk_off_y + j - 1;
+
+                        const auto nb_world = Vector2i{nb_off_x, nb_off_y} * chunk_size<i32>;
+                        const auto fmin = Vector2(query_min - nb_world), fmax = Vector2(query_max - nb_world);
+
+                        if (!within_chunk_bounds(fmin, fmax))
+                            continue;
+
+                        nb->rtree()->Search(fmin.data(), fmax.data(), [&, min_pass](u64 data, const Rect& r)
+                        {
+                            auto x = std::bit_cast<collision_data>(data);
+                            fm_debug3_assert(x.type != (u64)collision_type::none);
+                            if (x.id == self || x.pass >= min_pass)
+                                return true;
+                            find_intersecting_collider(std::true_type{}, *nb, nb_world, x,
+                                                       Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}});
+                            return true;
+                        });
+                    }
+                }
+            }
+
+            if (last_chunk_empty)
+            {
+                i32 nx = (step_x > 0) ? (cells_per_chunk - local_cell_x)
+                           : (step_x < 0) ? (local_cell_x + 1)
+                           : INT32_MAX;
+                i32 ny = (step_y > 0) ? (cells_per_chunk - local_cell_y)
+                           : (step_y < 0) ? (local_cell_y + 1)
+                           : INT32_MAX;
+
+                float t_x_chunk = (step_x == 0) ? FLT_MAX : t_max_x + (float)(nx - 1) * t_delta_x;
+                float t_y_chunk = (step_y == 0) ? FLT_MAX : t_max_y + (float)(ny - 1) * t_delta_y;
+
+                if (t_x_chunk <= t_y_chunk)
+                {
+                    i32 y_crossings = 0;
+                    if (step_y != 0 && t_max_y <= t_x_chunk)
+                        y_crossings = (i32)floor((t_x_chunk - t_max_y) / t_delta_y) + 1;
+                    if (y_crossings >= ny) y_crossings = ny - 1;
+                    if (y_crossings < 0) y_crossings = 0;
+
+                    cell_x += step_x * nx;
+                    local_cell_x = (step_x > 0) ? 0 : cells_per_chunk - 1;
+                    chunk_off_x += step_x;
+                    t_entry = t_x_chunk;
+                    t_max_x = t_x_chunk + t_delta_x;
+
+                    cell_y += step_y * y_crossings;
+                    local_cell_y += step_y * y_crossings;
+                    if (step_y != 0)
+                        t_max_y += (float)y_crossings * t_delta_y;
+                }
+                else
+                {
+                    i32 x_crossings = 0;
+                    if (step_x != 0 && t_max_x <= t_y_chunk)
+                        x_crossings = (i32)floor((t_y_chunk - t_max_x) / t_delta_x) + 1;
+                    if (x_crossings >= nx) x_crossings = nx - 1;
+                    if (x_crossings < 0) x_crossings = 0;
+
+                    cell_y += step_y * ny;
+                    local_cell_y = (step_y > 0) ? 0 : cells_per_chunk - 1;
+                    chunk_off_y += step_y;
+                    t_entry = t_y_chunk;
+                    t_max_y = t_y_chunk + t_delta_y;
+
+                    cell_x += step_x * x_crossings;
+                    local_cell_x += step_x * x_crossings;
+                    if (step_x != 0)
+                        t_max_x += (float)x_crossings * t_delta_x;
+                }
+            }
+            else if (t_max_x < t_max_y)
+            {
+                t_entry = t_max_x;
+                t_max_x += t_delta_x;
+                cell_x += step_x;
+                local_cell_x += step_x;
+                if (local_cell_x == cells_per_chunk) { local_cell_x = 0; chunk_off_x += 1; }
+                else if (local_cell_x == -1) { local_cell_x = cells_per_chunk - 1; chunk_off_x -= 1; }
+            }
+            else
+            {
+                t_entry = t_max_y;
+                t_max_y += t_delta_y;
+                cell_y += step_y;
+                local_cell_y += step_y;
+                if (local_cell_y == cells_per_chunk) { local_cell_y = 0; chunk_off_y += 1; }
+                else if (local_cell_y == -1) { local_cell_y = cells_per_chunk - 1; chunk_off_y -= 1; }
             }
         }
-        else if (t_max_x < t_max_y)
-        {
-            t_entry = t_max_x;
-            t_max_x += t_delta_x;
-            cell_x += step_x;
-            local_cell_x += step_x;
-            if (local_cell_x == cells_per_chunk) { local_cell_x = 0; chunk_off_x += 1; }
-            else if (local_cell_x == -1) { local_cell_x = cells_per_chunk - 1; chunk_off_x -= 1; }
-        }
-        else
-        {
-            t_entry = t_max_y;
-            t_max_y += t_delta_y;
-            cell_y += step_y;
-            local_cell_y += step_y;
-            if (local_cell_y == cells_per_chunk) { local_cell_y = 0; chunk_off_y += 1; }
-            else if (local_cell_y == -1) { local_cell_y = cells_per_chunk - 1; chunk_off_y -= 1; }
-        }
-    }
+        return true;
+    };
+    for (bool done = false; !done; )
+        done = walk.template operator()<u16>() || walk.template operator()<u32>();
 
     if constexpr(EnableDiagnostics)
         diag.tmin = b ? 0 : radius > 0 ? min_tmin
@@ -710,8 +756,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 }
 
 template raycast_result_s do_raycasting<false>(std::nullptr_t, world&, point, point, object_id,
-                                               Grid::Pass::Pool&, const Search::pred&, float);
+                                               Grid::Pass::Pool&, Grid::Object::Pool*, const Search::pred&, float);
 template raycast_result_s do_raycasting<true>(raycast_diag_s&, world&, point, point, object_id,
-                                              Grid::Pass::Pool&, const Search::pred&, float);
+                                              Grid::Pass::Pool&, Grid::Object::Pool*, const Search::pred&, float);
 
 } // namespace floormat::rc::detail

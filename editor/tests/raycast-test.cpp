@@ -258,7 +258,7 @@ struct raycast_test final : base_test
                 fm_warn("raycast: wrong Z value");
                 continue;
             }
-            result = raycast_with_diag(diag, w, p.from, p.to, p.self, *pool, Search::never_continue(), radius);
+            result = raycast_with_diag(diag, w, p.from, p.to, p.self, *pool, nullptr, Search::never_continue(), radius);
             last_ray = p;
             has_last_ray = true;
         }

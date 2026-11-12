@@ -11,9 +11,8 @@ class world;
 
 } // namespace floormat
 
-namespace floormat::Grid::Pass {
-class Pool;
-}
+namespace floormat::Grid::Pass { class Pool; }
+namespace floormat::Grid::Object { class Pool; }
 
 namespace floormat::rc {
 
@@ -42,12 +41,14 @@ constexpr u32 min_pool_bbox_size(float radius)
     return n + ((float)n < size);
 }
 
+// object_pool must have pass_grid_pool's params. Null skips the dynamic objects that pass_grid_pool's grids
+// leave out, such as critters and doors in GridRegistry's pools.
 [[nodiscard]] raycast_result_s raycast(world& w, point from, point to, object_id self,
-                                       Grid::Pass::Pool& pass_grid_pool, Search::pred const& pred,
-                                       float radius = 0);
+                                       Grid::Pass::Pool& pass_grid_pool, Grid::Object::Pool* object_pool,
+                                       Search::pred const& pred, float radius = 0);
 [[nodiscard]] raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self,
-                                                 Grid::Pass::Pool& pass_grid_pool, const Search::pred& pred,
-                                                 float radius = 0);
+                                                 Grid::Pass::Pool& pass_grid_pool, Grid::Object::Pool* object_pool,
+                                                 const Search::pred& pred, float radius = 0);
 
 } // namespace floormat::rc
 

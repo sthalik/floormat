@@ -1500,7 +1500,7 @@ float cover_ray_px(chunk& c, u32 x, u32 y, u32 div_size, Vector2i delta, Pass::P
     const auto half = (i32)(div_size / 2);
     const point from{c.coord(), intra_coord{Vector2i{(i32)(x*div_size) + half, (i32)(y*div_size) + half}}};
     const point to = from + delta;
-    const auto r = raycast(c.world(), from, to, 0, pass_pool, Search::without_critters());
+    const auto r = raycast(c.world(), from, to, 0, pass_pool, nullptr, Search::without_critters());
     const auto px = !r.has_result || r.success ? (float)chunk_size_xy : Vector2(r.collision - from).length();
     return Math::min(px, (float)chunk_size_xy);
 }
@@ -2965,7 +2965,9 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
         const auto only = [id, rect = rects[k]](chunk&, collision_data x, Range2D r) {
             return x.id == id && r == rect ? path_search_continue::blocked : path_search_continue::pass;
         };
-        fm_assert(g.blocked_objects(Search::pred{only}, entry_blocked) == !!(covering & 1u << k));
+        const Search::pred pred{only};
+        fm_assert(g.blocked_objects(pred, entry_blocked) == !!(covering & 1u << k));
+        fm_assert(g.blocked_objects(pred) == !!(covering & 1u << k));
         g.mask_pass_bits(all_set.data(), masked.data(), entry_blocked);
         for (auto idx = 0u; idx < (u32)(dc*dc); idx++)
         {

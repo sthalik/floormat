@@ -64,6 +64,7 @@ constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 template<bool EnableDiagnostics>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
                                world& w, point from, point to, object_id self,
-                               Grid::Pass::Pool& pool, const Search::pred& pred, float radius);
+                               Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
+                               const Search::pred& pred, float radius);
 
 } // namespace floormat::rc::detail

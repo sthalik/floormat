@@ -70,6 +70,7 @@ public:
     /// @brief Writes whether @p p blocks each entry's object to @p entry_blocked.
     /// @return True when it blocks any.
     bool blocked_objects(const Search::pred& p, Array<bool>& entry_blocked) const;
+    bool blocked_objects(const Search::pred& p) const;
     template<typename T> bool is_blocked(u32 index, ArrayView<const bool> entry_blocked) const;
     /// @brief Writes @p pass_bits to @p out, with each cell cleared that is_blocked(). Both span
     /// detail::grid::bitmask_size(div_count()) bits.

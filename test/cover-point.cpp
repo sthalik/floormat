@@ -110,7 +110,7 @@ bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vec
     Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::never_continue()};
     const auto T = Vector3i(threat).xy();
     const auto shot = [&](Vector2i to) {
-        const auto r = raycast(w, threat, threat + (to - T), threat_id, pool, Search::never_continue());
+        const auto r = raycast(w, threat, threat + (to - T), threat_id, pool, nullptr, Search::never_continue());
         return !r.success && r.collider.id == id;
     };
     const auto lo = Vector3i(pos).xy() - Vector2i(size/2u), hi = lo + Vector2i(size) - Vector2i{1};
@@ -788,7 +788,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
     // The peek is along y, so the body's width along the wall is body.y().
     const auto seen = [&](point p) {
         const auto gun = gun_at(p, threat_pos, (int)body.y()/2);
-        return raycast(w, threat_pos, gun, threat->id, pool, Search::without_critters()).success;
+        return raycast(w, threat_pos, gun, threat->id, pool, nullptr, Search::without_critters()).success;
     };
     fm_assert(seen(peek.pos));
     fm_assert(!seen(peek.pos - Vector2i{0, peek_offset.y() > 0 ? 1 : -1}));
@@ -848,7 +848,7 @@ void cover_scene::step() { step_critter(w, npc, frame); }
 
 bool cover_scene::seen_from(point threat_pos, point pos)
 {
-    return raycast(w, threat_pos, pos, threat->id, ray_pool, Search::without_critters()).success;
+    return raycast(w, threat_pos, pos, threat->id, ray_pool, nullptr, Search::without_critters()).success;
 }
 
 void cover_scene::move_threat(point pos)
@@ -1213,7 +1213,8 @@ void test_cover_script_peek_beside_critter()
 bool gun_seen(world& w, point threat, point pos)
 {
     Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}, Search::without_critters()};
-    return raycast(w, threat, gun_at(pos, threat, (int)body.y()/2), 0, pool, Search::without_critters()).success;
+    return raycast(w, threat, gun_at(pos, threat, (int)body.y()/2), 0, pool, nullptr,
+                   Search::without_critters()).success;
 }
 
 // Checks the walk from spot to its peek with the default gun point, cover script and threat at threat_pos.

@@ -463,7 +463,7 @@ void Critter_walk_5x5(benchmark::State& st)
                 break;
             if (rays)
             {
-                auto res = raycast(w, npc->position(), target, npc->id, ray_pool, Search::never_continue());
+                auto res = raycast(w, npc->position(), target, npc->id, ray_pool, nullptr, Search::never_continue());
                 benchmark::DoNotOptimize(res);
             }
         }
