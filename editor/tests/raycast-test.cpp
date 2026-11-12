@@ -8,6 +8,7 @@
 #include "src/world.hpp"
 #include "src/raycast-diag.hpp"
 #include "src/grid-pass.hpp"
+#include "src/grid-object.hpp"
 #include <cinttypes>
 #include <cstdio>
 #include <array>
@@ -69,6 +70,7 @@ struct raycast_test final : base_test
     float radius = 0;
     raycast_diag_s diag;
     Pointer<Pass::Pool> pool{InPlaceInit, pool_params(radius), Search::never_continue()};
+    Pointer<Grid::Object::Pool> objects{InPlaceInit, *pool};
 
     ~raycast_test() noexcept override;
 
@@ -123,7 +125,11 @@ struct raycast_test final : base_test
         radius = r;
         auto params = pool_params(radius);
         if (pool->params().bbox_size != params.bbox_size)
+        {
+            objects = nullptr;
             pool = Pointer<Pass::Pool>{InPlaceInit, params, Search::never_continue()};
+            objects = Pointer<Grid::Object::Pool>{InPlaceInit, *pool};
+        }
         if (has_last_ray && num_pending < max_pending_rays)
             pending[num_pending++] = last_ray;
     }
@@ -258,7 +264,7 @@ struct raycast_test final : base_test
                 fm_warn("raycast: wrong Z value");
                 continue;
             }
-            result = raycast_with_diag(diag, w, p.from, p.to, p.self, *pool, nullptr, Search::never_continue(), radius);
+            result = raycast_with_diag(diag, w, p.from, p.to, p.self, *objects, Search::never_continue(), radius);
             last_ray = p;
             has_last_ray = true;
         }

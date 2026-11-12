@@ -58,15 +58,19 @@ struct ObjectGrid : GridBase
     template<typename T> Grid::Object::cell_object_view<T> objects_at_cell(const Array<T>& cells,
                                                                            const Array<T>& runs, u32 index) const;
     bool is_entry_blocked(u32 k, const Search::pred& p) const;
+    bool objects_maybe_dirty() const;
+    // An objects_gen() stamp marks no grid, so a moving critter never visits its neighbours' grids.
+    bool needs_rebuild() const { return is_marked_stale() || objects_maybe_dirty(); }
     void build_impl(chunk* self);
     template<typename T> bool build_impl(Array<T>& cells, Array<T>& runs, Array<u32>& scratch_runs);
 };
 
 struct ObjectPool final : Pool<ObjectGrid>
 {
+    Pass::Pool& pass_pool;
     Array<u32> scratch_runs;
 
-    explicit ObjectPool(Params params): Pool<ObjectGrid>{params}
+    explicit ObjectPool(Pass::Pool& pass_pool): Pool<ObjectGrid>{pass_pool.params()}, pass_pool{pass_pool}
     {
         arrayReserve(scratch_runs, 16);
     }
@@ -164,6 +168,16 @@ bool ObjectGrid::is_entry_blocked(u32 k, const Search::pred& p) const
     const auto n = entry_chunks[k];
     auto& ch = n ? *neighbors[n - 1] : *c;
     return p(ch, entry_data[k], Range2D(entry_rects[k])) == path_search_continue::blocked;
+}
+
+bool ObjectGrid::objects_maybe_dirty() const
+{
+    if (c->objects_gen() > built_pass_gen)
+        return true;
+    for (const auto* nb : neighbors)
+        if (nb && nb->objects_gen() > built_pass_gen)
+            return true;
+    return false;
 }
 
 void ObjectGrid::build_impl(chunk* self)
@@ -380,11 +394,14 @@ void Grid::mask_pass_bits(const u8* pass_bits, u8* out, ArrayView<const bool> en
 
 u32 Grid::div_count() const { return grid->params.div_count; }
 bool Grid::is_marked_stale() const { return grid->is_marked_stale(); }
-bool Grid::is_stale() const { return grid->is_marked_stale() || !grid->is_current(); }
+bool Grid::is_stale() const
+{
+    return grid->is_marked_stale() || !grid->is_current() || grid->objects_maybe_dirty();
+}
 void Grid::mark_stale() { grid->mark_stale(); }
 void Grid::build_if_stale() { grid->build_if_stale(); }
 
-Pool::Pool(Params params): pool{new detail::grid::ObjectPool{params}} {}
+Pool::Pool(Pass::Pool& pass_pool): pool{new detail::grid::ObjectPool{pass_pool}} {}
 Pool::~Pool() noexcept { delete pool; }
 
 Grid Pool::operator[](chunk& c)
@@ -399,6 +416,7 @@ void Pool::build_if_stale_all()
 }
 
 const Params& Pool::params() const { return pool->params; }
+Pass::Pool& Pool::pass_pool() const { return pool->pass_pool; }
 u32 Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Object

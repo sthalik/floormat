@@ -46,11 +46,13 @@ public:
                                 u32 max_dist, Vector2ui own_size,
                                 const pred& p);
 
-    // Without objects, only pool's bits and p decide what blocks. objects needs pool's params.
+    // Only pool's bits and p decide what blocks.
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, Grid::Pass::Pool& pool, point from, point to,
-                                u32 max_dist, Vector2ui own_size,
-                                const pred& p, Grid::Object::Pool* objects = nullptr);
+                                u32 max_dist, Vector2ui own_size, const pred& p);
+    template<int Debug = 0, bool FindClosestOnFailure = true>
+    path_search_result Dijkstra(world& w, Grid::Object::Pool& objects, point from, point to,
+                                u32 max_dist, Vector2ui own_size, const pred& p);
 
     struct string_pull_result
     {
@@ -66,13 +68,21 @@ public:
     string_pull_result string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p);
     // `pool` is the one the search ran on: steps of another cell size split its segments wrong.
     string_pull_result string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,
-                                   Vector2ui own_size, const pred& p, Grid::Object::Pool* objects = nullptr);
+                                   Vector2ui own_size, const pred& p);
+    string_pull_result string_pull(world& w, Grid::Object::Pool& objects, path_search_result& result,
+                                   Vector2ui own_size, const pred& p);
 
 private:
     struct seed_search;
     struct closest;
 
     static constexpr u32 initial_capacity = 1u << 17;
+
+    template<int Debug, bool FindClosestOnFailure>
+    path_search_result Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects, point from, point to,
+                                u32 max_dist, Vector2ui own_size, const pred& p);
+    string_pull_result string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
+                                   path_search_result& result, Vector2ui own_size, const pred& p);
 
     bucket_queue make_queue(u32 bucket_count);
     chunk_bitmaps make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::Object::Pool* objects);

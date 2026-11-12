@@ -39,24 +39,8 @@ requires requires(Self& s, chunk* sc, Args&&... a) {
 }
 void GridBase::build_if_stale(this Self& self, Args&&... args)
 {
-    if (!self.is_marked_stale())
-    {
-        if (self.pool->kind == Grid::Kind::static_)
-            return;
-        // An objects_gen() stamp marks no grid, so a moving critter never visits its neighbours' grids.
-        const auto newer = [gen = self.built_pass_gen](const chunk* ch) { return ch && ch->objects_gen() > gen; };
-        bool changed = newer(self.c);
-        for (const auto* nb : self.neighbors)
-            changed |= newer(nb);
-        if (!changed && self.pool->reads_ring2)
-        {
-            auto& w = self.c->world();
-            for (auto off : ring2_offsets)
-                changed |= newer(w.at(self.coord + off));
-        }
-        if (!changed)
-            return;
-    }
+    if (!self.needs_rebuild())
+        return;
 
     chunk* sc = self.c;
     fm_debug3_assert(sc);
@@ -104,7 +88,7 @@ T* Pool<T>::take(chunk& ch) requires BitGrid<T>
 template <typename T>
 void check_current([[maybe_unused]] T* grid)
 {
-    fm_debug3_assert(grid->is_marked_stale() || grid->is_current());
+    fm_debug3_assert(grid->is_marked_stale() || grid->is_current() && !grid->needs_rebuild());
 }
 
 template <typename T>

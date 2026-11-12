@@ -629,8 +629,7 @@ void cover_ai_test::update_ray(app& a, const critter& c, const Cover::Script::st
     auto& m = a.main();
     const auto params = Pass::Params{options.div_size, pass_mode::shoot_through};
     auto& reg = m.astar().pool_registry();
-    ray = raycast(m.world(), s.gun_ray_from, s.gun, c.id, reg.pass_pool(params), &reg.object_pool(params),
-                  Search::without_critters());
+    ray = raycast(m.world(), s.gun_ray_from, s.gun, c.id, reg.object_pool(params), Search::without_critters());
 }
 
 void cover_ai_test::update_post(app& a, const Ns&)

@@ -89,7 +89,8 @@ class Pool final
     detail::grid::ObjectPool* pool;
 
 public:
-    explicit Pool(Params params);
+    // pass_pool must outlive this pool
+    explicit Pool(Pass::Pool& pass_pool);
     ~Pool() noexcept;
     fm_DISABLE_MOVE_COPY(Pool);
 
@@ -98,6 +99,7 @@ public:
     void build_if_stale_all();
 
     const Params& params() const;
+    Pass::Pool& pass_pool() const;
     u32 pooled_count() const;
 };
 

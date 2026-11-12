@@ -28,12 +28,12 @@ using object_cell_visitor = fu2::function_view<bool(const line_cell&, const Grid
                                                     Grid::Object::cell_object_view<T>) const>;
 
 // Visits the cells of the line's pixels, in chunk ch's frame, from first_step to last_step until a visitor
-// returns false. Cells are the pool's, skipping set bits where p blocks no object of objects, or chunks
-// without a pool. Orthogonal points count when in the supercover, or always with both_orthogonal.
+// returns false. Cells are the pool's, skipping set bits where p blocks no object of an object pool, or chunks
+// for nullptr. Orthogonal points count when in the supercover, or always with both_orthogonal.
+template<typename Pool>
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
-                         Grid::Pass::Pool* pool, Grid::Object::Pool* objects,
-                         const Search::pred& p, Array<bool>* entry_blocked,
+                         Pool pool, const Search::pred& p, Array<bool>* entry_blocked,
                          fu2::function_view<bool(const line_cell&) const> visit,
                          object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32);
 
@@ -61,10 +61,10 @@ constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
            b.min().y() <= p1.y() && b.max().y() >= p0.y();
 }
 
-template<bool EnableDiagnostics>
+template<bool EnableDiagnostics, bool HasObjectPool>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
-                               world& w, point from, point to, object_id self,
-                               Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
+                               world& w, point from, point to, object_id self, Grid::Pass::Pool& pass_pool,
+                               std::conditional_t<HasObjectPool, Grid::Object::Pool&, std::nullptr_t> objects,
                                const Search::pred& pred, float radius);
 
 } // namespace floormat::rc::detail

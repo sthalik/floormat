@@ -107,18 +107,28 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
     return { Math::max(0.f, -b - Math::sqrt(discr)), true };
 }
 
+template<typename Pool>
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
-                         Grid::Pass::Pool* pool, Grid::Object::Pool* objects,
-                         const Search::pred& p, Array<bool>* entry_blocked,
+                         Pool pool, const Search::pred& p, Array<bool>* entry_blocked,
                          fu2::function_view<bool(const line_cell&) const> visit,
                          object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32)
 {
+    static_assert(std::is_null_pointer_v<Pool> || std::is_same_v<Pool, Grid::Pass::Pool*> ||
+                  std::is_same_v<Pool, Grid::Object::Pool*>);
     fm_assert(first_step <= last_step && last_step <= line.steps());
-    fm_assert(!objects || pool && entry_blocked && objects->params() == pool->params());
+    if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
+        fm_assert(pool && entry_blocked);
+    else if constexpr (std::is_same_v<Pool, Grid::Pass::Pool*>)
+        fm_assert(pool);
 
     constexpr auto csize = chunk_size<i32>;
-    const auto div = pool ? (i32)pool->params().div_size() : csize;
+    const auto div = [&] {
+        if constexpr (std::is_null_pointer_v<Pool>)
+            return csize;
+        else
+            return (i32)pool->params().div_size();
+    }();
     const auto div_count = (u32)(csize / div);
     const auto div_shift = std::countr_zero((u32)div); // xxx todo assumes power of two chunk size
     const auto origin = Vector2i{half_tile<i32>};
@@ -183,17 +193,23 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         cell.chunk_offset = off;
         cell.chunks = chunks_3x3(off);
         auto* c = cell.chunks[4];
-        has_grid = pool && c;
+        if constexpr (!std::is_null_pointer_v<Pool>)
+            has_grid = c != nullptr;
         has_objects = false;
         if (has_grid)
         {
-            grid = (*pool)[*c];
-            grid.build_if_stale();
-            if (objects)
+            if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
             {
-                object_grid = (*objects)[*c];
+                grid = pool->pass_pool()[*c];
+                grid.build_if_stale();
+                object_grid = (*pool)[*c];
                 object_grid.build_if_stale();
                 has_objects = object_grid.blocked_objects(p, *entry_blocked);
+            }
+            else if constexpr (std::is_same_v<Pool, Grid::Pass::Pool*>)
+            {
+                grid = (*pool)[*c];
+                grid.build_if_stale();
             }
             chunk_empty = grid.is_all_empty() && !has_objects;
         }
@@ -251,8 +267,11 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             {
                 lo = chunk_off * csize + local_cell * div - origin;
                 hi = lo + Vector2i{div - 1};
-                idx = Pass::Grid::get_bitmask_index((u32)local_cell.x(), (u32)local_cell.y(), div_count);
-                skip = has_grid && grid.bit(idx);
+                if constexpr (!std::is_null_pointer_v<Pool>)
+                {
+                    idx = Pass::Grid::get_bitmask_index((u32)local_cell.x(), (u32)local_cell.y(), div_count);
+                    skip = has_grid && grid.bit(idx);
+                }
             }
             fm_debug3_assert((line.point_at(k) >= lo).all() && (line.point_at(k) <= hi).all());
             const auto b = line.sign(minor) > 0 ? (i64)on(hi, minor) - on(from, minor) : (i64)on(from, minor) - on(lo, minor);
@@ -265,15 +284,18 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                 if (!visit(cell))
                     return true;
             }
-            else if (has_objects && object_grid.is_blocked<T>(idx, *entry_blocked))
+            else if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
             {
-                bool more;
-                if constexpr (is_u32)
-                    more = visit_objects_u32(cell, object_grid, object_grid.objects_at_cell<T>(idx));
-                else
-                    more = visit_objects_u16(cell, object_grid, object_grid.objects_at_cell<T>(idx));
-                if (!more)
-                    return true;
+                if (has_objects && object_grid.is_blocked<T>(idx, *entry_blocked))
+                {
+                    bool more;
+                    if constexpr (is_u32)
+                        more = visit_objects_u32(cell, object_grid, object_grid.objects_at_cell<T>(idx));
+                    else
+                        more = visit_objects_u16(cell, object_grid, object_grid.objects_at_cell<T>(idx));
+                    if (!more)
+                        return true;
+                }
             }
             if (last == last_step)
                 return true;
@@ -326,8 +348,13 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             k = last + 1;
         }
     };
-    for (bool done = false; !done; )
-        done = walk.template operator()<u16>() || walk.template operator()<u32>();
+    if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
+    {
+        for (bool done = false; !done; )
+            done = walk.template operator()<u16>() || walk.template operator()<u32>();
+    }
+    else
+        walk.template operator()<u16>();
 }
 
 namespace {
@@ -363,15 +390,14 @@ line_pixel first_pixel_in_bounds(const bresenham_line& line, Vector2i lo, Vector
 
 } // namespace
 
-template<bool EnableDiagnostics>
+template<bool EnableDiagnostics, bool HasObjectPool>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
-                               world& w, point from, point to, object_id self,
-                               Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
+                               world& w, point from, point to, object_id self, Grid::Pass::Pool& pass_pool,
+                               std::conditional_t<HasObjectPool, Grid::Object::Pool&, std::nullptr_t> objects,
                                const Search::pred& pred, float radius)
 {
     raycast_result_s result;
     fm_assert(from.chunk3().z == to.chunk3().z);
-    fm_assert(!objects || objects->params() == pool.params());
 
     using Math::abs;
     using Math::floor;
@@ -427,7 +453,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         .success = false,
     };
 
-    const auto params = pool.params();
+    const auto params = pass_pool.params();
     fm_assert(radius >= 0);
     fm_assert(min_pool_bbox_size(radius) <= params.bbox_size);
     // R-tree rects have integer corners and Search() counts a touching rect, so a cell grown by
@@ -577,44 +603,47 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             {
                 if (!last_g_built)
                 {
-                    last_g = pool[*last_c];
+                    last_g = pass_pool[*last_c];
                     last_g.build_if_stale();
                     last_g_built = true;
-                    last_has_objects = false;
-                    if (objects)
+                    if constexpr (HasObjectPool)
                     {
-                        last_og = (*objects)[*last_c];
+                        last_og = objects[*last_c];
                         last_og.build_if_stale();
                         last_has_objects = last_og.blocked_objects(pred);
                     }
                     last_chunk_empty = last_g.is_all_empty() && !last_has_objects;
-                    if (last_has_objects && last_og.uses_u32() != std::is_same_v<T, u32>)
-                        return false;
+                    if constexpr (HasObjectPool)
+                        if (last_has_objects && last_og.uses_u32() != std::is_same_v<T, u32>)
+                            return false;
                 }
                 if (!last_chunk_empty)
                 {
                     auto bit_idx = Pass::Grid::get_bitmask_index(
                         (u32)local_cell_x, (u32)local_cell_y, (u32)cells_per_chunk);
                     bit = last_g.bit(bit_idx);
-                    if (bit && last_has_objects)
+                    if constexpr (HasObjectPool)
                     {
-                        const auto objects = last_og.objects_at_cell<T>(bit_idx);
-                        const auto rects = last_og.entry_rects();
-                        const auto chunks = last_og.entry_chunks();
-                        for (auto i = 0u; i < objects.size(); i++)
+                        if (bit && last_has_objects)
                         {
-                            const auto& x = objects[i];
-                            if (x.id == self)
-                                continue;
-                            const auto e = objects.entry_index(i);
-                            const auto off = chunks[e] ? Vector2i(world::neighbor_offsets[chunks[e] - 1]) : Vector2i{};
-                            auto* nb = last_nb[(off.y() + 1)*3 + off.x() + 1];
-                            fm_debug3_assert(nb);
-                            const auto range = Range2D(rects[e]);
-                            if (pred(*nb, x, range) == path_search_continue::pass)
-                                continue;
-                            find_intersecting_collider(std::false_type{}, *nb,
-                                                       (this_chunk_off + off) * chunk_size<i32>, x, range);
+                            const auto objects = last_og.objects_at_cell<T>(bit_idx);
+                            const auto rects = last_og.entry_rects();
+                            const auto chunks = last_og.entry_chunks();
+                            for (auto i = 0u; i < objects.size(); i++)
+                            {
+                                const auto& x = objects[i];
+                                if (x.id == self)
+                                    continue;
+                                const auto e = objects.entry_index(i);
+                                const auto off = chunks[e] ? Vector2i(world::neighbor_offsets[chunks[e] - 1]) : Vector2i{};
+                                auto* nb = last_nb[(off.y() + 1)*3 + off.x() + 1];
+                                fm_debug3_assert(nb);
+                                const auto range = Range2D(rects[e]);
+                                if (pred(*nb, x, range) == path_search_continue::pass)
+                                    continue;
+                                find_intersecting_collider(std::false_type{}, *nb,
+                                                           (this_chunk_off + off) * chunk_size<i32>, x, range);
+                            }
                         }
                     }
                 }
@@ -743,8 +772,13 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         }
         return true;
     };
-    for (bool done = false; !done; )
-        done = walk.template operator()<u16>() || walk.template operator()<u32>();
+    if constexpr (HasObjectPool)
+    {
+        for (bool done = false; !done; )
+            done = walk.template operator()<u16>() || walk.template operator()<u32>();
+    }
+    else
+        walk.template operator()<u16>();
 
     if constexpr(EnableDiagnostics)
         diag.tmin = b ? 0 : radius > 0 ? min_tmin
@@ -755,9 +789,26 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     return result;
 }
 
-template raycast_result_s do_raycasting<false>(std::nullptr_t, world&, point, point, object_id,
-                                               Grid::Pass::Pool&, Grid::Object::Pool*, const Search::pred&, float);
-template raycast_result_s do_raycasting<true>(raycast_diag_s&, world&, point, point, object_id,
-                                              Grid::Pass::Pool&, Grid::Object::Pool*, const Search::pred&, float);
+template raycast_result_s do_raycasting<false, false>(std::nullptr_t, world&, point, point, object_id,
+                                                      Grid::Pass::Pool&, std::nullptr_t, const Search::pred&, float);
+template raycast_result_s do_raycasting<false, true>(std::nullptr_t, world&, point, point, object_id,
+                                                     Grid::Pass::Pool&, Grid::Object::Pool&, const Search::pred&, float);
+template raycast_result_s do_raycasting<true, false>(raycast_diag_s&, world&, point, point, object_id,
+                                                     Grid::Pass::Pool&, std::nullptr_t, const Search::pred&, float);
+template raycast_result_s do_raycasting<true, true>(raycast_diag_s&, world&, point, point, object_id,
+                                                    Grid::Pass::Pool&, Grid::Object::Pool&, const Search::pred&, float);
+
+template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
+                                  std::nullptr_t, const Search::pred&, Array<bool>*,
+                                  fu2::function_view<bool(const line_cell&) const>,
+                                  object_cell_visitor<u16>, object_cell_visitor<u32>);
+template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
+                                  Grid::Pass::Pool*, const Search::pred&, Array<bool>*,
+                                  fu2::function_view<bool(const line_cell&) const>,
+                                  object_cell_visitor<u16>, object_cell_visitor<u32>);
+template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
+                                  Grid::Object::Pool*, const Search::pred&, Array<bool>*,
+                                  fu2::function_view<bool(const line_cell&) const>,
+                                  object_cell_visitor<u16>, object_cell_visitor<u32>);
 
 } // namespace floormat::rc::detail

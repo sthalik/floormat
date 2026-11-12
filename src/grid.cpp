@@ -69,10 +69,7 @@ void GridBase::reset_base_for_reuse(chunk& ch)
 
 bool GridBase::is_current() const
 {
-    const bool objects = pool->kind != Grid::Kind::static_;
-    const auto newer = [&](const chunk& ch) {
-        return ch.pass_gen() > built_pass_gen || objects && ch.objects_gen() > built_pass_gen;
-    };
+    const auto newer = [&](const chunk& ch) { return ch.pass_gen() > built_pass_gen; };
     // A neighbour that is gone is skipped. world::collect() moves the stamps of the chunks up to
     // two away from a deleted one, so the grids that read it still go stale.
     if (newer(*c))

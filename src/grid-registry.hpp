@@ -44,8 +44,8 @@ private:
     static Pool& find_or_add(pools_by_params<Pool>& pools, const Pass::Params& p, Args&&... args);
 
     pools_by_params<Pass::Pool> pass_;
-    pools_by_params<Object::Pool> object_;
     // after the pass pools, so destroyed first: each borrows one of them
+    pools_by_params<Object::Pool> object_;
     struct
     {
         std::array<Pointer<Cover::Pool>, std::bit_width(Cover::max_div_size)> direct;

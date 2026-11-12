@@ -54,8 +54,8 @@ private:
     void unregister_chunk(chunk* c) noexcept;
     chunk& make_chunk_(chunk_coords_ coord);
     /// Allocate the next passability-generation stamp: chunks store it in _pass_gen at construction and on
-    /// each change, or in _objects_gen for critters and dynamic scenery, and a grid is stale once a chunk in its
-    /// range holds a stamp newer than its build.
+    /// each change, or in _objects_gen for critters and dynamic scenery. A grid is stale once a chunk in its
+    /// range holds a newer _pass_gen than its build, or for an object grid, a newer _objects_gen.
     /// Monotonic uint64, so a chunk reused at a recycled address can't collide (ABA).
     u64 next_pass_gen() noexcept;
 

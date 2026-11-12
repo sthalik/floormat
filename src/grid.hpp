@@ -14,10 +14,6 @@ class world;
 struct local_coords;
 } // namespace floormat
 
-namespace floormat::Grid {
-enum class Kind : unsigned char { static_, dynamic };
-} // namespace floormat::Grid
-
 namespace floormat::detail::grid {
 
 struct GridBase;
@@ -30,10 +26,11 @@ constexpr u32 bitmask_size(u32 div_count)
 }
 
 template <typename T>
-concept BitGrid = requires(T t, chunk& ch, T::Params p) {
+concept BitGrid = requires(T t, const T& ct, chunk& ch, T::Params p) {
     requires std::derived_from<T, GridBase>;
     typename T::Params;
     { t.reset_for_reuse(ch, p) } -> std::same_as<void>;
+    { ct.needs_rebuild() } -> std::same_as<bool>;
 };
 
 struct GridBase
@@ -96,7 +93,6 @@ struct PoolBase
     free_list freelist;
     Array<GridBase*> grids_in_use;
     const u32 slot_index;
-    Grid::Kind kind = Grid::Kind::dynamic;
     bool reads_ring2 = false;
 
     PoolBase();

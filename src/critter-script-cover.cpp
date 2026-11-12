@@ -341,8 +341,7 @@ bool cover_script::sees(critter& c, point from, point to)
     num_rays++;
     const auto params = Pass::Params{options.div_size, pass_mode::shoot_through};
     auto& reg = A.pool_registry();
-    return raycast(c.world(), from, to, c.id, reg.pass_pool(params), &reg.object_pool(params),
-                   Search::without_critters()).success;
+    return raycast(c.world(), from, to, c.id, reg.object_pool(params), Search::without_critters()).success;
 }
 
 // True when a ray from threat reaches gun_point() of c's body centered on pos. gun_pos and

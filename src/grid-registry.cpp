@@ -19,7 +19,7 @@ Pool& GridRegistry::find_or_add(pools_by_params<Pool>& pools, const Pass::Params
         const auto div_shift = (u32)std::countr_zero(div_size);
         auto& slot = pools.direct[mode][div_shift][p.bbox_size - Pass::Grid::min_bbox_size];
         if (!slot)
-            slot.emplace(p, forward<Args>(args)...);
+            slot.emplace(forward<Args>(args)...);
         return *slot;
     }
 
@@ -27,18 +27,18 @@ Pool& GridRegistry::find_or_add(pools_by_params<Pool>& pools, const Pass::Params
         if (pool->params() == p)
             return *pool;
     arrayReserve(pools.fallback, 4);
-    arrayAppend(pools.fallback, InPlaceInit, InPlaceInit, p, forward<Args>(args)...);
+    arrayAppend(pools.fallback, InPlaceInit, InPlaceInit, forward<Args>(args)...);
     return *pools.fallback.back();
 }
 
 Pass::Pool& GridRegistry::pass_pool(const Pass::Params& p)
 {
-    return find_or_add(pass_, p, Search::without_dynamic_objects(), Kind::static_);
+    return find_or_add(pass_, p, p, Search::never_continue());
 }
 
 Object::Pool& GridRegistry::object_pool(const Object::Params& p)
 {
-    return find_or_add(object_, p);
+    return find_or_add(object_, p, pass_pool(p));
 }
 
 Cover::Pool& GridRegistry::cover_pool(const Cover::Params& pʹ)

@@ -93,7 +93,7 @@ auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
 {
     constexpr float fuzz = TILE_SIZE2.x();
     auto diag = rc::raycast_diag_s{};
-    auto res = raycast_with_diag(diag, w, from, to, 0, pool, nullptr, Search::never_continue());
+    auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue());
     const auto div = (int)pool.params().div_size();
     for (const auto& q : diag.queries)
         fm_assert(Vector2i(intra_coord{q.center}) % div == Vector2i{div / 2});
@@ -141,7 +141,7 @@ void test_window(pass_mode hole_pass)
     };
     const auto ray_passes = [&](Pass::Pool& pool, i8 x) {
         return raycast(w, point{ch, {8, 6}, {x, 0}}, point{ch, {8, 10}, {x, 0}}, 0,
-                       pool, nullptr, Search::never_continue()).success;
+                       pool, Search::never_continue()).success;
     };
 
     const bool shoots = hole_pass == pass_mode::shoot_through;
@@ -162,7 +162,7 @@ void test_edit_in_same_frame()
     const auto frame = w.frame_no();
     const auto ray_passes = [&] {
         return raycast(w, point{ch, {2, 8}, {}}, point{ch, {14, 8}, {}}, 0,
-                       pool, nullptr, Search::never_continue()).success;
+                       pool, Search::never_continue()).success;
     };
 
     fm_assert(ray_passes());
@@ -175,11 +175,12 @@ void test_edit_in_same_frame()
 void test_rays(const Pass::Params& params, world& w)
 {
     Pass::Pool pool{params, Search::never_continue()};
+    Grid::Object::Pool objects{pool};
     const auto ray = [&](world& w, point from, point to, object_id self) {
-        return raycast(w, from, to, self, pool, nullptr, Search::never_continue());
+        return raycast(w, from, to, self, objects, Search::never_continue());
     };
     const auto ray_diag = [&](rc::raycast_diag_s& diag, world& w, point from, point to, object_id self) {
-        return raycast_with_diag(diag, w, from, to, self, pool, nullptr, Search::never_continue());
+        return raycast_with_diag(diag, w, from, to, self, objects, Search::never_continue());
     };
 
     { constexpr auto from = point{{0, 0, 0}, {11,12}, {1,-32}};
@@ -341,7 +342,7 @@ void test_rays(const Pass::Params& params, world& w)
                 continue;
 
             const auto ray_r = [&](Vector2i from, Vector2i to) {
-                return raycast_with_diag(diag, w2, P0 + from, P0 + to, 0, pool, nullptr, Search::never_continue(), radius);
+                return raycast_with_diag(diag, w2, P0 + from, P0 + to, 0, objects, Search::never_continue(), radius);
             };
 
             for (int y = hit_lo; y <= hit_hi; y++)
@@ -500,7 +501,7 @@ void test_supercover_hits()
         auto diag = rc::raycast_diag_s{};
         for (auto& pool : pools)
         {
-            const auto res = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool, nullptr, Search::never_continue());
+            const auto res = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool, Search::never_continue());
             const auto px = res.collision - origin;
             bool ok = res.success == !ref.count;
             if (ok && ref.count)
@@ -521,7 +522,7 @@ void test_supercover_hits()
             for (auto radius : { .5f, 2.25f, 2.75f, 6.5f })
             {
                 const auto expected = nearest_rounded_hit(pillars, from, Vector2(to - from), radius);
-                const auto r = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool, nullptr,
+                const auto r = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool,
                                                  Search::never_continue(), radius);
                 if (r.success != (expected == FLT_MAX) || (!r.success && Math::abs(diag.tmin - expected) > 1e-3f))
                     fm_abort("ray (%d %d)-(%d %d) div %u radius %g: success %d tmin %g, expected %g",
@@ -535,7 +536,7 @@ void test_supercover_hits()
     check({0, 0}, {400, 1});
     check({0, 0}, {640, 66});
     check({100, 479}, {500, 480});
-    fm_assert(!raycast(w, origin + Vector2i{100, 100}, origin + Vector2i{300, 300}, 0, pools[0], nullptr,
+    fm_assert(!raycast(w, origin + Vector2i{100, 100}, origin + Vector2i{300, 300}, 0, pools[0],
                        Search::never_continue()).success);
     // through the corner of four chunks
     check({950, 950}, {1040, 1040});
@@ -599,27 +600,46 @@ void test_object_pool()
     auto& reg = A.pool_registry();
     auto& pass_pool = reg.pass_pool(params);
     auto& object_pool = reg.object_pool(params);
-    const auto ray = [&](point from, point to, Grid::Object::Pool* objects, const Search::pred& pred) {
-        return raycast(w, from, to, 0, pass_pool, objects, pred);
+    const auto ray = [&](point from, point to, Grid::Object::Pool* objects, const Search::pred& pred, float radius = 0) {
+        return objects ? raycast(w, from, to, 0, *objects, pred, radius) : raycast(w, from, to, 0, pass_pool, pred, radius);
+    };
+    const auto sweep = [&](point from, point to, Grid::Object::Pool* objects, const Search::pred& pred) {
+        const auto origin = point{ch, {}, {}};
+        const auto line = rc::bresenham_line{from - origin, to - origin};
+        constexpr auto size = Vector2ui{4};
+        Array<bool> entry_blocked;
+        return objects ? find_swept_collider(w, ch, line, 0, line.steps(), size, pred, *objects, entry_blocked)
+                       : find_swept_collider(w, ch, line, 0, line.steps(), size, pred, &pass_pool);
     };
     const auto door_from = point{ch, {8, 4}, {}}, door_to = point{ch, {8, 12}, {}};
     const auto crit_from = point{ch, {2, 8}, {}}, crit_to = point{ch, {6, 8}, {}};
     const auto row_west = point{ch, {2, 11}, {}}, row_east = point{ch, {6, 11}, {}};
 
-    fm_assert(ray(door_from, door_to, nullptr, Search::without_critters()).success);
-    const auto shut = ray(door_from, door_to, &object_pool, Search::without_critters());
-    fm_assert(!shut.success && shut.collider.id == door.id);
-    fm_assert(ray(door_from, door_to, &object_pool, Search::never_continue()).collider.id == C2->id);
+    for (float radius : { 0.f, 1.f })
+    {
+        fm_assert(ray(door_from, door_to, nullptr, Search::without_critters(), radius).success);
+        const auto shut = ray(door_from, door_to, &object_pool, Search::without_critters(), radius);
+        fm_assert(!shut.success && shut.collider.id == door.id);
+        fm_assert(ray(door_from, door_to, &object_pool, Search::never_continue(), radius).collider.id == C2->id);
 
-    fm_assert(ray(crit_from, crit_to, nullptr, Search::never_continue()).success);
-    auto diag = rc::raycast_diag_s{};
-    const auto hit = raycast_with_diag(diag, w, crit_from, crit_to, 0, pass_pool, &object_pool, Search::never_continue());
-    fm_assert(!hit.success && hit.collider.id == C->id && !diag.queries.isEmpty());
-    fm_assert(ray(crit_from, crit_to, &object_pool, Search::without_critters()).success);
+        fm_assert(ray(crit_from, crit_to, nullptr, Search::never_continue(), radius).success);
+        auto diag = rc::raycast_diag_s{};
+        const auto hit = raycast_with_diag(diag, w, crit_from, crit_to, 0, object_pool, Search::never_continue(), radius);
+        fm_assert(!hit.success && hit.collider.id == C->id && !diag.queries.isEmpty());
+        fm_assert(ray(crit_from, crit_to, &object_pool, Search::without_critters(), radius).success);
 
-    fm_assert(ray(row_west, row_east, &object_pool, Search::never_continue()).collider.id == S3->id);
-    fm_assert(ray(row_east, row_west, &object_pool, Search::never_continue()).collider.id == C3->id);
-    fm_assert(ray(row_east, row_west, &object_pool, Search::without_critters()).collider.id == S3->id);
+        fm_assert(ray(row_west, row_east, &object_pool, Search::never_continue(), radius).collider.id == S3->id);
+        fm_assert(ray(row_east, row_west, &object_pool, Search::never_continue(), radius).collider.id == C3->id);
+        fm_assert(ray(row_east, row_west, &object_pool, Search::without_critters(), radius).collider.id == S3->id);
+    }
+    fm_assert(!sweep(door_from, door_to, nullptr, Search::without_critters()).has_collider);
+    fm_assert(sweep(door_from, door_to, &object_pool, Search::without_critters()).collider.id == door.id);
+    fm_assert(sweep(door_from, door_to, &object_pool, Search::never_continue()).collider.id == C2->id);
+    fm_assert(!sweep(crit_from, crit_to, nullptr, Search::never_continue()).has_collider);
+    fm_assert(sweep(crit_from, crit_to, &object_pool, Search::never_continue()).collider.id == C->id);
+    fm_assert(sweep(row_west, row_east, &object_pool, Search::never_continue()).collider.id == S3->id);
+    fm_assert(sweep(row_east, row_west, &object_pool, Search::never_continue()).collider.id == C3->id);
+    fm_assert(sweep(row_east, row_west, &object_pool, Search::without_critters()).collider.id == S3->id);
 
     auto i = door.index();
     fm_assert(door.activate(i));
@@ -655,17 +675,14 @@ void test_u32_object_grid()
     const auto D = add({600, 1300});
 
     auto A = astar{};
-    const auto params = Pass::Params{1, size, pass_mode::pass};
-    auto& pass_pool = A.pool_registry().pass_pool(params);
-    auto& objects = A.pool_registry().object_pool(params);
+    auto& objects = A.pool_registry().object_pool(Pass::Params{1, size, pass_mode::pass});
     const auto& all = Search::never_continue();
     const auto check = [&](Vector2i from, Vector2i to, object_id id) {
-        const auto ray = raycast(w, at(from), at(to), 0, pass_pool, &objects, all);
+        const auto ray = raycast(w, at(from), at(to), 0, objects, all);
         fm_assert(!ray.success && ray.collider.id == id);
         const auto line = rc::bresenham_line{at(from) - point{ch, {}, {}}, at(to) - point{ch, {}, {}}};
         Array<bool> entry_blocked;
-        const auto hit = find_swept_collider(w, ch, line, 0, line.steps(), Vector2ui{size}, all, &pass_pool, &objects,
-                                             &entry_blocked);
+        const auto hit = find_swept_collider(w, ch, line, 0, line.steps(), Vector2ui{size}, all, objects, entry_blocked);
         fm_assert(hit.has_collider && hit.collider.id == id);
     };
     check({428, -400}, {428, 550}, C->id);
@@ -676,7 +693,7 @@ void test_u32_object_grid()
 
     auto& north = N->chunk();
     north.remove_object(*N, N->index());
-    auto north_pass = pass_pool[north];
+    auto north_pass = objects.pass_pool()[north];
     north_pass.build_if_stale();
     auto north_objects = objects[north];
     north_objects.build_if_stale();

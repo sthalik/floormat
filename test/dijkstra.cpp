@@ -588,12 +588,12 @@ bool is_segment_clear(world& w, point a, point b, Vector2ui size, const Search::
 }
 
 swept_collider_result sweep_with_grids(world& w, point a, point b, Vector2ui size, const Search::pred& p,
-                                       Grid::Pass::Pool& pool, Grid::Object::Pool& objects)
+                                       Grid::Object::Pool& objects)
 {
     const auto origin = point{a.chunk3(), {}, {}};
     const auto line = rc::bresenham_line{a - origin, b - origin};
     Array<bool> entry_blocked;
-    return find_swept_collider(w, a.chunk3(), line, 0, line.steps(), size, p, &pool, &objects, &entry_blocked);
+    return find_swept_collider(w, a.chunk3(), line, 0, line.steps(), size, p, objects, entry_blocked);
 }
 
 // A critter standing in a sealed corridor closes it to other critters of its size, wherever it moves.
@@ -619,8 +619,7 @@ void check_critter_corridor(u32 cell)
     auto& objects = A.pool_registry().object_pool(params);
     const auto search = [&]<bool closest = false>(const bptr<critter>& C, point to) {
         const auto pred = Search::blocks_all_but(C->id);
-        return A.Dijkstra<0, closest>(w, pool, C->position(), to, max_dist, Vector2ui{size}, Search::pred{pred},
-                                      &objects);
+        return A.Dijkstra<0, closest>(w, objects, C->position(), to, max_dist, Vector2ui{size}, Search::pred{pred});
     };
     const auto expect = [&](const char* what, const bptr<critter>& C, point to, bool found) {
         if (const auto r = search(C, to); r.is_found() != found)
@@ -643,9 +642,9 @@ void check_critter_corridor(u32 cell)
     }
     const auto& any = Search::without_critters();
     {
-        auto r = A.Dijkstra<0, false>(w, pool, west, east, max_dist, Vector2ui{size}, any, &objects);
+        auto r = A.Dijkstra<0, false>(w, objects, west, east, max_dist, Vector2ui{size}, any);
         fm_assert(r.is_found());
-        fm_assert(A.string_pull(w, pool, r, Vector2ui{size}, any, &objects));
+        fm_assert(A.string_pull(w, objects, r, Vector2ui{size}, any));
         const auto sp = std::as_const(r).smoothings();
         const auto pred = Search::blocks_all_but(S->id);
         bool crosses = false;
@@ -665,12 +664,12 @@ void check_critter_corridor(u32 cell)
     move_to(B, {340, 512});
     expect("east past a critter beside it", S, east, false);
     expect("west past a critter beside it", B, west, false);
-    fm_assert(A.Dijkstra<0, false>(w, pool, S->position(), east, max_dist, Vector2ui{size}, any, &objects).is_found());
+    fm_assert(A.Dijkstra<0, false>(w, objects, S->position(), east, max_dist, Vector2ui{size}, any).is_found());
     {
         const auto pred = Search::blocks_all_but(S->id);
-        const auto hit = sweep_with_grids(w, S->position(), east, Vector2ui{size}, Search::pred{pred}, pool, objects);
+        const auto hit = sweep_with_grids(w, S->position(), east, Vector2ui{size}, Search::pred{pred}, objects);
         fm_assert(hit.has_collider && hit.collider.id == B->id);
-        fm_assert(!sweep_with_grids(w, S->position(), east, Vector2ui{size}, any, pool, objects).has_collider);
+        fm_assert(!sweep_with_grids(w, S->position(), east, Vector2ui{size}, any, objects).has_collider);
     }
     move_to(B, {512, 704});
     auto r = search(S, east);
@@ -692,14 +691,13 @@ void check_searcher_own_body(u32 cell)
 
     auto A = astar{};
     const auto params = Grid::Pass::Params{cell, size, pass_mode::pass};
-    auto& pool = A.pool_registry().pass_pool(params);
     auto& objects = A.pool_registry().object_pool(params);
     const auto pred_fn = Search::blocks_all_but(S->id);
     const Search::pred pred{pred_fn};
-    if (!A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui{size}, pred, &objects).is_found())
+    if (!A.Dijkstra<0, false>(w, objects, from, goal, max_dist, Vector2ui{size}, pred).is_found())
         fm_abort("searcher's own body at div %u: no path", cell);
     const auto& all = Search::never_continue();
-    fm_assert(!A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui{size}, all, &objects).is_found());
+    fm_assert(!A.Dijkstra<0, false>(w, objects, from, goal, max_dist, Vector2ui{size}, all).is_found());
 }
 
 // A searcher touching a wall and another critter walks away from both.
@@ -719,10 +717,9 @@ void check_searcher_pressed(u32 cell)
 
     auto A = astar{};
     const auto params = Grid::Pass::Params{cell, size, pass_mode::pass};
-    auto& pool = A.pool_registry().pass_pool(params);
     auto& objects = A.pool_registry().object_pool(params);
     const auto pred_fn = Search::blocks_all_but(S->id);
-    auto r = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui{size}, Search::pred{pred_fn}, &objects);
+    auto r = A.Dijkstra<0, false>(w, objects, from, goal, max_dist, Vector2ui{size}, Search::pred{pred_fn});
     if (!r.is_found())
         fm_abort("searcher pressed at div %u: no path", cell);
     walk_to(w, S, move(r), goal, "searcher pressed", cell);
@@ -743,13 +740,12 @@ void check_pull_around_critter(u32 cell)
 
     auto A = astar{};
     const auto params = Grid::Pass::Params{cell, size, pass_mode::pass};
-    auto& pool = A.pool_registry().pass_pool(params);
     auto& objects = A.pool_registry().object_pool(params);
     const auto pred_fn = Search::blocks_all_but(S->id);
     const Search::pred pred{pred_fn};
-    auto r = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui{size}, pred, &objects);
+    auto r = A.Dijkstra<0, false>(w, objects, from, goal, max_dist, Vector2ui{size}, pred);
     fm_assert(r.is_found());
-    fm_assert(A.string_pull(w, pool, r, Vector2ui{size}, pred, &objects));
+    fm_assert(A.string_pull(w, objects, r, Vector2ui{size}, pred));
     const auto sp = std::as_const(r).smoothings();
     fm_assert(sp.size() >= 3);
     for (auto k = 0uz; k + 1 < sp.size(); k++)

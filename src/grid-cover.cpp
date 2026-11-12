@@ -173,8 +173,13 @@ float raycast_one(chunk& self,
     const point from{self.coord(), intra_coord{origin_local}};
     const point to = from + delta;
 
-    const auto r = rc::detail::do_raycasting<false>(nullptr, self.world(), from, to, 0, pass_pool, nullptr,
-                                                    pass_pool.predicate(), 0);
+    const auto p = [&](chunk& c, collision_data x, Range2D rect) {
+        if (Search::without_dynamic_objects()(c, x, rect) == path_search_continue::pass)
+            return path_search_continue::pass;
+        return pass_pool.predicate()(c, x, rect);
+    };
+    const auto r = rc::detail::do_raycasting<false, false>(nullptr, self.world(), from, to, 0, pass_pool, nullptr,
+                                                           Search::pred{p}, 0);
 
     if (!r.has_result || r.success)
         return (float)max_ray_px;
@@ -366,6 +371,7 @@ struct CoverGrid : GridBase
     ~CoverGrid() noexcept = default;
 
     void reset_for_reuse(chunk& ch, Params new_params);
+    bool needs_rebuild() const { return is_marked_stale(); }
     void apply_params();
     // A ray reads the pass grids and RTrees of the 3×3 around the chunk, and those hold objects of
     // the next ring out. check_current() doesn't call this, so the accessors' Debug check skips ring 2.
@@ -401,7 +407,6 @@ CoverPool::CoverPool(Params p, Pass::Pool& pass_pool):
     pass_pool{pass_pool}
 {
     fm_assert(pass_pool.params() == Pass::Params{params.div_size, pass_mode::shoot_through});
-    kind = pass_pool.kind();
     reads_ring2 = true;
 }
 
@@ -425,11 +430,9 @@ void CoverGrid::build_impl(chunk* self)
 
 bool CoverGrid::ring2_is_current() const
 {
-    const bool objects = pool->kind != Grid::Kind::static_;
     const auto& w = c->world();
     for (auto off : ring2_offsets)
-        if (const auto* ch = w.at(coord + off);
-            ch && (ch->pass_gen() > built_pass_gen || objects && ch->objects_gen() > built_pass_gen))
+        if (const auto* ch = w.at(coord + off); ch && ch->pass_gen() > built_pass_gen)
             return false;
     return true;
 }

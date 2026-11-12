@@ -432,7 +432,7 @@ void Critter_walk_5x5(benchmark::State& st)
             (void)w[{x, y, 0}];
     mark_all_modified(w);
 
-    // Only the rays read a grid, from ray_pool. The others are there for the critter's steps to mark stale.
+    // Only the rays read a grid, from ray_pool.
     Pass::Pool walk_pool{Pass::Params{16, pass_mode::pass}, Search::without_critters()};
     Pass::Pool shoot_pool{Pass::Params{16, pass_mode::shoot_through}, Search::never_continue()};
     Grid::Cover::Pool cover_pool{Grid::Cover::Params{16}, shoot_pool};
@@ -463,7 +463,7 @@ void Critter_walk_5x5(benchmark::State& st)
                 break;
             if (rays)
             {
-                auto res = raycast(w, npc->position(), target, npc->id, ray_pool, nullptr, Search::never_continue());
+                auto res = raycast(w, npc->position(), target, npc->id, ray_pool, Search::never_continue());
                 benchmark::DoNotOptimize(res);
             }
         }

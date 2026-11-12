@@ -136,6 +136,7 @@ struct PassGrid : GridBase
     ~PassGrid() noexcept;
 
     void reset_for_reuse(chunk& ch, Params new_params);
+    bool needs_rebuild() const { return is_marked_stale(); }
 
     static u32 get_bitmask_index(u32 x, u32 y, u32 div_count);
     u32 get_bitmask_index_from_coord(intra_coord pos) const;
@@ -206,7 +207,8 @@ void PassGrid::build_impl(chunk* self, const pred& predicate)
                 if (x.pass >= min_pass)
                     return true;
                 auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-                if (predicate(*c, x, range) == path_search_continue::pass)
+                if (Search::without_dynamic_objects()(*c, x, range) == path_search_continue::pass ||
+                    predicate(*c, x, range) == path_search_continue::pass)
                     return true;
                 all_empty = false;
 
@@ -269,10 +271,9 @@ struct PassPool final : Pool<PassGrid>
 {
     Search::pred predicate;
 
-    PassPool(Grid::Pass::Params params, const Search::pred& p, Grid::Kind kind):
+    PassPool(Grid::Pass::Params params, const Search::pred& p):
         Pool<PassGrid>{params}, predicate{p}
     {
-        this->kind = kind;
     }
 };
 
@@ -419,12 +420,11 @@ void Pool::build_if_stale_all()
         static_cast<detail::grid::PassGrid*>(g)->build_if_stale(pool->predicate);
 }
 
-Pool::Pool(Params params, const pred& predicate, Kind kind):
-    pool{new detail::grid::PassPool{params, predicate, kind}} { }
+Pool::Pool(Params params, const pred& predicate):
+    pool{new detail::grid::PassPool{params, predicate}} { }
 Pool::~Pool() noexcept { delete pool; }
 const Params& Pool::params() const { return pool->params; }
 const pred& Pool::predicate() const { return pool->predicate; }
-Kind Pool::kind() const { return pool->kind; }
 u32 Pool::pooled_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Pass

@@ -510,8 +510,7 @@ task app::scene_cover_ai()
         const auto params = Pass::Params{cover_div, pass_mode::shoot_through};
         auto& reg = M->astar().pool_registry();
         const auto sees = [&](point to) {
-            return raycast(w, threat, to, npc_id, reg.pass_pool(params), &reg.object_pool(params),
-                           Search::without_critters()).success;
+            return raycast(w, threat, to, npc_id, reg.object_pool(params), Search::without_critters()).success;
         };
         const auto& p = stops[0];
         fm_assert(p.status.st == state::exposed && p.status.has_peek);
@@ -655,8 +654,7 @@ task app::scene_cover_ai_map()
     const auto params = Pass::Params{cover_div, pass_mode::shoot_through};
     auto& reg = M->astar().pool_registry();
     const auto sees = [&](point from, point to) {
-        return raycast(w, from, to, npc_id, reg.pass_pool(params), &reg.object_pool(params),
-                       Search::without_critters()).success;
+        return raycast(w, from, to, npc_id, reg.object_pool(params), Search::without_critters()).success;
     };
     const auto print = [](point pt) {
         const auto v = Vector3i(pt).xy();

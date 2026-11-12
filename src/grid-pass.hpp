@@ -120,9 +120,8 @@ class Pool final
     detail::grid::PassPool* pool;
 
 public:
-    /// @param kind Kind::static_ only when @p predicate passes every dynamic object. The grids then stay current
-    /// when only chunk::objects_gen() moves.
-    explicit Pool(Params params, const pred& predicate, Kind kind = Kind::dynamic);
+    /// @param predicate Sees static colliders only. Critters and dynamic scenery are in Grid::Object::Pool.
+    explicit Pool(Params params, const pred& predicate);
     ~Pool() noexcept;
     fm_DISABLE_MOVE_COPY(Pool);
 
@@ -132,7 +131,6 @@ public:
 
     const Params& params() const;
     const pred& predicate() const;
-    Kind kind() const;
     u32 pooled_count() const;
 };
 

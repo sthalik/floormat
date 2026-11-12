@@ -28,14 +28,20 @@ struct swept_collider_result
 // pool must be built for a bbox of at least bbox_size. Its set bits are free unless p blocks an object of objects.
 swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                                           u32 first_step, u32 last_step, Vector2ui bbox_size,
-                                          const Search::pred& p, Grid::Pass::Pool* pool = nullptr,
-                                          Grid::Object::Pool* objects = nullptr, Array<bool>* entry_blocked = nullptr);
+                                          const Search::pred& p, Grid::Pass::Pool* pool = nullptr);
+swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                                          u32 first_step, u32 last_step, Vector2ui bbox_size,
+                                          const Search::pred& p, Grid::Object::Pool& objects,
+                                          Array<bool>& entry_blocked);
 // Calls f for every collider blocking a step, in no particular order, until it returns false. A
 // collider found in several cells comes once per cell, with a step it blocks there.
 void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Grid::Pass::Pool* pool,
-                         Grid::Object::Pool* objects, Array<bool>* entry_blocked,
+                         fu2::function_view<bool(const swept_collider_result&) const> f);
+void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                         u32 first_step, u32 last_step, Vector2ui bbox_size,
+                         const Search::pred& p, Grid::Object::Pool& objects, Array<bool>& entry_blocked,
                          fu2::function_view<bool(const swept_collider_result&) const> f);
 
 } // namespace floormat

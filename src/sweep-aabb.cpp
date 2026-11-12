@@ -18,13 +18,13 @@ namespace {
 
 // on_blocker(step, collider, rect) returns the new bound: rects blocking only at or past it are
 // skipped, and the walk ends once a cell's steps reach it.
-template<typename F>
+template<typename Pool, typename F>
 void sweep_aabb(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                 u32 first_step, u32 last_step, Vector2ui bbox_size,
-                const Search::pred& p, Grid::Pass::Pool* pool, Grid::Object::Pool* objects, Array<bool>* entry_blocked,
-                F&& on_blocker)
+                const Search::pred& p, Pool pool, Array<bool>* entry_blocked, F&& on_blocker)
 {
-    fm_assert(!pool || pool->params().bbox_size >= Math::max(bbox_size.x(), bbox_size.y()));
+    if constexpr (!std::is_null_pointer_v<Pool>)
+        fm_assert(pool->params().bbox_size >= Math::max(bbox_size.x(), bbox_size.y()));
     // a box spans [center - lo, center + hi), as scenery_tile()
     const auto lo = Vector2i(bbox_size/2u), hi = Vector2i(bbox_size) - lo;
     auto bound = (i64)last_step + 1;
@@ -106,35 +106,72 @@ void sweep_aabb(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
         return bound > (i64)k1 + 1;
     };
 
-    rc::detail::traverse_line_cells(w, ch, line, first_step, last_step, true, pool, objects, p, entry_blocked,
+    rc::detail::traverse_line_cells(w, ch, line, first_step, last_step, true, pool, p, entry_blocked,
                                     visit, visit_objects, visit_objects);
 }
 
-} // namespace
-
+template<typename Pool>
 swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                                           u32 first_step, u32 last_step, Vector2ui bbox_size,
-                                          const Search::pred& p, Grid::Pass::Pool* pool,
-                                          Grid::Object::Pool* objects, Array<bool>* entry_blocked)
+                                          const Search::pred& p, Pool pool, Array<bool>* entry_blocked)
 {
     swept_collider_result res = { .step = last_step + 1, .collider = {}, .rect = {}, .has_collider = false };
-    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, objects, entry_blocked, [&](i64 step, collision_data x, Range2D rect) {
+    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, entry_blocked, [&](i64 step, collision_data x, Range2D rect) {
         res = { .step = (u32)step, .collider = x, .rect = rect, .has_collider = true };
         return step;
     });
     return res;
 }
 
+template<typename Pool>
 void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
-                         const Search::pred& p, Grid::Pass::Pool* pool,
-                         Grid::Object::Pool* objects, Array<bool>* entry_blocked,
+                         const Search::pred& p, Pool pool, Array<bool>* entry_blocked,
                          fu2::function_view<bool(const swept_collider_result&) const> f)
 {
-    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, objects, entry_blocked, [&](i64 step, collision_data x, Range2D rect) {
+    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, entry_blocked, [&](i64 step, collision_data x, Range2D rect) {
         const bool more = f(swept_collider_result{ .step = (u32)step, .collider = x, .rect = rect, .has_collider = true });
         return more ? (i64)last_step + 1 : 0;
     });
+}
+
+} // namespace
+
+swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                                          u32 first_step, u32 last_step, Vector2ui bbox_size,
+                                          const Search::pred& p, Grid::Pass::Pool* pool)
+{
+    if (pool)
+        return find_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, pool, nullptr);
+    else
+        return find_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, nullptr, nullptr);
+}
+
+swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                                          u32 first_step, u32 last_step, Vector2ui bbox_size,
+                                          const Search::pred& p, Grid::Object::Pool& objects,
+                                          Array<bool>& entry_blocked)
+{
+    return find_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, &objects, &entry_blocked);
+}
+
+void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                         u32 first_step, u32 last_step, Vector2ui bbox_size,
+                         const Search::pred& p, Grid::Pass::Pool* pool,
+                         fu2::function_view<bool(const swept_collider_result&) const> f)
+{
+    if (pool)
+        find_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, pool, nullptr, f);
+    else
+        find_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, nullptr, nullptr, f);
+}
+
+void find_swept_collider(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+                         u32 first_step, u32 last_step, Vector2ui bbox_size,
+                         const Search::pred& p, Grid::Object::Pool& objects, Array<bool>& entry_blocked,
+                         fu2::function_view<bool(const swept_collider_result&) const> f)
+{
+    find_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, &objects, &entry_blocked, f);
 }
 
 } // namespace floormat

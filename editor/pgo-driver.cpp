@@ -1325,7 +1325,7 @@ task app::scene_raycast()
         // Asserts the cursor resolved to a world point.
         (void)cursor_point();
         num_rays++;
-        D.rays[k] = raycast_with_diag(D.diags[k], w, from, to, C->id, pool, nullptr, Search::never_continue());
+        D.rays[k] = raycast_with_diag(D.diags[k], w, from, to, C->id, pool, Search::never_continue());
     };
 
     for (const auto ray_len : pgo::raycast_radii)
@@ -1341,7 +1341,7 @@ task app::scene_raycast()
         for (auto i = 0u; i < num_sampled; i++)
         {
             const auto to = point::normalize_coords(from, wp[i * n/num_sampled]);
-            const auto r = raycast(w, from, to, C->id, pool, nullptr, Search::never_continue());
+            const auto r = raycast(w, from, to, C->id, pool, Search::never_continue());
             sampled_hits += !r.success;
             mean_dist += point::distance(from, r.success ? to : r.collision);
         }

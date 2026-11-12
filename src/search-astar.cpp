@@ -1000,10 +1000,22 @@ path_search_result astar::Dijkstra(world& w, const point from, const point to,
                                    u32 max_dist, Vector2ui own_size,
                                    const pred& p)
 {
-    const auto params = default_pool_params(own_size);
-    auto& pool = _pool_registry->pass_pool(params);
-    auto& objects = _pool_registry->object_pool(params);
-    return Dijkstra<Debug, FindClosestOnFailure>(w, pool, from, to, max_dist, own_size, p, &objects);
+    auto& objects = _pool_registry->object_pool(default_pool_params(own_size));
+    return Dijkstra<Debug, FindClosestOnFailure>(w, objects, from, to, max_dist, own_size, p);
+}
+
+template<int Debug, bool FindClosestOnFailure>
+path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point from, const point to,
+                                   u32 max_dist, Vector2ui own_size, const pred& p)
+{
+    return Dijkstra<Debug, FindClosestOnFailure>(w, pool, nullptr, from, to, max_dist, own_size, p);
+}
+
+template<int Debug, bool FindClosestOnFailure>
+path_search_result astar::Dijkstra(world& w, Grid::Object::Pool& objects, const point from, const point to,
+                                   u32 max_dist, Vector2ui own_size, const pred& p)
+{
+    return Dijkstra<Debug, FindClosestOnFailure>(w, objects.pass_pool(), &objects, from, to, max_dist, own_size, p);
 }
 
 auto astar::make_queue(u32 bucket_count) -> bucket_queue
@@ -1285,9 +1297,9 @@ path_search_result astar::make_result(const closest& best, point from, point to,
 }
 
 template<int Debug, bool FindClosestOnFailure>
-path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point from, const point to,
-                                   u32 max_dist, Vector2ui own_size,
-                                   const pred& p, Grid::Object::Pool* objects)
+path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
+                                   const point from, const point to,
+                                   u32 max_dist, Vector2ui own_size, const pred& p)
 {
     reserve(initial_capacity);
 
@@ -1309,7 +1321,6 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     const auto params = pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert(params.min_pass == pass_mode::pass);
-    fm_assert(!objects || objects->params() == params);
 
     // A step is one cell, so a cell holds one node.
     const auto step = (int)params.div_size();
@@ -1402,8 +1413,9 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point
     template path_search_result astar::Dijkstra<Debug, FindClosest>(world&, point, point, u32, Vector2ui,     \
                                                                     const pred&);                          \
     template path_search_result astar::Dijkstra<Debug, FindClosest>(world&, Grid::Pass::Pool&, point, point, \
-                                                                    u32, Vector2ui, const pred&,           \
-                                                                    Grid::Object::Pool*)
+                                                                    u32, Vector2ui, const pred&);          \
+    template path_search_result astar::Dijkstra<Debug, FindClosest>(world&, Grid::Object::Pool&, point,     \
+                                                                    point, u32, Vector2ui, const pred&)
 FM_DIJKSTRA(0, true);
 FM_DIJKSTRA(1, true);
 FM_DIJKSTRA(2, true);
@@ -1416,13 +1428,23 @@ FM_DIJKSTRA(3, false);
 
 auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p) -> string_pull_result
 {
-    const auto params = default_pool_params(own_size);
-    auto& pool = _pool_registry->pass_pool(params);
-    return string_pull(w, pool, result, own_size, p, &_pool_registry->object_pool(params));
+    return string_pull(w, _pool_registry->object_pool(default_pool_params(own_size)), result, own_size, p);
 }
 
 auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,
-                        Vector2ui own_size, const pred& p, Grid::Object::Pool* objects) -> string_pull_result
+                        Vector2ui own_size, const pred& p) -> string_pull_result
+{
+    return string_pull(w, pool, nullptr, result, own_size, p);
+}
+
+auto astar::string_pull(world& w, Grid::Object::Pool& objects, path_search_result& result,
+                        Vector2ui own_size, const pred& p) -> string_pull_result
+{
+    return string_pull(w, objects.pass_pool(), &objects, result, own_size, p);
+}
+
+auto astar::string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
+                        path_search_result& result, Vector2ui own_size, const pred& p) -> string_pull_result
 {
     u32 corners_added = 0, los_checks = 0;
     auto& sp = result.smoothings();
@@ -1434,7 +1456,6 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
     const auto own_lo = Vector2(own_size/2u), own_hi = Vector2(own_size) - own_lo;
     fm_assert(pool.params().bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert_equal(result.div_size(), pool.params().div_size());
-    fm_assert(!objects || objects->params() == pool.params());
     const auto cell = (int)pool.params().div_size();
 
     auto& P = temp_nodes;
@@ -1459,8 +1480,7 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
         const auto line = rc::bresenham_line{o, to - origin};
         los_result res = {};
         los_checks++;
-        find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, &pool, objects, &entry_blocked,
-                            [&](const swept_collider_result& r) {
+        const auto f = [&](const swept_collider_result& r) {
             res.blocked = true;
             const auto x0 = (i32)Math::floor(r.rect.min().x() - own_hi.x()), x1 = (i32)Math::ceil(r.rect.max().x() + own_lo.x());
             const auto y0 = (i32)Math::floor(r.rect.min().y() - own_hi.y()), y1 = (i32)Math::ceil(r.rect.max().y() + own_lo.y());
@@ -1476,7 +1496,11 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
                     res.best = { .vec = v, .angle = a, .found = true };
             }
             return true;
-        });
+        };
+        if (objects)
+            find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, *objects, entry_blocked, f);
+        else
+            find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, &pool, f);
         return res;
     };
 
