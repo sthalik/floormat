@@ -29,7 +29,7 @@ Optional<clickable> clickable_for_object(const object& e, Vector2i win_size, Vec
     const auto& f = a.frame(e.r, e.frame);
     const auto offset = tile_shader::point_to_pixelʹ(Vector3i(e.position()) + Vector3i(g.offset), win_size, camera)
                         - f.ground;
-    if (!(offset < win_size && offset + Vector2i(f.size) >= Vector2i()))
+    if (!(offset < win_size && offset + Vector2i(f.size) >= Vector2i()).all())
         return {};
     return clickable {
         .src = {f.offset, f.offset + f.size},

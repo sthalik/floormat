@@ -50,6 +50,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_astar_pool),
     FM_TEST(test_pool_registry),
     FM_TEST(test_coords),
+    FM_TEST(test_clickable),
     FM_TEST(test_intra_coord),
     FM_TEST(test_crc64),
     FM_TEST(test_random),

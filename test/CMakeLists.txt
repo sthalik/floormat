@@ -5,6 +5,7 @@ file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/test")
 
 find_package(Threads QUIET REQUIRED)
 add_library(${self}_o OBJECT "${sources}")
+target_sources(${self}_o PRIVATE "../main/clickable.cpp")
 target_link_libraries(${self}_o PUBLIC
     ${floormat_headless-library}
     Magnum::GL Magnum::Trade
