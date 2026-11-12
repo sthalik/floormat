@@ -2,6 +2,12 @@
 #include "src/raycast.hpp"
 #include "src/raycast-loop.hpp"
 #include "src/grid-pass.hpp"
+#include "src/grid-registry.hpp"
+#include "src/search-pred.hpp"
+#include "src/critter.hpp"
+#include "src/scenery.hpp"
+#include "src/scenery-proto.hpp"
+#include "src/anim-atlas.hpp"
 #include "src/collision.hpp"
 #include "src/pass-mode.hpp"
 #include "src/point.inl"
@@ -10,6 +16,7 @@
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/RTree-search.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"
 #include "loader/loader.hpp"
@@ -224,6 +231,100 @@ void Raycast_Dense(benchmark::State& state)
 }
 
 BENCHMARK(Raycast_Dense)->Unit(benchmark::kMicrosecond);
+
+u32 next_random(u32& seed, u32 n)
+{
+    seed = seed * 1664525u + 1013904223u;
+    return (seed >> 8) % n;
+}
+
+constexpr inline u8 door_x[] = {4, 12};
+
+world make_critters_doors_world()
+{
+    const auto wall = wall_image_proto{loader.wall_atlas("test1"_s), (variant_t)-1};
+    auto door = loader.scenery("door1"_s);
+    door.pass = pass_mode::blocked;
+    door.frame = (u16)(door.atlas->info().nframes - 1);
+    auto cp = critter_proto{};
+    cp.bbox_size = Vector2ub{32};
+    cp.pass = pass_mode::blocked;
+
+    auto w = world{};
+    u32 seed = 0x2545f491;
+    for (i16 cy = -2; cy <= 2; cy++)
+        for (i16 cx = -2; cx <= 2; cx++)
+        {
+            const auto ch = chunk_coords_{cx, cy, 0};
+            auto& c = w[ch];
+            for (u8 x = 0; x < TILE_MAX_DIM; x++)
+                if (x != door_x[0] && x != door_x[1])
+                    c[{x, 8}].wall_north() = wall;
+            c.mark_modified();
+            for (u8 x : door_x)
+            {
+                auto p = door;
+                w.make_scenery(w.make_id(), {ch, {x, 8}}, move(p));
+            }
+            for (u32 i = 0; i < 16; i++)
+            {
+                const auto x = (u8)next_random(seed, TILE_MAX_DIM), y = (u8)next_random(seed, TILE_MAX_DIM);
+                w.make_object<critter>(w.make_id(), {ch, {x, y}}, cp);
+            }
+        }
+    return w;
+}
+
+void Raycast_Critters_Doors(benchmark::State& st)
+{
+    constexpr u32 ray_count = 64;
+    constexpr i32 min = -2*chunk_size<i32>, size = 5*chunk_size<i32> - tile_size_xy;
+    const bool objects = st.range(0);
+    auto w = make_critters_doors_world();
+    Grid::GridRegistry reg;
+    auto& pass_pool = reg.pass_pool(pool_params);
+    auto& object_pool = reg.object_pool(pool_params);
+
+    point from[ray_count], to[ray_count];
+    u32 seed = 0x6c8e9cf5;
+    const auto random_point = [&] {
+        const auto x = (i32)next_random(seed, size), y = (i32)next_random(seed, size);
+        return point{} + Vector2i{min + x, min + y};
+    };
+    for (auto i = 0u; i < ray_count; i++)
+        if (i % 4 == 0)
+        {
+            const auto cx = (i32)next_random(seed, 3) - 1, cy = (i32)next_random(seed, 3) - 1;
+            const auto door = point{{(i16)cx, (i16)cy, 0}, {door_x[next_random(seed, 2)], 8}, {0, -32}};
+            const auto d = Vector2i{(i32)next_random(seed, 513) - 256, 256 + (i32)next_random(seed, 513)};
+            from[i] = door + d;
+            to[i] = door - d;
+        }
+        else
+        {
+            from[i] = random_point();
+            to[i] = random_point();
+        }
+
+    u32 hits = 0;
+    const auto test = [&] {
+        hits = 0;
+        for (auto i = 0u; i < ray_count; i++)
+        {
+            const auto res = objects ? raycast(w, from[i], to[i], 0, object_pool, Search::without_critters())
+                                     : raycast(w, from[i], to[i], 0, pass_pool, Search::without_critters());
+            hits += !res.success;
+        }
+    };
+
+    for (int i = 0; i < 3; i++)
+        test();
+    for (auto _ : st)
+        test();
+    st.counters["hits"] = hits;
+}
+
+BENCHMARK(Raycast_Critters_Doors)->ArgName("objects")->Arg(0)->Arg(1)->Unit(benchmark::kMicrosecond);
 
 namespace old_rc {
 

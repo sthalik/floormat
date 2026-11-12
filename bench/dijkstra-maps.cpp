@@ -5,6 +5,8 @@
 #include "src/search-pred.hpp"
 #include "src/search-octile.hpp"
 #include "src/grid-pass.hpp"
+#include "src/grid-object.hpp"
+#include "src/critter.hpp"
 #include "src/raycast-line.hpp"
 #include "src/sweep-aabb.hpp"
 #include "src/point.inl"
@@ -12,6 +14,7 @@
 #include "src/tile-image.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
+#include "compat/borrowed-ptr.inl"
 #include "compat/function2.hpp"
 #include <benchmark/benchmark.h>
 #include <mg/Functions.h>
@@ -109,6 +112,53 @@ void bench_pull(benchmark::State& state)
     auto res = pulled_path<K>(s);
     for (auto _ : state)
         benchmark::DoNotOptimize(s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::without_critters()));
+}
+
+void String_Pull_Rooms_Critters(benchmark::State& state)
+{
+    const bool objects = state.range(0);
+    map_world s{kind::rooms, default_cell};
+    auto res = search(s);
+    fm_assert(res.is_found());
+
+    auto cp = critter_proto{};
+    cp.bbox_size = Vector2ub{mazes::bbox_size};
+    cp.pass = pass_mode::blocked;
+    const auto margin = Vector2i{(int)state.range(1)};
+    const auto path = res.path();
+    u32 critter_count = 0;
+    for (auto y = 0u; y < mazes::map_tiles; y++)
+        for (auto x = 0u; x < mazes::map_tiles; x++)
+        {
+            if ((x*7 + y*13) % 11 != 0)
+                continue;
+            const auto ch = chunk_coords_{(i16)(x / TILE_MAX_DIM), (i16)(y / TILE_MAX_DIM), 0};
+            const auto lc = local_coords{(u8)(x % TILE_MAX_DIM), (u8)(y % TILE_MAX_DIM)};
+            const auto c = point{ch, lc, {}} - point{};
+            bool near = false;
+            for (auto i = 0uz; i + 1 < path.size() && !near; i++)
+            {
+                const auto a = path[i] - point{}, b = path[i+1] - point{};
+                near = (c >= Math::min(a, b) - margin).all() && (c <= Math::max(a, b) + margin).all();
+            }
+            if (near)
+                continue;
+            s.w.make_object<critter>(s.w.make_id(), {ch, lc}, cp);
+            critter_count++;
+        }
+
+    Grid::Object::Pool object_pool{s.pool};
+    const auto pull = [&] {
+        return objects ? s.A.string_pull(s.w, object_pool, res, Vector2ui{mazes::bbox_size}, Search::never_continue())
+                       : s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::never_continue());
+    };
+    auto last = pull();
+    fm_assert(last);
+    for (auto _ : state)
+        benchmark::DoNotOptimize(last = pull());
+    state.counters["critters"] = critter_count;
+    state.counters["los_checks"] = last.los_checks;
+    state.counters["corners"] = last.corners_added;
 }
 
 // Without a pool, as move_toward sweeps each frame's steps.
@@ -233,6 +283,8 @@ BENCHMARK(Dijkstra_Braid_Cell32)->Unit(benchmark::kMillisecond);
 BENCHMARK(String_Pull_Rooms)->Unit(benchmark::kMicrosecond);
 BENCHMARK(String_Pull_Braid)->Unit(benchmark::kMicrosecond);
 BENCHMARK(String_Pull_Prim)->Unit(benchmark::kMicrosecond);
+BENCHMARK(String_Pull_Rooms_Critters)->ArgNames({"objects", "margin"})->ArgsProduct({{0, 1}, {128, 32}})
+    ->Unit(benchmark::kMicrosecond);
 BENCHMARK(Swept_Collider_Rooms)->Unit(benchmark::kMicrosecond);
 BENCHMARK(Swept_Collider_Braid)->Unit(benchmark::kMicrosecond);
 BENCHMARK(Swept_Collider_Prim)->Unit(benchmark::kMicrosecond);

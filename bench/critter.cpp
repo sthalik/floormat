@@ -432,19 +432,23 @@ void Critter_walk_5x5(benchmark::State& st)
             (void)w[{x, y, 0}];
     mark_all_modified(w);
 
-    // Only the rays read a grid, from ray_pool.
+    // Only the rays read a grid, from ray_pool, and with objects:1 from object_pool too.
     Pass::Pool walk_pool{Pass::Params{16, pass_mode::pass}, Search::without_critters()};
     Pass::Pool shoot_pool{Pass::Params{16, pass_mode::shoot_through}, Search::never_continue()};
     Grid::Cover::Pool cover_pool{Grid::Cover::Params{16}, shoot_pool};
     Grid::GridRegistry reg;
-    auto& ray_pool = reg.pass_pool(Pass::Params{16, pass_mode::shoot_through});
-    const bool rays = st.range(1);
+    constexpr auto ray_params = Pass::Params{16, pass_mode::shoot_through};
+    auto& ray_pool = reg.pass_pool(ray_params);
+    auto& object_pool = reg.object_pool(ray_params);
+    const bool rays = st.range(1), objects = st.range(2);
     if (st.range(0))
         for (auto& c : w.chunks())
         {
             walk_pool[c].build_if_stale();
             cover_pool[c].build_if_stale();
             ray_pool[c].build_if_stale();
+            if (objects)
+                object_pool[c].build_if_stale();
         }
 
     object_id id = 0;
@@ -463,7 +467,9 @@ void Critter_walk_5x5(benchmark::State& st)
                 break;
             if (rays)
             {
-                auto res = raycast(w, npc->position(), target, npc->id, ray_pool, Search::never_continue());
+                const auto from = npc->position();
+                auto res = objects ? raycast(w, from, target, npc->id, object_pool, Search::without_critters())
+                                   : raycast(w, from, target, npc->id, ray_pool, Search::never_continue());
                 benchmark::DoNotOptimize(res);
             }
         }
@@ -482,8 +488,8 @@ void Critter_walk_5x5(benchmark::State& st)
 }
 
 BENCHMARK(Critter_walk_5x5)
-    ->ArgNames({"grids", "rays"})
-    ->Args({0, 0})->Args({1, 0})->Args({1, 1})
+    ->ArgNames({"grids", "rays", "objects"})
+    ->Args({0, 0, 0})->Args({1, 0, 0})->Args({1, 1, 0})->Args({1, 0, 1})->Args({1, 1, 1})
     ->Unit(benchmark::kMicrosecond);
 
 } // namespace

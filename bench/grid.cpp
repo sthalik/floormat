@@ -1,4 +1,5 @@
 #include "src/grid-pass.hpp"
+#include "src/grid-object.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-registry.hpp"
 #include "src/critter-script-cover-point.hpp"
@@ -134,6 +135,43 @@ void Grid_Build(benchmark::State& state)
 }
 
 BENCHMARK(Grid_Build)->Arg(16)->Arg(8)->Unit(benchmark::kMillisecond);
+
+void Object_Grid_Build(benchmark::State& state)
+{
+    auto w = world();
+    auto cp = critter_proto{};
+    cp.bbox_size = Vector2ub{32};
+    cp.pass = pass_mode::blocked;
+    u32 seed = 0x2545f491;
+    const auto next_tile = [&] {
+        seed = seed * 1664525u + 1013904223u;
+        return (u8)((seed >> 8) % TILE_MAX_DIM);
+    };
+    for (i16 cy = -1; cy <= 1; cy++)
+        for (i16 cx = -1; cx <= 1; cx++)
+        {
+            const auto ch = chunk_coords_{cx, cy, 0};
+            make_chunk3(w[ch], false);
+            for (auto i = 0u; i < (u32)state.range(1); i++)
+            {
+                const auto x = next_tile(), y = next_tile();
+                w.make_object<critter>(w.make_id(), {ch, {x, y}}, cp);
+            }
+        }
+
+    Pass::Pool pass_pool{Pass::Params{(u32)state.range(0), pass_mode::pass}, Search::without_critters()};
+    Grid::Object::Pool pool{pass_pool};
+    auto g = pool[w[chunk_coords_{0, 0, 0}]];
+    g.build_if_stale();
+
+    for (auto _ : state)
+    {
+        g.mark_stale();
+        g.build_if_stale();
+    }
+}
+
+BENCHMARK(Object_Grid_Build)->ArgNames({"div", "critters"})->Args({16, 16})->Args({8, 16})->Unit(benchmark::kMicrosecond);
 
 void make_cover_chunk(world& w, chunk& c)
 {
