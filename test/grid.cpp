@@ -1334,8 +1334,8 @@ constexpr exact_config exact_configs[] = {
 bool cell_is_passable(chunk& c, const std::array<chunk*, 8>& nbs, int i, int j, int d, u32 bbox_size,
                       const Search::pred& p, pass_mode min_pass = pass_mode::pass)
 {
-    const auto q = [&](chunk& ch, collision_data x, Range2D r) {
-        return x.pass >= (u64)min_pass ? path_search_continue::pass : p(ch, x, r);
+    const auto q = [&](chunk& ch, collision_data x) {
+        return x.pass >= (u64)min_pass ? path_search_continue::pass : p(ch, x);
     };
     const Search::pred pred{q};
     const auto bb_lo = (float)(bbox_size / 2), bb_hi = (float)bbox_size - bb_lo;
@@ -3162,16 +3162,12 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
     const auto nbs = w.neighbors(COORD);
 
     auto expected = Array<u32>{ValueInit, (usize)(dc*dc)};
-    auto rects = Array<Range2D>{ValueInit, ids.size()};
     u32 covering = 0;
     for (auto k = 0u; k < ids.size(); k++)
     {
         const auto id = ids[k];
-        const auto only = [id, &rect = rects[k]](chunk&, collision_data x, Range2D r) {
-            if (x.id != id)
-                return path_search_continue::pass;
-            rect = r;
-            return path_search_continue::blocked;
+        const auto only = [id](chunk&, collision_data x) {
+            return x.id == id ? path_search_continue::blocked : path_search_continue::pass;
         };
         const Search::pred pred{only};
         const auto& p = placed.begin()[k];
@@ -3225,8 +3221,8 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
     for (auto k = 0u; k < ids.size(); k++)
     {
         const auto id = ids[k];
-        const auto only = [id, rect = rects[k]](chunk&, collision_data x, Range2D r) {
-            return x.id == id && r == rect ? path_search_continue::blocked : path_search_continue::pass;
+        const auto only = [id](chunk&, collision_data x) {
+            return x.id == id ? path_search_continue::blocked : path_search_continue::pass;
         };
         const Search::pred pred{only};
         fm_assert(g.blocked_objects(pred, entry_blocked) == !!(covering & 1u << k));

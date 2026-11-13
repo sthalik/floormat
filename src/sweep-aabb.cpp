@@ -2,6 +2,8 @@
 #include "collision.hpp"
 #include "chunk.hpp"
 #include "world.hpp"
+#include "object.hpp"
+#include "tile-bbox.hpp"
 #include "raycast-line.hpp"
 #include "raycast-loop.hpp"
 #include "grid-pass.hpp"
@@ -75,7 +77,7 @@ void sweep_aabb(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                     if (step >= bound)
                         return true;
                     // last, since without_critters looks up the object
-                    if (p(*c, x, rect) == path_search_continue::pass)
+                    if (p(*c, x) == path_search_continue::pass)
                         return true;
                     bound = on_blocker(step, x, Range2D{Vector2(r0), Vector2(r1)});
                     return true;
@@ -88,7 +90,6 @@ void sweep_aabb(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
     const auto visit_objects = [&]<typename T>(const rc::detail::line_cell& cell, const Grid::Object::Grid& g,
                                                Grid::Object::cell_object_view<T> objects) {
         const auto k0 = cell.first_step, k1 = cell.last_step;
-        const auto rects = g.entry_rects();
         const auto chunks = g.entry_chunks();
         for (auto i = 0u; i < objects.size(); i++)
         {
@@ -97,7 +98,10 @@ void sweep_aabb(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
                 continue;
             const auto off = chunks[e] ? Vector2i(world::neighbor_offsets[chunks[e] - 1]) : Vector2i{};
             const auto shift = (cell.chunk_offset + off) * chunk_size<i32>;
-            const auto r0 = rects[e].min() + shift, r1 = rects[e].max() + shift;
+            const auto* o = std::as_const(w).find_object(objects[i].id);
+            fm_debug3_assert(o);
+            const auto box = scenery_tile(o->coord.local(), o->offset, o->bbox_offset, o->bbox_size);
+            const auto r0 = box.first() + shift, r1 = box.second() + shift;
             const auto step = first_blocked(r0, r1, k0, k1);
             if (step >= bound)
                 continue;

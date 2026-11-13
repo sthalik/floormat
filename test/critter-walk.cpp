@@ -121,7 +121,7 @@ struct skip_self
 {
     object_id id;
 
-    path_search_continue operator()(chunk&, collision_data x, Range2D) const
+    path_search_continue operator()(chunk&, collision_data x) const
     {
         return x.id == id ? path_search_continue::pass : path_search_continue::blocked;
     }

@@ -41,7 +41,6 @@ struct ObjectGrid : GridBase
     Array<u32> runs32;
     Array<collision_data> entry_data;
     Array<u8> entry_chunks;
-    Array<Range2Di> entry_rects;
     // Kept until the next build clears the cells this one wrote.
     Array<cell_range> entry_ranges;
     bool uses_u32 = false, build_u32_next = false;
@@ -86,7 +85,6 @@ ObjectGrid::ObjectGrid(chunk& c, Params params):
     arrayReserve(runs32, 16);
     arrayReserve(entry_data, 16);
     arrayReserve(entry_chunks, 16);
-    arrayReserve(entry_rects, 16);
     arrayReserve(entry_ranges, 16);
 }
 
@@ -99,7 +97,6 @@ void ObjectGrid::reset_for_reuse(chunk& ch, Params new_params)
         cells = Array<u16>{DirectInit, n, empty_run<u16>};
     arrayClear(entry_data);
     arrayClear(entry_chunks);
-    arrayClear(entry_rects);
     uses_u32 = build_u32_next = false;
 }
 
@@ -167,7 +164,7 @@ bool ObjectGrid::is_entry_blocked(u32 k, const Search::pred& p) const
 {
     const auto n = entry_chunks[k];
     auto& ch = n ? *neighbors[n - 1] : *c;
-    return p(ch, entry_data[k], Range2D(entry_rects[k])) == path_search_continue::blocked;
+    return p(ch, entry_data[k]) == path_search_continue::blocked;
 }
 
 bool ObjectGrid::objects_maybe_dirty() const
@@ -188,7 +185,6 @@ void ObjectGrid::build_impl(chunk* self)
     clear_cells();
     arrayClear(entry_data);
     arrayClear(entry_chunks);
-    arrayClear(entry_rects);
 
     const inflated_cells cells_of{params.div_size(), dc, params.bbox_size};
     const auto min_pass = params.min_pass;
@@ -216,7 +212,6 @@ void ObjectGrid::build_impl(chunk* self)
                     continue;
                 arrayAppend(entry_data, collision_data{(u64)collision_type::scenery, (u64)o.pass, o.id});
                 arrayAppend(entry_chunks, (u8)n);
-                arrayAppend(entry_rects, Range2Di{box.first(), box.second()});
                 arrayAppend(entry_ranges, r);
             }
         };
@@ -340,7 +335,6 @@ ArrayView<const collision_data> Grid::entry_data() const
 }
 
 ArrayView<const u8> Grid::entry_chunks() const { return grid->entry_chunks; }
-ArrayView<const Range2Di> Grid::entry_rects() const { return grid->entry_rects; }
 bool Grid::uses_u32() const { return grid->uses_u32; }
 
 bool Grid::blocked_objects(const Search::pred& p, Array<bool>& entry_blocked) const

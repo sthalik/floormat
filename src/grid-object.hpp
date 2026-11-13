@@ -63,8 +63,6 @@ public:
     ArrayView<const collision_data> entry_data() const;
     /// @brief 0 when the entry's object is in this grid's chunk, 1 + n when in world::neighbor_offsets[n]'s.
     ArrayView<const u8> entry_chunks() const;
-    /// @brief In each entry's own chunk's frame, as its R-tree entry has it.
-    ArrayView<const Range2Di> entry_rects() const;
     /// @brief When true, the T of objects_at_cell() and is_blocked() is u32, else u16.
     bool uses_u32() const;
 

@@ -264,7 +264,7 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
     const auto pred = [&](class chunk& c, collision_data x, Range2D rect) {
         if (x.id == self_id)
             return path_search_continue::pass;
-        // is_passable_() passes rect in c's frame
+        // visit_colliders() passes rect in c's frame
         const auto off = Vector2i(c.coord().x - ch.x, c.coord().y - ch.y) * chunk_size<i32>;
         const auto r0 = Vector2i(rect.min()) + off, r1 = Vector2i(rect.max()) + off;
         for (auto i = 0u; i < runs.size(); i++)
@@ -275,7 +275,7 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
                           s.step == 1 && !s.turn && (!s.diagonal || s.slide_blocked[0] && s.slide_blocked[1]);
         return done ? path_search_continue::blocked : path_search_continue::pass;
     };
-    Search::is_passable_(&C.chunk(), C.world().neighbors(ch), Vector2(min), Vector2(max), pred);
+    Search::visit_colliders(&C.chunk(), C.world().neighbors(ch), Vector2(min), Vector2(max), pred);
 
     std::array<free_steps_result, 2> ret{};
     for (auto i = 0u; i < runs.size(); i++)
@@ -681,7 +681,7 @@ auto critter::move_toward(usize& index, Ns& dt, const point& from, const point& 
     const auto bb_off = Vector2i(bbox_offset);
     const auto box_line = rc::bresenham_line{from - origin + bb_off, dest - origin + bb_off};
     const auto self_id = id;
-    const auto pred = [self_id](class chunk&, collision_data x, Range2D) {
+    const auto pred = [self_id](class chunk&, collision_data x) {
         return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
     };
     const auto res = find_swept_collider(world(), ch, box_line, k, k + n, Vector2ui(bbox_size), pred);

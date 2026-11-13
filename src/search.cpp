@@ -23,17 +23,17 @@ namespace {
 namespace detail {
 
 template<typename Chunk>
-constexpr inline auto never_continueʹʹ = [](Chunk&, collision_data, Range2D) constexpr { return psc::blocked; };
+constexpr inline auto never_continueʹʹ = [](Chunk&, collision_data) constexpr { return psc::blocked; };
 
 template<typename Chunk>
 constexpr inline auto never_continueʹ = Pred<Chunk>{never_continueʹʹ<Chunk>};
 template<typename Chunk>
-constexpr inline auto always_continueʹʹ = [](Chunk&, collision_data, Range2D) constexpr { return psc::pass; };
+constexpr inline auto always_continueʹʹ = [](Chunk&, collision_data) constexpr { return psc::pass; };
 template<typename Chunk>
 constexpr inline auto always_continueʹ = Pred<Chunk>{always_continueʹʹ<Chunk>};
 
 template<typename Chunk>
-constexpr inline auto without_crittersʹʹ = [](Chunk& self, collision_data data, Range2D) -> path_search_continue {
+constexpr inline auto without_crittersʹʹ = [](Chunk& self, collision_data data) -> path_search_continue {
     // 'scenery' covers all object types here, including critters
     if (data.type == (u64)collision_type::scenery)
     {
@@ -47,13 +47,13 @@ constexpr inline auto without_crittersʹʹ = [](Chunk& self, collision_data data
 template<typename Chunk> constexpr inline auto without_crittersʹ = Pred<Chunk>{without_crittersʹʹ<Chunk>};
 
 template<typename Chunk>
-constexpr inline auto without_dynamic_objectsʹʹ = [](Chunk& self, collision_data data, Range2D) -> path_search_continue {
+constexpr inline auto without_dynamic_objectsʹʹ = [](Chunk& self, collision_data data) -> path_search_continue {
     return is_dynamic_object(self, data) ? path_search_continue::pass : path_search_continue::blocked;
 };
 template<typename Chunk> constexpr inline auto without_dynamic_objectsʹ = Pred<Chunk>{without_dynamic_objectsʹʹ<Chunk>};
 
-template<typename Chunk>
-bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
+template<typename Chunk, typename F>
+bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const F& f)
 {
     constexpr auto bounds = chunk_collision_bounds<Range2D>;
     if (!rect_intersects(min, max, bounds.min(), bounds.max()))
@@ -69,15 +69,20 @@ bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const Pred<Chunk>& p)
         auto rect = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
         if (!rect_intersects(min, max, rect.min(), rect.max()))
             return true;
-        if (p(c, data, rect) == path_search_continue::pass)
+        if constexpr (std::is_invocable_v<const F&, Chunk&, collision_data>)
+        {
+            if (f(c, data) == path_search_continue::pass)
+                return true;
+        }
+        else if (f(c, data, rect) == path_search_continue::pass)
             return true;
         return ret = false;
     });
     return ret;
 }
 
-template<typename Chunk>
-bool is_passable_neighbors_(const std::array<Chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<Chunk>& p)
+template<typename Chunk, typename F>
+bool is_passable_neighbors_(const std::array<Chunk*, 8>& neighbors, Vector2 min, Vector2 max, const F& f)
 {
     fm_debug3_assert(max >= min);
 
@@ -89,25 +94,25 @@ bool is_passable_neighbors_(const std::array<Chunk*, 8>& neighbors, Vector2 min,
             const auto off = Vector2(nb)*chunk_size<Vector2>;
             const auto min_ = min - off, max_ = max - off;
 
-            if (!is_passable_1(*c2, min_, max_, p))
+            if (!is_passable_1(*c2, min_, max_, f))
                 return false;
         }
     }
     return true;
 }
 
-template<typename Chunk>
-bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<Chunk>& p)
+template<typename Chunk, typename F>
+bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min, Vector2 max, const F& f)
 {
     fm_debug3_assert(max >= min);
 
     if (c0)
         // it's not correct to return true if c == nullptr
         // because neighbors can still contain bounding boxes for that tile
-        if (!is_passable_1(*c0, min, max, p))
+        if (!is_passable_1(*c0, min, max, f))
             return false;
 
-    return is_passable_neighbors_(neighbors, min, max, p);
+    return is_passable_neighbors_(neighbors, min, max, f);
 }
 
 template<typename World, typename Chunk>
@@ -140,6 +145,13 @@ bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const Pred<chunk
 { return detail::is_passable(w, ch, bb, p); }
 bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb, const Pred<const chunk>& p)
 { return detail::is_passable(w, ch, bb, p); }
+
+bool visit_colliders(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max,
+                     const collider_visitor<chunk>& f)
+{ return detail::is_passable_(c0, neighbors, min, max, f); }
+bool visit_colliders(const chunk* c0, const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max,
+                     const collider_visitor<const chunk>& f)
+{ return detail::is_passable_(c0, neighbors, min, max, f); }
 
 bool is_dynamic_object(const chunk& c, collision_data x)
 {

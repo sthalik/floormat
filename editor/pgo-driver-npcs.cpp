@@ -139,7 +139,7 @@ task app::scene_npcs()
     const auto hold = shorten ? short_hold_dt : hold_dt;
 
     object_id searcher = 0;
-    const auto except_searcher = [&searcher](chunk&, collision_data data, Range2D) {
+    const auto except_searcher = [&searcher](chunk&, collision_data data) {
         return data.type == (u64)collision_type::scenery && data.id == searcher
                ? path_search_continue::pass : path_search_continue::blocked;
     };

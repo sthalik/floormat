@@ -110,7 +110,7 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
     if (min == max)
         return true;
     const auto self_id = id;
-    auto pred = [self_id](class chunk&, collision_data x, Range2D) {
+    auto pred = [self_id](class chunk&, collision_data x) {
         return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
     };
     return Search::is_passable_(&cʹ, w.neighbors(coord_.chunk3()), min, max, pred);

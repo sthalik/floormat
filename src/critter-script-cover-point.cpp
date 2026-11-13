@@ -200,7 +200,7 @@ void spot_tests::collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi, Arra
                 const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
                 const auto pmin = Vector2i(Math::ceil(range.min())), pmax = Vector2i(Math::ceil(range.max()));
                 if (x.pass < min_pass && (pmin < pmax).all()
-                    && Search::without_critters()(*c, x, range) != path_search_continue::pass)
+                    && Search::without_critters()(*c, x) != path_search_continue::pass)
                     arrayAppend(out, Range2Di{(pmin + origin - threat)*2 - Vector2i{1}, (pmax + origin - threat)*2 - Vector2i{1}});
                 return true;
             });

@@ -28,4 +28,9 @@ bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const Pred<chunk
 bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb,
                  const Pred<const chunk>& p = never_continue<const chunk>());
 
+bool visit_colliders(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max,
+                     const collider_visitor<chunk>& f);
+bool visit_colliders(const chunk* c0, const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max,
+                     const collider_visitor<const chunk>& f);
+
 } // namespace floormat::Search

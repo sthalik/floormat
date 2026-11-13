@@ -813,11 +813,11 @@ struct astar::seed_search
         const auto ch = source.pt.chunk3();
         arrayClear(rects);
         arrayReserve(rects, 16);
-        Search::is_passable_(source.c, source.neighbors,
-                             source.center - Vector2{(float)R} - source.own_lo,
-                             source.center + Vector2{(float)R} + source.own_hi,
-                             [&](chunk& c, collision_data data, Range2D r) {
-            if (bm.p(c, data, r) == path_search_continue::pass)
+        Search::visit_colliders(source.c, source.neighbors,
+                                source.center - Vector2{(float)R} - source.own_lo,
+                                source.center + Vector2{(float)R} + source.own_hi,
+                                [&](chunk& c, collision_data data, Range2D r) {
+            if (bm.p(c, data) == path_search_continue::pass)
                 return path_search_continue::pass;
             // r is in c's frame
             const auto sc = c.coord();

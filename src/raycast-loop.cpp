@@ -5,6 +5,8 @@
 #include "point.inl"
 #include "pass-mode.hpp"
 #include "world.hpp"
+#include "object.hpp"
+#include "tile-bbox.hpp"
 #include "grid-pass.hpp"
 #include "grid-object.hpp"
 #include "search-pred.hpp"
@@ -531,7 +533,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                 return;
             // last, since without_critters looks up the object
             if constexpr (UsingRayPredicate)
-                if (pred(nb, x, range) == path_search_continue::pass)
+                if (pred(nb, x) == path_search_continue::pass)
                     return;
             best_key = hit.key;
             best_px = hit.pixel;
@@ -550,7 +552,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             if (!ret.result || ret.tmin > ray_len || ret.tmin >= min_tmin)
                 return;
             if constexpr (UsingRayPredicate)
-                if (pred(nb, x, range) == path_search_continue::pass)
+                if (pred(nb, x) == path_search_continue::pass)
                     return;
             min_tmin = ret.tmin;
             const auto contact = Math::clamp(origin + dir * min_tmin, range.min(), range.max() - Vector2{1});
@@ -624,7 +626,6 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         if (bit && last_has_objects)
                         {
                             const auto objects = last_og.objects_at_cell<T>(bit_idx);
-                            const auto rects = last_og.entry_rects();
                             const auto chunks = last_og.entry_chunks();
                             for (auto i = 0u; i < objects.size(); i++)
                             {
@@ -635,11 +636,14 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                                 const auto off = chunks[e] ? Vector2i(world::neighbor_offsets[chunks[e] - 1]) : Vector2i{};
                                 auto* nb = last_nb[(off.y() + 1)*3 + off.x() + 1];
                                 fm_debug3_assert(nb);
-                                const auto range = Range2D(rects[e]);
-                                if (pred(*nb, x, range) == path_search_continue::pass)
+                                if (pred(*nb, x) == path_search_continue::pass)
                                     continue;
+                                const auto* o = std::as_const(w).find_object(x.id);
+                                fm_debug3_assert(o);
+                                const auto box = scenery_tile(o->coord.local(), o->offset, o->bbox_offset, o->bbox_size);
                                 find_intersecting_collider(std::false_type{}, *nb,
-                                                           (this_chunk_off + off) * chunk_size<i32>, x, range);
+                                                           (this_chunk_off + off) * chunk_size<i32>, x,
+                                                           Range2D{Vector2(box.first()), Vector2(box.second())});
                             }
                         }
                     }

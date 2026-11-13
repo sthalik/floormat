@@ -69,8 +69,8 @@ void test_const_passable_equivalence()
     constexpr Vector2 q_clear_min  {8*tile_size_xy + 0.f,  8*tile_size_xy + 0.f};
     constexpr Vector2 q_clear_max  {8*tile_size_xy + 16.f, 8*tile_size_xy + 16.f};
 
-    auto pred_nc = [](chunk&,        collision_data, Range2D) { return path_search_continue::blocked; };
-    auto pred_cc = [](const chunk&,  collision_data, Range2D) { return path_search_continue::blocked; };
+    auto pred_nc = [](chunk&,        collision_data) { return path_search_continue::blocked; };
+    auto pred_cc = [](const chunk&,  collision_data) { return path_search_continue::blocked; };
 
     bool nonc_blk = Search::is_passable_1(c, q_blocked_min, q_blocked_max, pred_nc);
     bool nonc_ok  = Search::is_passable_1(c, q_clear_min,   q_clear_max,   pred_nc);
@@ -109,8 +109,8 @@ void test_const_passable_with_neighbors()
     constexpr Vector2 q_max{16*tile_size_xy + 16.f,  8*tile_size_xy + 16.f};
 
     int n_mut = 0, n_const = 0;
-    auto pred_nc = [&](chunk&,       collision_data, Range2D) { ++n_mut;   return path_search_continue::blocked; };
-    auto pred_cc = [&](const chunk&, collision_data, Range2D) { ++n_const; return path_search_continue::blocked; };
+    auto pred_nc = [&](chunk&,       collision_data) { ++n_mut;   return path_search_continue::blocked; };
+    auto pred_cc = [&](const chunk&, collision_data) { ++n_const; return path_search_continue::blocked; };
 
     bool m = Search::is_passable(w,                ch_self, Range2D{q_min, q_max}, pred_nc);
     bool c = Search::is_passable(std::as_const(w), ch_self, Range2D{q_min, q_max}, pred_cc);
@@ -146,7 +146,7 @@ void test_pred_rect_is_in_self_chunk_frame()
         return path_search_continue::blocked;
     };
 
-    bool ok = Search::is_passable(w, ch_self, Range2D{q_min, q_max}, pred);
+    bool ok = Search::visit_colliders(w.at(ch_self), w.neighbors(ch_self), q_min, q_max, pred);
     fm_assert(!ok);
     fm_assert(n_pred_calls >= 1);
     fm_assert(captured_self == &ce);
@@ -166,7 +166,7 @@ void test_chunk_bounds_early_out()
     c.ensure_passability();
 
     int n_pred_calls = 0;
-    auto pred = [&](chunk&, collision_data, Range2D) {
+    auto pred = [&](chunk&, collision_data) {
         ++n_pred_calls;
         return path_search_continue::blocked;
     };
@@ -213,7 +213,7 @@ void test_nw_cull_covers_bbox_offset()
     fm_assert(C);
 
     // entry rect is [-254, 0]² in c's frame, entirely NW of the chunk's tiles
-    auto pred = [](chunk&, collision_data, Range2D) { return path_search_continue::blocked; };
+    auto pred = [](chunk&, collision_data) { return path_search_continue::blocked; };
     constexpr Vector2 q_min{-250, -250}, q_max{-240, -240};
     fm_assert(!Search::is_passable_1(c, q_min, q_max, pred));
 }
