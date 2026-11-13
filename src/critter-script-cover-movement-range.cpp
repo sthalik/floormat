@@ -13,6 +13,8 @@
 
 namespace floormat::Cover {
 
+bool movement_range::cache_key::operator==(const cache_key&) const = default;
+
 movement_range::movement_range()
 {
     arrayReserve(points, 16);
@@ -26,12 +28,10 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
     // The fill reads cells within R + 2 div px of from, div being at most default_div_size, and each cell's grid
     // reads one chunk more.
     const auto pass_gen = w.max_pass_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
-    if (last_pass_gen == pass_gen && last_from == from && last_bbox_side == bbox_side && last_max_dist == max_dist)
+    const cache_key key{from, bbox_side, max_dist, pass_gen};
+    if (_key == key)
         return points;
-    last_pass_gen = pass_gen;
-    last_from = from;
-    last_bbox_side = bbox_side;
-    last_max_dist = max_dist;
+    _key = key;
     arrayClear(points);
     arrayAppend(points, from);
     if (!R || !bbox_side)
