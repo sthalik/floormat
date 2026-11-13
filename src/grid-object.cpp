@@ -381,15 +381,18 @@ template<typename T> bool Grid::is_blocked(u32 index, ArrayView<const bool> entr
 template bool Grid::is_blocked<u16>(u32, ArrayView<const bool>) const;
 template bool Grid::is_blocked<u32>(u32, ArrayView<const bool>) const;
 
-void Grid::mask_pass_bits(const u8* pass_bits, u8* out, ArrayView<const bool> entry_blocked) const
+void Grid::mask_pass_bits(ArrayView<const u8> pass_bits, ArrayView<u8> out,
+                          ArrayView<const bool> entry_blocked) const
 {
     detail::grid::check_current(grid);
     fm_debug_assert(entry_blocked.size() == grid->entry_data.size());
+    const auto n = detail::grid::bitmask_size(grid->params.div_count) / 8;
+    fm_debug_assert(pass_bits.size() == n && out.size() == n);
     const auto& g = *grid;
     if (g.uses_u32)
-        g.mask_pass_bits(g.cells32, g.runs32, pass_bits, out, entry_blocked);
+        g.mask_pass_bits(g.cells32, g.runs32, pass_bits.data(), out.data(), entry_blocked);
     else
-        g.mask_pass_bits(g.cells, g.runs, pass_bits, out, entry_blocked);
+        g.mask_pass_bits(g.cells, g.runs, pass_bits.data(), out.data(), entry_blocked);
 }
 
 u32 Grid::div_count() const { return grid->params.div_count; }

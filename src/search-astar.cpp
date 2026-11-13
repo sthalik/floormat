@@ -297,7 +297,7 @@ struct astar::chunk_bitmaps
             if (og.blocked_objects(p, entry_blocked))
             {
                 auto* out = masked_bits + chunk_idx * bitmask_bytes;
-                og.mask_pass_bits(b, out, entry_blocked);
+                og.mask_pass_bits({b, bitmask_bytes}, {out, bitmask_bytes}, entry_blocked);
                 b = out;
             }
         }

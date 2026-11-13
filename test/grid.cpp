@@ -3231,7 +3231,7 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
         const Search::pred pred{only};
         fm_assert(g.blocked_objects(pred, entry_blocked) == !!(covering & 1u << k));
         fm_assert(g.blocked_objects(pred) == !!(covering & 1u << k));
-        g.mask_pass_bits(all_set.data(), masked.data(), entry_blocked);
+        g.mask_pass_bits(all_set, masked, entry_blocked);
         for (auto idx = 0u; idx < (u32)(dc*dc); idx++)
         {
             const bool blocked = expected[idx] & 1u << k;
@@ -3363,7 +3363,7 @@ void test_object_grid_crowd()
     auto masked = Array<u8>{NoInit, bytes};
     Array<bool> entry_blocked;
     fm_assert(g.blocked_objects(Search::never_continue(), entry_blocked));
-    g.mask_pass_bits(all_set.data(), masked.data(), entry_blocked);
+    g.mask_pass_bits(all_set, masked, entry_blocked);
     for (auto i = 0u; i < dc*dc; i++)
     {
         const bool covered = expected[i*4] != (u32)-1;
