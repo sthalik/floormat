@@ -429,7 +429,6 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                 .pass = (u64)pass_mode::pass,
                 .id   = ((u64)1 << collision_data_BITS)-1,
             },
-            .rect = {},
             .has_result = true,
             .success = true,
         };
@@ -448,7 +447,6 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             .pass = (u64)pass_mode::pass,
             .id   = ((u64)1 << collision_data_BITS)-1,
         },
-        .rect = {},
         .has_result = true,
         .success = false,
     };
@@ -559,7 +557,6 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             result.collision = point::normalize_coords(from, Vector2i(contact - origin));
         }
         result.collider = x;
-        result.rect = Range2D{range.min() + Vector2(nb_world), range.max() + Vector2(nb_world)};
         b = false;
     };
 

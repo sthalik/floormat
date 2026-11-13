@@ -393,7 +393,6 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
                 .pass = (u64)pass_mode::pass,
                 .id   = ((u64)1 << collision_data_BITS)-1,
             },
-            .rect = {},
             .has_result = true,
             .success = true,
         };
@@ -435,7 +434,6 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
             .pass = (u64)pass_mode::pass,
             .id   = ((u64)1 << collision_data_BITS)-1,
         },
-        .rect = {},
         .has_result = true,
         .success = false,
     };
