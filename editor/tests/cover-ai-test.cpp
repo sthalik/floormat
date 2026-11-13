@@ -497,7 +497,7 @@ ArrayView<const Cover::Point::spot> cover_ai_test::script_spots(app& a, critter&
 {
     const auto& q = s.query;
     const auto gen = s.has_query ? a.main().world().max_pass_gen(q.pos.chunk3(), q.radius/chunk_size_xy + 3) : 0;
-    if (!has_script_list || script_list_npc != c.id || script_list_num_searches != s.num_searches ||
+    if (!has_script_list || script_list_npc != c.id || script_list_num_searches != s.counters.num_searches ||
         script_list_pass_gen != gen)
     {
         const auto f0 = fills(a);
@@ -508,7 +508,7 @@ ArrayView<const Cover::Point::spot> cover_ai_test::script_spots(app& a, critter&
         fm_debug("cover-ai: cover list: %u spots, %.1f us, %u octant fills in %.1f us", (u32)script_list.size(),
                  us(dt), f.n - f0.n, us(f.time - f0.time));
         script_list_npc = c.id;
-        script_list_num_searches = s.num_searches;
+        script_list_num_searches = s.counters.num_searches;
         script_list_pass_gen = gen;
         has_script_list = true;
     }
@@ -596,7 +596,7 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
 
 void cover_ai_test::update_rates(app& a, const Cover::Script::status& s)
 {
-    const counts now{s.num_searches, s.num_rays, s.num_dijkstra_calls};
+    const counts now{s.counters.num_searches, s.counters.num_rays, s.counters.num_dijkstra_calls};
     if (!has_snapshot)
     {
         snapshot = now;
@@ -666,8 +666,8 @@ void cover_ai_test::update_pre(app& a, const Ns&)
 void cover_ai_test::log_script(app& a, const critter& c, const Cover::Script::status& s)
 {
     const auto& l = logged;
-    if (c.id == logged_npc && s.num_searches == l.num_searches &&s.has_cover == l.has_cover && s.cover == l.cover &&
-        s.has_peek == l.has_peek && s.peek == l.peek)
+    if (c.id == logged_npc && s.counters.num_searches == l.counters.num_searches && s.has_cover == l.has_cover &&
+        s.cover == l.cover && s.has_peek == l.has_peek && s.peek == l.peek)
         return;
     logged = s;
     logged_npc = c.id;
@@ -676,8 +676,8 @@ void cover_ai_test::log_script(app& a, const critter& c, const Cover::Script::st
     print_spot(cover, s.has_cover, s.cover);
     print_spot(peek, s.has_peek, s.peek);
     fm_debug("cover-ai: search %u, %s, cover %s, peek %s: script update %.1f us, %u octant fills in %.1f us",
-             s.num_searches, state_names[(usize)s.st], cover, peek, us(s.last_update), f.n - fills_before_update.n,
-             us(f.time - fills_before_update.time));
+             s.counters.num_searches, state_names[(usize)s.st], cover, peek, us(s.last_update),
+             f.n - fills_before_update.n, us(f.time - fills_before_update.time));
 }
 
 base_test::Value cover_ai_test::advance(app& a, Value v)
@@ -965,11 +965,11 @@ void cover_ai_test::draw_ui(app& a, float)
         text(!c ? "no npc" : !s ? "no cover script" : state_names[(usize)s->st]);
 
         do_column("progress");
-        if (s && (s->st == state::search || s->st == state::retreat && s->search_tiles_left))
-            snformat(buf, "tile {} of {}", s->search_tile, s->num_search_tiles);
+        if (s && (s->st == state::search || s->st == state::retreat && s->search.tiles_left))
+            snformat(buf, "tile {} of {}", s->search.tile, s->search.num_tiles);
         else if (s && s->st == state::find_retreat)
-            snformat(buf, "spot {} of {}, pass {}, {} without a path", s->retreat_spot, s->num_retreat_spots,
-                     s->retreat_all ? 2 : 1, s->num_failed_retreat_dijkstra_calls);
+            snformat(buf, "spot {} of {}, pass {}, {} without a path", s->retreat.spot, s->retreat.num_spots,
+                     s->retreat.all ? 2 : 1, s->retreat.num_failed_dijkstra_calls);
         else
             snformat(buf, "-");
         text(buf);

@@ -1,4 +1,5 @@
 #include "critter-script-cover-retreat-finder.hpp"
+#include "critter-script-cover.hpp"
 #include "critter-script-cover-point.hpp"
 #include "grid-cover.hpp"
 #include "point.inl"
@@ -31,7 +32,7 @@ static_assert(Grid::Cover::octant_count <= 32);
 
 } // namespace
 
-void retreat_finder::begin(Vector2i body, u32 threat_octant, bool restart)
+void retreat_finder::begin(Vector2i body, u32 threat_octant)
 {
     const auto spacing = Math::max(body/2, Vector2i{1});
     if (spacing != _spot_spacing)
@@ -65,12 +66,11 @@ void retreat_finder::begin(Vector2i body, u32 threat_octant, bool restart)
     _num_failed_dijkstra_calls = 0;
     _all = false;
     _octant = threat_octant;
-    _num_restarts += restart;
 }
 
 retreat_finder::result retreat_finder::step(world& w, point from, point threat, Vector2i body,
                                             const Search::pred& pred, u32 max_failed_dijkstra_calls,
-                                            function_view<bool(point)> sees,
+                                            Cover::Script::counters& counters, function_view<bool(point)> sees,
                                             function_view<path_search_result(point)> path_to)
 {
     if (const auto k = Cover::Point::nearest_octant(Vector2(threat - from)); k != _octant)
@@ -79,7 +79,7 @@ retreat_finder::result retreat_finder::step(world& w, point from, point threat, 
         // so a moving threat can't cause more than 2*max_failed_dijkstra_calls of them.
         _octant = k;
         _next = 0;
-        _num_restarts++;
+        counters.num_retreat_restarts++;
     }
     const auto octant_bit = 1u << _octant;
     const auto here = Math::sqrt((double)point::distance_squared(from, threat));
@@ -157,10 +157,12 @@ bool retreat_finder::keeps(point to, point threat, function_view<bool(point)> se
     return dist(to) - dist(from) > min_retreat_gain && (_all || !sees(to));
 }
 
-u32 retreat_finder::next() const { return _next; }
-u32 retreat_finder::num_spots() const { return (u32)_spots.size(); }
-u32 retreat_finder::num_failed_dijkstra_calls() const { return _num_failed_dijkstra_calls; }
-bool retreat_finder::all() const { return _all; }
-u32 retreat_finder::num_restarts() const { return _num_restarts; }
+Cover::Script::retreat_progress retreat_finder::progress() const
+{
+    return {
+        .spot = _next, .num_spots = (u32)_spots.size(), .num_failed_dijkstra_calls = _num_failed_dijkstra_calls,
+        .all = _all,
+    };
+}
 
 } // namespace floormat::Cover

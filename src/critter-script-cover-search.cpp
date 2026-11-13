@@ -52,8 +52,7 @@ u32 max_search_path_length(point from, point to) { return point::distance(from, 
 
 void cover_search::begin(point from, point threat)
 {
-    _peekless = {};
-    _in_reach = {};
+    _fallback_spots = {};
     _unreachable.clear();
     const auto n = (u32)search_tiles().size();
     _tiles_left = n + n/2;
@@ -73,12 +72,13 @@ void cover_search::restart(point from, point threat)
         _octant_tiles = {};
     }
     _octant = Cover::Point::nearest_octant(Vector2(threat - _from));
-    _tile_listed = false;
+    _tile_threat = {};
 }
 
 auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegistry& pools, point here, point from,
                         point threat, Vector2ui body, const Search::pred& pred, const Cover::Script::options& o,
-                        u32 max_failed_dijkstra_calls, const calls& f) -> result
+                        u32 max_failed_dijkstra_calls, Cover::Script::counters& counters,
+                        const calls& f) -> result
 {
     using fallback = Cover::Script::options::fallback;
     // Listed spots hold only for the threat position they were listed for, and a Dijkstra search's result
@@ -99,13 +99,13 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
             _octant = k;
             _tile = _octant_tiles[k];
             _tiles_left--;
-            _tile_listed = false;
+            _tile_threat = {};
         }
         else
             restart(from, threat);
     }
-    else if (threat != _tile_threat)
-        _tile_listed = false;
+    else if (_tile_threat != threat)
+        _tile_threat = {};
 
     // With a spot kept for last_resort, the search ends in the update after its last spot, since that spot may
     // have used the update's one Dijkstra call.
@@ -118,13 +118,13 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
     u32 num_checks = 0;
     for (auto n = 0u; n < max_search_tiles_per_update; n++)
     {
-        if (!_tile_listed)
+        if (!_tile_threat)
         {
             const auto mid = base + tiles[_tile]*tile_size_xy;
             const Cover::Point::query q{_from, body, threat, radius, o.octants, o.listed_cover_end_dist(),
                                         Range2Di::fromCenter(mid, Vector2i{half_tile<int>}), fills};
             const auto r = finder.find(w, pools, Grid::Cover::Params{o.div_size}, q, pred, true);
-            _num_find_cover_point_calls++;
+            counters.num_find_cover_point_calls++;
             fills -= r.fills;
             if (r.out_of_fills)
                 return {};
@@ -136,7 +136,6 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
             if (arrayCapacity(_tile_skipped) < _tile_skipped.size() + count)
                 arrayReserve(_tile_skipped, _tile_skipped.size() + count);
             _tile_spot = 0;
-            _tile_listed = true;
             _tile_threat = threat;
         }
         for (; _tile_spot < _tile_spots.size(); _tile_spot++)
@@ -162,8 +161,8 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
                 num_checks += h.num_body_checks;
                 if (!h.hidden)
                 {
-                    if (o.last_resort >= fallback::in_reach && !_in_reach)
-                        _in_reach = s;
+                    if (o.last_resort >= fallback::in_reach && !_fallback_spots.in_reach)
+                        _fallback_spots.in_reach = s;
                     arrayAppend(_tile_skipped, skipped_spot{s, _octant});
                     continue;
                 }
@@ -173,8 +172,8 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
             const auto end = f.cover_end(s);
             if (o.needs_peek && !f.has_peek(end, s.axis))
             {
-                if (o.last_resort >= fallback::no_peek && !_peekless)
-                    _peekless = s;
+                if (o.last_resort >= fallback::no_peek && !_fallback_spots.peekless)
+                    _fallback_spots.peekless = s;
                 arrayAppend(_tile_skipped, skipped_spot{s, _octant});
                 continue;
             }
@@ -189,9 +188,9 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
             const auto reach = max_search_path_length(here, end) + point::distance(here, _from);
             _unreachable.add_failed(s.pos, reach, w.pass_gen());
             if (_unreachable.num_failed_dijkstra_calls() == max_failed_dijkstra_calls)
-                return {{}, !_peekless && !_in_reach};
+                return {{}, !_fallback_spots.any()};
         }
-        _tile_listed = false;
+        _tile_threat = {};
         const auto kept = std::remove_if(_tile_skipped.begin(), _tile_skipped.end(),
                                          [&](const skipped_spot& x) { return x.octant == _octant; });
         arrayRemoveSuffix(_tile_skipped, (usize)(_tile_skipped.end() - kept));
@@ -199,22 +198,22 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
         fm_debug_assert(_tiles_left);
         _tiles_left--;
         if (_tile == tiles.size())
-            return {{}, !_peekless && !_in_reach};
+            return {{}, !_fallback_spots.any()};
     }
     return {};
 }
 
-// _peekless if the threat and where it can walk still see none of the npc there, else _in_reach if the threat
+// peekless if the threat and where it can walk still see none of the npc there, else in_reach if the threat
 // alone doesn't, with its cover_end() and a path there. Clears both. At most one path_to call, as in step().
 auto cover_search::take_last_resort(point here, const calls& f) -> Optional<reachable_cover>
 {
+    const auto [peekless, in_reach] = _fallback_spots;
+    _fallback_spots = {};
     Optional<Cover::Point::spot> spot;
-    if (_peekless && f.hidden_from_reach(_peekless->pos, _peekless->axis).hidden)
-        spot = _peekless;
-    else if (_in_reach && f.hidden_at(_in_reach->pos, _in_reach->axis))
-        spot = _in_reach;
-    _peekless = {};
-    _in_reach = {};
+    if (peekless && f.hidden_from_reach(peekless->pos, peekless->axis).hidden)
+        spot = peekless;
+    else if (in_reach && f.hidden_at(in_reach->pos, in_reach->axis))
+        spot = in_reach;
     if (!spot)
         return {};
     const auto s = *spot;
@@ -228,17 +227,33 @@ auto cover_search::take_last_resort(point here, const calls& f) -> Optional<reac
 
 void cover_search::end() { _tiles_left = 0; }
 
-void cover_search::drop_last_resort(Cover::Script::options::fallback last_resort)
+void cover_search::options_changed(Cover::Script::options::fallback last_resort)
+{
+    _fallback_spots.drop(last_resort);
+    arrayClear(_tile_skipped);
+}
+
+bool cover_search::running() const { return _tiles_left != 0; }
+point cover_search::from() const { return _from; }
+
+Cover::Script::search_progress cover_search::progress() const
+{
+    return {.tile = _tile, .tiles_left = _tiles_left, .num_tiles = (u32)search_tiles().size()};
+}
+
+bool cover_search::has_last_resort() const { return _fallback_spots.any(); }
+
+void cover_search::fallback_spots::drop(Cover::Script::options::fallback last_resort)
 {
     using fallback = Cover::Script::options::fallback;
     switch (last_resort)
     {
     case fallback::none:
-        _peekless = {};
-        _in_reach = {};
+        peekless = {};
+        in_reach = {};
         return;
     case fallback::no_peek:
-        _in_reach = {};
+        in_reach = {};
         return;
     case fallback::in_reach:
         return;
@@ -246,13 +261,6 @@ void cover_search::drop_last_resort(Cover::Script::options::fallback last_resort
     fm_assert(false);
 }
 
-void cover_search::forget_skipped() { arrayClear(_tile_skipped); }
-
-point cover_search::from() const { return _from; }
-u32 cover_search::tile() const { return _tile; }
-u32 cover_search::tiles_left() const { return _tiles_left; }
-u32 cover_search::num_tiles() { return (u32)search_tiles().size(); }
-u32 cover_search::num_find_cover_point_calls() const { return _num_find_cover_point_calls; }
-bool cover_search::has_last_resort() const { return _peekless || _in_reach; }
+bool cover_search::fallback_spots::any() const { return peekless || in_reach; }
 
 } // namespace floormat::Cover

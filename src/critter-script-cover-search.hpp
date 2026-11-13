@@ -46,34 +46,40 @@ public:
     // A changed pass grid near unreachable spots restarts the search, and a new threat octant resumes its scan.
     result step(world& w, Cover::Point::finder& finder, Grid::GridRegistry& pools, point here, point from,
                 point threat, Vector2ui body, const Search::pred& pred, const Cover::Script::options& o,
-                u32 max_failed_dijkstra_calls, const calls& f);
+                u32 max_failed_dijkstra_calls, Cover::Script::counters& counters, const calls& f);
     void end();
-    // Forgets kept spots that last_resort doesn't allow, which neither a retreat nor step() checks again.
-    void drop_last_resort(Cover::Script::options::fallback last_resort);
-    void forget_skipped();
+    // Forgets the spots skipped under the old options, and kept spots that last_resort doesn't allow, which
+    // neither a retreat nor step() checks again.
+    void options_changed(Cover::Script::options::fallback last_resort);
 
+    bool running() const;
     point from() const;
-    u32 tile() const;
-    u32 tiles_left() const;
-    static u32 num_tiles();
-    u32 num_find_cover_point_calls() const;
+    Cover::Script::search_progress progress() const;
     bool has_last_resort() const;
 
 private:
     struct skipped_spot { Cover::Point::spot spot; u32 octant; };
+    // The first spots skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
+    struct fallback_spots
+    {
+        Optional<Cover::Point::spot> peekless, in_reach;
+
+        // Forgets the spots last_resort doesn't keep.
+        void drop(Cover::Script::options::fallback last_resort);
+        bool any() const;
+    };
 
     Optional<reachable_cover> take_last_resort(point here, const calls& f);
 
     unreachable_spots _unreachable;
-    // The spots of tile _tile, once _tile_listed, of which _tile_spot is next. They were listed with the threat at
-    // _tile_threat.
+    // The spots of tile _tile while _tile_threat is set, of which _tile_spot is next. They were listed with the
+    // threat at _tile_threat.
     Array<Cover::Point::spot> _tile_spots;
     // The spots step() skipped, each with its octant, in the tile that octant's scan has reached. A tile listed
     // again skips without testing those it skipped in the current octant.
     Array<skipped_spot> _tile_skipped;
-    point _tile_threat;
-    // The first spots skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
-    Optional<Cover::Point::spot> _peekless, _in_reach;
+    Optional<point> _tile_threat;
+    fallback_spots _fallback_spots;
     u32 _tile = 0, _tile_spot = 0, _octant = 0;
     // Tiles the search may still pass, and 0 once it ended. A restart or a change of octant moves _tile back only
     // while the rest of the scan fits, so a moving threat can't keep the search near the npc.
@@ -82,8 +88,6 @@ private:
     // Where the tiles and the threat's octant are measured from: the npc's position at the last restart to tile 0,
     // or during a retreat walk the walk's end, so that cover back toward the threat comes later.
     point _from;
-    u32 _num_find_cover_point_calls = 0;
-    bool _tile_listed = false;
 };
 
 } // namespace floormat::Cover
