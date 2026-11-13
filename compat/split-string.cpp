@@ -16,9 +16,9 @@ split_string_view::iterator::iterator(const split_string_view& range) noexcept:
     _rest{range.str}, _delims{range.delims}, _list{range.delim_list},
     _delim{range.delim}, _mode{range.mode}, _keep_empty{range.keep_empty}
 {
-    // Narrow to the cheapest search giving the same answer, in that order. findOr(char) reaches
-    // the SIMD-dispatched stringFindCharacter, while findAnyOr() is a memchr call per input byte
-    // and findOr(StringView) a memcmp per position.
+    // Narrow to the cheapest search giving the same answer, in that order. find(char) reaches
+    // the SIMD-dispatched stringFindCharacter, while findAny() is a memchr call per input byte
+    // and find(StringView) a memcmp per position.
     if (_mode == split_mode::any_substring && _list.size() == 1)
     {
         _delims = _list[0];
@@ -40,14 +40,14 @@ StringView split_string_view::iterator::find_delimiter() const noexcept
     switch (_mode)
     {
     case split_mode::character:
-        return _rest.findOr(_delim, end);
+        return _rest.find(_delim);
     case split_mode::any_character:
-        return _rest.findAnyOr(_delims, end);
+        return _rest.findAny(_delims);
     case split_mode::substring:
         // stringFindString() reports an empty needle as a match at every position. Treat it as
         // no delimiter at all, like the empty character set, which also keeps a zero-size result
         // unambiguously "not found".
-        return _delims.isEmpty() ? StringView{end, 0} : _rest.findOr(_delims, end);
+        return _delims.isEmpty() ? StringView{end, 0} : _rest.find(_delims);
     case split_mode::any_substring:
         break;
     }
@@ -57,7 +57,7 @@ StringView split_string_view::iterator::find_delimiter() const noexcept
     {
         if (needle.isEmpty())
             continue;
-        const auto found = _rest.findOr(needle, end);
+        const auto found = _rest.find(needle);
         if (found.isEmpty())
             continue;
         // Longest on a tie, so a list containing both "\n" and "\r\n" consumes "\r\n" whole.
