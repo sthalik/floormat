@@ -282,10 +282,7 @@ void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
             if (ImGui::TableSetColumnIndex(3))
             {
                 StringView group = loader.strip_prefix(atlas.name());
-                if (auto last = group.findLast('/'))
-                    group = group.prefix(last.data());
-                else
-                    group = {};
+                group = group.prefix(group.findLast('/').begin());
                 text(group);
                 clear_on_middle_click();
             }

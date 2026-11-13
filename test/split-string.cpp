@@ -70,7 +70,7 @@ void test_against_corrade()
         compare(split_string(str, ';'), str.split(';'));
         compare(split_string_without_empty_parts(str, ';'), str.splitWithoutEmptyParts(';'));
 
-        // Same answers through the set form, which collapses a one-character set to findOr().
+        // Same answers through the set form, which collapses a one-character set to find(char).
         compare(split_string_on_any(str, ","_s), str.split(','));
         compare(split_string_on_any_without_empty_parts(str, ","_s), str.splitWithoutEmptyParts(','));
         compare(split_string_on_any(str, ";"_s), str.split(';'));
