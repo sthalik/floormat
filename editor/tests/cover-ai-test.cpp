@@ -100,6 +100,13 @@ Optional<point> peek_pos(const Cover::Script::status& s)
     return p.pos;
 }
 
+// Chunks around center's that a search within radius px of center reads. A threat turned about a spot keeps its
+// distance from it, so lies within distance + 2*radius px, and a cover grid reads 2 chunks past its own.
+u32 search_chunk_radius(point center, point threat, u32 radius)
+{
+    return (point::distance(center, threat) + 2*radius)/chunk_size_xy + 3;
+}
+
 double us(const Ns& t) { return (double)(u64)t * 1e-3; }
 
 // Octant fills of the cover pool the npc's script searches with, and their time, since the pool
@@ -321,7 +328,8 @@ bool cover_ai_test::spots_stale(app& a) const
     const auto player = w.find_object(threat);
     return !player || player->position().chunk3().z != search_center.chunk3().z ||
            Cover::Point::nearest_octant(Vector2(player->position() - search_center)) != search_octant ||
-           w.max_pass_gen(search_center.chunk3(), search_radius/chunk_size_xy + 3) != search_pass_gen ||
+           w.max_pass_gen(search_center.chunk3(), search_chunk_radius(search_center, player->position(), search_radius))
+               > search_pass_gen ||
            search_radius != (u32)radius_tiles*tile_size_xy ||
            search_octants != options.octants || search_listed_cover_end_dist != options.listed_cover_end_dist() ||
            search_max_cover_end_dist != options.max_cover_end_dist ||
@@ -347,8 +355,7 @@ void cover_ai_test::restart_spots(app& a, const critter& c)
     spots_player = player->position();
     dropped_spots = 0;
     search_octant = Cover::Point::nearest_octant(Vector2(player->position() - search_center));
-    // The search reads chunks within r px of search_center, and their cover grids read 2 chunks more.
-    search_pass_gen = w.max_pass_gen(search_center.chunk3(), r/chunk_size_xy + 3);
+    search_pass_gen = w.pass_gen();
     search_radius = r;
     search_octants = options.octants;
     search_listed_cover_end_dist = options.listed_cover_end_dist();
@@ -520,7 +527,7 @@ ArrayView<const Cover::Point::spot> cover_ai_test::script_spots(app& a, critter&
     if (s.query)
     {
         const auto& q = *s.query;
-        gen = a.main().world().max_pass_gen(q.pos.chunk3(), q.radius/chunk_size_xy + 3);
+        gen = a.main().world().max_pass_gen(q.pos.chunk3(), search_chunk_radius(q.pos, q.threat, q.radius));
     }
     if (!has_script_list || script_list_npc != c.id || script_list_num_searches != s.counters.num_searches ||
         script_list_pass_gen != gen)
