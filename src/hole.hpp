@@ -48,7 +48,7 @@ struct hole final : object
     friend class world;
 
 private:
-    void mark_neighbor_chunks_modified() override;
+    void mark_modified_with_neighbors() override;
 };
 
 template<> struct object_type_<struct hole> : std::integral_constant<object_type, object_type::hole> {};

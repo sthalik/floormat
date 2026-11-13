@@ -89,7 +89,7 @@ public:
     virtual bool is_dynamic() const;
     virtual bool updates_passability() const;
     virtual bool updates_walls() const;
-    virtual void mark_neighbor_chunks_modified();
+    virtual void mark_modified_with_neighbors();
 
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);

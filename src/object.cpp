@@ -288,7 +288,7 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
     set_bbox_(offset_, bb_offset_, bb_size_, pass_);
     const bool b = c->_bbox_for_scenery(*this, bb);
     if (upd_pass)
-        mark_neighbor_chunks_modified();
+        mark_modified_with_neighbors();
     else if (!dyn)
         c->mark_passability_modified();
     else if (!is_virtual())
@@ -323,7 +323,7 @@ object_type object::type_of() const noexcept { return type(); }
 bool object::is_dynamic() const { return atlas->info().fps > 0; }
 bool object::updates_passability() const { return false; }
 bool object::updates_walls() const { return false; }
-void object::mark_neighbor_chunks_modified() {}
+void object::mark_modified_with_neighbors() {}
 
 void object::init_script(const bptr<object>&) {}
 void object::destroy_script_pre(const bptr<object>&, script_destroy_reason) {}

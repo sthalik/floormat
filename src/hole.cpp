@@ -62,7 +62,7 @@ hole::operator hole_proto() const
     return ret;
 }
 
-void hole::mark_neighbor_chunks_modified()
+void hole::mark_modified_with_neighbors()
 {
     //c->mark_ground_modified(); // todo!
     for (auto* const cʹ : c->world().neighbors(c->coord()))
@@ -81,7 +81,7 @@ void hole::set_height(u8 heightʹ)
     if (height != heightʹ)
     {
         non_const(height) = heightʹ;
-        mark_neighbor_chunks_modified();
+        mark_modified_with_neighbors();
     }
 }
 
@@ -90,7 +90,7 @@ void hole::set_z_offset(u8 z)
     if (z_offset != z)
     {
         non_const(z_offset) = z;
-        mark_neighbor_chunks_modified();
+        mark_modified_with_neighbors();
     }
 }
 
@@ -99,7 +99,7 @@ void hole::set_enabled(bool value)
     if (flags.enabled != value)
     {
         non_const(flags).enabled = value;
-        mark_neighbor_chunks_modified();
+        mark_modified_with_neighbors();
     }
 }
 

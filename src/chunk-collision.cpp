@@ -287,7 +287,7 @@ bool chunk::_bbox_for_scenery(const object& s, bbox& value) noexcept
 void chunk::_remove_bbox_static_(const bptr<object>& e)
 {
     if (e->updates_passability())
-        e->mark_neighbor_chunks_modified();
+        e->mark_modified_with_neighbors();
     else
         mark_passability_modified();
 }
@@ -295,7 +295,7 @@ void chunk::_remove_bbox_static_(const bptr<object>& e)
 void chunk::_add_bbox_static_(const bptr<object>& e)
 {
     if (e->updates_passability())
-        e->mark_neighbor_chunks_modified();
+        e->mark_modified_with_neighbors();
     else
         mark_passability_modified();
 }
