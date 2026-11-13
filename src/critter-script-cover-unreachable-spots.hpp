@@ -23,8 +23,8 @@ public:
     void add_failed(point pos, u32 reach, u64 pass_gen);
     // Grows the reach by dist, how far search_from moved, to hold every chunk the failed searches could cross.
     void origin_moved(u32 dist);
-    // True when a chunk the failed Dijkstra searches from search_from could cross, or a neighbour of one, has a
-    // pass_gen() newer than the last failure. A spot only a critter or a closed door blocked stays skipped.
+    // True when a chunk holding a listed spot or one a failed Dijkstra search could cross, or a neighbour of one,
+    // has a pass_gen() newer than the last failure. A spot only a critter or a closed door blocked stays skipped.
     bool stale(const world& w, point search_from) const;
     u32 num_failed_dijkstra_calls() const;
 

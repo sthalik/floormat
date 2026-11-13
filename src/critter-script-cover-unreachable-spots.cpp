@@ -62,8 +62,11 @@ bool unreachable_spots::stale(const world& w, point search_from) const
 {
     if (_spots.isEmpty())
         return false;
+    auto reach = _reach;
+    for (const auto& u : _spots)
+        reach = Math::max(reach, point::distance(search_from, u));
     // search_from lies anywhere in its chunk, so the reach spans one chunk more than its length.
-    return w.max_pass_gen(search_from.chunk3(), _reach / chunk_size_xy + 2) > _pass_gen;
+    return w.max_pass_gen(search_from.chunk3(), reach / chunk_size_xy + 2) > _pass_gen;
 }
 
 u32 unreachable_spots::num_failed_dijkstra_calls() const { return _num_failed_dijkstra_calls; }
