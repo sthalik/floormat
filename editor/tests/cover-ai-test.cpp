@@ -70,13 +70,34 @@ void print_coord(auto&& buf, point pt)
     snformat(buf, "(ch {}x{}) <{}x{}> {{{}x{} px}}", c.x(), c.y(), l.x(), l.y(), o.x(), o.y());
 }
 
-void print_spot(auto&& buf, bool has, point pt)
+void print_spot(auto&& buf, Optional<point> pt)
 {
-    const auto v = Vector3i(pt).xy();
-    if (has)
-        snformat(buf, "({}, {})", v.x(), v.y());
-    else
+    if (!pt)
+    {
         snformat(buf, "none");
+        return;
+    }
+    const auto v = Vector3i(*pt).xy();
+    snformat(buf, "({}, {})", v.x(), v.y());
+}
+
+Optional<point> cover_pos(const Cover::Script::status& s)
+{
+    if (!s.cover)
+        return {};
+    const auto& c = *s.cover;
+    return c.pos;
+}
+
+Optional<point> peek_pos(const Cover::Script::status& s)
+{
+    if (!s.cover)
+        return {};
+    const auto& c = *s.cover;
+    if (!c.peek)
+        return {};
+    const auto& p = *c.peek;
+    return p.pos;
 }
 
 double us(const Ns& t) { return (double)(u64)t * 1e-3; }
@@ -495,8 +516,12 @@ u32 cover_ai_test::toggle_move_to_end()
 // Critter movement leaves pass_gen unchanged, so a spot the player walks onto stays listed.
 ArrayView<const Cover::Point::spot> cover_ai_test::script_spots(app& a, critter& c, const Cover::Script::status& s)
 {
-    const auto& q = s.query;
-    const auto gen = s.has_query ? a.main().world().max_pass_gen(q.pos.chunk3(), q.radius/chunk_size_xy + 3) : 0;
+    u64 gen = 0;
+    if (s.query)
+    {
+        const auto& q = *s.query;
+        gen = a.main().world().max_pass_gen(q.pos.chunk3(), q.radius/chunk_size_xy + 3);
+    }
     if (!has_script_list || script_list_npc != c.id || script_list_num_searches != s.counters.num_searches ||
         script_list_pass_gen != gen)
     {
@@ -525,11 +550,18 @@ Optional<u32> cover_ai_test::step_cover(app& a, bool back)
     const auto s = c ? Cover::Script::get_status(*c) : Optional<Cover::Script::status>{};
     if (!s)
         return {};
-    const auto list = script_spots(a, *c, *s);
+    const auto& status = *s;
+    const auto list = script_spots(a, *c, status);
     const auto n = (u32)list.size();
     auto from = 0u;
-    while (from < n && !(s->has_cover && list[from].pos == s->canonical))
-        from++;
+    if (status.cover)
+    {
+        const auto& cover = *status.cover;
+        while (from < n && list[from].pos != cover.canonical)
+            from++;
+    }
+    else
+        from = n;
     const auto listed = from < n;
     if (!listed)
         from = back ? 0 : n - 1;
@@ -579,14 +611,23 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
     if (peek)
     {
         const auto pt = spot_states[k].peek.pos;
+        const auto& status = *s;
         for (auto i = 0u; i < spot_states.size(); i++)
         {
             if (i == k || !spot_states[i].has_peek || spot_states[i].peek.pos != pt)
                 continue;
-            if (s->has_cover && spots[k].pos == s->canonical)
-                break;
-            if (s->has_cover && spots[i].pos == s->canonical ||
-                point::distance_squared(spots[i].pos, pt) < point::distance_squared(spots[k].pos, pt))
+            if (status.cover)
+            {
+                const auto& cover = *status.cover;
+                if (spots[k].pos == cover.canonical)
+                    break;
+                if (spots[i].pos == cover.canonical)
+                {
+                    k = i;
+                    continue;
+                }
+            }
+            if (point::distance_squared(spots[i].pos, pt) < point::distance_squared(spots[k].pos, pt))
                 k = i;
         }
     }
@@ -624,12 +665,16 @@ void cover_ai_test::update_rates(app& a, const Cover::Script::status& s)
 void cover_ai_test::update_ray(app& a, const critter& c, const Cover::Script::status& s)
 {
     ray.has_result = false;
-    if (s.st != state::exposed || !s.has_peek)
+    if (s.st != state::exposed)
+        return;
+    const auto& cover = *s.cover;
+    if (!cover.peek)
         return;
     auto& m = a.main();
     const auto params = Pass::Params{options.div_size, pass_mode::shoot_through};
     auto& reg = m.astar().pool_registry();
-    ray = raycast(m.world(), s.gun_ray_from, s.gun, c.id, reg.object_pool(params), Search::without_critters());
+    const auto& p = *cover.peek;
+    ray = raycast(m.world(), p.gun_ray_from, p.gun, c.id, reg.object_pool(params), Search::without_critters());
 }
 
 void cover_ai_test::update_post(app& a, const Ns&)
@@ -666,15 +711,15 @@ void cover_ai_test::update_pre(app& a, const Ns&)
 void cover_ai_test::log_script(app& a, const critter& c, const Cover::Script::status& s)
 {
     const auto& l = logged;
-    if (c.id == logged_npc && s.counters.num_searches == l.counters.num_searches && s.has_cover == l.has_cover &&
-        s.cover == l.cover && s.has_peek == l.has_peek && s.peek == l.peek)
+    if (c.id == logged_npc && s.counters.num_searches == l.counters.num_searches && cover_pos(s) == cover_pos(l) &&
+        peek_pos(s) == peek_pos(l))
         return;
     logged = s;
     logged_npc = c.id;
     const auto f = fills(a);
     char cover[32], peek[32];
-    print_spot(cover, s.has_cover, s.cover);
-    print_spot(peek, s.has_peek, s.peek);
+    print_spot(cover, cover_pos(s));
+    print_spot(peek, peek_pos(s));
     fm_debug("cover-ai: search %u, %s, cover %s, peek %s: script update %.1f us, %u octant fills in %.1f us",
              s.counters.num_searches, state_names[(usize)s.st], cover, peek, us(s.last_update),
              f.n - fills_before_update.n, us(f.time - fills_before_update.time));
@@ -772,13 +817,17 @@ void cover_ai_test::draw_overlay(app& a)
     const auto s = Cover::Script::get_status(*c);
     if (!s)
         return;
+    const auto& status = *s;
     ImDrawList& fg = *ImGui::GetForegroundDrawList();
-    if (s->has_cover)
-        draw_dot(fg, a, s->cover, 6, 0x33ff33ff_imcol);
-    if (s->has_peek)
+    if (!status.cover)
+        return;
+    const auto& cover = *status.cover;
+    draw_dot(fg, a, cover.pos, 6, 0x33ff33ff_imcol);
+    if (cover.peek)
     {
-        draw_dot(fg, a, s->peek, 5, 0xffd900ff_imcol);
-        draw_dot(fg, a, s->gun, 4, 0xff3333ff_imcol);
+        const auto& p = *cover.peek;
+        draw_dot(fg, a, p.pos, 5, 0xffd900ff_imcol);
+        draw_dot(fg, a, p.gun, 4, 0xff3333ff_imcol);
     }
 }
 
@@ -797,15 +846,22 @@ void cover_ai_test::draw_cover_picker(app& a)
     ImGui::SameLine();
 
     ArrayView<const Cover::Point::spot> list;
-    if (s)
-        list = script_spots(a, *c, *s);
     auto cur = (u32)-1;
-    for (const auto& [i, spot] : enumerate(list))
-        if (s->has_cover && spot.pos == s->canonical)
+    if (s)
+    {
+        const auto& status = *s;
+        list = script_spots(a, *c, status);
+        if (status.cover)
         {
-            cur = i;
-            break;
+            const auto& cover = *status.cover;
+            for (const auto& [i, spot] : enumerate(list))
+                if (spot.pos == cover.canonical)
+                {
+                    cur = i;
+                    break;
+                }
         }
+    }
     if (list.isEmpty())
         snformat(preview, "no spots listed");
     else if (cur == (u32)-1)
@@ -984,12 +1040,28 @@ void cover_ai_test::draw_ui(app& a, float)
         else
             text("-");
 
+        Optional<point> cover_at, peek_at, gun_at;
+        if (s)
+        {
+            const auto& status = *s;
+            if (status.cover)
+            {
+                const auto& cover = *status.cover;
+                cover_at = cover.pos;
+                if (cover.peek)
+                {
+                    const auto& p = *cover.peek;
+                    peek_at = p.pos;
+                    gun_at = p.gun;
+                }
+            }
+        }
         do_column("cover");
-        coord_or_dash(s && s->has_cover, s ? s->cover : point{});
+        coord_or_dash(!!cover_at, cover_at ? *cover_at : point{});
         do_column("last peek spot");
-        coord_or_dash(s && s->has_peek, s ? s->peek : point{});
+        coord_or_dash(!!peek_at, peek_at ? *peek_at : point{});
         do_column("last gun point");
-        coord_or_dash(s && s->has_peek, s ? s->gun : point{});
+        coord_or_dash(!!gun_at, gun_at ? *gun_at : point{});
         do_column("player");
         coord_or_dash(!!player, player ? player->position() : point{});
 

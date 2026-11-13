@@ -51,6 +51,24 @@ struct options
     u32 listed_cover_end_dist() const { return threat_reach ? 0 : max_cover_end_dist; }
 };
 
+// pos is the critter's body center at a peek spot. The last ray from the threat to the gun there that was clear
+// went from gun_ray_from, where the threat stood, to gun, the gun point.
+struct cover_peek
+{
+    point pos, gun, gun_ray_from;
+};
+
+// The cover the critter hides at, peeks from or walks to, or took last. canonical is the spot found for it, from
+// where pos lies along their face as far as the threat alone, without its turns, sees no pixel.
+struct cover
+{
+    point pos, canonical;
+    // canonical's axis, toward the threat.
+    Vector2i axis;
+    // The last spot find_peek_pos found. Taking new cover clears it.
+    Optional<cover_peek> peek;
+};
+
 // Since the script started.
 struct counters
 {
@@ -85,25 +103,14 @@ struct status
     // it looks for a path to a spot farther from the threat, a few Dijkstra searches per update.
     enum class state : u8 { seek, to_cover, hidden, to_peek, exposed, retreat, search, find_retreat, };
 
-    // The cover the critter hides at, peeks from or walks to, when has_cover. canonical is the spot found for
-    // it, from where cover lies along their face as far as the threat alone, without its turns, sees no pixel.
-    point cover, canonical;
-    // canonical's axis, toward the threat, when has_cover.
-    Vector2i axis;
-    // The last spot find_peek_pos found, when has_peek. Taking new cover clears has_peek.
-    point peek;
-    // When has_peek, the ends of the last ray from the threat to the gun at peek that was clear:
-    // gun_ray_from, where the threat stood, and gun, the gun point there.
-    point gun, gun_ray_from;
-    // When has_query, the last finished search's query, found or not. Its radius is cut to a tile
-    // past the spot found.
-    Cover::Point::query query = {};
+    Optional<Cover::Script::cover> cover;
+    // The last finished search's query, found or not. Its radius is cut to a tile past the spot found.
+    Optional<Cover::Point::query> query;
     Cover::Script::counters counters;
     search_progress search;
     retreat_progress retreat;
     Ns last_update, max_update, total_update;
     state st = state::seek;
-    bool has_cover = false, has_peek = false, has_query = false;
 };
 
 // Where c peeks from a cover spot: pos, its body's center, and gun, its gun point.

@@ -75,8 +75,10 @@ void overlay_spots(critter& c, point threat, Array<Cover::Point::spot>& out,
                    u32 max_cover_end_dist = Cover::Script::options{}.listed_cover_end_dist())
 {
     const auto s = Cover::Script::get_status(c);
-    fm_assert(s && s->has_query);
-    auto q = s->query;
+    fm_assert(s);
+    const auto& status = *s;
+    fm_assert(status.query);
+    auto q = *status.query;
     q.pos = point{c.position().coord(), {}};
     q.threat = threat;
     q.radius = 16*tile_size_xy;
@@ -204,6 +206,10 @@ task app::scene_cover_ai()
         fm_assert(s);
         return *s;
     };
+    const auto canonical = [&] {
+        const auto& c = *status().cover;
+        return c.canonical;
+    };
 
     // Each stop is 2 s, so a position held for a second is a stop rather than a walk's pause.
     const auto n_stops = 2*(pgo_driver_use_short_scenes() ? short_cycles : cycles) + 1;
@@ -237,7 +243,10 @@ task app::scene_cover_ai()
     }
     // stops alternate between the cover spot and the peek spot
     check_alternating();
-    fm_assert_equal(stops[0].pos, status().cover);
+    {
+        const auto& c = *status().cover;
+        fm_assert_equal(stops[0].pos, c.pos);
+    }
     const auto cover = Vector3i(stops[0].pos).xy(), peek = Vector3i(stops[1].pos).xy();
 
     Array<Cover::Point::spot> overlay;
@@ -247,7 +256,7 @@ task app::scene_cover_ai()
         fm_assert(v.u32 >= 1);
         overlay_spots(*w.find_object<critter>(npc_id), ensure_player_character(w)->position(), overlay);
         fm_assert_equal(v.u32, (u32)overlay.size());
-        fm_assert(listed(overlay, status().canonical));
+        fm_assert(listed(overlay, canonical()));
     }
 
     // The next arrow beside the cover combobox, then clicks on peek spots' dots, each followed by a
@@ -258,13 +267,22 @@ task app::scene_cover_ai()
         const auto npc_at = [&] { return w.find_object(npc_id)->position(); };
         const auto hidden_at = [&](point p) {
             const auto s = status();
-            return s.st == state::hidden && s.canonical == p && npc_at() == s.cover;
+            if (s.st != state::hidden)
+                return false;
+            const auto& c = *s.cover;
+            return c.canonical == p && npc_at() == c.pos;
         };
         const auto exposed_at = [&](point p) {
             const auto s = status();
-            return s.st == state::exposed && s.has_peek && s.peek == p && npc_at() == p;
+            if (s.st != state::exposed)
+                return false;
+            const auto& c = *s.cover;
+            if (!c.peek)
+                return false;
+            const auto& peek = *c.peek;
+            return peek.pos == p && npc_at() == p;
         };
-        const auto first = status().canonical;
+        const auto first = canonical();
         deadline = M->world().game_time() + max_dt;
         while (!hidden_at(first))
         {
@@ -278,7 +296,7 @@ task app::scene_cover_ai()
         Cover::Script::list_spots(*w.find_object<critter>(npc_id), spots);
         fm_assert(v.u32 > 0 && v.u32 < spots.size());
         const auto switched = spots[v.u32];
-        fm_assert_equal(switched.pos, status().canonical);
+        fm_assert_equal(switched.pos, canonical());
         const auto p = Cover::Script::find_peek(*w.find_object<critter>(npc_id), switched);
         fm_assert(p);
         // hidden, out and back, as at cover it found itself
@@ -321,7 +339,10 @@ task app::scene_cover_ai()
             {
                 const auto s = status();
                 fm_assert(s.st == state::to_peek);
-                fm_assert(s.canonical == cover && s.has_peek && s.peek == peek);
+                const auto& c = *s.cover;
+                fm_assert(c.canonical == cover && c.peek);
+                const auto& p = *c.peek;
+                fm_assert(p.pos == peek);
             }
             deadline = M->world().game_time() + max_dt;
             while (!exposed_at(peek))
@@ -340,7 +361,7 @@ task app::scene_cover_ai()
             set_cursor_at(first);
             co_await click_at_cursor(mouse_button_left);
             fm_assert(status().st == state::to_cover);
-            fm_assert_equal(first, status().canonical);
+            fm_assert_equal(first, canonical());
             deadline = M->world().game_time() + max_dt;
             while (!hidden_at(first))
             {
@@ -354,11 +375,11 @@ task app::scene_cover_ai()
         const auto next = press(4);
         fm_assert(next.type == base_test::ValueType::u32);
         fm_assert_equal(v.u32, next.u32);
-        fm_assert_equal(switched.pos, status().canonical);
+        fm_assert_equal(switched.pos, canonical());
         const auto prev = press(5);
         fm_assert(prev.type == base_test::ValueType::u32);
         fm_assert_equal(first, spots[prev.u32].pos);
-        fm_assert_equal(first, status().canonical);
+        fm_assert_equal(first, canonical());
         deadline = M->world().game_time() + max_dt;
         while (!hidden_at(first))
         {
@@ -446,7 +467,10 @@ task app::scene_cover_ai()
             {
                 const auto s = status();
                 fm_assert(s.st == state::to_peek);
-                fm_assert(s.canonical == cover && s.has_peek && s.peek == peek);
+                const auto& c = *s.cover;
+                fm_assert(c.canonical == cover && c.peek);
+                const auto& p = *c.peek;
+                fm_assert(p.pos == peek);
             }
             deadline = M->world().game_time() + max_dt;
             while (!exposed_at(peek))
@@ -513,10 +537,13 @@ task app::scene_cover_ai()
             return raycast(w, threat, to, npc_id, reg.object_pool(params), Search::without_critters()).success;
         };
         const auto& p = stops[0];
-        fm_assert(p.status.st == state::exposed && p.status.has_peek);
-        fm_assert_equal(p.pos, p.status.peek);
-        fm_assert_equal(threat, p.status.gun_ray_from);
-        fm_assert(sees(p.status.gun));
+        fm_assert(p.status.st == state::exposed);
+        const auto& c = *p.status.cover;
+        fm_assert(c.peek);
+        const auto& peek = *c.peek;
+        fm_assert_equal(p.pos, peek.pos);
+        fm_assert_equal(threat, peek.gun_ray_from);
+        fm_assert(sees(peek.gun));
         const auto& h = stops[1];
         fm_assert(h.status.st == state::hidden);
         fm_assert(!sees(h.pos));
@@ -670,17 +697,27 @@ task app::scene_cover_ai_map()
         auto deadline = M->world().game_time() + max_dt;
         for (;;)
         {
-            if (const auto s = status(); s.st == state::hidden && npc_pos() == s.cover && (!k || s.cover != covers.back()))
-                break;
+            if (const auto s = status(); s.st == state::hidden)
+            {
+                const auto& c = *s.cover;
+                if (npc_pos() == c.pos && (!k || c.pos != covers.back()))
+                    break;
+            }
             if (M->world().game_time() >= deadline)
             {
                 const auto s = status();
                 const auto [x, y] = print(npc_pos());
-                const auto [cx, cy] = print(s.cover);
+                point cover_at{};
+                if (s.cover)
+                {
+                    const auto& c = *s.cover;
+                    cover_at = c.pos;
+                }
+                const auto [cx, cy] = print(cover_at);
                 const auto [tx, ty] = print(player);
                 fm_abort("cover-ai-map: move %u, player (%d, %d): the npc doesn't hide at a new spot: "
                          "state %u at (%d, %d), cover (%d, %d), has_cover %d, searches %u",
-                         k, tx, ty, (unsigned)s.st, x, y, cx, cy, (int)s.has_cover, s.counters.num_searches);
+                         k, tx, ty, (unsigned)s.st, x, y, cx, cy, (int)!!s.cover, s.counters.num_searches);
             }
             co_yield {};
         }
@@ -709,13 +746,14 @@ task app::scene_cover_ai_map()
             overlay_spots(C, player, spots);
             fm_assert_equal(n_spots, (u32)spots.size());
             const auto s = status();
-            fm_assert(listed(spots, s.canonical));
+            const auto& c = *s.cover;
+            fm_assert(listed(spots, c.canonical));
             for (const auto& x : spots)
             {
                 fm_assert(!sees(player, x.pos));
                 const auto peek = !!Cover::Script::find_peek(C, x);
                 n_peeks += peek;
-                peeks |= peek && x.pos == s.canonical && x.axis == s.axis;
+                peeks |= peek && x.pos == c.canonical && x.axis == c.axis;
             }
         }
 
@@ -733,16 +771,23 @@ task app::scene_cover_ai_map()
             deadline = M->world().game_time() + max_dt;
             for (;;)
             {
-                if (const auto s = status(); s.st == state::exposed && npc_pos() == s.peek)
-                    break;
+                if (const auto s = status(); s.st == state::exposed)
+                {
+                    const auto& c = *s.cover;
+                    const auto& p = *c.peek;
+                    if (npc_pos() == p.pos)
+                        break;
+                }
                 if (M->world().game_time() >= deadline)
                     fm_abort("cover-ai-map: move %u: the npc doesn't peek from cover (%d, %d)", k, cx, cy);
                 co_yield {};
             }
             const auto s = status();
-            fm_assert_equal(player, s.gun_ray_from);
-            fm_assert(sees(player, s.gun));
-            const auto [px, py] = print(s.peek);
+            const auto& c = *s.cover;
+            const auto& p = *c.peek;
+            fm_assert_equal(player, p.gun_ray_from);
+            fm_assert(sees(player, p.gun));
+            const auto [px, py] = print(p.pos);
             fm_debug("cover-ai-map: move %u, player (%d, %d): cover (%d, %d), peek (%d, %d), %u spots listed, "
                      "%u with peek spots, whole search %.0f us", k, tx, ty, cx, cy, px, py, n_spots, n_peeks,
                      (double)Time::to_milliseconds(box_time)*1e3);
@@ -792,7 +837,7 @@ task app::scene_cover_ai_map()
         const auto octant = (u32)box.ai32[2];
         const auto from = tile_pos(map_player_tiles[at]);
         auto& C = *w.find_object<critter>(npc_id);
-        auto q = Cover::Script::get_status(C)->query;
+        auto q = *status().query;
         q.pos = center;
         q.threat = from;
         q.radius = 16*tile_size_xy;
