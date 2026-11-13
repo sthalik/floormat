@@ -50,6 +50,8 @@ global_coords::raw_coords_::operator Vector2ui() const { return {x, y}; }
 
 namespace {
 
+constexpr auto chunk_xy_bias = global_coords::chunk_xy_bias::value;
+
 static_assert(sizeof(decltype(local_coords::x))*8 == 8);
 static_assert(sizeof(decltype(chunk_coords::x))*8 == 16);
 static_assert(std::is_same_v<decltype(local_coords::x), decltype(local_coords::y)>);

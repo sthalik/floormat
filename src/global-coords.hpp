@@ -106,9 +106,10 @@ constexpr chunk_coords_& chunk_coords_::operator=(const chunk_coords_& other) no
 struct global_coords final
 {
     struct raw_coords_ { u32 x, y; operator Vector2ui() const; };
+    using chunk_xy_bias = std::integral_constant<u32, 1u << (chunk_coord_bits-1)>; // 32768, biases chunk x/y non-negative
 
 private:
-    using u0 = std::integral_constant<u32, chunk_xy_bias>;
+    using u0 = std::integral_constant<u32, chunk_xy_bias::value>;
     using s0 = std::integral_constant<i32, i32(u0::value)>;
     using z0 = std::integral_constant<i32, (1 << 0)>;
     using z_mask = std::integral_constant<u32, (1u << 4) - 1u << 20>;

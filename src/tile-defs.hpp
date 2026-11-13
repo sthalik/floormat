@@ -30,7 +30,6 @@ constexpr inline i32 chunk_z_count = chunk_z_max - chunk_z_min + 1;
 constexpr inline u32 chunk_coord_bits = 16;
 constexpr inline i32  chunk_xy_max  =  (1 << (chunk_coord_bits-1)) - 1; // 32767 = INT16_MAX
 constexpr inline i32  chunk_xy_min  = -(1 << (chunk_coord_bits-1));     // -32768 = INT16_MIN
-constexpr inline u32 chunk_xy_bias =  1u << (chunk_coord_bits-1);      // 32768, biases chunk x/y non-negative
 
 constexpr inline i32 most_positive_point_xy = (1 << (chunk_coord_bits-1)) * chunk_size<i32> - (half_tile<i32> + 1);
 constexpr inline i32 most_positive_point_z = tile_size_z * chunk_z_max;
