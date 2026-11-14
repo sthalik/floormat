@@ -17,14 +17,6 @@ struct Pool : PoolBase
     T* take(chunk& ch) requires BitGrid<T>;
 };
 
-inline GridBase* PoolBase::find(chunk& c) const noexcept
-{
-    if (!c._grid_slots)
-        return nullptr;
-    const auto& s = c._grid_slots->slots;
-    return slot_index < s.size() ? s[slot_index] : nullptr;
-}
-
 constexpr inline std::array<Vector2b, 16> ring2_offsets = {{
     {-2, -2}, {-1, -2}, { 0, -2}, { 1, -2}, { 2, -2},
     {-2, -1},                               { 2, -1},

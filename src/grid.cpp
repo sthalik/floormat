@@ -192,6 +192,14 @@ void PoolBase::detach_all() noexcept
     }
 }
 
+GridBase* PoolBase::find(chunk& c) const noexcept
+{
+    if (!c._grid_slots)
+        return nullptr;
+    const auto& s = c._grid_slots->slots;
+    return slot_index < s.size() ? s[slot_index] : nullptr;
+}
+
 void mark_grids_stale(world& w, chunk_coords_ coord) noexcept
 {
     for (auto dy = -2; dy <= 2; dy++)
