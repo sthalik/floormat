@@ -11,6 +11,7 @@
 #include "src/critter-script-cover-movement-range.hpp"
 #include "src/critter-script-cover.hpp"
 #include "src/critter-script-cover-point.hpp"
+#include "src/critter-script-cover-unreachable-spots.hpp"
 #include "src/critter-walk.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/grid-cover.hpp"
@@ -1912,6 +1913,55 @@ void test_cover_script_no_path_door_opens()
     fm_assert_equal(Vector3i(c_still.pos), Vector3i(c.pos));
 }
 
+// As in test_cover_script_seek_no_path, with a critter in place of the south blocker, which then goes away. Later
+// searches from the npc's start skip the walled-in spots until unreachable_spot_retry_time passed.
+void test_cover_script_no_path_critter_leaves()
+{
+    const point west{ch, {2, 8}, {}};
+    cover_scene s{west};
+    const auto start = s.npc->position();
+    auto o = walled_in_options();
+    o.hold = Cover::Script::options::hold_phase::hidden;
+    o.search_every_move = true;
+    Cover::Script::set_options(*s.npc, o);
+    const auto south = wall_in_east_cover(s.w);
+    const auto blocker = add_critter(s.w, south->position() + Vector2i(south->bbox_offset),
+                                     Vector2ui(south->bbox_size));
+    s.w[ch].remove_object(*south, south->index());
+    rebuild(s.w);
+    const auto t0 = s.status();
+    s.step();
+    s.finish_search();
+    const auto t1 = s.status();
+    fm_assert(t1.st == state::to_cover && t1.cover);
+    const auto& c1 = *t1.cover;
+    fm_assert(!walled_in(c1.pos));
+    fm_assert_equal(t0.counters.num_dijkstra_calls + 3, t1.counters.num_dijkstra_calls);
+    s.step_until(state::hidden);
+    const auto gen = s.w[ch].pass_gen();
+    s.w[ch].kill_object(*blocker, blocker->index());
+    fm_assert(s.w[ch].pass_gen() == gen);
+    const auto search_from_start = [&] {
+        auto i = s.npc->index();
+        s.npc->teleport_to(i, start, rotation_COUNT);
+        s.move_threat(s.threat->position() + Vector2i{1, 0});
+        s.step();
+        s.finish_search();
+        const auto t = s.status();
+        fm_assert(t.st == state::to_cover);
+        s.step_until(state::hidden);
+        return t;
+    };
+    const auto t2 = search_from_start();
+    const auto& c2 = *t2.cover;
+    fm_assert(!walled_in(c2.pos));
+    fm_assert_equal(t1.counters.num_dijkstra_calls + 1, t2.counters.num_dijkstra_calls);
+    s.w.advance_game_time(Cover::unreachable_spot_retry_time);
+    const auto t3 = search_from_start();
+    const auto& c3 = *t3.cover;
+    fm_assert(walled_in(c3.pos));
+}
+
 // movement_range::border keeps its points while a critter moves, and computes them again after a blocker appears
 // in a neighbour chunk. Computing them rebuilds a pass grid marked stale, so the grid shows which happened.
 void test_movement_range_cache()
@@ -3298,6 +3348,7 @@ void Test::test_cover_point()
     test_cover_script_no_path_opened();
     test_cover_script_no_path_far_change();
     test_cover_script_no_path_door_opens();
+    test_cover_script_no_path_critter_leaves();
     test_movement_range_cache();
     test_cover_script_walk_checks(hidden);
     test_cover_script_peek_walk_checks(hidden, c0.peek);

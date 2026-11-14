@@ -43,7 +43,7 @@ public:
     // stays skipped as it walks.
     void restart(point from, point threat);
     // One update's work of the search. here is the npc's position, and from is what restart() would be given.
-    // A changed pass grid near unreachable spots restarts the search, and a new threat octant resumes its scan.
+    // When the unreachable spots go stale, the search restarts, and a new threat octant resumes its scan.
     result step(world& w, Cover::Point::finder& finder, Grid::GridRegistry& pools, point here, point from,
                 point threat, Vector2ui body, const Search::pred& pred, const Cover::Script::options& o,
                 u32 max_failed_dijkstra_calls, Cover::Script::counters& counters, const calls& f);
@@ -84,6 +84,7 @@ private:
     // Tiles the search may still pass, and 0 once it ended. A restart or a change of octant moves _tile back only
     // while the rest of the scan fits, so a moving threat can't keep the search near the npc.
     u32 _tiles_left = 0;
+    u32 _num_failed_dijkstra_calls = 0;
     std::array<u16, Grid::Cover::octant_count> _octant_tiles{};
     // Where the tiles and the threat's octant are measured from: the npc's position at the last restart to tile 0,
     // or during a retreat walk the walk's end, so that cover back toward the threat comes later.

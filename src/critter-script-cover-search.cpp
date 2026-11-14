@@ -53,7 +53,7 @@ u32 max_search_path_length(point from, point to) { return point::distance(from, 
 void cover_search::begin(point from, point threat)
 {
     _fallback_spots = {};
-    _unreachable.clear();
+    _num_failed_dijkstra_calls = 0;
     const auto n = (u32)search_tiles().size();
     _tiles_left = n + n/2;
     restart(from, threat);
@@ -88,6 +88,7 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
     if (_unreachable.stale(w, _from))
     {
         _unreachable.clear();
+        _num_failed_dijkstra_calls = 0;
         arrayClear(_tile_skipped);
         restart(from, threat);
     }
@@ -109,7 +110,7 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
 
     // With a spot kept for last_resort, the search ends in the update after its last spot, since that spot may
     // have used the update's one Dijkstra call.
-    if (_tile == tiles.size() || _unreachable.num_failed_dijkstra_calls() == max_failed_dijkstra_calls)
+    if (_tile == tiles.size() || _num_failed_dijkstra_calls == max_failed_dijkstra_calls)
         return {take_last_resort(here, f), true};
     // the offset of _from's tile's center, so that each area is a tile of the world
     const auto base = point{_from.coord(), {}} - _from;
@@ -186,8 +187,8 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
                 return {reachable_cover{s, end, move(path)}, true};
             // The npc can walk straight from s.pos to end, so s.pos has no path either.
             const auto reach = max_search_path_length(here, end) + point::distance(here, _from);
-            _unreachable.add_failed(s.pos, reach, w.pass_gen());
-            if (_unreachable.num_failed_dijkstra_calls() == max_failed_dijkstra_calls)
+            _unreachable.add_failed(w, s.pos, reach);
+            if (++_num_failed_dijkstra_calls == max_failed_dijkstra_calls)
                 return {{}, !_fallback_spots.any()};
         }
         _tile_threat = {};

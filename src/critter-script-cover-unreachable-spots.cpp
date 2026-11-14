@@ -4,6 +4,7 @@
 #include "search.hpp"
 #include "tile-defs.hpp"
 #include "world.hpp"
+#include "compat/nanosecond.inl"
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -16,7 +17,6 @@ void unreachable_spots::clear()
 {
     arrayClear(_spots);
     _reach = 0;
-    _num_failed_dijkstra_calls = 0;
 }
 
 bool unreachable_spots::joins(world& w, point to, Vector2i body, const Search::pred& pred) const
@@ -44,12 +44,13 @@ void unreachable_spots::add(point pos)
         arrayAppend(_spots, pos);
 }
 
-void unreachable_spots::add_failed(point pos, u32 reach, u64 pass_gen)
+void unreachable_spots::add_failed(const world& w, point pos, u32 reach)
 {
+    if (_spots.isEmpty())
+        _expires_at = w.game_time() + unreachable_spot_retry_time;
     arrayAppend(_spots, pos);
     _reach = Math::max(_reach, reach);
-    _pass_gen = pass_gen;
-    _num_failed_dijkstra_calls++;
+    _pass_gen = w.pass_gen();
 }
 
 void unreachable_spots::origin_moved(u32 dist)
@@ -62,13 +63,13 @@ bool unreachable_spots::stale(const world& w, point search_from) const
 {
     if (_spots.isEmpty())
         return false;
+    if (w.game_time() >= _expires_at)
+        return true;
     auto reach = _reach;
     for (const auto& u : _spots)
         reach = Math::max(reach, point::distance(search_from, u));
     // search_from lies anywhere in its chunk, so the reach spans one chunk more than its length.
     return w.max_pass_gen(search_from.chunk3(), reach / chunk_size_xy + 2) > _pass_gen;
 }
-
-u32 unreachable_spots::num_failed_dijkstra_calls() const { return _num_failed_dijkstra_calls; }
 
 } // namespace floormat::Cover
