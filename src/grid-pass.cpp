@@ -270,6 +270,13 @@ struct PassPool final : Pool<PassGrid>
 };
 
 namespace {
+
+template <typename T>
+bool grid_bit_at(T* grid, u32 index)
+{
+    return grid->bitmask[index];
+}
+
 namespace Tests {
 
 constexpr bool assert_calc_div_size()

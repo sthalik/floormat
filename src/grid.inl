@@ -101,12 +101,4 @@ T* pool_subscript(Pool<T>* p, chunk& c)
     return t;
 }
 
-template <typename T>
-bool grid_bit_at(T* grid, u32 index)
-{
-    //check_current(grid);
-    //fm_assert(index < grid->bitmask.size());
-    return grid->bitmask[index];
-}
-
 } // namespace floormat::detail::grid
