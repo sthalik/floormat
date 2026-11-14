@@ -156,23 +156,24 @@ jobs:
     # floormat-test --no-gl runs these tests in the default build. These are the builds it never gets: sanitizers on macOS, and the mutex/condvar fallback of atomic_wait.
     - name: Test atomics and the work-stealing deque
       run: |
-        sh .github/thread-tests.sh c++ -O1 -fsanitize=address,undefined -fno-sanitize-recover=all
-        sh .github/thread-tests.sh c++ -O1 -fsanitize=thread
-        sh .github/thread-tests.sh c++ -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT
-        sh .github/thread-tests.sh c++ -O2 -mmacosx-version-min=14.0
+        llvm=$(brew --prefix llvm)/bin
+        sh .github/test-atomic.sh $llvm/clang $llvm/clang++ -O1 -fsanitize=address,undefined -fno-sanitize-recover=all
+        sh .github/test-atomic.sh $llvm/clang $llvm/clang++ -O1 -fsanitize=thread
+        sh .github/test-atomic.sh $llvm/clang $llvm/clang++ -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT
+        sh .github/test-atomic.sh $llvm/clang $llvm/clang++ -O2 -mmacosx-version-min=14.0
       timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'macOS' }}
 
     - name: Test the mutex/condvar fallback of atomic_wait
       run: |
-        sh .github/thread-tests.sh g++-16 -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT
-        sh .github/thread-tests.sh g++-16 -O1 -fsanitize=thread -DFM_NO_PLATFORM_ATOMIC_WAIT
+        sh .github/test-atomic.sh gcc-16 g++-16 -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT
+        sh .github/test-atomic.sh gcc-16 g++-16 -O1 -fsanitize=thread -DFM_NO_PLATFORM_ATOMIC_WAIT
       timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Linux' }}
 
     - name: Test the mutex/condvar fallback of atomic_wait with MSVC
       run: |
-        .\.github\workflows\build-windows.bat call .github\thread-tests.bat -O2 -DFM_NO_PLATFORM_ATOMIC_WAIT && build\thread-tests\thread-tests.exe
+        .\.github\workflows\build-windows.bat cmake -G Ninja -S . -B build/test-atomic --toolchain ${{github.workspace}}/cmake/msvc.cmake -DCMAKE_BUILD_TYPE=Release -DFLOORMAT_NO_USERCONFIG=1 -DFLAGS_CXX=-DFM_NO_PLATFORM_ATOMIC_WAIT -DFLAGS_LD=-ignore:4099 &&.\.github\workflows\build-windows.bat cmake --build build/test-atomic --target floormat-test-atomic && build\test-atomic\Release\bin\floormat-test-atomic.exe
       timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Windows' && runner.arch == 'ARM64' }}
 
@@ -330,7 +331,7 @@ jobs:
 
     - name: Test atomics and the work-stealing deque with TSan
       shell: freebsd {0}
-      run: sh .github/thread-tests.sh clang++23 -O1 -fsanitize=thread
+      run: sh .github/test-atomic.sh clang23 clang++23 -O1 -fsanitize=thread
       timeout-minutes: 60
       if: ${{ !cancelled() }}
 

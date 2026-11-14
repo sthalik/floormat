@@ -26,6 +26,20 @@ target_link_libraries(${self} ${self}_o floormat-shader-res floormat-serialize f
 fm_win32_app_manifest(${self})
 fm_install_executable(${self})
 
+add_executable(${self}-atomic EXCLUDE_FROM_ALL
+    atomic/main.cpp atomic.cpp atomic-wait.cpp chase-lev-deque.cpp event-count.cpp
+    ../compat/atomic.cpp ../compat/atomic-wait.cpp ../compat/atomic-wrapper.cpp ../compat/atomic-flag-wrapper.cpp
+    ../compat/valgrind.cpp
+)
+target_include_directories(${self}-atomic SYSTEM PRIVATE
+    $<TARGET_PROPERTY:Corrade::Utility,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:Magnum::Magnum,INTERFACE_INCLUDE_DIRECTORIES>
+)
+target_link_libraries(${self}-atomic Threads::Threads)
+if(WIN32)
+    target_link_libraries(${self}-atomic synchronization)
+endif()
+
 file(GLOB files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/save/*.dat")
 foreach(file ${files})
     install(FILES "${file}" DESTINATION "${CMAKE_BINARY_DIR}/test/save")
