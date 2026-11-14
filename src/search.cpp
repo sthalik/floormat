@@ -153,13 +153,29 @@ bool visit_colliders(const chunk* c0, const std::array<const chunk*, 8>& neighbo
                      const collider_visitor<const chunk>& f)
 { return detail::is_passable_(c0, neighbors, min, max, f); }
 
+bool is_dynamic_object(const object& o)
+{
+    switch (o.type())
+    {
+    case object_type::critter:
+    case object_type::scenery:
+        return o.is_dynamic();
+    case object_type::hole:
+    case object_type::light:
+    case object_type::none:
+    case object_type::COUNT:
+        break;
+    }
+    return false;
+}
+
 bool is_dynamic_object(const chunk& c, collision_data x)
 {
     if (x.type != (u64)collision_type::scenery)
         return false;
     const auto* obj = c.world().find_object(x.id);
     fm_assert(obj);
-    return obj->is_dynamic();
+    return is_dynamic_object(*obj);
 }
 
 template<typename Chunk> const Pred<Chunk>& never_continue() noexcept { return detail::never_continueʹ<Chunk>; }

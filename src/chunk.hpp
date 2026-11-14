@@ -130,8 +130,6 @@ public:
     };
 
 private:
-    static bool type_is_in_objects_array(object_type type);
-
     SpriteList scenery_static_mesh;
     SpriteList wall_static_mesh;
     SpriteList ground_static_mesh;
@@ -183,7 +181,7 @@ private:
     void _add_bbox_static_(const bptr<object>& e);
 
     template<bool Dynamic> void _replace_bbox_impl(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b);
-    void _replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b, bool upd, bool is_dynamic);
+    void _replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b, bool upd);
     void _replace_bbox_dynamic(const bbox& x0, const bbox& x, bool b0, bool b);
     void _replace_bbox_static(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b);
 

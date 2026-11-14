@@ -6,7 +6,6 @@
 #include "grid.hpp"
 #include "ground-atlas.hpp"
 #include "compat/non-const.hpp"
-#include "compat/enumerate.hpp"
 #include <cr/Optional.h>
 #include <utility>
 
@@ -174,15 +173,14 @@ void chunk::add_object_pre(const bptr<object>& e)
         mark_scenery_modified();
     // the static path isn't gated on _pass_modified because it only sets dirty flags,
     // and one of them lands on the neighbor chunks
-    if (!dyn || upd_passability)
-        _add_bbox_static_(e);
-    else if (!_pass_modified && !e->is_virtual()) [[likely]]
+    if (Search::is_dynamic_object(*e))
     {
-        if (bbox bb; _bbox_for_scenery(*e, bb))
+        if (bbox bb; !_pass_modified && _bbox_for_scenery(*e, bb)) [[likely]]
             _add_bbox_dynamic(bb);
-    }
-    if (dyn && type_is_in_objects_array(e->type()))
         mark_objects_modified();
+    }
+    else if (!e->is_virtual() || upd_passability)
+        _add_bbox_static_(e);
     if (upd_walls && !_walls_modified)
         mark_walls_modified();
 }
@@ -220,15 +218,14 @@ void chunk::remove_object(const object& e, usize i)
         mark_scenery_modified();
     _maybe_empty = true;
 
-    if (!dyn || upd_passability)
-        _remove_bbox_static_(eʹ);
-    else if (!_pass_modified && !e.is_virtual()) [[likely]]
+    if (Search::is_dynamic_object(e))
     {
-        if (bbox bb; _bbox_for_scenery(e, bb))
+        if (bbox bb; !_pass_modified && _bbox_for_scenery(e, bb)) [[likely]]
             _remove_bbox_dynamic(bb);
-    }
-    if (dyn && type_is_in_objects_array(e.type()))
         mark_objects_modified();
+    }
+    else if (!e.is_virtual() || upd_passability)
+        _remove_bbox_static_(eʹ);
     if (upd_walls && !_walls_modified)
         mark_walls_modified();
 
@@ -247,31 +244,5 @@ void chunk::kill_object(const object& e, usize i, script_destroy_reason r)
 
 const object_storage& chunk::objects() const { return _objects; }
 object_storage& chunk::objects() { return _objects; }
-
-bool chunk::type_is_in_objects_array(object_type type)
-{
-    constexpr auto types = [] {
-        std::array<bool, (u32)object_type::COUNT> array = {};
-        for (auto& [i, val] : enumerate(array))
-        {
-            switch ((object_type)i)
-            {
-            case object_type::critter:
-            case object_type::scenery:
-                val = true;
-                continue;
-            case object_type::hole:
-            case object_type::light:
-            case object_type::none:
-            case object_type::COUNT:
-                val = false;
-                continue;
-            }
-            fm_assert(false);
-        }
-        return array;
-    }();
-    return types[(u32)type];
-}
 
 } // namespace floormat

@@ -257,7 +257,7 @@ void chunk::ensure_passability() noexcept
         if (_bbox_for_scenery(e, bb))
         {
             // a hole of equal mode cuts scenery too, so the editor can't pick a pass scenery under a pass hole
-            if (!e.is_dynamic())
+            if (!Search::is_dynamic_object(e))
                 filter_bbox_through_holes(rtree, holes, std::bit_cast<object_id>(bb.data),
                                           Math::Range2D<float>{bb.pos}, e.pass, has_holes);
             else
@@ -402,13 +402,12 @@ void chunk::_replace_bbox_static(const bptr<object>& e, const bbox& x0, const bb
     _replace_bbox_impl<false>(e, x0, x, b0, b);
 }
 
-void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x,
-                           bool b0, bool b, bool upd, bool is_dynamic)
+void chunk::_replace_bbox_(const bptr<object>& e, const bbox& x0, const bbox& x, bool b0, bool b, bool upd)
 {
-    if (!is_dynamic || upd)
-        _replace_bbox_static(e, x0, x, b0, b);
-    else if (!e->is_virtual())
+    if (Search::is_dynamic_object(*e))
         _replace_bbox_dynamic(x0, x, b0, b);
+    else if (!e->is_virtual() || upd)
+        _replace_bbox_static(e, x0, x, b0, b);
 }
 
 bool chunk::can_place_object(const object_proto& proto, local_coords pos)

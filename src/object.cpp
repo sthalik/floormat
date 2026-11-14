@@ -154,7 +154,7 @@ void object::teleport_to(usize& i, global_coords coord_, Vector2b offset_, rotat
 
     if (coord_.chunk3() == coord.chunk3())
     {
-        c->_replace_bbox_(eʹ, bb0, bb1, b0, b1, upd_pass, dyn);
+        c->_replace_bbox_(eʹ, bb0, bb1, b0, b1, upd_pass);
         non_const(coord) = coord_;
         set_bbox_(offset_, bb_offset, bb_size, pass);
         non_const(r) = new_r;
@@ -164,7 +164,7 @@ void object::teleport_to(usize& i, global_coords coord_, Vector2b offset_, rotat
             if (upd_walls)
                 c->mark_walls_modified();
         }
-        else if (chunk::type_is_in_objects_array(type()))
+        else if (Search::is_dynamic_object(*this))
             c->mark_objects_modified();
     }
     else
@@ -289,14 +289,13 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
     const bool b = c->_bbox_for_scenery(*this, bb);
     if (upd_pass)
         mark_modified_with_neighbors();
-    else if (!dyn)
-        c->mark_passability_modified();
-    else if (!is_virtual())
+    else if (Search::is_dynamic_object(*this))
     {
-        if (chunk::type_is_in_objects_array(type()))
-            c->mark_objects_modified();
+        c->mark_objects_modified();
         c->_replace_bbox_dynamic(bb0, bb, b0, b);
     }
+    else if (!is_virtual())
+        c->mark_passability_modified();
     if (!c->are_walls_modified() && upd_walls)
         c->mark_walls_modified();
     if (!dyn && !is_virtual())

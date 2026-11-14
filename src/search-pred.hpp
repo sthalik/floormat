@@ -6,6 +6,7 @@
 namespace floormat {
 
 class chunk;
+struct object;
 
 enum class path_search_continue : bool { pass = false, blocked = true };
 
@@ -25,6 +26,7 @@ template<typename Chunk = chunk> const Pred<Chunk>& always_continue() noexcept;
 template<typename Chunk = chunk> const Pred<Chunk>& without_critters() noexcept;
 template<typename Chunk = chunk> const Pred<Chunk>& without_dynamic_objects() noexcept;
 
+bool is_dynamic_object(const object& o);
 bool is_dynamic_object(const chunk& c, collision_data x);
 
 // Every collider but self blocks. A pred made from the returned lambda must not outlive it.

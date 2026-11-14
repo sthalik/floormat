@@ -203,7 +203,7 @@ void ObjectGrid::build_impl(chunk* self)
         const auto add = [&]<typename T>(const object_list<T>& list) {
             for (const T& o : list)
             {
-                if (!o.is_dynamic() || o.pass >= min_pass || Vector2ui(o.bbox_size).product() == 0)
+                if (!Search::is_dynamic_object(o) || o.pass >= min_pass || Vector2ui(o.bbox_size).product() == 0)
                     continue;
                 const auto box = scenery_tile(o.coord.local(), o.offset, o.bbox_offset, o.bbox_size);
                 const auto min = box.first() + off, max = box.second() + off;
