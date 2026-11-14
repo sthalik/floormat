@@ -8,10 +8,8 @@
 #include "src/wall-atlas.hpp"
 #include "src/critter.hpp"
 #include "src/critter-script-cover.hpp"
-#include "src/grid-registry.hpp"
 #include "src/raycast.hpp"
 #include "src/search-astar.hpp"
-#include "src/search-pred.hpp"
 #include "src/point.inl"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
@@ -530,11 +528,8 @@ task app::scene_cover_ai()
     }
     check_alternating();
     {
-        // what the script's sees() casts
-        const auto params = Pass::Params{cover_div, pass_mode::shoot_through};
-        auto& reg = M->astar().pool_registry();
         const auto sees = [&](point to) {
-            return raycast(w, threat, to, npc_id, reg.object_pool(params), Search::without_critters()).success;
+            return Cover::Script::line_of_sight(w, M->astar().pool_registry(), cover_div, threat, to, npc_id).success;
         };
         const auto& p = stops[0];
         fm_assert(p.status.st == state::exposed);
@@ -677,11 +672,8 @@ task app::scene_cover_ai_map()
         fm_assert(s);
         return *s;
     };
-    // what the script's sees() casts
-    const auto params = Pass::Params{cover_div, pass_mode::shoot_through};
-    auto& reg = M->astar().pool_registry();
     const auto sees = [&](point from, point to) {
-        return raycast(w, from, to, npc_id, reg.object_pool(params), Search::without_critters()).success;
+        return Cover::Script::line_of_sight(w, M->astar().pool_registry(), cover_div, from, to, npc_id).success;
     };
     const auto print = [](point pt) {
         const auto v = Vector3i(pt).xy();

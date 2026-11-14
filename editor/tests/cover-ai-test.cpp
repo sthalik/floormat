@@ -18,7 +18,6 @@
 #include "src/point.inl"
 #include "src/raycast.hpp"
 #include "src/search-astar.hpp"
-#include "src/search-pred.hpp"
 #include "src/tile-defs.hpp"
 #include "src/world.hpp"
 #include "floormat/main.hpp"
@@ -678,10 +677,9 @@ void cover_ai_test::update_ray(app& a, const critter& c, const Cover::Script::st
     if (!cover.peek)
         return;
     auto& m = a.main();
-    const auto params = Pass::Params{options.div_size, pass_mode::shoot_through};
-    auto& reg = m.astar().pool_registry();
     const auto& p = *cover.peek;
-    ray = raycast(m.world(), p.gun_ray_from, p.gun, c.id, reg.object_pool(params), Search::without_critters());
+    ray = Cover::Script::line_of_sight(m.world(), m.astar().pool_registry(), options.div_size, p.gun_ray_from, p.gun,
+                                       c.id);
 }
 
 void cover_ai_test::update_post(app& a, const Ns&)

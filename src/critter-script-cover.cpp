@@ -320,14 +320,11 @@ bptr<object> cover_script::find_threat(critter& C)
     return Cover::Script::find_object_at_z(C.world(), threat_id, C.position().chunk3().z);
 }
 
-// True when a ray from `from` reaches `to` before any collider a shot can't pass. Critters don't
-// stop it, C included. Every ray the script casts goes through here, so counters.num_rays counts them all.
+// Every ray the script casts goes through here, so counters.num_rays counts them all.
 bool cover_script::sees(critter& C, point from, point to)
 {
     counters.num_rays++;
-    const auto params = Pass::Params{options.div_size, pass_mode::shoot_through};
-    auto& reg = A.pool_registry();
-    return raycast(C.world(), from, to, C.id, reg.object_pool(params), Search::without_critters()).success;
+    return Cover::Script::line_of_sight(C.world(), A.pool_registry(), options.div_size, from, to, C.id).success;
 }
 
 // True when a ray from threat reaches gun_point() of C's body centered on pos. The peek of cover then holds the
@@ -962,6 +959,13 @@ bptr<object> find_object_at_z(world& w, object_id id, i8 z)
     if (obj && obj->position().chunk3().z != z)
         obj = nullptr;
     return obj;
+}
+
+rc::raycast_result_s line_of_sight(world& w, Grid::GridRegistry& reg, u32 div_size, point from, point to,
+                                   object_id self)
+{
+    const auto params = Pass::Params{div_size, pass_mode::shoot_through};
+    return raycast(w, from, to, self, reg.object_pool(params), Search::without_critters());
 }
 
 } // namespace floormat::Cover::Script
