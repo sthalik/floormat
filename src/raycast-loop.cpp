@@ -111,16 +111,17 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
 template<typename Pool>
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
-                         Pool pool, const Search::pred& p, Array<bool>* entry_blocked,
+                         Pool pool, const Search::pred& p, std::array<Array<bool>, 4>* entry_blocked,
                          function_view<bool(const line_cell&) const> visit,
                          object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32)
 {
     static_assert(std::is_null_pointer_v<Pool> || std::is_same_v<Pool, Grid::Pass::Pool*> ||
                   std::is_same_v<Pool, Grid::Object::Pool*>);
+    constexpr bool has_pool = !std::is_null_pointer_v<Pool>, has_object_pool = std::is_same_v<Pool, Grid::Object::Pool*>;
     fm_assert(first_step <= last_step && last_step <= line.steps());
-    if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
+    if constexpr (has_object_pool)
         fm_assert(pool && entry_blocked);
-    else if constexpr (std::is_same_v<Pool, Grid::Pass::Pool*>)
+    else if constexpr (has_pool)
         fm_assert(pool);
 
     constexpr auto csize = chunk_size<i32>;
@@ -132,7 +133,12 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     }();
     const auto div_count = (u32)(csize / div);
     const auto div_shift = std::countr_zero((u32)div); // xxx todo assumes power of two chunk size
-    const auto origin = Vector2i{half_tile<i32>};
+    const auto origin = [&] {
+        if constexpr (std::is_null_pointer_v<Pool>)
+            return Vector2i{half_tile<i32>};
+        else
+            return Vector2i{half_tile<i32> - (i32)pool->params().node_offset()};
+    }();
     const auto cell_of = [&](Vector2i p) {
         return Vector2i{(p.x() + origin.x()) >> div_shift, (p.y() + origin.y()) >> div_shift};
     };
@@ -179,6 +185,11 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     Pass::Grid grid{nullptr, nullptr};
     Grid::Object::Grid object_grid{nullptr};
     bool has_grid = false, has_objects = false, chunk_empty = false;
+    const usize* corner_bits[4] = {};
+    std::array<Grid::Object::Grid, 4> corner_objects{Grid::Object::Grid{nullptr}, Grid::Object::Grid{nullptr},
+                                                     Grid::Object::Grid{nullptr}, Grid::Object::Grid{nullptr}};
+    bool corner_has_objects[4] = {};
+    u32 corners_loaded = 0;
 
     const auto chunks_3x3 = [&](Vector2i off) -> std::array<chunk*, 9> {
         std::array<chunk*, 9> chunks;
@@ -205,7 +216,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                 grid.build_if_stale();
                 object_grid = (*pool)[*c];
                 object_grid.build_if_stale();
-                has_objects = object_grid.blocked_objects(p, *entry_blocked);
+                has_objects = object_grid.blocked_objects(p, (*entry_blocked)[0]);
             }
             else if constexpr (std::is_same_v<Pool, Grid::Pass::Pool*>)
             {
@@ -223,6 +234,54 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         }
         else
             chunk_empty = false;
+        if constexpr (has_pool)
+        {
+            corner_bits[0] = has_grid ? grid.bits().data : nullptr;
+            corner_objects[0] = object_grid;
+            corner_has_objects[0] = has_objects;
+            corners_loaded = 1;
+        }
+    };
+    const auto load_corner_chunk = [&](u32 n) {
+        corners_loaded |= 1u << n;
+        corner_bits[n] = nullptr;
+        corner_has_objects[n] = false;
+        auto* c = cell.chunks[4 + (n & 1) + 3*(n >> 1)];
+        if (!c)
+            return;
+        if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
+        {
+            auto g = pool->pass_pool()[*c];
+            g.build_if_stale();
+            corner_bits[n] = g.bits().data;
+            auto og = (*pool)[*c];
+            og.build_if_stale();
+            corner_has_objects[n] = og.blocked_objects(p, (*entry_blocked)[n]);
+            corner_objects[n] = og;
+        }
+        else if constexpr (std::is_same_v<Pool, Grid::Pass::Pool*>)
+        {
+            auto g = (*pool)[*c];
+            g.build_if_stale();
+            corner_bits[n] = g.bits().data;
+        }
+    };
+    const auto test_bit = [](const usize* b, u32 i) -> bool {
+        return b[i / (sizeof(usize)*8)] >> i % (sizeof(usize)*8) & 1;
+    };
+    const auto test_bit_pair = [](const usize* b, u32 i) -> bool {
+        constexpr u32 W = sizeof(usize)*8;
+        if (i % W != W - 1) [[likely]]
+            return (~b[i / W] >> i % W & 3) == 0;
+        else
+            return b[i / W] >> (W - 1) & b[i / W + 1] & 1;
+    };
+    const auto corner_is_set = [&](u32 x, u32 y) -> bool {
+        const u32 n = (x == div_count) + 2*(y == div_count);
+        if (!(corners_loaded & 1u << n))
+            load_corner_chunk(n);
+        const auto* b = corner_bits[n];
+        return b && test_bit(b, (y & (div_count - 1))*div_count + (x & (div_count - 1)));
     };
 
     // v[axis] with a run-time axis goes through the stack.
@@ -235,6 +294,34 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     const auto count_shift = std::countr_zero(div_count); // xxx todo assumes power of two chunk size
     const auto count_mask = (i32)div_count - 1;
     const auto chunk_of = [&](Vector2i c) { return Vector2i{c.x() >> count_shift, c.y() >> count_shift}; };
+
+    [[maybe_unused]] bool corners_x1 = true, corners_y1 = true;
+    if constexpr (has_pool)
+        if (!minor_len && ((on(from, minor) + on(origin, minor)) & (div - 1)) == 0)
+            (minor ? corners_y1 : corners_x1) = false;
+    const auto visit_corner_objects = [&]<typename T>(u32 x, u32 y) -> bool {
+        const u32 n = (x == div_count) + 2*(y == div_count);
+        if (!corner_has_objects[n])
+            return true;
+        const auto& g = corner_objects[n];
+        const ArrayView<const bool> blocked = (*entry_blocked)[n];
+        const auto i = (y & (div_count - 1))*div_count + (x & (div_count - 1));
+        const auto visit_at = [&]<typename U>(const object_cell_visitor<U>& f) {
+            if (!g.is_blocked<U>(i, blocked))
+                return true;
+            else if (!n)
+                return f(cell, g, g.objects_at_cell<U>(i), blocked);
+            else
+            {
+                const auto off = loaded + Vector2i{(i32)(n & 1), (i32)(n >> 1)};
+                return f(line_cell{chunks_3x3(off), off, cell.first_step, cell.last_step}, g, g.objects_at_cell<U>(i), blocked);
+            }
+        };
+        if (n ? g.uses_u32() : std::is_same_v<T, u32>)
+            return visit_at(visit_objects_u32);
+        else
+            return visit_at(visit_objects_u16);
+    };
 
     // Cells count from the line's chunk, so a cell's chunk and its cell within it are a shift and a mask
     // away. While stepped, step k's cell comes from the previous cell's exit.
@@ -257,21 +344,31 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                     return false;
             }
             Vector2i lo, hi;
-            bool skip = chunk_empty;
-            u32 idx = 0;
-            if (chunk_empty)
+            const auto x = (u32)local_cell.x(), y = (u32)local_cell.y();
+            const bool region = chunk_empty && (!has_pool || x + 1 < div_count && y + 1 < div_count);
+            bool skip = region;
+            if (region)
             {
                 lo = chunk_off * csize - origin;
-                hi = lo + Vector2i{csize - 1};
+                hi = lo + Vector2i{has_pool ? csize - div - 1 : csize - 1};
             }
             else
             {
                 lo = chunk_off * csize + local_cell * div - origin;
                 hi = lo + Vector2i{div - 1};
-                if constexpr (!std::is_null_pointer_v<Pool>)
+                if constexpr (has_pool)
                 {
-                    idx = Pass::Grid::get_bitmask_index((u32)local_cell.x(), (u32)local_cell.y(), div_count);
-                    skip = has_grid && grid.bit(idx);
+                    if (x + 1 < div_count && y + 1 < div_count) [[likely]]
+                    {
+                        const auto* b = corner_bits[0];
+                        const auto i = y*div_count + x, i2 = i + div_count;
+                        skip = b && (corners_x1 ? test_bit_pair(b, i) : test_bit(b, i))
+                                 && (!corners_y1 || (corners_x1 ? test_bit_pair(b, i2) : test_bit(b, i2)));
+                    }
+                    else
+                        skip = corner_is_set(x, y) && (!corners_x1 || corner_is_set(x + 1, y))
+                               && (!corners_y1 || corner_is_set(x, y + 1))
+                               && (!corners_x1 || !corners_y1 || corner_is_set(x + 1, y + 1));
                 }
             }
             fm_debug3_assert((line.point_at(k) >= lo).all() && (line.point_at(k) <= hi).all());
@@ -285,23 +382,18 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                 if (!visit(cell))
                     return true;
             }
-            else if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
+            else if constexpr (has_object_pool)
             {
-                if (has_objects && object_grid.is_blocked<T>(idx, *entry_blocked))
-                {
-                    bool more;
-                    if constexpr (is_u32)
-                        more = visit_objects_u32(cell, object_grid, object_grid.objects_at_cell<T>(idx));
-                    else
-                        more = visit_objects_u16(cell, object_grid, object_grid.objects_at_cell<T>(idx));
-                    if (!more)
-                        return true;
-                }
+                if (!visit_corner_objects.template operator()<T>(x, y)
+                    || corners_x1 && !visit_corner_objects.template operator()<T>(x + 1, y)
+                    || corners_y1 && !visit_corner_objects.template operator()<T>(x, y + 1)
+                    || corners_x1 && corners_y1 && !visit_corner_objects.template operator()<T>(x + 1, y + 1))
+                    return true;
             }
             if (last == last_step)
                 return true;
 
-            if (!chunk_empty)
+            if (!region)
             {
                 const bool exit_major = last == last_major, exit_minor = last == last_minor;
                 const auto next = global_cell + (exit_major ? major_step : Vector2i{}) + (exit_minor ? minor_step : Vector2i{});
@@ -455,6 +547,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     const auto params = pass_pool.params();
     fm_assert(radius >= 0);
     fm_assert(min_pool_bbox_size(radius) <= params.bbox_size);
+    fm_assert(params.min_pass != pass_mode::pass || params.div_size() == 1);
     // R-tree rects have integer corners and Search() counts a touching rect, so a cell grown by
     // floor(fuzz2 + radius) finds the same rects as one grown by fuzz2 + radius.
     const auto grow = (i32)(fuzz2 + radius);
@@ -799,15 +892,15 @@ template raycast_result_s do_raycasting<true, true>(raycast_diag_s&, world&, poi
                                                     Grid::Pass::Pool&, Grid::Object::Pool&, const Search::pred&, float);
 
 template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
-                                  std::nullptr_t, const Search::pred&, Array<bool>*,
+                                  std::nullptr_t, const Search::pred&, std::array<Array<bool>, 4>*,
                                   function_view<bool(const line_cell&) const>,
                                   object_cell_visitor<u16>, object_cell_visitor<u32>);
 template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
-                                  Grid::Pass::Pool*, const Search::pred&, Array<bool>*,
+                                  Grid::Pass::Pool*, const Search::pred&, std::array<Array<bool>, 4>*,
                                   function_view<bool(const line_cell&) const>,
                                   object_cell_visitor<u16>, object_cell_visitor<u32>);
 template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
-                                  Grid::Object::Pool*, const Search::pred&, Array<bool>*,
+                                  Grid::Object::Pool*, const Search::pred&, std::array<Array<bool>, 4>*,
                                   function_view<bool(const line_cell&) const>,
                                   object_cell_visitor<u16>, object_cell_visitor<u32>);
 

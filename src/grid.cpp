@@ -94,14 +94,6 @@ u32 GridBase::pack_bit_index_from_coord(intra_coord posʹ, u32 div_count)
     return pack_bit_index(pos.x(), pos.y(), div_count);
 }
 
-Range2D GridBase::coord_range_from_div(u32 x, u32 y, u32 div_size, u32 bbox_size)
-{
-    const auto bbox = Vector2((float)bbox_size);
-    const auto pos = intra_coord{Vector2i{(i32)x, (i32)y} * (i32)div_size + Vector2i{(i32)(div_size / 2)}};
-    const auto min = Vector2(pos.center_shifted()) - Vector2((float)(bbox_size / 2));
-    return Range2D::fromSize(min, bbox);
-}
-
 std::pair<u32, usize> GridBase::word_and_mask(u32 bit_index)
 {
     return { bit_index / (sizeof(usize)*8), usize{1} << bit_index % (sizeof(usize)*8) };

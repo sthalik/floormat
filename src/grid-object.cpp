@@ -186,7 +186,7 @@ void ObjectGrid::build_impl(chunk* self)
     arrayClear(entry_data);
     arrayClear(entry_chunks);
 
-    const inflated_cells cells_of{params.div_size(), dc, params.bbox_size};
+    const inflated_cells cells_of{params};
     const auto min_pass = params.min_pass;
     chunk* const chunks[9] = {
         self,

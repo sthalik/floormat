@@ -11,7 +11,6 @@
 #include <bit>
 #include <array>
 #include <mg/Functions.h>
-#include <mg/Range.h>
 
 //#define FLOORMAT_GRID_PASS_DEBUG 1
 
@@ -70,22 +69,32 @@ unsigned pool_alive_count = 0;
 #endif
 } // namespace
 
-inflated_cells::inflated_cells(u32 div_size, u32 div_countʹ, u32 bbox_size):
-    div_count{(i32)div_countʹ}
+inflated_cells::inflated_cells(const Pass::Params& params):
+    div_count{(i32)params.div_count}
 {
-    const auto half_div = (float)(div_size / 2);
-    half_div_minus_half_tile = half_div - half_tile<float>;
+    const auto div_size = params.div_size(), bbox_size = params.bbox_size;
+    inv_div = 1.f / (float)div_size; // xxx todo assumes power of two chunk size
     // a box spans [center - bbox_lo, center + bbox_hi), as scenery_tile()
     const auto bbox_lo = (float)(bbox_size / 2), bbox_hi = (float)bbox_size - bbox_lo;
-    // A bit must hold for every position in the cell, not just its anchor
-    // a = i*div_size + half_div - half_tile. pack_bit_index_from_coord() floors, and
-    // positions are integer pixels, so the cell spans [a - reach_below, a + reach_above].
-    const auto reach_below = half_div;
-    const auto reach_above = (float)(div_size - 1 - div_size / 2);
-    // interval overlap, so the cell's low end meets the obstacle's high end and vice versa
-    grow_lo = bbox_hi + reach_above;
-    grow_hi = bbox_lo + reach_below;
-    inv_div = 1.f / (float)div_size; // xxx todo assumes power of two chunk size
+    if (params.min_pass == pass_mode::pass)
+    {
+        half_div_minus_half_tile = (float)params.node_offset() - half_tile<float>;
+        grow_lo = bbox_hi;
+        grow_hi = bbox_lo;
+    }
+    else
+    {
+        const auto half_div = (float)(div_size / 2);
+        half_div_minus_half_tile = half_div - half_tile<float>;
+        // A bit must hold for every position in the cell, not just its anchor
+        // a = i*div_size + half_div - half_tile. pack_bit_index_from_coord() floors, and
+        // positions are integer pixels, so the cell spans [a - reach_below, a + reach_above].
+        const auto reach_below = half_div;
+        const auto reach_above = (float)(div_size - 1 - div_size / 2);
+        // interval overlap, so the cell's low end meets the obstacle's high end and vice versa
+        grow_lo = bbox_hi + reach_above;
+        grow_hi = bbox_lo + reach_below;
+    }
 }
 
 cell_range inflated_cells::operator()(float x0, float y0, float x1, float y1) const
@@ -122,7 +131,6 @@ struct PassGrid : GridBase
 
     static u32 get_bitmask_index(u32 x, u32 y, u32 div_count);
     u32 get_bitmask_index_from_coord(intra_coord pos) const;
-    Range2D get_coord_from_div(u32 x, u32 y) const;
     bool is_all_empty() const noexcept { return all_empty; }
 
     void build_impl(chunk* self);
@@ -138,11 +146,6 @@ u32 PassGrid::get_bitmask_index_from_coord(intra_coord pos) const
     return GridBase::pack_bit_index_from_coord(pos, params.div_count);
 }
 
-Range2D PassGrid::get_coord_from_div(u32 x, u32 y) const
-{
-    return GridBase::coord_range_from_div(x, y, params.div_size(), params.bbox_size);
-}
-
 void PassGrid::build_impl(chunk* self)
 {
     for (auto& w : bitmask)
@@ -150,11 +153,10 @@ void PassGrid::build_impl(chunk* self)
     usize* const bits = bitmask.data();
 
     const auto div_countʹ = params.div_count;
-    const auto div_size  = params.div_size();
     fm_assert(div_countʹ*div_countʹ <= bitmask.size() * (sizeof(usize)*8));
 
     const auto bbox_lo = (float)(params.bbox_size / 2), bbox_hi = (float)params.bbox_size - bbox_lo;
-    const inflated_cells cells_of{div_size, div_countʹ, params.bbox_size};
+    const inflated_cells cells_of{params};
 
     chunk* const chunks[9] = {
         self,
@@ -330,11 +332,6 @@ u32 Grid::get_bitmask_index(u32 x, u32 y, u32 div_count)
 u32 Grid::get_bitmask_index_from_coord(intra_coord pos) const
 {
     return grid->get_bitmask_index_from_coord(pos);
-}
-
-Range2D Grid::get_coord_from_div(u32 x, u32 y) const
-{
-    return grid->get_coord_from_div(x, y);
 }
 
 bool Grid::bit(u32 index) const

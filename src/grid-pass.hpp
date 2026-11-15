@@ -8,6 +8,8 @@ struct local_coords;
 class chunk;
 }
 
+namespace floormat::Grid::Pass { struct Params; }
+
 namespace floormat::Grid::detail {
 struct PassGrid;
 struct PassPool;
@@ -18,15 +20,15 @@ struct cell_range
     bool is_empty() const { return i_lo > i_hi || j_lo > j_hi; }
 };
 
-// The cells of a chunk's grid holding a position where a box of bbox_size, centred there, overlaps a rect in
-// the chunk's frame.
+// The cells whose bit a rect in the chunk's frame clears. With min_pass == pass the rect blocks the box at
+// their node, otherwise at one of their positions.
 class inflated_cells
 {
     float half_div_minus_half_tile, grow_lo, grow_hi, inv_div;
     i32 div_count;
 
 public:
-    inflated_cells(u32 div_size, u32 div_count, u32 bbox_size);
+    explicit inflated_cells(const Pass::Params& params);
     cell_range operator()(float x0, float y0, float x1, float y1) const;
 };
 
@@ -56,6 +58,7 @@ struct Params
     constexpr Params(u32 div_size, u32 bbox_size, pass_mode min_pass);
 
     constexpr u32 div_size() const { return chunk_size_xy >> std::countr_zero(div_count); } // xxx todo assumes power of two chunk size
+    constexpr u32 node_offset() const { return bbox_size / 2 % div_size(); }
 
     [[nodiscard]] Params validate() const;
 
@@ -75,8 +78,6 @@ public:
 
     static u32 get_bitmask_index(u32 x, u32 y, u32 div_count);
     u32 get_bitmask_index_from_coord(intra_coord pos) const;
-
-    Range2D get_coord_from_div(u32 x, u32 y) const;
 
     bool bit(u32 index) const;
     BitView bits() const;

@@ -595,8 +595,7 @@ void check_seed_search(std::initializer_list<pillar> pillars, Vector2b from_offs
     }
 }
 
-// The start or the goal is in a corridor 2 px wider than the bbox, so every cell along it holds a
-// blocked position.
+// The start or the goal is in a corridor 2 px wider than the bbox.
 void test_seed_search()
 {
     // exit toward the tile centre
@@ -606,6 +605,9 @@ void test_seed_search()
     // free rows 5..7 hold no lattice row
     check_seed_search({ {{90, 44}, {5, -33}}, {{90, 44}, {5, 45}} }, {-28, 6}, {5, 8}, true);
     // closed to the west and east, left north through a gap at x 26..28
+    check_seed_search({ {{130, 44}, {-55, -41}}, {{180, 44}, {-30, 37}}, {{40, 122}, {-120, 0}}, {{46, 182}, {67, -30}} },
+                      {-28, -2}, {8, 5}, true);
+    // the same with the corridor on node row 512 at 4- to 16-px cells
     check_seed_search({ {{130, 44}, {-55, -39}}, {{180, 44}, {-30, 39}}, {{40, 122}, {-120, 0}}, {{46, 182}, {67, -30}} },
                       {-28, 0}, {8, 5}, true);
     check_seed_search({ {{180, 44}, {-30, -39}}, {{180, 44}, {-30, 39}}, {{40, 122}, {-120, 0}}, {{50, 122}, {15, 0}} },
@@ -627,12 +629,16 @@ void test_seed_search()
                       {-12, 0}, {8, 8}, true, pull_bbox.x(), {8, 8}, {12, 0});
     // a closed U-shaped corridor whose bend lies over seed_search_radius from the goal, so only
     // the start's seed search reaches the goal
+    check_seed_search({ {{44, 160}, {-37, -20}}, {{30, 200}, {34, 57}}, {{44, 250}, {105, 25}}, {{186, 44}, {34, -99}},
+                        {{108, 44}, {-5, 62}}, {{108, 44}, {73, 88}, {8, 9}} },
+                      {2, 0}, {9, 10}, true, pull_bbox.x(), {8, 8}, {2, -28});
+    // the same with its arms on node columns 512 and 576 at 4- to 16-px cells
     check_seed_search({ {{44, 160}, {-39, -20}}, {{30, 200}, {32, 57}}, {{44, 250}, {103, 25}}, {{186, 44}, {32, -99}},
                         {{108, 44}, {-7, 62}}, {{108, 44}, {71, 88}, {8, 9}} },
                       {}, {9, 10}, true, pull_bbox.x(), {8, 8}, {0, -28});
-    // At 128-px cells the lattice lies 64 px off to's tile centre, the corridor's only column, so
-    // only the goal's seed search reaches the goal.
-    check_seed_search({ {{128, 160}, {-1, -17}, {7, 10}}, {{128, 160}, {1, -17}, {11, 10}} },
+    // At 64- and 128-px cells no node column lies in the corridor, so only the goal's seed search
+    // reaches the goal, from the node row 32 px north of it where the corridor opens.
+    check_seed_search({ {{128, 160}, {-1, 48}, {7, 10}}, {{128, 160}, {1, 48}, {11, 10}} },
                       {}, {9, 9}, true, 128, {2, 4});
 }
 

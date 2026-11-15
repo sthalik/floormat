@@ -408,18 +408,19 @@ wall_map make_map(kind k, rng& r)
     return draw_maze(g);
 }
 
-// A tile centre's own cell is blocked next to a wall: from other positions in that cell the bbox
-// reaches the strip. Dijkstra's goal check reads that cell.
+// Returns the node of the first candidate's cell with its bit set. Dijkstra needs the box free at from and to.
 point open_point(world& w, Grid::Pass::Pool& pool, point centre)
 {
     constexpr Vector2i offsets[] = { {0, 0}, {-8, -8}, {-8, 0}, {0, -8}, {-16, -16}, {8, 8}, };
+    const auto d = (i32)pool.params().div_size(), o = (i32)pool.params().node_offset();
     for (auto off : offsets)
     {
         const auto pt = point::normalize_coords(centre, off);
         auto g = pool[w[pt.chunk3()]];
         g.build_if_stale();
+        const auto ip = Vector2i(intra_coord{pt});
         if (g.bit(g.get_bitmask_index_from_coord(intra_coord{pt})))
-            return pt;
+            return point::normalize_coords(pt, Vector2i{o - (ip.x() & (d - 1)), o - (ip.y() & (d - 1))});
     }
     fm_abort("no open pass cell near the tile centre");
 }

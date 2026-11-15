@@ -62,6 +62,21 @@ bool box_free(world& w, point pt, Vector2ui size)
     return Search::is_passable(w, pt.chunk3(), Range2D::fromSize(min, Vector2(size)), Search::without_critters);
 }
 
+// True when the 1, 2 or 4 node bits A* reads for pt are set, so A* skips pt's seed search.
+bool passable_between_nodes(astar& A, world& w, Grid::Pass::Pool& pool, point pt, const Search::pred& p)
+{
+    const auto d = (int)pool.params().div_size(), o = (int)pool.params().node_offset();
+    const auto ip = Vector2i(intra_coord{pt});
+    const auto off = Vector2i{(ip.x() - o) & (d - 1), (ip.y() - o) & (d - 1)};
+    const auto node = point::normalize_coords(pt, -off);
+    const int nx = off.x() != 0, ny = off.y() != 0;
+    for (int j = 0; j <= ny; j++)
+        for (int i = 0; i <= nx; i++)
+            if (!A.cache()->is_passable_for_bbox(w, pool, point::normalize_coords(node, Vector2i{i, j} * d), p))
+                return false;
+    return true;
+}
+
 void add_block(world& w, local_coords tile, Vector2ub bbox_size, Vector2b bbox_offset = {})
 {
     scenery_proto p;
@@ -142,23 +157,24 @@ void test_flush_goals(u32 bbox)
                          {0, (i8)(south + lo)}, {0, -1});
     }
 
-    // A gap as wide as the bbox. No cell in it has its bit set, and the free nodes past its ends
-    // are too far from the middle to move straight to it. Two tiles long, the goal's seed search reaches
-    // them. Four tiles long, it can't.
+    // A gap as wide as the bbox with no node column in it. The free nodes past its ends are too far
+    // from the middle to move straight to it. Two tiles long, the goal's seed search reaches them. Four
+    // tiles long, it can't.
     const auto gap_side = Vector2ub{(u8)(2*tile_size_xy - bbox), 2*tile_size_xy};
+    constexpr auto east = Vector2b{3, 0};
     check_flush_goal("box-wide gap", bbox, [&](world& w) {
-        add_block(w, {7, 8}, gap_side);
-        add_block(w, {9, 8}, gap_side);
-    }, {}, {1, 0});
+        add_block(w, {7, 8}, gap_side, east);
+        add_block(w, {9, 8}, gap_side, east);
+    }, east, {1, 0});
     check_flush_goal("long box-wide gap", bbox, [&](world& w) {
-        add_block(w, {7, 7}, gap_side);
-        add_block(w, {7, 9}, gap_side);
-        add_block(w, {9, 7}, gap_side);
-        add_block(w, {9, 9}, gap_side);
-    }, {}, {1, 0}, false);
+        add_block(w, {7, 7}, gap_side, east);
+        add_block(w, {7, 9}, gap_side, east);
+        add_block(w, {9, 7}, gap_side, east);
+        add_block(w, {9, 9}, gap_side, east);
+    }, east, {1, 0}, false);
 }
 
-// The start touches a collider on its high x side, so the cell holding it is closed.
+// The start touches a collider on its high x side, so the next node east of it is closed.
 void check_closed_start_cell(u32 bbox, i8 start_x)
 {
     constexpr u32 max_dist = 1024;
@@ -183,7 +199,7 @@ void check_closed_start_cell(u32 bbox, i8 start_x)
     fm_assert(pool.params().div_size() == bbox);
     fm_assert(box_free(w, from, Vector2ui(bbox)));
     fm_assert(!box_free(w, point::normalize_coords(from, {1, 0}), Vector2ui(bbox)));
-    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, from, pred));
+    fm_assert(!passable_between_nodes(A, w, pool, from, pred));
 
     auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(bbox), pred);
     auto r2 = A.Dijkstra<0, true>(w, pool, from, goal, max_dist, Vector2ui(bbox), pred);
@@ -193,13 +209,13 @@ void check_closed_start_cell(u32 bbox, i8 start_x)
     fm_assert(r2.cost() == r1.cost());
 }
 
-// A corridor two tiles long, exactly as wide as the union of an odd body's boxes over one cell.
-// That cell column is the only way to the goal, and bbox + 1 closes it.
+// A corridor two tiles long, exactly as wide as an odd body's box around a node column. That column is
+// the only way to the goal, and bbox + 1 closes it.
 void test_odd_body_corridor(u32 bbox)
 {
     constexpr u32 max_dist = 1024;
     constexpr auto t = (int)tile_size_xy;
-    constexpr i8 goal_x = -8;
+    const auto goal_x = (i8)(bbox == 31 ? -1 : -16);
     const auto from = point{global_coords{flush_ch, {8, 12}}, {goal_x, 0}};
     const auto goal = point{global_coords{flush_ch, flush_tile}, {goal_x, 0}};
     const Search::pred pred{Search::without_critters};
@@ -211,9 +227,9 @@ void test_odd_body_corridor(u32 bbox)
     fm_assert(exact.params().div_size() == (u32)d && wider.params().div_size() == (u32)d);
 
     const auto x = (int)flush_tile.x * t + goal_x;
-    const auto p0 = (x + half_tile<int>) / d * d - half_tile<int>;
+    fm_assert((x + half_tile<int> - (int)exact.params().node_offset()) % d == 0);
     const auto lo = (int)bbox/2, hi = (int)bbox - lo;
-    const auto left = p0 - lo, right = p0 + d - 1 + hi;
+    const auto left = x - lo, right = x + hi;
 
     auto w = world();
     add_floors(w, from, max_dist, (u32)d);
@@ -369,11 +385,11 @@ void check_pocket(u32 cell, bool boxed_goal)
     c.ensure_passability();
 
     check_one_move(w, from, size, {-1, 0});
-    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, from, pred));
+    fm_assert(!passable_between_nodes(A, w, pool, from, pred));
     if (boxed_goal)
     {
         check_one_move(w, goal, size, {1, 0});
-        fm_assert(!A.cache()->is_passable_for_bbox(w, pool, goal, pred));
+        fm_assert(!passable_between_nodes(A, w, pool, goal, pred));
     }
 
     auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
@@ -408,7 +424,7 @@ void check_seeds_past_max_dist(u32 cell)
     auto& c = w[flush_ch];
     c.mark_passability_modified();
     c.ensure_passability();
-    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, pocket, pred));
+    fm_assert(!passable_between_nodes(A, w, pool, pocket, pred));
 
     struct search { point from, to; u32 max_dist; };
     for (auto [from, to, max_dist] : { search{pocket, open, size}, search{open, pocket, 1}, search{pocket, open, 4*size} })
@@ -421,28 +437,28 @@ void check_seeds_past_max_dist(u32 cell)
     }
 }
 
-// The goal stands in a box-wide corridor 5 px short of the room it opens into, so its cell is
-// closed and room nodes lie near it. The room's only other way in is the corridor's far end,
-// facing away from the start. A* exhausts without reaching the goal, then the goal's seed search
-// runs down the corridor to its nodes.
+// The goal stands in a box-wide corridor off the node rows, 1 px short of the room it opens into, so
+// the nodes around it are closed and room nodes lie near it. The room's only other way in is the
+// corridor's far end, facing away from the start. A* exhausts without reaching the goal, then the
+// goal's seed search runs down the corridor to its nodes.
 void check_corridor_goal(u32 cell)
 {
     constexpr u32 max_dist = 1024, size = 32;
     constexpr auto room_tile = local_coords{10, 8};
     constexpr int corridor_west = 576;
     const auto from = point{global_coords{flush_ch, {13, 8}}, {}};
-    const auto goal = point{global_coords{flush_ch, room_tile}, {5, 0}};
+    const auto goal = point{global_coords{flush_ch, room_tile}, {15, 5}};
     const Search::pred pred{Search::without_critters};
     auto A = astar{};
     auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
 
     auto w = world();
     add_floors(w, from, max_dist, cell);
-    add_block(w, room_tile, {64, 64}, {-32, -48});
-    add_block(w, room_tile, {64, 64}, {-32, 48});
-    add_block(w, room_tile, {112, 16}, {56, -72});
-    add_block(w, room_tile, {112, 16}, {56, 72});
-    add_block(w, room_tile, {16, 128}, {104, 0});
+    add_block(w, room_tile, {64, 64}, {-32, -43});
+    add_block(w, room_tile, {64, 64}, {-32, 53});
+    add_block(w, room_tile, {112, 16}, {56, -67});
+    add_block(w, room_tile, {112, 16}, {56, 77});
+    add_block(w, room_tile, {16, 128}, {104, 5});
     const auto C = add_walker(w, from, size);
     auto& c = w[flush_ch];
     c.mark_passability_modified();
@@ -451,7 +467,7 @@ void check_corridor_goal(u32 cell)
     fm_assert(box_free(w, goal, Vector2ui(size)));
     fm_assert(!box_free(w, point::normalize_coords(goal, {0, -1}), Vector2ui(size)));
     fm_assert(!box_free(w, point::normalize_coords(goal, {0, 1}), Vector2ui(size)));
-    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, goal, pred));
+    fm_assert(!passable_between_nodes(A, w, pool, goal, pred));
 
     auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
     auto r2 = A.Dijkstra<0, true>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
@@ -473,13 +489,13 @@ void check_corridor_goal(u32 cell)
     walk_to(w, C, move(r1), goal, "corridor goal", cell);
 }
 
-// Posts 3 px apart past the box close every cell between them at div 8. In the gaps, the flood
+// Posts 3 px apart past the box leave no free node between them at div 8. In the gaps, the flood
 // reaches some positions diagonally first, then cheaper on an axial step.
 void check_post_field()
 {
     constexpr u32 max_dist = 1024, size = 32, cell = 8;
     constexpr int post = 16, pitch = post + (int)size - 1 + 3;
-    const auto from = point{global_coords{flush_ch, flush_tile}, {pitch/2, pitch/2}};
+    const auto from = point{global_coords{flush_ch, flush_tile}, {pitch/2 + 1, pitch/2 + 1}};
     const auto goal = point{global_coords{flush_ch, {12, 8}}, {}};
     const Search::pred pred{Search::without_critters};
     auto A = astar{};
@@ -489,12 +505,12 @@ void check_post_field()
     add_floors(w, from, max_dist, cell);
     for (int j = -1; j <= 1; j++)
         for (int i = -1; i <= 1; i++)
-            add_block(w, flush_tile, Vector2ub(post), Vector2b{(i8)(i*pitch), (i8)(j*pitch)});
+            add_block(w, flush_tile, Vector2ub(post), Vector2b{(i8)(i*pitch + 1), (i8)(j*pitch + 1)});
     const auto C = add_walker(w, from, size);
     auto& c = w[flush_ch];
     c.mark_passability_modified();
     c.ensure_passability();
-    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, from, pred));
+    fm_assert(!passable_between_nodes(A, w, pool, from, pred));
 
     auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
     auto r2 = A.Dijkstra<0, true>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
@@ -543,7 +559,7 @@ void check_walled_off_goal(bool open)
 
     fm_assert(A.cache()->is_passable_for_bbox(w, pool, goal, pred));
     fm_assert(A.cache()->is_passable_for_bbox(w, pool, corridor, pred) == open);
-    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, point::normalize_coords(corridor, {0, -1}), pred));
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, point::normalize_coords(corridor, {0, -(int)cell}), pred));
     fm_assert(!A.cache()->is_passable_for_bbox(w, pool, point::normalize_coords(corridor, {0, (int)cell}), pred));
 
     auto r1 = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, Vector2ui(size), pred);
@@ -568,23 +584,22 @@ point at_px(Vector2i px)
     return point::normalize_coords(point{flush_ch, {}, {}}, px);
 }
 
-// A blocked scenery covering [min, max) in flush_ch's frame. Sides are even and under 256 px.
+// A blocked scenery covering [min, max) in flush_ch's frame. Sides are under 256 px.
 void add_rect(world& w, Vector2i min, Vector2i max)
 {
-    const auto size = max - min, center = (min + max)/2;
+    const auto size = max - min, center = min + size/2;
     fm_assert(size.x() > 0 && size.y() > 0 && size.x() < 256 && size.y() < 256);
-    fm_assert(size.x() % 2 == 0 && size.y() % 2 == 0);
     const auto tile = (center + half_tile<Vector2i>) / tile_size<int>;
     add_block(w, local_coords{(u8)tile.x(), (u8)tile.y()}, Vector2ub(size), Vector2b(center - tile*tile_size<int>));
 }
 
-// The box fits 5 positions across this square spiral corridor, so none of its cells is set, and A* enters
-// or leaves it only through a seed search. Each seed's path runs the whole spiral.
+// The box fits 3 positions across this square spiral corridor, none on a node line, so A* enters or leaves it
+// only through a seed search. Each seed's path runs the whole spiral.
 void check_spiral_corridor(u32 cell)
 {
     constexpr u32 max_dist = 2048, size = 16;
-    constexpr int pitch = 28, wall = 8, wall_count = 10;
-    constexpr auto origin = Vector2i{512, 512};
+    constexpr int pitch = 32, wall = 14, wall_count = 10;
+    constexpr auto origin = Vector2i{514, 514};
     const auto centre = at_px(origin + Vector2i{pitch/2}), outside = at_px(origin + Vector2i{pitch/2, pitch/2 + 200});
     const Search::pred pred{Search::without_critters};
     auto A = astar{};
@@ -610,8 +625,9 @@ void check_spiral_corridor(u32 cell)
 
     // The corridor's centre line is 20 pitches long, and a path is at most 4 px shorter along each of its 8 legs.
     constexpr u32 corridor_len = 20*pitch - 8*4;
-    // Seed paths that each copy the spiral stored 897 nodes out and 5528 in at div 8, 487 and 1724 at div 16.
-    const auto max_out = cell == 8 ? 500u : 300u, max_in = cell == 8 ? 5100u : 1500u;
+    // Copying each seed's path through the spiral stored 1375 nodes outward at div 8 and 708 at div 16. Inward,
+    // the goal's seed path is built once, and A* stores 6083 and 1681 nodes.
+    const auto max_out = cell == 8 ? 500u : 300u, max_in = cell == 8 ? 6500u : 1800u;
     for (const bool outward : { true, false })
     {
         const auto from = outward ? centre : outside, to = outward ? outside : centre;
@@ -627,8 +643,8 @@ void check_spiral_corridor(u32 cell)
     }
 }
 
-// No seed search runs, so every node is a lattice point. With the goal sealed off, A* expands every
-// one whose f is below max_dist, which nearly fills the octagon around from and to's midpoint.
+// After A* fails, the seed searches add no node, so every node is a lattice point. With the goal sealed off,
+// A* expands every node whose f is below max_dist, which nearly fills the octagon around from and to's midpoint.
 void check_search_node_count(u32 div)
 {
     constexpr u32 max_dist = 8192, size = 16;
@@ -687,6 +703,115 @@ void test_large_search_limit()
     fm_assert(!search({(int)L + tile_size_xy, 0}, max_dist).is_found());
 }
 
+constexpr int gap_wall = 512, gap_wall_depth = 16, gap_dist = 200, gap_start = 448;
+
+// A wall 16 px deep across flush_ch at y = gap_wall, open from x = gap to gap + width. vertical swaps x and y.
+void add_wall_gap(world& w, int gap, int width, bool vertical)
+{
+    const auto flip = [&](Vector2i v) { return vertical ? Vector2i{v.y(), v.x()} : v; };
+    const auto span = [&](int x0, int x1) {
+        for (int x = x0; x < x1; x += 192)
+            add_rect(w, flip({x, gap_wall}), flip({Math::min(x + 192, x1), gap_wall + gap_wall_depth}));
+    };
+    span(-half_tile<int>, gap);
+    span(gap + width, chunk_size<int> - half_tile<int>);
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+}
+
+// from and to stand gap_dist from the wall, so no seed search reaches the gap and only A* can find a way through.
+// It does exactly when a node row or column lies among the gap's free centre rows or columns.
+void check_wall_gap(u32 bbox, bool vertical)
+{
+    constexpr u32 max_dist = 640, cell = 16;
+    const auto params = Grid::Pass::Params{cell, bbox, pass_mode::pass};
+    const auto d = (int)params.div_size(), o = (int)params.node_offset(), lo = (int)bbox/2;
+    fm_assert(d == (int)cell);
+    const auto flip = [&](Vector2i v) { return vertical ? Vector2i{v.y(), v.x()} : v; };
+    const Search::pred pred{Search::without_critters};
+    auto A = astar{};
+    auto& pool = A.pool_registry().pass_pool(params);
+    for (int width = (int)bbox - 1; width <= (int)bbox + d - 1; width++)
+        for (int gap = gap_start; gap < gap_start + d; gap++)
+        {
+            const auto x = gap + width/2;
+            const auto from = at_px(flip({x, gap_wall - gap_dist}));
+            const auto to = at_px(flip({x, gap_wall + gap_wall_depth + gap_dist}));
+            auto w = world();
+            add_floors(w, from, max_dist, cell);
+            add_wall_gap(w, gap, width, vertical);
+            bool node_in_gap = false;
+            for (int c = gap + lo; c <= gap + width - (int)bbox + lo; c++)
+                node_in_gap |= ((c + half_tile<int> - o) & (d - 1)) == 0;
+            const auto r = A.Dijkstra<0, false>(w, pool, from, to, max_dist, Vector2ui{bbox}, pred);
+            if (r.is_found() != node_in_gap)
+                fm_abort("wall gap bbox %u, %s, width %d at %d: found %d", bbox, vertical ? "vertical" : "horizontal",
+                         width, gap, (int)r.is_found());
+        }
+}
+
+// Through an object grid, a critter beside a gap as wide as the box leaves it open, and one inside closes it.
+void check_wall_gap_critters(u32 bbox)
+{
+    constexpr u32 max_dist = 640, cell = 16;
+    const auto params = Grid::Pass::Params{cell, bbox, pass_mode::pass};
+    const auto lo = (int)bbox/2, gap = gap_start, width = (int)bbox;
+    fm_assert(((gap + lo + half_tile<int> - (int)params.node_offset()) & (int)(cell - 1)) == 0);
+    const auto from = at_px({gap + lo, gap_wall - gap_dist});
+    const auto to = at_px({gap + lo, gap_wall + gap_wall_depth + gap_dist});
+    const Search::pred all{Search::never_continue};
+    auto A = astar{};
+    auto& objects = A.pool_registry().object_pool(params);
+    auto w = world();
+    add_floors(w, from, max_dist, cell);
+    add_wall_gap(w, gap, width, false);
+    const auto C = add_npc(w, at_px({gap - (int)bbox + lo, gap_wall + gap_wall_depth + lo}), bbox);
+    if (!A.Dijkstra<0, false>(w, objects, from, to, max_dist, Vector2ui{bbox}, all).is_found())
+        fm_abort("wall gap bbox %u: a critter beside it closes it", bbox);
+    auto i = C->index();
+    C->teleport_to(i, at_px({gap + lo, gap_wall + gap_wall_depth/2}), rotation_COUNT);
+    if (A.Dijkstra<0, false>(w, objects, from, to, max_dist, Vector2ui{bbox}, all).is_found())
+        fm_abort("wall gap bbox %u: a critter in it leaves it open", bbox);
+}
+
+// A corridor 34 px wide on node row 512, closed to the east, opens west through a jog whose free rows 513..515
+// hold no node row. Only the seed search from the point in the corridor finds the way out.
+void check_jogged_corridor(bool goal_inside)
+{
+    constexpr u32 max_dist = 1536, size = 32, cell = 4;
+    const auto inside = at_px({680, 512}), outside = at_px({100, 512});
+    const auto from = goal_inside ? outside : inside, to = goal_inside ? inside : outside;
+    const char* const name = goal_inside ? "goal in jogged corridor" : "start in jogged corridor";
+    const Search::pred pred{Search::without_critters};
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
+    fm_assert(pool.params().div_size() == cell);
+
+    auto w = world();
+    add_floors(w, from, max_dist, cell);
+    add_rect(w, {600, 481}, {632, 497});
+    add_rect(w, {600, 531}, {632, 547});
+    add_rect(w, {632, 479}, {728, 495});
+    add_rect(w, {632, 529}, {728, 545});
+    add_rect(w, {728, 479}, {744, 547});
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+
+    fm_assert(passable_between_nodes(A, w, pool, inside, pred));
+    fm_assert(box_free(w, at_px({616, 513}), Vector2ui(size)));
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, at_px({616, 512}), pred));
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, at_px({616, 516}), pred));
+
+    auto r1 = A.Dijkstra<0, false>(w, pool, from, to, max_dist, Vector2ui(size), pred);
+    auto r2 = A.Dijkstra<0, true>(w, pool, from, to, max_dist, Vector2ui(size), pred);
+    if (!r1.is_found() || !r2.is_found())
+        fm_abort("%s: found %d, with closest %d", name, (int)r1.is_found(), (int)r2.is_found());
+    fm_assert(r1.path().front() == from && r1.path().back() == to);
+    fm_assert(r2.cost() == r1.cost());
+}
+
 bool is_segment_clear(world& w, point a, point b, Vector2ui size, const Search::pred& p)
 {
     const auto origin = point{a.chunk3(), {}, {}};
@@ -699,7 +824,7 @@ swept_collider_result sweep_with_grids(world& w, point a, point b, Vector2ui siz
 {
     const auto origin = point{a.chunk3(), {}, {}};
     const auto line = Raycast::bresenham_line{a - origin, b - origin};
-    Array<bool> entry_blocked;
+    std::array<Array<bool>, 4> entry_blocked;
     return find_swept_collider(w, a.chunk3(), line, 0, line.steps(), size, p, objects, entry_blocked);
 }
 
@@ -1075,6 +1200,14 @@ void Test::test_dijkstra()
     check_post_field();
     check_walled_off_goal(false);
     check_walled_off_goal(true);
+    check_jogged_corridor(true);
+    check_jogged_corridor(false);
+    for (auto bbox : { 16u, 32u })
+    {
+        check_wall_gap(bbox, false);
+        check_wall_gap(bbox, true);
+        check_wall_gap_critters(bbox);
+    }
     for (auto cell : { 8u, 16u })
     {
         check_critter_corridor(cell);

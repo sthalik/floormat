@@ -46,23 +46,24 @@ constexpr pool_size small_pools[] = { {4, 32}, {8, 32}, {16, 32}, {32, 32}, };
 // A block closes cells up to ~95 px away at 64-px cells and bbox, so this map has no random blocks.
 constexpr pool_size large_pools[] = { {16, 64}, {32, 64}, {64, 64}, };
 
-// Lattice point v is the pixel v*step, a step being one cell. Every node of the search is one:
+// Lattice point v is the pixel v*step + shift, a step being one cell. Every node of the search is one:
 // seeds sit at from rounded down to the lattice, plus 0 or a step. The zones are clear, so a
 // seed always takes, a node is within goal_radius() of the goal, and neither seed search runs.
 struct lattice
 {
-    int step, tile, lo, hi, n, clear_steps;
+    int step, shift, tile, lo, hi, n, clear_steps;
     Array<u8> free;
 
-    explicit lattice(int step) :
-        step{step}, tile{tile_size_xy/step}, lo{-tile}, hi{(last + 1)*tile}, n{hi - lo + 1},
+    lattice(int step, int node_offset) :
+        step{step}, shift{((node_offset - half_tile<int>) % step + step) % step},
+        tile{tile_size_xy/step}, lo{-tile}, hi{(last + 1)*tile}, n{hi - lo + 1},
         clear_steps{clear_px/step}, free{ValueInit, (usize)(n*n)}
     {}
 
     u32 index(Vector2i v) const { return (u32)((v.y() - lo)*n + v.x() - lo); }
     bool inside(Vector2i v) const { return v.x() >= lo && v.x() <= hi && v.y() >= lo && v.y() <= hi; }
     bool at(Vector2i v) const { return inside(v) && free[index(v)]; }
-    point pt(Vector2i v) const { return point{Vector3i{v*step, 0}}; }
+    point pt(Vector2i v) const { return point{Vector3i{v*step + Vector2i{shift}, 0}}; }
 };
 
 point zone_point(zone z) { return point{Vector3i{z.tile*tile_size_xy + Vector2i(z.offset), 0}}; }
@@ -168,7 +169,7 @@ void reference_costs(const lattice& L, zone from, Array<u32>& dist)
     arrayReserve(heap, 1024);
 
     const auto off = Vector2i(from.offset);
-    const auto from_lo = from.tile*tile + Vector2i{floor_div(off.x(), step), floor_div(off.y(), step)};
+    const auto from_lo = from.tile*tile + Vector2i{floor_div(off.x() - L.shift, step), floor_div(off.y() - L.shift, step)};
     for (int j = -1; j <= 1; j++)
         for (int i = -1; i <= 1; i++)
         {
@@ -239,7 +240,7 @@ void check_map(bool for_large_pools, ArrayView<const pool_size> pools)
         auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, bbox, pass_mode::pass}};
         fm_assert(pool.params().div_size() == cell);
 
-        auto L = lattice{(int)cell};
+        auto L = lattice{(int)cell, (int)pool.params().node_offset()};
         auto dist = Array<u32>{NoInit, (usize)(L.n*L.n)};
         for (int y = L.lo; y <= L.hi; y++)
             for (int x = L.lo; x <= L.hi; x++)

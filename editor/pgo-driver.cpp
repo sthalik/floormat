@@ -1947,7 +1947,6 @@ task app::scene_grids()
 {
     // build_impl's trip counts and branch weights vary with Params, so this builds a pool for each
     // Params in play: raycast_params, the player's walk pool's, and cover's 8/8 shoot_through.
-    // pass_cover stands in for the last: with every pin blocked, both clear the same cells.
     // Pins per occupancy sample, and samples per frame. The work is the sample count -- each is
     // 16 pins and three pool builds -- and steps_per_frame does not change it. Frames are not
     // work: 84% of a fill frame is draw_world() re-emitting every stool placed so far, which grows
@@ -1956,8 +1955,7 @@ task app::scene_grids()
     constexpr u32 pins_per_step = 16, steps_per_frame = 8, max_pins = 1u << 14;
     constexpr u32 short_steps_per_frame = 128;
     // Stop once the bitmap is this full. Past it a new pin only takes cells an earlier one had
-    // already taken, while a build still walks every object in the chunk. Read off the (8,8)
-    // grid, which is the one the grid test draws.
+    // already taken, while a build still walks every object in the chunk. Read off cover's grid.
     constexpr float fill_target = .9f;
     // Cover's 8 aligned octants sweep the pass bitmap with a recurrence and are nearly free. The
     // other 24 raycast every cell -- 16384 rays each at cover_test's div_size of 8. Filling all
@@ -1975,7 +1973,7 @@ task app::scene_grids()
     center_camera_on(center);
 
     Pass::Pool pass_raycast{raycast_params};
-    Pass::Pool pass_cover{Pass::Params{8, 8, pass_mode::pass}};
+    Pass::Pool pass_cover{Pass::Params{8, pass_mode::shoot_through}};
     Pass::Pool pass_critter{Pass::Params{astar::default_div_size, C->bbox_size.max(), pass_mode::pass}};
 
     const auto rebuild = [&](Pass::Pool& pool) { pool[c].build_if_stale(); };

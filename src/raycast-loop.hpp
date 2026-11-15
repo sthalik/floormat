@@ -22,18 +22,18 @@ struct line_cell
     u32 first_step, last_step;
 };
 
-// Called instead of visit for a cell whose bit is set and where p blocks an object, with the cell's objects.
+// Called instead of visit for each corner of a skipped square where p blocks an object listed there.
 template<typename T>
 using object_cell_visitor = function_view<bool(const line_cell&, const Grid::Object::Grid&,
-                                               Grid::Object::cell_object_view<T>) const>;
+                                               Grid::Object::cell_object_view<T>, ArrayView<const bool>) const>;
 
-// Visits the cells of the line's pixels, in chunk ch's frame, from first_step to last_step until a visitor
-// returns false. Cells are the pool's, skipping set bits where p blocks no object of an object pool, or chunks
-// for nullptr. Orthogonal points count when in the supercover, or always with both_orthogonal.
+// Visits the squares between 4 neighbouring nodes that the line's pixels cross, or chunks for nullptr, in ch's
+// frame from first_step to last_step until a visitor returns false. Skips a square whose corners are set and where
+// p blocks no object. Orthogonal points count when in the supercover, or always with both_orthogonal.
 template<typename Pool>
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
-                         Pool pool, const Search::pred& p, Array<bool>* entry_blocked,
+                         Pool pool, const Search::pred& p, std::array<Array<bool>, 4>* entry_blocked,
                          function_view<bool(const line_cell&) const> visit,
                          object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32);
 
