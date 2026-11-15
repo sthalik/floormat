@@ -118,8 +118,7 @@ auto main_impl::make_conf(const fm_settings& s) -> Configuration
         SDL_SetHint(SDL_HINT_WINDOW_NO_ACTIVATION_WHEN_SHOWN, "1");
     return Configuration{}
         .setTitle(s.title ? (StringView)s.title : "floormat editor"_s)
-        // --geometry is in pixels. The DpiScalingPolicy overload scales it by the primary monitor's
-        // raw physical DPI rather than the desktop scale factor, so it never comes back exact.
+        // Preserve --geometry dimensions by disabling automatic DPI scaling.
         .setSize(s.resolution, Vector2{1})
         .setWindowFlags(make_window_flags(s));
 }
