@@ -31,7 +31,7 @@ template<typename T>
 void put(Array<char>& out, T x)
 {
     char bytes[sizeof x];
-    const auto value = Serialize::maybe_byteswap(x);
+    const auto value = Serialize::maybe_byteswap(std::bit_cast<Serialize::make_integer_t<sizeof x>>(x));
     std::memcpy(bytes, &value, sizeof x);
     arrayAppend(out, ArrayView<const char>{bytes});
 }

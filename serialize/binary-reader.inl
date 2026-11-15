@@ -25,7 +25,7 @@ constexpr T binary_reader<It>::read() noexcept(false)
     char buf[N];
     for (auto i = 0uz; i < N; i++)
         buf[i] = *it++;
-    return maybe_byteswap(std::bit_cast<T, decltype(buf)>(buf));
+    return std::bit_cast<T>(maybe_byteswap(std::bit_cast<make_integer_t<N>, decltype(buf)>(buf)));
 }
 
 template<string_input_iterator It>

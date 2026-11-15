@@ -21,7 +21,7 @@ constexpr void binary_writer<It>::write(T x) noexcept
     constexpr usize N = sizeof(T);
     _bytes_written += N;
     fm_assert(_bytes_written <= _bytes_allocated);
-    const auto buf = std::bit_cast<std::array<char, N>, T>(maybe_byteswap(x));
+    const auto buf = std::bit_cast<std::array<char, N>>(maybe_byteswap(std::bit_cast<make_integer_t<N>>(x)));
     for (auto i = 0uz; i < N; i++)
         *it++ = buf[i];
 }

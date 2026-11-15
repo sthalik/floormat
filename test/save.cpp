@@ -207,7 +207,9 @@ void write_patched(StringView path, ArrayView<const char> save, ArrayView<const 
 
 void write_patched(StringView path, ArrayView<const char> save, float from, u32 to)
 {
-    write_patched(path, save, {(const char*)&from, sizeof from}, {(const char*)&to, sizeof to});
+    const auto from_bits = Serialize::maybe_byteswap(std::bit_cast<u32>(from));
+    to = Serialize::maybe_byteswap(to);
+    write_patched(path, save, {(const char*)&from_bits, sizeof from_bits}, {(const char*)&to, sizeof to});
 }
 
 template<typename T>
