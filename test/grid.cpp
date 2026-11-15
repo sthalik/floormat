@@ -222,7 +222,7 @@ void test_neighbor_cascade(u32 div_size)
     const auto base1 = count_passable(g1);
     const far_grid far{w, pool, COORD_E, 2};
 
-    add_wall_north(c1, {0, 0});
+    add_wall_north(c1, {0, 1});
     rebuild_passability(c1);
     far.check("a wall");
 
@@ -1191,64 +1191,6 @@ void test_partial_collect_then_collect_survivors(u32 div_size)
     fm_assert(pool.pooled_count() == 2);
 }
 
-// A bit means "a bbox_size rect at any position in this cell fits".
-void test_bit_matches_every_position()
-{
-    constexpr u32 div_size = 2, bbox_size = 4;
-    constexpr u8 at_x = 4, at_y = 4;
-    constexpr Vector2b obstacle_offset{2, 2};
-    constexpr int obstacle_size = 2;
-
-    auto w = world();
-    auto& c = w[COORD];
-    add_ground_all(c);
-    {
-        scenery_proto p;
-        p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
-        p.subtype   = generic_scenery_proto{};
-        p.offset    = obstacle_offset;
-        p.bbox_size = Vector2ub(obstacle_size);
-        p.pass      = pass_mode::blocked;
-        w.make_scenery(w.make_id(), {COORD, local_coords{at_x, at_y}}, move(p));
-    }
-    rebuild_passability(c);
-
-    Pass::Pool pool{Pass::Params{div_size, bbox_size, pass_mode::pass}};
-    tick(w, pool);
-    Pass::Grid g = pool[c];
-    g.build_if_stale();
-    fm_assert(pool.params().div_size() == div_size);
-    fm_assert(pool.params().bbox_size == bbox_size);
-
-    const Search::pred pred{Search::without_critters};
-    const auto dc = g.div_count();
-    constexpr int d = (int)div_size;
-    constexpr auto bb_lo = (float)(bbox_size / 2), bb_hi = (float)bbox_size - bb_lo;
-    // scenery_tile(): center - bbox_size/2, then + bbox_size.
-    constexpr int m = tile_size_xy*at_x + obstacle_offset.x() - obstacle_size/2,
-                  M = m + obstacle_size;
-    // Only cells that can see the obstacle. A full div_count² sweep here is 512² cells.
-    constexpr int lo = (m - (int)bbox_size - 2*d + half_tile<int>) / d,
-                  hi = (M + (int)bbox_size + 2*d + half_tile<int>) / d;
-
-    for (int j = lo; j <= hi; j++)
-        for (int i = lo; i <= hi; i++)
-        {
-            bool passable = true;
-            for (int py = j*d - half_tile<int>; py < (j+1)*d - half_tile<int> && passable; py++)
-                for (int px = i*d - half_tile<int>; px < (i+1)*d - half_tile<int> && passable; px++)
-                    passable = Search::is_passable_1(c, Vector2{(float)px - bb_lo, (float)py - bb_lo},
-                                                        Vector2{(float)px + bb_hi, (float)py + bb_hi}, pred);
-            const auto idx = Pass::Grid::get_bitmask_index((u32)i, (u32)j, dc);
-            if (g.bit(idx) != passable)
-            {
-                Error{standard_error()} << "!!! fatal: cell" << i << j << "bit" << (int)g.bit(idx)
-                                        << "but every position says passable ==" << (int)passable;
-                fm_assert(false);
-            }
-        }
-}
-
 // intra_coord adds half_tile and pack_bit_index_from_coord() floors, so cell i holds exactly the
 // integer positions [i*div_size - half_tile, (i+1)*div_size - half_tile - 1]. build_impl() inverts this.
 void test_cell_spans_match_forward_map(u32 div_size)
@@ -1281,49 +1223,6 @@ void test_cell_spans_match_forward_map(u32 div_size)
                 }
 }
 
-u32 cell_x_of(const Pass::Grid& g, int px)
-{
-    auto idx = g.get_bitmask_index_from_coord(intra_coord::from_center_shifted({px, 0}));
-    return idx % g.div_count();
-}
-
-// build_impl() anchors cell i at a = i*div_size + div_size/2 - half_tile, then inflates obstacles
-// by the cell's reach around a. div_size/2 rounds down, so a is not the cell's midpoint: the reach
-// is div_size/2 below and div_size-1-div_size/2 above.
-void test_div_anchor_matches_cell_span(u32 div_size, u32 bbox_size)
-{
-    auto w = world();
-    auto& c = w[COORD];
-    add_ground_all(c);
-    rebuild_passability(c);
-
-    Pass::Pool pool{Pass::Params{div_size, bbox_size, pass_mode::pass}};
-    tick(w, pool);
-    Pass::Grid g = pool[c];
-    g.build_if_stale();
-    fm_assert(pool.params().div_size() == div_size);
-    fm_assert(pool.params().bbox_size == bbox_size);
-
-    const int dc = (int)g.div_count(), d = (int)div_size;
-    const int below = d/2, above = d - 1 - d/2;
-    const auto bb_lo = (int)(bbox_size / 2), bb_hi = (int)bbox_size - bb_lo;
-
-    for (int i = 0; i < dc; i++)
-    {
-        const int a = i*d + d/2 - half_tile<int>;
-        const auto r = g.get_coord_from_div((u32)i, (u32)i);
-        fm_assert(r.min().x() == (float)(a - bb_lo) && r.max().x() == (float)(a + bb_hi));
-        fm_assert(r.min().y() == (float)(a - bb_lo) && r.max().y() == (float)(a + bb_hi));
-        fm_assert(cell_x_of(g, a) == (u32)i);
-        fm_assert(cell_x_of(g, a - below) == (u32)i);
-        fm_assert(cell_x_of(g, a + above) == (u32)i);
-        if (i > 0)
-            fm_assert(cell_x_of(g, a - below - 1) == (u32)i - 1);
-        if (i + 1 < dc)
-            fm_assert(cell_x_of(g, a + above + 1) == (u32)i + 1);
-    }
-}
-
 struct exact_config
 {
     u32 div_size, bbox_size;
@@ -1353,10 +1252,8 @@ constexpr exact_config exact_configs[] = {
     {256,256, { 0,  0},  6,  9, {  0,   0},  8 },  // 16-bit grid, allocation rounded up to a word
 };
 
-// Brute-force the bit against Search::is_passable_ at every position the cell holds — the same
-// query cache::is_passable_for_bbox() falls back to when the chunk has no grid.
-// Whether Search::is_passable_ holds for a bbox_size box at every integer position of cell (i, j) of c's grid,
-// with colliders of min_pass or above passing, as in a pass grid of that min_pass.
+// Whether Search::is_passable_ holds for a bbox_size box at the node of cell (i, j) when min_pass == pass, or else
+// at every integer position of the cell. Colliders of min_pass or above pass, as in a grid of that min_pass.
 bool cell_is_passable(chunk& c, const std::array<chunk*, 8>& nbs, int i, int j, int d, u32 bbox_size,
                       const Search::pred& p, pass_mode min_pass = pass_mode::pass)
 {
@@ -1365,15 +1262,17 @@ bool cell_is_passable(chunk& c, const std::array<chunk*, 8>& nbs, int i, int j, 
     };
     const Search::pred pred{q};
     const auto bb_lo = (float)(bbox_size / 2), bb_hi = (float)bbox_size - bb_lo;
-    for (int py = j*d - half_tile<int>; py < (j+1)*d - half_tile<int>; py++)
-        for (int px = i*d - half_tile<int>; px < (i+1)*d - half_tile<int>; px++)
+    const bool node_only = min_pass == pass_mode::pass;
+    const int o = (int)(bbox_size / 2) % d, n = node_only ? 1 : d, s = node_only ? o : 0;
+    for (int py = j*d + s - half_tile<int>; py < j*d + s + n - half_tile<int>; py++)
+        for (int px = i*d + s - half_tile<int>; px < i*d + s + n - half_tile<int>; px++)
             if (!Search::is_passable_(&c, nbs, Vector2{(float)px - bb_lo, (float)py - bb_lo},
                                       Vector2{(float)px + bb_hi, (float)py + bb_hi}, pred))
                 return false;
     return true;
 }
 
-void test_bit_exact(const exact_config& cfg)
+void test_bit_exact(const exact_config& cfg, pass_mode min_pass)
 {
     const chunk_coords_ obstacle_ch{(i16)cfg.chunk_delta.x(), (i16)cfg.chunk_delta.y(), 0};
 
@@ -1394,7 +1293,7 @@ void test_bit_exact(const exact_config& cfg)
     rebuild_passability(c);
     rebuild_passability(oc);
 
-    Pass::Pool pool{Pass::Params{cfg.div_size, cfg.bbox_size, pass_mode::pass}};
+    Pass::Pool pool{Pass::Params{cfg.div_size, cfg.bbox_size, min_pass}};
     tick(w, pool);
     Pass::Grid g = pool[c];
     g.build_if_stale();
@@ -1421,14 +1320,14 @@ void test_bit_exact(const exact_config& cfg)
     for (int j = j_lo; j <= j_hi; j++)
         for (int i = i_lo; i <= i_hi; i++)
         {
-            const bool passable = cell_is_passable(c, nbs, i, j, d, cfg.bbox_size, pred);
+            const bool passable = cell_is_passable(c, nbs, i, j, d, cfg.bbox_size, pred, min_pass);
             cleared += !passable;
             const auto idx = Pass::Grid::get_bitmask_index((u32)i, (u32)j, (u32)dc);
             if (g.bit(idx) != passable)
             {
                 Error{standard_error()} << "!!! fatal: div_size" << d << "bbox_size" << (int)cfg.bbox_size
                                         << "cell" << i << j << "bit" << (int)g.bit(idx)
-                                        << "but every position says passable ==" << (int)passable;
+                                        << "but cell_is_passable says" << (int)passable;
                 fm_assert(false);
             }
         }
@@ -3412,7 +3311,7 @@ void test_object_grid_crowd()
 {
     constexpr auto params = Pass::Params{8, 32, pass_mode::pass};
     constexpr auto n = (u32)TILE_COUNT;
-    constexpr auto size = (u8)tile_size_xy;
+    constexpr auto size = (u8)(tile_size_xy*3/2);
     const auto tile_px = [](u32 k) {
         return Vector2i{(int)(k % TILE_MAX_DIM), (int)(k / TILE_MAX_DIM)} * tile_size_xy;
     };
@@ -3596,13 +3495,10 @@ void test_grid()
     test_grids_dropped_by_world_move_assign();
     test_world_assign_into_moved_from();
     for (const auto ds : { 1u, 2u, 4u, 16u, 64u })
-    {
         test_cell_spans_match_forward_map(ds);
-        test_div_anchor_matches_cell_span(ds, Math::max(4u, ds));
-    }
-    test_div_anchor_matches_cell_span(4, 7);
-    for (const auto& cfg : exact_configs)
-        test_bit_exact(cfg);
+    for (const auto min_pass : { pass_mode::pass, pass_mode::shoot_through })
+        for (const auto& cfg : exact_configs)
+            test_bit_exact(cfg, min_pass);
     for (const auto ds : { 4u, 16u })
     {
         for (const auto p : { pass_mode::blocked, pass_mode::see_through,
@@ -3668,7 +3564,6 @@ void test_grid()
     test_object_grid_matches_positions(4, 7);
     test_object_grid_crowd();
     test_object_grid_rebuild();
-    test_bit_matches_every_position();
 }
 
 } // namespace floormat::Test

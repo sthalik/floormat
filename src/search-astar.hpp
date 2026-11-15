@@ -2,6 +2,7 @@
 #include "compat/safe-ptr.hpp"
 #include "search-pred.hpp"
 #include "tile-defs.hpp"
+#include <array>
 #include <cr/Array.h>
 #include <mg/Vector2.h>
 
@@ -88,8 +89,7 @@ private:
     bool seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist);
     closest run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist,
                             closest best);
-    closest run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, const endpoint& goal,
-                                 closest best);
+    closest run_goal_seed_search(chunk_bitmaps& bm, const endpoint& start, const endpoint& goal, closest best);
     u32 add_path_to_goal(point goal, point pt, u32 prev);
     template<int Debug, bool FindClosestOnFailure>
     closest expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal, u32 max_dist, closest best, u32 max_pops);
@@ -106,10 +106,12 @@ private:
     Array<point> temp_nodes;
     Array<const usize*> chunk_bits;
     Array<usize> masked_bits;
-    Array<bool> entry_blocked;
+    std::array<Array<bool>, 4> entry_blocked;
     Array<u32> seed_search_state, goal_seed_search_state;
     // Per position of the start's seed search window, the node add_path() put there, or -1.
     Array<u32> seed_node_index;
+    Array<Array<frontier>> seed_buckets;
+    Array<u32> seed_bucket_sizes;
     Array<Range2D> seed_rects;
     Array<goal_seed> goal_seeds;
     Array<u32> goal_seed_index;

@@ -135,7 +135,7 @@ void test_window(pass_mode hole_pass)
     (void)w.make_object<hole>(w.make_id(), pos, hp);
 
     Pass::Pool shoot{Pass::Params{8, 8, pass_mode::shoot_through}};
-    Pass::Pool walk{Pass::Params{8, 8, pass_mode::pass}};
+    Pass::Pool walk{Pass::Params{1, 8, pass_mode::pass}};
     const auto open_at = [&](Pass::Pool& pool, i8 x) {
         auto g = pool[c];
         g.build_if_stale();
@@ -160,7 +160,7 @@ void test_edit_in_same_frame()
     constexpr auto ch = chunk_coords_{0, 0, 0};
     auto w = world();
     auto& c = w[ch];
-    Pass::Pool pool{Pass::Params{8, 8, pass_mode::pass}};
+    Pass::Pool pool{Pass::Params{8, 8, pass_mode::shoot_through}};
     const auto frame = w.frame_no();
     const auto ray_passes = [&] {
         return raycast(w, point{ch, {2, 8}, {}}, point{ch, {14, 8}, {}}, 0,
@@ -493,9 +493,9 @@ void test_supercover_hits()
         w[c].mark_modified();
 
     Pass::Pool pools[] = {
-        Pass::Pool{Pass::Params{4, 16, pass_mode::pass}},
-        Pass::Pool{Pass::Params{8, 16, pass_mode::pass}},
-        Pass::Pool{Pass::Params{16, 16, pass_mode::pass}},
+        Pass::Pool{Pass::Params{4, 16, pass_mode::shoot_through}},
+        Pass::Pool{Pass::Params{8, 16, pass_mode::shoot_through}},
+        Pass::Pool{Pass::Params{16, 16, pass_mode::shoot_through}},
     };
     const auto origin = point{ch, {}, {}};
     u32 hits = 0, orthogonal_hits = 0;
@@ -624,13 +624,16 @@ void test_object_pool()
     const auto ray = [&](point from, point to, Grid::Object::Pool* objects, const Search::pred& pred, float radius = 0) {
         return objects ? raycast(w, from, to, 0, *objects, pred, radius) : raycast(w, from, to, 0, pass_pool, pred, radius);
     };
-    const auto sweep = [&](point from, point to, Grid::Object::Pool* objects, const Search::pred& pred) {
+    const auto sweep_params = Pass::Params{8, pass_mode::pass};
+    auto& sweep_pass_pool = reg.pass_pool(sweep_params);
+    auto& sweep_object_pool = reg.object_pool(sweep_params);
+    const auto sweep = [&](point from, point to, bool objects, const Search::pred& pred) {
         const auto origin = point{ch, {}, {}};
         const auto line = Raycast::bresenham_line{from - origin, to - origin};
         constexpr auto size = Vector2ui{4};
-        Array<bool> entry_blocked;
-        return objects ? find_swept_collider(w, ch, line, 0, line.steps(), size, pred, *objects, entry_blocked)
-                       : find_swept_collider(w, ch, line, 0, line.steps(), size, pred, &pass_pool);
+        std::array<Array<bool>, 4> entry_blocked;
+        return objects ? find_swept_collider(w, ch, line, 0, line.steps(), size, pred, sweep_object_pool, entry_blocked)
+                       : find_swept_collider(w, ch, line, 0, line.steps(), size, pred, &sweep_pass_pool);
     };
     const auto door_from = point{ch, {8, 4}, {}}, door_to = point{ch, {8, 12}, {}};
     const auto crit_from = point{ch, {2, 8}, {}}, crit_to = point{ch, {6, 8}, {}};
@@ -653,14 +656,14 @@ void test_object_pool()
         fm_assert(ray(row_east, row_west, &object_pool, Search::never_continue, radius).collider.id == C3->id);
         fm_assert(ray(row_east, row_west, &object_pool, Search::without_critters, radius).collider.id == S3->id);
     }
-    fm_assert(!sweep(door_from, door_to, nullptr, Search::without_critters).has_collider);
-    fm_assert(sweep(door_from, door_to, &object_pool, Search::without_critters).collider.id == door.id);
-    fm_assert(sweep(door_from, door_to, &object_pool, Search::never_continue).collider.id == C2->id);
-    fm_assert(!sweep(crit_from, crit_to, nullptr, Search::never_continue).has_collider);
-    fm_assert(sweep(crit_from, crit_to, &object_pool, Search::never_continue).collider.id == C->id);
-    fm_assert(sweep(row_west, row_east, &object_pool, Search::never_continue).collider.id == S3->id);
-    fm_assert(sweep(row_east, row_west, &object_pool, Search::never_continue).collider.id == C3->id);
-    fm_assert(sweep(row_east, row_west, &object_pool, Search::without_critters).collider.id == S3->id);
+    fm_assert(!sweep(door_from, door_to, false, Search::without_critters).has_collider);
+    fm_assert(sweep(door_from, door_to, true, Search::without_critters).collider.id == door.id);
+    fm_assert(sweep(door_from, door_to, true, Search::never_continue).collider.id == C2->id);
+    fm_assert(!sweep(crit_from, crit_to, false, Search::never_continue).has_collider);
+    fm_assert(sweep(crit_from, crit_to, true, Search::never_continue).collider.id == C->id);
+    fm_assert(sweep(row_west, row_east, true, Search::never_continue).collider.id == S3->id);
+    fm_assert(sweep(row_east, row_west, true, Search::never_continue).collider.id == C3->id);
+    fm_assert(sweep(row_east, row_west, true, Search::without_critters).collider.id == S3->id);
 
     {
         const auto g = object_pool[w[ch]];
@@ -704,7 +707,7 @@ void test_u32_object_grid()
         const auto ray = raycast(w, at(from), at(to), 0, objects, all);
         fm_assert(!ray.success && ray.collider.id == id);
         const auto line = Raycast::bresenham_line{at(from) - point{ch, {}, {}}, at(to) - point{ch, {}, {}}};
-        Array<bool> entry_blocked;
+        std::array<Array<bool>, 4> entry_blocked;
         const auto hit = find_swept_collider(w, ch, line, 0, line.steps(), Vector2ui{size}, all, objects, entry_blocked);
         fm_assert(hit.has_collider && hit.collider.id == id);
     };
@@ -744,7 +747,7 @@ void Test::test_raycast()
     };
     auto w = make_world();
     for (const auto& [div, bbox] : sizes)
-        test_rays(Pass::Params{div, bbox, pass_mode::pass}, w);
+        test_rays(Pass::Params{div, bbox, pass_mode::shoot_through}, w);
 
     {   // A ray along a box side makes the slab test compute 0 * inf = NaN, which
         // ray_aabb_intersection passes as min/max's second argument for Magnum to drop, so the

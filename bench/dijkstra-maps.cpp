@@ -258,13 +258,13 @@ void bench_missing_chunks(benchmark::State& state, u32 optimum)
 }
 
 // Optimal costs. A step is one cell, its costs as in Search::octile.
-void Dijkstra_Missing_Chunks(benchmark::State& state) { bench_missing_chunks(state, 17115); }
-void Dijkstra_Rooms(benchmark::State& state) { bench_map<kind::rooms>(state, 14397); }
-void Dijkstra_Braid(benchmark::State& state) { bench_map<kind::braid>(state, 14451); }
-void Dijkstra_Prim(benchmark::State& state) { bench_map<kind::prim>(state, 24637); }
-void Dijkstra_Braid_Cell4(benchmark::State& state) { bench_map<kind::braid, 4>(state, 14474); }
-void Dijkstra_Braid_Cell8(benchmark::State& state) { bench_map<kind::braid, 8>(state, 14548); }
-void Dijkstra_Braid_Cell32(benchmark::State& state) { bench_map<kind::braid, 32>(state, 16288); }
+void Dijkstra_Missing_Chunks(benchmark::State& state) { bench_missing_chunks(state, 16855); }
+void Dijkstra_Rooms(benchmark::State& state) { bench_map<kind::rooms>(state, 14075); }
+void Dijkstra_Braid(benchmark::State& state) { bench_map<kind::braid>(state, 14158); }
+void Dijkstra_Prim(benchmark::State& state) { bench_map<kind::prim>(state, 24184); }
+void Dijkstra_Braid_Cell4(benchmark::State& state) { bench_map<kind::braid, 4>(state, 14400); }
+void Dijkstra_Braid_Cell8(benchmark::State& state) { bench_map<kind::braid, 8>(state, 14400); }
+void Dijkstra_Braid_Cell32(benchmark::State& state) { bench_map<kind::braid, 32>(state, 14220); }
 void String_Pull_Rooms(benchmark::State& state) { bench_pull<kind::rooms>(state); }
 void String_Pull_Braid(benchmark::State& state) { bench_pull<kind::braid>(state); }
 void String_Pull_Prim(benchmark::State& state) { bench_pull<kind::prim>(state); }

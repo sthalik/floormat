@@ -162,18 +162,18 @@ void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, u3
     fm_assert(any);
 }
 
-// The step (15, 15) -> (16, 16) crosses the corner of four 4 px cells. Only its orthogonal point
-// (16, 15) is blocked, so the cells of both its pixels have their bits set.
+// The step (17, 17) -> (18, 18) crosses the corner of four squares between 4 px nodes, and only its
+// orthogonal point (18, 17) is blocked.
 void test_swept_collider_cell_corner()
 {
     auto w = world();
     constexpr chunk_coords_ ch{0, 0, 0};
     fill_ground(w[ch]);
-    place_pillar(w, ch, {0, 0}, Vector2b{18, 12}, Vector2ub{2, 4});
+    place_pillar(w, ch, {0, 0}, Vector2b{20, 14}, Vector2ub{2, 4});
     w[ch].mark_modified();
     Pass::Pool pool{Pass::Params{4, 4, pass_mode::pass}};
-    check_swept_line(w, ch, {8, 8}, {24, 24}, 0, 16, Vector2ui{4}, &pool);
-    const auto res = find_swept_collider(w, ch, Raycast::bresenham_line{{8, 8}, {24, 24}}, 0, 16, Vector2ui{4},
+    check_swept_line(w, ch, {10, 10}, {26, 26}, 0, 16, Vector2ui{4}, &pool);
+    const auto res = find_swept_collider(w, ch, Raycast::bresenham_line{{10, 10}, {26, 26}}, 0, 16, Vector2ui{4},
                                          Search::never_continue, &pool);
     fm_assert(res.has_collider && res.step == 8);
 }
