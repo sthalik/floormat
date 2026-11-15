@@ -177,8 +177,6 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
                     std::printf("%-16s%s\n", s.name.str,
                                 s.mode == driver_mode::coverage ? "coverage" : "profile");
                 std::fflush(stdout);
-                // Not std::exit(): a world is live by this point, and skipping its teardown trips
-                // the RTree pool's leak assert. quit() returns through Sdl2Application::exit.
                 std::exit(0);
             }
             else if (name == "none"_s)
