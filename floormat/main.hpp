@@ -102,8 +102,6 @@ struct floormat_main
     // events are ignored.
     virtual void resize_window(Vector2i size) = 0;
 
-    bool is_clipcontrol_zero_to_one_enabled() const noexcept;
-
     virtual struct texture_unit_cache& texture_unit_cache() = 0;
     virtual class astar& astar() = 0;
 
@@ -116,7 +114,6 @@ protected:
     bool _do_collect_clickables : 1 = false;
     bool _first_frame : 1 = true; // todo thread safety
     bool _events_ignored : 1 = false; // todo thread safety
-    bool _is_clipcontroL_zero_to_one_enabled = false;
 };
 
 } // namespace floormat

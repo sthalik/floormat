@@ -36,7 +36,7 @@ texcoords texcoords_at(Vector2ui pos, Vector2ui size, Vector2ui image_size);
 texcoords texcoords_at(Vector2ui pos, Vector2ui size, Vector2ui image_size, bool mirror, bool rotated);
 
 template<bool LR_1 = true, bool LR_2 = true, bool LR_3 = false, bool LR_4 = false>
-depths depth_quad(point L, point R, i32 depth_offset);
+depths depth_quad(float depth_start, point L, point R, i32 depth_offset);
 
 vertexes make_vertexes(const quad& q, const texcoords& tc, const depths& d, Vector3 center = {});
 vertexes make_vertexes(const quad& q, const texcoords& tc, float depth, Vector3 center = {});

@@ -6,7 +6,6 @@
 #include "quads.hpp"
 #include "point.inl"
 #include "depth.hpp"
-#include "renderer.hpp"
 #include "spritebatch.hpp"
 #include "sprite-atlas.hpp"
 #include "shaders/shader.hpp"
@@ -28,6 +27,7 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
     }
 
     sb.begin_chunk((u32)_objects.size()); // static objects go to scenery_static_mesh instead
+    const float depth_start = sb.depth_start();
 
     for (const auto& eʹ : _objects)
     {
@@ -49,7 +49,6 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
         fm_assert(sp);
         const auto uv3 = loader.atlas().texcoords_for(sprite{sp}, !group.mirror_from.isEmpty());
         const auto& frame = atlas->frame(e.r, e.frame);
-        const float depth_start = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
         const auto depth_offset = e.depth_offset();
 
         if (is_dynamic)

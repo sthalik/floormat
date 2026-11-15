@@ -1,6 +1,5 @@
 #include "quads.hpp"
 #include "depth.hpp"
-#include "renderer.hpp"
 #include "compat/iota.hpp"
 #include "compat/map.hpp"
 #include <mg/Vector2.h>
@@ -11,16 +10,6 @@ namespace floormat::Quads {
 static_assert(sizeof(vertex) == 28);
 
 static_assert(sizeof(index_type) <= 4); // GL index types are <= 32-bit
-
-namespace {
-
-float depth_start()
-{
-    static const float S = Render::get_status().is_clipdepth01_enabled ? 0.f : -1.f;
-    return S;
-}
-
-} // namespace
 
 indexes quad_indexes(usize N)
 {
@@ -89,13 +78,11 @@ texcoords texcoords_at(Vector2ui pos_, Vector2ui size_, Vector2ui image_size_, b
 }
 
 template<bool LR_1, bool LR_2, bool LR_3, bool LR_4>
-depths depth_quad(point L, point R, i32 depth_offset)
+depths depth_quad(float depth_start, point L, point R, i32 depth_offset)
 {
-    const float S = depth_start();
-
     const float LR[2] = {
-        Depth::value_at(S, L, depth_offset),
-        Depth::value_at(S, R, depth_offset),
+        Depth::value_at(depth_start, L, depth_offset),
+        Depth::value_at(depth_start, R, depth_offset),
     };
 
     return {
@@ -106,10 +93,10 @@ depths depth_quad(point L, point R, i32 depth_offset)
     };
 }
 
-template depths depth_quad<>(point, point, i32);
-template depths depth_quad<0, 1, 0, 1>(point, point, i32);
-template depths depth_quad<1, 0, 1, 0>(point, point, i32);
-template depths depth_quad<0, 0, 1, 1>(point, point, i32);
+template depths depth_quad<>(float, point, point, i32);
+template depths depth_quad<0, 1, 0, 1>(float, point, point, i32);
+template depths depth_quad<1, 0, 1, 0>(float, point, point, i32);
+template depths depth_quad<0, 0, 1, 1>(float, point, point, i32);
 
 vertexes make_vertexes(const quad& q, const texcoords& tc, const depths& d, Vector3 center)
 {

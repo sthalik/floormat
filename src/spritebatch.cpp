@@ -195,6 +195,8 @@ struct SpriteBatch::Impl
 };
 
 ArrayView<const u32> SpriteBatch::merged_order() const { return impl->sort_indexes; }
+float SpriteBatch::depth_start() const { return _depth_start; }
+void SpriteBatch::set_depth_start(float value) { _depth_start = value; }
 
 SpriteBatch::SpriteBatch()
 {

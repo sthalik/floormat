@@ -2,6 +2,7 @@
 #include "floormat/app.hpp"
 #include <cr/StringView.h>
 #include <mg/Color.h>
+#include <mg/Extensions.h>
 #include <mg/Renderer.h>
 #include <mg/RenderbufferFormat.h>
 #include <mg/TextureFormat.h>
@@ -62,6 +63,17 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     // -- user--
     app.on_viewport_event(fb_size);
     timeline = Time::now();
+}
+
+void main_impl::maybe_enable_clipcontrol_zero_to_one()
+{
+    bool status = GL::Context::current().isExtensionSupported<GL::Extensions::ARB::clip_control>();
+    if (status)
+        GL::Renderer::setClipControl(GL::Renderer::ClipOrigin::LowerLeft, GL::Renderer::ClipDepth::ZeroToOne);
+    else
+        fm_warn("GL_ARB_clip_control not supported, depth precision may be reduced");
+
+    _sprite_batch.set_depth_start(status ? 0.f : -1.f);
 }
 
 void main_impl::resize_window(Vector2i size)
