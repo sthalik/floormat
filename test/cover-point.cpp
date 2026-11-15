@@ -2451,6 +2451,18 @@ void test_cover_script_retreat_finds_cover(point hidden, bool near_threat)
     fm_assert_equal(t0.counters.num_searches + 1, t.counters.num_searches);
 }
 
+// A 64 px block 8 px past the body's edge, along the npc's next retreat step. Shots pass it, so it hides nothing.
+void block_retreat_walk(cover_scene& s)
+{
+    const auto from = s.npc->position();
+    s.step();
+    const auto at = s.npc->position();
+    fm_assert(s.status().st == state::retreat && at != from);
+    const auto p = at + Math::sign(at - from)*(32 + 8 + (int)body.x()/2);
+    add_blocker(s.w, p.local(), {64, 64}, p.offset(), pass_mode::shoot_through);
+    rebuild(s.w);
+}
+
 // As test_cover_script_retreat, with a block put in the way of the npc's retreat walk. The npc looks for a
 // retreat once more from where it was stopped. A second block leaves it searching where it stands.
 void test_cover_script_retreat_blocked(point hidden)
@@ -2460,17 +2472,7 @@ void test_cover_script_retreat_blocked(point hidden)
     fm_assert(s.npc->position() == hidden);
     s.move_threat(point{ch, {7, 1}, {}});
     s.step_until(state::retreat);
-    // A 64 px block 8 px past the body's edge, along the npc's next step. Shots pass it, so it hides nothing.
-    const auto block_ahead = [&] {
-        const auto from = s.npc->position();
-        s.step();
-        const auto at = s.npc->position();
-        fm_assert(s.status().st == state::retreat && at != from);
-        const auto p = at + Math::sign(at - from)*(32 + 8 + (int)body.x()/2);
-        add_blocker(s.w, p.local(), {64, 64}, p.offset(), pass_mode::shoot_through);
-        rebuild(s.w);
-    };
-    block_ahead();
+    block_retreat_walk(s);
     const auto t0 = s.status();
     s.step_until(state::find_retreat);
     const auto t1 = s.status();
@@ -2479,7 +2481,7 @@ void test_cover_script_retreat_blocked(point hidden)
     fm_assert(s.status().counters.num_dijkstra_calls > t1.counters.num_dijkstra_calls);
 
     // Each retreat walk is longer than min_retreat_gain, so stopping this soon means a block.
-    block_ahead();
+    block_retreat_walk(s);
     for (auto frames = 0u; s.status().st == state::retreat; frames++)
     {
         fm_assert(frames < s.fps/2);
@@ -2493,6 +2495,39 @@ void test_cover_script_retreat_blocked(point hidden)
         s.step();
     }
     fm_assert_equal(t1.counters.num_retreat_restarts, s.status().counters.num_retreat_restarts);
+}
+
+// As test_cover_script_retreat_blocked, with the search ended before the blocks. The second block leaves the npc
+// seeking where it stands, for a second before it searches again.
+void test_cover_script_retreat_blocked_search_ended(point hidden)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    s.move_threat(point{ch, {7, 1}, {}});
+    s.step();
+    s.finish_search();
+    fm_assert(s.status().st == state::retreat && !s.status().search.tiles_left);
+    block_retreat_walk(s);
+    s.step_until(state::find_retreat);
+    s.step_until(state::retreat);
+    block_retreat_walk(s);
+    for (auto frames = 0u; s.status().st == state::retreat; frames++)
+    {
+        fm_assert(frames < s.fps/2);
+        s.step();
+    }
+    fm_assert(s.status().st == state::seek);
+    const auto stop = s.npc->position();
+    auto frames = 0u;
+    for (; s.status().st == state::seek; frames++)
+    {
+        fm_assert(frames <= s.fps + 2);
+        s.step();
+        fm_assert(s.npc->position() == stop);
+    }
+    fm_assert(frames + 2 >= s.fps);
+    fm_assert(s.status().st == state::search);
 }
 
 // As test_cover_script_retreat. The threat moves mid-walk to where it sees the walk's end, still over 3 tiles
@@ -3367,6 +3402,7 @@ void Test::test_cover_point()
     test_cover_script_retreat_finds_cover(hidden, false);
     test_cover_script_retreat_finds_cover(hidden, true);
     test_cover_script_retreat_blocked(hidden);
+    test_cover_script_retreat_blocked_search_ended(hidden);
     test_cover_script_retreat_end_seen(hidden);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
