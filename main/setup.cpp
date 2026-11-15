@@ -46,7 +46,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     using BlendEquation   = GL::Renderer::BlendEquation;
     using BlendFunction   = GL::Renderer::BlendFunction;
     using DepthFunction   = GL::Renderer::DepthFunction;
-    using ProvokingVertex = GL::Renderer::ProvokingVertex;
+    //using ProvokingVertex = GL::Renderer::ProvokingVertex;
     using Feature         = GL::Renderer::Feature;
     using FrontFace       = GL::Renderer::FrontFace;
     GL::Renderer::setBlendEquation(BlendEquation::Add, BlendEquation::Add);
@@ -57,7 +57,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     GL::Renderer::enable(Feature::Blending);
     //GL::Renderer::enable(Feature::DepthClamp);
     GL::Renderer::setDepthFunction(DepthFunction::Greater);
-    GL::Renderer::setProvokingVertex(ProvokingVertex::FirstVertexConvention);
+    //GL::Renderer::setProvokingVertex(ProvokingVertex::FirstVertexConvention);
 
     // -- user--
     app.on_viewport_event(fb_size);
