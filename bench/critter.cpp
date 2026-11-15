@@ -467,8 +467,8 @@ void Critter_walk_5x5(benchmark::State& st)
             if (rays)
             {
                 const auto from = npc->position();
-                auto res = objects ? raycast(w, from, target, npc->id, object_pool, Search::without_critters())
-                                   : raycast(w, from, target, npc->id, ray_pool, Search::never_continue());
+                auto res = objects ? raycast(w, from, target, npc->id, object_pool, Search::without_critters)
+                                   : raycast(w, from, target, npc->id, ray_pool, Search::never_continue);
                 benchmark::DoNotOptimize(res);
             }
         }

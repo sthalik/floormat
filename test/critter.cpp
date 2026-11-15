@@ -397,7 +397,7 @@ void test_move_toward_line_blocked()
     const auto from = point{ch, {2, 2}, {}}, dest = from + Vector2i{300, 130};
     const auto origin = point{ch, {}, {}};
     const auto self_id = L.npc->id;
-    const auto pred = [self_id](chunk&, collision_data x) {
+    const auto pred = [self_id](const chunk&, collision_data x) {
         return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
     };
     const auto line = rc::bresenham_line{from - origin, dest - origin};
@@ -576,7 +576,7 @@ void test_walk_smoothed_blocked()
     const auto origin = point{ch, {}, {}};
     const auto line = rc::bresenham_line{from - origin, to - origin};
     const auto self_id = W.npc->id;
-    const auto pred = [self_id](chunk&, collision_data x) {
+    const auto pred = [self_id](const chunk&, collision_data x) {
         return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
     };
     const auto expected = find_swept_collider(W.w, ch, line, 0, line.steps(), Vector2ui(W.npc->bbox_size), pred);

@@ -78,14 +78,14 @@ void rebuild(world& w)
     c.ensure_passability();
 }
 
-bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Search::without_critters())
+bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Search::without_critters)
 {
     const auto min = Vector2(pt.intra().center_shifted() - Vector2i(size/2u));
     return Search::is_passable(w, pt.chunk3(), Range2D::fromSize(min, Vector2(size)), pred);
 }
 
 Cover::Point::result find(world& w, point npc, point threat, u32 radius, u32 div_size, Vector2ui size = body,
-                        const Search::pred& pred = Search::without_critters(), bool list_spots = false,
+                        const Search::pred& pred = Search::without_critters, bool list_spots = false,
                         u8 octants = 0, u32 max_cover_end_dist = 0)
 {
     static Cover::Point::finder finder;
@@ -112,7 +112,7 @@ bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vec
     Grid::Object::Pool objects{pool};
     const auto T = Vector3i(threat).xy();
     const auto shot = [&](Vector2i to) {
-        const auto r = raycast(w, threat, threat + (to - T), threat_id, objects, Search::never_continue());
+        const auto r = raycast(w, threat, threat + (to - T), threat_id, objects, Search::never_continue);
         return !r.success && r.collider.id == id;
     };
     const auto lo = Vector3i(pos).xy() - Vector2i(size/2u), hi = lo + Vector2i(size) - Vector2i{1};
@@ -205,7 +205,7 @@ void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, loc
     fm_assert(point::distance(npc, r.pos) <= radius + tile_size_xy);
 
     auto A = astar{};
-    const auto path = A.Dijkstra<0, false>(w, npc, r.pos, chunk_size_xy, size, Search::never_continue());
+    const auto path = A.Dijkstra<0, false>(w, npc, r.pos, chunk_size_xy, size, Search::never_continue);
     fm_assert(path.is_found());
     fm_assert(path.path().back() == r.pos);
     fm_assert(cant_be_shot(w, threat, r.pos, size));
@@ -367,9 +367,9 @@ void test_spot_taken()
     const auto spot = find(w, npc, threat, 3*tile_size_xy, 8);
     fm_assert(spot.found);
     const auto other = add_critter(w, spot.pos);
-    const auto r = find(w, npc, threat, 3*tile_size_xy, 8, body, Search::never_continue());
+    const auto r = find(w, npc, threat, 3*tile_size_xy, 8, body, Search::never_continue);
     fm_assert(r.found);
-    fm_assert(passable(w, r.pos, body, Search::never_continue()));
+    fm_assert(passable(w, r.pos, body, Search::never_continue));
     w[ch].remove_object(*other, other->index());
     fm_assert(cant_be_shot(w, threat, r.pos));
 }
@@ -379,7 +379,7 @@ void test_spot_taken()
 Cover::Point::result find_listed(world& w, point npc, point threat, u32 radius)
 {
     const auto r0 = find(w, npc, threat, radius, 8);
-    const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters(), true);
+    const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters, true);
     fm_assert(r.found == r0.found);
     fm_assert(r.pos == r0.pos && r.axis == r0.axis);
     fm_assert_equal(r0.candidates, r.candidates);
@@ -415,9 +415,9 @@ void test_lists_cover_spots()
     Cover::Point::finder fresh;
     Grid::GridRegistry pools;
     const auto r1 = fresh.find(w, pools, Grid::Cover::Params{8}, {npc, body, threat, radius},
-                                           Search::without_critters(), true);
+                                           Search::without_critters, true);
     // Spots left over from a search on the other side of the wall would show in the next list.
-    const auto other = find(w, point{ch, {10, 8}, {}}, point{ch, {2, 8}, {}}, radius, 8, body, Search::without_critters(), true);
+    const auto other = find(w, point{ch, {10, 8}, {}}, point{ch, {2, 8}, {}}, radius, 8, body, Search::without_critters, true);
     fm_assert(!other.spots.isEmpty());
     const auto r = find_listed(w, npc, threat, radius);
     fm_assert(r.spots.size() > 1);
@@ -442,7 +442,7 @@ void test_max_fills()
     Cover::Point::query q{npc, body, threat, radius, 3};
     const auto whole = [&] {
         Grid::GridRegistry pools;
-        return finder.find(w, pools, Grid::Cover::Params{8}, q, Search::without_critters());
+        return finder.find(w, pools, Grid::Cover::Params{8}, q, Search::without_critters);
     }();
     fm_assert(whole.found && !whole.out_of_fills);
     fm_assert(whole.fills > 2);
@@ -453,7 +453,7 @@ void test_max_fills()
     Cover::Point::result r;
     do
     {
-        r = finder.find(w, pools, Grid::Cover::Params{8}, q, Search::without_critters());
+        r = finder.find(w, pools, Grid::Cover::Params{8}, q, Search::without_critters);
         fm_assert(r.fills <= 1);
         fm_assert(!r.out_of_fills || r.fills == 1 && !r.found);
         fills += r.fills;
@@ -466,7 +466,7 @@ void test_max_fills()
     fm_assert(r.found && r.pos == whole.pos && r.axis == whole.axis);
 
     q.max_fills = 0;
-    const auto warm = finder.find(w, pools, Grid::Cover::Params{8}, q, Search::without_critters());
+    const auto warm = finder.find(w, pools, Grid::Cover::Params{8}, q, Search::without_critters);
     fm_assert(warm.found && !warm.out_of_fills && warm.fills == 0 && warm.pos == whole.pos);
 }
 
@@ -500,7 +500,7 @@ void check_lists_by_area(world& w, point npc, point threat, u8 octants, u32 max_
     Grid::GridRegistry pools;
     const auto search = [&](Optional<Range2Di> area) {
         return finder.find(w, pools, Grid::Cover::Params{8}, {npc, body, threat, radius, octants, max_cover_end_dist, area},
-                                       Search::without_critters(), true);
+                                       Search::without_critters, true);
     };
     const auto whole = search({});
     Array<Cover::Point::spot> spots;
@@ -595,11 +595,11 @@ void test_octants_wall_middle()
     const point npc{ch, {4, 8}, {}}, threat{ch, {12, 8}, {}};
     const auto T = Vector3i(threat).xy();
     constexpr auto radius = 3*tile_size_xy;
-    const auto r0 = find(w, npc, threat, radius, 8, body, Search::without_critters(), true);
+    const auto r0 = find(w, npc, threat, radius, 8, body, Search::without_critters, true);
     fm_assert(r0.found);
     const auto spots0 = copy_spots(r0);
     const auto pos0 = r0.pos;
-    const auto r3 = find(w, npc, threat, radius, 8, body, Search::without_critters(), true, 3);
+    const auto r3 = find(w, npc, threat, radius, 8, body, Search::without_critters, true, 3);
     fm_assert(r3.found && r3.pos == pos0);
     const auto spots3 = copy_spots(r3);
 
@@ -631,10 +631,10 @@ void test_octants_turned_threat_sees()
     const point npc{ch, {4, 6}, {}};
     const auto T = Vector2i{634, 499};
     constexpr auto radius = 3*tile_size_xy;
-    const auto r0 = find(w, npc, at_px(T), radius, 8, body, Search::without_critters(), true);
+    const auto r0 = find(w, npc, at_px(T), radius, 8, body, Search::without_critters, true);
     fm_assert(r0.found);
     const auto spots0 = copy_spots(r0);
-    const auto r3 = find(w, npc, at_px(T), radius, 8, body, Search::without_critters(), true, 3);
+    const auto r3 = find(w, npc, at_px(T), radius, 8, body, Search::without_critters, true, 3);
     fm_assert(!r3.found);
     fm_assert_equal(r3.candidates, r3.rejected);
     for (const auto p : spots0)
@@ -673,8 +673,8 @@ void test_moves_to_cover_end(u8 octants, bool north_leg)
     const point npc{ch, {6, 8}, {0, -12}}, threat{ch, {12, 8}, {}};
     const auto T = Vector3i(threat).xy();
     constexpr auto radius = 3*(u32)tile_size_xy, max_cover_end_dist = 2*(u32)tile_size_xy;
-    const auto r0 = find(w, npc, threat, radius, 8, body, Search::without_critters(), false, octants);
-    const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters(), false, octants, max_cover_end_dist);
+    const auto r0 = find(w, npc, threat, radius, 8, body, Search::without_critters, false, octants);
+    const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters, false, octants, max_cover_end_dist);
     fm_assert(r0.found && r.found && r.axis == r0.axis && r.axis == Vector2i{1, 0});
     const auto p0 = Vector3i(r0.pos).xy(), p = Vector3i(r.pos).xy();
     fm_assert(p.x() == p0.x());
@@ -790,7 +790,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
     // The peek is along y, so the body's width along the wall is body.y().
     const auto seen = [&](point p) {
         const auto gun = gun_at(p, threat_pos, (int)body.y()/2);
-        return raycast(w, threat_pos, gun, threat->id, pool, Search::without_critters()).success;
+        return raycast(w, threat_pos, gun, threat->id, pool, Search::without_critters).success;
     };
     fm_assert(seen(peek.pos));
     fm_assert(!seen(peek.pos - Vector2i{0, peek_offset.y() > 0 ? 1 : -1}));
@@ -850,7 +850,7 @@ void cover_scene::step() { step_critter(w, npc, frame); }
 
 bool cover_scene::seen_from(point threat_pos, point pos)
 {
-    return raycast(w, threat_pos, pos, threat->id, ray_pool, Search::without_critters()).success;
+    return raycast(w, threat_pos, pos, threat->id, ray_pool, Search::without_critters).success;
 }
 
 void cover_scene::move_threat(point pos)
@@ -1217,7 +1217,7 @@ void test_cover_script_peek_beside_critter()
 bool gun_seen(world& w, point threat, point pos)
 {
     Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}};
-    return raycast(w, threat, gun_at(pos, threat, (int)body.y()/2), 0, pool, Search::without_critters()).success;
+    return raycast(w, threat, gun_at(pos, threat, (int)body.y()/2), 0, pool, Search::without_critters).success;
 }
 
 // Checks the walk from spot to its peek with the default gun point, cover script and threat at threat_pos.
@@ -1660,7 +1660,7 @@ void test_cover_script_flanked_searches_from_retreat_end(point peek)
     wall_in_east_cover(s.w);
 
     s.move_threat(west);
-    const auto r = find(s.w, peek, west, 5*tile_size_xy, 8, body, Search::never_continue(), false,
+    const auto r = find(s.w, peek, west, 5*tile_size_xy, 8, body, Search::never_continue, false,
                         Cover::Script::options{}.octants);
     fm_assert(r.found && walled_in(r.pos));
     s.step();
@@ -1687,7 +1687,7 @@ void test_cover_script_seek_no_path()
     Cover::Script::set_options(*s.npc, walled_in_options());
     wall_in_east_cover(s.w);
     const auto t0 = s.status();
-    const auto r = find(s.w, s.npc->position(), west, 5*tile_size_xy, 8, body, Search::never_continue(), false,
+    const auto r = find(s.w, s.npc->position(), west, 5*tile_size_xy, 8, body, Search::never_continue, false,
                         Cover::Script::options{}.octants);
     fm_assert(r.found && walled_in(r.pos));
     s.step();
@@ -1842,7 +1842,7 @@ void test_cover_script_no_path_opened()
     cover_scene s{west};
     auto south = start_no_path_search(s).south;
     const auto o = walled_in_options();
-    const auto r = find(s.w, s.npc->position(), west, 5*tile_size_xy, 8, body, Search::never_continue(), false,
+    const auto r = find(s.w, s.npc->position(), west, 5*tile_size_xy, 8, body, Search::never_continue, false,
                         o.octants, o.max_cover_end_dist);
     fm_assert(r.found && walled_in(r.pos));
     const auto gen = s.w.pass_gen();

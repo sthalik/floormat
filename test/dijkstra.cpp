@@ -57,7 +57,7 @@ void add_floors(world& w, point from, u32 max_dist, u32 cell)
 bool box_free(world& w, point pt, Vector2ui size)
 {
     const auto min = Vector2(intra_coord{pt}.center_shifted() - Vector2i(size/2u));
-    return Search::is_passable(w, pt.chunk3(), Range2D::fromSize(min, Vector2(size)), Search::without_critters());
+    return Search::is_passable(w, pt.chunk3(), Range2D::fromSize(min, Vector2(size)), Search::without_critters);
 }
 
 void add_block(world& w, local_coords tile, Vector2ub bbox_size, Vector2b bbox_offset = {})
@@ -89,7 +89,7 @@ void check_flush_goal(const char* name, u32 bbox, F&& setup, Vector2b goal_offse
     fm_assert(box_free(w, goal, Vector2ui(bbox)));
     fm_assert(!box_free(w, point::normalize_coords(goal, toward), Vector2ui(bbox)));
 
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     auto A = astar{};
     auto& pool16 = A.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass});
     auto pool8 = Grid::Pass::Pool{Grid::Pass::Params{8, bbox, pass_mode::pass}};
@@ -175,7 +175,7 @@ void check_closed_start_cell(u32 bbox, i8 start_x)
     c.mark_passability_modified();
     c.ensure_passability();
 
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     auto A = astar{};
     auto pool = Grid::Pass::Pool{Grid::Pass::Params{bbox, bbox, pass_mode::pass}};
     fm_assert(pool.params().div_size() == bbox);
@@ -200,7 +200,7 @@ void test_odd_body_corridor(u32 bbox)
     constexpr i8 goal_x = -8;
     const auto from = point{global_coords{flush_ch, {8, 12}}, {goal_x, 0}};
     const auto goal = point{global_coords{flush_ch, flush_tile}, {goal_x, 0}};
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     auto A = astar{};
     const auto registry_params = Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass};
     const auto d = (int)registry_params.div_size();
@@ -226,7 +226,7 @@ void test_odd_body_corridor(u32 bbox)
 
     auto r1 = A.Dijkstra<0, false>(w, exact, from, goal, max_dist, Vector2ui(bbox), pred);
     fm_assert(r1.is_found());
-    auto r2 = A.Dijkstra<0, false>(w, from, goal, max_dist, Vector2ui(bbox), Search::never_continue());
+    auto r2 = A.Dijkstra<0, false>(w, from, goal, max_dist, Vector2ui(bbox), Search::never_continue);
     if (!r2.is_found())
         fm_abort("odd body corridor bbox %u: registry pool has bbox %u", bbox, registry_params.bbox_size);
     fm_assert(r2.cost() == r1.cost());
@@ -240,7 +240,7 @@ void test_cache_margin()
     const auto from = point{global_coords{flush_ch, {15, 8}}, {31, 0}};
     const auto goal = [](u8 tx, i8 ox) { return point{global_coords{{1, 0, 0}, {tx, 8}}, {ox, 0}}; };
     const auto max_dist = [&](point to) { return point::distance(from, to) + 7; };
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     auto A = astar{};
     auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, cell, pass_mode::pass}};
 
@@ -277,7 +277,7 @@ void test_large_search_limit()
     auto w = world();
     auto A = astar{};
     const auto search = [&](Vector2i off, u32 dist) {
-        return A.Dijkstra<0, false>(w, from, from + off, dist, Vector2ui{cell}, Search::never_continue());
+        return A.Dijkstra<0, false>(w, from, from + off, dist, Vector2ui{cell}, Search::never_continue);
     };
     const auto near = Vector2i{97, 53};
     const auto small = search(near, 1024), large = search(near, max_dist);
@@ -354,7 +354,7 @@ void check_pocket(u32 cell, bool boxed_goal)
     const auto from = point{global_coords{flush_ch, {5, 8}}, {3, 3}};
     const auto goal = point{global_coords{flush_ch, {11, 8}}, {-5, 7}};
     const char* const name = boxed_goal ? "pocket, boxed goal" : "pocket";
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     auto A = astar{};
     auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
     fm_assert(pool.params().div_size() == cell);
@@ -400,7 +400,7 @@ void check_seeds_past_max_dist(u32 cell)
     constexpr u32 size = 32;
     const auto pocket = point{global_coords{flush_ch, {5, 8}}, {3, 3}};
     const auto open = point{global_coords{flush_ch, {11, 8}}, {-5, 7}};
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     auto A = astar{};
     auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
 
@@ -434,7 +434,7 @@ void check_corridor_goal(u32 cell)
     constexpr int corridor_west = 576;
     const auto from = point{global_coords{flush_ch, {13, 8}}, {}};
     const auto goal = point{global_coords{flush_ch, room_tile}, {5, 0}};
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     auto A = astar{};
     auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
 
@@ -483,7 +483,7 @@ void check_post_field()
     constexpr int post = 16, pitch = post + (int)size - 1 + 3;
     const auto from = point{global_coords{flush_ch, flush_tile}, {pitch/2, pitch/2}};
     const auto goal = point{global_coords{flush_ch, {12, 8}}, {}};
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     auto A = astar{};
     auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
 
@@ -521,7 +521,7 @@ void check_walled_off_goal(bool open)
     const auto goal = point{global_coords{flush_ch, room}, {}};
     const auto corridor = point::normalize_coords(goal, {40, 0});
     const char* const name = open ? "open room" : "closed room";
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     auto A = astar{};
     auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
     fm_assert(pool.params().div_size() == cell);
@@ -649,7 +649,7 @@ void check_critter_corridor(u32 cell)
         const auto pred = Search::blocks_all_but(S->id);
         fm_assert(A.Dijkstra<0, false>(w, pool, west, east, max_dist, Vector2ui{size}, Search::pred{pred}).is_found());
     }
-    const auto& any = Search::without_critters();
+    const Search::pred any{Search::without_critters};
     {
         auto r = A.Dijkstra<0, false>(w, objects, west, east, max_dist, Vector2ui{size}, any);
         fm_assert(r.is_found());
@@ -705,7 +705,7 @@ void check_searcher_own_body(u32 cell)
     const Search::pred pred{pred_fn};
     if (!A.Dijkstra<0, false>(w, objects, from, goal, max_dist, Vector2ui{size}, pred).is_found())
         fm_abort("searcher's own body at div %u: no path", cell);
-    const auto& all = Search::never_continue();
+    const Search::pred all{Search::never_continue};
     fm_assert(!A.Dijkstra<0, false>(w, objects, from, goal, max_dist, Vector2ui{size}, all).is_found());
 }
 
@@ -878,7 +878,7 @@ void Test::test_dijkstra()
         }
 
     const auto goal = point{wpos, {wox, woy}};
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
 
     const auto run = [&]<bool debug, bool closest = true>(point to) {
             return A.Dijkstra<debug ? 1 : 0, closest>(

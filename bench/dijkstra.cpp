@@ -3,6 +3,7 @@
 #include "src/grid-pass.hpp"
 #include "src/point.hpp"
 #include "src/world.hpp"
+#include "compat/function-view.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>
 #include <cr/Optional.h>
@@ -73,7 +74,7 @@ void Dijkstra(benchmark::State& state)
         return A.Dijkstra<Debug>(w, from,
                                  {wpos, {wox, woy}},   // to
                                  max_dist, own_size,
-                                 Search::without_critters());
+                                 Search::without_critters);
     };
 
     {

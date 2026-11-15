@@ -500,8 +500,8 @@ void test_hole_tree()
 
     const auto ctr = Vector2{15, 8} * tile_size<Vector2>;
     const auto solid = ctr + Vector2{24, 0};
-    fm_assert(Search::is_passable_1(c, ctr - Vector2{4}, ctr + Vector2{4}, Search::without_critters()));
-    fm_assert(!Search::is_passable_1(c, solid - Vector2{4}, solid + Vector2{4}, Search::without_critters()));
+    fm_assert(Search::is_passable_1(c, ctr - Vector2{4}, ctr + Vector2{4}, Search::without_critters));
+    fm_assert(!Search::is_passable_1(c, solid - Vector2{4}, solid + Vector2{4}, Search::without_critters));
 
     u32 found = 0;
     chunk::get_all_holes_in_bbox([&](Math::Range2D<float>, Math::Range1D<u8>) { found++; },
@@ -523,7 +523,7 @@ Optional<collision_data> entry_at(chunk& c, Vector2 pt)
 
 bool passable_at(chunk& c, Vector2 pt)
 {
-    return Search::is_passable_1(c, pt - Vector2{2}, pt + Vector2{2}, Search::without_critters());
+    return Search::is_passable_1(c, pt - Vector2{2}, pt + Vector2{2}, Search::without_critters);
 }
 
 void test_odd_hole()

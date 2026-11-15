@@ -187,7 +187,7 @@ void test_bbox()
     };
 
     constexpr auto neighbors = [](world& w, chunk_coords_ ch, Vector2i pos) {
-        return neighbor_tiles(w, { ch, pos }, {}, never_continue());
+        return neighbor_tiles(w, { ch, pos }, {}, never_continue);
     };
 
     const auto wall = loader.invalid_wall_atlas().atlas;
@@ -380,7 +380,7 @@ bool is_segment_clear(world& w, point a, point b, Vector2ui size)
     const auto ch = a.chunk3();
     const auto origin = point{ch, {}, {}};
     const auto line = rc::bresenham_line{a - origin, b - origin};
-    return !find_swept_collider(w, ch, line, 0, line.steps(), size, never_continue()).has_collider;
+    return !find_swept_collider(w, ch, line, 0, line.steps(), size, never_continue).has_collider;
 }
 
 // Every segment is swept without a pool, so against the R-tree everywhere.
@@ -406,9 +406,9 @@ void check_pulled(world& w, const path_search_result& res, Vector2ui size, astar
 
 path_search_result pull(astar& A, world& w, point from, point to)
 {
-    auto res = A.Dijkstra(w, from, to, pull_max_dist, pull_bbox, never_continue());
+    auto res = A.Dijkstra(w, from, to, pull_max_dist, pull_bbox, never_continue);
     fm_assert(res.is_found());
-    check_pulled(w, res, pull_bbox, A.string_pull(w, res, pull_bbox, never_continue()));
+    check_pulled(w, res, pull_bbox, A.string_pull(w, res, pull_bbox, never_continue));
     return res;
 }
 
@@ -477,7 +477,7 @@ void test_string_pull_hidden_corner()
     for (auto px : { Vector2i{200, 500}, Vector2i{600, 500}, Vector2i{600, 300} })
         arrayAppend(res.raw_path(), origin + px);
     auto A = astar{};
-    check_pulled(w, res, size, A.string_pull(w, res, size, never_continue()));
+    check_pulled(w, res, size, A.string_pull(w, res, size, never_continue));
 
     const auto& sp = res.smoothings();
     fm_assert(sp.size() == 4);
@@ -500,7 +500,7 @@ void test_string_pull_truncate()
     for (auto px : { Vector2i{416, 492}, Vector2i{512, 492}, Vector2i{544, 524}, Vector2i{812, 562} })
         arrayAppend(res.raw_path(), origin + px);
     auto A = astar{};
-    const auto st = A.string_pull(w, res, size, never_continue());
+    const auto st = A.string_pull(w, res, size, never_continue);
     check_pulled(w, res, size, st);
     fm_assert(res.smoothings().size() == 2 && st.corners_added >= 1);
 }
@@ -522,7 +522,7 @@ void test_string_pull_last_visible()
     for (auto px : { from, mid, to })
         arrayAppend(res.raw_path(), origin + px);
     auto A = astar{};
-    check_pulled(w, res, size, A.string_pull(w, res, size, never_continue()));
+    check_pulled(w, res, size, A.string_pull(w, res, size, never_continue));
 
     const auto& sp = res.smoothings();
     fm_assert(sp.size() == 3);
@@ -551,11 +551,11 @@ void test_string_pull_random(u32 cell)
         const auto from = point{pull_ch, {1, (u8)rnd(16)}, {(i8)((int)rnd(41) - 20), (i8)((int)rnd(41) - 20)}};
         const auto to = point{pull_ch, {14, (u8)rnd(16)}, {(i8)((int)rnd(41) - 20), (i8)((int)rnd(41) - 20)}};
         auto pool = Pass::Pool{Pass::Params{cell, size.x(), pass_mode::pass}};
-        auto res = A.Dijkstra(w, pool, from, to, pull_max_dist, size, without_critters());
+        auto res = A.Dijkstra(w, pool, from, to, pull_max_dist, size, without_critters);
         if (!res.is_found())
             continue;
         found++;
-        check_pulled(w, res, size, A.string_pull(w, pool, res, size, without_critters()));
+        check_pulled(w, res, size, A.string_pull(w, pool, res, size, without_critters));
     }
     fm_assert(found >= 16);
 }
@@ -578,8 +578,8 @@ void check_seed_search(std::initializer_list<pillar> pillars, Vector2b from_offs
         if (cell > bbox)
             continue;
         auto pool = Pass::Pool{Pass::Params{cell, bbox, pass_mode::pass}};
-        auto res = A.Dijkstra<0, true>(w, pool, from, to, pull_max_dist, size, without_critters());
-        const auto res2 = A.Dijkstra<0, false>(w, pool, from, to, pull_max_dist, size, without_critters());
+        auto res = A.Dijkstra<0, true>(w, pool, from, to, pull_max_dist, size, without_critters);
+        const auto res2 = A.Dijkstra<0, false>(w, pool, from, to, pull_max_dist, size, without_critters);
         if (res.is_found() != found || res2.is_found() != found)
             fm_abort("seed search to (%d, %d) at cell %u: found %d, without closest %d",
                      (int)to_tile.x, (int)to_tile.y, cell, (int)res.is_found(), (int)res2.is_found());
@@ -590,7 +590,7 @@ void check_seed_search(std::initializer_list<pillar> pillars, Vector2b from_offs
         fm_assert(raw.front() == from && raw.back() == to);
         for (auto i = 0uz; i + 1 < raw.size(); i++)
             fm_assert(is_segment_clear(w, raw[i], raw[i+1], size));
-        check_pulled(w, res, size, A.string_pull(w, pool, res, size, without_critters()));
+        check_pulled(w, res, size, A.string_pull(w, pool, res, size, without_critters));
     }
 }
 

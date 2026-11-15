@@ -17,6 +17,7 @@
 #include "src/wall-atlas.hpp"
 #include "src/RTree-search.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/function-view.hpp"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"
 #include "loader/loader.hpp"
@@ -84,7 +85,7 @@ auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
 {
     constexpr float fuzz = TILE_SIZE2.x();
     auto diag = rc::raycast_diag_s{};
-    auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue());
+    auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue);
     if (res.success != b)
     {
         fm_error("success != %s", b ? "true" : "false");
@@ -194,7 +195,7 @@ bool run_dense(Pass::Pool& pool, point from, point to_orig, world& w)
         return false;
     }
     auto to = project_to(from, to_orig, 2);
-    auto res = raycast(w, from, to, 0, pool, Search::never_continue());
+    auto res = raycast(w, from, to, 0, pool, Search::never_continue);
     if (res.success)
     {
         fm_error("ray did not hit (success=true means no collision)");
@@ -311,8 +312,8 @@ void Raycast_Critters_Doors(benchmark::State& st)
         hits = 0;
         for (auto i = 0u; i < ray_count; i++)
         {
-            const auto res = objects ? raycast(w, from[i], to[i], 0, object_pool, Search::without_critters())
-                                     : raycast(w, from[i], to[i], 0, pass_pool, Search::without_critters());
+            const auto res = objects ? raycast(w, from[i], to[i], 0, object_pool, Search::without_critters)
+                                     : raycast(w, from[i], to[i], 0, pass_pool, Search::without_critters);
             hits += !res.success;
         }
     };

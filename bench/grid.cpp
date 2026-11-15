@@ -285,7 +285,7 @@ Cover::Point::query make_cover_query(world& w, const find_case& f)
     const auto threat = f.npc + Vector2i(Math::round(Vector2{Math::cos(a), Math::sin(a)} * f.dist));
     const auto npc = point{Vector3i{f.npc, 0}};
     const auto min = Vector2(npc.intra().center_shifted() - Vector2i(cover_body/2u));
-    fm_assert(Search::is_passable(w, npc.chunk3(), Range2D::fromSize(min, Vector2(cover_body)), Search::never_continue()));
+    fm_assert(Search::is_passable(w, npc.chunk3(), Range2D::fromSize(min, Vector2(cover_body)), Search::never_continue));
     return { npc, cover_body, point{Vector3i{threat, 0}}, 3*(u32)tile_size_xy };
 }
 
@@ -318,7 +318,7 @@ void Cover_Find(benchmark::State& state)
     const auto q = make_cover_query(w, find_cases[state.range(1)]);
     Grid::GridRegistry pools;
     Cover::Point::finder finder;
-    const auto& pred = Search::never_continue();
+    const Search::pred pred{Search::never_continue};
     auto r = finder.find(w, pools, params, q, pred);
     for (auto _ : state)
         r = finder.find(w, pools, params, q, pred);
@@ -348,7 +348,7 @@ void Cover_Find_Octants(benchmark::State& state)
             cover_pool[w[ch]].build_if_stale();
         });
         state.ResumeTiming();
-        r = finder.find(w, *pools, params, q, Search::never_continue());
+        r = finder.find(w, *pools, params, q, Search::never_continue);
     }
     set_find_counters(state, r);
     set_fill_counters(state, w, pools->cover_pool(params), 9);
@@ -370,7 +370,7 @@ void Cover_Find_Fresh(benchmark::State& state)
         pools = NullOpt;
         pools.emplace();
         state.ResumeTiming();
-        r = finder.find(w, *pools, params, q, Search::never_continue());
+        r = finder.find(w, *pools, params, q, Search::never_continue);
     }
     set_find_counters(state, r);
     set_fill_counters(state, w, pools->cover_pool(params), 0);

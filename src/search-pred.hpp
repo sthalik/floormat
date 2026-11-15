@@ -14,17 +14,14 @@ enum class path_search_continue : bool { pass = false, blocked = true };
 
 namespace floormat::Search {
 
-template<typename Chunk = chunk> using Pred = function_view<path_search_continue(Chunk&,collision_data)const>;
-using pred = Pred<chunk>;
-// Range2D is in `Chunk&`'s own chunk-local frame, not the original query's;
+using pred = function_view<path_search_continue(const chunk&,collision_data)const>;
+// Range2D is in `const chunk&`'s own chunk-local frame, not the original query's;
 // cross-chunk consumers must lift via (self.coord() - query_chunk.coord()) * chunk_size.
-template<typename Chunk = chunk>
-using collider_visitor = function_view<path_search_continue(Chunk&,collision_data,Range2D)const>;
+using collider_visitor = function_view<path_search_continue(const chunk&,collision_data,Range2D)const>;
 
-template<typename Chunk = chunk> const Pred<Chunk>& never_continue() noexcept;
-template<typename Chunk = chunk> const Pred<Chunk>& always_continue() noexcept;
-template<typename Chunk = chunk> const Pred<Chunk>& without_critters() noexcept;
-template<typename Chunk = chunk> const Pred<Chunk>& without_dynamic_objects() noexcept;
+constexpr path_search_continue never_continue(const chunk&, collision_data) { return path_search_continue::blocked; }
+path_search_continue without_critters(const chunk& self, collision_data data);
+path_search_continue without_dynamic_objects(const chunk& self, collision_data data);
 
 bool is_dynamic_object(const object& o);
 bool is_dynamic_object(const chunk& c, collision_data x);
@@ -32,7 +29,7 @@ bool is_dynamic_object(const chunk& c, collision_data x);
 // Every collider but self blocks. A pred made from the returned lambda must not outlive it.
 inline auto blocks_all_but(object_id self)
 {
-    return [self](chunk&, collision_data x) {
+    return [self](const chunk&, collision_data x) {
         return x.id == self ? path_search_continue::pass : path_search_continue::blocked;
     };
 }

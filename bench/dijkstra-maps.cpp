@@ -44,7 +44,7 @@ path_search_result search(map_world& s)
 {
     return s.A.Dijkstra<0, false>(s.w, s.pool, s.r.from, s.r.to, s.r.max_dist,
                                   Vector2ui{mazes::bbox_size},
-                                  Search::without_critters());
+                                  Search::without_critters);
 }
 
 void verify(kind k, u32 cell, u32 optimum)
@@ -101,7 +101,7 @@ path_search_result pulled_path(map_world& s)
 {
     auto res = search(s);
     fm_assert(res.is_found());
-    fm_assert(s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::without_critters()));
+    fm_assert(s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::without_critters));
     return res;
 }
 
@@ -111,7 +111,7 @@ void bench_pull(benchmark::State& state)
     map_world s{K, default_cell};
     auto res = pulled_path<K>(s);
     for (auto _ : state)
-        benchmark::DoNotOptimize(s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::without_critters()));
+        benchmark::DoNotOptimize(s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::without_critters));
 }
 
 void String_Pull_Rooms_Critters(benchmark::State& state)
@@ -149,8 +149,8 @@ void String_Pull_Rooms_Critters(benchmark::State& state)
 
     Grid::Object::Pool object_pool{s.pool};
     const auto pull = [&] {
-        return objects ? s.A.string_pull(s.w, object_pool, res, Vector2ui{mazes::bbox_size}, Search::never_continue())
-                       : s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::never_continue());
+        return objects ? s.A.string_pull(s.w, object_pool, res, Vector2ui{mazes::bbox_size}, Search::never_continue)
+                       : s.A.string_pull(s.w, s.pool, res, Vector2ui{mazes::bbox_size}, Search::never_continue);
     };
     auto last = pull();
     fm_assert(last);
@@ -172,7 +172,7 @@ void bench_sweep(benchmark::State& state)
         const auto ch = wp[i].pt.chunk3();
         const auto origin = point{ch, {}, {}};
         const auto line = rc::bresenham_line{wp[i].pt - origin, wp[i+1].pt - origin};
-        return find_swept_collider(s.w, ch, line, 0, line.steps(), Vector2ui{mazes::bbox_size}, Search::without_critters());
+        return find_swept_collider(s.w, ch, line, 0, line.steps(), Vector2ui{mazes::bbox_size}, Search::without_critters);
     };
     for (auto i = 0uz; i + 1 < wp.size(); i++)
         fm_assert(!sweep(i).has_collider);
@@ -237,7 +237,7 @@ struct missing_chunks_world
     path_search_result search()
     {
         return A.Dijkstra<0, false>(w, pool, from, to, max_dist, Vector2ui{mazes::bbox_size},
-                                    Search::without_critters());
+                                    Search::without_critters);
     }
 };
 

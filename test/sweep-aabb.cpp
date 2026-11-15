@@ -130,20 +130,20 @@ void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, u3
 {
     const auto line = rc::bresenham_line{from, to};
     const auto expected = first_blocked_step(w, ch, line, first, last, size);
-    const auto res = find_swept_collider(w, ch, line, first, last, size, Search::never_continue(), pool);
+    const auto res = find_swept_collider(w, ch, line, first, last, size, Search::never_continue, pool);
     if (res.step != expected || res.has_collider != (expected <= last))
         fm_abort("line (%d %d)-(%d %d) steps %u-%u size %ux%u pool %d: step %u, expected %u",
                  from.x(), from.y(), to.x(), to.y(), first, last, size.x(), size.y(),
                  pool ? (int)pool->params().div_size() : 0, res.step, expected);
 
     u32 nearest = last + 1, calls = 0;
-    find_swept_collider(w, ch, line, first, last, size, Search::never_continue(), pool, [&](const swept_collider_result& r) {
+    find_swept_collider(w, ch, line, first, last, size, Search::never_continue, pool, [&](const swept_collider_result& r) {
         fm_assert(r.has_collider && r.step >= first && r.step <= last);
         nearest = Math::min(nearest, r.step);
         return true;
     });
     fm_assert(nearest == expected);
-    find_swept_collider(w, ch, line, first, last, size, Search::never_continue(), pool, [&](const swept_collider_result&) {
+    find_swept_collider(w, ch, line, first, last, size, Search::never_continue, pool, [&](const swept_collider_result&) {
         calls++;
         return false;
     });
@@ -174,7 +174,7 @@ void test_swept_collider_cell_corner()
     Pass::Pool pool{Pass::Params{4, 4, pass_mode::pass}};
     check_swept_line(w, ch, {8, 8}, {24, 24}, 0, 16, Vector2ui{4}, &pool);
     const auto res = find_swept_collider(w, ch, rc::bresenham_line{{8, 8}, {24, 24}}, 0, 16, Vector2ui{4},
-                                         Search::never_continue(), &pool);
+                                         Search::never_continue, &pool);
     fm_assert(res.has_collider && res.step == 8);
 }
 
@@ -255,7 +255,7 @@ void test_swept_collider_flush()
                 w[ch].mark_modified();
 
                 const auto line = rc::bresenham_line{from, from + d * i32(steps)};
-                const auto res = find_swept_collider(w, ch, line, 0, steps, size, Search::never_continue());
+                const auto res = find_swept_collider(w, ch, line, 0, steps, size, Search::never_continue);
                 fm_assert(res.has_collider == (deeper != 0));
                 fm_assert(res.step == (deeper ? steps : steps + 1));
 

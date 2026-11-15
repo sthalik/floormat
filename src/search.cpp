@@ -17,40 +17,8 @@
 
 namespace floormat::Search {
 
-using psc = path_search_continue;
-
 namespace {
 namespace detail {
-
-template<typename Chunk>
-constexpr inline auto never_continueʹʹ = [](Chunk&, collision_data) constexpr { return psc::blocked; };
-
-template<typename Chunk>
-constexpr inline auto never_continueʹ = Pred<Chunk>{never_continueʹʹ<Chunk>};
-template<typename Chunk>
-constexpr inline auto always_continueʹʹ = [](Chunk&, collision_data) constexpr { return psc::pass; };
-template<typename Chunk>
-constexpr inline auto always_continueʹ = Pred<Chunk>{always_continueʹʹ<Chunk>};
-
-template<typename Chunk>
-constexpr inline auto without_crittersʹʹ = [](Chunk& self, collision_data data) -> path_search_continue {
-    // 'scenery' covers all object types here, including critters
-    if (data.type == (u64)collision_type::scenery)
-    {
-        auto obj = self.world().find_object(data.id);
-        fm_assert(obj);
-        if (obj->type() == object_type::critter)
-            return path_search_continue::pass;
-    }
-    return path_search_continue::blocked;
-};
-template<typename Chunk> constexpr inline auto without_crittersʹ = Pred<Chunk>{without_crittersʹʹ<Chunk>};
-
-template<typename Chunk>
-constexpr inline auto without_dynamic_objectsʹʹ = [](Chunk& self, collision_data data) -> path_search_continue {
-    return is_dynamic_object(self, data) ? path_search_continue::pass : path_search_continue::blocked;
-};
-template<typename Chunk> constexpr inline auto without_dynamic_objectsʹ = Pred<Chunk>{without_dynamic_objectsʹʹ<Chunk>};
 
 template<typename Chunk, typename F>
 bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const F& f)
@@ -115,43 +83,61 @@ bool is_passable_(Chunk* c0, const std::array<Chunk*, 8>& neighbors, Vector2 min
     return is_passable_neighbors_(neighbors, min, max, f);
 }
 
-template<typename World, typename Chunk>
-bool is_passable(World& w, chunk_coords_ ch, const Range2D& bb, const Pred<Chunk>& p)
+template<typename World>
+bool is_passable(World& w, chunk_coords_ ch, const Range2D& bb, const pred& p)
 {
-    Chunk* c = w.at(ch);
+    auto* c = w.at(ch);
     auto neighbors = w.neighbors(ch);
     return is_passable_(c, neighbors, bb.min(), bb.max(), p);
 }
+
 } // namespace detail
 } // namespace
 
-bool is_passable_1(chunk& c, Vector2 min, Vector2 max, const Pred<chunk>& p)
+bool is_passable_1(chunk& c, Vector2 min, Vector2 max, const pred& p)
 { return detail::is_passable_1(c, min, max, p); }
-bool is_passable_1(const chunk& c, Vector2 min, Vector2 max, const Pred<const chunk>& p)
+bool is_passable_1(const chunk& c, Vector2 min, Vector2 max, const pred& p)
 { return detail::is_passable_1(c, min, max, p); }
 
-bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<chunk>& p)
+bool is_passable_(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max, const pred& p)
 { return detail::is_passable_(c0, neighbors, min, max, p); }
-bool is_passable_(const chunk* c0, const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<const chunk>& p)
+bool is_passable_(const chunk* c0, const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max, const pred& p)
 { return detail::is_passable_(c0, neighbors, min, max, p); }
 
-bool is_passable_neighbors_(const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max, const Pred<chunk>& p)
+bool is_passable_neighbors_(const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max, const pred& p)
 { return detail::is_passable_neighbors_(neighbors, min, max, p); }
-bool is_passable_neighbors_(const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max,
-                            const Pred<const chunk>& p)
+bool is_passable_neighbors_(const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max, const pred& p)
 { return detail::is_passable_neighbors_(neighbors, min, max, p); }
 
-bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const Pred<chunk>& p)
+bool is_passable(world& w, chunk_coords_ ch, const Range2D& bb, const pred& p)
 { return detail::is_passable(w, ch, bb, p); }
-bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb, const Pred<const chunk>& p)
+bool is_passable(const world& w, chunk_coords_ ch, const Range2D& bb, const pred& p)
 { return detail::is_passable(w, ch, bb, p); }
 
 bool visit_colliders(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 min, Vector2 max,
-                     const collider_visitor<chunk>& f)
+                     const collider_visitor& f)
 { return detail::is_passable_(c0, neighbors, min, max, f); }
 bool visit_colliders(const chunk* c0, const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max,
-                     const collider_visitor<const chunk>& f)
+                     const collider_visitor& f)
 { return detail::is_passable_(c0, neighbors, min, max, f); }
+
+path_search_continue without_critters(const chunk& self, collision_data data)
+{
+    // 'scenery' covers all object types here, including critters
+    if (data.type == (u64)collision_type::scenery)
+    {
+        auto obj = self.world().find_object(data.id);
+        fm_assert(obj);
+        if (obj->type() == object_type::critter)
+            return path_search_continue::pass;
+    }
+    return path_search_continue::blocked;
+}
+
+path_search_continue without_dynamic_objects(const chunk& self, collision_data data)
+{
+    return is_dynamic_object(self, data) ? path_search_continue::pass : path_search_continue::blocked;
+}
 
 bool is_dynamic_object(const object& o)
 {
@@ -177,19 +163,5 @@ bool is_dynamic_object(const chunk& c, collision_data x)
     fm_assert(obj);
     return is_dynamic_object(*obj);
 }
-
-template<typename Chunk> const Pred<Chunk>& never_continue() noexcept { return detail::never_continueʹ<Chunk>; }
-template<typename Chunk> const Pred<Chunk>& always_continue() noexcept { return detail::always_continueʹ<Chunk>; }
-template<typename Chunk> const Pred<Chunk>& without_critters() noexcept { return detail::without_crittersʹ<Chunk>; }
-template<typename Chunk> const Pred<Chunk>& without_dynamic_objects() noexcept { return detail::without_dynamic_objectsʹ<Chunk>; }
-
-template const Pred<chunk>& never_continue() noexcept;
-template const Pred<const chunk>& never_continue() noexcept;
-template const Pred<chunk>& always_continue() noexcept;
-template const Pred<const chunk>& always_continue() noexcept;
-template const Pred<chunk>& without_critters() noexcept;
-template const Pred<const chunk>& without_critters() noexcept;
-template const Pred<chunk>& without_dynamic_objects() noexcept;
-template const Pred<const chunk>& without_dynamic_objects() noexcept;
 
 } // namespace floormat::Search

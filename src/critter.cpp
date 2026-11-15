@@ -261,7 +261,7 @@ std::array<free_steps_result, 2> free_steps(critter& C, ArrayView<const run_s> r
         }
     };
 
-    const auto pred = [&](class chunk& c, collision_data x, Range2D rect) {
+    const auto pred = [&](const class chunk& c, collision_data x, Range2D rect) {
         if (x.id == self_id)
             return path_search_continue::pass;
         // visit_colliders() passes rect in c's frame
@@ -681,7 +681,7 @@ auto critter::move_toward(usize& index, Ns& dt, const point& from, const point& 
     const auto bb_off = Vector2i(bbox_offset);
     const auto box_line = rc::bresenham_line{from - origin + bb_off, dest - origin + bb_off};
     const auto self_id = id;
-    const auto pred = [self_id](class chunk&, collision_data x) {
+    const auto pred = [self_id](const class chunk&, collision_data x) {
         return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
     };
     const auto res = find_swept_collider(world(), ch, box_line, k, k + n, Vector2ui(bbox_size), pred);

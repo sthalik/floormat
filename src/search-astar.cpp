@@ -816,7 +816,7 @@ struct astar::seed_search
         Search::visit_colliders(source.c, source.neighbors,
                                 source.center - Vector2{(float)R} - source.own_lo,
                                 source.center + Vector2{(float)R} + source.own_hi,
-                                [&](chunk& c, collision_data data, Range2D r) {
+                                [&](const chunk& c, collision_data data, Range2D r) {
             if (bm.p(c, data) == path_search_continue::pass)
                 return path_search_continue::pass;
             // r is in c's frame

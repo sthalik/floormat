@@ -139,7 +139,7 @@ struct spot_tests
     Vector2i move_spot_to_cover_end(Vector2i pos, Vector2i axis, Vector2i across);
 
     world& w;
-    const Search::pred& pred;
+    Search::pred pred;
     Array<slope_range>& runs;
     Array<Range2Di>& turned_rects;
     Array<Range2Di>& end_rects;
@@ -200,7 +200,7 @@ void spot_tests::collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi, Arra
                 const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
                 const auto pmin = Vector2i(Math::ceil(range.min())), pmax = Vector2i(Math::ceil(range.max()));
                 if (x.pass < min_pass && (pmin < pmax).all()
-                    && Search::without_critters()(*c, x) != path_search_continue::pass)
+                    && Search::without_critters(*c, x) != path_search_continue::pass)
                     arrayAppend(out, Range2Di{(pmin + origin - threat)*2 - Vector2i{1}, (pmax + origin - threat)*2 - Vector2i{1}});
                 return true;
             });
@@ -741,7 +741,7 @@ bool finder::hidden_at(world& w, point threat, const spot& s, Vector2ui body_siz
 {
     fm_assert(s.pos.chunk3().z == threat.chunk3().z);
     auto& I = *impl;
-    spot_tests X{w, {s.pos, body_size, threat, 0}, Search::never_continue(), I.runs, I.turned_rects, I.end_rects};
+    spot_tests X{w, {s.pos, body_size, threat, 0}, Search::never_continue, I.runs, I.turned_rects, I.end_rects};
     return X.hidden_from(X.T, X.P, s.axis, I.rects);
 }
 

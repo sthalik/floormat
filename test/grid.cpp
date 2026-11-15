@@ -1194,7 +1194,7 @@ void test_bit_matches_every_position()
     fm_assert(pool.params().div_size() == div_size);
     fm_assert(pool.params().bbox_size == bbox_size);
 
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     const auto dc = g.div_count();
     constexpr int d = (int)div_size;
     constexpr auto bb_lo = (float)(bbox_size / 2), bb_hi = (float)bbox_size - bb_lo;
@@ -1334,7 +1334,7 @@ constexpr exact_config exact_configs[] = {
 bool cell_is_passable(chunk& c, const std::array<chunk*, 8>& nbs, int i, int j, int d, u32 bbox_size,
                       const Search::pred& p, pass_mode min_pass = pass_mode::pass)
 {
-    const auto q = [&](chunk& ch, collision_data x) {
+    const auto q = [&](const chunk& ch, collision_data x) {
         return x.pass >= (u64)min_pass ? path_search_continue::pass : p(ch, x);
     };
     const Search::pred pred{q};
@@ -1376,7 +1376,7 @@ void test_bit_exact(const exact_config& cfg)
     fm_assert(pool.params().bbox_size == cfg.bbox_size);
 
     const auto nbs = w.neighbors(COORD);
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
     const int dc = (int)g.div_count(), d = (int)cfg.div_size;
 
     // scenery_tile(): center - bbox_size/2, then + bbox_size
@@ -1426,7 +1426,7 @@ void test_hole_marker_never_blocks(u32 div_size, pass_mode hole_pass)
     fm_assert(c.rtree()->Count() == 0);
     fm_assert(c.hole_rtree()->Count() == 1);
     constexpr auto ctr = Vector2(tile_size_xy*8);
-    fm_assert(Search::is_passable_1(c, ctr - Vector2{8}, ctr + Vector2{8}, Search::without_critters()));
+    fm_assert(Search::is_passable_1(c, ctr - Vector2{8}, ctr + Vector2{8}, Search::without_critters));
 
     Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
     tick(w, pool);
@@ -1573,7 +1573,7 @@ float cover_ray_px(chunk& c, u32 x, u32 y, u32 div_size, Vector2i delta, Pass::P
     const auto half = (i32)(div_size / 2);
     const point from{c.coord(), intra_coord{Vector2i{(i32)(x*div_size) + half, (i32)(y*div_size) + half}}};
     const point to = from + delta;
-    const auto r = raycast(c.world(), from, to, 0, pass_pool, Search::without_critters());
+    const auto r = raycast(c.world(), from, to, 0, pass_pool, Search::without_critters);
     const auto px = !r.has_result || r.success ? (float)chunk_size_xy : Vector2(r.collision - from).length();
     return Math::min(px, (float)chunk_size_xy);
 }
@@ -2824,13 +2824,13 @@ void test_registry_grids_after_door_changes()
                     if (ga.bit(i) != gb.bit(i) || g_kept.bit(i) != gb.bit(i))
                     {
                         ERR << "!!! fatal:" << what << "min_pass" << (int)p.min_pass << "chunk" << x << y
-                            << "cell" << i % dc << i / dc << "static" << ga.bit(i) << "without_critters()"
+                            << "cell" << i % dc << i / dc << "static" << ga.bit(i) << "without_critters"
                             << g_kept.bit(i) << "but fresh" << gb.bit(i);
                         fm_abort("a pass grid differs from a fresh one");
                     }
-                check_cells(what, c, p, ga, go, "without_critters()", Search::without_critters(), entry_blocked,
+                check_cells(what, c, p, ga, go, "without_critters", Search::without_critters, entry_blocked,
                             dynamic_object);
-                check_cells(what, c, p, ga, go, "never_continue()", Search::never_continue(), entry_blocked,
+                check_cells(what, c, p, ga, go, "never_continue", Search::never_continue, entry_blocked,
                             dynamic_object);
             });
         }
@@ -2899,7 +2899,7 @@ void test_registry_grids_after_door_changes()
                         {
                             if (!window.contains({i, j}))
                                 continue;
-                            const bool v = cell_is_passable(c, nbs, i, j, d, p.bbox_size, Search::without_critters(),
+                            const bool v = cell_is_passable(c, nbs, i, j, d, p.bbox_size, Search::without_critters,
                                                             p.min_pass);
                             if (!rebuilt)
                                 bits[k] = v;
@@ -3031,10 +3031,10 @@ void test_grids_after_critter_changes()
                 if (a.bit(i) != s.bit(i))
                 {
                     ERR << "!!! fatal:" << what << "chunk" << x << y << "cell" << i % dc << i / dc
-                        << "never_continue()" << a.bit(i) << "but static" << s.bit(i);
+                        << "never_continue" << a.bit(i) << "but static" << s.bit(i);
                     fm_abort("a pass grid differs from the static one");
                 }
-            check_cells(what, c, params, s, o, "never_continue()", Search::never_continue(), entry_blocked,
+            check_cells(what, c, params, s, o, "never_continue", Search::never_continue, entry_blocked,
                         dynamic_object);
         });
     };
@@ -3166,7 +3166,7 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
     for (auto k = 0u; k < ids.size(); k++)
     {
         const auto id = ids[k];
-        const auto only = [id](chunk&, collision_data x) {
+        const auto only = [id](const chunk&, collision_data x) {
             return x.id == id ? path_search_continue::blocked : path_search_continue::pass;
         };
         const Search::pred pred{only};
@@ -3221,7 +3221,7 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
     for (auto k = 0u; k < ids.size(); k++)
     {
         const auto id = ids[k];
-        const auto only = [id](chunk&, collision_data x) {
+        const auto only = [id](const chunk&, collision_data x) {
             return x.id == id ? path_search_continue::blocked : path_search_continue::pass;
         };
         const Search::pred pred{only};
@@ -3358,7 +3358,7 @@ void test_object_grid_crowd()
     const auto all_set = Array<u8>{DirectInit, bytes, (u8)0xff};
     auto masked = Array<u8>{NoInit, bytes};
     Array<bool> entry_blocked;
-    fm_assert(g.blocked_objects(Search::never_continue(), entry_blocked));
+    fm_assert(g.blocked_objects(Search::never_continue, entry_blocked));
     g.mask_pass_bits(all_set, masked, entry_blocked);
     for (auto i = 0u; i < dc*dc; i++)
     {

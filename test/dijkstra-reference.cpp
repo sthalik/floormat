@@ -234,7 +234,7 @@ void check_map(bool for_large_pools, ArrayView<const pool_size> pools)
     make_map(w, for_large_pools);
 
     auto A = astar{};
-    const auto& pred = Search::without_critters();
+    const Search::pred pred{Search::without_critters};
 
     for (auto [cell, bbox] : pools)
     {
