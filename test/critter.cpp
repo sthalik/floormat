@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "run.hpp"
+#include "compat/pairwise.hpp"
 #include "src/point.inl"
 #include "src/world.hpp"
 #include "src/critter.hpp"
@@ -526,8 +527,8 @@ void test_walk_smoothed()
         arrayAppend(sp, x.pt);
     fm_assert(sp.size() == 4);
     float len = 0;
-    for (auto j = 0uz; j + 1 < sp.size(); j++)
-        len += Vector2(sp[j+1] - sp[j]).length();
+    for (const auto& [a, b] : pairwise(sp))
+        len += Vector2(b - a).length();
 
     W.walk(move(res));
     u32 frames = 0, seg = 0;

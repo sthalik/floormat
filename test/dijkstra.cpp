@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
+#include "compat/pairwise.hpp"
 #include "compat/valgrind.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
@@ -657,10 +658,10 @@ void check_critter_corridor(u32 cell)
         const auto sp = std::as_const(r).smoothings();
         const auto pred = Search::blocks_all_but(S->id);
         bool crosses = false;
-        for (auto k = 0uz; k + 1 < sp.size(); k++)
+        for (const auto& [a, b] : pairwise(sp))
         {
-            fm_assert(is_segment_clear(w, sp[k].pt, sp[k+1].pt, Vector2ui{size}, any));
-            crosses |= !is_segment_clear(w, sp[k].pt, sp[k+1].pt, Vector2ui{size}, Search::pred{pred});
+            fm_assert(is_segment_clear(w, a.pt, b.pt, Vector2ui{size}, any));
+            crosses |= !is_segment_clear(w, a.pt, b.pt, Vector2ui{size}, Search::pred{pred});
         }
         fm_assert(crosses);
     }

@@ -1,8 +1,11 @@
 #include "app.hpp"
 #include "loader/loader.hpp"
 #include "src/log.hpp"
+#include "compat/any-of.hpp"
 #include "compat/array-size.hpp"
+#include "compat/container-traits.inl"
 #include "compat/debug.hpp"
+#include "compat/erase-if.hpp"
 #include "compat/headless.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/nanosecond.hpp"
@@ -312,22 +315,14 @@ options parse_cmdline(int argc, char** argv)
     }
     auto tests = select_tests(args);
     if (args.isSet("gl-only"))
-    {
-        auto n = 0u;
-        for (const auto& e : tests)
-            if (e.gl == gl_use::required)
-                tests[n++] = e;
-        arrayResize(tests, n);
-    }
+        erase_if(tests, [](const test_entry& e) { return e.gl != gl_use::required; });
     if (args.isSet("list-tests"))
     {
         for (const auto& e : tests)
             std::printf("%s\n", e.name.exceptPrefix("test_"_s).data());
         std::exit(0);
     }
-    bool uses_gl = false;
-    for (const auto& e : tests)
-        uses_gl |= e.gl != gl_use::none;
+    const bool uses_gl = any_of(tests, [](const test_entry& e) { return e.gl != gl_use::none; });
     return { value, no_gl || !uses_gl, move(tests) };
 }
 

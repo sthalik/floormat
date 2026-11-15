@@ -2,6 +2,7 @@
 #include "bptr-common.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/weak-borrowed-ptr.inl"
+#include "compat/count-if.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/exception.inl"
 #include "compat/defs.hpp"
@@ -11,6 +12,7 @@
 #include <array>
 #include <initializer_list>
 #include <latch>
+#include <cr/ArrayView.h>
 #include <cr/Debug.h>
 
 namespace floormat {
@@ -1069,9 +1071,7 @@ struct State
 
     u32 pick_live()
     {
-        u32 n = 0;
-        for (auto k = 0u; k < nobjs; k++)
-            n += m_alive[k];
+        const u32 n = count_if(ArrayView<const bool>{m_alive.data(), nobjs}, [](bool x) { return x; });
         if (!n)
             return none;
         auto r = rnd(n);
@@ -1479,10 +1479,7 @@ struct State
             if (m_self[k] != none)
                 used[m_self[k]] = true;
         }
-        i64 n = 0;
-        for (auto k = 0u; k < nobjs; k++)
-            n += used[k];
-        return n;
+        return count_if(ArrayView<const bool>{used.data(), nobjs}, [](bool x) { return x; });
     }
 
     void check_memory()

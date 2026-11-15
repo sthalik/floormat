@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
 #include "compat/function-view.hpp"
+#include "compat/pairwise.hpp"
 #include "loader/loader.hpp"
 #include "loader/wall-cell.hpp"
 #include "loader/scenery-cell.hpp"
@@ -393,13 +394,13 @@ void check_pulled(world& w, const path_search_result& res, Vector2ui size, astar
     fm_assert(sp.front().pt == raw.front() && sp.front().raw_index == 0);
     fm_assert(sp.back().pt == raw.back() && sp.back().raw_index == raw.size() - 1);
     float raw_len = 0, sp_len = 0;
-    for (auto i = 0uz; i + 1 < raw.size(); i++)
-        raw_len += Vector2(raw[i+1] - raw[i]).length();
-    for (auto i = 0uz; i + 1 < sp.size(); i++)
+    for (const auto& [a, b] : pairwise(raw))
+        raw_len += Vector2(b - a).length();
+    for (const auto& [a, b] : pairwise(sp))
     {
-        fm_assert(sp[i].raw_index <= sp[i+1].raw_index);
-        fm_assert(is_segment_clear(w, sp[i].pt, sp[i+1].pt, size));
-        sp_len += Vector2(sp[i+1].pt - sp[i].pt).length();
+        fm_assert(a.raw_index <= b.raw_index);
+        fm_assert(is_segment_clear(w, a.pt, b.pt, size));
+        sp_len += Vector2(b.pt - a.pt).length();
     }
     fm_assert(sp_len <= raw_len + 1e-3f);
 }
@@ -588,8 +589,8 @@ void check_seed_search(std::initializer_list<pillar> pillars, Vector2b from_offs
         fm_assert(res2.cost() == res.cost());
         const auto raw = res.path();
         fm_assert(raw.front() == from && raw.back() == to);
-        for (auto i = 0uz; i + 1 < raw.size(); i++)
-            fm_assert(is_segment_clear(w, raw[i], raw[i+1], size));
+        for (const auto& [a, b] : pairwise(raw))
+            fm_assert(is_segment_clear(w, a, b, size));
         check_pulled(w, res, size, A.string_pull(w, pool, res, size, without_critters));
     }
 }

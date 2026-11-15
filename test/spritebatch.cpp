@@ -53,9 +53,9 @@ struct fixture
 
     void add_list(SpriteList& list)
     {
-        for (auto i = 0u; i < list.size(); i++)
+        for (const auto& [i, depth] : enumerate(list.Depths))
         {
-            depths.push_back(list.Depths[i]);
+            depths.push_back(depth);
             run_of.push_back(nruns);
             rank_of.push_back(i);
         }
@@ -102,9 +102,8 @@ struct fixture
         std::vector<bool> seen(depths.size(), false);
         std::vector<u32> next_rank(nruns, 0);
 
-        for (auto i = 0uz; i < order.size(); i++)
+        for (const auto& [i, j] : enumerate(order))
         {
-            const auto j = order[i];
             fm_assert(j < depths.size());
             fm_assert(!seen[j]); // a repeated index means some other element was dropped
             seen[j] = true;

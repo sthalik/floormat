@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "run.hpp"
+#include "compat/any-of.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function-view.hpp"
 #include "compat/constantly.hpp"
@@ -75,10 +76,8 @@ void test1(Vector2i offset)
 auto make_search_predicate(const CutResult<int>& res)
 {
     return [&](Vector2i min, Vector2i max) -> bool {
-        for (auto i = 0u; i < res.size; i++)
-            if (res.array[i].min() == min && res.array[i].max() == max)
-                return true;
-        return false;
+        return any_of(ArrayView<const Range2Di>{res.array.data(), res.size},
+                      [&](const Range2Di& r) { return r.min() == min && r.max() == max; });
     };
 }
 

@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/any-of.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
 #include "src/search-cache.hpp"
@@ -85,10 +86,7 @@ void add_block(world& w, int x, int y, Vector2ub size, Vector2b offset = {})
 
 bool near_zone(int x, int y)
 {
-    for (auto z : zones)
-        if (Math::abs(Vector2i{x, y} - z.tile).max() <= 3)
-            return true;
-    return false;
+    return any_of(zones, [&](const auto& z) { return Math::abs(Vector2i{x, y} - z.tile).max() <= 3; });
 }
 
 // Routes around a convex corner step diagonally past it, and there only the step's side cells

@@ -10,7 +10,10 @@
 #include "src/light.hpp"
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
+#include "compat/any-of.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/count-if.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/nanosecond.inl"
 #include "serialize/binary-serializer.hpp"
 #include <cr/GrowableArray.h>
@@ -116,8 +119,8 @@ writer::writer(ArrayView<const StringView> scenery_names) : scenery_names{scener
 
 u16 writer::intern_atlas(const void* ptr, StringView name, Vector2ub num_tiles)
 {
-    for (u32 i = 0; i < atlases.size(); i++)
-        if (atlases[i].ptr == ptr)
+    for (const auto& [i, a] : enumerate(atlases))
+        if (a.ptr == ptr)
             return (u16)i;
     arrayAppend(atlases, atlas_entry{ptr, name, num_tiles});
     return u16(atlases.size() - 1);
@@ -125,8 +128,8 @@ u16 writer::intern_atlas(const void* ptr, StringView name, Vector2ub num_tiles)
 
 u16 writer::intern_scenery(StringView name, u8 flags, u16 frame)
 {
-    for (u32 i = 0; i < sceneries.size(); i++)
-        if (sceneries[i].name == name && sceneries[i].flags == flags && sceneries[i].frame == frame)
+    for (const auto& [i, s] : enumerate(sceneries))
+        if (s.name == name && s.flags == flags && s.frame == frame)
             return (u16)i;
     arrayAppend(sceneries, scenery_entry{name, flags, frame});
     return u16(sceneries.size() - 1);
@@ -134,8 +137,8 @@ u16 writer::intern_scenery(StringView name, u8 flags, u16 frame)
 
 u32 writer::intern_string(StringView str)
 {
-    for (u32 i = 0; i < strings.size(); i++)
-        if (strings[i] == str)
+    for (const auto& [i, s] : enumerate(strings))
+        if (s == str)
             return i;
     arrayAppend(strings, str);
     return u32(strings.size() - 1);
@@ -319,14 +322,10 @@ Array<char> writer::write(world& w)
     for (u32 i = 0; i < sceneries.size(); i++)
     {
         const auto name = sceneries[i].name;
-        bool seen = false;
-        for (u32 k = 0; k < i; k++)
-            seen |= sceneries[k].name == name;
-        if (seen)
+        const auto same_name = [&](const scenery_entry& s) { return s.name == name; };
+        if (any_of(sceneries.prefix(i), same_name))
             continue;
-        u32 count = 0;
-        for (u32 k = i; k < sceneries.size(); k++)
-            count += sceneries[k].name == name;
+        const u32 count = count_if(sceneries.exceptPrefix(i), same_name);
         fm_assert(count < 0x100);
         put(out, (u8)count);
         put_string(out, name);

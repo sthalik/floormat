@@ -1,6 +1,8 @@
 #include "app.hpp"
+#include "compat/any-of.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/debug.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/function-view.hpp"
 #include "compat/nanosecond.hpp"
 #include "compat/valgrind.hpp"
@@ -2854,10 +2856,7 @@ void test_cover_diagonal_matches_ray(u32 div_size)
 
 bool holds_object(const Grid::Object::Grid& g, object_id id)
 {
-    for (const auto& x : g.entry_data())
-        if (x.id == id)
-            return true;
-    return false;
+    return any_of(g.entry_data(), [&](const auto& x) { return x.id == id; });
 }
 
 // The cells, as [min, max), of c's grid at div_size d where a box of bbox_size can touch o's box.
@@ -3290,9 +3289,8 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
 
     auto expected = Array<u32>{ValueInit, (usize)(dc*dc)};
     u32 covering = 0;
-    for (auto k = 0u; k < ids.size(); k++)
+    for (const auto& [k, id] : enumerate(ids))
     {
-        const auto id = ids[k];
         const auto only = [id](const chunk&, collision_data x) {
             return x.id == id ? path_search_continue::blocked : path_search_continue::pass;
         };
@@ -3335,19 +3333,18 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
     }
     fm_assert(any_shared == overlapping);
     fm_assert(placement.size() == (u32)std::popcount(covering));
-    for (auto e = 0u; e < placement.size(); e++)
+    for (const auto& [e, k] : enumerate(placement))
     {
-        fm_assert(covering & 1u << placement[e]);
-        fm_assert(g.entry_chunks()[e] == chunks[placement[e]]);
+        fm_assert(covering & 1u << k);
+        fm_assert(g.entry_chunks()[e] == chunks[k]);
     }
 
     const auto words = Grid::detail::bitmask_size((u32)dc) / (sizeof(usize)*8);
     const auto all_set = Array<usize>{DirectInit, words, ~usize{0}};
     auto masked = Array<usize>{NoInit, words};
     Array<bool> entry_blocked;
-    for (auto k = 0u; k < ids.size(); k++)
+    for (const auto& [k, id] : enumerate(ids))
     {
-        const auto id = ids[k];
         const auto only = [id](const chunk&, collision_data x) {
             return x.id == id ? path_search_continue::blocked : path_search_continue::pass;
         };

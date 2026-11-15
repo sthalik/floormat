@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/any-of.hpp"
 #include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function-view.hpp"
@@ -417,10 +418,7 @@ struct supercover_hit
 supercover_hit first_supercover_hit(ArrayView<const pillar> pillars, const Raycast::bresenham_line& line)
 {
     const auto blocked = [&](Vector2i px) {
-        for (const auto& p : pillars)
-            if (contains(p, px))
-                return true;
-        return false;
+        return any_of(pillars, [&](const pillar& p) { return contains(p, px); });
     };
     for (auto k = 0u; k <= line.steps(); k++)
     {

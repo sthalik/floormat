@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "multi-level-table-common.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/count-if.hpp"
 #include "compat/zip.hpp"
 #include "src/chunk-table.hpp"
 #include "src/object-table.hpp"
@@ -210,12 +211,7 @@ void check_chunk_table_layout()
         chunk_top_index(63, 64, 0), chunk_top_index(65, 64, 0), chunk_top_index(64, 64, 1),
     };
     for (u32 top : tops)
-    {
-        u32 found = 0;
-        for (const auto& rec : mlt.raw_pages())
-            found += rec.top_index == top;
-        fm_assert(found == 1);
-    }
+        fm_assert(count_if(mlt.raw_pages(), [&](const auto& rec) { return rec.top_index == top; }) == 1);
 
     t = {};
     t.update_slot({INT16_MIN, 0, chunk_z_max}, fake_chunk(10));

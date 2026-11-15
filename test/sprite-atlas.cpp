@@ -158,8 +158,8 @@ void grow_keeps_bound_framebuffer()
     const auto fb_data = fb_img.data();
     fm_assert(fb_data.size() == usize(size.product()) * 4);
     constexpr unsigned char cleared[4] = { 51, 102, 153, 204 };
-    for (usize i = 0; i < fb_data.size(); i++)
-        fm_assert(fb_data[i] == (char)cleared[i % 4]);
+    for (const auto& [i, x] : enumerate(fb_data))
+        fm_assert(x == (char)cleared[i % 4]);
 
     const auto img = a.texture.subImage(0,
         Range3Di::fromSize({(Int)s->x, (Int)s->y, (Int)s->layer}, {(Int)w, (Int)h, 1}),

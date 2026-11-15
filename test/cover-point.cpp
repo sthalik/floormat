@@ -1,8 +1,13 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/combinations.hpp"
+#include "compat/container-traits.inl"
+#include "compat/contains.hpp"
+#include "compat/count-if.hpp"
+#include "compat/erase-if.hpp"
 #include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
+#include "compat/pairwise.hpp"
 #include "compat/zip.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
@@ -148,11 +153,7 @@ bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vec
         add_box(Vector2i(Math::ceil(Vector2{r.m_min[0], r.m_min[1]})), Vector2i(Math::ceil(Vector2{r.m_max[0], r.m_max[1]})));
         return true;
     });
-    auto n_kept = 0u;
-    for (const auto& s : slopes)
-        if (!less(s, smin) && !less(smax, s))
-            slopes[n_kept++] = s;
-    arrayResize(slopes, NoInit, n_kept);
+    erase_if(slopes, [&](const slope& s) { return less(s, smin) || less(smax, s); });
     std::sort(slopes.begin(), slopes.end(), less);
 
     const auto cast = [&](slope s) {
@@ -518,13 +519,13 @@ void check_lists_by_area(world& w, point npc, point threat, u8 octants, u32 max_
             const auto r = search(Range2Di::fromCenter(mid, Vector2i{half_tile<int>}));
             candidates += r.candidates;
             for (const auto& s : r.spots)
-                if (std::find(tiled.begin(), tiled.end(), s.pos) == tiled.end())
+                if (!contains(tiled, s.pos))
                     arrayAppend(tiled, s.pos);
         }
     fm_assert_equal(whole.candidates, candidates);
     fm_assert_equal(spots.size(), tiled.size());
     for (const auto& s : spots)
-        fm_assert(std::find(tiled.begin(), tiled.end(), s.pos) != tiled.end());
+        fm_assert(contains(tiled, s.pos));
 }
 
 // Spots moved along one face end at its two ends, so there are fewer of them.
@@ -609,7 +610,7 @@ void test_octants_wall_middle()
         const auto v = Vector3i(p).xy();
         fm_assert(hidden_from(w, T, p));
         const auto hidden = hidden_from(w, turned_threat(T, v, -1), p) && hidden_from(w, turned_threat(T, v, 1), p);
-        const auto listed = std::find(spots3.begin(), spots3.end(), p) != spots3.end();
+        const auto listed = contains(spots3, p);
         fm_assert(listed == hidden);
         kept += hidden;
     }
@@ -1718,7 +1719,7 @@ void test_cover_script_no_path_ties()
     const auto t0 = s.status();
     Array<Cover::Point::spot> spots;
     Cover::Script::list_spots(*s.npc, Cover::Point::query{s.npc->position(), body, west, 5*tile_size_xy, o.octants}, spots);
-    fm_assert(std::count_if(spots.begin(), spots.end(), [](const Cover::Point::spot& x) { return walled_in(x.pos); }) > 2);
+    fm_assert(count_if(spots, [](const Cover::Point::spot& x) { return walled_in(x.pos); }) > 2);
     s.step();
     s.finish_search();
     const auto t1 = s.status();
@@ -2869,25 +2870,25 @@ bool flanked_from(cover_scene& s, point from)
 void path_points(ArrayView<const point> path, Array<point>& out)
 {
     auto count = 1u;
-    for (auto k = 1u; k < path.size(); k++)
-        count += (u32)Math::ceil(Vector2d(path[k] - path[k-1]).length());
+    for (const auto& [a, b] : pairwise(path))
+        count += (u32)Math::ceil(Vector2d(b - a).length());
     arrayClear(out);
     arrayReserve(out, count);
     arrayAppend(out, path.front());
-    for (auto k = 1u; k < path.size(); k++)
+    for (const auto& [a, b] : pairwise(path))
     {
-        const auto d = Vector2d(path[k] - path[k-1]);
+        const auto d = Vector2d(b - a);
         const auto n = (u32)Math::ceil(d.length());
         for (auto j = 1u; j <= n; j++)
-            arrayAppend(out, path[k-1] + Vector2i(Math::round(d*j/n)));
+            arrayAppend(out, a + Vector2i(Math::round(d*j/n)));
     }
 }
 
 double path_length(ArrayView<const point> path)
 {
     auto len = 0.;
-    for (auto k = 1u; k < path.size(); k++)
-        len += Vector2d(path[k] - path[k-1]).length();
+    for (const auto& [a, b] : pairwise(path))
+        len += Vector2d(b - a).length();
     return len;
 }
 
@@ -3143,10 +3144,10 @@ void test_cover_script_cover_end_after_pass_change()
         {{72, 16}, {0, -28}}, {{72, 16}, {0, 28}}, {{16, 72}, {-28, 0}}, {{16, 72}, {28, 0}},
     };
     bptr<scenery> box[std::size(walls)];
-    for (auto i = 0u; i < std::size(walls); i++)
+    for (auto& [b, wall] : zip(box, walls))
     {
-        const auto p = s.threat->position() + walls[i][1];
-        box[i] = add_blocker(s.w, p.local(), Vector2ub(walls[i][0]), p.offset(), pass_mode::shoot_through);
+        const auto p = s.threat->position() + wall[1];
+        b = add_blocker(s.w, p.local(), Vector2ub(wall[0]), p.offset(), pass_mode::shoot_through);
     }
     rebuild(s.w);
     fm_assert(Cover::Script::send_to_cover(*s.npc, spot));

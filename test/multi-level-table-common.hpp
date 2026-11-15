@@ -1064,9 +1064,9 @@ class random_run
         };
         if constexpr (!Table::has_pages)
         {
-            for (u32 k = 0; k < top.size(); k++)
-                if (top[k])
-                    visit(k, top[k]);
+            for (const auto& [k, x] : enumerate(top))
+                if (x)
+                    visit(k, x);
         }
         else
         {
@@ -1765,8 +1765,8 @@ void check_fill_block(u64 block, Random::xoshiro256starstar& rng)
         fm_assert((u64{ti} << zero_bits | zi) == block);
         const auto top = t.raw_top();
         if constexpr (zero_bits > 0)
-            for (u32 i = 0; i < top.size(); i++)
-                fm_assert(!top[i].side == (i != ti || !zi));
+            for (const auto& [i, x] : enumerate(top))
+                fm_assert(!x.side == (i != ti || !zi));
         if constexpr (free_empty)
             fm_assert(ref_at<zero_bits>(top, ti, zi).live == n && t.size() == n);
     }

@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/all-of.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
 #include "src/scenery.hpp"
@@ -225,10 +226,8 @@ void test_place_in_missing_chunk()
 // Magnum's float == is fuzzy: it takes 483.005 for 483.
 bool has_integer_corners(const chunk::RTree::Rect& r)
 {
-    for (auto x : { r.m_min[0], r.m_min[1], r.m_max[0], r.m_max[1] })
-        if (x != (float)(i32)x)
-            return false;
-    return true;
+    const float corners[] = { r.m_min[0], r.m_min[1], r.m_max[0], r.m_max[1] };
+    return all_of(corners, [](float x) { return x == (float)(i32)x; });
 }
 
 Range2Di rtree_rect(chunk& c, object_id id)

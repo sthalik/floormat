@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/array-size.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/zip.hpp"
 #include "src/spritebatch.hpp"
 #include "src/anim-atlas.hpp"
@@ -91,8 +92,8 @@ void test_quad(state& s, const anim_atlas& atlas, rotation r, u32 frame, Vector3
 
     const auto w = (u32)(hi.x() - lo.x()), h = (u32)(hi.y() - lo.y());
     u32 bad = 0, first = 0;
-    for (auto i = 0u; i < (u32)expected.size(); i++)
-        if (drawn[i] != expected[i] && !bad++)
+    for (const auto& [i, e] : enumerate(expected))
+        if (drawn[i] != e && !bad++)
             first = i;
     // Reported y down from the sprite's corner. Readback rows go bottom-up.
     const auto fx = (Int)(first % w) - (Int)margin, fy = (Int)(h - 1 - first / w) - (Int)margin;
