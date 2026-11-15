@@ -193,7 +193,7 @@ constexpr u32 window_mask(int dx, int dy)
     return bit(dx, dy) | (dx && dy ? bit(dx, 0) | bit(0, dy) : 0u);
 }
 
-// Diagonal and cardinal alternate: the main loop takes them in pairs.
+// expand_nodes takes a move with an even index as diagonal.
 constexpr Vector2i unit_directions[8] = {
     { -1, -1 }, {  0, -1 }, {  1, -1 }, { -1,  0 },
     {  1,  1 }, {  1,  0 }, { -1,  1 }, {  0,  1 },
@@ -212,6 +212,58 @@ std::array<dir_step, 8> make_directions(const Search::octile& oct)
         return { d * (int)axial, d, d.x() && d.y() ? diag : axial, window_mask(d.x(), d.y()) };
     }, unit_directions);
 }
+
+struct travel_successors
+{
+    // Index into directions of the move into the node.
+    u32 travel_dir;
+    // Moves always generated, one bit per index into directions.
+    u32 natural;
+    // On each side, the window bit of the cell beside the parent. A path to that side's forced moves at no greater
+    // cost starts with a diagonal from the parent, which needs that cell free.
+    u32 alt_path_cell[2];
+    // On each side, the moves generated when that side's alt_path_cell is blocked.
+    u32 forced[2];
+};
+
+constexpr auto successors_by_travel_dir = [] {
+    const auto index = [](Vector2i d) {
+        u32 i = 0;
+        while (unit_directions[i] != d)
+            i++;
+        return i;
+    };
+    const auto move = [&](Vector2i d) { return 1u << index(d); };
+    const auto cell = [](Vector2i d) { return 1u << ((d.y() + 1)*3 + d.x() + 1); };
+    std::array<travel_successors, 9> ret{};
+    for (u32 j = 0; j < 9; j++)
+    {
+        const Vector2i a{(int)(j % 3) - 1, (int)(j / 3) - 1};
+        auto& r = ret[j];
+        if (!a.x() && !a.y())
+            r.natural = 0xff;
+        else if (a.x() && a.y())
+        {
+            // After a diagonal move, the move and its two cardinal components (Sturtevant & Rabin, IJCAI 2016,
+            // section 2.2).
+            r.travel_dir = index(a);
+            r.natural = move(a) | move({a.x(), 0}) | move({0, a.y()});
+        }
+        else
+        {
+            // After a cardinal move, the move alone. Without corner cutting, only cardinal moves have forced
+            // moves, up to 4 (Harabor & Grastien, SoCS 2012).
+            const Vector2i s{a.y(), a.x()};
+            r.travel_dir = index(a);
+            r.natural = move(a);
+            r.alt_path_cell[0] = cell(s - a);
+            r.alt_path_cell[1] = cell(-s - a);
+            r.forced[0] = move(s) | move(a + s);
+            r.forced[1] = move(-s) | move(a - s);
+        }
+    }
+    return ret;
+}();
 
 void set_result_from_idx(path_search_result& result,
                          Array<point>& temp_nodes, ArrayView<const visited> nodes,
@@ -487,14 +539,14 @@ void print_push(u32 dist, point pt)
     DBG << cat(" path:", dist) << cat("pos:", Vector3i(pt.coord()), ";", pt.offset());
 }
 
-template<bool IsDiagonal, int Debug>
+template<int Debug>
 CORRADE_ALWAYS_INLINE
 void do_dir(chunk_bitmaps& bm, Search::cache& cache,
             ArrayView<visited>& nodes, u32& node_count, bucket_queue& Q,
             dir_step dirs, Search::octile oct,
             Vector2i goal_delta, point cur_pt,
             u32 cur_idx, u32 cur_dist,
-            u32 max_dist, const neighbourhood& cells)
+            u32 max_dist, const neighbourhood& cells, bool is_diagonal)
 {
     const auto [vec, dir, len, mask] = dirs;
     const auto window = cells.window;
@@ -542,7 +594,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     if (!window)
     {
         bool passable;
-        if (IsDiagonal)
+        if (is_diagonal)
             passable = bm.is_passable_diag(cur_pt, new_pt, vec, chunk_idx);
         else
             passable = bm.is_passable(new_pt, chunk_idx);
@@ -1289,12 +1341,29 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
 
         const auto cells = bm.window(cur_pt);
 
-        for (auto i = 0u; i < 8; i += 2)
+        // All 8 moves when window is 0 or the move into the node is unknown, as for the start in the canonical
+        // ordering (IJCAI 2016, section 2.2).
+        u32 successors = 0xff;
+        if (cells.window && n.prev != (u32)-1)
         {
-            const auto d1 = directions.data()[i + 0],
-                       d2 = directions.data()[i + 1];
-            do_dir<1, Debug>(bm, cache, nodes, node_count, Q, d1, oct, goal_delta, cur_pt, cur_idx, cur_dist, max_dist, cells);
-            do_dir<0, Debug>(bm, cache, nodes, node_count, Q, d2, oct, goal_delta, cur_pt, cur_idx, cur_dist, max_dist, cells);
+            const auto& p = nodes.data()[n.prev];
+            const auto u = Vector2ui(cur_pt - p.pt + Vector2i{step});
+            // The move is known when it is one lattice step from prev at that step's cost. do_dir keeps the first
+            // parent at equal cost, which still reaches every node at optimal cost (IJCAI 2016, section 3).
+            if (u.x() < 3*(u32)step && u.y() < 3*(u32)step && !((u.x() | u.y()) & (u32)(step - 1)))
+            {
+                const auto& c = successors_by_travel_dir[(u.y() >> oct.shift)*3 + (u.x() >> oct.shift)];
+                if (cur_dist == p.dist + directions.data()[c.travel_dir].len)
+                    successors = c.natural | (cells.window & c.alt_path_cell[0] ? 0 : c.forced[0])
+                                           | (cells.window & c.alt_path_cell[1] ? 0 : c.forced[1]);
+            }
+        }
+
+        for (auto bits = successors; bits; bits &= bits - 1)
+        {
+            const auto i = (u32)std::countr_zero(bits);
+            do_dir<Debug>(bm, cache, nodes, node_count, Q, directions.data()[i], oct, goal_delta, cur_pt, cur_idx, cur_dist,
+                          max_dist, cells, i % 2 == 0);
         }
     }
     return { .to_node = to_node, .goal_seed_idx = goal_seed_idx, .closest_dist_sq = closest_dist_sq, .closest_idx = closest_idx, };
