@@ -193,6 +193,7 @@ if(MSVC)
         -wd4554  # warning C4554: '<<': check operator precedence for possible error; use parentheses to clarify precedence
         -wd4146  # warning C4146: unary minus operator applied to unsigned type, result still unsigned
         -wd4197  # warning C4197: 'volatile int': top-level volatile in cast is ignored
+        -wd4324  # warning C4324: 'x': structure was padded due to alignment specifier
     )
     add_definitions(-utf-8)
     if(CMAKE_SIZEOF_VOID_P GREATER 4)
@@ -341,7 +342,9 @@ function(fm_install_executable self)
 endfunction()
 
 corrade_add_resource(floormat_shader_res_src "shaders/resources.conf")
-set_property(SOURCE "${floormat_shader_res_src}" APPEND PROPERTY COMPILE_OPTIONS "-w") # no warnings
+if(NOT MSVC)
+    set_property(SOURCE "${floormat_shader_res_src}" APPEND PROPERTY COMPILE_OPTIONS "-w") # no warnings
+endif()
 add_library(floormat-shader-res OBJECT ${floormat_shader_res_src})
 target_link_libraries(floormat-shader-res PRIVATE Corrade::Utility Magnum)
 

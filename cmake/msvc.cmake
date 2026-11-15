@@ -102,7 +102,7 @@ set(_CFLAGS "-diagnostics:caret -Zc:static_assert- -Zc:checkGwOdr -Zc:referenceB
 # constexpr <cmath>. Also drops M_PI and M_E from <math.h>, so use std::numbers.
 set(_CXXFLAGS "${_CFLAGS} -Zc:cmath")
 set(_CFLAGS_RELEASE "-O2 -Oit -Oy -Ox -Ob3 -fp:fast -GS- -GF -GL -Gw -Gy")
-set(_CFLAGS_DEBUG "-Od -Ob0 -guard:cf -RTCsu")
+set(_CFLAGS_DEBUG "-Od -guard:cf -RTCsu")
 if(NOT "${floormat-simd}" STREQUAL "")
     set(_CFLAGS_RELEASE "${_CFLAGS_RELEASE} -arch:${floormat-simd}")
     set(_CFLAGS_DEBUG "${_CFLAGS_DEBUG} -arch:${floormat-simd}")

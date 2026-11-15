@@ -333,6 +333,17 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
             target_compile_options(CorradeTestSuite PUBLIC -frtti)
         endif()
         add_subdirectory(magnum ${system})
+        if(MSVC)
+            foreach(t CorradeTestSuiteObjects MagnumDebugTools MagnumOpenGLTester)
+                if(TARGET ${t})
+                    get_target_property(opts ${t} COMPILE_OPTIONS)
+                    if(opts)
+                        list(REMOVE_ITEM opts -GR-)
+                        set_target_properties(${t} PROPERTIES COMPILE_OPTIONS "${opts}")
+                    endif()
+                endif()
+            endforeach()
+        endif()
         # loader/texture.cpp sends .tga to Magnum's own TgaImporter and TgaImageConverter,
         # which are separate plugins. Every other asset is PNG, including what
         # sprite-atlas.cpp writes through AnyImageConverter. Leaving TGA in here would have
