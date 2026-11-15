@@ -273,7 +273,7 @@ bool inspect_type(T& x, Intent)
 
     bool ret = false;
     visit_tuple([&](const auto& field) {
-        using type = typename std::decay_t<decltype(field)>::FieldType;
+        using type = std::decay_t<decltype(field)>::FieldType;
         using enum_type = enum_values<type, T>;
         const auto& list = enum_type::get(x);
         ret |= inspect_field<type>(&x, field.erased(), list, width);

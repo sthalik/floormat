@@ -38,7 +38,7 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
 
 template<typename T> struct decay_tuple_;
 template<typename... Ts> struct decay_tuple_<std::tuple<Ts...>> { using type = std::tuple<std::decay_t<Ts>...>; };
-template<typename T> using decay_tuple = typename decay_tuple_<T>::type;
+template<typename T> using decay_tuple = decay_tuple_<T>::type;
 
 } // namespace floormat::entities::detail
 

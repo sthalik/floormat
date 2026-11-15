@@ -39,7 +39,7 @@ constexpr Out transform(const F& fun, const A& array)
 {
     Out ret;
     for (usize i = 0; i < array_traits<A>::size; i++)
-        ret[i] = static_cast<typename Out::value_type>(fun(array_traits<A>::get(array, i)));
+        ret[i] = static_cast<Out::value_type>(fun(array_traits<A>::get(array, i)));
     return ret;
 }
 

@@ -24,7 +24,7 @@ namespace {
 
 using floormat::detail_rc::bbox;
 using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
-using Rect = typename RTree::Rect;
+using Rect = RTree::Rect;
 
 } // namespace
 

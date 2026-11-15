@@ -1025,7 +1025,7 @@ struct State
 {
     using obj = Obj<P>;
     using hard_ptr = basic_bptr<obj, P>;
-    using weak_ptr = typename obj::weak_type;
+    using weak_ptr = obj::weak_type;
     static constexpr bool has_weak = P::has_weak;
 
     std::array<hard_ptr, H> hard;

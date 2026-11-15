@@ -258,8 +258,8 @@ struct tuple_size<const floormat::detail_enumerate::element<V>> : integral_const
 template<typename V>
 struct tuple_element<0, floormat::detail_enumerate::element<V>> { using type = floormat::u32; };
 template<typename V>
-struct tuple_element<1, floormat::detail_enumerate::element<V>> { using type = typename floormat::detail_enumerate::element<V>::value_type; };
+struct tuple_element<1, floormat::detail_enumerate::element<V>> { using type = floormat::detail_enumerate::element<V>::value_type; };
 template<size_t I, typename V>
-struct tuple_element<I, const floormat::detail_enumerate::element<V>> { using type = const typename tuple_element<I, floormat::detail_enumerate::element<V>>::type; };
+struct tuple_element<I, const floormat::detail_enumerate::element<V>> { using type = const tuple_element<I, floormat::detail_enumerate::element<V>>::type; };
 
 } // namespace std

@@ -194,8 +194,8 @@ template<typename V>
 struct tuple_size<const floormat::detail_combinations::element<V>> : integral_constant<size_t, 2> {};
 
 template<size_t I, typename V>
-struct tuple_element<I, floormat::detail_combinations::element<V>> { using type = typename floormat::detail_combinations::element<V>::value_type; };
+struct tuple_element<I, floormat::detail_combinations::element<V>> { using type = floormat::detail_combinations::element<V>::value_type; };
 template<size_t I, typename V>
-struct tuple_element<I, const floormat::detail_combinations::element<V>> { using type = const typename floormat::detail_combinations::element<V>::value_type; };
+struct tuple_element<I, const floormat::detail_combinations::element<V>> { using type = const floormat::detail_combinations::element<V>::value_type; };
 
 } // namespace std

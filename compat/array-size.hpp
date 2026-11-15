@@ -33,7 +33,7 @@ struct array_rebind_<C<N, T>, U> { using type = C<N, U>; };
 template<typename T> struct array_traits_base
 {
     static constexpr usize size = array_size_<T>::value;
-    template<typename U> using rebind = typename array_rebind_<T, U>::type;
+    template<typename U> using rebind = array_rebind_<T, U>::type;
     static constexpr decltype(auto) get(const T& array, usize index) { return array.data()[index]; }
 };
 

@@ -537,7 +537,7 @@ void RTREE_QUAL::RemoveAllRec(Node* a_node)
 
 
 RTREE_TEMPLATE
-typename RTREE_QUAL::Node* RTREE_QUAL::AllocNode()
+RTREE_QUAL::Node* RTREE_QUAL::AllocNode()
 {
   Node* newNode;
 #ifdef RTREE_DONT_USE_MEMPOOLS
@@ -566,7 +566,7 @@ void RTREE_QUAL::FreeNode(Node* a_node)
 // Allocate space for a node in the list used in DeletRect to
 // store Nodes that are too empty.
 RTREE_TEMPLATE
-typename RTREE_QUAL::ListNode* RTREE_QUAL::AllocListNode()
+RTREE_QUAL::ListNode* RTREE_QUAL::AllocListNode()
 {
 #ifdef RTREE_DONT_USE_MEMPOOLS
   return new ListNode;
@@ -718,7 +718,7 @@ bool RTREE_QUAL::InsertRect(const Branch& a_branch, Node** a_root, int a_level)
 
 // Find the smallest rectangle that includes all rectangles in branches of a node.
 RTREE_TEMPLATE
-typename RTREE_QUAL::Rect RTREE_QUAL::NodeCover(Node* a_node)
+RTREE_QUAL::Rect RTREE_QUAL::NodeCover(Node* a_node)
 {
   fm_assert(a_node);
 
@@ -818,7 +818,7 @@ int RTREE_QUAL::PickBranch(const Rect* a_rect, Node* a_node)
 
 // Combine two rectangles into larger one containing both
 RTREE_TEMPLATE
-typename RTREE_QUAL::Rect RTREE_QUAL::CombineRect(const Rect* a_rectA, const Rect* a_rectB)
+RTREE_QUAL::Rect RTREE_QUAL::CombineRect(const Rect* a_rectA, const Rect* a_rectB)
 {
   fm_assert(a_rectA && a_rectB);
 
@@ -1278,7 +1278,7 @@ bool RTREE_QUAL::RemoveRectRec(Rect* a_rect, const DATATYPE& a_id, Node* a_node,
 // RemoveRectRec() does it, which saves Remove() searching for it again, and the caller inserts it.
 // Returns not_found when no leaf it reached holds a_id, and the tree is unchanged.
 RTREE_TEMPLATE
-typename RTREE_QUAL::MoveResult RTREE_QUAL::MoveRec(Rect* a_rect, const DATATYPE& a_id, const Branch& a_new, Node* a_node, const Rect* a_bound, ListNode** a_listNode)
+RTREE_QUAL::MoveResult RTREE_QUAL::MoveRec(Rect* a_rect, const DATATYPE& a_id, const Branch& a_new, Node* a_node, const Rect* a_bound, ListNode** a_listNode)
 {
   fm_assert(a_rect && a_node && a_listNode);
 
@@ -1444,7 +1444,7 @@ void RTree<DATATYPE, ELEMTYPE, NUMDIMS, ELEMTYPEREAL, TMAXNODES, TMINNODES>::Get
 }
 
 RTREE_TEMPLATE
-typename RTREE_QUAL::Iterator::StackElement& RTREE_QUAL::Iterator::Pop()
+RTREE_QUAL::Iterator::StackElement& RTREE_QUAL::Iterator::Pop()
 {
     fm_assert(m_tos > 0);
     --m_tos;

@@ -151,7 +151,7 @@ bool do_inspect_field(void* datum, const erased_accessor& accessor, field_repr r
     }
     else
     {
-        using U = typename T::Type;
+        using U = T::Type;
         auto [min, max] = accessor.get_range(datum).convert<T>();
         constexpr auto igdt = IGDT<U>;
         constexpr T step(!std::is_floating_point_v<U> ? U(1) : U(1.f)),

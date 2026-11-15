@@ -182,11 +182,11 @@ class function_base
     template<bool, bool, bool, ref_qualifier, bool, usize, usize, typename, typename...> friend class function_base;
 
     using invoker_type = invoker<Const, Volatile, Ref, Noexcept, R, Args...>;
-    template<typename F> using callable = typename invoker_type::template callable<F>;
+    template<typename F> using callable = invoker_type::template callable<F>;
     template<bool C, usize Cap, usize Al> using similar = function_base<C, Const, Volatile, Ref, Noexcept, Cap, Al, R, Args...>;
 
     // Outside the vtable, so that a call loads one pointer.
-    typename invoker_type::fn* _invoke = &invoker_type::invoke_empty;
+    invoker_type::fn* _invoke = &invoker_type::invoke_empty;
     union
     {
         alignas(Alignment) unsigned char _buf[Capacity];
@@ -198,7 +198,7 @@ class function_base
 
     // Constant evaluation can't read through a volatile glvalue, so there the members are read
     // through a const_cast.
-    template<typename S> static constexpr typename invoker_type::fn* invoke_of(S& self) noexcept
+    template<typename S> static constexpr invoker_type::fn* invoke_of(S& self) noexcept
     {
         if consteval
         {

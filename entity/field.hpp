@@ -17,7 +17,7 @@ template<typename Obj, typename Type, typename Default, usize I> struct find_rea
 
 template<typename Obj, typename Type, typename Default, usize I, typename F, typename... Fs>
 struct find_reader<Obj, Type, Default, I, F, Fs...> {
-    using type = typename find_reader<Obj, Type, Default, I+1, Fs...>::type;
+    using type = find_reader<Obj, Type, Default, I+1, Fs...>::type;
     static constexpr usize index = find_reader<Obj, Type, Default, I+1, Fs...>::index;
 };
 
@@ -54,9 +54,9 @@ public:
     using FieldType  = Type;
     using Reader     = R;
     using Writer     = W;
-    using Predicate  = typename c_predicate::type;
-    using Range      = typename c_range::type;
-    using Length     = typename c_length::type;
+    using Predicate  = c_predicate::type;
+    using Range      = c_range::type;
+    using Length     = c_length::type;
 
     StringView name;
     [[fm_no_unique_address]] R reader;
@@ -99,11 +99,11 @@ constexpr void entity_field<Obj, Type, R, W, Ts...>::write(const W& writer, Obj&
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
 constexpr erased_accessor entity_field<Obj, Type, R, W, Ts...>::erased() const
 {
-    using reader_t    = typename erased_accessor::reader_t;
-    using writer_t    = typename erased_accessor::writer_t;
-    using predicate_t = typename erased_accessor::predicate_t;
-    using c_range_t   = typename erased_accessor::c_range_t;
-    using c_length_t  = typename erased_accessor::c_length_t;
+    using reader_t    = erased_accessor::reader_t;
+    using writer_t    = erased_accessor::writer_t;
+    using predicate_t = erased_accessor::predicate_t;
+    using c_range_t   = erased_accessor::c_range_t;
+    using c_length_t  = erased_accessor::c_length_t;
     constexpr auto obj_name = name_of<Obj>, field_name = name_of<Type>;
 
     constexpr auto reader_fn = [](const void* obj, const reader_t* reader, void* value) {

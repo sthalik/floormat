@@ -1162,7 +1162,7 @@ ok:
 
     template<atlas_type Type> StringView get_atlas(atlasid id)
     {
-        using atlas_type = typename atlas_from_type<Type>::Type;
+        using atlas_type = atlas_from_type<Type>::Type;
         const auto* atlasʹ = static_cast<const atlas_type*>(get_atlas_pair(id, Type).atlas);
         return atlasʹ->name();
     }

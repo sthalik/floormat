@@ -8,7 +8,7 @@ class basic_weak_bptr final
 {
     static_assert(Policy::has_weak);
     using block = detail_bptr::control_block<Policy>;
-    using count_type = typename Policy::counter::value_type;
+    using count_type = Policy::counter::value_type;
 
     block* blk;
 

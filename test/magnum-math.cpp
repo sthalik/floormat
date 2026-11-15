@@ -25,7 +25,7 @@ constexpr void test_float2()
 template<typename ivec>
 constexpr void test_int()
 {
-    using I = typename ivec::Type;
+    using I = ivec::Type;
     constexpr auto vec = [](auto x, auto y) { return ivec{(I)x, (I)y}; };
     const auto a = vec(3, 5), b = vec(11, 7);
 

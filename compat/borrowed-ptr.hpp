@@ -42,10 +42,10 @@ namespace floormat::detail_bptr {
 template<typename Policy>
 struct control_block : Policy::counter::block_state
 {
-    using counter = typename Policy::counter;
-    using count_type = typename counter::value_type;
-    using stats = typename Policy::stats;
-    template<typename X> using cell = typename counter::template cell<X>;
+    using counter = Policy::counter;
+    using count_type = counter::value_type;
+    using stats = Policy::stats;
+    template<typename X> using cell = counter::template cell<X>;
 
     cell<uptr> _ptr;
     cell<count_type> _hard_count{1};
@@ -320,7 +320,7 @@ template<typename T, typename Policy>
 class basic_bptr final // NOLINT(*-special-member-functions)
 {
     using block = detail_bptr::control_block<Policy>;
-    using count_type = typename Policy::counter::value_type;
+    using count_type = Policy::counter::value_type;
     static_assert(detail_bptr::ControlBlock<block>);
 
     block* blk;

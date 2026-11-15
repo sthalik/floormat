@@ -8,7 +8,7 @@ namespace floormat::detail_zip {
 template<usize... Is> struct index_sequence {};
 template<usize N, usize... Is> struct make_index_sequence_ : make_index_sequence_<N-1, N-1, Is...> {};
 template<usize... Is> struct make_index_sequence_<0, Is...> { using type = index_sequence<Is...>; };
-template<usize N> using make_index_sequence = typename make_index_sequence_<N>::type;
+template<usize N> using make_index_sequence = make_index_sequence_<N>::type;
 
 template<usize I, typename T> struct leaf { T value; };
 
@@ -31,7 +31,7 @@ constexpr const T& get_leaf(const leaf<I, T>& l) noexcept
 template<usize I, typename Tuple> using leaf_t = std::remove_cvref_t<decltype(get_leaf<I>(detail_range::declval<Tuple&>()))>;
 
 template<typename T, typename...> struct first_ { using type = T; };
-template<typename... Ts> using first_type = typename first_<Ts...>::type;
+template<typename... Ts> using first_type = first_<Ts...>::type;
 
 template<typename It>
 struct component
@@ -100,10 +100,10 @@ class element : index_base<Index>
 public:
     template<usize N> using component_t = component<leaf_t<N, tuple_t<detail_range::begin_t<Vs>...>>>;
 
-    template<usize N> constexpr auto get() & noexcept -> typename component_t<N>::ref;
-    template<usize N> constexpr auto get() const& noexcept -> typename component_t<N>::const_ref;
-    template<usize N> constexpr auto get() && noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy;
-    template<usize N> constexpr auto get() const&& noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy;
+    template<usize N> constexpr auto get() & noexcept -> component_t<N>::ref;
+    template<usize N> constexpr auto get() const& noexcept -> component_t<N>::const_ref;
+    template<usize N> constexpr auto get() && noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> component_t<N>::copy;
+    template<usize N> constexpr auto get() const&& noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> component_t<N>::copy;
 };
 
 template<typename... Vs>
@@ -179,28 +179,28 @@ constexpr decltype(auto) element<Index, Vs...>::deref(Self& self) noexcept
 
 template<bool Index, typename... Vs>
 template<usize N>
-constexpr auto element<Index, Vs...>::get() & noexcept -> typename component_t<N>::ref
+constexpr auto element<Index, Vs...>::get() & noexcept -> component_t<N>::ref
 {
     return deref<N>(*this);
 }
 
 template<bool Index, typename... Vs>
 template<usize N>
-constexpr auto element<Index, Vs...>::get() const& noexcept -> typename component_t<N>::const_ref
+constexpr auto element<Index, Vs...>::get() const& noexcept -> component_t<N>::const_ref
 {
     return deref<N>(*this);
 }
 
 template<bool Index, typename... Vs>
 template<usize N>
-constexpr auto element<Index, Vs...>::get() && noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy
+constexpr auto element<Index, Vs...>::get() && noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> component_t<N>::copy
 {
     return deref<N>(*this);
 }
 
 template<bool Index, typename... Vs>
 template<usize N>
-constexpr auto element<Index, Vs...>::get() const&& noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> typename component_t<N>::copy
+constexpr auto element<Index, Vs...>::get() const&& noexcept(std::is_nothrow_copy_constructible_v<typename component_t<N>::copy>) -> component_t<N>::copy
 {
     return deref<N>(*this);
 }
@@ -309,8 +309,8 @@ template<bool Index, typename... Vs>
 struct tuple_size<const floormat::detail_zip::element<Index, Vs...>> : integral_constant<size_t, sizeof...(Vs)> {};
 
 template<size_t I, bool Index, typename... Vs>
-struct tuple_element<I, floormat::detail_zip::element<Index, Vs...>> { using type = typename floormat::detail_zip::element<Index, Vs...>::template component_t<I>::value_type; };
+struct tuple_element<I, floormat::detail_zip::element<Index, Vs...>> { using type = floormat::detail_zip::element<Index, Vs...>::template component_t<I>::value_type; };
 template<size_t I, bool Index, typename... Vs>
-struct tuple_element<I, const floormat::detail_zip::element<Index, Vs...>> { using type = const typename tuple_element<I, floormat::detail_zip::element<Index, Vs...>>::type; };
+struct tuple_element<I, const floormat::detail_zip::element<Index, Vs...>> { using type = const tuple_element<I, floormat::detail_zip::element<Index, Vs...>>::type; };
 
 } // namespace std

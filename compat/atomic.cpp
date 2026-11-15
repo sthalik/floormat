@@ -40,7 +40,7 @@ typedef u64 aligned_uint64_t __attribute__((aligned(8)));
 template<typename T> struct aligned_ { using type = T; };
 template<> struct aligned_<i64> { using type = aligned_int64_t; };
 template<> struct aligned_<u64> { using type = aligned_uint64_t; };
-template<typename T> using A = typename aligned_<T>::type;
+template<typename T> using A = aligned_<T>::type;
 
 template<typename T> [[fm_always_inline]] inline volatile A<T>* al(volatile T* p) noexcept { return (volatile A<T>*)p; }
 template<typename T> [[fm_always_inline]] inline const volatile A<T>* al(const volatile T* p) noexcept { return (const volatile A<T>*)p; }
@@ -154,7 +154,7 @@ template<> struct ops<8>
 #endif
 
 template<typename T> using Ops = ops<sizeof(T)>;
-template<typename T> using I = typename Ops<T>::I;
+template<typename T> using I = Ops<T>::I;
 
 template<typename T> volatile I<T>* ptr(volatile T* p) noexcept { return reinterpret_cast<volatile I<T>*>(p); }
 template<typename T> const volatile I<T>* ptr(const volatile T* p) noexcept { return reinterpret_cast<const volatile I<T>*>(p); }

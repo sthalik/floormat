@@ -18,7 +18,7 @@ template<typename T> Pair<T, T> range::convert() const
     {
         if constexpr (Math::IsVector<T>())
         {
-            using U = typename T::Type;
+            using U = T::Type;
             constexpr auto Size = T::Size;
             T a, b;
             for (auto i = 0uz; i < Size; i++)
@@ -53,7 +53,7 @@ template<typename T> Pair<T, T> range::convert() const
         }
         else if constexpr(Math::IsVector<T>())
         {
-            using U = typename T::Type;
+            using U = T::Type;
             constexpr auto Size = T::Size;
             static_assert(Size >= 2 && Size <= 4);
             T a, b;

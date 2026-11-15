@@ -14,7 +14,7 @@ class atlas_loader final
 public:
     using Traits = TRAITS;
     using Atlas = ATLAS;
-    using Cell = typename TRAITS::Cell;
+    using Cell = TRAITS::Cell;
     using AtlasPtr = std::decay_t<decltype(t.atlas_of(std::declval<const Cell&>()))>;
 
     ~atlas_loader() noexcept = default;

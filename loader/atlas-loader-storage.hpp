@@ -13,8 +13,8 @@ struct atlas_storage
     static_assert(std::is_same_v<typename TRAITS::Atlas, ATLAS>);
 
     using Traits = TRAITS;
-    using Atlas = typename Traits::Atlas;
-    using Cell = typename Traits::Cell;
+    using Atlas = Traits::Atlas;
+    using Cell = Traits::Cell;
 
     string_index_map name_map;
     Array<Cell> cell_array;
