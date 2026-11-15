@@ -261,6 +261,30 @@ void Cover_Aligned(benchmark::State& state)
 
 BENCHMARK(Cover_Aligned)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
 
+// Fills octants 0 and 16, which read a pass bit per cell. Only cells on the far edge cast a ray.
+void Cover_Horizontal(benchmark::State& state)
+{
+    auto w = world();
+    make_cover_world(w);
+    auto& c = w[{0, 0, 0}];
+
+    const auto div_size = (u32)state.range(0);
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
+    Grid::Cover::Grid g = pool[c];
+
+    const auto fill = [&] {
+        g.mark_stale();
+        g.build_if_stale();
+        (void)g.ensure_octant(Grid::Cover::octant_count / 2);
+    };
+    fill();
+    for (auto _ : state)
+        fill();
+}
+
+BENCHMARK(Cover_Horizontal)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
+
 constexpr auto cover_body = Vector2ui{24, 24};
 
 struct find_case
