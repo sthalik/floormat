@@ -12,7 +12,14 @@
 #include <cr/Pair.h>
 #include <cr/StructuredBindings.h>
 #include <mg/Sdl2Application.h>
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4702) // unreachable code
+#endif
 #include <mg/ImGuiIntegration/Context.hpp>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 namespace floormat {
 

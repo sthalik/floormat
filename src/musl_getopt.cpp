@@ -167,8 +167,8 @@ static int getopt_long_core(int argc, char **argv, const char *optstring, const 
          (argv[optind][1] == '-' && argv[optind][2])))
     {
         int colon = optstring[optstring[0]=='+'||optstring[0]=='-']==':';
-        int i, cnt, match;
-        char *arg, *opt, *start = argv[optind]+1;
+        int i, cnt, match = 0;
+        char *arg = nullptr, *opt, *start = argv[optind]+1;
         for (cnt=i=0; longopts[i].name; i++) {
             const char *name = longopts[i].name;
             opt = start;
@@ -185,7 +185,7 @@ static int getopt_long_core(int argc, char **argv, const char *optstring, const 
             cnt++;
         }
         if (cnt==1 && longonly && arg-start == mblen(start, MB_LEN_MAX)) {
-            int l = arg-start;
+            int l = (int)(arg-start);
             for (i=0; optstring[i]; i++) {
                 int j;
                 for (j=0; j<l && start[j]==optstring[i+j]; j++);

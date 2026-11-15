@@ -264,7 +264,6 @@ struct visitor_ : visitor_base<IsNewest>
             }
             else
             {
-                std::unreachable();
                 fm_assert(false);
             }
         }

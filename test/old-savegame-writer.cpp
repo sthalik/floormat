@@ -165,19 +165,19 @@ void writer::write_critter(Array<char>& out, const critter& C)
 
 void writer::write_scenery(Array<char>& out, const scenery& sc)
 {
-    const auto proto = scenery_proto(sc);
-    const auto name = scenery_name(proto);
+    const auto p = scenery_proto(sc);
+    const auto name = scenery_name(p);
     const auto& base = loader.scenery(name);
-    fm_assert(base.scenery_type() == proto.scenery_type());
+    fm_assert(base.scenery_type() == p.scenery_type());
 
     u8 bits = 0;
     bool active = false;
-    if (const auto* g = swl::get_if<generic_scenery_proto>(&proto.subtype))
+    if (const auto* g = swl::get_if<generic_scenery_proto>(&p.subtype))
     {
         active = g->active;
         bits = u8(g->active << 2 | g->interactive << 4);
     }
-    else if (const auto* d = swl::get_if<door_scenery_proto>(&proto.subtype))
+    else if (const auto* d = swl::get_if<door_scenery_proto>(&p.subtype))
     {
         active = d->active;
         bits = u8(d->active << 2 | d->closing << 3 | d->interactive << 4);
@@ -207,7 +207,7 @@ void writer::write_light(Array<char>& out, const light& L)
                        L.bbox_offset == def.bbox_offset && L.bbox_size == def.bbox_size;
     const auto falloff = std::to_underlying(L.falloff);
     fm_assert(falloff < 1 << light_falloff_BITS);
-    put(out, u8(exact | u8(L.r) << 1 | falloff << 4 | L.enabled << 7));
+    put(out, u8(u8(exact) | u8(L.r) << 1 | falloff << 4 | L.enabled << 7));
     put(out, L.max_distance);
     for (auto i = 0u; i < 4; i++)
         put(out, L.color[i]);

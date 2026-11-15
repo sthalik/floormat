@@ -159,7 +159,6 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         }
         std::unreachable();
     }
-    fm_assert(false);
 
 error:
     fm_throw("no such atlas '{}'", name);

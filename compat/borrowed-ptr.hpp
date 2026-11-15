@@ -132,6 +132,11 @@ struct ptr_block final : control_block<Policy>
     }
 };
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4702) // code after U{...} is unreachable when U's constructor is [[noreturn]]
+#endif
+
 template<typename U, typename Policy>
 struct inplace_block final : control_block<Policy>
 {
@@ -211,6 +216,10 @@ struct intrusive_block final : control_block<Policy>
         Policy::allocator::template deallocate<storage>(reinterpret_cast<void*>(start));
     }
 };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 // Integer arithmetic: stepping a pointer to the object back past its start is UB.
 template<typename Policy>
