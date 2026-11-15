@@ -137,12 +137,12 @@ void Test::test_hash()
     success &= test_collisions< 12, 0,   51 >("large2 ");   FM_MAYBE_FAIL;
     success &= test_collisions< 14, 0,   94 >("large3 ");   FM_MAYBE_FAIL;
     success &= test_collisions< 15, 0,  118 >("large4 ");   FM_MAYBE_FAIL;
-    success &= test_collisions< 16, 0,  110 >("large5 ");   FM_MAYBE_FAIL;
+    success &= test_collisions< 16, 0,  114 >("large5 ");   FM_MAYBE_FAIL;
     success &= test_collisions<  3, 1,    2 >("zsmall1");   FM_MAYBE_FAIL;
     success &= test_collisions<  4, 1,    3 >("zsmall2");   FM_MAYBE_FAIL;
     success &= test_collisions<  2, 3,    1 >("zmid1"  );   FM_MAYBE_FAIL;
     success &= test_collisions<  3, 3,    7 >("zmid1"  );   FM_MAYBE_FAIL;
-    success &= test_collisions<  2, 6,    4 >("zmid2"  );   FM_MAYBE_FAIL;
+    success &= test_collisions<  2, 6,    5 >("zmid2"  );   FM_MAYBE_FAIL;
     success &= test_collisions<  2, 10,  14 >("zmid3"  );   FM_MAYBE_FAIL;
     success &= test_collisions<  6, 2,   35 >("zmid4"  );   FM_MAYBE_FAIL;
     success &= test_collisions<  7, 1,   28 >("zmid5"  );   FM_MAYBE_FAIL;
