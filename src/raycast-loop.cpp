@@ -328,6 +328,14 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     Vector2i global_cell;
     bool stepped = false;
     auto k = first_step;
+    bool run_pending = false;
+    u32 run_first = 0, run_last = 0;
+    const auto flush_run = [&] {
+        if (!run_pending)
+            return true;
+        run_pending = false;
+        return visit(line_cell{cell.chunks, cell.chunk_offset, run_first, run_last});
+    };
     // Returns false after loading a chunk whose object grid isn't T, so the other width's walk goes on.
     const auto walk = [&]<typename T>() -> bool {
         constexpr bool is_u32 = std::is_same_v<T, u32>;
@@ -339,6 +347,9 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             const auto local_cell = Vector2i{global_cell.x() & count_mask, global_cell.y() & count_mask};
             if (chunk_off != loaded)
             {
+                if constexpr (has_pool)
+                    if (!flush_run())
+                        return true;
                 load(chunk_off);
                 if (has_objects && object_grid.uses_u32() != is_u32)
                     return false;
@@ -379,23 +390,39 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             cell.last_step = last;
             if (!skip)
             {
-                if (!visit(cell))
+                if constexpr (has_pool)
+                {
+                    if (!run_pending)
+                        run_first = k;
+                    run_pending = true;
+                    run_last = last;
+                }
+                else if (!visit(cell))
                     return true;
             }
-            else if constexpr (has_object_pool)
+            else if constexpr (has_pool)
             {
-                const auto i = y*div_count + x, n = corners_x1 ? 2u : 1u;
-                const bool empty = x + 1 < div_count && y + 1 < div_count
-                                   && (!has_objects || object_grid.is_empty_at<T>(i, n)
-                                       && (!corners_y1 || object_grid.is_empty_at<T>(i + div_count, n)));
-                if (!empty && (!visit_corner_objects.template operator()<T>(x, y)
-                               || corners_x1 && !visit_corner_objects.template operator()<T>(x + 1, y)
-                               || corners_y1 && !visit_corner_objects.template operator()<T>(x, y + 1)
-                               || corners_x1 && corners_y1 && !visit_corner_objects.template operator()<T>(x + 1, y + 1)))
+                if (!flush_run())
                     return true;
+                if constexpr (has_object_pool)
+                {
+                    const auto i = y*div_count + x, n = corners_x1 ? 2u : 1u;
+                    const bool empty = x + 1 < div_count && y + 1 < div_count
+                                       && (!has_objects || object_grid.is_empty_at<T>(i, n)
+                                           && (!corners_y1 || object_grid.is_empty_at<T>(i + div_count, n)));
+                    if (!empty && (!visit_corner_objects.template operator()<T>(x, y)
+                                   || corners_x1 && !visit_corner_objects.template operator()<T>(x + 1, y)
+                                   || corners_y1 && !visit_corner_objects.template operator()<T>(x, y + 1)
+                                   || corners_x1 && corners_y1 && !visit_corner_objects.template operator()<T>(x + 1, y + 1)))
+                        return true;
+                }
             }
             if (last == last_step)
+            {
+                if constexpr (has_pool)
+                    flush_run();
                 return true;
+            }
 
             if (!region)
             {
@@ -414,7 +441,11 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                         const auto corner_off = chunk_of(corner);
                         const auto chunks = corner_off == loaded ? cell.chunks : chunks_3x3(corner_off);
                         if (!visit(line_cell{chunks, corner_off, last + 1, last + 1}))
+                        {
+                            if constexpr (has_pool)
+                                flush_run();
                             return true;
+                        }
                     }
                 }
                 global_cell = next;
