@@ -19,6 +19,7 @@
 #include <mg/TextureFormat.h>
 #include <mg/Color.h>
 #include <mg/Context.h>
+#include <mg/Extensions.h>
 #include <mg/Framebuffer.h>
 #include <mg/ImageView.h>
 #include <mg/Image.h>
@@ -80,6 +81,34 @@ u16 get_next_layer_count(u16 layer_count, const Atlas& A)
     }
 }
 
+namespace {
+
+struct framebuffer_saver final
+{
+    framebuffer_saver();
+    ~framebuffer_saver();
+
+private:
+    GLint draw_fb = 0, read_fb = 0, viewport[4] = {};
+};
+
+framebuffer_saver::framebuffer_saver()
+{
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fb);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fb);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+}
+
+framebuffer_saver::~framebuffer_saver()
+{
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)draw_fb);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)read_fb);
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    GL::Context::current().resetState(GL::Context::State::Framebuffers);
+}
+
+} // namespace
+
 void grow_texture(Atlas& atlas, u16 new_layer_count)
 {
     fm_assert(atlas.layer_width > 0 && atlas.layer_height > 0);
@@ -99,11 +128,8 @@ void grow_texture(Atlas& atlas, u16 new_layer_count)
                .setMinificationFilter(GL::SamplerFilter::Linear)
                .setWrapping(GL::SamplerWrapping::ClampToEdge);
 
-    GLint draw_fb = 0, read_fb = 0, viewport[4] = {};
-    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fb);
-    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fb);
-    glGetIntegerv(GL_VIEWPORT, viewport);
     {
+        const framebuffer_saver saver;
         auto rect = Range2Di{{}, layer_size};
         constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
         GL::Framebuffer dst_fb{rect};
@@ -126,10 +152,6 @@ void grow_texture(Atlas& atlas, u16 new_layer_count)
             }
         }
     }
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)draw_fb);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)read_fb);
-    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-    GL::Context::current().resetState(GL::Context::State::Framebuffers);
 
     atlas.texture = move(new_texture);
     atlas.texture_layer_count = new_layer_count;
@@ -461,6 +483,51 @@ std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sp
     return texcoords_for_subrect(atlas, sprite, {0, 0}, {full_w, full_h}, mirror);
 }
 
+void read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect, const MutableImageView2D& out)
+{
+    fm_assert(out.size() == rect.size());
+    if (GL::Context::current().isExtensionSupported<GL::Extensions::ARB::get_texture_sub_image>())
+    {
+        const MutableImageView3D out3{out.storage(), out.format(), {out.size(), 1}, out.data()};
+        texture.subImage(0, Range3Di{{rect.min(), layer}, {rect.max(), layer + 1}}, out3);
+    }
+    else
+    {
+        GL::Framebuffer fb{rect};
+        fb.attachTextureLayer(GL::Framebuffer::ColorAttachment{0}, texture, 0, layer);
+        fb.read(rect, out);
+    }
+}
+
+Image2D read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect)
+{
+    Image2D ret{PixelFormat::RGBA8Unorm, rect.size(), Array<char>{NoInit, (usize)rect.size().product() * 4}};
+    read_layer_pixels(texture, layer, rect, ret);
+    return ret;
+}
+
+GL::Texture2D copy_slot(Atlas& atlas, const Sprite& sprite)
+{
+    flush(atlas);
+    const auto size = Vector2i(slot_size(sprite));
+    const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
+    GL::Texture2D ret;
+    ret.setWrapping(GL::SamplerWrapping::ClampToEdge)
+       .setMagnificationFilter(GL::SamplerFilter::Nearest)
+       .setMinificationFilter(GL::SamplerFilter::Nearest)
+       .setStorage(1, GL::TextureFormat::RGBA8, size);
+    {
+        const framebuffer_saver saver;
+        constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
+        GL::Framebuffer src_fb{{{}, layer_size}}, dst_fb{{{}, size}};
+        src_fb.attachTextureLayer(attachment, atlas.texture, 0, (Int)sprite.layer);
+        dst_fb.attachTexture(attachment, ret, 0);
+        GL::Framebuffer::blit(src_fb, dst_fb, Range2Di::fromSize({(Int)sprite.x, (Int)sprite.y}, size), {{}, size},
+                              GL::FramebufferBlit::Color, GL::FramebufferBlitFilter::Nearest);
+    }
+    return ret;
+}
+
 void dump_atlas(Atlas& atlas, StringView out_path)
 {
     fm_assert(!atlas.layers.isEmpty());
@@ -484,19 +551,18 @@ void dump_atlas(Atlas& atlas, StringView out_path)
     fm_assert(conv);
 
     const Int n_chunks = (n + layers_per_chunk - 1) / layers_per_chunk;
+    const auto layer_bytes = (usize)w * (usize)h * 4;
+    Array<char> chunk{NoInit, layer_bytes * (usize)Math::min(layers_per_chunk, n)};
     for (Int c = 0; c < n_chunks; c++)
     {
         const Int first = c * layers_per_chunk;
         const Int count = Math::min<Int>(layers_per_chunk, n - first);
 
-        auto chunk = atlas.texture.subImage(0,
-            Range3Di::fromSize({0, 0, first}, {w, h, count}),
-            Image3D{PixelFormat::RGBA8Unorm});
-        // Tightly-packed 3D storage → re-view as `w` wide, `count*h` tall
-        // 2D image, same bytes. Vertical stack of `count` layers.
-        ImageView2D stitched{chunk.format(),
-                             {w, count * h},
-                             chunk.data()};
+        for (Int i = 0; i < count; i++)
+            read_layer_pixels(atlas.texture, first + i, {{}, {w, h}},
+                              MutableImageView2D{PixelFormat::RGBA8Unorm, {w, h},
+                                                 chunk.slice((usize)i * layer_bytes, (usize)(i + 1) * layer_bytes)});
+        ImageView2D stitched{PixelFormat::RGBA8Unorm, {w, count * h}, chunk.prefix((usize)count * layer_bytes)};
 
         char path_buf[1024];
         const int written = std::snprintf(path_buf, sizeof(path_buf),
@@ -527,9 +593,7 @@ void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path)
     const Int layer = (Int)sprite.layer;
 
     flush(atlas);
-    auto img = atlas.texture.subImage(0,
-        Range3Di::fromSize({x, y, layer}, {(Int)slot_w, (Int)slot_h, 1}),
-        Image3D{PixelFormat::RGBA8Unorm});
+    auto img = read_layer_pixels(atlas.texture, layer, Range2Di::fromSize({x, y}, {(Int)slot_w, (Int)slot_h}));
 
     const Vector2i dst_size{(Int)orig_w, (Int)orig_h};
     Array<u32> unrotated;

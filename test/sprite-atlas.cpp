@@ -13,6 +13,7 @@
 #include <mg/PixelFormat.h>
 #include <mg/ImageView.h>
 #include <mg/Image.h>
+#include <mg/Texture.h>
 #include <mg/TextureArray.h>
 
 namespace floormat::SpriteAtlas {
@@ -87,9 +88,7 @@ void upload_and_readback_is_lossless()
     Sprite* s = alloc_sprite(a, w, h);
     upload_sprite(a, *s, view);
 
-    auto img = a.texture.subImage(0,
-        Range3Di::fromSize({(Int)s->x, (Int)s->y, (Int)s->layer}, {(Int)w, (Int)h, 1}),
-        Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
+    auto img = read_layer_pixels(a.texture, (Int)s->layer, Range2Di::fromSize({(Int)s->x, (Int)s->y}, {(Int)w, (Int)h}));
 
     auto data = img.data();
     fm_assert(data.size() >= sizeof(src));
@@ -112,9 +111,7 @@ void realloc_preserves_uploaded_pixels()
     grow_texture(a, Math::max<u16>(1, a.texture_layer_count) * 4); // force a grow-blit
 
     // Read back from the same (unchanged) coordinates after grow.
-    auto img = a.texture.subImage(0,
-        Range3Di::fromSize({(Int)s->x, (Int)s->y, (Int)s->layer}, {(Int)w, (Int)h, 1}),
-        Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
+    auto img = read_layer_pixels(a.texture, (Int)s->layer, Range2Di::fromSize({(Int)s->x, (Int)s->y}, {(Int)w, (Int)h}));
 
     auto data = img.data();
     for (usize i = 0; i < sizeof(src); i++)
@@ -161,12 +158,57 @@ void grow_keeps_bound_framebuffer()
     for (const auto& [i, x] : enumerate(fb_data))
         fm_assert(x == (char)cleared[i % 4]);
 
-    const auto img = a.texture.subImage(0,
-        Range3Di::fromSize({(Int)s->x, (Int)s->y, (Int)s->layer}, {(Int)w, (Int)h, 1}),
-        Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
+    const auto img = read_layer_pixels(a.texture, (Int)s->layer,
+                                       Range2Di::fromSize({(Int)s->x, (Int)s->y}, {(Int)w, (Int)h}));
     const auto data = img.data();
     for (usize i = 0; i < sizeof(src); i++)
         fm_assert(data[i] == (char)src[i]);
+}
+
+void copy_slot_keeps_pixels_and_bound_framebuffer()
+{
+    sprite_atlas atlas{64, 64};
+    constexpr u32 w = 7, h = 11, rw = 3, rh = 13;
+    unsigned char src[w * h * 4], rsrc[rw * rh * 4];
+    fill_pattern(src, w, h);
+    fill_pattern(rsrc, rw, rh);
+    const sprite sprites[] = {
+        atlas.add(Magnum::ImageView2D{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src}, false),
+        atlas.add(Magnum::ImageView2D{Magnum::PixelFormat::RGBA8Unorm, {(Int)rw, (Int)rh}, rsrc}, true),
+    };
+    fm_assert(!sprites[0].is_rotated() && sprites[1].is_rotated());
+    auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
+
+    constexpr auto size = Vector2i{13, 11};
+    constexpr auto viewport = Range2Di{{3, 2}, {12, 9}};
+    GL::Renderbuffer color;
+    color.setStorage(GL::RenderbufferFormat::RGBA8, size);
+    GL::Framebuffer fb{viewport};
+    fb.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, color);
+    fb.bind();
+    GLint read_fb = 0;
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fb);
+
+    GL::Texture2D copies[2] = { copy_slot(*atlas.raw(), *sprites[0].raw()), copy_slot(*atlas.raw(), *sprites[1].raw()) };
+    GLint draw_fbʹ = 0, read_fbʹ = 0, vp[4] = {};
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fbʹ);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fbʹ);
+    glGetIntegerv(GL_VIEWPORT, vp);
+    fm_assert_equal((GLint)fb.id(), draw_fbʹ);
+    fm_assert_equal(read_fb, read_fbʹ);
+    fm_assert(Range2Di::fromSize({vp[0], vp[1]}, {vp[2], vp[3]}) == viewport);
+
+    for (auto i = 0u; i < 2; i++)
+    {
+        const auto s = sprites[i];
+        const auto sw = s.is_rotated() ? s.height() : s.width(), sh = s.is_rotated() ? s.width() : s.height();
+        fm_assert(copies[i].imageSize(0) == Vector2i{(Int)sw, (Int)sh});
+        const auto slot = read_layer_pixels(tex, (Int)s.layer(), Range2Di::fromSize({(Int)s.x(), (Int)s.y()}, {(Int)sw, (Int)sh}));
+        const auto copy = copies[i].image(0, Magnum::Image2D{Magnum::PixelFormat::RGBA8Unorm});
+        fm_assert(copy.data().size() == slot.data().size());
+        for (usize j = 0; j < slot.data().size(); j++)
+            fm_assert(copy.data()[j] == slot.data()[j]);
+    }
 }
 
 void texcoords_encode_expected_corners()
@@ -237,9 +279,7 @@ void staged_adds_reach_texture()
     {
         const auto s = sprite{sprites[i]};
         const auto sw = s.is_rotated() ? s.height() : s.width(), sh = s.is_rotated() ? s.width() : s.height();
-        auto img = tex.subImage(0, Range3Di{{(Int)s.x(), (Int)s.y(), (Int)s.layer()},
-                                            {(Int)(s.x() + sw), (Int)(s.y() + sh), (Int)s.layer() + 1}},
-                                Magnum::Image3D{Magnum::PixelFormat::RGBA8Unorm});
+        auto img = read_layer_pixels(tex, (Int)s.layer(), Range2Di::fromSize({(Int)s.x(), (Int)s.y()}, {(Int)sw, (Int)sh}));
         const auto* slot = reinterpret_cast<const u32*>(img.data().data());
         const auto* orig = reinterpret_cast<const u32*>(src[i].data());
         for (auto y = 0u; y < s.height(); y++)
@@ -381,6 +421,7 @@ void test_sprite_atlas()
     upload_and_readback_is_lossless();
     realloc_preserves_uploaded_pixels();
     grow_keeps_bound_framebuffer();
+    copy_slot_keeps_pixels_and_bound_framebuffer();
     texcoords_encode_expected_corners();
     staged_adds_reach_texture();
     each_texture_gets_new_texture_gen();

@@ -166,11 +166,11 @@ Pair<Color4ub, Color4ub> lit_behind_object(lightmap_shader& L, pass_mode pass)
 
     // same mapping as lightmap_shader::add_segment(): the chunk at offset 0 sits iter_bounds() chunks in
     const auto ns = (float)lightmap_shader::iter_bounds();
-    const auto size = L.accum_texture().imageSize(0);
+    const auto img = L.accum_texture().image(0, Image2D{PixelFormat::RGBA8Unorm});
+    const auto pixels = img.pixels<Color4ub>();
     const auto texel_at = [&](Vector2 pos) {
-        const auto t = Vector2i((pos + chunk_size<Vector2>*ns + half_tile<Vector2>) * Vector2(size) / (chunk_size<Vector2>*2*ns));
-        const auto img = L.accum_texture().subImage(0, {t, t + Vector2i{1}}, Image2D{PixelFormat::RGBA8Unorm});
-        return img.pixels<Color4ub>()[0][0];
+        const auto t = Vector2i((pos + chunk_size<Vector2>*ns + half_tile<Vector2>) * Vector2(img.size()) / (chunk_size<Vector2>*2*ns));
+        return pixels[(usize)t.y()][(usize)t.x()];
     };
     return { texel_at(behind), texel_at(north) };
 }

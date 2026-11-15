@@ -6,19 +6,16 @@
 #include "compat/hash-table-load-factor.hpp"
 #include "src/world.hpp"
 #include "src/sprite-atlas.hpp"
+#include "src/sprite-atlas-impl.hpp"
 #include "loader/loader.hpp"
 #include <gtl/phmap.hpp>
 #include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
 #include <mg/Context.h>
 #include <mg/Extensions.h>
-#include <mg/Range.h>
 #include <mg/Texture.h>
 #include <mg/TextureFormat.h>
 #include <mg/TextureArray.h>
-#include <mg/PixelFormat.h>
-#include <mg/ImageView.h>
-#include <mg/Image.h>
 
 namespace floormat {
 
@@ -229,8 +226,10 @@ void editor::clear_imgui_palette_cache()
 
 palette_texture_ref editor::palette_texture(sprite s)
 {
+    using namespace GL::Extensions;
     auto& c = *_imgui_palette_cache;
-    if (GL::Context::current().isExtensionSupported<GL::Extensions::ARB::texture_view>())
+    const auto& ctx = GL::Context::current();
+    if (ctx.isExtensionSupported<ARB::texture_view>() && ctx.isExtensionSupported<ARB::texture_storage>())
     {
         auto& atlas = loader.atlas();
         auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
@@ -258,59 +257,21 @@ palette_texture_ref editor::palette_texture(sprite s)
         return { view.id(), {{ tc[3].xy(), tc[1].xy(), tc[0].xy(), tc[2].xy() }} };
     }
 
+    auto& atlas = loader.atlas();
     auto& copies = c.sprite_copies;
     auto it = copies.find(s.raw());
     if (it == copies.end())
     {
         Hash::set_open_addressing_load_factor(copies, copies.size()+1);
-
-        // sprite::width/height always report the ORIGINAL dims. When the
-        // packer stored the sprite rotated, the atlas slot is transposed
-        // (slot_w = orig_h, slot_h = orig_w); the read region must match
-        // the slot, and we un-rotate before upload.
-        const u32 orig_w = s.width(), orig_h = s.height();
-        const bool rotated = s.is_rotated();
-        const u32 slot_w = rotated ? orig_h : orig_w;
-        const u32 slot_h = rotated ? orig_w : orig_h;
-
-        const Vector2i dst_size{(int)orig_w, (int)orig_h};
-        GL::Texture2D dst;
-        dst.setWrapping(GL::SamplerWrapping::ClampToEdge)
-           .setMagnificationFilter(GL::SamplerFilter::Nearest)
-           .setMinificationFilter(GL::SamplerFilter::Nearest)
-           .setStorage(1, GL::TextureFormat::RGBA8, dst_size);
-
-        auto& src = static_cast<GL::Texture2DArray&>(loader.atlas().texture());
-        auto img = src.subImage(0,
-            Range3Di::fromSize({(int)s.x(), (int)s.y(), (int)s.layer()}, {(int)slot_w, (int)slot_h, 1}),
-            Image3D{PixelFormat::RGBA8Unorm});
-
-        if (!rotated) [[likely]]
-        {
-            const ImageView2D view{img.format(), dst_size, img.data()};
-            dst.setSubImage(0, {}, view);
-        }
-        else
-        {
-            // Invert upload_sprite's 90° CCW (loader/sprite-atlas.cpp:303):
-            //   src[y_o][x_o] = slot[x_o][orig_h - 1 - y_o]
-            // Both sides are GL bottom-up. RGBA8 → 4 bytes/px.
-            Array<u32> unrotated{NoInit, (usize)orig_w * (usize)orig_h};
-            const auto* slot = reinterpret_cast<const u32*>(img.data().data());
-            for (u32 y_o = 0; y_o < orig_h; y_o++)
-            {
-                u32* dst_row = unrotated.data() + (usize)y_o * (usize)orig_w;
-                const u32 slot_col = orig_h - 1 - y_o;
-                for (u32 x_o = 0; x_o < orig_w; x_o++)
-                    dst_row[x_o] = slot[(usize)x_o * slot_w + slot_col];
-            }
-            const ImageView2D view{img.format(), dst_size, {unrotated.data(), unrotated.size()}};
-            dst.setSubImage(0, {}, view);
-        }
-
-        it = copies.insert({s.raw(), move(dst)}).first;
+        it = copies.insert({s.raw(), SpriteAtlas::copy_slot(*atlas.raw(), *s.raw())}).first;
     }
-    return { it->second.id(), {{ {0, 1}, {1, 1}, {1, 0}, {0, 0} }} };
+    const auto tc = atlas.texcoords_for(s, false);
+    const auto layer_size = Vector2{(float)atlas.layer_width(), (float)atlas.layer_height()};
+    const auto origin = Vector2{(float)s.x(), (float)s.y()};
+    const auto slot_size = s.is_rotated() ? Vector2{(float)s.height(), (float)s.width()}
+                                          : Vector2{(float)s.width(), (float)s.height()};
+    const auto to_slot = [&](const Vector3& t) { return (t.xy() * layer_size - origin) / slot_size; };
+    return { it->second.id(), {{ to_slot(tc[3]), to_slot(tc[1]), to_slot(tc[0]), to_slot(tc[2]) }} };
 }
 
 const ground_editor* editor::current_ground_editor() const noexcept
