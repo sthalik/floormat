@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
+#include "compat/valgrind.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
@@ -255,6 +256,8 @@ void test_cache_margin()
 // max_dist drops to the largest whose Search::cache rectangle fits in its max_size_bytes.
 void test_large_search_limit()
 {
+    if (is_valgrind())
+        return;
     constexpr u32 cell = astar::default_div_size, max_dist = 523'777;
     const auto from = point{global_coords{flush_ch, flush_tile}, {}};
     u32 clamped;
