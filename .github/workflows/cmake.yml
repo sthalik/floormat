@@ -252,6 +252,21 @@ jobs:
         sudo apt -q install libgl1-mesa-dri libgl-dev libglx-dev xorg-dev xvfb
         sudo apt -q install libsdl2-dev
 
+    - name: Install debug symbols
+      run: |
+        sudo apt -q install ubuntu-dbgsym-keyring
+        . /etc/os-release
+        printf '%s\n' 'Types: deb' 'URIs: http://ddebs.ubuntu.com/' \
+          "Suites: $VERSION_CODENAME $VERSION_CODENAME-updates" \
+          'Components: main restricted universe multiverse' \
+          'Signed-By: /usr/share/keyrings/ubuntu-dbgsym-keyring.gpg' \
+          | sudo tee /etc/apt/sources.list.d/ddebs.sources
+        sudo apt -q=2 update
+        v() { dpkg-query -Wf '${Version}' "$1"; }
+        sudo apt -q install libsdl2-classic-dbgsym=$(v libsdl2-classic) \
+          libx11-6-dbgsym=$(v libx11-6) libglx0-dbgsym=$(v libglx0)
+      continue-on-error: true
+
     - name: Configure
       run: /usr/bin/env CC=gcc-16 CXX=g++-16 cmake -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFLOORMAT_VALGRIND=1
 
