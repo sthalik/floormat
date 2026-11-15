@@ -2,6 +2,8 @@
 #include "compat/debug.hpp"
 #include "compat/nanosecond.hpp"
 #include "compat/strerror.hpp"
+#include "src/intra-coord.hpp"
+#include "src/point.hpp"
 #include <cerrno>
 #include <sstream>
 #include <cr/String.h>
@@ -124,6 +126,19 @@ void test_ns()
     check("dt: 12.3ₛ", [](Debug& d) { d << "dt:" << Ns{12'345'678'901}; });
 }
 
+void test_coord_printers()
+{
+    using wrapping_coord = basic_intra_coord<intra_coord::Wrapping>;
+    check("chunk{3,-7}", [](Debug& d) { d << chunk_coords{3, -7}; });
+    check("chunk{11,-13}", [](Debug& d) { d << chunk_coords_{11, -13, 0}; });
+    check("chunk{17,-19,-1}", [](Debug& d) { d << chunk_coords_{17, -19, -1}; });
+    check("intra_coord{5,701}", [](Debug& d) { d << intra_coord{Vector2i{5, 701}}; });
+    check("intra_coord<Wrapping>{-1,1103}", [](Debug& d) { d << wrapping_coord{Vector2i{-1, 1103}}; });
+    check("point{{1,2,3},{4,5},{6,7}}", [](Debug& d) { d << point{{1, 2, 3}, {4, 5}, {6, 7}}; });
+    check("point{{-1,0,0},{15,15},{31,-32}}", [](Debug& d) { d << point{{-1, 0, 0}, {15, 15}, {31, -32}}; });
+    check("at point{{1,2,3},{4,5},{6,7}} x", [](Debug& d) { d << "at" << point{{1, 2, 3}, {4, 5}, {6, 7}} << "x"; });
+}
+
 } // namespace
 
 namespace Test {
@@ -136,6 +151,7 @@ void test_debug()
     test_error_string();
     test_fraction();
     test_ns();
+    test_coord_printers();
 }
 
 } // namespace Test
