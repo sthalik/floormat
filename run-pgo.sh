@@ -10,6 +10,9 @@ case "${OS:-}" in
     Windows_NT) export PATH="$PATH:/usr/bin" ;;
 esac
 
+unset FLOORMAT_NO_USERCONFIG
+
+start_dir="$PWD"
 self="$(basename -- "$0")"
 cd -- "$(dirname -- "$0")"
 
@@ -59,17 +62,25 @@ compiler="$(detect_compiler)"
 
 case "$compiler" in
     gcc)
+        compiler_id=GNU
         gen_dir=build/gcc-pgo-gen
         use_dir=build/gcc-pgo-use
         default_profdata="build/gcc-${prof}-gcda"
         cs_rounds=0 ;;
     clang)
+        compiler_id=Clang
         gen_dir=build/clang-pgo-gen
         use_dir=build/clang-pgo-use
         default_profdata="build/${prof}.profdata" ;;
     *)
         echo "fatal: unknown compiler" >&2; exit 3 ;;
 esac
+
+case "${OS:-}" in
+    Windows_NT) system_name=Windows ;;
+    *) system_name="$(uname -s)" ;;
+esac
+userconfig="$PWD/userconfig-sthalik@${system_name}-${compiler_id}.cmake"
 
 usage_text() {
     cat <<EOF
@@ -92,6 +103,9 @@ options:
                               and skip the timed scenes; the trainers keep it
   -r, --reconf                cmake --fresh on each tree's first configure,
                               after a compiler upgrade
+  --userconfig=FILE           FLOORMAT_USERCONFIG on every configure, relative to
+                              the current directory
+                              (${userconfig})
   -h, --help                  show this help
 
 Trainers default to: ${default_exes}
@@ -106,10 +120,12 @@ env:
   FM_BENCH_MIN_TIME  benchmark time per case  (${bench_min_time})
 
 The toolchain is whatever \${CXX:-c++} is, the compiler CMake takes for a new tree:
-${compiler:-neither clang nor GCC} here. FLOORMAT_PGO is implemented in the Clang and
-GNU userconfigs. For clang, llvm-profdata is taken from beside the compiler named in
-the cache. On Windows run this under the toolchain's wrapper: clang64 ./${self} all,
-or mingw64 ./${self} all for GCC.
+${compiler:-neither clang nor GCC} here. The default userconfig is
+userconfig-sthalik@\${CMAKE_SYSTEM_NAME}-\${CMAKE_CXX_COMPILER_ID}.cmake for this
+host and compiler, and only the Windows ones implement FLOORMAT_PGO. For clang,
+llvm-profdata is taken from beside the compiler named in the cache. On Windows run
+this under the toolchain's wrapper: clang64 ./${self} all, or mingw64 ./${self} all
+for GCC.
 EOF
 }
 #  FM_DRIVER_REPEAT   editor passes over the driver scene table  (${driver_repeat})
@@ -239,6 +255,7 @@ configure_tree() {
     fi
     echo "==> cmake $1 (FLOORMAT_PGO=$2)${fresh:+ $fresh}"
     cmake $fresh -S . -B "$1" -DFLOORMAT_PGO="$2" -DCMAKE_BUILD_TYPE=Release \
+          -DFLOORMAT_USERCONFIG:FILEPATH="$(native "$userconfig")" -DFLOORMAT_NO_USERCONFIG=OFF \
           -DFLOORMAT_NO_PGO_DRIVER="$no_driver" \
           -DFLOORMAT_PGO_PROFDATA="$(native "$profdata")"
     test -e "$1/save" || ln -s ../../doc/saves "$1/save"
@@ -382,7 +399,7 @@ if test "$rc" -ne 4; then
     exit 65
 fi
 
-opts="$(getopt -o hr -l help,reconf,with-pgo-driver::,without-pgo-driver -n "$self" -- "$@")" || usage
+opts="$(getopt -o hr -l help,reconf,userconfig:,with-pgo-driver::,without-pgo-driver -n "$self" -- "$@")" || usage
 eval set -- "$opts"
 
 while :; do
@@ -398,6 +415,12 @@ while :; do
             shift 2 ;;
         --without-pgo-driver) pgo_driver=no; shift ;;
         -r|--reconf) reconf=yes; shift ;;
+        --userconfig)
+            case "$2" in
+                [a-zA-Z]:/*|[a-zA-Z]:\\*|/*|\\*) userconfig="$2" ;;
+                *) userconfig="$start_dir/$2" ;;
+            esac
+            shift 2 ;;
         --) shift; break ;;
     esac
 done
@@ -439,6 +462,11 @@ fi
 
 if test -z "$compiler"; then
     echo "error: '${CXX:-c++}' is neither clang nor GCC" >&2
+    exit 65
+fi
+
+if ! test -f "$userconfig"; then
+    echo "error: no userconfig '${userconfig}'" >&2
     exit 65
 fi
 
