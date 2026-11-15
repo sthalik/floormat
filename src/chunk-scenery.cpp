@@ -63,13 +63,16 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
             // --- slope-based sprite split ---
             // the box spans [center - lo, center + hi)
             const auto lo = Vector2i(e.bbox_size/2), hi = Vector2i(e.bbox_size) - lo;
+            const auto anchor = Vector3(pt) + Vector3(group.offset);
+            const auto py = (anchor.x() + anchor.y())*.5f - anchor.z();
+            const auto offset = Vector3(group.offset) + Vector3{0, 0, py - Math::floor(py)};
             const auto corner = [&](Vector2i px) {
-                return tile_shader::project(Vector3(Vector2(Vector2i(e.bbox_offset) + px), 0.f) - Vector3(group.offset));
+                return tile_shader::project(Vector3(Vector2(Vector2i(e.bbox_offset) + px), 0.f) - offset);
             };
             const auto nw = corner(-lo), se = corner(hi), w = corner({-lo.x(), hi.y()}), east = corner({hi.x(), -lo.y()});
             const float slope = east.x() > w.x() ? (east.y() - w.y()) / (east.x() - w.x()) : 0.f;
 
-            // sprite screen extent (pixel offsets from projected center)
+            // sprite screen extent (pixel offsets from ground anchor)
             const float left_x   = float(-frame.ground.x());
             const float right_x  = float(frame.size.x()) - float(frame.ground.x());
             const float sprite_h = float(frame.size.y());

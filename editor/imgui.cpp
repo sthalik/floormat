@@ -281,8 +281,11 @@ void app::draw_clickables()
 
             // bbox corners' screen offsets from sprite's ground anchor, as in chunk-scenery.cpp
             const auto lo = Vector2i(e.bbox_size/2), hi = Vector2i(e.bbox_size) - lo;
+            const auto anchor = Vector3(e.position()) + Vector3(g.offset);
+            const auto py = (anchor.x() + anchor.y())*.5f - anchor.z();
+            const auto offset = Vector3(g.offset) + Vector3{0, 0, py - Math::floor(py)};
             const auto corner = [&](Vector2i px) {
-                return tile_shader::project(Vector3(Vector2(Vector2i(e.bbox_offset) + px), 0.f) - Vector3(g.offset));
+                return tile_shader::project(Vector3(Vector2(Vector2i(e.bbox_offset) + px), 0.f) - offset);
             };
             const auto nw = corner(-lo), w = corner({-lo.x(), hi.y()}), east = corner({hi.x(), -lo.y()});
             const float slope = east.x() > w.x() ? (east.y() - w.y()) / (east.x() - w.x()) : 0.f;
@@ -296,7 +299,7 @@ void app::draw_clickables()
             const float y_at_right = w.y() + slope * (right_x - w.x());
 
             // sprite's ground anchor on screen
-            const Vector2 center = tile_shader::point_to_pixel(Vector3i(e.position()) + Vector3i(g.offset), win_size, camera);
+            const auto center = Vector2(tile_shader::point_to_pixelʹ(Vector3i(e.position()) + Vector3i(g.offset), win_size, camera));
             const auto start = Vector2{center.x() + left_x,  center.y() + y_at_left};
             const auto end   = Vector2{center.x() + right_x, center.y() + y_at_right};
             draw.AddLine(ImVec2(start), ImVec2(end), color, thickness);
