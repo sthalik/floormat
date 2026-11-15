@@ -54,7 +54,7 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
     arrayResize(dist, NoInit, count);
     arrayResize(passable, NoInit, count);
 
-    Optional<Pass::Grid> grid;
+    Optional<Pass::Grid> gridʹ;
     chunk_coords_ grid_ch;
     bool looked = false;
     for (auto y = 0; y < side; y++)
@@ -67,16 +67,18 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
             {
                 looked = true;
                 grid_ch = cc;
-                grid = {};
+                gridʹ = {};
                 if (auto* p = w.at(cc))
-                {
-                    grid.emplace(pool[*p]);
-                    grid->build_if_stale();
-                }
+                    gridʹ.emplace(pool[*p]).build_if_stale();
             }
             const auto local = Vector2ui(cell - ch*dc);
             const auto i = (u32)(y*side + x);
-            passable[i] = grid && grid->bit(Pass::Grid::get_bitmask_index(local.x(), local.y(), (u32)dc));
+            passable[i] = false;
+            if (gridʹ)
+            {
+                const auto& grid = *gridʹ;
+                passable[i] = grid.bit(Pass::Grid::get_bitmask_index(local.x(), local.y(), (u32)dc));
+            }
             dist[i] = (u16)-1;
         }
 

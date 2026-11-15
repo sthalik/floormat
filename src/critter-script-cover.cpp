@@ -471,8 +471,12 @@ void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachabl
 {
     search.end();
     const auto from = search.from();
-    const auto radius = r ? Math::min(Cover::cover_search::radius, point::distance(from, r->spot.pos) + (u32)tile_size_xy)
-                          : Cover::cover_search::radius;
+    auto radius = Cover::cover_search::radius;
+    if (r)
+    {
+        const auto& reachable = *r;
+        radius = Math::min(radius, point::distance(from, reachable.spot.pos) + (u32)tile_size_xy);
+    }
     query = Cover::Point::query{from, Vector2ui(C.bbox_size), threat_pos, radius, options.octants,
                                 options.listed_cover_end_dist()};
     counters.num_searches++;
@@ -848,28 +852,31 @@ bool cover_script::send_to(critter& C, const Cover::Point::spot& s, bool peek)
     if (!threat)
         return false;
     const auto end = cover_end(C, s, threat->position());
-    Optional<Cover::Script::peek> p;
+    Optional<Cover::Script::peek> pʹ;
+    auto to = end;
     if (peek)
     {
-        p = peek_spot(C, end, s.axis, threat->position());
-        if (!p)
+        pʹ = peek_spot(C, end, s.axis, threat->position());
+        if (!pʹ)
             return false;
+        const auto& p = *pʹ;
+        to = p.pos;
     }
-    if (!walk_to(C, p ? p->pos : end, p ? state::exposed : state::hidden))
+    if (!walk_to(C, to, pʹ ? state::exposed : state::hidden))
         return false;
     cover = Cover::Script::cover{.pos = end, .canonical = s.pos, .axis = s.axis, .peek = {}};
     replans = 0;
     threat_pos = threat->position();
-    if (p)
+    if (pʹ)
     {
-        const auto& [pos, gun] = *p;
+        const auto& [pos, gun] = *pʹ;
         auto& c = *cover;
         c.peek = Cover::Script::cover_peek{pos, gun, threat_pos};
     }
     using hold_phase = Cover::Script::options::hold_phase;
     if (options.hold != hold_phase::none)
-        options.hold = p ? hold_phase::exposed : hold_phase::hidden;
-    wait_until = C.world().game_time() + time_in(p ? state::exposed : state::hidden);
+        options.hold = pʹ ? hold_phase::exposed : hold_phase::hidden;
+    wait_until = C.world().game_time() + time_in(pʹ ? state::exposed : state::hidden);
     if (st == state::exposed)
         face_threat(C, C.index(), threat_pos);
     return true;

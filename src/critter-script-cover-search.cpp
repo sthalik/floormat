@@ -211,10 +211,18 @@ auto cover_search::take_last_resort(point here, const calls& f) -> Optional<reac
     const auto [peekless, in_reach] = _fallback_spots;
     _fallback_spots = {};
     Optional<Cover::Point::spot> spot;
-    if (peekless && f.hidden_from_reach(peekless->pos, peekless->axis).hidden)
-        spot = peekless;
-    else if (in_reach && f.hidden_at(in_reach->pos, in_reach->axis))
-        spot = in_reach;
+    if (peekless)
+    {
+        const auto& s = *peekless;
+        if (f.hidden_from_reach(s.pos, s.axis).hidden)
+            spot = s;
+    }
+    if (!spot && in_reach)
+    {
+        const auto& s = *in_reach;
+        if (f.hidden_at(s.pos, s.axis))
+            spot = s;
+    }
     if (!spot)
         return {};
     const auto s = *spot;

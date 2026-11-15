@@ -102,12 +102,13 @@ Array<shared_peek> shared_peeks(critter& c, const Array<Cover::Point::spot>& spo
         const auto p = Cover::Script::find_peek(c, x);
         if (!p)
             continue;
+        const auto& peek = *p;
         auto i = 0u;
-        while (i < out.size() && out[i].peek != p->pos)
+        while (i < out.size() && out[i].peek != peek.pos)
             i++;
         if (i == out.size())
         {
-            arrayAppend(out, shared_peek{p->pos, x.pos, x.pos, 1});
+            arrayAppend(out, shared_peek{peek.pos, x.pos, x.pos, 1});
             continue;
         }
         auto& g = out[i];
@@ -295,13 +296,14 @@ task app::scene_cover_ai()
         fm_assert(v.u32 > 0 && v.u32 < spots.size());
         const auto switched = spots[v.u32];
         fm_assert_equal(switched.pos, canonical());
-        const auto p = Cover::Script::find_peek(*w.find_object<critter>(npc_id), switched);
-        fm_assert(p);
+        const auto pʹ = Cover::Script::find_peek(*w.find_object<critter>(npc_id), switched);
+        fm_assert(pʹ);
+        const auto& p = *pʹ;
         // hidden, out and back, as at cover it found itself
         for (const auto exposed : { false, true, false })
         {
             deadline = M->world().game_time() + max_dt;
-            while (!(exposed ? exposed_at(p->pos) : hidden_at(switched.pos)))
+            while (!(exposed ? exposed_at(p.pos) : hidden_at(switched.pos)))
             {
                 fm_assert(M->world().game_time() < deadline);
                 co_yield {};
@@ -311,24 +313,33 @@ task app::scene_cover_ai()
         // The box's spots are still those of the search above, since the player hasn't moved.
         fm_assert(listed(overlay, switched.pos));
         struct target { point peek, cover; };
-        target targets[2] = { {p->pos, switched.pos}, };
+        target targets[2] = { {p.pos, switched.pos}, };
         auto n_targets = 1u;
-        Optional<Cover::Point::spot> nearest;
+        Optional<Cover::Point::spot> nearestʹ;
         point other_peek;
         auto first_shares = false;
         for (const auto& x : overlay)
         {
-            const auto q = Cover::Script::find_peek(*w.find_object<critter>(npc_id), x);
-            if (!q || q->pos == p->pos || nearest && q->pos != other_peek)
+            const auto qʹ = Cover::Script::find_peek(*w.find_object<critter>(npc_id), x);
+            if (!qʹ)
                 continue;
-            if (!nearest || point::distance_squared(x.pos, q->pos) < point::distance_squared(nearest->pos, q->pos))
-                nearest = x;
-            other_peek = q->pos;
+            const auto& q = *qʹ;
+            if (q.pos == p.pos || nearestʹ && q.pos != other_peek)
+                continue;
+            if (!nearestʹ)
+                nearestʹ = x;
+            else if (const auto& nearest = *nearestʹ;
+                     point::distance_squared(x.pos, q.pos) < point::distance_squared(nearest.pos, q.pos))
+                nearestʹ = x;
+            other_peek = q.pos;
             first_shares |= x.pos == first;
         }
         // The npc hides at first at the click, so the panel peeks from first if first shares the peek spot.
-        if (nearest)
-            targets[n_targets++] = {other_peek, first_shares ? first : nearest->pos};
+        if (nearestʹ)
+        {
+            const auto& nearest = *nearestʹ;
+            targets[n_targets++] = {other_peek, first_shares ? first : nearest.pos};
+        }
         for (auto t = 0u; t < n_targets; t++)
         {
             const auto [peek, cover] = targets[t];
@@ -394,13 +405,14 @@ task app::scene_cover_ai()
             fm_assert(h.type == base_test::ValueType::u32);
             fm_assert_equal((u32)hold_phase::hidden, h.u32);
         }
-        const auto q = Cover::Script::find_peek(*w.find_object<critter>(npc_id), spots[prev.u32]);
-        fm_assert(q);
-        set_cursor_at(q->pos);
+        const auto qʹ = Cover::Script::find_peek(*w.find_object<critter>(npc_id), spots[prev.u32]);
+        fm_assert(qʹ);
+        const auto& q = *qʹ;
+        set_cursor_at(q.pos);
         co_await click_at_cursor(mouse_button_left);
         fm_assert(status().st == state::to_peek);
         deadline = M->world().game_time() + max_dt;
-        while (!exposed_at(q->pos))
+        while (!exposed_at(q.pos))
         {
             fm_assert(M->world().game_time() < deadline);
             co_yield {};
@@ -408,7 +420,7 @@ task app::scene_cover_ai()
         for (const auto until = M->world().game_time() + Second*4; M->world().game_time() < until;)
         {
             co_yield {};
-            fm_assert(exposed_at(q->pos));
+            fm_assert(exposed_at(q.pos));
         }
         {
             const auto e = press(7);
@@ -418,7 +430,7 @@ task app::scene_cover_ai()
         for (const auto until = M->world().game_time() + Second; M->world().game_time() < until;)
         {
             co_yield {};
-            fm_assert(exposed_at(q->pos));
+            fm_assert(exposed_at(q.pos));
         }
 
         // Spots left where the search accepts them peek from the same spot past each end of the

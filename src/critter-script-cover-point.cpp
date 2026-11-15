@@ -447,13 +447,17 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
     auto cand_lo = P - Vector2i{R}, cand_hi = P + Vector2i{R};
     if (q.area)
     {
-        cand_lo = Math::max(cand_lo, P + q.area->min());
-        cand_hi = Math::min(cand_hi, P + q.area->max() - Vector2i{1});
+        const auto& area = *q.area;
+        cand_lo = Math::max(cand_lo, P + area.min());
+        cand_hi = Math::min(cand_hi, P + area.max() - Vector2i{1});
         if (!(cand_lo <= cand_hi).all())
             return {};
     }
     const auto in_area = [&](Vector2i center) {
-        return !q.area || (center - P >= q.area->min()).all() && (center - P < q.area->max()).all();
+        if (!q.area)
+            return true;
+        const auto& area = *q.area;
+        return (center - P >= area.min()).all() && (center - P < area.max()).all();
     };
 
     const auto lo = cell_of(cand_lo - body_hi), span = cell_of(cand_hi + body_hi) - lo + Vector2i{1};

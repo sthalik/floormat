@@ -1234,10 +1234,11 @@ Vector2i peek_walk(world& w, const Cover::Point::spot& spot, point threat_pos)
     const auto p = Cover::Script::find_peek(*npc, spot);
     w.finish_scripts();
     fm_assert(p);
-    const auto d = Vector3i(p->pos).xy() - Vector3i(spot.pos).xy();
+    const auto& peek = *p;
+    const auto d = Vector3i(peek.pos).xy() - Vector3i(spot.pos).xy();
     const auto back = Math::sign(d);
-    fm_assert(gun_seen(w, threat_pos, p->pos));
-    fm_assert(!gun_seen(w, threat_pos, p->pos - back) && !gun_seen(w, threat_pos, spot.pos));
+    fm_assert(gun_seen(w, threat_pos, peek.pos));
+    fm_assert(!gun_seen(w, threat_pos, peek.pos - back) && !gun_seen(w, threat_pos, spot.pos));
     return d;
 }
 
@@ -2726,8 +2727,9 @@ void test_cover_script_orders(point hidden)
     const auto other = spots[spots.size() - 1], first = spots[0];
 
     const auto num_rays = s.status().counters.num_rays;
-    const auto p = Cover::Script::find_peek(*s.npc, other);
-    fm_assert(p);
+    const auto pʹ = Cover::Script::find_peek(*s.npc, other);
+    fm_assert(pʹ);
+    const auto& p = *pʹ;
     fm_assert_equal(num_rays, s.status().counters.num_rays);
 
     fm_assert(Cover::Script::send_to_cover(*s.npc, other));
@@ -2747,15 +2749,16 @@ void test_cover_script_orders(point hidden)
         const auto t = s.status();
         const auto& c = *t.cover;
         const auto& peek = *c.peek;
-        fm_assert(s.npc->position() == p->pos);
+        fm_assert(s.npc->position() == p.pos);
         fm_assert(c.canonical == other.pos);
-        fm_assert(peek.pos == p->pos && peek.gun == p->gun);
+        fm_assert(peek.pos == p.pos && peek.gun == p.gun);
     }
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == other_end);
 
-    const auto q = Cover::Script::find_peek(*s.npc, first);
-    fm_assert(q);
+    const auto qʹ = Cover::Script::find_peek(*s.npc, first);
+    fm_assert(qʹ);
+    const auto& q = *qʹ;
     fm_assert(Cover::Script::send_to_peek(*s.npc, first));
     {
         const auto t = s.status();
@@ -2764,11 +2767,11 @@ void test_cover_script_orders(point hidden)
         const auto& c = *t.cover;
         fm_assert(c.canonical == first.pos && c.peek);
         const auto& peek = *c.peek;
-        fm_assert(peek.pos == q->pos && peek.gun == q->gun);
+        fm_assert(peek.pos == q.pos && peek.gun == q.gun);
         fm_assert(peek.gun_ray_from == s.threat->position());
     }
     s.step_until(state::exposed);
-    fm_assert(s.npc->position() == q->pos);
+    fm_assert(s.npc->position() == q.pos);
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
 

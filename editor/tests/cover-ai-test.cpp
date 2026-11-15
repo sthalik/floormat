@@ -504,7 +504,12 @@ u32 cover_ai_test::toggle_hold()
     {
         const auto c = npc.lock();
         const auto s = c ? Cover::Script::get_status(*c) : Optional<Cover::Script::status>{};
-        const auto out = s && (s->st == state::exposed || s->st == state::to_peek);
+        auto out = false;
+        if (s)
+        {
+            const auto& status = *s;
+            out = status.st == state::exposed || status.st == state::to_peek;
+        }
         options.hold = out ? hold_phase::exposed : hold_phase::hidden;
     }
     apply_options();
@@ -1023,14 +1028,25 @@ void cover_ai_test::draw_ui(app& a, float)
         };
 
         do_column("state");
-        text(!c ? "no npc" : !s ? "no cover script" : state_names[(usize)s->st]);
+        if (!c)
+            text("no npc");
+        else if (!s)
+            text("no cover script");
+        else
+        {
+            const auto& status = *s;
+            text(state_names[(usize)status.st]);
+        }
 
         do_column("progress");
-        if (s && (s->st == state::search || s->st == state::retreat && s->search.tiles_left))
-            snformat(buf, "tile {} of {}", s->search.tile, s->search.num_tiles);
-        else if (s && s->st == state::find_retreat)
-            snformat(buf, "spot {} of {}, pass {}, {} without a path", s->retreat.spot, s->retreat.num_spots,
-                     s->retreat.all ? 2 : 1, s->retreat.num_failed_dijkstra_calls);
+        if (!s)
+            snformat(buf, "-");
+        else if (const auto& status = *s;
+                 status.st == state::search || status.st == state::retreat && status.search.tiles_left)
+            snformat(buf, "tile {} of {}", status.search.tile, status.search.num_tiles);
+        else if (status.st == state::find_retreat)
+            snformat(buf, "spot {} of {}, pass {}, {} without a path", status.retreat.spot,
+                     status.retreat.num_spots, status.retreat.all ? 2 : 1, status.retreat.num_failed_dijkstra_calls);
         else
             snformat(buf, "-");
         text(buf);
@@ -1103,7 +1119,8 @@ void cover_ai_test::draw_ui(app& a, float)
         do_column("update time");
         if (s)
         {
-            snformat(buf, "{:.1f} µs, highest {:.1f} µs", us(s->last_update), us(s->max_update));
+            const auto& status = *s;
+            snformat(buf, "{:.1f} µs, highest {:.1f} µs", us(status.last_update), us(status.max_update));
             text(buf);
         }
         else
