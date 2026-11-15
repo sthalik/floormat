@@ -283,6 +283,10 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         const auto* b = corner_bits[n];
         return b && test_bit(b, (y & (div_count - 1))*div_count + (x & (div_count - 1)));
     };
+    const auto square_is_set = [&](u32 x, u32 y, bool x1, bool y1) {
+        return corner_is_set(x, y) && (!x1 || corner_is_set(x + 1, y)) && (!y1 || corner_is_set(x, y + 1))
+               && (!x1 || !y1 || corner_is_set(x + 1, y + 1));
+    };
 
     // v[axis] with a run-time axis goes through the stack.
     const auto on = [](Vector2i v, u32 axis) { return axis ? v.y() : v.x(); };
@@ -321,6 +325,12 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             return visit_at(visit_objects_u32);
         else
             return visit_at(visit_objects_u16);
+    };
+    const auto visit_square_objects = [&]<typename T>(u32 x, u32 y, bool x1, bool y1) -> bool {
+        return visit_corner_objects.template operator()<T>(x, y)
+               && (!x1 || visit_corner_objects.template operator()<T>(x + 1, y))
+               && (!y1 || visit_corner_objects.template operator()<T>(x, y + 1))
+               && (!x1 || !y1 || visit_corner_objects.template operator()<T>(x + 1, y + 1));
     };
 
     // Cells count from the line's chunk, so a cell's chunk and its cell within it are a shift and a mask
@@ -377,9 +387,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                                  && (!corners_y1 || (corners_x1 ? test_bit_pair(b, i2) : test_bit(b, i2)));
                     }
                     else
-                        skip = corner_is_set(x, y) && (!corners_x1 || corner_is_set(x + 1, y))
-                               && (!corners_y1 || corner_is_set(x, y + 1))
-                               && (!corners_x1 || !corners_y1 || corner_is_set(x + 1, y + 1));
+                        skip = square_is_set(x, y, corners_x1, corners_y1);
                 }
             }
             fm_debug3_assert((line.point_at(k) >= lo).all() && (line.point_at(k) <= hi).all());
@@ -410,10 +418,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                     const bool empty = x + 1 < div_count && y + 1 < div_count
                                        && (!has_objects || object_grid.is_empty_at<T>(i, n)
                                            && (!corners_y1 || object_grid.is_empty_at<T>(i + div_count, n)));
-                    if (!empty && (!visit_corner_objects.template operator()<T>(x, y)
-                                   || corners_x1 && !visit_corner_objects.template operator()<T>(x + 1, y)
-                                   || corners_y1 && !visit_corner_objects.template operator()<T>(x, y + 1)
-                                   || corners_x1 && corners_y1 && !visit_corner_objects.template operator()<T>(x + 1, y + 1)))
+                    if (!empty && !visit_square_objects.template operator()<T>(x, y, corners_x1, corners_y1))
                         return true;
                 }
             }
@@ -439,6 +444,21 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                             continue;
                         const auto corner = i == 0 ? Vector2i{next.x(), global_cell.y()} : Vector2i{global_cell.x(), next.y()};
                         const auto corner_off = chunk_of(corner);
+                        if constexpr (has_pool)
+                        {
+                            const auto cx = (u32)(corner.x() & count_mask), cy = (u32)(corner.y() & count_mask);
+                            const bool x1 = (line.sign(0) > 0) != (i == 0), y1 = (line.sign(1) > 0) != (i == 1);
+                            if (corner_off == loaded && square_is_set(cx, cy, x1, y1))
+                            {
+                                if constexpr (has_object_pool)
+                                    if (!visit_square_objects.template operator()<T>(cx, cy, x1, y1))
+                                    {
+                                        flush_run();
+                                        return true;
+                                    }
+                                continue;
+                            }
+                        }
                         const auto chunks = corner_off == loaded ? cell.chunks : chunks_3x3(corner_off);
                         if (!visit(line_cell{chunks, corner_off, last + 1, last + 1}))
                         {

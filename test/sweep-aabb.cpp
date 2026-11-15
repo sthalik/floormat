@@ -17,6 +17,7 @@
 #include "src/sweep-aabb.hpp"
 #include "src/raycast-line.hpp"
 #include "src/grid-pass.hpp"
+#include "src/grid-object.hpp"
 #include "src/search.hpp"
 #include "src/rect-intersects.hpp"
 
@@ -178,6 +179,47 @@ void test_swept_collider_cell_corner()
     fm_assert(res.has_collider && res.step == 8);
 }
 
+void test_swept_collider_cell_corner_antidiagonal()
+{
+    constexpr chunk_coords_ ch{0, 0, 0};
+    constexpr auto size = Vector2ui{4};
+    constexpr struct { Vector2i from, to; } lines[] = { { {26, 9}, {9, 26} }, { {9, 26}, {26, 9} } };
+    {
+        auto w = world();
+        fill_ground(w[ch]);
+        place_rect(w, ch, {15, 15}, {16, 16});
+        w[ch].mark_modified();
+        Pass::Pool pool{Pass::Params{4, 4, pass_mode::pass}};
+        for (const auto& l : lines)
+        {
+            check_swept_line(w, ch, l.from, l.to, 0, 17, size, nullptr);
+            check_swept_line(w, ch, l.from, l.to, 0, 17, size, &pool);
+            const auto res = find_swept_collider(w, ch, Raycast::bresenham_line{l.from, l.to}, 0, 17, size,
+                                                 Search::never_continue, &pool);
+            fm_assert(res.has_collider && res.step == 9);
+        }
+    }
+    {
+        auto w = world();
+        fill_ground(w[ch]);
+        auto cp = critter_proto{};
+        cp.bbox_size = Vector2ub{1};
+        cp.offset = Vector2b{15, 15};
+        cp.pass = pass_mode::blocked;
+        const auto C = w.make_object<critter>(w.make_id(), {ch, {0, 0}}, cp);
+        Pass::Pool pool{Pass::Params{4, 4, pass_mode::pass}};
+        Grid::Object::Pool objects{pool};
+        std::array<Array<bool>, 4> entry_blocked;
+        for (const auto& l : lines)
+        {
+            const auto line = Raycast::bresenham_line{l.from, l.to};
+            fm_assert(first_blocked_step(w, ch, line, 0, 17, size) == 9);
+            const auto res = find_swept_collider(w, ch, line, 0, 17, size, Search::never_continue, objects, entry_blocked);
+            fm_assert(res.has_collider && res.step == 9 && res.collider.id == C->id);
+        }
+    }
+}
+
 void test_swept_collider_line()
 {
     auto w = world();
@@ -272,6 +314,7 @@ void Test::test_sweep_aabb()
 {
     test_critter_slit();
     test_swept_collider_cell_corner();
+    test_swept_collider_cell_corner_antidiagonal();
     test_swept_collider_line();
     test_swept_collider_flush();
 }
