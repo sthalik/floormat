@@ -2,6 +2,8 @@
 #include "range-access.hpp"
 #include <cr/StlForwardTupleSizeElement.h>
 
+namespace floormat::detail::pairwise { template<typename V> class iterator; }
+
 namespace floormat::detail::combinations {
 
 template<typename V> class element;
@@ -14,6 +16,7 @@ template<typename V>
 class element
 {
     template<typename> friend class iterator;
+    template<typename> friend class detail::pairwise::iterator;
     using It = iterator_t<V>;
 
     It _first, _second;
@@ -22,8 +25,8 @@ class element
 
 public:
     using reference = decltype(*detail::range::declval<It&>());
-    static_assert(std::is_lvalue_reference_v<reference>, "combinations() needs a range of lvalues");
-    static_assert(std::is_copy_constructible_v<It>, "combinations() needs a range it can walk more than once");
+    static_assert(std::is_lvalue_reference_v<reference>, "combinations() and pairwise() need a range of lvalues");
+    static_assert(std::is_copy_constructible_v<It>, "combinations() and pairwise() need a range they can walk more than once");
     using value_type = std::remove_reference_t<reference>;
     using copy_type = std::remove_cv_t<value_type>;
 
