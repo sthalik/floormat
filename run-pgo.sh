@@ -6,7 +6,7 @@
 set -o pipefail
 set -eu
 
-case "$OS" in
+case "${OS:-}" in
     Windows_NT) export PATH="$PATH:/usr/bin" ;;
 esac
 
@@ -178,7 +178,7 @@ exe_runs() {
 }
 
 native() {
-    case "$OS" in
+    case "${OS:-}" in
         Windows_NT) cygpath -m -- "$1" ;;
         *) echo "$1" ;;
     esac
@@ -292,7 +292,7 @@ resolve_exes() {
 run_exes() {
     local _list profdir exe tag n i
     _list="$(resolve_exes)"
-    case "$OS" in
+    case "${OS:-}" in
         Windows_NT) profdir="$(cygpath -m -- "$PWD/$gen_dir")" ;;
         *) profdir="$PWD/$gen_dir" ;;
     esac
