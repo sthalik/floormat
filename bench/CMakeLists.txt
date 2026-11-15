@@ -26,3 +26,8 @@ endif()
 target_link_libraries(${self} PUBLIC ${self}_o floormat-serialize floormat-draw floormat floormat-hash floormat-random)
 fm_win32_app_manifest(${self})
 fm_install_executable(${self})
+
+file(GLOB files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/save/*.dat")
+foreach(file ${files})
+    install(FILES "${file}" DESTINATION "${CMAKE_BINARY_DIR}/bench/save")
+endforeach()
