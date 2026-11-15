@@ -384,10 +384,14 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             }
             else if constexpr (has_object_pool)
             {
-                if (!visit_corner_objects.template operator()<T>(x, y)
-                    || corners_x1 && !visit_corner_objects.template operator()<T>(x + 1, y)
-                    || corners_y1 && !visit_corner_objects.template operator()<T>(x, y + 1)
-                    || corners_x1 && corners_y1 && !visit_corner_objects.template operator()<T>(x + 1, y + 1))
+                const auto i = y*div_count + x, n = corners_x1 ? 2u : 1u;
+                const bool empty = x + 1 < div_count && y + 1 < div_count
+                                   && (!has_objects || object_grid.is_empty_at<T>(i, n)
+                                       && (!corners_y1 || object_grid.is_empty_at<T>(i + div_count, n)));
+                if (!empty && (!visit_corner_objects.template operator()<T>(x, y)
+                               || corners_x1 && !visit_corner_objects.template operator()<T>(x + 1, y)
+                               || corners_y1 && !visit_corner_objects.template operator()<T>(x, y + 1)
+                               || corners_x1 && corners_y1 && !visit_corner_objects.template operator()<T>(x + 1, y + 1)))
                     return true;
             }
             if (last == last_step)

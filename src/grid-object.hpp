@@ -71,6 +71,7 @@ public:
     bool blocked_objects(const Search::pred& p, Array<bool>& entry_blocked) const;
     bool blocked_objects(const Search::pred& p) const;
     template<typename T> bool is_blocked(u32 index, ArrayView<const bool> entry_blocked) const;
+    template<typename T> bool is_empty_at(u32 index, u32 count) const;
     /// @brief Writes @p pass_bits to @p out, with each cell cleared that is_blocked(). Both span
     /// detail::bitmask_size(div_count()) bits.
     void mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out,

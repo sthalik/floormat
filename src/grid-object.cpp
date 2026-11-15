@@ -7,6 +7,7 @@
 #include "tile-bbox.hpp"
 #include "object-storage.inl"
 #include "compat/function-view.hpp"
+#include <cstring>
 #include <cr/GrowableArray.h>
 
 namespace floormat::Grid::detail {
@@ -374,6 +375,30 @@ template<typename T> bool Grid::is_blocked(u32 index, ArrayView<const bool> entr
 
 template bool Grid::is_blocked<u16>(u32, ArrayView<const bool>) const;
 template bool Grid::is_blocked<u32>(u32, ArrayView<const bool>) const;
+
+template<typename T> bool Grid::is_empty_at(u32 index, u32 count) const
+{
+    fm_debug3_assert(count == 1 || count == 2);
+    fm_debug3_assert(index + count <= grid->params.div_count * grid->params.div_count);
+    fm_debug3_assert(grid->uses_u32 == std::is_same_v<T, u32>);
+    const T* c;
+    if constexpr (std::is_same_v<T, u32>)
+        c = grid->cells32.data() + index;
+    else
+        c = grid->cells.data() + index;
+    if (count == 1)
+        return *c == detail::empty_run<T>;
+    else
+    {
+        using W = std::conditional_t<std::is_same_v<T, u32>, u64, u32>;
+        W v;
+        std::memcpy(&v, c, sizeof v);
+        return v == ((W)detail::empty_run<T> << sizeof(T)*8 | detail::empty_run<T>);
+    }
+}
+
+template bool Grid::is_empty_at<u16>(u32, u32) const;
+template bool Grid::is_empty_at<u32>(u32, u32) const;
 
 void Grid::mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out,
                           ArrayView<const bool> entry_blocked) const
