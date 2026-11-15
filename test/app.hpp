@@ -22,6 +22,7 @@ void test_astar_pool();
 void test_atomic();
 void test_atomic_wait();
 void test_bitmask();
+void test_bitset();
 void test_bptr();
 void test_bptr_intrusive();
 void test_chase_lev_deque();

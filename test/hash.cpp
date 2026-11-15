@@ -1,12 +1,12 @@
 #include "app.hpp"
 #include "compat/hash.hpp"
 #include "compat/array-size.hpp"
+#include "compat/bitset.hpp"
 #include "compat/zip.hpp"
 #include "src/global-coords.hpp"
 #include "src/world.hpp"
 #include <cr/StringView.h>
 #include <cr/Pointer.h>
-#include <bitset>
 #include <mg/Functions.h>
 
 #ifdef __GNUG__
@@ -50,8 +50,8 @@ template<i16 CoordMax, i8 ZMax, u32 MaxCollisions>
     constexpr usize Iters = (CoordMax*2 + 1)*(CoordMax*2 + 1)*(1+ZMax); // NOLINT(*-implicit-widening-of-multiplication-result)
     constexpr usize BucketCount = Math::max(4096uz, usize(Math::ceil(Iters / 0.2f)));
     u32 num_collisions = 0, iters = 0;
-    auto bitset_ = Pointer<std::bitset<BucketCount>>{InPlace, false};
-    auto& bitset = *bitset_;
+    auto seen_ = Pointer<bitset<BucketCount>>{InPlace};
+    auto& seen = *seen_;
 
     for (i16 j = -CoordMax; j <= CoordMax; j++)
         for (i16 i = -CoordMax; i <= CoordMax; i++)
@@ -60,7 +60,7 @@ template<i16 CoordMax, i8 ZMax, u32 MaxCollisions>
                 auto p = global_coords{i, j, k};
                 auto h = p.hash();
                 h %= BucketCount;
-                auto ref = bitset[h];
+                auto ref = seen[h];
                 if (ref) [[unlikely]]
                     ++num_collisions;
                 else
