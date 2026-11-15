@@ -108,7 +108,7 @@ struct tests_data final : tests_data_
         { "Grid"_s,         Test::grid,    make_test_grid    },
         { "Walking"_s,      Test::walk,    make_test_walk    },
         { "Hole"_s,         Test::hole,    make_test_hole    },
-        { "Cover"_s,        Test::cover,   make_test_cover   },
+        { "Cover grid"_s,   Test::cover,   make_test_cover   },
         { "Maze"_s,         Test::maze,    make_test_maze    },
         { "Cover AI"_s,     Test::cover_ai, make_test_cover_ai },
     };
