@@ -191,6 +191,7 @@ void app::draw()
     // the wireframe overlays below emit into imgui draw lists, so the frame has to be open first
     configure_imgui(M->dpi_scale().x());
     _imgui->newFrame();
+    cursor.in_imgui = ImGui::GetIO().WantCaptureMouse;
 
     do_lightmap_test();
     if (_render_bboxes)

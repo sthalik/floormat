@@ -25,7 +25,8 @@ void app::do_camera(const Ns& dt, const key_set& cmds, int mods)
     {
         reset_camera_offset();
         update_cursor_tile(cursor.pixel);
-        do_mouse_move(mods);
+        if (!cursor.in_imgui)
+            do_mouse_move(mods);
         return;
     }
 
@@ -55,7 +56,8 @@ void app::do_camera(const Ns& dt, const key_set& cmds, int mods)
         shader.set_camera_offset(camera_offset);
 
         update_cursor_tile(cursor.pixel);
-        do_mouse_move(mods);
+        if (!cursor.in_imgui)
+            do_mouse_move(mods);
     }
 }
 

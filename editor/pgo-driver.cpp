@@ -43,6 +43,7 @@
 #include <mg/BatchFunctions.h>
 #include <mg/Functions.h>
 #include <mg/ImGuiIntegration/Integration.h>
+#include <mg/Sdl2Application.h>
 #include "compat/array-size.hpp"
 #include "compat/assert.hpp"
 #include "compat/debug.hpp"
@@ -673,11 +674,15 @@ task app::scene_popup_target()
 
     fm_assert(_popup_target.target == popup_target_type::scenery);
     fm_assert_equal(C->id, _popup_target.id);
+    fm_assert(cursor.in_imgui);
 
     co_await inject_key_press(key_escape, 1);
     fm_assert(_popup_target.target == popup_target_type::none);
     fm_assert_equal(object_id{}, _popup_target.id);
     fm_assert(!_pending_popup);
+    co_yield {};
+    fm_assert(!cursor.in_imgui);
+    fm_assert(M->application().cursor() == Platform::Sdl2Application::Cursor::Hand);
 
     // Covers every inspect_object_subtype() branch, and fills max_inspectors exactly
     constexpr chunk_coords_ ch{0, 0, 0};
@@ -873,6 +878,24 @@ task app::scene_ground_editor()
             const point pt{{chunks[a % array_size(chunks)], ground_pattern_cell(a, v % (u32)TILE_COUNT)}, {}};
             move_cursor_to(pt);
             fm_assert_equal(pt, cursor_point());
+            if (n == 0)
+            {
+                ImGui::SetNextFrameWantCaptureMouse(true);
+                ImGui::SetNextFrameWantCaptureKeyboard(true);
+                co_yield {};
+                const auto camera = M->shader().camera_offset();
+                const auto [code, mods] = keycode_for_key(key_camera_left);
+                M->inject_key(code, mods, true);
+                M->inject_mouse_button(mouse_button_left, M->window_size()/2, true);
+                co_yield {};
+                fm_assert_equal(camera, M->shader().camera_offset());
+                fm_assert(!c0[pt.local()].ground().atlas);
+                fm_assert(!_editor->is_dragging());
+                M->inject_key(code, mods, false);
+                M->inject_mouse_button(mouse_button_left, M->window_size()/2, false);
+                co_yield {};
+                ed->select_tile(cell.atlas, v);
+            }
             // click_at() suspends between press and release, so there is no separate pause.
             co_await click_at(pt, mouse_button_left);
             auto* c = M->world().at(pt.chunk3());

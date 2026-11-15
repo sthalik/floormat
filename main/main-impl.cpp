@@ -30,7 +30,7 @@ main_impl::~main_impl() noexcept
 
 void main_impl::set_cursor(u32 cursor) noexcept
 {
-    if (cursor != _mouse_cursor || _mouse_cursor == (u32)-1)
+    if (cursor != _mouse_cursor || _mouse_cursor == (u32)-1 || Cursor(cursor) != Sdl2Application::cursor())
     {
         _mouse_cursor = cursor;
         setCursor(Cursor(cursor));

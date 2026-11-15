@@ -27,7 +27,7 @@ namespace floormat {
 
 void app::do_mouse_move(int mods)
 {
-    if (cursor.tile && !cursor.in_imgui)
+    if (cursor.tile)
         _editor->on_mouse_move(M->world(), *cursor.tile, mods);
 }
 
@@ -36,10 +36,10 @@ void app::do_mouse_up_down(u8 button, bool is_down, int mods)
     auto& w = M->world();
     update_cursor_tile(cursor.pixel);
 
-    if (is_down && !cursor.in_imgui)
+    if (is_down)
         _popup_target = {};
 
-    if (is_down && cursor.tile && !cursor.in_imgui)
+    if (is_down && cursor.tile)
     {
         switch (_editor->mode())
         {

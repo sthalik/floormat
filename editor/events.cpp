@@ -112,7 +112,8 @@ void app::on_mouse_move(const mouse_move_event& event, const sdl2::EvMove& ev) n
     while (false);
 
     update_cursor_tile(Vector2i(event.position));
-    do_mouse_move(fixup_mods(event.mods));
+    if (!cursor.in_imgui)
+        do_mouse_move(fixup_mods(event.mods));
 }
 
 void app::on_mouse_up_down(const mouse_button_event& event, bool is_down, const sdl2::EvClick& ev) noexcept
