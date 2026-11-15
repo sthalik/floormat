@@ -170,7 +170,7 @@ exe_tag() {
     echo "${_x#floormat-}"
 }
 
-editor_args="--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver-no-swapbuffers --minimized"
+editor_args="--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver-no-swapbuffers --window=minimized"
 
 # Each binary rejects the others' options, so these are per-exe.
 # --scenes=all: =profile skips the coverage scenes, and their code paths then go untrained.

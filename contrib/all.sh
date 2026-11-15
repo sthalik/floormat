@@ -51,7 +51,7 @@ run_test() {
         cd install/bin &&
         case "$type" in
             1) "$wrapper" ./floormat-test;;
-            2) FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=$short "$wrapper" ./floormat-editor --scenes=all --driver-no-swapbuffers --minimized --vsync=true;;
+            2) FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=$short "$wrapper" ./floormat-editor --scenes=all --driver-no-swapbuffers --window=minimized --vsync=true;;
             3) "$wrapper" ./floormat-benchmark;;
         esac
     )

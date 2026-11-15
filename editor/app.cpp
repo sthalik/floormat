@@ -142,7 +142,6 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
 #endif
     Corrade::Utility::Arguments args{};
     args.addSkippedPrefix("magnum")
-        .addBooleanOption("minimized").setHelp("minimized", "start minimized, without taking focus")
         .addOption("vsync", "1").setFromEnvironment("vsync", "FLOORMAT_VSYNC").setHelp("vsync", "vertical sync", "true|false")
         .addOption('g', "geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
         .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "fullscreen|maximized|windowed|minimized")
@@ -157,9 +156,6 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addBooleanOption("driver-save-world").setHelp("driver-save-world", "write driver-saves/driver-NN_<scene>-{pre,post}.dat around every scene")
 #endif
         .parse(argc, argv);
-    if (args.isSet("minimized"))
-        WARN << "warning: --minimized is deprecated, use --window=minimized";
-    opts.minimized = args.isSet("minimized");
     if (const auto s = args.value<StringView>("load-game"))
         opts.load_game = resolve_load_game_path(s);
     opts.log_frame_times = String{args.value<StringView>("log-frame-times")};

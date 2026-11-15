@@ -57,7 +57,7 @@ exe_tag() {
 # Each binary rejects the others' options, so these are per-exe
 exe_args() {
     case "$(exe_tag "$1")" in
-        editor) echo "--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver-no-swapbuffers --minimized --scenes=all --driver-repeat 2" ;;
+        editor) echo "--magnum-gpu-validation=off --vsync=off --fixed-framerate=60 --driver-no-swapbuffers --window=minimized --scenes=all --driver-repeat 2" ;;
         # instrumented, the default 0.5s per case adds minutes
         benchmark) echo "--benchmark_min_time=0.05s" ;;
     esac
