@@ -11,7 +11,7 @@
 #include <cr/Resource.h>
 #include <mg/AbstractImporter.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 struct loader_impl final : loader_
 {
@@ -50,29 +50,29 @@ struct loader_impl final : loader_
     // >-----> ground >----->
     [[nodiscard]] static atlas_loader<class ground_atlas>* make_ground_atlas_loader();
     safe_ptr<atlas_loader<class ground_atlas>> _ground_loader{ make_ground_atlas_loader() };
-    const bptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
+    const ::floormat::bptr<class ground_atlas>& ground_atlas(StringView filename, loader_policy policy) noexcept(false) override;
     ArrayView<const ground_cell> ground_atlas_list() noexcept(false) override;
     const ground_cell& invalid_ground_atlas() override;
-    bptr<class ground_atlas> make_placeholder_ground_atlas(StringView name) override;
-    bptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
+    ::floormat::bptr<class ground_atlas> make_placeholder_ground_atlas(StringView name) override;
+    ::floormat::bptr<class ground_atlas> get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false) override;
 
     // >-----> walls >----->
     [[nodiscard]] static atlas_loader<class wall_atlas>* make_wall_atlas_loader();
     safe_ptr<atlas_loader<class wall_atlas>> _wall_loader{ make_wall_atlas_loader() };
-    const bptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy) override;
+    const ::floormat::bptr<class wall_atlas>& wall_atlas(StringView name, loader_policy policy) override;
     ArrayView<const wall_cell> wall_atlas_list() override;
-    bptr<class wall_atlas> get_wall_atlas(StringView filename) noexcept(false) override;
+    ::floormat::bptr<class wall_atlas> get_wall_atlas(StringView filename) noexcept(false) override;
     const wall_cell& invalid_wall_atlas() override;
-    bptr<class wall_atlas> make_placeholder_wall_atlas(StringView name) override;
+    ::floormat::bptr<class wall_atlas> make_placeholder_wall_atlas(StringView name) override;
 
     // >-----> anim >----->
     [[nodiscard]] static atlas_loader<class anim_atlas>* make_anim_atlas_loader();
     safe_ptr<atlas_loader<class anim_atlas>> _anim_loader{ make_anim_atlas_loader() };
     ArrayView<const anim_cell> anim_atlas_list() override;
-    bptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
+    ::floormat::bptr<class anim_atlas> anim_atlas(StringView name, StringView dir, loader_policy policy) noexcept(false) override;
     const anim_cell& invalid_anim_atlas() override;
-    bptr<class anim_atlas> make_placeholder_anim_atlas(StringView name, placeholder_anim_params params) override;
-    bptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) override;
+    ::floormat::bptr<class anim_atlas> make_placeholder_anim_atlas(StringView name, placeholder_anim_params params) override;
+    ::floormat::bptr<class anim_atlas> get_anim_atlas(StringView path) noexcept(false) override;
 
     // >-----> scenery >----->
     [[nodiscard]] static atlas_loader<struct scenery_proto>* make_scenery_atlas_loader();
@@ -85,10 +85,10 @@ struct loader_impl final : loader_
     // >-----> vobjs >----->
     string_index_map vobj_atlas_map;
     Array<struct vobj_cell> vobjs;
-    bptr<class anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
+    ::floormat::bptr<class anim_atlas> make_vobj_anim_atlas(StringView name, StringView image_filename);
     const struct vobj_cell& vobj(StringView name) override;
     ArrayView<const struct vobj_cell> vobj_list() override;
     void get_vobj_list();
 };
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

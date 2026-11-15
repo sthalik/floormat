@@ -60,7 +60,7 @@ template<typename C> concept has_static_mesh = requires(C& c) { c.scenery_static
 static_assert(!has_static_mesh<chunk>);
 static_assert(!has_static_mesh<const chunk>);
 
-template<typename C> concept has_pool_find = requires(const detail::grid::PoolBase& p, C& c) { p.find(c); };
+template<typename C> concept has_pool_find = requires(const Grid::detail::PoolBase& p, C& c) { p.find(c); };
 
 static_assert(has_pool_find<chunk>);
 static_assert(!has_pool_find<const chunk>);

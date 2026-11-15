@@ -11,7 +11,7 @@
 #include "serialize/json-wrapper.hpp"
 #include <cr/Optional.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 using scenery_traits = atlas_loader_traits<scenery_proto>;
 StringView scenery_traits::loader_name() { return "scenery_proto"_s; }
@@ -24,17 +24,17 @@ void scenery_traits::atlas_list(Storage& s)
 {
     fm_debug_assert(s.name_map.empty());
     s.cell_array = scenery_cell::load_atlases_from_json();
-    s.name_map[loader.INVALID] = -1uz;
+    s.name_map[::floormat::loader.INVALID] = -1uz;
 }
 
 auto scenery_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
     auto proto = scenery_proto{};
-    proto.atlas = loader.invalid_anim_atlas().atlas;
+    proto.atlas = ::floormat::loader.invalid_anim_atlas().atlas;
     proto.bbox_size = Vector2ub{tile_size_xy/2};
     proto.subtype = generic_scenery_proto{false, true};
-    return { .name = loader.INVALID, .proto = proto, };
+    return { .name = ::floormat::loader.INVALID, .proto = proto, };
 }
 
 auto scenery_traits::make_atlas(StringView, const Cell& c) -> Optional<scenery_proto>
@@ -49,4 +49,4 @@ auto scenery_traits::make_cell(StringView) -> Optional<Cell>
     return {};
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

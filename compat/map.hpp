@@ -3,7 +3,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace floormat::detail_map {
+namespace floormat::detail::map {
 
 template<typename T> constexpr inline bool is_std_array = false;
 template<typename T, usize N> constexpr inline bool is_std_array<std::array<T, N>> = true;
@@ -43,7 +43,7 @@ constexpr Out transform(const F& fun, const A& array)
     return ret;
 }
 
-} // namespace floormat::detail_map
+} // namespace floormat::detail::map
 
 namespace floormat {
 
@@ -58,12 +58,12 @@ constexpr auto map(const F& fun, const A& array)
     static_assert(!std::is_same_v<result, void>);
     static_assert(sizeof(result));
     static_assert(static_array_size<out> == traits::size, "output container has the wrong size");
-    if constexpr (detail_map::is_std_array<out> && traits::size > 0 && std::is_default_constructible_v<out> &&
+    if constexpr (detail::map::is_std_array<out> && traits::size > 0 && std::is_default_constructible_v<out> &&
                   std::is_move_assignable_v<out> &&
-                  (!detail_map::transform_needs_trivial_ctor || std::is_trivially_default_constructible_v<out>))
-        return detail_map::transform<out>(fun, array);
+                  (!detail::map::transform_needs_trivial_ctor || std::is_trivially_default_constructible_v<out>))
+        return detail::map::transform<out>(fun, array);
     else
-        return detail_map::map0<out>(fun, array, std::make_index_sequence<traits::size>{});
+        return detail::map::map0<out>(fun, array, std::make_index_sequence<traits::size>{});
 }
 
 } // namespace floormat

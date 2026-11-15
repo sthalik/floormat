@@ -2,16 +2,16 @@
 #include "range-access.hpp"
 #include <cr/StlForwardTupleSizeElement.h>
 
-namespace floormat::detail_enumerate {
+namespace floormat::detail::enumerate {
 
 // A sized range with operator[] ends its loop when the index reaches the size. Comparing an iterator with end
 // would keep a second induction variable, which MSVC never merges with the index and Clang sometimes doesn't.
 template<typename V>
-concept indexed = detail_range::sized<V> && requires(const detail_range::begin_t<V>& it, usize i) { it[i]; };
+concept indexed = detail::range::sized<V> && requires(const detail::range::begin_t<V>& it, usize i) { it[i]; };
 
 // x86 addresses begin[index] in one instruction for element sizes 1, 2, 4 and 8. For other sizes the iterator
 // advances as well, because MSVC would compute index * size at every access.
-template<typename V, usize Size = sizeof(*detail_range::declval<detail_range::begin_t<V>&>())>
+template<typename V, usize Size = sizeof(*detail::range::declval<detail::range::begin_t<V>&>())>
 constexpr bool scaled_index = indexed<V> && (Size == 1 || Size == 2 || Size == 4 || Size == 8);
 
 #if defined __GNUC__ && !defined __clang__
@@ -31,14 +31,14 @@ template<usize N> struct sentinel { static constexpr usize size = N; };
 template<> struct sentinel<0> { usize size; };
 
 template<usize N, typename T> using get_t = std::conditional_t<N == 0, u32, T>;
-template<typename V> using end_type = std::conditional_t<ends_on_index<V>, sentinel<detail_range::static_extent<std::remove_cv_t<V>>>,
-                                                         detail_range::end_t<V>>;
+template<typename V> using end_type = std::conditional_t<ends_on_index<V>, sentinel<detail::range::static_extent<std::remove_cv_t<V>>>,
+                                                         detail::range::end_t<V>>;
 
 template<typename V>
 class element
 {
     template<typename> friend class iterator;
-    using It = detail_range::begin_t<V>;
+    using It = detail::range::begin_t<V>;
 
     It _it;
     // usize, since a u32 index would be zero-extended wherever it addresses an element or meets the size.
@@ -49,7 +49,7 @@ class element
     constexpr decltype(auto) value() const noexcept;
 
 public:
-    using reference = decltype(*detail_range::declval<It&>());
+    using reference = decltype(*detail::range::declval<It&>());
     static_assert(std::is_lvalue_reference_v<reference>, "enumerate() needs a range of lvalues");
     using value_type = std::remove_reference_t<reference>;
     using copy_type = std::remove_cv_t<value_type>;
@@ -80,7 +80,7 @@ public:
 template<typename R>
 class view
 {
-    using base_type = detail_range::all_t<R>;
+    using base_type = detail::range::all_t<R>;
 
     base_type _base;
 
@@ -164,7 +164,7 @@ constexpr auto element<V>::get() const&& noexcept(std::is_nothrow_copy_construct
 }
 
 template<typename V>
-constexpr iterator<V>::iterator(V& v) noexcept : _e{detail_range::begin_of(v)} {}
+constexpr iterator<V>::iterator(V& v) noexcept : _e{detail::range::begin_of(v)} {}
 
 template<typename V>
 constexpr auto iterator<V>::operator*() noexcept -> element<V>&
@@ -216,34 +216,34 @@ template<typename R>
 constexpr auto view<R>::end() noexcept -> end_type<base_type>
 {
     if constexpr (!ends_on_index<base_type>)
-        return detail_range::end_of(_base);
-    else if constexpr (detail_range::static_extent<base_type> > 0)
+        return detail::range::end_of(_base);
+    else if constexpr (detail::range::static_extent<base_type> > 0)
         return {};
     else
-        return {detail_range::size_of(_base)};
+        return {detail::range::size_of(_base)};
 }
 
 template<typename R>
 constexpr auto view<R>::end() const noexcept -> end_type<const base_type>
 {
     if constexpr (!ends_on_index<const base_type>)
-        return detail_range::end_of(_base);
-    else if constexpr (detail_range::static_extent<base_type> > 0)
+        return detail::range::end_of(_base);
+    else if constexpr (detail::range::static_extent<base_type> > 0)
         return {};
     else
-        return {detail_range::size_of(_base)};
+        return {detail::range::size_of(_base)};
 }
 
-} // namespace floormat::detail_enumerate
+} // namespace floormat::detail::enumerate
 
 namespace floormat {
 
 /// @param r A range of lvalues. The view keeps a reference to an lvalue r and moves an rvalue r into itself.
 /// @return A view whose elements bind as [i, x], with x an element of r and i its u32 index.
 template<typename R>
-constexpr detail_enumerate::view<R> enumerate(R&& r) noexcept(std::is_nothrow_constructible_v<detail_enumerate::view<R>, R>)
+constexpr detail::enumerate::view<R> enumerate(R&& r) noexcept(std::is_nothrow_constructible_v<detail::enumerate::view<R>, R>)
 {
-    return detail_enumerate::view<R>{floormat::forward<R>(r)};
+    return detail::enumerate::view<R>{floormat::forward<R>(r)};
 }
 
 } // namespace floormat
@@ -251,15 +251,15 @@ constexpr detail_enumerate::view<R> enumerate(R&& r) noexcept(std::is_nothrow_co
 namespace std {
 
 template<typename V>
-struct tuple_size<floormat::detail_enumerate::element<V>> : integral_constant<size_t, 2> {};
+struct tuple_size<floormat::detail::enumerate::element<V>> : integral_constant<size_t, 2> {};
 template<typename V>
-struct tuple_size<const floormat::detail_enumerate::element<V>> : integral_constant<size_t, 2> {};
+struct tuple_size<const floormat::detail::enumerate::element<V>> : integral_constant<size_t, 2> {};
 
 template<typename V>
-struct tuple_element<0, floormat::detail_enumerate::element<V>> { using type = floormat::u32; };
+struct tuple_element<0, floormat::detail::enumerate::element<V>> { using type = floormat::u32; };
 template<typename V>
-struct tuple_element<1, floormat::detail_enumerate::element<V>> { using type = floormat::detail_enumerate::element<V>::value_type; };
+struct tuple_element<1, floormat::detail::enumerate::element<V>> { using type = floormat::detail::enumerate::element<V>::value_type; };
 template<size_t I, typename V>
-struct tuple_element<I, const floormat::detail_enumerate::element<V>> { using type = const tuple_element<I, floormat::detail_enumerate::element<V>>::type; };
+struct tuple_element<I, const floormat::detail::enumerate::element<V>> { using type = const tuple_element<I, floormat::detail::enumerate::element<V>>::type; };
 
 } // namespace std

@@ -5,11 +5,11 @@
 #include "src/anim-atlas.hpp"
 #include "compat/borrowed-ptr.hpp"
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 template class atlas_loader<anim_atlas>;
 
-bptr<class anim_atlas> loader_impl::get_anim_atlas(StringView path) noexcept(false)
+::floormat::bptr<class anim_atlas> loader_impl::get_anim_atlas(StringView path) noexcept(false)
 {
     return _anim_loader->make_atlas(path, {});
 }
@@ -24,7 +24,7 @@ ArrayView<const anim_cell> loader_impl::anim_atlas_list()
     return _anim_loader->atlas_list();
 }
 
-bptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir, loader_policy p) noexcept(false)
+::floormat::bptr<anim_atlas> loader_impl::anim_atlas(StringView name, StringView dir, loader_policy p) noexcept(false)
 {
     char buf[fm_FILENAME_MAX];
     auto path = make_atlas_path(buf, dir, name);
@@ -38,10 +38,10 @@ const anim_cell& loader_impl::invalid_anim_atlas()
 
 // A new copy of invalid_anim_atlas() named `name`, with `params`' fps and frame count. It shares that
 // atlas's sprite, since the sprite atlas never frees one.
-bptr<anim_atlas> loader_impl::make_placeholder_anim_atlas(StringView name, placeholder_anim_params params)
+::floormat::bptr<anim_atlas> loader_impl::make_placeholder_anim_atlas(StringView name, placeholder_anim_params params)
 {
     const auto* sprite = invalid_anim_atlas().atlas->group(rotation::N).sprites[0];
     return atlas_loader_traits<class anim_atlas>::make_invalid_atlas(name, params, sprite);
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

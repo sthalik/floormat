@@ -17,7 +17,7 @@ anim_def loader_::deserialize_anim_def(StringView filename) noexcept(false)
 
 } // namespace floormat
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 template class atlas_loader<struct scenery_proto>;
 
@@ -46,4 +46,4 @@ struct scenery_proto loader_impl::get_scenery(StringView filename, const scenery
     return *_scenery_loader->make_atlas(filename, c);
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

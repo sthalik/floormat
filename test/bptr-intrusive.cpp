@@ -66,7 +66,7 @@ template<typename T> concept can_placement_new = requires(void* p) { new (p) T; 
 static_assert(can_new<Plain> && can_new_array<Plain> && can_new_nothrow<Plain> && can_placement_new<Plain>);
 static_assert(!can_new<IPlain> && !can_new_array<IPlain> && !can_new_nothrow<IPlain>);
 static_assert(can_placement_new<IPlain>);
-static_assert(detail_bptr::Intrusive<IPlain> && !detail_bptr::Intrusive<Plain>);
+static_assert(detail::bptr::Intrusive<IPlain> && !detail::bptr::Intrusive<Plain>);
 static_assert(std::is_same_v<bptr<IPlain>, std::decay_t<decltype(bptr{std::declval<IPlain*>()})>>);
 static_assert(std::is_same_v<bptr<IPlain>, decltype(basic_bptr{std::declval<IPlain*>()})>);
 static_assert(std::is_same_v<bptr<Plain>, decltype(basic_bptr{std::declval<Plain*>()})>);

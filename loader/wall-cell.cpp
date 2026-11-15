@@ -31,6 +31,6 @@ Array<wall_cell> wall_cell::load_atlases_from_json()
 
 } // namespace floormat
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

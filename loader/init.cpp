@@ -22,7 +22,7 @@ extern "C" __declspec(dllimport) long WINAPI RtlGetVersion(PRTL_OSVERSIONINFOEXW
 #include <exception>
 #endif
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 #ifdef _WIN32
 static bool check_windows_build_number(unsigned major, unsigned minor, unsigned build)
@@ -68,4 +68,4 @@ void loader_impl::system_init()
     system_init_();
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

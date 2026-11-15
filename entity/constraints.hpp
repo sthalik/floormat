@@ -4,7 +4,7 @@
 #include <cr/Pair.h>
 #include <mg/Vector.h>
 
-namespace floormat::entities::limit_detail {
+namespace floormat::entities::detail {
 
 template<typename T> struct limit_traits;
 
@@ -40,15 +40,15 @@ struct limit_traits
     static constexpr T max() { return T{}; }
 };
 
-} // namespace floormat::entities::limit_detail
+} // namespace floormat::entities::detail
 
 
 namespace floormat::entities::constraints {
 
 template<typename T> struct range
 {
-    T min = limit_detail::limit_traits<T>::min();
-    T max = limit_detail::limit_traits<T>::max();
+    T min = detail::limit_traits<T>::min();
+    T max = detail::limit_traits<T>::max();
 
     constexpr operator erased_constraints::range() const noexcept;
     constexpr operator Pair<T, T>() const noexcept;

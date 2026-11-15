@@ -71,7 +71,7 @@ void chunk_table::update_slot(chunk_coords_ ch, chunk* p) noexcept
 std::array<chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) noexcept
 {
     const auto c = std::as_const(*this).neighbors(ch0);
-    return map([](const chunk* x) { return non_const(x); }, c);
+    return ::floormat::map([](const chunk* x) { return non_const(x); }, c);
 }
 
 std::array<const chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) const noexcept
@@ -84,12 +84,12 @@ std::array<const chunk*, 8> chunk_table::neighbors(chunk_coords_ ch0) const noex
     if (lx - 1 < side - 2 && ly - 1 < side - 2) [[likely]]
     {
         const auto* s = _table.find(ch0);
-        return map([s](Vector2b off) -> const chunk* {
+        return ::floormat::map([s](Vector2b off) -> const chunk* {
             return s ? s[i32{off.y()} * i32{side} + off.x()] : nullptr;
         }, world::neighbor_offsets);
     }
     else
-        return map([&] [[fm_always_inline]] (Vector2b off) { return chunk_at(ch0 + off); }, world::neighbor_offsets);
+        return ::floormat::map([&] [[fm_always_inline]] (Vector2b off) { return chunk_at(ch0 + off); }, world::neighbor_offsets);
 }
 
 const multi_level_table<chunk*, chunk_table_params>& chunk_table::raw_table() const noexcept

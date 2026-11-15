@@ -7,7 +7,7 @@ class chunk;
 struct Ns;
 }
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 struct CoverGrid;
 struct CoverPool;
 bool stepped_rows_vectorize(u32 dc);
@@ -37,11 +37,11 @@ struct Params
 
 class Grid
 {
-    detail::grid::CoverGrid* grid;
+    detail::CoverGrid* grid;
 
 public:
     ~Grid() noexcept;
-    explicit Grid(detail::grid::CoverGrid* grid);
+    explicit Grid(detail::CoverGrid* grid);
     Grid(const Grid&) noexcept;
     Grid& operator=(const Grid&) & noexcept;
 
@@ -58,7 +58,7 @@ public:
     u64 built_pass_gen() const;
 
     explicit operator bool() const noexcept;
-    detail::grid::CoverGrid* raw() const noexcept;
+    detail::CoverGrid* raw() const noexcept;
 
     /// @copydoc floormat::Grid::Pass::Grid::is_marked_stale()
     bool is_marked_stale() const;
@@ -77,7 +77,7 @@ public:
 
 class Pool final
 {
-    detail::grid::CoverPool* pool;
+    detail::CoverPool* pool;
 
 public:
     // pass_pool must outlive this pool

@@ -6,11 +6,11 @@
 #include "compat/borrowed-ptr.hpp"
 #include <mg/Vector2.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 template class atlas_loader<ground_atlas>;
 
-bptr<ground_atlas> loader_impl::get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
+::floormat::bptr<ground_atlas> loader_impl::get_ground_atlas(StringView name, Vector2ub size, pass_mode pass) noexcept(false)
 {
     return _ground_loader->make_atlas(name, {
         .atlas = {}, .name = {}, .size = size, .pass = pass,
@@ -32,14 +32,14 @@ const ground_cell& loader_impl::invalid_ground_atlas()
     return _ground_loader->get_invalid_atlas();
 }
 
-bptr<class ground_atlas> loader_impl::make_placeholder_ground_atlas(StringView name)
+::floormat::bptr<class ground_atlas> loader_impl::make_placeholder_ground_atlas(StringView name)
 {
-    return bptr<class ground_atlas>{InPlace, *invalid_ground_atlas().atlas, name};
+    return ::floormat::bptr<class ground_atlas>{InPlace, *invalid_ground_atlas().atlas, name};
 }
 
-const bptr<class ground_atlas>& loader_impl::ground_atlas(StringView filename, loader_policy policy) noexcept(false)
+const ::floormat::bptr<class ground_atlas>& loader_impl::ground_atlas(StringView filename, loader_policy policy) noexcept(false)
 {
     return _ground_loader->get_atlas(filename, policy);
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

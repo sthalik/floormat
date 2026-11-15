@@ -5,11 +5,11 @@
 #include "src/wall-atlas.hpp"
 #include <cr/StringIterable.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 template class atlas_loader<class wall_atlas>;
 
-bptr<class wall_atlas> loader_impl::get_wall_atlas(StringView name) noexcept(false)
+::floormat::bptr<class wall_atlas> loader_impl::get_wall_atlas(StringView name) noexcept(false)
 {
     return _wall_loader->make_atlas(name, {});
 }
@@ -29,15 +29,15 @@ const wall_cell& loader_impl::invalid_wall_atlas()
     return _wall_loader->get_invalid_atlas();
 }
 
-bptr<class wall_atlas> loader_impl::make_placeholder_wall_atlas(StringView name)
+::floormat::bptr<class wall_atlas> loader_impl::make_placeholder_wall_atlas(StringView name)
 {
-    return bptr<class wall_atlas>{InPlace, *invalid_wall_atlas().atlas, name};
+    return ::floormat::bptr<class wall_atlas>{InPlace, *invalid_wall_atlas().atlas, name};
 }
 
-const bptr<class wall_atlas>&
+const ::floormat::bptr<class wall_atlas>&
 loader_impl::wall_atlas(StringView filename, loader_policy policy) noexcept(false)
 {
     return _wall_loader->get_atlas(filename, policy);
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

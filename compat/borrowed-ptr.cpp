@@ -1,11 +1,11 @@
 #include "borrowed-ptr.inl"
 #include "assert.hpp"
 
-namespace floormat::detail_bptr {
+namespace floormat::detail::bptr {
 
 template struct control_block<non_atomic_refcount>;
 
-} // namespace floormat::detail_bptr
+} // namespace floormat::detail::bptr
 
 namespace floormat::bptr_policy {
 

@@ -2,7 +2,7 @@
 #include "range-access.hpp"
 #include <cr/StlForwardTupleSizeElement.h>
 
-namespace floormat::detail_combinations {
+namespace floormat::detail::combinations {
 
 template<typename V> class element;
 template<typename V> class iterator;
@@ -14,14 +14,14 @@ template<typename V>
 class element
 {
     template<typename> friend class iterator;
-    using It = detail_range::begin_t<V>;
+    using It = detail::range::begin_t<V>;
 
     It _first, _second;
 
     constexpr element(It first, It second) noexcept;
 
 public:
-    using reference = decltype(*detail_range::declval<It&>());
+    using reference = decltype(*detail::range::declval<It&>());
     static_assert(std::is_lvalue_reference_v<reference>, "combinations() needs a range of lvalues");
     static_assert(std::is_copy_constructible_v<It>, "combinations() needs a range it can walk more than once");
     using value_type = std::remove_reference_t<reference>;
@@ -40,7 +40,7 @@ class iterator
     template<typename> friend class view;
 
     element<V> _e;
-    detail_range::end_t<V> _end;
+    detail::range::end_t<V> _end;
 
     constexpr explicit iterator(V& v) noexcept;
 
@@ -54,7 +54,7 @@ public:
 template<typename R>
 class view
 {
-    using base_type = detail_range::all_t<R>;
+    using base_type = detail::range::all_t<R>;
 
     base_type _base;
 
@@ -115,7 +115,7 @@ constexpr auto element<V>::get() const&& noexcept(std::is_nothrow_copy_construct
 
 template<typename V>
 constexpr iterator<V>::iterator(V& v) noexcept :
-    _e{detail_range::begin_of(v), detail_range::begin_of(v)}, _end{detail_range::end_of(v)}
+    _e{detail::range::begin_of(v), detail::range::begin_of(v)}, _end{detail::range::end_of(v)}
 {
     if (_e._second != _end)
         ++_e._second;
@@ -173,15 +173,15 @@ constexpr sentinel view<R>::end() const noexcept
     return {};
 }
 
-} // namespace floormat::detail_combinations
+} // namespace floormat::detail::combinations
 
 namespace floormat {
 
 // Every pair (r[i], r[j]) with i < j, ordered by i and then by j, as Python's itertools.combinations(r, 2).
 template<typename R>
-constexpr detail_combinations::view<R> combinations(R&& r) noexcept(std::is_nothrow_constructible_v<detail_combinations::view<R>, R>)
+constexpr detail::combinations::view<R> combinations(R&& r) noexcept(std::is_nothrow_constructible_v<detail::combinations::view<R>, R>)
 {
-    return detail_combinations::view<R>{floormat::forward<R>(r)};
+    return detail::combinations::view<R>{floormat::forward<R>(r)};
 }
 
 } // namespace floormat
@@ -189,13 +189,13 @@ constexpr detail_combinations::view<R> combinations(R&& r) noexcept(std::is_noth
 namespace std {
 
 template<typename V>
-struct tuple_size<floormat::detail_combinations::element<V>> : integral_constant<size_t, 2> {};
+struct tuple_size<floormat::detail::combinations::element<V>> : integral_constant<size_t, 2> {};
 template<typename V>
-struct tuple_size<const floormat::detail_combinations::element<V>> : integral_constant<size_t, 2> {};
+struct tuple_size<const floormat::detail::combinations::element<V>> : integral_constant<size_t, 2> {};
 
 template<size_t I, typename V>
-struct tuple_element<I, floormat::detail_combinations::element<V>> { using type = floormat::detail_combinations::element<V>::value_type; };
+struct tuple_element<I, floormat::detail::combinations::element<V>> { using type = floormat::detail::combinations::element<V>::value_type; };
 template<size_t I, typename V>
-struct tuple_element<I, const floormat::detail_combinations::element<V>> { using type = const floormat::detail_combinations::element<V>::value_type; };
+struct tuple_element<I, const floormat::detail::combinations::element<V>> { using type = const floormat::detail::combinations::element<V>::value_type; };
 
 } // namespace std

@@ -451,7 +451,7 @@ u64 check_layers(const multi_level_table<T, P>& t, Visit&& visit)
     if constexpr (!Table::has_pages)
     {
         for (const auto& [k, slot] : enumerate(top))
-            if (detail_mlt::occupied(slot))
+            if (detail::mlt::occupied(slot))
             {
                 visit(u64{k}, slot);
                 total++;
@@ -468,11 +468,11 @@ u64 check_layers(const multi_level_table<T, P>& t, Visit&& visit)
         for (const auto& rec : pages)
         {
             fm_assert(rec.page && rec.page != t.raw_spare().page);
-            fm_assert(detail_mlt::page_of(ref_at<zero_bits>(top, rec.top_index, rec.zero_index)) == rec.page);
+            fm_assert(detail::mlt::page_of(ref_at<zero_bits>(top, rec.top_index, rec.zero_index)) == rec.page);
             const u64 base = (u64{rec.top_index} << zero_bits | rec.zero_index) << page_bits;
             u32 n = 0;
             for (u32 k = 0; k < page_size; k++)
-                if (detail_mlt::occupied(rec.page[k]))
+                if (detail::mlt::occupied(rec.page[k]))
                 {
                     visit(base | k, rec.page[k]);
                     n++;
@@ -490,28 +490,28 @@ u64 check_layers(const multi_level_table<T, P>& t, Visit&& visit)
         {
             if constexpr (zero_bits > 0)
             {
-                if (detail_mlt::page_of(e.zero))
+                if (detail::mlt::page_of(e.zero))
                     num_refs++;
                 if (e.side)
                 {
-                    fm_assert(!detail_mlt::page_of(e.side[0]));
+                    fm_assert(!detail::mlt::page_of(e.side[0]));
                     u32 side_refs = 0;
                     for (u32 z = 1; z <= zero_mask; z++)
-                        if (detail_mlt::page_of(e.side[z]))
+                        if (detail::mlt::page_of(e.side[z]))
                             side_refs++;
                     if constexpr (P.free_empty)
                         fm_assert(side_refs > 0 && side_refs == e.side[0].live);
                     num_refs += side_refs;
                 }
             }
-            else if (detail_mlt::page_of(e))
+            else if (detail::mlt::page_of(e))
                 num_refs++;
         }
         fm_assert(num_refs == pages.size());
 
         if (const T* spare = t.raw_spare().page)
             for (u32 k = 0; k < page_size; k++)
-                fm_assert(!detail_mlt::occupied(spare[k]));
+                fm_assert(!detail::mlt::occupied(spare[k]));
     }
     return total;
 }
@@ -585,7 +585,7 @@ void check_layout(const multi_level_table<T, P>& t, usize top_size_bytes, ArrayV
         {
             const T* s = t.find(k);
             fm_assert(s && *s);
-            const T* page = detail_mlt::page_of(ref_at<zero_bits>(top, k >> (page_bits + zero_bits), (k >> page_bits) & zero_mask));
+            const T* page = detail::mlt::page_of(ref_at<zero_bits>(top, k >> (page_bits + zero_bits), (k >> page_bits) & zero_mask));
             fm_assert(s == page + (k & page_mask));
         }
     }
@@ -778,7 +778,7 @@ class random_run
                 {
                     u32 side_refs = 0;
                     for (u32 z = 1; z <= zero_mask; z++)
-                        if (detail_mlt::page_of(e.side[z]))
+                        if (detail::mlt::page_of(e.side[z]))
                             side_refs++;
                     if constexpr (free_empty)
                         fm_assert(side_refs > 0 && side_refs == e.side[0].live);
@@ -789,7 +789,7 @@ class random_run
                 else
                     return &e;
             }();
-            const T* page = ref ? detail_mlt::page_of(*ref) : nullptr;
+            const T* page = ref ? detail::mlt::page_of(*ref) : nullptr;
             if (!page)
                 return;
             const u64 base = k >> page_bits << page_bits;

@@ -14,7 +14,7 @@ class world;
 struct local_coords;
 } // namespace floormat
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 
 struct GridBase;
 struct PoolBase;
@@ -121,4 +121,4 @@ struct BitView
     void write(u32 i, bool value);
 };
 
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail

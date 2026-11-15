@@ -2,7 +2,7 @@
 #include <cr/Pointer.h>
 #include <cr/StringView.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 // Keeps gtl/phmap.hpp out of the loader headers.
 struct string_index_map final
@@ -28,4 +28,4 @@ private:
     Pointer<impl> p;
 };
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

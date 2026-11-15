@@ -29,7 +29,7 @@
 #ifndef FLOORMAT_GRID_COVER_CPP_SHARED
 #define FLOORMAT_GRID_COVER_CPP_SHARED
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 
 namespace {
 
@@ -269,11 +269,11 @@ T* CoverGrid::octant_plane(u32 k)
     return reinterpret_cast<T*>(distances.data()) + k*plane_stride;
 }
 
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail
 #endif
 
 HWY_BEFORE_NAMESPACE();
-namespace floormat::detail::grid::HWY_NAMESPACE {
+namespace floormat::Grid::detail::HWY_NAMESPACE {
 namespace {
 
 using DU16 = hwy::HWY_NAMESPACE::CappedTag<u16, 16>;
@@ -595,11 +595,11 @@ void fill_stepped(CoverGrid& g, u32 k, chunk& self, const usize* bits)
 }
 
 } // namespace
-} // namespace floormat::detail::grid::HWY_NAMESPACE
+} // namespace floormat::Grid::detail::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 
 HWY_EXPORT(stepped_rows_vectorize);
 HWY_EXPORT(expand_pass_row);
@@ -759,7 +759,7 @@ void CoverGrid::apply_params()
 
 template struct Pool<CoverGrid>;
 
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail
 
 namespace floormat::Grid::Cover {
 
@@ -778,17 +778,17 @@ bool Params::operator==(const Params&) const noexcept = default;
 Vector2 octant_direction(u32 k)
 {
     fm_debug_assert(k < octant_count);
-    return detail::grid::direction_for_octant(k);
+    return detail::direction_for_octant(k);
 }
 Grid::~Grid() noexcept = default;
 Grid::Grid(const Grid&) noexcept = default;
 Grid& Grid::operator=(const Grid&) & noexcept = default;
 
-Grid::Grid(detail::grid::CoverGrid* grid_): grid{grid_} {}
+Grid::Grid(detail::CoverGrid* grid_): grid{grid_} {}
 
 u32 Grid::get_cell_index(u32 x, u32 y, u32 div_count)
 {
-    return detail::grid::CoverGrid::get_cell_index(x, y, div_count);
+    return detail::CoverGrid::get_cell_index(x, y, div_count);
 }
 
 u32 Grid::get_cell_index_from_coord(intra_coord pos) const
@@ -815,7 +815,7 @@ u64 Grid::build_no() const { return grid->build_no; }
 u64 Grid::built_pass_gen() const { return grid->built_pass_gen; }
 
 Grid::operator bool() const noexcept { return grid != nullptr; }
-detail::grid::CoverGrid* Grid::raw() const noexcept { return grid; }
+detail::CoverGrid* Grid::raw() const noexcept { return grid; }
 
 bool Grid::is_marked_stale() const { return grid->is_marked_stale(); }
 void Grid::mark_stale() { grid->mark_stale(); }
@@ -842,22 +842,22 @@ bool Grid::fill_next_unfilled()
 
 u32 Grid::built_octants() const
 {
-    detail::grid::check_current(grid);
+    detail::check_current(grid);
     return grid->built_octants;
 }
 
 Grid Pool::operator[](chunk& c)
 {
-    return Grid{detail::grid::pool_subscript(pool, c)};
+    return Grid{detail::pool_subscript(pool, c)};
 }
 
 void Pool::build_if_stale_all()
 {
     for (auto* g : pool->grids_in_use)
-        static_cast<detail::grid::CoverGrid*>(g)->build_if_stale();
+        static_cast<detail::CoverGrid*>(g)->build_if_stale();
 }
 
-Pool::Pool(Params params, Pass::Pool& pass_pool): pool{new detail::grid::CoverPool{params, pass_pool}} { }
+Pool::Pool(Params params, Pass::Pool& pass_pool): pool{new detail::CoverPool{params, pass_pool}} { }
 Pool::~Pool() noexcept { delete pool; }
 Params Pool::params() const { return pool->params; }
 u32 Pool::pooled_count() const { return pool->freelist.size(); }

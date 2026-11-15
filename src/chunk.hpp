@@ -16,11 +16,11 @@
 
 namespace floormat { class world; }
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 struct grid_slots;
 struct PoolBase;
 void mark_grids_stale(world& w, chunk_coords_ coord) noexcept;
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail
 
 namespace floormat {
 
@@ -36,8 +36,8 @@ public:
     template<typename Chunk> friend struct tile_ref_;
     friend struct object;
     friend class world;
-    friend struct detail::grid::PoolBase;
-    friend void detail::grid::mark_grids_stale(world& w, chunk_coords_ coord) noexcept;
+    friend struct Grid::detail::PoolBase;
+    friend void Grid::detail::mark_grids_stale(world& w, chunk_coords_ coord) noexcept;
 
     tile_ref operator[](usize idx) noexcept;
     const_tile_ref operator[](usize idx) const noexcept;
@@ -138,7 +138,7 @@ private:
     object_storage _objects;
     class world* _world;
     Pointer<RTree> _rtree, _hole_rtree;
-    Pointer<detail::grid::grid_slots> _grid_slots;
+    Pointer<Grid::detail::grid_slots> _grid_slots;
     chunk* _next = nullptr;
     chunk* _prev = nullptr;
     chunk_coords_ _coord;

@@ -1127,7 +1127,7 @@ void test_bitview_read_matches_bit(u32 div_size)
             fm_assert(view.read(idx) == pass_bit(view.data, idx));
         }
 
-    auto words = Array<usize>{ValueInit, detail::grid::bitmask_size(dc) / (sizeof(usize)*8)};
+    auto words = Array<usize>{ValueInit, Grid::detail::bitmask_size(dc) / (sizeof(usize)*8)};
     Pass::BitView v{words.data()};
     for (u32 idx = 0; idx < dc*dc; idx++)
     {
@@ -1907,7 +1907,7 @@ void test_expand_pass_row()
 {
     for (auto dc = 8u; dc <= chunk_size_xy; dc += 8)
     {
-        if (!detail::grid::stepped_rows_vectorize(dc))
+        if (!Grid::detail::stepped_rows_vectorize(dc))
             continue;
         for (auto pattern = 0u; pattern < 4; pattern++)
         {
@@ -1921,7 +1921,7 @@ void test_expand_pass_row()
             for (auto y = 0u; y < 3; y++)
             {
                 auto out = Array<u16>{DirectInit, dc, u16{0x1234}};
-                detail::grid::expand_pass_row(out.data(), bits.data(), y, dc);
+                Grid::detail::expand_pass_row(out.data(), bits.data(), y, dc);
                 for (auto x = 0u; x < dc; x++)
                 {
                     const auto expected = (u16)(pass_bit(bits.data(), y*dc + x) ? 0xffff : 0);
@@ -3341,7 +3341,7 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
         fm_assert(g.entry_chunks()[e] == chunks[placement[e]]);
     }
 
-    const auto words = detail::grid::bitmask_size((u32)dc) / (sizeof(usize)*8);
+    const auto words = Grid::detail::bitmask_size((u32)dc) / (sizeof(usize)*8);
     const auto all_set = Array<usize>{DirectInit, words, ~usize{0}};
     auto masked = Array<usize>{NoInit, words};
     Array<bool> entry_blocked;
@@ -3481,7 +3481,7 @@ void test_object_grid_crowd()
     }
     fm_assert(g.uses_u32());
 
-    const auto words = detail::grid::bitmask_size(dc) / (sizeof(usize)*8);
+    const auto words = Grid::detail::bitmask_size(dc) / (sizeof(usize)*8);
     const auto all_set = Array<usize>{DirectInit, words, ~usize{0}};
     auto masked = Array<usize>{NoInit, words};
     Array<bool> entry_blocked;

@@ -11,7 +11,7 @@
 #include <unistd.h>
 #endif
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 #ifdef _WIN32
 namespace Unicode = Corrade::Utility::Unicode;
@@ -72,4 +72,4 @@ void loader_impl::set_application_working_directory()
         fm_warn("can't find install prefix!");
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

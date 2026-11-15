@@ -7,7 +7,7 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
-namespace floormat::detail_bptr {
+namespace floormat::detail::bptr {
 
 template<typename Policy>
 inline bool control_block<Policy>::add_ref_lock() noexcept
@@ -91,7 +91,7 @@ void control_block<Policy>::destroy_object(control_block* b) noexcept
     release(b);
 }
 
-} // namespace floormat::detail_bptr
+} // namespace floormat::detail::bptr
 
 namespace floormat {
 
@@ -106,24 +106,24 @@ template<typename T, typename P> basic_bptr<T, P>& basic_bptr<T, P>::operator=(c
 template<typename T, typename P> basic_bptr<T, P>& basic_bptr<T, P>::operator=(basic_bptr&& other) noexcept { return _move_assign(move(other)); }
 
 template<typename T, typename P>
-template<detail_bptr::DerivedFrom<T> Y>
+template<detail::bptr::DerivedFrom<T> Y>
 basic_bptr<T, P>::basic_bptr(const basic_bptr<Y, P>& other) noexcept:
     basic_bptr{other, nullptr}
 {}
 
 template<typename T, typename P>
-template<detail_bptr::DerivedFrom<T> Y>
+template<detail::bptr::DerivedFrom<T> Y>
 basic_bptr<T, P>& basic_bptr<T, P>::operator=(const basic_bptr<Y, P>& other) noexcept
 { return _copy_assign(other); }
 
 template<typename T, typename P>
-template<detail_bptr::DerivedFrom<T> Y>
+template<detail::bptr::DerivedFrom<T> Y>
 basic_bptr<T, P>::basic_bptr(basic_bptr<Y, P>&& other) noexcept:
     basic_bptr{move(other), nullptr}
 {}
 
 template<typename T, typename P>
-template<detail_bptr::DerivedFrom<T> Y>
+template<detail::bptr::DerivedFrom<T> Y>
 basic_bptr<T, P>& basic_bptr<T, P>::operator=(basic_bptr<Y, P>&& other) noexcept
 { return _move_assign(move(other)); }
 
@@ -138,11 +138,11 @@ void basic_bptr<T, P>::reset() noexcept
 }
 
 template<typename T, typename P>
-template<detail_bptr::DerivedFrom<T> Y>
+template<detail::bptr::DerivedFrom<T> Y>
 void basic_bptr<T, P>::reset(Y* ptr) noexcept
 {
     auto* old = blk;
-    blk = detail_bptr::block_from_raw<std::remove_const_t<Y>, P>(const_cast<std::remove_const_t<Y>*>(ptr));
+    blk = detail::bptr::block_from_raw<std::remove_const_t<Y>, P>(const_cast<std::remove_const_t<Y>*>(ptr));
     block::release(old);
 }
 
@@ -247,7 +247,7 @@ auto basic_bptr<T, P>::use_count() const noexcept -> count_type
 }
 
 template<typename To, typename From, typename P>
-requires detail_bptr::StaticCastable<From, To>
+requires detail::bptr::StaticCastable<From, To>
 basic_bptr<To, P> static_pointer_cast(basic_bptr<From, P>&& p) noexcept
 {
     if (p.blk && p.blk->get()) [[likely]]
@@ -261,7 +261,7 @@ basic_bptr<To, P> static_pointer_cast(basic_bptr<From, P>&& p) noexcept
 }
 
 template<typename To, typename From, typename P>
-requires detail_bptr::StaticCastable<From, To>
+requires detail::bptr::StaticCastable<From, To>
 basic_bptr<To, P> static_pointer_cast(const basic_bptr<From, P>& p) noexcept
 {
     if (p.blk && p.blk->get()) [[likely]]

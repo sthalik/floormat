@@ -5,11 +5,11 @@
 #include <cr/StringView.h>
 #include <cr/Pointer.h>
 
-namespace floormat::detail_Script {
+namespace floormat::detail::Script {
 
 template<typename S, typename Obj>
 concept BaseScript =
-requires (S& script, const bptr<Obj>& obj, usize& i, const Ns& ns)
+requires (S& script, const ::floormat::bptr<Obj>& obj, usize& i, const Ns& ns)
 {
     requires std::is_base_of_v<base_script, S>;
     script.on_init(obj);
@@ -28,7 +28,7 @@ requires requires ()
 CORRADE_ALWAYS_INLINE
 void concept_check() {}
 
-} // namespace floormat::detail_Script
+} // namespace floormat::detail::Script
 
 namespace floormat {
 
@@ -56,7 +56,7 @@ template <typename S, typename Obj> Script<S, Obj>::~Script() noexcept
 template <typename S, typename Obj>
 Script<S, Obj>::Script(): ptr{nullptr}, _state{script_lifecycle::no_init}
 {
-    detail_Script::concept_check<S, Obj>();
+    detail::Script::concept_check<S, Obj>();
 }
 
 template <typename S, typename Obj> script_lifecycle Script<S, Obj>::state() const { return _state; }

@@ -1040,7 +1040,7 @@ auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::
     else
         fill(chunk_bits.prefix(nchunks), nullptr);
 
-    const auto bitmask_word_count = detail::grid::bitmask_size(params.div_count) / (u32)(sizeof(usize)*8);
+    const auto bitmask_word_count = Grid::detail::bitmask_size(params.div_count) / (u32)(sizeof(usize)*8);
     if (const auto n = (u32)(nchunks * bitmask_word_count); objects)
     {
         if (arrayCapacity(masked_bits) < n)

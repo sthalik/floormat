@@ -22,7 +22,6 @@ namespace floormat::Raycast::detail {
 
 namespace {
 
-using floormat::detail_Raycast::bbox;
 using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
 using Rect = RTree::Rect;
 

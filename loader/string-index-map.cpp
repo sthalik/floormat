@@ -3,7 +3,7 @@
 #include "compat/hash-table-load-factor.hpp"
 #include <gtl/phmap.hpp>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 struct string_index_map::impl
 {
@@ -37,4 +37,4 @@ bool string_index_map::all_indices_below(usize limit) const
     return true;
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

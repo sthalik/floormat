@@ -18,12 +18,12 @@
 #include <mg/ImageView.h>
 #include <mg/PixelStorage.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 using anim_traits = atlas_loader_traits<anim_atlas>;
 StringView anim_traits::loader_name() { return "anim_atlas"_s; }
-auto anim_traits::atlas_of(const Cell& x) -> const bptr<Atlas>& { return x.atlas; }
-auto anim_traits::atlas_of(Cell& x) -> bptr<Atlas>& { return x.atlas; }
+auto anim_traits::atlas_of(const Cell& x) -> const ::floormat::bptr<Atlas>& { return x.atlas; }
+auto anim_traits::atlas_of(Cell& x) -> ::floormat::bptr<Atlas>& { return x.atlas; }
 StringView anim_traits::name_of(const Cell& x) { return x.name; }
 String& anim_traits::name_of(Cell& x) { return x.name; }
 
@@ -32,7 +32,7 @@ void anim_traits::atlas_list(Storage& s)
     fm_debug_assert(s.name_map.empty());
     s.cell_array = {};
     arrayReserve(s.cell_array, 16);
-    s.name_map[loader.INVALID] = -1uz;
+    s.name_map[::floormat::loader.INVALID] = -1uz;
 }
 
 namespace {
@@ -43,7 +43,7 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
     constexpr auto size = invalid_atlas_size;
-    auto err_tex = loader.make_error_texture(size);
+    auto err_tex = ::floormat::loader.make_error_texture(size);
 
     // Allocate the single frame in the shared sprite atlas so render-path
     // lookups succeed for any object that ended up using this placeholder
@@ -57,12 +57,12 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
     const ImageView2D view{storage, err_tex.format(),
                            {(Int)size.x(), (Int)size.y()},
                            ArrayView<const void>{src_base, (usize)size.y() * row_stride}};
-    auto sp = loader.atlas().add(view);
+    auto sp = ::floormat::loader.atlas().add(view);
 
-    return { .atlas = make_invalid_atlas(loader.INVALID, {}, sp.raw()), .name = loader.INVALID, };
+    return { .atlas = make_invalid_atlas(::floormat::loader.INVALID, {}, sp.raw()), .name = ::floormat::loader.INVALID, };
 }
 
-auto anim_traits::make_invalid_atlas(StringView name, placeholder_anim_params params, const SpriteAtlas::Sprite* sprite) -> bptr<Atlas>
+auto anim_traits::make_invalid_atlas(StringView name, placeholder_anim_params params, const SpriteAtlas::Sprite* sprite) -> ::floormat::bptr<Atlas>
 {
     constexpr auto size = invalid_atlas_size;
     constexpr auto ground = Vector2i(size/2);
@@ -85,8 +85,8 @@ auto anim_traits::make_invalid_atlas(StringView name, placeholder_anim_params pa
             .sprites = Array<const SpriteAtlas::Sprite*>{DirectInit, nframes, sprite},
         };
     auto def = anim_def {
-        .object_name = loader.INVALID,
-        .anim_name = loader.INVALID,
+        .object_name = ::floormat::loader.INVALID,
+        .anim_name = ::floormat::loader.INVALID,
         .groups = move(groups),
         .pixel_size = size,
         .scale = anim_scale::fixed{size.x(), true},
@@ -95,14 +95,14 @@ auto anim_traits::make_invalid_atlas(StringView name, placeholder_anim_params pa
         // Last frame, so door_scenery::depth_offset draws an open placeholder door at the open offset.
         .action_frame = nframes - 1,
     };
-    auto err_tex = loader.make_error_texture(size);
-    return bptr<class anim_atlas>{InPlace, name, err_tex, move(def), true};
+    auto err_tex = ::floormat::loader.make_error_texture(size);
+    return ::floormat::bptr<class anim_atlas>{InPlace, name, err_tex, move(def), true};
 }
 
-auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
+auto anim_traits::make_atlas(StringView name, const Cell&) -> ::floormat::bptr<Atlas>
 {
     char buf[fm_FILENAME_MAX];
-    auto json_path = loader.make_atlas_path(buf, {}, name, ".json"_s);
+    auto json_path = ::floormat::loader.make_atlas_path(buf, {}, name, ".json"_s);
     auto anim_info = json_helper::from_json<struct anim_def>(json_path);
 
     for (anim_group& group : anim_info.groups)
@@ -119,7 +119,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
         }
     }
 
-    auto tex = loader.texture(""_s, name);
+    auto tex = ::floormat::loader.texture(""_s, name);
 
     fm_soft_assert(!anim_info.object_name.isEmpty());
     fm_soft_assert(anim_info.pixel_size.product() > 0);
@@ -157,7 +157,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
                            .setSkip({(Int)f.offset.x(), (Int)mem_y_start, 0});
                 const ImageView2D view{sub_storage, format,
                                        {(Int)fw, (Int)fh}, tex.data()};
-                auto sp = loader.atlas().add(view);
+                auto sp = ::floormat::loader.atlas().add(view);
                 g.sprites[fi] = sp.raw();
             }
         }
@@ -179,7 +179,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
         }
     }
 
-    auto atlas = bptr<class anim_atlas>{InPlace, name, tex, move(anim_info)};
+    auto atlas = ::floormat::bptr<class anim_atlas>{InPlace, name, tex, move(anim_info)};
     return atlas;
 }
 
@@ -188,10 +188,10 @@ auto anim_traits::make_cell(StringView name) -> Optional<Cell>
     // Anims have no pre-loaded name list. Probe the file so a missing asset
     // returns {} and honors loader_policy instead of throwing from make_atlas().
     char buf[fm_FILENAME_MAX];
-    auto json_path = loader.make_atlas_path(buf, {}, name, ".json"_s);
+    auto json_path = ::floormat::loader.make_atlas_path(buf, {}, name, ".json"_s);
     if (!Path::exists(json_path))
         return {};
     return { InPlace, Cell { .atlas = {}, .name = name } };
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

@@ -6,7 +6,7 @@
 #include <utility>
 #include <cr/GrowableArray.h>
 
-namespace floormat::detail_mlt {
+namespace floormat::detail::mlt {
 
 constexpr usize superpage_size = usize{2} << 20;
 
@@ -35,7 +35,7 @@ CORRADE_ALWAYS_INLINE bool occupied(const T& x) noexcept
         return bool(x);
 }
 
-} // namespace floormat::detail_mlt
+} // namespace floormat::detail::mlt
 
 namespace floormat {
 
@@ -45,8 +45,8 @@ multi_level_table<T, P>::multi_level_table() noexcept
     static_assert(std::is_nothrow_default_constructible_v<T>);
     static_assert(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_move_assignable_v<T>);
     static_assert(std::is_constructible_v<bool, const T&>);
-    static_assert(P.top_source == mlt_source::heap || sizeof(entry) * top_size % detail_mlt::superpage_size == 0);
-    static_assert(P.page_source == mlt_source::heap || sizeof(T) * page_size % detail_mlt::superpage_size == 0);
+    static_assert(P.top_source == mlt_source::heap || sizeof(entry) * top_size % detail::mlt::superpage_size == 0);
+    static_assert(P.page_source == mlt_source::heap || sizeof(T) * page_size % detail::mlt::superpage_size == 0);
 
     if constexpr (P.top_source == mlt_source::superpage)
     {
@@ -97,7 +97,7 @@ auto multi_level_table<T, P>::operator=(multi_level_table&& other) noexcept -> m
 template<typename T, mlt_params P>
 const T* multi_level_table<T, P>::find(u64 key) const noexcept
 {
-    detail_mlt::check_key<multi_level_table>(key);
+    detail::mlt::check_key<multi_level_table>(key);
     if constexpr (!has_pages)
         return &_top[key];
     else
@@ -108,14 +108,14 @@ const T* multi_level_table<T, P>::find(u64 key) const noexcept
         {
             const auto z = u32(key >> page_bits) & zero_mask;
             if (!z)
-                page = detail_mlt::page_of(e.zero);
+                page = detail::mlt::page_of(e.zero);
             else if (!e.side)
                 return nullptr;
             else
-                page = detail_mlt::page_of(e.side[z]);
+                page = detail::mlt::page_of(e.side[z]);
         }
         else
-            page = detail_mlt::page_of(e);
+            page = detail::mlt::page_of(e);
         if (!page)
             return nullptr;
         return &page[u32(key) & page_mask];
@@ -125,8 +125,8 @@ const T* multi_level_table<T, P>::find(u64 key) const noexcept
 template<typename T, mlt_params P>
 bool multi_level_table<T, P>::insert(u64 key, T value) noexcept
 {
-    detail_mlt::check_key<multi_level_table>(key);
-    fm_debug_assert(detail_mlt::occupied(value));
+    detail::mlt::check_key<multi_level_table>(key);
+    fm_debug_assert(detail::mlt::occupied(value));
     T* slot;
     [[maybe_unused]] page_ref* ref = nullptr;
     if constexpr (!has_pages)
@@ -150,7 +150,7 @@ bool multi_level_table<T, P>::insert(u64 key, T value) noexcept
         }
         else
             ref = &e;
-        T* page = detail_mlt::page_of(*ref);
+        T* page = detail::mlt::page_of(*ref);
         if (!page)
         {
             page = add_page(ti, zi);
@@ -167,7 +167,7 @@ bool multi_level_table<T, P>::insert(u64 key, T value) noexcept
         }
         slot = &page[u32(key) & page_mask];
     }
-    if (detail_mlt::occupied(*slot))
+    if (detail::mlt::occupied(*slot))
         return false;
     *slot = move(value);
     if constexpr (P.free_empty)
@@ -178,7 +178,7 @@ bool multi_level_table<T, P>::insert(u64 key, T value) noexcept
 template<typename T, mlt_params P>
 T multi_level_table<T, P>::erase(u64 key) noexcept
 {
-    detail_mlt::check_key<multi_level_table>(key);
+    detail::mlt::check_key<multi_level_table>(key);
     if constexpr (!has_pages)
         return std::exchange(_top[key], T{});
     else
@@ -199,12 +199,12 @@ T multi_level_table<T, P>::erase(u64 key) noexcept
         }
         else
             ref = &e;
-        T* page = detail_mlt::page_of(*ref);
+        T* page = detail::mlt::page_of(*ref);
         if (!page)
             return T{};
         T ret = std::exchange(page[u32(key) & page_mask], T{});
         if constexpr (P.free_empty)
-            if (detail_mlt::occupied(ret))
+            if (detail::mlt::occupied(ret))
             {
                 const u32 live = --ref->live;
                 fm_debug2_assert(live != (u32)-1);
@@ -228,7 +228,7 @@ void multi_level_table<T, P>::clear() noexcept
         {
             again = false;
             for (u32 i = 0; i < top_size; i++)
-                if (detail_mlt::occupied(_top[i]))
+                if (detail::mlt::occupied(_top[i]))
                 {
                     (void)std::exchange(_top[i], T{});
                     again = !std::is_trivially_destructible_v<T>;
@@ -250,7 +250,7 @@ void multi_level_table<T, P>::clear() noexcept
                 page_ref* ref = ref_at(rec.top_index, rec.zero_index);
                 if (!ref || ref->page != rec.page)
                     break;
-                if (!detail_mlt::occupied(rec.page[i]))
+                if (!detail::mlt::occupied(rec.page[i]))
                     continue;
                 destroyed = true;
                 T value = std::exchange(rec.page[i], T{});
@@ -272,7 +272,7 @@ void multi_level_table<T, P>::clear() noexcept
                 for (u32 i = 0; i < page_size; i++)
                 {
                     T* page = _pages[p].page;
-                    if (detail_mlt::occupied(page[i]))
+                    if (detail::mlt::occupied(page[i]))
                     {
                         (void)std::exchange(page[i], T{});
                         again = true;

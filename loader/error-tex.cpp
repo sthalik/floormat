@@ -5,7 +5,7 @@
 #include <mg/PixelFormat.h>
 #include <mg/ImageData.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 Trade::ImageData2D loader_impl::make_error_texture(Vector2ui size)
 {
@@ -27,4 +27,4 @@ Trade::ImageData2D loader_impl::make_error_texture(Vector2ui size, Vector4ub col
     return img;
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

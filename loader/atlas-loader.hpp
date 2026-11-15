@@ -3,7 +3,7 @@
 #include "atlas-loader-fwd.hpp"
 #include "policy.hpp"
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 template<typename ATLAS, typename TRAITS>
 class atlas_loader final
@@ -35,4 +35,4 @@ public:
     const Cell& get_invalid_atlas();
 };
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

@@ -8,7 +8,7 @@
 #include <cr/Path.h>
 #include <mg/ImageData.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 fm_noinline
 Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_) noexcept(false)
@@ -51,4 +51,4 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
     fm_throw("can't open image '{}' (cwd '{}'): {}", buf, path ? StringView{*path} : "(null)"_s, get_error_string(errbuf));
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

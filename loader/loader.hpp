@@ -11,7 +11,7 @@ namespace Magnum::Trade { template<uint32_t> class ImageData; using ImageData2D 
 namespace floormat {
 
 struct scenery_cell;
-namespace loader_detail {}
+namespace detail::loader {}
 namespace Serialize {}
 
 struct anim_def;

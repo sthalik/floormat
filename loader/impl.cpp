@@ -19,7 +19,7 @@ namespace floormat {
 
 } // namespace floormat
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 StringView loader_impl::shader(StringView filename) noexcept
 {
@@ -82,4 +82,4 @@ void loader_impl::destroy()
 sprite_atlas& loader_impl::atlas() noexcept { return _sprite_atlas; }
 
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

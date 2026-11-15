@@ -3,7 +3,7 @@
 #include "world.hpp"
 #include "compat/assert.hpp"
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 
 template <typename T>
 struct Pool : PoolBase
@@ -93,4 +93,4 @@ T* pool_subscript(Pool<T>* p, chunk& c)
     return t;
 }
 
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail

@@ -36,8 +36,8 @@ struct Custom : bptr_base
     explicit Custom(int x) : x{x} {}
 };
 
-// Allocates with plain new, so the test can tell it apart from detail_bptr::ptr_block.
-struct custom_ptr_block final : detail_bptr::control_block<counted_refcount>
+// Allocates with plain new, so the test can tell it apart from detail::bptr::ptr_block.
+struct custom_ptr_block final : detail::bptr::control_block<counted_refcount>
 {
     using control_block::control_block;
 
@@ -128,11 +128,11 @@ static_assert(can_compare<bptr<Foo>, bptr<Bar>> && can_compare<bptr<const Foo>, 
 static_assert(can_compare<weak_bptr<Foo>, weak_bptr<Bar>> && can_compare<weak_bptr<const Foo>, weak_bptr<Bar>>);
 static_assert(!can_compare<bptr<Foo>, bptr<Baz>> && !can_compare<weak_bptr<Foo>, weak_bptr<Baz>>);
 
-static_assert(sizeof(void*) != 8 || sizeof(detail_bptr::ptr_block<non_atomic_refcount>) == 24);
-static_assert(sizeof(void*) != 8 || sizeof(detail_bptr::ptr_block<atomic_refcount>) == 24);
-static_assert(sizeof(void*) != 8 || sizeof(detail_bptr::ptr_block<thread_checked_refcount>) == 32);
-static_assert(sizeof(detail_bptr::inplace_block<Foo, non_atomic_refcount>) ==
-              sizeof(detail_bptr::ptr_block<non_atomic_refcount>) + sizeof(Foo));
+static_assert(sizeof(void*) != 8 || sizeof(detail::bptr::ptr_block<non_atomic_refcount>) == 24);
+static_assert(sizeof(void*) != 8 || sizeof(detail::bptr::ptr_block<atomic_refcount>) == 24);
+static_assert(sizeof(void*) != 8 || sizeof(detail::bptr::ptr_block<thread_checked_refcount>) == 32);
+static_assert(sizeof(detail::bptr::inplace_block<Foo, non_atomic_refcount>) ==
+              sizeof(detail::bptr::ptr_block<non_atomic_refcount>) + sizeof(Foo));
 
 int A_total = 0, A_alive = 0; // NOLINT
 

@@ -15,7 +15,7 @@
 #pragma GCC diagnostic ignored "-Wswitch-default"
 #endif
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 template<typename ATLAS, typename TRAITS>
 atlas_loader<ATLAS, TRAITS>::atlas_loader(TRAITS&& traits): // NOLINT(*-rvalue-reference-param-not-moved)
@@ -38,20 +38,20 @@ auto atlas_loader<ATLAS, TRAITS>::atlas_list() -> ArrayView<const Cell>
     for (Cell& c : s.cell_array)
     {
         String& name{t.name_of(c)};
-        fm_soft_assert(name != loader.INVALID);
-        fm_soft_assert(loader.check_atlas_name(name));
+        fm_soft_assert(name != ::floormat::loader.INVALID);
+        fm_soft_assert(::floormat::loader.check_atlas_name(name));
         if (name.isSmall()) name = String{AllocatedInit, name};
     }
 
     s.name_map.set_load_factor(s.name_map.size()+s.cell_array.size()+1);
 
-    for (const auto& [i, c] : enumerate(s.cell_array))
+    for (const auto& [i, c] : ::floormat::enumerate(s.cell_array))
         s.name_map[t.name_of(c)] = i;
 
     { const Cell& invalid_atlas{get_invalid_atlas()};
       usize sz{s.cell_array.size()};
       arrayAppend(s.cell_array, invalid_atlas);
-      s.name_map[loader.INVALID] = sz;
+      s.name_map[::floormat::loader.INVALID] = sz;
     }
 
     fm_assert(s.name_map.all_indices_below(s.cell_array.size()));
@@ -72,7 +72,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
 
     fm_assert(p < loader_policy::COUNT);
 
-    if (name == loader.INVALID) [[unlikely]]
+    if (name == ::floormat::loader.INVALID) [[unlikely]]
     {
         switch (p)
         {
@@ -87,7 +87,7 @@ auto atlas_loader<ATLAS, TRAITS>::get_atlas(StringView name, const loader_policy
         std::unreachable();
     }
 
-    fm_soft_assert(loader.check_atlas_name(name));
+    fm_soft_assert(::floormat::loader.check_atlas_name(name));
 
     if (const usize* it = s.name_map.find(name)) [[likely]]
     {
@@ -170,7 +170,7 @@ missing_warn:
     if (back.isSmall()) back = String{AllocatedInit, back};
     s.name_map[back] = -1uz;
 
-    if (name != loader.INVALID)
+    if (name != ::floormat::loader.INVALID)
         DBG_nospace << t.loader_name() << " '" << name << "' doesn't exist";
 
     return invalid_atlas;
@@ -181,7 +181,7 @@ auto atlas_loader<ATLAS, TRAITS>::make_atlas(StringView name, const Cell& c) -> 
 {
     fm_assert(name != "<invalid>"_s);
     fm_soft_assert(!t.name_of(c) || t.name_of(c) == name);
-    fm_soft_assert(loader.check_atlas_name(name));
+    fm_soft_assert(::floormat::loader.check_atlas_name(name));
     return t.make_atlas(name, c);
 }
 
@@ -219,14 +219,14 @@ void atlas_loader<ATLAS, TRAITS>::register_cell(Cell&& c)
     String& name{t.name_of(c)};
     if (name.isSmall()) name = String{AllocatedInit, name};
     fm_assert(!s.name_map.contains(name));
-    fm_soft_assert(loader.check_atlas_name(name));
+    fm_soft_assert(::floormat::loader.check_atlas_name(name));
     const usize index{s.cell_array.size()};
     arrayAppend(s.cell_array, move(c));
     if (String& name_ = t.name_of(s.cell_array.back()); name_.isSmall()) name_ = String{AllocatedInit, name_};
     s.name_map[ t.name_of(s.cell_array.back()) ] = index;
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader
 
 #ifdef __GNUG__
 #pragma GCC diagnostic pop

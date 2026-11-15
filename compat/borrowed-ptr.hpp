@@ -37,7 +37,7 @@ struct intrusive_bptr_base : bptr_base
 };
 } // namespace floormat
 
-namespace floormat::detail_bptr {
+namespace floormat::detail::bptr {
 
 template<typename Policy>
 struct control_block : Policy::counter::block_state
@@ -233,15 +233,15 @@ template<typename U>
 concept Intrusive = requires { typename U::intrusive_policy; } &&
                     std::is_base_of_v<intrusive_bptr_base<typename U::intrusive_policy>, U>;
 
-} // namespace floormat::detail_bptr
+} // namespace floormat::detail::bptr
 
 namespace floormat {
 
 template<typename T, typename Policy>
 struct default_bptr_traits
 {
-    using ptr_block = detail_bptr::ptr_block<Policy>;
-    using inplace_block = detail_bptr::inplace_block<T, Policy>;
+    using ptr_block = detail::bptr::ptr_block<Policy>;
+    using inplace_block = detail::bptr::inplace_block<T, Policy>;
 };
 
 template<typename T, typename Policy>
@@ -249,7 +249,7 @@ struct bptr_traits : default_bptr_traits<T, Policy> {};
 
 } // namespace floormat
 
-namespace floormat::detail_bptr {
+namespace floormat::detail::bptr {
 
 template<typename U, typename Policy, typename... Ts>
 CORRADE_ALWAYS_INLINE control_block<Policy>* make_block(Ts&&... args) noexcept(noexcept(U{std::declval<Ts>()...}))
@@ -306,22 +306,22 @@ concept DerivedFrom = requires(From* from, To* to) {
 template<typename Y, typename T>
 concept ComparableWith = requires(Y* y, T* t) { y == t; };
 
-} // namespace floormat::detail_bptr
+} // namespace floormat::detail::bptr
 
 namespace floormat {
 
-template<typename To, typename From, typename Policy> requires detail_bptr::StaticCastable<From, To>
+template<typename To, typename From, typename Policy> requires detail::bptr::StaticCastable<From, To>
 basic_bptr<To, Policy> static_pointer_cast(basic_bptr<From, Policy>&& p) noexcept;
 
-template<typename To, typename From, typename Policy> requires detail_bptr::StaticCastable<From, To>
+template<typename To, typename From, typename Policy> requires detail::bptr::StaticCastable<From, To>
 basic_bptr<To, Policy> static_pointer_cast(const basic_bptr<From, Policy>& p) noexcept;
 
 template<typename T, typename Policy>
 class basic_bptr final // NOLINT(*-special-member-functions)
 {
-    using block = detail_bptr::control_block<Policy>;
+    using block = detail::bptr::control_block<Policy>;
     using count_type = Policy::counter::value_type;
-    static_assert(detail_bptr::ControlBlock<block>);
+    static_assert(detail::bptr::ControlBlock<block>);
 
     block* blk;
 
@@ -347,16 +347,16 @@ public:
 
     basic_bptr(const basic_bptr&) noexcept;
     basic_bptr& operator=(const basic_bptr&) noexcept;
-    template<detail_bptr::DerivedFrom<T> Y> basic_bptr(const basic_bptr<Y, Policy>&) noexcept;
-    template<detail_bptr::DerivedFrom<T> Y> basic_bptr& operator=(const basic_bptr<Y, Policy>&) noexcept;
+    template<detail::bptr::DerivedFrom<T> Y> basic_bptr(const basic_bptr<Y, Policy>&) noexcept;
+    template<detail::bptr::DerivedFrom<T> Y> basic_bptr& operator=(const basic_bptr<Y, Policy>&) noexcept;
 
     basic_bptr(basic_bptr&&) noexcept;
     basic_bptr& operator=(basic_bptr&&) noexcept;
-    template<detail_bptr::DerivedFrom<T> Y> basic_bptr(basic_bptr<Y, Policy>&&) noexcept;
-    template<detail_bptr::DerivedFrom<T> Y> basic_bptr& operator=(basic_bptr<Y, Policy>&&) noexcept;
+    template<detail::bptr::DerivedFrom<T> Y> basic_bptr(basic_bptr<Y, Policy>&&) noexcept;
+    template<detail::bptr::DerivedFrom<T> Y> basic_bptr& operator=(basic_bptr<Y, Policy>&&) noexcept;
 
     void reset() noexcept;
-    template<detail_bptr::DerivedFrom<T> Y> void reset(Y* ptr) noexcept;
+    template<detail::bptr::DerivedFrom<T> Y> void reset(Y* ptr) noexcept;
     void destroy() noexcept;
     void swap(basic_bptr& other) noexcept;
     count_type use_count() const noexcept;
@@ -371,24 +371,24 @@ public:
 
     bool operator==(const basic_bptr<const T, Policy>& other) const noexcept;
     bool operator==(const basic_bptr<T, Policy>& other) const noexcept requires (!std::is_const_v<T>);
-    template<detail_bptr::ComparableWith<T> Y> bool operator==(const basic_bptr<Y, Policy>& other) const noexcept;
+    template<detail::bptr::ComparableWith<T> Y> bool operator==(const basic_bptr<Y, Policy>& other) const noexcept;
     bool operator==(std::nullptr_t) const noexcept;
 
     template<typename U, typename P> friend class basic_bptr;
     template<typename U, typename P> friend class basic_weak_bptr;
 
     template<typename To, typename From, typename P>
-    requires detail_bptr::StaticCastable<From, To>
+    requires detail::bptr::StaticCastable<From, To>
     friend basic_bptr<To, P> static_pointer_cast(basic_bptr<From, P>&& p) noexcept;
 
     template<typename To, typename From, typename P>
-    requires detail_bptr::StaticCastable<From, To>
+    requires detail::bptr::StaticCastable<From, To>
     friend basic_bptr<To, P> static_pointer_cast(const basic_bptr<From, P>& p) noexcept;
 };
 
 // The guides must not overlap, or clang and MSVC find bptr{p} ambiguous.
-template<typename T> requires (!detail_bptr::Intrusive<T>) basic_bptr(T* ptr) -> basic_bptr<T, non_atomic_refcount>;
-template<detail_bptr::Intrusive T> basic_bptr(T* ptr) -> basic_bptr<T, typename T::intrusive_policy>;
+template<typename T> requires (!detail::bptr::Intrusive<T>) basic_bptr(T* ptr) -> basic_bptr<T, non_atomic_refcount>;
+template<detail::bptr::Intrusive T> basic_bptr(T* ptr) -> basic_bptr<T, typename T::intrusive_policy>;
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
@@ -399,7 +399,7 @@ template<typename T, typename Policy>
 template<typename... Ts>
 //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
 basic_bptr<T, Policy>::basic_bptr(InPlaceInitT, Ts&&... args) noexcept(noexcept(std::remove_const_t<T>{std::declval<Ts>()...})):
-    blk{detail_bptr::make_block<std::remove_const_t<T>, Policy>(forward<Ts>(args)...)}
+    blk{detail::bptr::make_block<std::remove_const_t<T>, Policy>(forward<Ts>(args)...)}
 {}
 
 template<typename T, typename Policy> basic_bptr<T, Policy>::basic_bptr(std::nullptr_t) noexcept: blk{nullptr} {}
@@ -407,7 +407,7 @@ template<typename T, typename Policy> basic_bptr<T, Policy>::basic_bptr() noexce
 
 template<typename T, typename Policy>
 basic_bptr<T, Policy>::basic_bptr(T* ptr) noexcept:
-    blk{detail_bptr::block_from_raw<std::remove_const_t<T>, Policy>(const_cast<std::remove_const_t<T>*>(ptr))}
+    blk{detail::bptr::block_from_raw<std::remove_const_t<T>, Policy>(const_cast<std::remove_const_t<T>*>(ptr))}
 {}
 
 #ifdef __GNUG__
@@ -416,7 +416,7 @@ basic_bptr<T, Policy>::basic_bptr(T* ptr) noexcept:
 
 // Defined in the header: the explicit instantiations in each class's .cpp skip member templates.
 template<typename T, typename P>
-template<detail_bptr::ComparableWith<T> Y>
+template<detail::bptr::ComparableWith<T> Y>
 bool basic_bptr<T, P>::operator==(const basic_bptr<Y, P>& other) const noexcept
 {
     return (blk ? blk->get() : nullptr) == (other.blk ? other.blk->get() : nullptr);

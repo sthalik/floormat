@@ -9,7 +9,7 @@
 #include "compat/function-view.hpp"
 #include <cr/GrowableArray.h>
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 
 namespace {
 
@@ -302,21 +302,21 @@ template<typename T> bool ObjectGrid::build_impl(Array<T>& cells, Array<T>& runs
 
 template struct Pool<ObjectGrid>;
 
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail
 
 namespace floormat::Grid::Object {
 
 Grid::~Grid() noexcept = default;
-Grid::Grid(detail::grid::ObjectGrid* grid): grid{grid} {}
+Grid::Grid(detail::ObjectGrid* grid): grid{grid} {}
 
 u32 Grid::get_cell_index_from_coord(intra_coord pos) const
 {
-    return detail::grid::GridBase::pack_bit_index_from_coord(pos, grid->params.div_count);
+    return detail::GridBase::pack_bit_index_from_coord(pos, grid->params.div_count);
 }
 
 template<typename T> cell_object_view<T> Grid::objects_at_cell(u32 index) const
 {
-    detail::grid::check_current(grid);
+    detail::check_current(grid);
     fm_debug3_assert(index < grid->params.div_count * grid->params.div_count);
     fm_debug3_assert(grid->uses_u32 == std::is_same_v<T, u32>);
     if constexpr (std::is_same_v<T, u32>)
@@ -330,7 +330,7 @@ template cell_object_view<u32> Grid::objects_at_cell<u32>(u32) const;
 
 ArrayView<const collision_data> Grid::entry_data() const
 {
-    detail::grid::check_current(grid);
+    detail::check_current(grid);
     return grid->entry_data;
 }
 
@@ -339,9 +339,9 @@ bool Grid::uses_u32() const { return grid->uses_u32; }
 
 bool Grid::blocked_objects(const Search::pred& p, Array<bool>& entry_blocked) const
 {
-    detail::grid::check_current(grid);
+    detail::check_current(grid);
     const auto n = (u32)grid->entry_data.size();
-    detail::grid::reserve_scratch(entry_blocked, n);
+    detail::reserve_scratch(entry_blocked, n);
     arrayResize(entry_blocked, NoInit, n);
     bool any = false;
     for (auto i = 0u; i < n; i++)
@@ -355,7 +355,7 @@ bool Grid::blocked_objects(const Search::pred& p, Array<bool>& entry_blocked) co
 
 bool Grid::blocked_objects(const Search::pred& p) const
 {
-    detail::grid::check_current(grid);
+    detail::check_current(grid);
     for (auto i = 0u; i < (u32)grid->entry_data.size(); i++)
         if (grid->is_entry_blocked(i, p))
             return true;
@@ -378,9 +378,9 @@ template bool Grid::is_blocked<u32>(u32, ArrayView<const bool>) const;
 void Grid::mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out,
                           ArrayView<const bool> entry_blocked) const
 {
-    detail::grid::check_current(grid);
+    detail::check_current(grid);
     fm_debug_assert(entry_blocked.size() == grid->entry_data.size());
-    const auto n = detail::grid::bitmask_size(grid->params.div_count) / (sizeof(usize)*8);
+    const auto n = detail::bitmask_size(grid->params.div_count) / (sizeof(usize)*8);
     fm_debug_assert(pass_bits.size() == n && out.size() == n);
     const auto& g = *grid;
     if (g.uses_u32)
@@ -400,18 +400,18 @@ bool Grid::is_stale(u64 pass_gen) const { return pass_gen != grid->built_pass_ge
 void Grid::mark_stale() { grid->mark_stale(); }
 void Grid::build_if_stale() { grid->build_if_stale(); }
 
-Pool::Pool(Pass::Pool& pass_pool): pool{new detail::grid::ObjectPool{pass_pool}} {}
+Pool::Pool(Pass::Pool& pass_pool): pool{new detail::ObjectPool{pass_pool}} {}
 Pool::~Pool() noexcept { delete pool; }
 
 Grid Pool::operator[](chunk& c)
 {
-    return Grid{detail::grid::pool_subscript<detail::grid::ObjectGrid>(pool, c)};
+    return Grid{detail::pool_subscript<detail::ObjectGrid>(pool, c)};
 }
 
 void Pool::build_if_stale_all()
 {
     for (auto* g : pool->grids_in_use)
-        static_cast<detail::grid::ObjectGrid*>(g)->build_if_stale();
+        static_cast<detail::ObjectGrid*>(g)->build_if_stale();
 }
 
 const Params& Pool::params() const { return pool->params; }

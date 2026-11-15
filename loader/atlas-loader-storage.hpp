@@ -5,7 +5,7 @@
 #include <cr/Array.h>
 #include <cr/Optional.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 template<typename ATLAS, typename TRAITS>
 struct atlas_storage
@@ -24,4 +24,4 @@ struct atlas_storage
     ~atlas_storage() noexcept = default;
 };
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

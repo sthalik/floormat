@@ -31,20 +31,20 @@ concept visits_selected_classes =
     visits_if_selected<F, light, Arg<light>, T, Ts...> &&
     visits_if_selected<F, hole, Arg<hole>, T, Ts...>;
 
-namespace detail_object_storage {
+namespace detail::object_storage {
 template<typename C> using ref = C&;
 template<typename C> using const_ref = const C&;
 template<typename C> using list_ref = object_list<C>&;
-} // namespace detail_object_storage
+} // namespace detail::object_storage
 
 template<typename F, typename T, typename... Ts>
-concept object_visitor = visits_selected_classes<F, detail_object_storage::ref, T, Ts...>;
+concept object_visitor = visits_selected_classes<F, detail::object_storage::ref, T, Ts...>;
 
 template<typename F, typename T, typename... Ts>
-concept const_object_visitor = visits_selected_classes<F, detail_object_storage::const_ref, T, Ts...>;
+concept const_object_visitor = visits_selected_classes<F, detail::object_storage::const_ref, T, Ts...>;
 
 template<typename F, typename T, typename... Ts>
-concept object_list_visitor = visits_selected_classes<F, detail_object_storage::list_ref, T, Ts...>;
+concept object_list_visitor = visits_selected_classes<F, detail::object_storage::list_ref, T, Ts...>;
 
 template<typename T>
 class object_range final

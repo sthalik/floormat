@@ -12,15 +12,15 @@
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 struct vobj {
     String name, descr, image_filename;
 };
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader
 
 namespace nlohmann {
 
-using floormat::loader_detail::vobj;
+using floormat::detail::loader::vobj;
 
 template<>
 struct adl_serializer<vobj> {
@@ -49,9 +49,9 @@ void adl_serializer<vobj>::from_json(const json& j, vobj& val)
 
 } // namespace nlohmann
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
-bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, StringView image_filename)
+::floormat::bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, StringView image_filename)
 {
     auto tex = texture(VOBJ_PATH, image_filename);
     anim_def def;
@@ -89,7 +89,7 @@ bptr<class anim_atlas> loader_impl::make_vobj_anim_atlas(StringView name, String
     def.groups[0].sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, 1};
     def.groups[0].sprites[0] = sp.raw();
 
-    return bptr<class anim_atlas>(InPlace, name, tex, move(def));
+    return ::floormat::bptr<class anim_atlas>(InPlace, name, tex, move(def));
 }
 
 void loader_impl::get_vobj_list()
@@ -133,4 +133,4 @@ const struct vobj_cell& loader_impl::vobj(StringView name)
     return vobjs[*it];
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

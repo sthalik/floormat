@@ -3,7 +3,7 @@
 #include <mg/ImageData.h>
 #include <mg/AbstractImporter.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 Trade::ImageData2D loader_impl::image(StringView path) noexcept(false)
 {
@@ -17,4 +17,4 @@ Trade::ImageData2D loader_impl::image(StringView path) noexcept(false)
     return ret;
 }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

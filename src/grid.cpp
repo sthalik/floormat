@@ -8,7 +8,7 @@
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 
 namespace {
 constinit Spinlock g_build_seq_lock;
@@ -248,4 +248,4 @@ void BitView::write(u32 i, bool value)
     data[word] = value ? data[word] | mask : data[word] & ~mask;
 }
 
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail

@@ -7,7 +7,7 @@
 namespace floormat { struct anim_cell; class anim_atlas; }
 namespace floormat::SpriteAtlas { struct Sprite; }
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 template<> struct atlas_loader_traits<anim_atlas>
 {
@@ -17,15 +17,15 @@ template<> struct atlas_loader_traits<anim_atlas>
     using Storage = atlas_storage<Atlas, Self>;
 
     static StringView loader_name();
-    static const bptr<Atlas>& atlas_of(const Cell& x);
-    static bptr<Atlas>& atlas_of(Cell& x);
+    static const ::floormat::bptr<Atlas>& atlas_of(const Cell& x);
+    static ::floormat::bptr<Atlas>& atlas_of(Cell& x);
     static StringView name_of(const Cell& x);
     static String& name_of(Cell& x);
     static void atlas_list(Storage& st);
     static Cell make_invalid_atlas(Storage& st);
-    static bptr<Atlas> make_invalid_atlas(StringView name, placeholder_anim_params params, const SpriteAtlas::Sprite* sprite);
-    static bptr<Atlas> make_atlas(StringView name, const Cell& c);
+    static ::floormat::bptr<Atlas> make_invalid_atlas(StringView name, placeholder_anim_params params, const SpriteAtlas::Sprite* sprite);
+    static ::floormat::bptr<Atlas> make_atlas(StringView name, const Cell& c);
     static Optional<Cell> make_cell(StringView name);
 };
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

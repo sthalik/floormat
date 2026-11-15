@@ -8,7 +8,7 @@ struct local_coords;
 class chunk;
 }
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 struct PassGrid;
 struct PassPool;
 
@@ -39,11 +39,11 @@ constexpr u32 calc_div_size(u32 div_sizeʹ, u32 bbox_size)
     return div_size ? std::bit_floor(div_size) : 1; // xxx todo assumes power of two chunk size
 }
 
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail
 
 namespace floormat::Grid::Pass {
 
-using BitView = detail::grid::BitView;
+using BitView = detail::BitView;
 
 struct Params
 {
@@ -64,12 +64,12 @@ struct Params
 
 class Grid
 {
-    detail::grid::PassGrid* grid;
-    detail::grid::PassPool* pool;
+    detail::PassGrid* grid;
+    detail::PassPool* pool;
 
 public:
     ~Grid() noexcept;
-    explicit Grid(detail::grid::PassGrid* grid, detail::grid::PassPool* pool);
+    explicit Grid(detail::PassGrid* grid, detail::PassPool* pool);
     Grid(const Grid&) noexcept = default;
     Grid& operator=(const Grid&) & noexcept = default;
 
@@ -96,7 +96,7 @@ public:
     bool is_stale(u64 pass_gen) const;
     bool is_all_empty() const;
 
-    detail::grid::PassGrid* raw() const noexcept;
+    detail::PassGrid* raw() const noexcept;
 
     void mark_stale();
 
@@ -109,13 +109,13 @@ constexpr Params::Params(u32 div_size, u32 bbox_size, pass_mode min_pass):
     bbox_size{bbox_size > Grid::min_bbox_size ? bbox_size : Grid::min_bbox_size},
     min_pass{min_pass}
 {
-    div_count = chunk_size_xy / detail::grid::calc_div_size(div_size, this->bbox_size);
+    div_count = chunk_size_xy / detail::calc_div_size(div_size, this->bbox_size);
 }
 
 // Its grids leave out critters and dynamic scenery, which Grid::Object::Pool holds.
 class Pool final
 {
-    detail::grid::PassPool* pool;
+    detail::PassPool* pool;
 
 public:
     explicit Pool(Params params);

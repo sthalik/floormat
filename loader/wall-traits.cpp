@@ -11,12 +11,12 @@
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 using wall_traits = atlas_loader_traits<wall_atlas>;
 StringView wall_traits::loader_name() { return "wall_atlas"_s; }
-auto wall_traits::atlas_of(const Cell& x) -> const bptr<Atlas>& { return x.atlas; }
-auto wall_traits::atlas_of(Cell& x) -> bptr<Atlas>& { return x.atlas; }
+auto wall_traits::atlas_of(const Cell& x) -> const ::floormat::bptr<Atlas>& { return x.atlas; }
+auto wall_traits::atlas_of(Cell& x) -> ::floormat::bptr<Atlas>& { return x.atlas; }
 StringView wall_traits::name_of(const Cell& x) { return x.name; }
 String& wall_traits::name_of(Cell& x) { return x.name; }
 
@@ -24,7 +24,7 @@ void wall_traits::atlas_list(Storage& s)
 {
     fm_debug_assert(s.name_map.empty());
     s.cell_array = wall_cell::load_atlases_from_json();
-    s.name_map[loader.INVALID] = -1uz;
+    s.name_map[::floormat::loader.INVALID] = -1uz;
 }
 
 auto wall_traits::make_invalid_atlas(Storage& s) -> Cell
@@ -33,7 +33,7 @@ auto wall_traits::make_invalid_atlas(Storage& s) -> Cell
     constexpr auto name = loader_::INVALID;
     constexpr auto frame_size = Vector2ui{tile_size_xy, tile_size_z};
 
-    auto a = bptr<class wall_atlas>(InPlace,
+    auto a = ::floormat::bptr<class wall_atlas>(InPlace,
         wall_atlas_def {
             Wall::Info{.name = name, .depth = 8},
             array<Wall::Frame>({{ {}, frame_size}, }),
@@ -42,25 +42,25 @@ auto wall_traits::make_invalid_atlas(Storage& s) -> Cell
             } }),
             {{ {.val = 0}, {}, }},
             {true, false},
-        }, name, loader.make_error_texture(frame_size));
+        }, name, ::floormat::loader.make_error_texture(frame_size));
     return { .atlas = move(a), .name = name, };
 }
 
-auto wall_traits::make_atlas(StringView name, const Cell&) -> bptr<Atlas>
+auto wall_traits::make_atlas(StringView name, const Cell&) -> ::floormat::bptr<Atlas>
 {
     char file_buf[fm_FILENAME_MAX], json_buf[fm_FILENAME_MAX];
-    auto file = loader.make_atlas_path(file_buf, loader.WALL_TILESET_PATH, name);
+    auto file = ::floormat::loader.make_atlas_path(file_buf, ::floormat::loader.WALL_TILESET_PATH, name);
     int json_size = std::snprintf(json_buf, array_size(json_buf), "%s.json", file_buf);
     fm_soft_assert(json_size > 0 && (usize)json_size < array_size(json_buf));
     auto json_name = StringView{json_buf, (usize)json_size};
     auto def = wall_atlas_def::deserialize(json_name);
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.isEmpty());
-    auto tex = loader.texture(""_s, file);
-    auto atlas = bptr<class wall_atlas>(InPlace, move(def), file, tex);
+    auto tex = ::floormat::loader.texture(""_s, file);
+    auto atlas = ::floormat::bptr<class wall_atlas>(InPlace, move(def), file, tex);
     return atlas;
 }
 
 auto wall_traits::make_cell(StringView) -> Optional<Cell> { return {}; }
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

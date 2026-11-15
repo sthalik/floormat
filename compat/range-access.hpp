@@ -2,7 +2,7 @@
 #include "move.hpp"
 #include <cr/StlForwardTupleSizeElement.h>
 
-namespace floormat::detail_range {
+namespace floormat::detail::range {
 
 template<typename T> std::add_rvalue_reference_t<T> declval() noexcept;
 
@@ -181,4 +181,4 @@ constexpr usize owning_view<R>::size() const noexcept requires sized<const R>
     return size_of(_r);
 }
 
-} // namespace floormat::detail_range
+} // namespace floormat::detail::range

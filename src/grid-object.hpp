@@ -4,10 +4,10 @@
 #include "collision.hpp"
 #include <cr/ArrayView.h>
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 struct ObjectGrid;
 struct ObjectPool;
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail
 
 namespace floormat::Grid::Object {
 
@@ -16,7 +16,7 @@ using Params = Pass::Params;
 template<typename T>
 class cell_object_view
 {
-    friend detail::grid::ObjectGrid;
+    friend detail::ObjectGrid;
 
     const T* indices;
     const collision_data* entry_data;
@@ -49,11 +49,11 @@ public:
 
 class Grid
 {
-    detail::grid::ObjectGrid* grid;
+    detail::ObjectGrid* grid;
 
 public:
     ~Grid() noexcept;
-    explicit Grid(detail::grid::ObjectGrid* grid);
+    explicit Grid(detail::ObjectGrid* grid);
     Grid(const Grid&) noexcept = default;
     Grid& operator=(const Grid&) & noexcept = default;
 
@@ -72,7 +72,7 @@ public:
     bool blocked_objects(const Search::pred& p) const;
     template<typename T> bool is_blocked(u32 index, ArrayView<const bool> entry_blocked) const;
     /// @brief Writes @p pass_bits to @p out, with each cell cleared that is_blocked(). Both span
-    /// detail::grid::bitmask_size(div_count()) bits.
+    /// detail::bitmask_size(div_count()) bits.
     void mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out,
                         ArrayView<const bool> entry_blocked) const;
 
@@ -90,7 +90,7 @@ public:
 
 class Pool final
 {
-    detail::grid::ObjectPool* pool;
+    detail::ObjectPool* pool;
 
 public:
     // pass_pool must outlive this pool

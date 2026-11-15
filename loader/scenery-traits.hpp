@@ -3,7 +3,7 @@
 
 namespace floormat { struct scenery_cell; struct scenery_proto; }
 
-namespace floormat::loader_detail {
+namespace floormat::detail::loader {
 
 template<> struct atlas_loader_traits<scenery_proto>
 {
@@ -23,4 +23,4 @@ template<> struct atlas_loader_traits<scenery_proto>
     static Optional<Cell> make_cell(StringView name);
 };
 
-} // namespace floormat::loader_detail
+} // namespace floormat::detail::loader

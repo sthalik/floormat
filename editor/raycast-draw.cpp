@@ -12,7 +12,7 @@ namespace floormat {
 
 namespace {
 
-void draw_boxes(app& a, ImDrawList& draw, ArrayView<const detail_Raycast::bbox> boxes,
+void draw_boxes(app& a, ImDrawList& draw, ArrayView<const Raycast::detail::bbox> boxes,
                 ImU32 color, float thickness)
 {
     for (auto [center, size] : boxes)

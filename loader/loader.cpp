@@ -2,7 +2,7 @@
 
 namespace floormat {
 
-using loader_detail::loader_impl;
+using detail::loader::loader_impl;
 
 loader_& loader_::default_loader() noexcept
 {

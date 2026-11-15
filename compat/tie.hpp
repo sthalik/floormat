@@ -25,7 +25,7 @@ constexpr inline IgnoreT Ignore{IgnoreT::Init{}};
 
 } // namespace floormat
 
-namespace floormat::detail_tie {
+namespace floormat::detail::tie {
 
 template<typename S>
 consteval usize tuple_size_of()
@@ -60,24 +60,24 @@ template<typename... Ts>
 struct tie_proxy : tie_impl<std::index_sequence_for<Ts...>, Ts...>
 {
     template<typename Src>
-    requires (detail_tie::tuple_size_of<std::remove_cvref_t<Src>>() == sizeof...(Ts))
+    requires (detail::tie::tuple_size_of<std::remove_cvref_t<Src>>() == sizeof...(Ts))
     constexpr void operator=(Src&& src) const;
 };
 
 template<typename... Ts>
 template<typename Src>
-requires (detail_tie::tuple_size_of<std::remove_cvref_t<Src>>() == sizeof...(Ts))
+requires (detail::tie::tuple_size_of<std::remove_cvref_t<Src>>() == sizeof...(Ts))
 constexpr void tie_proxy<Ts...>::operator=(Src&& src) const
 {
     this->assign(static_cast<Src&&>(src));
 }
 
-} // namespace floormat::detail_tie
+} // namespace floormat::detail::tie
 
 namespace floormat {
 
 template<typename... Ts>
-constexpr detail_tie::tie_proxy<Ts...> tie(Ts&... refs) noexcept
+constexpr detail::tie::tie_proxy<Ts...> tie(Ts&... refs) noexcept
 {
     return {{ {refs}... }};
 }

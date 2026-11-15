@@ -17,7 +17,7 @@
 namespace floormat {
 } // namespace floormat
 
-namespace floormat::detail::grid {
+namespace floormat::Grid::detail {
 namespace {
 // The clear_rect_*() functions clear columns [i_lo, i_hi] of rows [j_lo, j_hi], where bit
 // (i, j) is j*div_count + i. build_impl() picks one per build from div_count alone.
@@ -290,7 +290,7 @@ static_assert(assert_calc_div_size());
 
 } // namespace Tests
 } // namespace
-} // namespace floormat::detail::grid
+} // namespace floormat::Grid::detail
 
 namespace floormat::Grid::Pass {
 
@@ -310,19 +310,19 @@ bool Params::operator==(const Params&) const noexcept = default;
 
 Grid Pool::operator[](chunk& c)
 {
-    return Grid{detail::grid::pool_subscript(pool, c), pool};
+    return Grid{detail::pool_subscript(pool, c), pool};
 }
 
 Grid::~Grid() noexcept = default;
 
-Grid::Grid(detail::grid::PassGrid* grid_, detail::grid::PassPool* pool_):
+Grid::Grid(detail::PassGrid* grid_, detail::PassPool* pool_):
     grid{grid_}, pool{pool_}
 {
 }
 
 u32 Grid::get_bitmask_index(u32 x, u32 y, u32 div_count)
 {
-    return detail::grid::PassGrid::get_bitmask_index(x, y, div_count);
+    return detail::PassGrid::get_bitmask_index(x, y, div_count);
 }
 
 u32 Grid::get_bitmask_index_from_coord(intra_coord pos) const
@@ -337,12 +337,12 @@ Range2D Grid::get_coord_from_div(u32 x, u32 y) const
 
 bool Grid::bit(u32 index) const
 {
-    return detail::grid::grid_bit_at(grid, index);
+    return detail::grid_bit_at(grid, index);
 }
 
 BitView Grid::bits() const
 {
-    detail::grid::check_current(grid);
+    detail::check_current(grid);
     return { grid->bitmask.data() };
 }
 
@@ -353,7 +353,7 @@ u32 Grid::div_count() const
 
 u64 Grid::build_no() const
 {
-    detail::grid::check_current(grid);
+    detail::check_current(grid);
     return grid->build_no;
 }
 
@@ -379,7 +379,7 @@ bool Grid::is_stale(u64 pass_gen) const
 
 bool Grid::is_all_empty() const
 {
-    detail::grid::check_current(grid);
+    detail::check_current(grid);
     return grid->is_all_empty();
 }
 
@@ -387,22 +387,22 @@ bool Grid::is_all_empty() const
 void Grid::mark_stale()
 {
     grid->mark_stale();
-    detail::grid::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::grid::GridBase* {
+    detail::cascade_mark_neighbors_stale(grid->coord, [this](chunk_coords_ ch) -> detail::GridBase* {
         auto* c = grid->c->world().at(ch);
         return c ? pool->find(*c) : nullptr;
     });
 }
 
-detail::grid::PassGrid* Grid::raw() const noexcept { return grid; }
+detail::PassGrid* Grid::raw() const noexcept { return grid; }
 void Grid::build_if_stale() { grid->build_if_stale(); }
 
 void Pool::build_if_stale_all()
 {
     for (auto* g : pool->grids_in_use)
-        static_cast<detail::grid::PassGrid*>(g)->build_if_stale();
+        static_cast<detail::PassGrid*>(g)->build_if_stale();
 }
 
-Pool::Pool(Params params): pool{new detail::grid::PassPool{params}} { }
+Pool::Pool(Params params): pool{new detail::PassPool{params}} { }
 Pool::~Pool() noexcept { delete pool; }
 const Params& Pool::params() const { return pool->params; }
 u32 Pool::pooled_count() const { return pool->freelist.size(); }
