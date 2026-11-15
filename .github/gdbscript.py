@@ -9,9 +9,12 @@ def my_exit_handler (event):
 
 gdb.events.stop.connect(my_signal_handler)
 gdb.events.exited.connect(my_exit_handler)
+# After target remote, as under qemu-user, the inferior exists and is stopped at its entry point.
+attached = gdb.selected_inferior().pid != 0
 gdb.execute("set confirm off")
 gdb.execute("set pagination off")
-gdb.execute("set disable-randomization on")
+if not attached:
+    gdb.execute("set disable-randomization on")
 gdb.execute("set print thread-events off")
-gdb.execute("r")
+gdb.execute("c" if attached else "r")
 gdb.execute("q 1")

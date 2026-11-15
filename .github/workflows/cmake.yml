@@ -374,3 +374,52 @@ jobs:
         gdb -q -batch -x ../../.github/gdbscript.py --args \
             bin/floormat-editor --scenes=all --driver-no-swapbuffers
       timeout-minutes: 60
+
+  # Big-endian: cross-compiled for s390x, tests run under qemu-user.
+  s390x:
+    runs-on: ubuntu-26.04
+    # Ubuntu 26.04 has only a March 2026 snapshot of GCC 16; Debian testing gets GCC's point releases.
+    container: debian:testing
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+    # Without git, actions/checkout downloads through the REST API, which can't fetch submodules.
+    - name: Install git
+      run: apt-get -q=2 update && apt-get -q -y install git ca-certificates
+
+    - uses: actions/checkout@v7
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        dpkg --add-architecture s390x
+        apt-get -q=2 update
+        v=$(apt-cache search --names-only '^g\+\+-[0-9]+-s390x-linux-gnu$' | sed -E 's/^g\+\+-([0-9]+).*/\1/' | sort -n | tail -1)
+        echo "GCC_VERSION=$v" >> "$GITHUB_ENV"
+        apt-get -q -y install g++-$v-s390x-linux-gnu qemu-user gdb-multiarch cmake ninja-build pkgconf
+        apt-get -q -y install libsdl2-dev:s390x libgl-dev:s390x libglx-dev:s390x libc6-dbg:s390x
+        s390x-linux-gnu-g++-$v -march=z15 -mzvector -dM -E -x c++ /dev/null | grep -E '__VEC__|__ARCH__' || true
+
+    # The runner's userconfig would build Debug with ASan and UBSan.
+    # In a container job, ${{github.workspace}} is the host's path; $GITHUB_WORKSPACE is the container's.
+    - name: Configure
+      run: >-
+        /usr/bin/env FLOORMAT_NO_USERCONFIG=1 CC=s390x-linux-gnu-gcc-$GCC_VERSION CXX=s390x-linux-gnu-g++-$GCC_VERSION
+        CFLAGS=-g1 CXXFLAGS=-g1 cmake -G Ninja -S "$GITHUB_WORKSPACE" -B "$GITHUB_WORKSPACE/build" -DCMAKE_BUILD_TYPE=Release
+        --toolchain "$GITHUB_WORKSPACE/cmake/s390x-linux-gnu.cmake"
+
+    - name: Build
+      run: cmake --build "$GITHUB_WORKSPACE/build" --target install
+
+    # An absolute path: the loader finds share/floormat through /proc/self/exe.
+    - name: Test without a GL context
+      run: |
+        cd "$GITHUB_WORKSPACE/build/install"
+        export MAGNUM_LOG=verbose
+        # qemu-user's gdb stub doesn't read gdb's interrupt while the guest runs, and a SIGINT kills qemu outright.
+        # qemu passes SIGQUIT to the guest, so gdb stops and prints every thread's backtrace.
+        LD_LIBRARY_PATH="$PWD/lib" timeout -k 30 -s QUIT 1140 qemu-s390x -g 1234 "$PWD/bin/floormat-test" --no-gl &
+        gdb-multiarch -q -batch -ex 'set sysroot /' -ex 'target remote :1234' -x ../../.github/gdbscript.py bin/floormat-test
+      timeout-minutes: 20
