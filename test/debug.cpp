@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/debug.hpp"
+#include "compat/nanosecond.hpp"
 #include <cerrno>
 #include <sstream>
 #include <cr/String.h>
@@ -63,6 +64,13 @@ void test_fraction()
     check("2.72", [](Debug& d) { d << fraction(2.71828f, 2); });
 }
 
+void test_ns()
+{
+    check("dt: 37 ₙₛ", [](Debug& d) { d << "dt:" << Ns{37}; });
+    check("dt: 0_503 ₙₛ", [](Debug& d) { d << "dt:" << Ns{503}; });
+    check("dt: 2.003µs", [](Debug& d) { d << "dt:" << Ns{2003}; });
+}
+
 } // namespace
 
 namespace Test {
@@ -73,6 +81,7 @@ void test_debug()
     test_quoted();
     test_error_string();
     test_fraction();
+    test_ns();
 }
 
 } // namespace Test

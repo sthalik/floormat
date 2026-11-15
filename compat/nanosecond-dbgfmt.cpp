@@ -38,7 +38,7 @@ Debug& operator<<(Debug& dbg, const Ns& val)
     }
     else if (val >= 1*Microsecond)
     {
-        unit = "ₘₛ";
+        unit = "µs";
         x *= 1e-3;
         precision = 3;
     }
@@ -47,7 +47,7 @@ Debug& operator<<(Debug& dbg, const Ns& val)
         char buf[64];
         std::snprintf(buf, sizeof buf, "%" PRIu64 "_%" PRIu64 " ₙₛ",
                       val.stamp / 1000, val.stamp % 1000);
-        return dbg << Debug::nospace << buf;
+        return dbg << buf;
     }
     else
     {
