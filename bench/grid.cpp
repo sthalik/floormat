@@ -1,3 +1,4 @@
+#include "cover-world.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-object.hpp"
 #include "src/grid-cover.hpp"
@@ -9,12 +10,9 @@
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/critter.hpp"
-#include "src/scenery-proto.hpp"
 #include "src/tile-image.hpp"
-#include "src/wall-atlas.hpp"
 #include "src/tile-defs.hpp"
 #include "loader/loader.hpp"
-#include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function-view.hpp"
 #include <bit>
@@ -172,49 +170,6 @@ void Object_Grid_Build(benchmark::State& state)
 }
 
 BENCHMARK(Object_Grid_Build)->ArgNames({"div", "critters"})->Args({16, 16})->Args({8, 16})->Unit(benchmark::kMicrosecond);
-
-void make_cover_chunk(world& w, chunk& c)
-{
-    const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
-    const auto wall = wall_image_proto{ loader.wall_atlas("empty"), 0 };
-    const auto ch = c.coord();
-
-    for (auto j = 0u; j < TILE_MAX_DIM; j++)
-        for (auto i = 0u; i < TILE_MAX_DIM; i++)
-        {
-            c[{i, j}].ground() = floor;
-            if (j == 5 && i != 7 && i != 8)
-                c[{i, j}].wall_north() = wall;
-            if (i == 10 && j != 3 && j != 11)
-                c[{i, j}].wall_west() = wall;
-            if ((i*7 + j*3) % 4 == 0)
-            {
-                scenery_proto p;
-                p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
-                p.subtype   = generic_scenery_proto{};
-                p.bbox_size = {24, 24};
-                p.pass      = pass_mode::blocked;
-                w.make_scenery(w.make_id(), {ch, {i, j}}, move(p));
-            }
-            else if ((i*5 + j) % 23 == 0)
-                (void)w.make_object<critter>(w.make_id(), {ch, {i, j}}, critter_proto{});
-        }
-}
-
-template<typename F> void for_cover_chunks(F&& fun)
-{
-    for (i16 y = -1; y <= 1; y++)
-        for (i16 x = -1; x <= 1; x++)
-            fun(chunk_coords_{x, y, 0});
-}
-
-// Rays from chunk (0, 0) reach loaded neighbours, as in the game. A ray leaving into a missing
-// chunk hits nothing and runs to the 1024 px cap.
-void make_cover_world(world& w)
-{
-    for_cover_chunks([&](chunk_coords_ ch) { make_cover_chunk(w, w[ch]); });
-    for_cover_chunks([&](chunk_coords_ ch) { rebuild(w[ch]); });
-}
 
 void Cover_Build(benchmark::State& state)
 {
