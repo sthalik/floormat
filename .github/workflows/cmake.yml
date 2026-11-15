@@ -30,7 +30,7 @@ jobs:
           toolchain: cmake/msvc.cmake
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -241,7 +241,7 @@ jobs:
       SDL_SHUTDOWN_DBUS_ON_QUIT: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -294,7 +294,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
 
