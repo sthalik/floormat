@@ -165,8 +165,8 @@ static constexpr proto_t proto_version = 32;
 static constexpr usize string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
 static constexpr auto file_magic            = ".floormat.save"_s;
-static constexpr auto chunk_magic           = maybe_byteswap((u16)0xadde);
-static constexpr auto object_magic          = maybe_byteswap((u16)0x0bb0);
+static constexpr auto chunk_magic           = (u16)0xadde;
+static constexpr auto object_magic          = (u16)0x0bb0;
 
 using tilemeta = u8;
 using atlasid  = u32;
