@@ -2689,6 +2689,106 @@ void test_hole_change_leaves_far_grids_current()
     fm_assert_equal(0u, count_passable_built(small, w[N]));
 }
 
+void test_cover_grids_after_static_changes()
+{
+    const auto at = [](i32 x) { return chunk_coords_{(i16)x, 0, 0}; };
+    auto w = world();
+    for (auto x = -1; x <= 4; x++)
+        add_ground_all(w[at(x)]);
+    for (auto& c : w.chunks())
+        rebuild_passability(c);
+
+    Pass::Pool cover_pass{Pass::Params{16, pass_mode::shoot_through}};
+    Grid::Cover::Pool cover{Grid::Cover::Params{16}, cover_pass};
+
+    const auto check = [&](const char* what, auto&& change) {
+        for (auto x = -1; x <= 4; x++)
+        {
+            auto g = cover[w[at(x)]];
+            g.build_if_stale();
+            for (auto k = 0u; k < Grid::Cover::octant_count; k++)
+                (void)g.ensure_octant(k);
+        }
+        const auto gen = w.max_pass_gen(COORD, 1);
+        change();
+        fm_assert(w.max_pass_gen(COORD, 1) > gen);
+
+        Pass::Pool fresh_pass{cover_pass.params()};
+        Grid::Cover::Pool fresh{Grid::Cover::Params{16}, fresh_pass};
+        u32 unmarked = 0;
+        for (auto x = -1; x <= 4; x++)
+        {
+            auto& c = w[at(x)];
+            auto g = cover[c];
+            if (g.is_marked_stale())
+                continue;
+            unmarked++;
+            auto f = fresh[c];
+            f.build_if_stale();
+            for (auto k = 0u; k < Grid::Cover::octant_count; k++)
+            {
+                (void)f.ensure_octant(k);
+                for (auto i = 0u; i < g.div_count() * g.div_count(); i++)
+                    if (g.distance(i, k) != f.distance(i, k))
+                    {
+                        ERR << "!!! fatal: unmarked cover grid of chunk" << x << "differs from a fresh build"
+                            << "in octant" << k << "cell" << i << "after" << what;
+                        fm_abort("a static change left a cover grid unmarked");
+                    }
+            }
+        }
+        fm_assert(unmarked > 0);
+    };
+
+    check("a blocked ground tile", [&] {
+        w[COORD][{15, 2}].ground() = tile_image_proto{ loader.ground_atlas("texel"), 0 };
+        w[COORD].mark_ground_modified();
+    });
+    check("a north wall", [&] {
+        w[COORD][{15, 4}].wall_north() = wall_proto();
+        w[COORD].mark_walls_modified();
+    });
+    check("a west wall", [&] {
+        w[COORD][{15, 6}].wall_west() = wall_proto();
+        w[COORD].mark_walls_modified();
+    });
+
+    auto p = scenery_proto(loader.scenery("chair4"));
+    p.bbox_offset = {127, 0};
+    p.bbox_size   = {32, 32};
+    p.pass        = pass_mode::blocked;
+    bptr<scenery> s;
+    check("adding a blocker", [&] { s = w.make_scenery(w.make_id(), {COORD, {15, 10}}, scenery_proto{p}); });
+    fm_assert(!s->is_dynamic());
+    auto i = s->index();
+    check("moving the blocker", [&] { s->teleport_to(i, {COORD, {15, 11}}, s->offset, s->r); });
+    fm_assert(s->atlas->check_rotation(rotation::E));
+    check("turning the blocker", [&] { s->rotate(i, rotation::E); });
+    check("making the blocker shoot_through", [&] {
+        s->set_bbox(s->offset, s->bbox_offset, s->bbox_size, pass_mode::shoot_through);
+    });
+    check("making the blocker blocked", [&] {
+        s->set_bbox(s->offset, s->bbox_offset, s->bbox_size, pass_mode::blocked);
+    });
+    check("moving the blocker into chunk 1", [&] { s->teleport_to(i, {COORD_E, {0, 11}}, s->offset, s->r); });
+    fm_assert(&s->chunk() == &w[COORD_E]);
+    check("removing the blocker", [&] { s->chunk().remove_object(*s, i); });
+
+    p.bbox_offset = {};
+    check("adding a blocker under the hole", [&] {
+        (void)w.make_scenery(w.make_id(), {COORD_E, {1, 8}}, scenery_proto{p});
+    });
+    auto proto = hole_proto{};
+    proto.offset = {31, 0};
+    proto.bbox_offset = {127, 0};
+    proto.bbox_size = {255, 255};
+    proto.pass = pass_mode::pass;
+    bptr<hole> h;
+    check("adding a hole", [&] { h = w.make_object<hole>(w.make_id(), global_coords{COORD, {15, 8}}, proto); });
+    check("disabling the hole", [&] { h->set_enabled(false); });
+    check("removing the hole", [&] { w[COORD].remove_object(*h, h->index()); });
+}
+
 // The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
 // ray rounded. Seeds rounded to whole units would be off by up to one more half unit.
 void test_cover_diagonal_matches_ray(u32 div_size)
@@ -3529,6 +3629,7 @@ void test_grid()
     }
     test_is_stale_on_chunk_change();
     test_hole_change_leaves_far_grids_current();
+    test_cover_grids_after_static_changes();
     test_is_stale_on_chunk_create_and_collect();
     test_is_stale_lifecycle();
     test_registry_grids_after_door_changes();
