@@ -11,8 +11,10 @@
 #include "src/raycast.hpp"
 #include "src/search-astar.hpp"
 #include "src/point.inl"
+#include "compat/any-of.hpp"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/contains.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/tie.hpp"
 #include "floormat/main.hpp"
@@ -131,10 +133,7 @@ Array<shared_peek> shared_peeks(critter& c, const Array<Cover::Point::spot>& spo
 
 bool listed(const Array<Cover::Point::spot>& spots, point pt)
 {
-    for (const auto& x : spots)
-        if (x.pos == pt)
-            return true;
-    return false;
+    return any_of(spots, [&](const auto& x) { return x.pos == pt; });
 }
 
 } // namespace
@@ -884,12 +883,7 @@ task app::scene_cover_ai_map()
 
     auto distinct = 0u;
     for (auto i = 0u; i < covers.size(); i++)
-    {
-        auto j = 0u;
-        while (j < i && covers[j] != covers[i])
-            j++;
-        distinct += j == i;
-    }
+        distinct += !contains(covers.prefix(i), covers[i]);
     fm_debug("cover-ai-map: %u moves, %u cover spots, %u spots dropped as seen, %u ms", n_moves, distinct, dropped,
              (u32)Time::to_milliseconds(M->world().game_time()));
 

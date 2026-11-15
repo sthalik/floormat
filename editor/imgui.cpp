@@ -8,6 +8,7 @@
 #include "imgui-raii.hpp"
 #include "imgui-text.hpp"
 #include "imgui-color.hpp"
+#include "compat/contains.hpp"
 #include "src/tile-constants.hpp"
 #include "src/world.hpp"
 #include "src/object-storage.inl"
@@ -690,10 +691,7 @@ bool app::check_inspector_exists(const popup_target& p)
 {
     if (p.target == popup_target_type::none) [[unlikely]]
         return true;
-    for (const auto& p2 : inspectors)
-        if (p2 == p)
-            return true;
-    return false;
+    return contains(inspectors, p);
 }
 
 void app::do_popup_menu()

@@ -1,7 +1,9 @@
 #include "app.hpp"
 #include "editor.hpp"
 #include "pgo-scenes.hpp"
+#include "compat/any-of.hpp"
 #include "compat/assert.hpp"
+#include "compat/contains.hpp"
 #include "compat/debug.hpp"
 #include "compat/game-mode.hpp"
 #include "compat/sysexits.hpp"
@@ -15,31 +17,20 @@
 #include <cr/StringIterable.h>
 #include <cr/Arguments.h>
 #include <cr/GrowableArray.h>
-#include <algorithm>
 
 namespace floormat {
-
-namespace ranges = std::ranges;
 
 namespace {
 
 constexpr const char* const true_values[]  = { "1", "true", "yes", "y", "Y", "on", "ON", "enable", "enabled", };
 constexpr const char* const false_values[] = { "0", "false", "no", "n", "N", "off", "OFF", "disable", "disabled", };
 
-template<typename T, typename U>
-bool find_arg(const T& list, const U& value) {
-    for (const auto& x : list)
-        if (x == value)
-            return true;
-    return false;
-}
-
 bool parse_bool(StringView name, const Corrade::Utility::Arguments& args)
 {
     auto str = args.value<StringView>(name);
-    if (find_arg(true_values, str))
+    if (contains(true_values, str))
         return true;
-    else if (find_arg(false_values, str))
+    else if (contains(false_values, str))
         return false;
     ERR << cat("invalid --", name) << "argument" << quoted(str) << nospace(": should be 'true' or 'false'");
     std::exit(EX_USAGE);
@@ -175,7 +166,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         const auto driver_scenes = split_string(arg, ',');
         Array<StringView> output; arrayReserve(output, 16);
         const auto pushnew = [&](StringView s) {
-            if (!ranges::contains(output, s))
+            if (!contains(output, s))
                 arrayAppend(output, s);
         };
         for (StringView name : driver_scenes)
@@ -206,7 +197,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
             }
             else
             {
-                if (ranges::contains(scenes, name, [&](auto&& s) { return StringView{s.name}; }))
+                if (any_of(scenes, [&](const auto& s) { return StringView{s.name} == name; }))
                     pushnew(name);
                 else
                 {

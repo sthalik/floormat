@@ -4,6 +4,7 @@
 #include "../imgui-color.hpp"
 #include "../raycast-draw.hpp"
 #include "compat/array-size.hpp"
+#include "compat/count-if.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/format.inl"
 #include "compat/weak-borrowed-ptr.inl"
@@ -390,10 +391,7 @@ void cover_ai_test::drop_seen_spots(app& a, const critter& c)
 // The listed spots the player sees now.
 u32 cover_ai_test::seen_spots(app& a, const critter& c)
 {
-    auto n = 0u;
-    for (const auto& x : spots)
-        n += player_sees(a, c, x);
-    return n;
+    return count_if(spots, [&](const auto& x) { return player_sees(a, c, x); });
 }
 
 // Lists the next tile's spots that no earlier tile listed, as two tiles can list one spot, with their peek spots.
@@ -623,9 +621,9 @@ bool cover_ai_test::handle_mouse_click(app& a, const mouse_button_event& e, bool
     {
         const auto pt = spot_states[k].peek.pos;
         const auto& status = *s;
-        for (auto i = 0u; i < spot_states.size(); i++)
+        for (const auto& [i, st] : enumerate(spot_states))
         {
-            if (i == k || !spot_states[i].has_peek || spot_states[i].peek.pos != pt)
+            if (i == k || !st.has_peek || st.peek.pos != pt)
                 continue;
             if (status.cover)
             {
@@ -1101,9 +1099,7 @@ void cover_ai_test::draw_ui(app& a, float)
         do_column("listed spots");
         if (show_spots && has_search)
         {
-            auto peeks = 0u;
-            for (const auto& x : spot_states)
-                peeks += x.has_peek;
+            const auto peeks = count_if(spot_states, [](const auto& x) { return x.has_peek; });
             snformat(buf, "{}, {} with peek spots, {} dropped as seen", spots.size(), peeks, dropped_spots);
             text(buf);
             do_column("tiles searched");

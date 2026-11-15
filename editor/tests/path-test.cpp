@@ -5,6 +5,7 @@
 #include "compat/format.inl"
 #include "compat/function-view.hpp"
 #include "compat/nanosecond.hpp"
+#include "compat/pairwise.hpp"
 #include "compat/timer.hpp"
 #include "floormat/main.hpp"
 #include "src/search-astar.hpp"
@@ -298,8 +299,8 @@ void path_test::draw_ui(app&, float)
 
             const auto raw = res.path();
             float raw_len = 0;
-            for (auto i = 0uz; i + 1 < raw.size(); i++)
-                raw_len += Vector2(raw[i+1] - raw[i]).length();
+            for (const auto& [a, b] : pairwise(raw))
+                raw_len += Vector2(b - a).length();
             do_column("length");
             snformat(buf, "{:.1f} px, {} vertices", raw_len, raw.size());
             text(buf);
@@ -331,8 +332,8 @@ void path_test::draw_ui(app&, float)
 
         const auto sp = res.smoothings();
         float sp_len = 0;
-        for (auto i = 0uz; i + 1 < sp.size(); i++)
-            sp_len += Vector2(sp[i+1].pt - sp[i].pt).length();
+        for (const auto& [a, b] : pairwise(sp))
+            sp_len += Vector2(b.pt - a.pt).length();
         do_column("length");
         snformat(buf, "{:.1f} px, {} vertices", sp_len, sp.size());
         text(buf);

@@ -13,7 +13,9 @@
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include "loader/loader.hpp"
+#include "compat/any-of.hpp"
 #include "compat/assert.hpp"
+#include "compat/count-if.hpp"
 #include "compat/function-view.hpp"
 #include "compat/floor-divmod.hpp"
 #include <utility>
@@ -87,10 +89,7 @@ struct cell_graph
     u32 degree(u32 c) const
     {
         const auto nb = neighbors(c);
-        u32 n = 0;
-        for (auto i = 0u; i < nb.count; i++)
-            n += is_open(c, nb.cell[i]);
-        return n;
+        return count_if(ArrayView<const u32>{nb.cell, nb.count}, [&](u32 x) { return is_open(c, x); });
     }
 };
 
@@ -570,10 +569,7 @@ route replace(world& w, chunk_coords_ origin, u32 cells, u64 seed,
             const auto pos = o.position() - origin_pt;
             const auto bb = Range2Di::fromSize(pos + Vector2i{o.bbox_offset} - Vector2i{o.bbox_size}/2,
                                                Vector2i{o.bbox_size});
-            for (const auto& px : rects)
-                if (px.contains(pos) || Math::intersects(px, bb))
-                    return true;
-            return false;
+            return any_of(rects, [&](const Range2Di& px) { return px.contains(pos) || Math::intersects(px, bb); });
         };
         // One chunk further out for bboxes reaching in from a neighbour.
         for (auto cy = c0.y() - 1; cy <= c1.y() + 1; cy++)

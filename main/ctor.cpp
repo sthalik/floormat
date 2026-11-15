@@ -1,11 +1,11 @@
 #include "main-impl.hpp"
 #include "compat/arch.hpp"
+#include "compat/contains.hpp"
 #include "compat/strerror.hpp"
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
 #include "src/chunk.hpp"
 #include "src/object-storage.inl"
-#include <algorithm>
 #include <cerrno>
 #include <cr/GrowableArray.h>
 
@@ -19,8 +19,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
     if (s.vsync)
     {
         (void)setSwapInterval(1);
-        if (const auto list = GL::Context::current().extensionStrings();
-            std::find(list.cbegin(), list.cend(), "EXT_swap_control_tear") != list.cend())
+        if (contains(GL::Context::current().extensionStrings(), "EXT_swap_control_tear"_s))
             (void)setSwapInterval(-1);
     }
     else

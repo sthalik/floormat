@@ -47,7 +47,9 @@
 #include "compat/assert.hpp"
 #include "compat/debug.hpp"
 #include "compat/enum-bitset.hpp"
+#include "compat/enumerate.hpp"
 #include "compat/function-view.hpp"
+#include "compat/pairwise.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
 #include "compat/nanosecond.hpp"
@@ -717,9 +719,9 @@ task app::scene_popup_target()
             place_window(i);
     }
     else
-        for (auto i = 0u; i < array_size(ids); i++)
+        for (const auto& [i, id] : enumerate(ids))
         {
-            add_inspector({ .id = ids[i], .target = popup_target_type::scenery, });
+            add_inspector({ .id = id, .target = popup_target_type::scenery, });
             co_yield {};
             place_window(i);
             co_yield {stagger_frames};
@@ -1191,8 +1193,8 @@ task app::scene_walk()
     const auto goal = D.route[n-1];
     fm_assert_equal(to, goal);
     float route_len = 0;
-    for (auto i = 1u; i < n; i++)
-        route_len += point::distance(D.route[i-1], D.route[i]);
+    for (const auto& [a, b] : pairwise(D.route))
+        route_len += point::distance(a, b);
 
     // The script moves the critter from update() and reports no completion, so watch for the
     // position going quiet instead.

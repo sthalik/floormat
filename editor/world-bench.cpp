@@ -19,7 +19,9 @@
 #include "compat/array-size.hpp"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/enumerate.hpp"
 #include "compat/timer.hpp"
+#include "compat/zip.hpp"
 #include "compat/nanosecond.hpp"
 #include "floormat/main.hpp"
 #include "loader/loader.hpp"
@@ -287,8 +289,8 @@ scene_assets load_assets()
     a.walls[0] = loader.wall_atlas("test1", loader_policy::warn);
     a.walls[1] = loader.wall_atlas("test2", loader_policy::warn);
     a.walls[2] = loader.wall_atlas("test3", loader_policy::warn);
-    for (auto i = 0u; i < array_size(scenery_names); i++)
-        a.scenery[i] = loader.scenery(scenery_names[i]);
+    for (auto& [name, proto] : zip(scenery_names, a.scenery))
+        proto = loader.scenery(name);
     return a;
 }
 
@@ -1024,9 +1026,8 @@ void generate_lightmap_scene(world& w)
             const auto& L = lm_layouts[pmod(3*cx + cy, (i32)array_size(lm_layouts))];
             lm_place_obstructions(w, c, ch, wall, L);
 
-            for (auto m = 0u; m < array_size(L.lights); m++)
+            for (const auto& [m, spec] : enumerate(L.lights))
             {
-                const auto& spec = L.lights[m];
                 const auto k = n * (u32)array_size(L.lights) + m;
                 light_proto p;
                 // 7 is coprime with 23, so neighboring lights never share a color -- and a pair
