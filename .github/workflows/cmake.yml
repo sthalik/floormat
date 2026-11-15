@@ -280,14 +280,17 @@ jobs:
         export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
         export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
         valgrind --version
-        xvfb-run valgrind bin/floormat-test --gl-only
+        xvfb-run perl -MPOSIX -e 'POSIX::close $_ for 3..10000; exec @ARGV or die "$!"' \
+          valgrind bin/floormat-test --gl-only
       timeout-minutes: 180
 
     - name: Test without a GL context under memcheck
       run: |
         cd ${{github.workspace}}/build/install
         export MAGNUM_LOG=verbose LD_LIBRARY_PATH="$PWD/lib"
-        env -u DISPLAY -u WAYLAND_DISPLAY valgrind bin/floormat-test --no-gl
+        env -u DISPLAY -u WAYLAND_DISPLAY \
+          perl -MPOSIX -e 'POSIX::close $_ for 3..10000; exec @ARGV or die "$!"' \
+          valgrind bin/floormat-test --no-gl
       timeout-minutes: 60
       if: ${{ !cancelled() }}
 
@@ -300,7 +303,8 @@ jobs:
         export LP_NUM_THREADS=$(nproc) FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=1
         # Fewer pixels for llvmpipe, and fewer frames for every wait timed in update().
         # With origin tracking, maze2 alone peaks at 45 GB, past the runner's 16.
-        xvfb-run valgrind --track-origins=no bin/floormat-editor --scenes=all \
+        xvfb-run perl -MPOSIX -e 'POSIX::close $_ for 3..10000; exec @ARGV or die "$!"' \
+          valgrind --track-origins=no bin/floormat-editor --scenes=all \
           --driver-no-swapbuffers --geometry 512x360 --fixed-framerate=15
       timeout-minutes: 60
       if: ${{ !cancelled() }}
