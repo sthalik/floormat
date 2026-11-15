@@ -14,10 +14,10 @@ struct enum_bitset {
     static_assert(COUNT > 0);
 
     class reference {
-        u64* word;
-        u64 mask;
+        usize* word;
+        usize mask;
         friend enum_bitset;
-        constexpr reference(u64& word, u64 mask) noexcept : word{&word}, mask{mask} {}
+        constexpr reference(usize& word, usize mask) noexcept : word{&word}, mask{mask} {}
     public:
         constexpr reference& operator=(bool x) noexcept { *word = x ? *word | mask : *word & ~mask; return *this; }
         constexpr reference& operator=(const reference& x) noexcept { return *this = bool(x); }
@@ -25,20 +25,20 @@ struct enum_bitset {
     };
 
     constexpr enum_bitset() noexcept = default;
-    constexpr enum_bitset(u64 bits) noexcept { words[0] = COUNT < 64 ? bits & ((u64{1} << COUNT) - 1) : bits; }
+    explicit constexpr enum_bitset(usize bits) noexcept { words[0] = COUNT < sizeof(usize)*8 ? bits & ((1uz << COUNT) - 1) : bits; }
 
     constexpr bool operator[](Enum x) const noexcept
     {
         const auto i = usize{value_type(x)};
         fm_debug_assert(i < COUNT);
-        return ((words[i / 64] >> (i % 64)) & 1) != 0;
+        return ((words[i / (sizeof(usize)*8)] >> (i % (sizeof(usize)*8))) & 1) != 0;
     }
 
     constexpr reference operator[](Enum x) noexcept
     {
         const auto i = usize{value_type(x)};
         fm_debug_assert(i < COUNT);
-        return {words[i / 64], u64{1} << (i % 64)};
+        return {words[i / (sizeof(usize)*8)], 1uz << (i % (sizeof(usize)*8))};
     }
 
     constexpr void reset() noexcept
@@ -56,7 +56,7 @@ struct enum_bitset {
     }
 
 private:
-    u64 words[(COUNT + 63) / 64] = {};
+    usize words[(COUNT + sizeof(usize)*8 - 1) / (sizeof(usize)*8)] = {};
 };
 
 } // namespace floormat
