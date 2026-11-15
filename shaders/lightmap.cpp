@@ -73,6 +73,7 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
         .setWrapping(GL::SamplerWrapping::ClampToBorder)
         .setBorderColor(Color4{0, 0, 0, 1})
         .setStorage(1, GL::TextureFormat::RGBA8, size)
+        .setMinificationFilter(GL::SamplerFilter::Nearest)
         .setMagnificationFilter(GL::SamplerFilter::Nearest);
 
     framebuffer.accum = GL::Texture2D{};
@@ -80,6 +81,7 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
         .setWrapping(GL::SamplerWrapping::ClampToBorder)
         .setBorderColor(Color4{0, 0, 0, 1})
         .setStorage(1, GL::TextureFormat::RGBA8, size)
+        .setMinificationFilter(GL::SamplerFilter::Nearest)
         .setMagnificationFilter(GL::SamplerFilter::Nearest);
 
     framebuffer.fb = GL::Framebuffer{{ {}, size }};
