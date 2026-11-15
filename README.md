@@ -24,6 +24,5 @@ mkdir build
 cd build
 cmake -GNinja ../ 
 ninja install
-ln -s ../doc/saves ./save
 install/bin/floormat-editor
 ```

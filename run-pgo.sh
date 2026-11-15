@@ -258,7 +258,6 @@ configure_tree() {
           -DFLOORMAT_USERCONFIG:FILEPATH="$(native "$userconfig")" -DFLOORMAT_NO_USERCONFIG=OFF \
           -DFLOORMAT_NO_PGO_DRIVER="$no_driver" \
           -DFLOORMAT_PGO_PROFDATA="$(native "$profdata")"
-    test -e "$1/save" || ln -s ../../doc/saves "$1/save"
 }
 
 build_tree() {

@@ -129,8 +129,6 @@ if test -f CMakeLists.txt && test -f shaders/resources.conf; then
             *) configure="cmake" ;;
         esac
         $configure -G Ninja -S . -B "./${build}" -DCMAKE_BUILD_TYPE:STRING=Debug -DFLOORMAT_COVERAGE:BOOL=1
-        # the World_Load benchmarks read save/ under loader.TEMP_PATH, the build directory
-        test -e "./${build}/save" || ln -s ../../doc/saves "./${build}/save"
     fi
     cd ./"${build}"
 else

@@ -385,6 +385,14 @@ function(fm_install_assets)
 endfunction()
 fm_install_assets()
 
+file(RELATIVE_PATH fm-saves "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}/doc/saves")
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/save"
+                   COMMAND "${CMAKE_COMMAND}" "-Dlink=${CMAKE_BINARY_DIR}/save" "-Dtarget=${fm-saves}"
+                           -P "${CMAKE_SOURCE_DIR}/cmake/create-link.cmake"
+                   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}" VERBATIM)
+add_custom_target(floormat-save-link ALL DEPENDS "${CMAKE_BINARY_DIR}/save")
+unset(fm-saves)
+
 fm_run_hook(fm-userconfig-post)
 
 add_test(floormat-testsuite "${CMAKE_INSTALL_PREFIX}/bin/floormat-test")

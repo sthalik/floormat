@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.31)
+if(NOT EXISTS "${link}" AND NOT IS_SYMLINK "${link}")
+    cmake_path(NATIVE_PATH target target)
+    file(CREATE_LINK "${target}" "${link}" SYMBOLIC RESULT result)
+    if(NOT result STREQUAL "0")
+        message(WARNING "can't create symlink '${link}' -> '${target}': ${result}")
+    endif()
+endif()
