@@ -4,6 +4,7 @@
    fun:memfd_create*
    ...
    obj:*/libgallium*.so*
+   ...
 }
 
 {
@@ -12,6 +13,7 @@
    fun:memfd_create*
    ...
    obj:*/swrast_dri.so*
+   ...
 }
 
 {
@@ -20,6 +22,7 @@
    fun:socket*
    ...
    fun:xcb_connect*
+   ...
 }
 
 {
@@ -28,6 +31,7 @@
    fun:socket*
    ...
    obj:*/libdbus-1.so*
+   ...
 }
 
 {
@@ -39,8 +43,8 @@
    ...
    fun:glXCreateContextAttribsARB
    ...
-   fun:App
-   fun:main
+   fun:_ZN6Magnum8Platform24WindowlessGlxApplication13createContextEv
+   ...
 }
 
 {
@@ -52,11 +56,10 @@
    ...
    fun:_ZN6Magnum2GL4Mesh12drawInternalEiiijlii
    ...
-   fun:_ZN8floormat9main_impl9drawEventEv
 }
 
 {
-   gallium-draw-test-leaks
+   gallium-draw-leaks
    Memcheck:Leak
    match-leak-kinds: reachable
    fun:calloc
@@ -64,20 +67,6 @@
    ...
    fun:_ZN6Magnum2GL4Mesh12drawInternalEiiijlii
    ...
-   fun:_ZN8floormat4Test3App4execEv
-   fun:main
-}
-
-{
-   gallium-draw-editor-leaks
-   Memcheck:Leak
-   match-leak-kinds: reachable
-   fun:calloc
-   obj:*/libgallium*.so*
-   ...
-   fun:_ZN6Magnum2GL4Mesh12drawInternalEiiijlii
-   ...
-   fun:_ZN8floormat9main_impl9drawEventEv
 }
 
 {
@@ -90,6 +79,7 @@
    fun:glXCreateContextAttribsARB
    ...
    fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
+   ...
 }
 
 {
@@ -100,6 +90,7 @@
    fun:XSetLocaleModifiers
    ...
    fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
+   ...
 }
 
 {
@@ -111,6 +102,7 @@
    fun:_XimOpenIM
    ...
    fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
+   ...
 }
 
 {
@@ -123,6 +115,7 @@
    fun:glXChooseVisual
    ...
    fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
+   ...
 }
 
 {
@@ -134,8 +127,8 @@
    ...
    fun:glXChooseFBConfig
    ...
-   fun:App
-   fun:main
+   fun:_ZN6Magnum8Platform24WindowlessGlxApplication13createContextEv
+   ...
 }
 
 {
@@ -147,4 +140,5 @@
    fun:SDL_GetErrBuf
    ...
    fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
+   ...
 }
