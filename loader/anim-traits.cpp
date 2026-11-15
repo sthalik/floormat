@@ -10,6 +10,8 @@
 #include "serialize/anim.hpp"
 #include "compat/exception.hpp"
 #include "compat/array-size.hpp"
+#include "compat/zip.hpp"
+#include <cr/Algorithms.h>
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
 #include <cr/Optional.h>
@@ -78,9 +80,9 @@ auto anim_traits::make_invalid_atlas(StringView name, placeholder_anim_params pa
     constexpr StringView rotation_names[] = { "n"_s, "ne"_s, "e"_s, "se"_s, "s"_s, "sw"_s, "w"_s, "nw"_s, };
     static_assert(array_size(rotation_names) == (usize)rotation_COUNT);
     auto groups = Array<anim_group>{ValueInit, array_size(rotation_names)};
-    for (auto i = 0uz; i < groups.size(); i++)
-        groups[i] = anim_group {
-            .name = rotation_names[i],
+    for (auto& [g, rotation_name] : ::floormat::zip(groups, rotation_names))
+        g = anim_group {
+            .name = rotation_name,
             .frames = Array<anim_frame>{DirectInit, nframes, frame},
             .sprites = Array<const SpriteAtlas::Sprite*>{DirectInit, nframes, sprite},
         };
@@ -140,9 +142,8 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> ::floormat::bptr<A
             if (!g.mirror_from.isEmpty())
                 continue;
             g.sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, g.frames.size()};
-            for (u32 fi = 0; fi < g.frames.size(); fi++)
+            for (auto& [f, frame_sprite] : ::floormat::zip(g.frames, g.sprites))
             {
-                const anim_frame& f = g.frames[fi];
                 const u32 fw = (u32)f.size.x();
                 const u32 fh = (u32)f.size.y();
                 fm_soft_assert(fw > 0 && fh > 0);
@@ -158,7 +159,7 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> ::floormat::bptr<A
                 const ImageView2D view{sub_storage, format,
                                        {(Int)fw, (Int)fh}, tex.data()};
                 auto sp = ::floormat::loader.atlas().add(view);
-                g.sprites[fi] = sp.raw();
+                frame_sprite = sp.raw();
             }
         }
 
@@ -169,13 +170,8 @@ auto anim_traits::make_atlas(StringView name, const Cell&) -> ::floormat::bptr<A
             const auto* begin = anim_info.groups.data(), *end = begin + anim_info.groups.size();
             const auto* src = std::find_if(begin, end, [&](const anim_group& x) { return x.name == g.mirror_from; });
             fm_debug_assert(src != end);
-            g.sprites = Array<const SpriteAtlas::Sprite*>{ValueInit, g.frames.size()};
-            for (u32 fi = 0; fi < g.frames.size(); fi++)
-            {
-                const auto* s = src->sprites[fi];
-                if (!s) continue;
-                g.sprites[fi] = s;
-            }
+            g.sprites = Array<const SpriteAtlas::Sprite*>{NoInit, g.frames.size()};
+            Utility::copy(src->sprites, g.sprites);
         }
     }
 

@@ -6,6 +6,9 @@
 #include "corrade-array.hpp"
 #include "compat/exception.hpp"
 #include "compat/array-size.hpp"
+#include "compat/count-if.hpp"
+#include "compat/enumerate.hpp"
+#include "compat/equal.hpp"
 #include "compat/zip.hpp"
 #include "loader/loader.hpp"
 #include <string_view>
@@ -50,20 +53,17 @@ struct direction_triple
 
 direction_triple read_all_directions(const json& jroot)
 {
-    usize count = 0;
-    for (auto [str, _] : wall_atlas::directions)
-        if (jroot.contains(str))
-            count++;
+    const u32 count = count_if(wall_atlas::directions, [&](const auto& d) { return jroot.contains(d.name); });
     direction_triple ret = { Array<Direction>{ValueInit, count}, {}, {}, };
     auto& [array, map, mask] = ret;
-    for (u8 i = 0, pos = 0; i < array_size(wall_atlas::directions); i++)
+    u8 pos = 0;
+    for (const auto& [i, d] : enumerate(wall_atlas::directions))
     {
-        auto [str, dir] = wall_atlas::directions[i];
-        if (jroot.contains(str))
+        if (jroot.contains(d.name))
         {
             mask[i] = true;
             map[i] = {.val = pos};
-            array[pos++] = read_direction_metadata(jroot, dir);
+            array[pos++] = read_direction_metadata(jroot, d.direction);
         }
     }
     return ret;
@@ -89,12 +89,7 @@ bool wall_atlas_def::operator==(const wall_atlas_def& other) const noexcept
                 return false;
         }
     }
-    if (frames.size() != other.frames.size())
-        return false;
-    for (auto i = 0uz; i < frames.size(); i++)
-        if (frames[i] != other.frames[i])
-            return false;
-    return true;
+    return equal(frames, other.frames);
 }
 
 wall_atlas_def wall_atlas_def::deserialize(StringView filename)

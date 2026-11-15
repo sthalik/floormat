@@ -1,4 +1,5 @@
 #include "string-index-map.hpp"
+#include "compat/all-of.hpp"
 #include "compat/hash.hpp"
 #include "compat/hash-table-load-factor.hpp"
 #include <gtl/phmap.hpp>
@@ -31,10 +32,7 @@ const usize* string_index_map::find(StringView name) const
 
 bool string_index_map::all_indices_below(usize limit) const
 {
-    for (const auto& [name, index] : p->map)
-        if (index >= limit && index != -1uz)
-            return false;
-    return true;
+    return all_of(p->map, [&](const auto& kv) { return kv.second < limit || kv.second == -1uz; });
 }
 
 } // namespace floormat::detail::loader
