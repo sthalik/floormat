@@ -1,5 +1,6 @@
 #pragma once
 #include "integer-types.hpp"
+#include "contains.hpp"
 #include <concepts>
 #include <type_traits>
 
@@ -58,10 +59,7 @@ constexpr inline u32 atomic_wait_sizes[] = { 1, 2, 4, 8 };
 
 consteval bool atomic_wait_size_supported(usize size)
 {
-    for (auto x : atomic_wait_sizes)
-        if (x == size)
-            return true;
-    return false;
+    return contains(atomic_wait_sizes, size);
 }
 
 template<typename T>
