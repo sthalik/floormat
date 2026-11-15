@@ -8,8 +8,9 @@
 #include "search-pred.hpp"
 #include "world.hpp"
 #include "compat/assert.hpp"
+#include "compat/container-traits.inl"
+#include "compat/erase-if.hpp"
 #include "compat/function-view.hpp"
-#include <algorithm>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -199,9 +200,7 @@ auto cover_search::step(critter& c, spot_tests& t, const Cover::Script::options&
                 return {{}, !_fallback_spots.any()};
         }
         _tile_threat = {};
-        const auto kept = std::remove_if(_tile_skipped.begin(), _tile_skipped.end(),
-                                         [&](const skipped_spot& x) { return x.octant == _octant; });
-        arrayRemoveSuffix(_tile_skipped, (usize)(_tile_skipped.end() - kept));
+        erase_if(_tile_skipped, [&](const skipped_spot& x) { return x.octant == _octant; });
         _tile++;
         fm_debug_assert(_tiles_left);
         _tiles_left--;
