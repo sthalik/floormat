@@ -84,7 +84,7 @@ constexpr auto pool_params = Pass::Params{16, pass_mode::shoot_through};
 auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
 {
     constexpr float fuzz = TILE_SIZE2.x();
-    auto diag = rc::raycast_diag_s{};
+    auto diag = Raycast::raycast_diag_s{};
     auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue);
     if (res.success != b)
     {
@@ -327,16 +327,16 @@ void Raycast_Critters_Doors(benchmark::State& st)
 
 BENCHMARK(Raycast_Critters_Doors)->ArgName("objects")->Arg(0)->Arg(1)->Unit(benchmark::kMicrosecond);
 
-namespace old_rc {
+namespace old_Raycast {
 
-using rc::raycast_result_s;
-using rc::raycast_diag_s;
-using rc::detail::dir_inverse;
-using rc::detail::ray_aabb_signs;
-using rc::detail::ray_aabb_intersection;
-using rc::detail::within_chunk_bounds;
+using Raycast::raycast_result_s;
+using Raycast::raycast_diag_s;
+using Raycast::detail::dir_inverse;
+using Raycast::detail::ray_aabb_signs;
+using Raycast::detail::ray_aabb_intersection;
+using Raycast::detail::within_chunk_bounds;
 
-using floormat::detail_rc::bbox;
+using floormat::detail_Raycast::bbox;
 using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
 using Rect = RTree::Rect;
 
@@ -559,12 +559,12 @@ raycast_result_s raycast_old(world& w, point from, point to, object_id self)
     return ret;
 }
 
-} // namespace old_rc
+} // namespace old_Raycast
 
 bool run_dense_old(point from, point to_orig, world& w)
 {
     auto to = project_to(from, to_orig, 2);
-    auto res = old_rc::raycast_old(w, from, to, 0);
+    auto res = old_Raycast::raycast_old(w, from, to, 0);
     if (res.success)
         { fm_error("ray did not hit"); return false; }
     if ((collision_type)res.collider.type != collision_type::geometry)

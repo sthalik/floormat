@@ -379,7 +379,7 @@ bool is_segment_clear(world& w, point a, point b, Vector2ui size)
 {
     const auto ch = a.chunk3();
     const auto origin = point{ch, {}, {}};
-    const auto line = rc::bresenham_line{a - origin, b - origin};
+    const auto line = Raycast::bresenham_line{a - origin, b - origin};
     return !find_swept_collider(w, ch, line, 0, line.steps(), size, never_continue).has_collider;
 }
 

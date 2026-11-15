@@ -2,7 +2,7 @@
 #include <array>
 #include <mg/Vector2.h>
 
-namespace floormat::rc {
+namespace floormat::Raycast {
 
 /// @brief The points of a Bresenham line from `start_pos` to `end_pos`, both included, indexed
 /// by step.
@@ -85,4 +85,4 @@ private:
     bool _y_major = false;
 };
 
-} // namespace floormat::rc
+} // namespace floormat::Raycast

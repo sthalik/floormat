@@ -188,7 +188,7 @@ struct cover_ai_test final : base_test
     void log_script(app& a, const critter& c, const Cover::Script::status& s);
 
     weak_bptr<critter> npc;
-    rc::raycast_result_s ray;
+    Raycast::raycast_result_s ray;
     Cover::Point::finder finder;
     Array<Cover::Point::spot> spots, tile_spots, script_list;
     Array<spot_state> spot_states;

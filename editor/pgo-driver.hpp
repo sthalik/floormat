@@ -100,11 +100,11 @@ struct state final
     u32 scene_mask = 0;
     // scene_raycast raycasts and draws its own sweep. Going through the raycast test would have
     // shown one ray of the batch, since a test keeps a single result and the driver fires many.
-    std::array<rc::raycast_result_s, max_rays_per_frame> rays;
+    std::array<Raycast::raycast_result_s, max_rays_per_frame> rays;
     u32 num_rays = 0;
     // One per ray of the batch. raycast_with_diag() clears and refills whichever it is handed,
     // so a single one would leave the cells of 31 of the 32 rays undrawn.
-    std::array<rc::raycast_diag_s, max_rays_per_frame> diags;
+    std::array<Raycast::raycast_diag_s, max_rays_per_frame> diags;
     Array<point> route;
     // get_key_modifiers() returns this while running, so a physically-held Ctrl can't change
     // what a scene does.

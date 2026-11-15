@@ -6,10 +6,10 @@
 #include <type_traits>
 #include <mg/Range.h>
 
-namespace floormat::rc { class bresenham_line; }
+namespace floormat::Raycast { class bresenham_line; }
 namespace floormat::Grid::Object { class Pool; class Grid; template<typename T> class cell_object_view; }
 
-namespace floormat::rc::detail {
+namespace floormat::Raycast::detail {
 
 struct line_cell
 {
@@ -67,4 +67,4 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                                std::conditional_t<HasObjectPool, Grid::Object::Pool&, std::nullptr_t> objects,
                                const Search::pred& pred, float radius);
 
-} // namespace floormat::rc::detail
+} // namespace floormat::Raycast::detail

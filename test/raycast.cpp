@@ -93,7 +93,7 @@ world make_world()
 auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
 {
     constexpr float fuzz = TILE_SIZE2.x();
-    auto diag = rc::raycast_diag_s{};
+    auto diag = Raycast::raycast_diag_s{};
     auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue);
     const auto div = (int)pool.params().div_size();
     for (const auto& q : diag.queries)
@@ -191,7 +191,7 @@ void test_rays(const Pass::Params& params, world& w)
     const auto ray = [&](world& w, point from, point to, object_id self) {
         return raycast(w, from, to, self, objects, Search::never_continue);
     };
-    const auto ray_diag = [&](rc::raycast_diag_s& diag, world& w, point from, point to, object_id self) {
+    const auto ray_diag = [&](Raycast::raycast_diag_s& diag, world& w, point from, point to, object_id self) {
         return raycast_with_diag(diag, w, from, to, self, objects, Search::never_continue);
     };
 
@@ -216,7 +216,7 @@ void test_rays(const Pass::Params& params, world& w)
     }
     {
         constexpr auto from = point{{0, 0, 0}, {11, 12}, {1, -32}};
-        auto diag = rc::raycast_diag_s{};
+        auto diag = Raycast::raycast_diag_s{};
         (void)ray_diag(diag, w, from, point{{0, 1, 0}, {8, 12}, {-27, -19}}, 0);
         fm_assert(!diag.path.isEmpty());
         (void)ray_diag(diag, w, from, from, 0);
@@ -224,7 +224,7 @@ void test_rays(const Pass::Params& params, world& w)
     }
     {
         constexpr auto from = point{{0, 0, 0}, {11, 12}, {1, -32}};
-        auto diag = rc::raycast_diag_s{};
+        auto diag = Raycast::raycast_diag_s{};
         (void)ray_diag(diag, w, from, point{{2, 33, 0}, {15, 11}, {-4, 29}}, 0);
         const auto path_cap = arrayCapacity(diag.path), queries_cap = arrayCapacity(diag.queries);
         (void)ray_diag(diag, w, from, point{{0, 0, 0}, {12, 12}, {1, -32}}, 0);
@@ -245,7 +245,7 @@ void test_rays(const Pass::Params& params, world& w)
         blocker.bbox_size = Vector2ub{22, 12};
         auto B = w2.make_object<critter>(w2.make_id(), {ch, {4, 2}}, blocker);
 
-        auto diag = rc::raycast_diag_s{};
+        auto diag = Raycast::raycast_diag_s{};
         auto res = ray_diag(diag, w2, point{ch, {2, 2}, {}}, point{ch, {12, 4}, {}}, 0);
         fm_assert(res.has_result);
         fm_assert(!res.success);
@@ -278,7 +278,7 @@ void test_rays(const Pass::Params& params, world& w)
         p.bbox_size = Vector2ub{42, 26};
         auto C = w2.make_object<critter>(w2.make_id(), {ch, {8, 5}}, p);
 
-        auto diag = rc::raycast_diag_s{};
+        auto diag = Raycast::raycast_diag_s{};
         auto fwd = ray_diag(diag, w2, point{ch, {2, 5}, {}}, point{ch, {13, 5}, {}}, 0);
         fm_assert(diag.dir.y() == 0);
         fm_assert(!fwd.success);
@@ -309,7 +309,7 @@ void test_rays(const Pass::Params& params, world& w)
         p.bbox_size = Vector2ub{22, 34};
         auto C = w2.make_object<critter>(w2.make_id(), {ch, {5, 8}}, p);
 
-        auto diag = rc::raycast_diag_s{};
+        auto diag = Raycast::raycast_diag_s{};
         auto fwd = ray_diag(diag, w2, point{ch, {5, 1}, {}}, point{ch, {5, 14}, {}}, 0);
         fm_assert(diag.dir.x() == 0);
         fm_assert(!fwd.success);
@@ -345,10 +345,10 @@ void test_rays(const Pass::Params& params, world& w)
         constexpr struct { float radius; int hit_lo, hit_hi, miss_lo, miss_hi; } cases[] = {
             {6, -19, 18, -20, 19}, {6.5f, -19, 18, -21, 20},
         };
-        auto diag = rc::raycast_diag_s{};
+        auto diag = Raycast::raycast_diag_s{};
         for (auto [radius, hit_lo, hit_hi, miss_lo, miss_hi] : cases)
         {
-            if (rc::min_pool_bbox_size(radius) > pool.params().bbox_size)
+            if (Raycast::min_pool_bbox_size(radius) > pool.params().bbox_size)
                 continue;
 
             const auto ray_r = [&](Vector2i from, Vector2i to) {
@@ -414,7 +414,7 @@ struct supercover_hit
 
 // The first supercover pixels inside a pillar, walked pixel by pixel. Two when both orthogonal
 // points at a corner are.
-supercover_hit first_supercover_hit(ArrayView<const pillar> pillars, const rc::bresenham_line& line)
+supercover_hit first_supercover_hit(ArrayView<const pillar> pillars, const Raycast::bresenham_line& line)
 {
     const auto blocked = [&](Vector2i px) {
         for (const auto& p : pillars)
@@ -444,7 +444,7 @@ supercover_hit first_supercover_hit(ArrayView<const pillar> pillars, const rc::b
 // test loses more than 1e-3 px to the frame's magnitude.
 float nearest_rounded_hit(ArrayView<const pillar> pillars, Vector2i from, Vector2 V, float radius)
 {
-    using namespace rc::detail;
+    using namespace Raycast::detail;
     const auto len = V.length();
     const auto dir = V * (1.f/len), inv = dir_inverse(dir);
     float best = FLT_MAX;
@@ -503,11 +503,11 @@ void test_supercover_hits()
     u32 hits = 0, orthogonal_hits = 0;
 
     const auto check = [&](Vector2i from, Vector2i to) {
-        const auto line = rc::bresenham_line{from, to};
+        const auto line = Raycast::bresenham_line{from, to};
         const auto ref = first_supercover_hit(pillars, line);
         hits += ref.count > 0;
         orthogonal_hits += ref.orthogonal;
-        auto diag = rc::raycast_diag_s{};
+        auto diag = Raycast::raycast_diag_s{};
         for (auto& pool : pools)
         {
             const auto res = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool, Search::never_continue);
@@ -628,7 +628,7 @@ void test_object_pool()
     };
     const auto sweep = [&](point from, point to, Grid::Object::Pool* objects, const Search::pred& pred) {
         const auto origin = point{ch, {}, {}};
-        const auto line = rc::bresenham_line{from - origin, to - origin};
+        const auto line = Raycast::bresenham_line{from - origin, to - origin};
         constexpr auto size = Vector2ui{4};
         Array<bool> entry_blocked;
         return objects ? find_swept_collider(w, ch, line, 0, line.steps(), size, pred, *objects, entry_blocked)
@@ -646,7 +646,7 @@ void test_object_pool()
         fm_assert(ray(door_from, door_to, &object_pool, Search::never_continue, radius).collider.id == C2->id);
 
         fm_assert(ray(crit_from, crit_to, nullptr, Search::never_continue, radius).success);
-        auto diag = rc::raycast_diag_s{};
+        auto diag = Raycast::raycast_diag_s{};
         const auto hit = raycast_with_diag(diag, w, crit_from, crit_to, 0, object_pool, Search::never_continue, radius);
         fm_assert(!hit.success && hit.collider.id == C->id && !diag.queries.isEmpty());
         fm_assert(ray(crit_from, crit_to, &object_pool, Search::without_critters, radius).success);
@@ -705,7 +705,7 @@ void test_u32_object_grid()
     const auto check = [&](Vector2i from, Vector2i to, object_id id) {
         const auto ray = raycast(w, at(from), at(to), 0, objects, all);
         fm_assert(!ray.success && ray.collider.id == id);
-        const auto line = rc::bresenham_line{at(from) - point{ch, {}, {}}, at(to) - point{ch, {}, {}}};
+        const auto line = Raycast::bresenham_line{at(from) - point{ch, {}, {}}, at(to) - point{ch, {}, {}}};
         Array<bool> entry_blocked;
         const auto hit = find_swept_collider(w, ch, line, 0, line.steps(), Vector2ui{size}, all, objects, entry_blocked);
         fm_assert(hit.has_collider && hit.collider.id == id);
@@ -726,9 +726,9 @@ void test_u32_object_grid()
     check({878, -50}, {378, 450}, C->id);
 }
 
-static_assert(rc::min_pool_bbox_size(6) == 15);
-static_assert(rc::min_pool_bbox_size(6.25f) == 16);
-static_assert(rc::min_pool_bbox_size(6.5f) == 16);
+static_assert(Raycast::min_pool_bbox_size(6) == 15);
+static_assert(Raycast::min_pool_bbox_size(6.25f) == 16);
+static_assert(Raycast::min_pool_bbox_size(6.5f) == 16);
 
 } // namespace
 
@@ -753,7 +753,7 @@ void Test::test_raycast()
         // side counts as a hit. If only the on-side rays fail, the min/max arguments were swapped
         // back, or raycast-loop.cpp lost -fno-finite-math-only. cl clamps 1/0 to 1e20, tilting
         // the ray toward +x/+y, so its max sides miss.
-        using namespace rc::detail;
+        using namespace Raycast::detail;
 #if defined _MSC_VER && !defined __clang__
         constexpr bool max_side = false;
 #else
@@ -781,7 +781,7 @@ void Test::test_raycast()
         fm_assert(check({ 11,  67}, { 0, -1}, max_side, 48));
     }
     {
-        using namespace rc::detail;
+        using namespace Raycast::detail;
         constexpr auto box = std::array<Vector2, 2>{{{-7, -13}, {11, 19}}};
         const auto check = [&](Vector2 origin, Vector2 dir, float radius, bool hit, float tmin) {
             auto inv = dir_inverse(dir);

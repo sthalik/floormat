@@ -171,7 +171,7 @@ void bench_sweep(benchmark::State& state)
     const auto sweep = [&](usize i) {
         const auto ch = wp[i].pt.chunk3();
         const auto origin = point{ch, {}, {}};
-        const auto line = rc::bresenham_line{wp[i].pt - origin, wp[i+1].pt - origin};
+        const auto line = Raycast::bresenham_line{wp[i].pt - origin, wp[i+1].pt - origin};
         return find_swept_collider(s.w, ch, line, 0, line.steps(), Vector2ui{mazes::bbox_size}, Search::without_critters);
     };
     for (auto i = 0uz; i + 1 < wp.size(); i++)

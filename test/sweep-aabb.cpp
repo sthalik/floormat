@@ -106,7 +106,7 @@ void test_critter_slit()
     }
 }
 
-u32 first_blocked_step(world& w, chunk_coords_ ch, const rc::bresenham_line& line,
+u32 first_blocked_step(world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
                             u32 first, u32 last, Vector2ui size)
 {
     const auto free = [&](Vector2i c) {
@@ -128,7 +128,7 @@ u32 first_blocked_step(world& w, chunk_coords_ ch, const rc::bresenham_line& lin
 void check_swept_line(world& w, chunk_coords_ ch, Vector2i from, Vector2i to, u32 first, u32 last,
                       Vector2ui size, Pass::Pool* pool)
 {
-    const auto line = rc::bresenham_line{from, to};
+    const auto line = Raycast::bresenham_line{from, to};
     const auto expected = first_blocked_step(w, ch, line, first, last, size);
     const auto res = find_swept_collider(w, ch, line, first, last, size, Search::never_continue, pool);
     if (res.step != expected || res.has_collider != (expected <= last))
@@ -173,7 +173,7 @@ void test_swept_collider_cell_corner()
     w[ch].mark_modified();
     Pass::Pool pool{Pass::Params{4, 4, pass_mode::pass}};
     check_swept_line(w, ch, {8, 8}, {24, 24}, 0, 16, Vector2ui{4}, &pool);
-    const auto res = find_swept_collider(w, ch, rc::bresenham_line{{8, 8}, {24, 24}}, 0, 16, Vector2ui{4},
+    const auto res = find_swept_collider(w, ch, Raycast::bresenham_line{{8, 8}, {24, 24}}, 0, 16, Vector2ui{4},
                                          Search::never_continue, &pool);
     fm_assert(res.has_collider && res.step == 8);
 }
@@ -216,7 +216,7 @@ void test_swept_collider_line()
         {
             const auto from = Vector2i{(i32)next(1900) - 32, (i32)next(1900) - 32};
             const auto to = from + Vector2i{(i32)next(601) - 300, (i32)next(601) - 300};
-            const auto steps = rc::bresenham_line{from, to}.steps();
+            const auto steps = Raycast::bresenham_line{from, to}.steps();
             const auto first = next(steps + 1), last = first + next(steps - first + 1);
             check_swept_line(w, ch, from, to, first, last, size, nullptr);
             check_swept_line(w, ch, from, to, first, last, size, &pool8);
@@ -254,7 +254,7 @@ void test_swept_collider_flush()
                 place_rect(w, ch, mid.min() - Vector2i{5}, mid.max() + Vector2i{5}, pass_mode::pass);
                 w[ch].mark_modified();
 
-                const auto line = rc::bresenham_line{from, from + d * i32(steps)};
+                const auto line = Raycast::bresenham_line{from, from + d * i32(steps)};
                 const auto res = find_swept_collider(w, ch, line, 0, steps, size, Search::never_continue);
                 fm_assert(res.has_collider == (deeper != 0));
                 fm_assert(res.step == (deeper ? steps : steps + 1));

@@ -414,7 +414,7 @@ constexpr step_s next_step(point from, point to)
 }
 
 // Returns the step whose pixel is px, or -1u when the line misses px.
-u32 step_at(const rc::bresenham_line& line, Vector2i px)
+u32 step_at(const Raycast::bresenham_line& line, Vector2i px)
 {
     const auto x = line.interval_bounds_to_steps(0, px.x(), px.x()), y = line.interval_bounds_to_steps(1, px.y(), px.y());
     const auto k = Math::max(x.first, y.first);
@@ -627,7 +627,7 @@ auto critter::move_toward(usize& index, Ns& dt, const point& from, const point& 
 
     const auto ch = from.chunk3();
     const auto origin = point{ch, {}, {}};
-    const auto line = rc::bresenham_line{from - origin, dest - origin};
+    const auto line = Raycast::bresenham_line{from - origin, dest - origin};
     const auto steps = line.steps();
     const auto pos = position();
     const auto k = pos.chunk3().z == ch.z ? step_at(line, pos - origin) : -1u;
@@ -679,7 +679,7 @@ auto critter::move_toward(usize& index, Ns& dt, const point& from, const point& 
 
     // after rotate(), so the box is the one for new_r
     const auto bb_off = Vector2i(bbox_offset);
-    const auto box_line = rc::bresenham_line{from - origin + bb_off, dest - origin + bb_off};
+    const auto box_line = Raycast::bresenham_line{from - origin + bb_off, dest - origin + bb_off};
     const auto self_id = id;
     const auto pred = [self_id](const class chunk&, collision_data x) {
         return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;

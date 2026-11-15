@@ -14,7 +14,7 @@ class world;
 namespace floormat::Grid::Pass { class Pool; }
 namespace floormat::Grid::Object { class Pool; }
 
-namespace floormat::rc {
+namespace floormat::Raycast {
 
 struct raycast_diag_s;
 
@@ -52,10 +52,10 @@ constexpr u32 min_pool_bbox_size(float radius)
                                                  Grid::Object::Pool& object_pool,
                                                  const Search::pred& pred, float radius = 0);
 
-} // namespace floormat::rc
+} // namespace floormat::Raycast
 
 namespace floormat {
 
-using floormat::rc::raycast;
+using floormat::Raycast::raycast;
 
 } // namespace floormat

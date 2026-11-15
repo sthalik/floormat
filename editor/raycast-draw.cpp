@@ -12,7 +12,7 @@ namespace floormat {
 
 namespace {
 
-void draw_boxes(app& a, ImDrawList& draw, ArrayView<const detail_rc::bbox> boxes,
+void draw_boxes(app& a, ImDrawList& draw, ArrayView<const detail_Raycast::bbox> boxes,
                 ImU32 color, float thickness)
 {
     for (auto [center, size] : boxes)
@@ -29,14 +29,14 @@ void draw_boxes(app& a, ImDrawList& draw, ArrayView<const detail_rc::bbox> boxes
     }
 }
 
-ImU32 line_color(const rc::raycast_result_s& r)
+ImU32 line_color(const Raycast::raycast_result_s& r)
 {
     return r.success ? 0x00ccccbf_imcol : 0xff00bfff_imcol;
 }
 
 } // namespace
 
-void draw_raycast_line(app& a, const rc::raycast_result_s& r, float dot_size, float radius)
+void draw_raycast_line(app& a, const Raycast::raycast_result_s& r, float dot_size, float radius)
 {
     const bool hit = !r.success;
     constexpr auto ring_color = 0x0000ffff_imcol;
@@ -53,7 +53,7 @@ void draw_raycast_line(app& a, const rc::raycast_result_s& r, float dot_size, fl
     draw.AddCircleFilled(ImVec2(p1), 7*dot_size, dot_color);
 }
 
-void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::raycast_diag_s& diag)
+void draw_raycast_projectile(app& a, const Raycast::raycast_result_s& r, const Raycast::raycast_diag_s& diag)
 {
     if (diag.radius <= 0)
         return;
@@ -95,7 +95,7 @@ void draw_raycast_projectile(app& a, const rc::raycast_result_s& r, const rc::ra
     draw.AddPolyline(pts, (int)n, 0xff8000ff_imcol, 2.f, ImDrawFlags_Closed);
 }
 
-void draw_raycast_diag(app& a, const rc::raycast_diag_s& diag)
+void draw_raycast_diag(app& a, const Raycast::raycast_diag_s& diag)
 {
     ImDrawList& draw = *ImGui::GetForegroundDrawList();
     draw_boxes(a, draw, diag.path, 0xff0000ff_imcol, 1);

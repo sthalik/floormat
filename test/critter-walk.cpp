@@ -290,7 +290,7 @@ struct model
     {
         const auto ch = s.pos.chunk3();
         const auto line_origin = point{from.chunk3(), {}, {}};
-        const auto line = rc::bresenham_line{from - line_origin, dest - line_origin};
+        const auto line = Raycast::bresenham_line{from - line_origin, dest - line_origin};
         const auto steps = line.steps();
         const auto k = line.step_of(s.pos - line_origin);
         fm_assert(line_origin + line.point_at(k) == s.pos);
@@ -658,7 +658,7 @@ Ns remaining_cost(const model& m, const walk& wk, const walker_state& s, const w
     case entry::move_toward_line:
     {
         const auto line_origin = point{wk.start.chunk3(), {}, {}};
-        const auto line = rc::bresenham_line{wk.start - line_origin, wk.dest - line_origin};
+        const auto line = Raycast::bresenham_line{wk.start - line_origin, wk.dest - line_origin};
         return wk.line_cost * (line.steps() - line.step_of(s.pos - line_origin));
     }
     case entry::COUNT:
@@ -724,7 +724,7 @@ Ns measure_line_cost(Vector2i vec)
     const auto from = origin + chunk_size<Vector2i>/2;
     C.teleport_to(idx, from, rotation_COUNT);
     C.delta = 0;
-    const auto steps = rc::bresenham_line{{}, vec}.steps();
+    const auto steps = Raycast::bresenham_line{{}, vec}.steps();
     const auto dt_in = object::frame_duration(C.atlas->info().fps) * (2 * steps + 1);
     auto dt = dt_in;
     const auto res = C.move_toward(idx, dt, from, from + vec);

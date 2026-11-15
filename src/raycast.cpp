@@ -4,7 +4,7 @@
 #include "grid-object.hpp"
 #include "world.hpp"
 
-namespace floormat::rc {
+namespace floormat::Raycast {
 
 namespace {
 
@@ -47,4 +47,4 @@ raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, p
     return raycast<true, true>(diag, w, from, to, self, object_pool.pass_pool(), object_pool, pred, radius);
 }
 
-} // namespace floormat::rc
+} // namespace floormat::Raycast

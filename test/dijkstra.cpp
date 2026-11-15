@@ -583,7 +583,7 @@ void add_rect(world& w, Vector2i min, Vector2i max)
 bool is_segment_clear(world& w, point a, point b, Vector2ui size, const Search::pred& p)
 {
     const auto origin = point{a.chunk3(), {}, {}};
-    const auto line = rc::bresenham_line{a - origin, b - origin};
+    const auto line = Raycast::bresenham_line{a - origin, b - origin};
     return !find_swept_collider(w, a.chunk3(), line, 0, line.steps(), size, p).has_collider;
 }
 
@@ -591,7 +591,7 @@ swept_collider_result sweep_with_grids(world& w, point a, point b, Vector2ui siz
                                        Grid::Object::Pool& objects)
 {
     const auto origin = point{a.chunk3(), {}, {}};
-    const auto line = rc::bresenham_line{a - origin, b - origin};
+    const auto line = Raycast::bresenham_line{a - origin, b - origin};
     Array<bool> entry_blocked;
     return find_swept_collider(w, a.chunk3(), line, 0, line.steps(), size, p, objects, entry_blocked);
 }

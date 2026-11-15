@@ -22,7 +22,7 @@ namespace floormat::tests {
 namespace {
 
 using namespace floormat::imgui;
-using namespace floormat::rc;
+using namespace floormat::Raycast;
 
 struct pending_s
 {

@@ -355,7 +355,7 @@ void test_move_toward_line()
                            segment{{-23, -71}, rotation::N}, segment{{-50, 61}, rotation::SW} })
     {
         const auto from = point{{0, 0, 0}, {14, 14}, {3, -5}}, dest = from + vec;
-        const auto line = rc::bresenham_line{{}, vec};
+        const auto line = Raycast::bresenham_line{{}, vec};
         L.place(from);
         u32 frames = 0, k = 0;
         while (L.npc->position() != dest)
@@ -400,7 +400,7 @@ void test_move_toward_line_blocked()
     const auto pred = [self_id](const chunk&, collision_data x) {
         return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
     };
-    const auto line = rc::bresenham_line{from - origin, dest - origin};
+    const auto line = Raycast::bresenham_line{from - origin, dest - origin};
     const auto expected = find_swept_collider(L.w, ch, line, 0, line.steps(),
                                               Vector2ui(L.npc->bbox_size), pred);
     fm_assert(expected.has_collider && expected.step > 1);
@@ -497,7 +497,7 @@ struct script_walker
 bool on_segment(point a, point b, point p)
 {
     const auto origin = point{a.chunk3(), {}, {}};
-    const auto line = rc::bresenham_line{a - origin, b - origin};
+    const auto line = Raycast::bresenham_line{a - origin, b - origin};
     for (auto k = 0u; k <= line.steps(); k++)
         if (line.point_at(k) == p - origin)
             return true;
@@ -574,7 +574,7 @@ void test_walk_smoothed_blocked()
     const auto other = W.w.make_object<critter>(W.w.make_id(), mid.coord(), move(proto));
 
     const auto origin = point{ch, {}, {}};
-    const auto line = rc::bresenham_line{from - origin, to - origin};
+    const auto line = Raycast::bresenham_line{from - origin, to - origin};
     const auto self_id = W.npc->id;
     const auto pred = [self_id](const chunk&, collision_data x) {
         return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;

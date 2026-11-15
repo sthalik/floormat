@@ -874,8 +874,8 @@ bptr<object> find_object_at_z(world& w, object_id id, i8 z)
     return obj;
 }
 
-rc::raycast_result_s line_of_sight(world& w, Grid::GridRegistry& reg, u32 div_size, point from, point to,
-                                   object_id self)
+Raycast::raycast_result_s line_of_sight(world& w, Grid::GridRegistry& reg, u32 div_size, point from, point to,
+                                        object_id self)
 {
     const auto params = Pass::Params{div_size, pass_mode::shoot_through};
     return raycast(w, from, to, self, reg.object_pool(params), Search::without_critters);

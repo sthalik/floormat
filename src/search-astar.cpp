@@ -1478,7 +1478,7 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* ob
         const auto ch = from.chunk3();
         const auto origin = point{ch, {}, {}};
         const auto o = from - origin;
-        const auto line = rc::bresenham_line{o, to - origin};
+        const auto line = Raycast::bresenham_line{o, to - origin};
         los_result res = {};
         los_checks++;
         const auto f = [&](const swept_collider_result& r) {

@@ -6,7 +6,7 @@ namespace floormat {
 
 namespace {
 
-using rc::bresenham_line;
+using Raycast::bresenham_line;
 
 constexpr i32 max_len = 24;
 

@@ -1,7 +1,7 @@
 #include "raycast-line.hpp"
 #include "compat/assert.hpp"
 
-namespace floormat::rc {
+namespace floormat::Raycast {
 
 bresenham_line::bresenham_line(Vector2i start_pos, Vector2i end_pos) : _start_pos{start_pos}
 {
@@ -100,4 +100,4 @@ Vector2i bresenham_line::octant_to_point(u32 step, u64 minor) const
         return { _start_pos.x() + b, _start_pos.y() + a };
 }
 
-} // namespace floormat::rc
+} // namespace floormat::Raycast

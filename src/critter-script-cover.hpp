@@ -9,7 +9,7 @@
 
 namespace floormat { struct critter; struct object; class world; }
 namespace floormat::Grid { class GridRegistry; }
-namespace floormat::rc { struct raycast_result_s; }
+namespace floormat::Raycast { struct raycast_result_s; }
 
 namespace floormat::Cover::Script {
 
@@ -154,7 +154,7 @@ bptr<object> find_object_at_z(world& w, object_id id, i8 z);
 
 // The ray the script casts from `from` to `to`, in grids of div_size. It stops at the first collider a shot
 // can't pass, and critters, self included, don't stop it.
-rc::raycast_result_s line_of_sight(world& w, Grid::GridRegistry& reg, u32 div_size, point from, point to,
-                                   object_id self);
+Raycast::raycast_result_s line_of_sight(world& w, Grid::GridRegistry& reg, u32 div_size, point from, point to,
+                                        object_id self);
 
 } // namespace floormat::Cover::Script

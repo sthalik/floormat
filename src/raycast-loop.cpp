@@ -18,11 +18,11 @@
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
-namespace floormat::rc::detail {
+namespace floormat::Raycast::detail {
 
 namespace {
 
-using floormat::detail_rc::bbox;
+using floormat::detail_Raycast::bbox;
 using RTree = std::decay_t<decltype(*std::declval<class chunk>().rtree())>;
 using Rect = RTree::Rect;
 
@@ -812,4 +812,4 @@ template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, 
                                   function_view<bool(const line_cell&) const>,
                                   object_cell_visitor<u16>, object_cell_visitor<u32>);
 
-} // namespace floormat::rc::detail
+} // namespace floormat::Raycast::detail

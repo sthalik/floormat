@@ -2,7 +2,7 @@
 #include "raycast.hpp"
 #include <cr/Array.h>
 
-namespace floormat::detail_rc {
+namespace floormat::detail_Raycast {
 
 struct bbox
 {
@@ -10,16 +10,16 @@ struct bbox
     Vector2ui size;
 };
 
-} // namespace floormat::detail_rc
+} // namespace floormat::detail_Raycast
 
-namespace floormat::rc {
+namespace floormat::Raycast {
 
 struct raycast_diag_s
 {
-    Array<detail_rc::bbox> path{};
-    Array<detail_rc::bbox> queries{};
+    Array<detail_Raycast::bbox> path{};
+    Array<detail_Raycast::bbox> queries{};
     Vector2 V, dir, dir_inv_norm;
     float tmin, radius;
 };
 
-} // namespace floormat::rc
+} // namespace floormat::Raycast
