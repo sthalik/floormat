@@ -120,10 +120,10 @@ enum class end_step : u8 { hidden, seen, stopped, };
 
 // The exact tests of a body of q.body_size against the R-tree rects between it and q.threat. Positions are in
 // whole px, as Vector3i(point).xy() gives them.
-struct spot_tests
+struct visibility_tests
 {
-    spot_tests(world& w, const query& q, const Search::pred& pred, Array<slope_range>& runs,
-               Array<Range2Di>& turned_rects, Array<Range2Di>& end_rects);
+    visibility_tests(world& w, const query& q, const Search::pred& pred, Array<slope_range>& runs,
+                     Array<Range2Di>& turned_rects, Array<Range2Di>& end_rects);
 
     point to_point(Vector2i px) const { return q_pos + (px - P); }
     bool passable(Vector2i center) const;
@@ -153,8 +153,8 @@ struct spot_tests
     Vector2 turns[4];
 };
 
-spot_tests::spot_tests(world& w, const query& q, const Search::pred& pred, Array<slope_range>& runs,
-                       Array<Range2Di>& turned_rects, Array<Range2Di>& end_rects) :
+visibility_tests::visibility_tests(world& w, const query& q, const Search::pred& pred, Array<slope_range>& runs,
+                                   Array<Range2Di>& turned_rects, Array<Range2Di>& end_rects) :
     w{w}, pred{pred}, runs{runs}, turned_rects{turned_rects}, end_rects{end_rects}, q_pos{q.pos},
     P{Vector3i(q.pos).xy()}, T{Vector3i(q.threat).xy()}, body_size{q.body_size},
     body_lo{Vector2i(q.body_size / 2u)}, body_hi{Vector2i(q.body_size) - body_lo},
@@ -167,21 +167,21 @@ spot_tests::spot_tests(world& w, const query& q, const Search::pred& pred, Array
         turns[j - 1] = { std::cos((float)j * octant_step), std::sin((float)j * octant_step) };
 }
 
-bool spot_tests::passable(Vector2i center) const
+bool visibility_tests::passable(Vector2i center) const
 {
     const auto pt = to_point(center);
     const auto min = Vector2(pt.intra().center_shifted() - body_lo);
     return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(body_size)}, pred);
 }
 
-int spot_tests::reach(Vector2i dir) const
+int visibility_tests::reach(Vector2i dir) const
 {
     return Math::dot(Math::max(dir, Vector2i{0}), ext_hi) + Math::dot(Math::max(-dir, Vector2i{0}), ext_lo);
 }
 
 // Appends the rects that the box from qlo to qhi touches, relative to threat and doubled. The
 // rects a ray skips are left out the same way.
-void spot_tests::collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi, Array<Range2Di>& out) const
+void visibility_tests::collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi, Array<Range2Di>& out) const
 {
     const auto z = q_pos.chunk3().z;
     const auto chunk_of = [](int px) { return floormat::floor_div(px + half_tile<int>, chunk_size<int>); };
@@ -207,7 +207,7 @@ void spot_tests::collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi, Arra
         }
 }
 
-square_box spot_tests::body_at(Vector2i pos, Vector2i axis, Vector2i across, Vector2i threat) const
+square_box visibility_tests::body_at(Vector2i pos, Vector2i axis, Vector2i across, Vector2i threat) const
 {
     const auto e = Math::dot(threat - pos, axis), c = Math::dot(pos - threat, across);
     return square_box{ 2*(e - reach(axis)) - 1, 2*(e + reach(-axis)) + 1,
@@ -216,7 +216,8 @@ square_box spot_tests::body_at(Vector2i pos, Vector2i axis, Vector2i across, Vec
 
 // A ray aimed anywhere hits a rect when it touches a closed pixel square (bresenham_line::orthogonal_at).
 // Only squares nearer than the body's near face surely come first. Open ranges let a grazing ray pass.
-void spot_tests::build_runs(const square_box& body, Vector2i axis, Vector2i across, ArrayView<const Range2Di> from)
+void visibility_tests::build_runs(const square_box& body, Vector2i axis, Vector2i across,
+                                  ArrayView<const Range2Di> from)
 {
     arrayClear(runs);
     for (const auto& r : from)
@@ -242,7 +243,7 @@ void spot_tests::build_runs(const square_box& body, Vector2i axis, Vector2i acro
     arrayResize(runs, NoInit, n);
 }
 
-bool spot_tests::hidden(const square_box& body) const
+bool visibility_tests::hidden(const square_box& body) const
 {
     if (body.d0 <= 1)
         return false;
@@ -255,7 +256,7 @@ bool spot_tests::hidden(const square_box& body) const
 
 // True when threat sees no pixel of a body centered on pos, judged along axis and along the axis toward threat.
 // rects holds collect_rects() for threat over a box holding threat and the body, or over a larger one.
-bool spot_tests::hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayView<const Range2Di> rects)
+bool visibility_tests::hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayView<const Range2Di> rects)
 {
     const auto seen_along = [&](Vector2i ax) {
         const auto ac = across_of(ax);
@@ -268,7 +269,7 @@ bool spot_tests::hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayVi
 }
 
 // hidden_by() with rects refilled for the box spanning threat and the body.
-bool spot_tests::hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects)
+bool visibility_tests::hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects)
 {
     arrayClear(rects);
     collect_rects(threat, Math::min(threat, pos - ext_lo) - Vector2i{1}, Math::max(threat, pos + ext_hi) + Vector2i{1},
@@ -279,7 +280,7 @@ bool spot_tests::hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array
 // True when the threat turned about pos by up to q.octants/2 octants either way, rounded to whole
 // px, sees no pixel of a body centered on pos and pushed along axis. Each turned threat gets its
 // own R-tree search, as shifting the rects would need a box spanning every candidate's turns.
-bool spot_tests::hidden_from_turned(Vector2i pos, Vector2i axis)
+bool visibility_tests::hidden_from_turned(Vector2i pos, Vector2i axis)
 {
     const auto v = Vector2(T - pos);
     for (auto j = 0; j < half; j++)
@@ -293,7 +294,7 @@ bool spot_tests::hidden_from_turned(Vector2i pos, Vector2i axis)
     return true;
 }
 
-end_step spot_tests::end_test(Vector2i pos, Vector2i axis, Vector2i across)
+end_step visibility_tests::end_test(Vector2i pos, Vector2i axis, Vector2i across)
 {
     const auto body = body_at(pos, axis, across, T);
     build_runs(body, axis, across, end_rects);
@@ -304,7 +305,7 @@ end_step spot_tests::end_test(Vector2i pos, Vector2i axis, Vector2i across)
 
 // The moved bodies can lie past the box of rects, which holds only the candidates' area, so this
 // searches its own box from the threat to the bodies on both sides.
-Vector2i spot_tests::move_spot_to_cover_end(Vector2i pos, Vector2i axis, Vector2i across)
+Vector2i visibility_tests::move_spot_to_cover_end(Vector2i pos, Vector2i axis, Vector2i across)
 {
     const auto m = (int)max_cover_end_dist;
     arrayClear(end_rects);
@@ -433,7 +434,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
     const auto ds = (int)cover_pool.params().div_size;
     const auto dc = chunk_size_xy / (u32)ds;
     const auto R = (int)q.radius;
-    spot_tests X{w, q, pred, runs, turned_rects, end_rects};
+    visibility_tests X{w, q, pred, runs, turned_rects, end_rects};
     const auto &P = X.P, &T = X.T, &body_lo = X.body_lo, &body_hi = X.body_hi;
     const auto to_point = [&](Vector2i px) { return X.to_point(px); };
 
@@ -745,7 +746,8 @@ bool finder::hidden_at(world& w, point threat, const spot& s, Vector2ui body_siz
 {
     fm_assert(s.pos.chunk3().z == threat.chunk3().z);
     auto& I = *impl;
-    spot_tests X{w, {s.pos, body_size, threat, 0}, Search::never_continue, I.runs, I.turned_rects, I.end_rects};
+    visibility_tests X{w, {s.pos, body_size, threat, 0}, Search::never_continue, I.runs, I.turned_rects,
+                       I.end_rects};
     return X.hidden_from(X.T, X.P, s.axis, I.rects);
 }
 
@@ -754,7 +756,7 @@ point finder::move_to_cover_end(world& w, const query& q, Vector2i axis, const S
 {
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     auto& I = *impl;
-    spot_tests X{w, q, pred, I.runs, I.turned_rects, I.end_rects};
+    visibility_tests X{w, q, pred, I.runs, I.turned_rects, I.end_rects};
     const auto across = across_of(axis);
     const auto end = X.move_spot_to_cover_end(X.P, axis, across);
     const auto hidden_from_all = [&](Vector2i pos) {
