@@ -17,7 +17,6 @@ namespace {
 template<typename T> bool key_less(T a, T b) { return a < b; }
 bool key_less(uint128_t a, uint128_t b) { return a.hi != b.hi ? a.hi < b.hi : a.lo < b.lo; }
 bool key_less(K64V64 a, K64V64 b) { return a.key < b.key; }
-bool key_less(K32V32 a, K32V32 b) { return a.key < b.key; }
 
 template<typename T> bool is_nan(T x)
 {
@@ -39,12 +38,10 @@ template<typename T> bool precedes(T x, T y, sort_order order)
 
 template<typename T> bool full_less(T a, T b) { return precedes(a, b, sort_order::ascending); }
 bool full_less(K64V64 a, K64V64 b) { return a.key != b.key ? a.key < b.key : a.value < b.value; }
-bool full_less(K32V32 a, K32V32 b) { return a.key != b.key ? a.key < b.key : a.value < b.value; }
 
 template<typename T> bool same(T a, T b) { return a == b || (is_nan(a) && is_nan(b)); }
 bool same(uint128_t a, uint128_t b) { return a.lo == b.lo && a.hi == b.hi; }
 bool same(K64V64 a, K64V64 b) { return a.value == b.value && a.key == b.key; }
-bool same(K32V32 a, K32V32 b) { return a.value == b.value && a.key == b.key; }
 
 template<typename T> T make_key(std::mt19937& rng, u32)
 {
@@ -76,12 +73,6 @@ template<> uint128_t make_key(std::mt19937& rng, u32)
 template<> K64V64 make_key(std::mt19937& rng, u32 i)
 {
     const auto key = rng() % 50 | (u64)(rng() & 1) << 63;
-    return { .value = i, .key = key };
-}
-
-template<> K32V32 make_key(std::mt19937& rng, u32 i)
-{
-    const auto key = (u32)(rng() % 50 | (rng() & 1) << 31);
     return { .value = i, .key = key };
 }
 
@@ -166,7 +157,6 @@ void test_vqsort()
             check<double>(n);
             check<uint128_t>(n);
             check<K64V64>(n);
-            check<K32V32>(n);
         }
     }
     hwy::SetSupportedTargetsForTest(0);
