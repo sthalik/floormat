@@ -189,6 +189,7 @@ if(MSVC)
         #-wd4251 # warning C4251: 't::f': class 'x' needs to have dll-interface to be used by clients of class 'y'
         -wd4456  # warning C4456: declaration of 'x' hides previous local declaration
         -wd4458  # warning C4458: declaration of 'keys' hides class member
+        -wd4459  # warning C4459: declaration of 'size' hides global declaration
         -wd4127  # warning C4127: conditional expression is constant
         -wd4554  # warning C4554: '<<': check operator precedence for possible error; use parentheses to clarify precedence
         -wd4146  # warning C4146: unary minus operator applied to unsigned type, result still unsigned

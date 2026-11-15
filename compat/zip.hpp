@@ -45,16 +45,10 @@ struct component
     using copy = std::conditional_t<is_lvalue, std::remove_cv_t<value_type>, value_type>;
 };
 
-template<typename S, typename I>
-concept sized_sentinel_for = requires(const S& s, const I& i) { static_cast<usize>(s - i); };
-
-template<typename It>
-concept subscriptable = requires(const It& it, usize n) { it[n]; };
-
 template<typename... Vs>
 constexpr bool random_access =
-    sized_sentinel_for<detail::range::end_t<first_type<Vs...>>, detail::range::begin_t<first_type<Vs...>>> &&
-    (subscriptable<detail::range::begin_t<Vs>> && ...);
+    sized_sentinel_for<sentinel_t<first_type<Vs...>>, iterator_t<first_type<Vs...>>> &&
+    (random_access_iterator<iterator_t<Vs>> && ...);
 
 // GCC 16 drops the C++26 zero-fill of a std::array returned by value only when the loop subscripts the array itself.
 // On MSVC, indexing through the view made is_passable_() call detail::is_passable out of line.
@@ -63,12 +57,12 @@ template<bool Index, typename V> constexpr bool by_range = false;
 #else
 template<bool Index, typename V> constexpr bool by_range = Index && detail::range::static_extent<std::remove_cv_t<V>> != 0;
 #endif
-template<bool Index, typename V> using current_t = std::conditional_t<by_range<Index, V>, V*, detail::range::begin_t<V>>;
+template<bool Index, typename V> using current_t = std::conditional_t<by_range<Index, V>, V*, iterator_t<V>>;
 
 template<typename V>
 constexpr usize length(V& v) noexcept
 {
-    return static_cast<usize>(detail::range::end_of(v) - detail::range::begin_of(v));
+    return static_cast<usize>(floormat::end(v) - floormat::begin(v));
 }
 
 template<typename V, typename... Vs>
@@ -98,7 +92,7 @@ class element : index_base<Index>
     template<usize N, typename Self> static constexpr decltype(auto) deref(Self& self) noexcept;
 
 public:
-    template<usize N> using component_t = component<leaf_t<N, tuple_t<detail::range::begin_t<Vs>...>>>;
+    template<usize N> using component_t = component<leaf_t<N, tuple_t<iterator_t<Vs>...>>>;
 
     template<usize N> constexpr auto get() & noexcept -> component_t<N>::ref;
     template<usize N> constexpr auto get() const& noexcept -> component_t<N>::const_ref;
@@ -112,7 +106,7 @@ class sentinel
     template<typename...> friend class iterator;
     template<typename...> friend class view;
     using V = first_type<Vs...>;
-    using end_type = std::conditional_t<random_access<Vs...>, usize, detail::range::end_t<V>>;
+    using end_type = std::conditional_t<random_access<Vs...>, usize, sentinel_t<V>>;
 
     end_type _end;
 
@@ -159,7 +153,7 @@ constexpr element<Index, Vs...>::element(Vs&... vs) noexcept : _current{ {[&]() 
     if constexpr (by_range<Index, Vs>)
         return &vs;
     else
-        return detail::range::begin_of(vs);
+        return floormat::begin(vs);
 }()}... } {}
 
 template<bool Index, typename... Vs>
@@ -211,7 +205,7 @@ constexpr auto sentinel<Vs...>::end_of(V& v) noexcept -> end_type
     if constexpr (random_access<Vs...>)
         return length(v);
     else
-        return detail::range::end_of(v);
+        return floormat::end(v);
 }
 
 template<typename... Vs>
@@ -220,7 +214,7 @@ constexpr sentinel<Vs...>::sentinel(V& v) noexcept : _end{end_of(v)} {}
 template<typename... Vs>
 constexpr iterator<Vs...>::iterator(Vs&... vs) noexcept : _e{vs...}
 {
-    if constexpr ((sized_sentinel_for<detail::range::end_t<Vs>, detail::range::begin_t<Vs>> && ...))
+    if constexpr ((sized_sentinel_for<sentinel_t<Vs>, iterator_t<Vs>> && ...))
         fm_debug3_assert(same_length(vs...));
 }
 
@@ -293,7 +287,7 @@ constexpr auto view<Rs...>::end() const noexcept -> sentinel<const detail::range
 namespace floormat {
 
 // Iterates as many times as the first range has elements. Only Debug builds check that the others are as long.
-template<typename... Rs>
+template<typename... Rs> requires (range<Rs> && ...)
 constexpr detail::zip::view<Rs...> zip(Rs&&... rs) noexcept(std::is_nothrow_constructible_v<detail::zip::view<Rs...>, Rs...>)
 {
     return detail::zip::view<Rs...>{floormat::forward<Rs>(rs)...};

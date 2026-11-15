@@ -14,7 +14,7 @@ template<typename V>
 class element
 {
     template<typename> friend class iterator;
-    using It = detail::range::begin_t<V>;
+    using It = iterator_t<V>;
 
     It _first, _second;
 
@@ -40,7 +40,7 @@ class iterator
     template<typename> friend class view;
 
     element<V> _e;
-    detail::range::end_t<V> _end;
+    sentinel_t<V> _end;
 
     constexpr explicit iterator(V& v) noexcept;
 
@@ -115,7 +115,7 @@ constexpr auto element<V>::get() const&& noexcept(std::is_nothrow_copy_construct
 
 template<typename V>
 constexpr iterator<V>::iterator(V& v) noexcept :
-    _e{detail::range::begin_of(v), detail::range::begin_of(v)}, _end{detail::range::end_of(v)}
+    _e{floormat::begin(v), floormat::begin(v)}, _end{floormat::end(v)}
 {
     if (_e._second != _end)
         ++_e._second;
@@ -178,7 +178,7 @@ constexpr sentinel view<R>::end() const noexcept
 namespace floormat {
 
 // Every pair (r[i], r[j]) with i < j, ordered by i and then by j, as Python's itertools.combinations(r, 2).
-template<typename R>
+template<typename R> requires range<R>
 constexpr detail::combinations::view<R> combinations(R&& r) noexcept(std::is_nothrow_constructible_v<detail::combinations::view<R>, R>)
 {
     return detail::combinations::view<R>{floormat::forward<R>(r)};

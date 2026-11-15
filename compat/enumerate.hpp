@@ -7,11 +7,11 @@ namespace floormat::detail::enumerate {
 // A sized range with operator[] ends its loop when the index reaches the size. Comparing an iterator with end
 // would keep a second induction variable, which MSVC never merges with the index and Clang sometimes doesn't.
 template<typename V>
-concept indexed = detail::range::sized<V> && requires(const detail::range::begin_t<V>& it, usize i) { it[i]; };
+concept indexed = sized_range<V> && random_access_range<V>;
 
 // x86 addresses begin[index] in one instruction for element sizes 1, 2, 4 and 8. For other sizes the iterator
 // advances as well, because MSVC would compute index * size at every access.
-template<typename V, usize Size = sizeof(*detail::range::declval<detail::range::begin_t<V>&>())>
+template<typename V, usize Size = sizeof(*detail::range::declval<iterator_t<V>&>())>
 constexpr bool scaled_index = indexed<V> && (Size == 1 || Size == 2 || Size == 4 || Size == 8);
 
 #if defined __GNUC__ && !defined __clang__
@@ -32,13 +32,13 @@ template<> struct sentinel<0> { usize size; };
 
 template<usize N, typename T> using get_t = std::conditional_t<N == 0, u32, T>;
 template<typename V> using end_type = std::conditional_t<ends_on_index<V>, sentinel<detail::range::static_extent<std::remove_cv_t<V>>>,
-                                                         detail::range::end_t<V>>;
+                                                         sentinel_t<V>>;
 
 template<typename V>
 class element
 {
     template<typename> friend class iterator;
-    using It = detail::range::begin_t<V>;
+    using It = iterator_t<V>;
 
     It _it;
     // usize, since a u32 index would be zero-extended wherever it addresses an element or meets the size.
@@ -164,7 +164,7 @@ constexpr auto element<V>::get() const&& noexcept(std::is_nothrow_copy_construct
 }
 
 template<typename V>
-constexpr iterator<V>::iterator(V& v) noexcept : _e{detail::range::begin_of(v)} {}
+constexpr iterator<V>::iterator(V& v) noexcept : _e{floormat::begin(v)} {}
 
 template<typename V>
 constexpr auto iterator<V>::operator*() noexcept -> element<V>&
@@ -216,22 +216,22 @@ template<typename R>
 constexpr auto view<R>::end() noexcept -> end_type<base_type>
 {
     if constexpr (!ends_on_index<base_type>)
-        return detail::range::end_of(_base);
+        return floormat::end(_base);
     else if constexpr (detail::range::static_extent<base_type> > 0)
         return {};
     else
-        return {detail::range::size_of(_base)};
+        return {floormat::size(_base)};
 }
 
 template<typename R>
 constexpr auto view<R>::end() const noexcept -> end_type<const base_type>
 {
     if constexpr (!ends_on_index<const base_type>)
-        return detail::range::end_of(_base);
+        return floormat::end(_base);
     else if constexpr (detail::range::static_extent<base_type> > 0)
         return {};
     else
-        return {detail::range::size_of(_base)};
+        return {floormat::size(_base)};
 }
 
 } // namespace floormat::detail::enumerate
@@ -240,7 +240,7 @@ namespace floormat {
 
 /// @param r A range of lvalues. The view keeps a reference to an lvalue r and moves an rvalue r into itself.
 /// @return A view whose elements bind as [i, x], with x an element of r and i its u32 index.
-template<typename R>
+template<typename R> requires range<R>
 constexpr detail::enumerate::view<R> enumerate(R&& r) noexcept(std::is_nothrow_constructible_v<detail::enumerate::view<R>, R>)
 {
     return detail::enumerate::view<R>{floormat::forward<R>(r)};

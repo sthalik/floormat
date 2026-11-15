@@ -25,9 +25,9 @@ constexpr bool operator==(const char* p, nul_sentinel) noexcept { return *p == '
 constexpr const char* begin(const c_string& s) noexcept { return s.str; }
 constexpr nul_sentinel end(const c_string&) noexcept { return {}; }
 
-static_assert(detail::zip::sized_sentinel_for<const int*, const int*>);
-static_assert(!detail::zip::sized_sentinel_for<count_iterator, count_iterator>);
-static_assert(!detail::zip::sized_sentinel_for<nul_sentinel, const char*>);
+static_assert(sized_sentinel_for<const int*, const int*>);
+static_assert(!sized_sentinel_for<count_iterator, count_iterator>);
+static_assert(!sized_sentinel_for<nul_sentinel, const char*>);
 
 constexpr int weighted_dot()
 {
