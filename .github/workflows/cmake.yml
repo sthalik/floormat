@@ -76,36 +76,18 @@ jobs:
 
     - name: Test
       run: |
-        cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=default
-        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
-        # llvmpipe hands back 4.5 core, which hides every use of GL above the 3.3
-        # floor. Pin it so the runner is the conformance oracle it looks like.
-        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
-        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
-        set -e
-        MAGNUM_LOG=verbose xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --gl-only
-        xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
+        sh .github/ci-test.sh gl
+        sh .github/ci-test.sh bench
       timeout-minutes: 60
       if: runner.os == 'Linux'
 
     - name: Test without ARB_direct_state_access
-      run: |
-        cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=verbose MAGNUM_DISABLE_EXTENSIONS=GL_ARB_direct_state_access
-        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
-        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
-        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
-        xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --gl-only
+      run: sh .github/ci-test.sh no-dsa
       timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Linux' }}
 
     - name: Test without a GL context
-      run: |
-        cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=verbose
-        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
-        env -u DISPLAY -u WAYLAND_DISPLAY gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --no-gl
+      run: sh .github/ci-test.sh no-gl
       timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Linux' }}
 
@@ -189,33 +171,21 @@ jobs:
       if: ${{ !cancelled() && runner.os == 'Windows' && runner.arch == 'ARM64' }}
 
     - name: Test pgo-driver scenes
-      run: |
-        cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=default
-        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
-        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
-        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
-        export LP_NUM_THREADS=$(nproc) FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=1
-        set -e
-        xvfb-run gdb -q -batch -x ../../.github/gdbscript.py --args \
-            bin/floormat-editor --scenes=all --driver-no-swapbuffers
+      run: sh .github/ci-test.sh pgo
       timeout-minutes: 60
       if: runner.os == 'Linux'
 
     # No gdb: LeakSanitizer stops the threads with ptrace, which fails while gdb traces them.
     - name: Test for leaks
       run: |
-        cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=default
-        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=1"
+        sh .github/ci-test.sh gl
+        sh .github/ci-test.sh no-gl
+        sh .github/ci-test.sh editor --scenes=drag-paint
+      env:
+        FM_WRAP: ''
+        ASAN_OPTIONS: detect_leaks=1
         # Otherwise SDL leaks what libdbus allocated.
-        export SDL_SHUTDOWN_DBUS_ON_QUIT=1
-        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
-        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
-        set -e
-        MAGNUM_LOG=verbose xvfb-run bin/floormat-test --gl-only
-        env -u DISPLAY -u WAYLAND_DISPLAY MAGNUM_LOG=verbose bin/floormat-test --no-gl
-        xvfb-run bin/floormat-editor --scenes=drag-paint --driver-no-swapbuffers
+        SDL_SHUTDOWN_DBUS_ON_QUIT: 1
       timeout-minutes: 60
       if: ${{ !cancelled() && runner.os == 'Linux' }}
 
@@ -239,6 +209,7 @@ jobs:
         --suppressions=${{github.workspace}}/.github/valgrind.supp
       # Otherwise SDL leaks what libdbus allocated.
       SDL_SHUTDOWN_DBUS_ON_QUIT: 1
+      FM_WRAP: valgrind
 
     steps:
     - uses: actions/checkout@v7
@@ -275,33 +246,21 @@ jobs:
 
     - name: Test under memcheck
       run: |
-        cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=verbose LD_LIBRARY_PATH="$PWD/lib"
-        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
-        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
         valgrind --version
-        xvfb-run valgrind bin/floormat-test --gl-only
+        sh .github/ci-test.sh gl
       timeout-minutes: 180
 
     - name: Test without a GL context under memcheck
-      run: |
-        cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=verbose LD_LIBRARY_PATH="$PWD/lib"
-        env -u DISPLAY -u WAYLAND_DISPLAY valgrind bin/floormat-test --no-gl
+      run: sh .github/ci-test.sh no-gl
       timeout-minutes: 60
       if: ${{ !cancelled() }}
 
+    # Fewer pixels for llvmpipe, and fewer frames for every wait timed in update().
+    # With origin tracking, maze2 alone peaks at 45 GB, past the runner's 16.
     - name: Test pgo-driver scenes under memcheck
-      run: |
-        cd ${{github.workspace}}/build/install
-        export MAGNUM_LOG=default LD_LIBRARY_PATH="$PWD/lib"
-        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
-        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
-        export LP_NUM_THREADS=$(nproc) FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=1
-        # Fewer pixels for llvmpipe, and fewer frames for every wait timed in update().
-        # With origin tracking, maze2 alone peaks at 45 GB, past the runner's 16.
-        xvfb-run valgrind --track-origins=no bin/floormat-editor --scenes=all \
-          --driver-no-swapbuffers --geometry 512x360 --fixed-framerate=15
+      run: sh .github/ci-test.sh pgo --geometry 512x360 --fixed-framerate=15
+      env:
+        FM_WRAP: valgrind --track-origins=no
       timeout-minutes: 60
       if: ${{ !cancelled() }}
 
@@ -334,24 +293,12 @@ jobs:
 
     - name: Test
       shell: freebsd {0}
-      run: |
-        cd build/install
-        export MAGNUM_LOG=default DISPLAY=:99
-        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
-        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
-        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
-        set -e
-        MAGNUM_LOG=verbose gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --gl-only
-        gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-benchmark
+      run: sh .github/ci-test.sh gl && sh .github/ci-test.sh bench
       timeout-minutes: 60
 
     - name: Test without a GL context
       shell: freebsd {0}
-      run: |
-        cd build/install
-        export MAGNUM_LOG=verbose
-        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
-        gdb -q -batch -x ../../.github/gdbscript.py --args bin/floormat-test --no-gl
+      run: sh .github/ci-test.sh no-gl
       timeout-minutes: 60
       if: ${{ !cancelled() }}
 
@@ -363,14 +310,5 @@ jobs:
 
     - name: Test pgo-driver scenes
       shell: freebsd {0}
-      run: |
-        cd build/install
-        export MAGNUM_LOG=default DISPLAY=:99
-        export LD_LIBRARY_PATH="$PWD/lib" ASAN_OPTIONS="detect_leaks=0:abort_on_error=1"
-        export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
-        export MESA_EXTENSION_OVERRIDE=-GL_ARB_explicit_uniform_location
-        export LP_NUM_THREADS=$(sysctl -n hw.ncpu) FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=1
-        set -e
-        gdb -q -batch -x ../../.github/gdbscript.py --args \
-            bin/floormat-editor --scenes=all --driver-no-swapbuffers
+      run: sh .github/ci-test.sh pgo
       timeout-minutes: 60
