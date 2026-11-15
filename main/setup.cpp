@@ -55,7 +55,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
     GL::Renderer::disable(Feature::FaceCulling);
     GL::Renderer::disable(Feature::DepthTest);
     GL::Renderer::enable(Feature::Blending);
-    GL::Renderer::enable(Feature::DepthClamp);
+    //GL::Renderer::enable(Feature::DepthClamp);
     GL::Renderer::setDepthFunction(DepthFunction::Greater);
     GL::Renderer::setProvokingVertex(ProvokingVertex::FirstVertexConvention);
 
