@@ -1122,7 +1122,24 @@ void test_bitview_read_matches_bit(u32 div_size)
         {
             const auto idx = Pass::Grid::get_bitmask_index(i, j, dc);
             fm_assert(view.read(idx) == g.bit(idx));
+            fm_assert(view.read(idx) == pass_bit(view.data, idx));
         }
+
+    auto words = Array<usize>{ValueInit, detail::grid::bitmask_size(dc) / (sizeof(usize)*8)};
+    Pass::BitView v{words.data()};
+    for (u32 idx = 0; idx < dc*dc; idx++)
+    {
+        v.set(idx);
+        fm_assert(v.read(idx) && pass_bit(words.data(), idx));
+        v.write(idx, false);
+        fm_assert(!pass_bit(words.data(), idx));
+        v.write(idx, true);
+        fm_assert(pass_bit(words.data(), idx));
+        v.reset(idx);
+        fm_assert(!v.read(idx) && !pass_bit(words.data(), idx));
+    }
+    for (auto x : words)
+        fm_assert(x == 0);
 }
 
 void test_partial_collect_then_collect_survivors(u32 div_size)
