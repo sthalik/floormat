@@ -231,7 +231,7 @@ bool do_group(state st, usize i, usize j, Group& new_group)
         if (size != expected_size) [[unlikely]]
         {
             ERR << "fatal: wrong image size, expected"
-                << resolution{expected_size} << colon(',')
+                << resolution{expected_size} << nospace(",")
                 << "actual" << resolution{size}
                 << "-- file" << filename;
             return false;
@@ -243,9 +243,9 @@ bool do_group(state st, usize i, usize j, Group& new_group)
         if (!convert_to_bgra32(mat, buf)) [[unlikely]]
         {
             ERR << "fatal: unknown image pixel format:"
-                << "channels" << mat.channels() << colon(',')
-                << "depth" << cv::depthToString(mat.depth()) << colon(',')
-                << "type" << cv::typeToString(mat.type()) << colon(',')
+                << "channels" << mat.channels() << nospace(",")
+                << "depth" << cv::depthToString(mat.depth()) << nospace(",")
+                << "type" << cv::typeToString(mat.type()) << nospace(",")
                 << "for" << quoted(filename);
             return false;
         }
@@ -305,7 +305,7 @@ bool do_direction(state& st, usize i)
 
 bool do_input_file(state& st)
 {
-    DBG << "input" << quoted(st.old_atlas.header.name) << colon(',') << quoted(st.opts.input_file);
+    DBG << "input" << quoted(st.old_atlas.header.name) << nospace(",") << quoted(st.opts.input_file);
 
     fm_assert(loader.check_atlas_name(st.old_atlas.header.name));
     fm_assert(any_bit_of(st.old_atlas.direction_mask));

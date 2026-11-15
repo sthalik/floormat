@@ -13,30 +13,16 @@ concept DebugPrintable = requires(Debug& dbg, const T& value) {
 
 namespace floormat::detail::corrade_debug {
 
-// ***** colon *****
-struct Colon { char c; };
-Debug& operator<<(Debug& dbg, Colon box);
-
 // ***** error string *****
 struct ErrorString { int value; };
 Debug& operator<<(Debug& dbg, ErrorString box);
 
 // ***** quoted *****
-template<typename T> struct Quoted
-{
-    using type = T;
-    T value; char c;
-};
+template<typename T> struct Quoted { T value; char c[2]; };
 
-Debug::Flags quoted_begin(Debug& dbg, char c);
-Debug& quoted_end(Debug& dbg, Debug::Flags flags, char c);
-
-template<typename T> Debug& operator<<(Debug& dbg, Quoted<T> box)
-{
-    Debug::Flags flags = quoted_begin(dbg, box.c);
-    dbg << box.value;
-    return quoted_end(dbg, flags, box.c);
-}
+// ***** nospace *****
+template<typename F> struct NoSpace { F print; };
+template<typename F> Debug& operator<<(Debug& dbg, const NoSpace<F>& box) { return box.print(dbg); }
 
 // ***** float *****
 
@@ -50,8 +36,6 @@ Debug& operator<<(Debug& dbg, Fraction frac);
 
 } // namespace floormat::detail::corrade_debug
 
-// ***** api *****
-
 // ***** functions *****
 
 namespace floormat {
@@ -60,25 +44,48 @@ std::istream* standard_input();
 std::ostream* standard_output();
 std::ostream* standard_error();
 
-floormat::detail::corrade_debug::Colon colon(char c = ':');
 floormat::detail::corrade_debug::ErrorString error_string(int error);
 floormat::detail::corrade_debug::ErrorString error_string();
 
 floormat::detail::corrade_debug::Fraction fraction(float value, int decimal_points = 1);
 
+template<DebugPrintable T, DebugPrintable... Ts>
+auto cat(T&& value, Ts&&... values)
+{
+    auto print = [&v = value, &...vs = values](Debug& dbg) -> Debug& {
+        dbg << v;
+        ((dbg << Debug::nospace << vs), ...);
+        return dbg;
+    };
+    return floormat::detail::corrade_debug::NoSpace<decltype(print)>{print};
+}
+
+template<DebugPrintable T, DebugPrintable... Ts>
+auto nospace(T&& value, Ts&&... values)
+{
+    auto print = [&v = value, &...vs = values](Debug& dbg) -> Debug& {
+        dbg << Debug::nospace << v;
+        ((dbg << Debug::nospace << vs), ...);
+        return dbg;
+    };
+    return floormat::detail::corrade_debug::NoSpace<decltype(print)>{print};
+}
+
 template<DebugPrintable T>
 auto quoted(T&& value, char c = '\'')
 {
-    using U = std::remove_cvref_t<T>;
-    using floormat::detail::corrade_debug::Quoted;
-    if constexpr(std::is_rvalue_reference_v<decltype(value)>)
-        return Quoted<U>{ .value = move(value), .c = c };
-    else
-        return Quoted<const U&>{ .value = value, .c = c };
+    return floormat::detail::corrade_debug::Quoted<T&&>{ .value = floormat::forward<T>(value), .c = { c, '\0' } };
 }
 
 template<DebugPrintable T> auto quoted2(T&& value) { return quoted(forward<T>(value), '"'); }
 
-// todo add operator for joining two printable items without spaces (when spaces are normally on)
-
 } // namespace floormat
+
+namespace floormat::detail::corrade_debug {
+
+template<typename T> Debug& operator<<(Debug& dbg, const Quoted<T>& box)
+{
+    return dbg << floormat::cat(box.c, box.value, box.c);
+}
+
+} // namespace floormat::detail::corrade_debug

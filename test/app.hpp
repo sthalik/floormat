@@ -36,6 +36,7 @@ void test_cover_point();
 void test_crc64();
 void test_critter();
 void test_critter_walk();
+void test_debug();
 void test_dijkstra();
 void test_dijkstra_reference();
 void test_emit_quick();

@@ -123,7 +123,7 @@ bool run_(critter& npc, const function_view<Ns() const>& make_dt,
     u32 frames_stopped = 0;
 
     if (!start.quiet) [[unlikely]]
-        Debug{} << "**" << start.name << start.instance << colon();
+        Debug{} << "**" << start.name << start.instance << nospace(":");
 
     constexpr auto print_pos = [](StringView prefix, point start, point pos, Ns time, Ns dt, const critter& npc) {
         DBG_nospace << prefix

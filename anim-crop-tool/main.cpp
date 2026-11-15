@@ -297,7 +297,7 @@ int main(int argc, char** argv)
 
     if (auto pathname = Path::join(opts.output_dir, (base_name + ".png")); !atlas.dump(pathname)) {
         auto errstr = error_string();
-        ERR << "error: failed writing image to" << quoted(pathname) << colon() << errstr;
+        ERR << "error: failed writing image to" << quoted(pathname) << errstr;
         return EX_CANTCREAT;
     }
     anim_info.pixel_size = Vector2ui(atlas.size());
