@@ -102,9 +102,9 @@ Range2D GridBase::coord_range_from_div(u32 x, u32 y, u32 div_size, u32 bbox_size
     return Range2D::fromSize(min, bbox);
 }
 
-std::pair<u32, u8> GridBase::byte_and_mask(u32 bit_index)
+std::pair<u32, usize> GridBase::word_and_mask(u32 bit_index)
 {
-    return { bit_index >> 3, u8(1u << (bit_index & 7)) };
+    return { bit_index / (sizeof(usize)*8), usize{1} << bit_index % (sizeof(usize)*8) };
 }
 
 GridBase* free_list::take()
@@ -226,27 +226,26 @@ void cascade_mark_neighbors_stale(
 
 bool BitView::read(u32 i) const
 {
-    auto [byte, mask] = GridBase::byte_and_mask(i);
-    return data[byte] & mask;
+    auto [word, mask] = GridBase::word_and_mask(i);
+    return data[word] & mask;
 }
 
 void BitView::set(u32 i)
 {
-    auto [byte, mask] = GridBase::byte_and_mask(i);
-    data[byte] |= mask;
+    auto [word, mask] = GridBase::word_and_mask(i);
+    data[word] |= mask;
 }
 
 void BitView::reset(u32 i)
 {
-    auto [byte, mask] = GridBase::byte_and_mask(i);
-    data[byte] &= u8(~mask);
+    auto [word, mask] = GridBase::word_and_mask(i);
+    data[word] &= ~mask;
 }
 
 void BitView::write(u32 i, bool value)
 {
-    auto [byte_idx, mask] = GridBase::byte_and_mask(i);
-    auto& byte = data[byte_idx];
-    byte = u8((byte & ~mask) | (u8(value) << (i & 7)));
+    auto [word, mask] = GridBase::word_and_mask(i);
+    data[word] = value ? data[word] | mask : data[word] & ~mask;
 }
 
 } // namespace floormat::detail::grid

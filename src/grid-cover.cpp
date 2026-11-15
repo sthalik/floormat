@@ -12,7 +12,6 @@
 #include "compat/nanosecond.inl"
 #include "compat/timer.hpp"
 #include <bit>
-#include <cstring>
 #include <array>
 #include <cr/Memory.h>
 #include <mg/Functions.h>
@@ -181,10 +180,26 @@ float raycast_one(chunk& self,
     return Math::min(Vector2(r.collision - from).length(), (float)max_ray_px);
 }
 
-// Bit n of the pass grid is bit (n & 7) of byte (n >> 3), as BitArray stores it.
-bool pass_bit(const u8* bits, u32 n)
+bool pass_bit(const usize* bits, u32 n)
 {
-    return bits[n >> 3] >> (n & 7) & 1;
+    return bits[n / (sizeof(usize)*8)] >> n % (sizeof(usize)*8) & 1;
+}
+
+template<typename D>
+auto pass_mask(D d, const usize* pass_bits, u32 n)
+{
+    namespace hn = hwy::HWY_NAMESPACE;
+    fm_debug3_assert(n % hn::Lanes(d) == 0);
+    if constexpr (std::endian::native == std::endian::little)
+        return hn::LoadMaskBits(d, reinterpret_cast<const u8*>(pass_bits) + n / 8);
+    else if constexpr (hn::MaxLanes(d) <= 8)
+        return hn::Dup128MaskFromMaskBits(d, (unsigned)(pass_bits[n / (sizeof(usize)*8)] >> n % (sizeof(usize)*8)));
+    else
+    {
+        static_assert(hn::MaxLanes(d) <= sizeof(usize)*8, "a vector's cells must sit in one word");
+        const auto bytes = std::byteswap((u64)(pass_bits[n / (sizeof(usize)*8)] >> n % (sizeof(usize)*8)));
+        return hn::LoadMaskBits(d, reinterpret_cast<const u8*>(&bytes));
+    }
 }
 
 // One row of a vertical or diagonal octant: a blocked cell stores (T)-1 and carries 0, and a passable
@@ -192,7 +207,7 @@ bool pass_bit(const u8* bits, u32 n)
 // redoes the edge cell that reads one. Returns false and touches nothing when the row doesn't split
 // into whole vectors.
 template<u32 DivSize, typename T>
-bool sweep_row_vectorized(u16* prev, T* out, const u8* row_bits, i32 sx,
+bool sweep_row_vectorized(u16* prev, T* out, const usize* pass_bits, u32 y, i32 sx,
                           u32 step, u32 runtime_div_size)
 {
     const u32 div_size = DivSize ? DivSize : runtime_div_size, dc = chunk_size_xy / div_size;
@@ -210,10 +225,6 @@ bool sweep_row_vectorized(u16* prev, T* out, const u8* row_bits, i32 sx,
     prev = assume_aligned<64>(prev);
     out = assume_aligned<out_align>(out);
 
-    // LoadMaskBits() may read 8 bytes, which runs past the end of the grid on its last row
-    alignas(64) u8 bits[chunk_size_xy / 8 + 8];
-    std::memcpy(bits, row_bits, dc / 8);
-
     const auto vstep = hn::Set(d, (u16)step);
     const auto vone = hn::Set(d, u16{1});
     const auto vblocked = hn::Set(d, (u16)(T)-1);
@@ -223,7 +234,7 @@ bool sweep_row_vectorized(u16* prev, T* out, const u8* row_bits, i32 sx,
     for (u32 b = 0, x = sx < 0 ? dc - N : 0; b < dc; b += N, x += dx)
     {
         const auto next = hn::SaturatedAdd(hn::LoadU(d, prev + x + sx), vstep);
-        const auto passable = hn::LoadMaskBits(d, bits + x / 8);
+        const auto passable = pass_mask(d, pass_bits, y*dc + x);
         const auto px = hn::IfThenElseZero(passable, next);
         hn::StoreU(px, d, prev + x);
         const auto rounded = hn::ShiftRight<1>(hn::Add(hn::ShiftRightSame(px, half_shift), vone));
@@ -236,10 +247,8 @@ bool sweep_row_vectorized(u16* prev, T* out, const u8* row_bits, i32 sx,
     return true;
 }
 
-// A div_size known at compile time turns the copy of the row's bits into a few moves. Others call
-// memcpy.
 template<typename T>
-bool sweep_row(u16* prev, T* out, const u8* row_bits, i32 sx, u32 step,
+bool sweep_row(u16* prev, T* out, const usize* pass_bits, u32 y, i32 sx, u32 step,
                u32 div_size)
 {
     static_assert(chunk_size_xy / 4 >= UINT8_MAX && chunk_size_xy / 8 < UINT8_MAX,
@@ -247,19 +256,19 @@ bool sweep_row(u16* prev, T* out, const u8* row_bits, i32 sx, u32 step,
     if constexpr (sizeof(T) == 2)
         switch (div_size)
         {
-        case 1:  return sweep_row_vectorized<1, T>(prev, out, row_bits, sx, step, div_size);
-        case 2:  return sweep_row_vectorized<2, T>(prev, out, row_bits, sx, step, div_size);
-        case 4:  return sweep_row_vectorized<4, T>(prev, out, row_bits, sx, step, div_size);
-        default: return sweep_row_vectorized<0, T>(prev, out, row_bits, sx, step, div_size);
+        case 1:  return sweep_row_vectorized<1, T>(prev, out, pass_bits, y, sx, step, div_size);
+        case 2:  return sweep_row_vectorized<2, T>(prev, out, pass_bits, y, sx, step, div_size);
+        case 4:  return sweep_row_vectorized<4, T>(prev, out, pass_bits, y, sx, step, div_size);
+        default: return sweep_row_vectorized<0, T>(prev, out, pass_bits, y, sx, step, div_size);
         }
     else
         switch (div_size)
         {
-        case 8:  return sweep_row_vectorized<8, T>(prev, out, row_bits, sx, step, div_size);
-        case 16: return sweep_row_vectorized<16, T>(prev, out, row_bits, sx, step, div_size);
-        case 32: return sweep_row_vectorized<32, T>(prev, out, row_bits, sx, step, div_size);
-        case 64: return sweep_row_vectorized<64, T>(prev, out, row_bits, sx, step, div_size);
-        default: return sweep_row_vectorized<0, T>(prev, out, row_bits, sx, step, div_size);
+        case 8:  return sweep_row_vectorized<8, T>(prev, out, pass_bits, y, sx, step, div_size);
+        case 16: return sweep_row_vectorized<16, T>(prev, out, pass_bits, y, sx, step, div_size);
+        case 32: return sweep_row_vectorized<32, T>(prev, out, pass_bits, y, sx, step, div_size);
+        case 64: return sweep_row_vectorized<64, T>(prev, out, pass_bits, y, sx, step, div_size);
+        default: return sweep_row_vectorized<0, T>(prev, out, pass_bits, y, sx, step, div_size);
         }
 }
 
@@ -274,16 +283,13 @@ bool stepped_rows_vectorize(u32 dc)
 }
 
 // One u16 per cell, all ones where passable, so a vector can load from any cell.
-void expand_pass_row(u16* out, const u8* row_bits, u32 dc)
+void expand_pass_row(u16* out, const usize* pass_bits, u32 y, u32 dc)
 {
     namespace hn = hwy::HWY_NAMESPACE;
     constexpr hn::ScalableTag<u16> d;
     const auto N = (u32)hn::Lanes(d);
-    // LoadMaskBits() may read 8 bytes, which runs past the end of the grid on its last row
-    alignas(64) u8 bits[chunk_size_xy / 8 + 8];
-    std::memcpy(bits, row_bits, dc / 8);
     for (u32 x = 0; x < dc; x += N)
-        hn::StoreU(hn::VecFromMask(d, hn::LoadMaskBits(d, bits + x / 8)), d, out + x);
+        hn::StoreU(hn::VecFromMask(d, pass_mask(d, pass_bits, y*dc + x)), d, out + x);
 }
 
 namespace {
@@ -382,9 +388,9 @@ struct CoverGrid : GridBase
 
     void build_impl(chunk* self);
     bool fill_octant(u32 k, chunk& self);
-    template<typename T> void fill_aligned(u32 k, chunk& self, const u8* bits, Vector2 dir,
+    template<typename T> void fill_aligned(u32 k, chunk& self, const usize* bits, Vector2 dir,
                                            i32 sx, i32 sy, float step_px);
-    template<typename T> void fill_stepped(u32 k, chunk& self, const u8* bits);
+    template<typename T> void fill_stepped(u32 k, chunk& self, const usize* bits);
     bool fill_next_unfilled(chunk& self);
 };
 
@@ -460,7 +466,7 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
     pass_grid.build_if_stale();
     // pass bit and cell (x, y) are both y*dc + x, as pack_bit_index() lays them out
     fm_debug_assert(get_cell_index(1, 1, dc) == dc + 1);
-    const u8* const bits = pass_grid.bits().data;
+    const usize* const bits = pass_grid.bits().data;
 
     const auto s = octant_steps[k];
     if (is_aligned(s))
@@ -493,7 +499,7 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
 // An aligned octant steps a whole cell at a time, so a passable cell is one step further than the
 // next one along the octant. Only a cell whose next one is off the grid casts a ray.
 template<typename T>
-void CoverGrid::fill_aligned(u32 k, chunk& self, const u8* bits, Vector2 dir,
+void CoverGrid::fill_aligned(u32 k, chunk& self, const usize* bits, Vector2 dir,
                              i32 sx, i32 sy, float step_px)
 {
     const u32 div_size = params.div_size, dc = chunk_size_xy / div_size;
@@ -559,7 +565,7 @@ void CoverGrid::fill_aligned(u32 k, chunk& self, const u8* bits, Vector2 dir,
     for (u32 n = 0; n < dc; n++)
     {
         const auto y = sy > 0 ? dc - 1 - n : n;
-        if (n > 0 && sweep_row(prev, plane + y*dc, bits + y*dc/8, sx, step_at(n), div_size))
+        if (n > 0 && sweep_row(prev, plane + y*dc, bits, y, sx, step_at(n), div_size))
         {
             // the cell whose next one is off the grid read row's spare cell instead
             if (sx != 0)
@@ -576,7 +582,7 @@ void CoverGrid::fill_aligned(u32 k, chunk& self, const u8* bits, Vector2 dir,
 // segment between their centers crosses stops it, at that cell's center along the major axis, or
 // else it is a step further than the cell a step away, which carries 0 when blocked.
 template<typename T>
-void CoverGrid::fill_stepped(u32 k, chunk& self, const u8* bits)
+void CoverGrid::fill_stepped(u32 k, chunk& self, const usize* bits)
 {
     const u32 div_size = params.div_size, dc = chunk_size_xy / div_size;
     auto& pass_pool = static_cast<CoverPool*>(pool)->pass_pool;
@@ -645,7 +651,7 @@ void CoverGrid::fill_stepped(u32 k, chunk& self, const u8* bits)
         const auto y = p > 0 ? dc - 1 - n : n;
         const auto step = n < ap ? 0 : Math::min(R(n) - R(n - ap), (u32)UINT16_MAX);
         if (vectorize)
-            expand_pass_row(mask_row(n), bits + y*dc/8, dc);
+            expand_pass_row(mask_row(n), bits, y, dc);
         if (vectorize && n >= ap)
         {
             for (u32 j = 0; j <= ap; j++)

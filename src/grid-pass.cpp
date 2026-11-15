@@ -9,8 +9,6 @@
 #include "compat/function-view.hpp"
 #include <bit>
 #include <array>
-#include <cstring>
-#include <cr/BitArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
 
@@ -21,61 +19,45 @@ namespace floormat {
 
 namespace floormat::detail::grid {
 namespace {
-// Bit n of the grid is bit (n & 7) of byte (n >> 3), as BitArray stores it. Read as
-// little-endian 64-bit words, that's bit (n & 63) of word (n >> 6) on any host.
-u64 load_word(const u8* bits, u32 word)
-{
-    u64 w;
-    std::memcpy(&w, bits + word * sizeof w, sizeof w);
-    if constexpr (std::endian::native == std::endian::big)
-        w = std::byteswap(w);
-    return w;
-}
-
-void store_word(u8* bits, u32 word, u64 w)
-{
-    if constexpr (std::endian::native == std::endian::big)
-        w = std::byteswap(w);
-    std::memcpy(bits + word * sizeof w, &w, sizeof w);
-}
-
-void clear_word_bits(u8* bits, u32 word, u64 mask)
-{
-    store_word(bits, word, load_word(bits, word) & ~mask);
-}
-
 // The clear_rect_*() functions clear columns [i_lo, i_hi] of rows [j_lo, j_hi], where bit
 // (i, j) is j*div_count + i. build_impl() picks one per build from div_count alone.
 
-// Every row's span sits inside one word: rows pack whole into words (64 % div_count == 0),
-// or rows are whole words and the span doesn't cross a multiple of 64.
-void clear_rect_in_word(u8* bits, u32 div_count, u32 i_lo, u32 i_hi, u32 j_lo, u32 j_hi)
+// Every row's span sits inside one word: rows pack whole into words, or rows are whole words
+// and the span doesn't cross into the next one.
+void clear_rect_in_word(usize* bits, u32 div_count, u32 i_lo, u32 i_hi, u32 j_lo, u32 j_hi)
 {
-    fm_debug3_assert(64 % div_count == 0 || (div_count % 64 == 0 && i_lo >> 6 == i_hi >> 6));
-    const u64 span = ~u64{0} >> (63 - (i_hi - i_lo));
+    fm_debug3_assert(sizeof(usize)*8 % div_count == 0 ||
+                     div_count % (sizeof(usize)*8) == 0 && i_lo / (sizeof(usize)*8) == i_hi / (sizeof(usize)*8));
+    const usize span = ~usize{0} >> (sizeof(usize)*8 - 1 - (i_hi - i_lo));
     for (auto bit = j_lo * div_count + i_lo, end = j_hi * div_count + i_lo; bit <= end; bit += div_count)
-        clear_word_bits(bits, bit >> 6, span << (bit & 63));
+        bits[bit / (sizeof(usize)*8)] &= ~(span << bit % (sizeof(usize)*8));
 }
 
-// Rows are whole words (div_count % 64 == 0). Whether the span crosses a word boundary
-// depends on the obstacle, so it's tested once here rather than per row.
-void clear_rect_whole_rows(u8* bits, u32 div_count, u32 i_lo, u32 i_hi, u32 j_lo, u32 j_hi)
+// Rows are whole words. Whether the span crosses a word boundary depends on the obstacle,
+// so it's tested once here rather than per row.
+void clear_rect_whole_rows(usize* bits, u32 div_count, u32 i_lo, u32 i_hi, u32 j_lo, u32 j_hi)
 {
-    fm_debug3_assert(div_count % 64 == 0);
-    const auto w0 = i_lo >> 6, w1 = i_hi >> 6;
+    fm_debug3_assert(div_count % (sizeof(usize)*8) == 0);
+    const auto w0 = i_lo / (u32)(sizeof(usize)*8), w1 = i_hi / (u32)(sizeof(usize)*8);
     if (w0 == w1)
         return clear_rect_in_word(bits, div_count, i_lo, i_hi, j_lo, j_hi);
 
-    const u64 m_lo = ~u64{0} << (i_lo & 63);
-    const u64 m_hi = ~u64{0} >> (63 - (i_hi & 63));
-    const auto words_per_row = div_count >> 6;
+    const usize m_lo = ~usize{0} << i_lo % (sizeof(usize)*8);
+    const usize m_hi = ~usize{0} >> (sizeof(usize)*8 - 1 - i_hi % (sizeof(usize)*8));
+    const auto words_per_row = div_count / (u32)(sizeof(usize)*8);
     for (auto row = j_lo * words_per_row, end = j_hi * words_per_row; row <= end; row += words_per_row)
     {
-        clear_word_bits(bits, row + w0, m_lo);
+        bits[row + w0] &= ~m_lo;
         for (auto k = w0 + 1; k < w1; k++)
-            store_word(bits, row + k, 0);
-        clear_word_bits(bits, row + w1, m_hi);
+            bits[row + k] = 0;
+        bits[row + w1] &= ~m_hi;
     }
+}
+
+// LoadMaskBits() may read 8 bytes from a row's start, which runs past the grid on its last row.
+u32 allocated_word_count(u32 div_count)
+{
+    return (bitmask_size(div_count) + 64) / (u32)(sizeof(usize)*8);
 }
 
 #ifdef FLOORMAT_GRID_PASS_DEBUG
@@ -128,7 +110,7 @@ struct PassGrid : GridBase
     using Params = Grid::Pass::Params;
 
     Params params;
-    BitArray bitmask;
+    Array<usize> bitmask;
     bool all_empty = false;
 
     PassGrid(chunk& c, Params params);
@@ -162,13 +144,13 @@ Range2D PassGrid::get_coord_from_div(u32 x, u32 y) const
 
 void PassGrid::build_impl(chunk* self)
 {
-    bitmask.setAll();
-    fm_debug_assert(bitmask.offset() == 0);
-    u8* const bits{reinterpret_cast<u8*>(bitmask.data())};
+    for (auto& w : bitmask)
+        w = ~usize{0};
+    usize* const bits = bitmask.data();
 
     const auto div_countʹ = params.div_count;
     const auto div_size  = params.div_size();
-    fm_assert(div_countʹ*div_countʹ <= bitmask.size());
+    fm_assert(div_countʹ*div_countʹ <= bitmask.size() * (sizeof(usize)*8));
 
     const auto bbox_lo = (float)(params.bbox_size / 2), bbox_hi = (float)params.bbox_size - bbox_lo;
     const inflated_cells cells_of{div_size, div_countʹ, params.bbox_size};
@@ -220,8 +202,8 @@ void PassGrid::build_impl(chunk* self)
         }
     };
 
-    // div_count is a power of two, so it divides 64 or is a multiple of it.
-    if (64 % div_countʹ == 0) [[likely]] // xxx todo assumes power of two chunk size
+    // div_count is a power of two, so it divides a word's bit count or is a multiple of it.
+    if (sizeof(usize)*8 % div_countʹ == 0) [[likely]] // xxx todo assumes power of two chunk size
         clear_obstacles([=](u32 i_lo, u32 i_hi, u32 j_lo, u32 j_hi) {
             clear_rect_in_word(bits, div_countʹ, i_lo, i_hi, j_lo, j_hi);
         });
@@ -234,7 +216,7 @@ void PassGrid::build_impl(chunk* self)
 PassGrid::PassGrid(chunk& c, Params params):
     GridBase{c},
     params{params},
-    bitmask{ValueInit, bitmask_size(params.div_count)}
+    bitmask{ValueInit, allocated_word_count(params.div_count)}
 {
 #ifdef FLOORMAT_GRID_PASS_DEBUG
     ++grid_total_count;
@@ -255,11 +237,12 @@ void PassGrid::reset_for_reuse(chunk& ch, Params new_params)
 {
     reset_base_for_reuse(ch);
     params = new_params;
-    const auto bits = bitmask_size(params.div_count);
-    if (bitmask.size() < bits) [[unlikely]]
-        bitmask = BitArray{ValueInit, bits};
+    const auto words = allocated_word_count(params.div_count);
+    if (bitmask.size() < words) [[unlikely]]
+        bitmask = Array<usize>{ValueInit, words};
     else
-        bitmask.resetAll();
+        for (auto& w : bitmask)
+            w = 0;
 }
 
 template struct Pool<PassGrid>;
@@ -274,7 +257,8 @@ namespace {
 template <typename T>
 bool grid_bit_at(T* grid, u32 index)
 {
-    return grid->bitmask[index];
+    auto [word, mask] = GridBase::word_and_mask(index);
+    return grid->bitmask[word] & mask;
 }
 
 namespace Tests {
@@ -359,8 +343,7 @@ bool Grid::bit(u32 index) const
 BitView Grid::bits() const
 {
     detail::grid::check_current(grid);
-    fm_debug_assert(grid->bitmask.offset() == 0);
-    return { reinterpret_cast<u8*>(grid->bitmask.data()) };
+    return { grid->bitmask.data() };
 }
 
 u32 Grid::div_count() const

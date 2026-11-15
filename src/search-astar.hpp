@@ -101,8 +101,8 @@ private:
     Array<Array<frontier>> buckets;
     Array<u32> bucket_sizes;
     Array<point> temp_nodes;
-    Array<const u8*> chunk_bits;
-    Array<u8> masked_bits;
+    Array<const usize*> chunk_bits;
+    Array<usize> masked_bits;
     Array<bool> entry_blocked;
     Array<u32> seed_search_state;
     Array<Range2D> seed_rects;

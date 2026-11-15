@@ -73,7 +73,7 @@ public:
     template<typename T> bool is_blocked(u32 index, ArrayView<const bool> entry_blocked) const;
     /// @brief Writes @p pass_bits to @p out, with each cell cleared that is_blocked(). Both span
     /// detail::grid::bitmask_size(div_count()) bits.
-    void mask_pass_bits(ArrayView<const u8> pass_bits, ArrayView<u8> out,
+    void mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out,
                         ArrayView<const bool> entry_blocked) const;
 
     u32 div_count() const;

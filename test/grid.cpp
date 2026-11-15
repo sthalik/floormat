@@ -1095,6 +1095,11 @@ void test_multiple_pooled_items(u32 div_size)
     fm_assert(pool.pooled_count() == 3);
 }
 
+bool pass_bit(const usize* words, u32 n)
+{
+    return words[n / (sizeof(usize)*8)] >> n % (sizeof(usize)*8) & 1;
+}
+
 void test_bitview_read_matches_bit(u32 div_size)
 {
     auto w = world();
@@ -1887,23 +1892,26 @@ void test_expand_pass_row()
             continue;
         for (auto pattern = 0u; pattern < 4; pattern++)
         {
-            auto row = Array<u8>{NoInit, dc / 8};
-            for (auto i = 0u; i < dc / 8; i++)
+            auto bits = Array<usize>{NoInit, (3*dc + 64 + sizeof(usize)*8 - 1) / (sizeof(usize)*8)};
+            for (auto i = 0u; i < bits.size(); i++)
             {
-                const auto b = (u8)(i * 37 + 11);
-                const u8 bytes[] = { 0, 0xff, b, (u8)~b };
-                row[i] = bytes[pattern];
+                const auto b = (usize)((i + 1) * 0x9e3779b97f4a7c15u);
+                const usize words[] = { 0, ~usize{0}, b, ~b };
+                bits[i] = words[pattern];
             }
-            auto out = Array<u16>{DirectInit, dc, u16{0x1234}};
-            detail::grid::expand_pass_row(out.data(), row.data(), dc);
-            for (auto x = 0u; x < dc; x++)
+            for (auto y = 0u; y < 3; y++)
             {
-                const auto expected = (u16)(row[x >> 3] >> (x & 7) & 1 ? 0xffff : 0);
-                if (out[x] != expected)
+                auto out = Array<u16>{DirectInit, dc, u16{0x1234}};
+                detail::grid::expand_pass_row(out.data(), bits.data(), y, dc);
+                for (auto x = 0u; x < dc; x++)
                 {
-                    ERR << "!!! fatal: dc" << dc << "pattern" << pattern << "cell" << x
-                        << "mask" << out[x] << "but expected" << expected;
-                    fm_abort("expand_pass_row() gave a wrong mask");
+                    const auto expected = (u16)(pass_bit(bits.data(), y*dc + x) ? 0xffff : 0);
+                    if (out[x] != expected)
+                    {
+                        ERR << "!!! fatal: dc" << dc << "pattern" << pattern << "row" << y << "cell" << x
+                            << "mask" << out[x] << "but expected" << expected;
+                        fm_abort("expand_pass_row() gave a wrong mask");
+                    }
                 }
             }
         }
@@ -3214,9 +3222,9 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
         fm_assert(g.entry_chunks()[e] == chunks[placement[e]]);
     }
 
-    const auto bytes = detail::grid::bitmask_size((u32)dc) / 8;
-    const auto all_set = Array<u8>{DirectInit, bytes, (u8)0xff};
-    auto masked = Array<u8>{NoInit, bytes};
+    const auto words = detail::grid::bitmask_size((u32)dc) / (sizeof(usize)*8);
+    const auto all_set = Array<usize>{DirectInit, words, ~usize{0}};
+    auto masked = Array<usize>{NoInit, words};
     Array<bool> entry_blocked;
     for (auto k = 0u; k < ids.size(); k++)
     {
@@ -3231,11 +3239,11 @@ void check_object_grid(const char* what, u32 div_size, u32 bbox_size, std::initi
         for (auto idx = 0u; idx < (u32)(dc*dc); idx++)
         {
             const bool blocked = expected[idx] & 1u << k;
-            if (g.is_blocked<u16>(idx, entry_blocked) != blocked || (masked[idx / 8] >> idx % 8 & 1) == blocked)
+            if (g.is_blocked<u16>(idx, entry_blocked) != blocked || pass_bit(masked.data(), idx) == blocked)
             {
                 ERR << "!!! fatal:" << what << "div_size" << d << "bbox_size" << bbox_size << "cell" << idx % (u32)dc
                     << idx / (u32)dc << "critter" << k << "blocks" << g.is_blocked<u16>(idx, entry_blocked)
-                    << "masked" << (masked[idx / 8] >> idx % 8 & 1) << "but positions say" << blocked;
+                    << "masked" << pass_bit(masked.data(), idx) << "but positions say" << blocked;
                 fm_abort("an object grid cell blocks differently from its positions");
             }
         }
@@ -3354,18 +3362,18 @@ void test_object_grid_crowd()
     }
     fm_assert(g.uses_u32());
 
-    const auto bytes = detail::grid::bitmask_size(dc) / 8;
-    const auto all_set = Array<u8>{DirectInit, bytes, (u8)0xff};
-    auto masked = Array<u8>{NoInit, bytes};
+    const auto words = detail::grid::bitmask_size(dc) / (sizeof(usize)*8);
+    const auto all_set = Array<usize>{DirectInit, words, ~usize{0}};
+    auto masked = Array<usize>{NoInit, words};
     Array<bool> entry_blocked;
     fm_assert(g.blocked_objects(Search::never_continue, entry_blocked));
     g.mask_pass_bits(all_set, masked, entry_blocked);
     for (auto i = 0u; i < dc*dc; i++)
     {
         const bool covered = expected[i*4] != (u32)-1;
-        if ((masked[i / 8] >> i % 8 & 1) == covered)
+        if (pass_bit(masked.data(), i) == covered)
         {
-            ERR << "!!! fatal: cell" << i % dc << i / dc << "masked" << (masked[i / 8] >> i % 8 & 1)
+            ERR << "!!! fatal: cell" << i % dc << i / dc << "masked" << pass_bit(masked.data(), i)
                 << "but covered" << covered;
             fm_abort("a crowded object grid masks pass bits differently from its cells");
         }

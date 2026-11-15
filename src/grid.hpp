@@ -56,7 +56,7 @@ struct GridBase
     static u32 pack_bit_index(u32 i, u32 j, u32 div_count);
     static u32 pack_bit_index_from_coord(intra_coord pos, u32 div_count);
     static Range2D coord_range_from_div(u32 x, u32 y, u32 div_size, u32 bbox_size);
-    static std::pair<u32, u8> byte_and_mask(u32 bit_index);
+    static std::pair<u32, usize> word_and_mask(u32 bit_index);
     static u64 next_build_no();
 
     template <BitGrid Self, typename... Args>
@@ -113,7 +113,7 @@ template <typename T> struct Pool;
 
 struct BitView
 {
-    u8* data;
+    usize* data;
 
     bool read(u32 i) const;
     void set(u32 i);

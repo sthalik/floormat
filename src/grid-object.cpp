@@ -52,8 +52,8 @@ struct ObjectGrid : GridBase
     template<typename T> void clear_cells(Array<T>& cells, u32 range_count);
     template<typename T> bool is_blocked(const Array<T>& cells, const Array<T>& runs, u32 index,
                                          ArrayView<const bool> entry_blocked) const;
-    template<typename T> void mask_pass_bits(const Array<T>& cells, const Array<T>& runs, const u8* pass_bits, u8* out,
-                                             ArrayView<const bool> entry_blocked) const;
+    template<typename T> void mask_pass_bits(const Array<T>& cells, const Array<T>& runs, const usize* pass_bits,
+                                             usize* out, ArrayView<const bool> entry_blocked) const;
     template<typename T> Grid::Object::cell_object_view<T> objects_at_cell(const Array<T>& cells,
                                                                            const Array<T>& runs, u32 index) const;
     bool is_entry_blocked(u32 k, const Search::pred& p) const;
@@ -136,15 +136,15 @@ bool ObjectGrid::is_blocked(const Array<T>& cells, const Array<T>& runs, u32 ind
 }
 
 template<typename T>
-void ObjectGrid::mask_pass_bits(const Array<T>& cells, const Array<T>& runs, const u8* pass_bits, u8* out,
+void ObjectGrid::mask_pass_bits(const Array<T>& cells, const Array<T>& runs, const usize* pass_bits, usize* out,
                                 ArrayView<const bool> entry_blocked) const
 {
-    const auto n = bitmask_size(params.div_count) / 8;
+    const auto n = bitmask_size(params.div_count) / (u32)(sizeof(usize)*8);
     for (auto k = 0u; k < n; k++)
     {
-        u8 mask = 0;
-        for (auto t = 0u; t < 8; t++)
-            mask |= (u8)(!is_blocked(cells, runs, k*8 + t, entry_blocked) << t);
+        usize mask = 0;
+        for (auto t = 0u; t < sizeof(usize)*8; t++)
+            mask |= (usize)!is_blocked(cells, runs, k*(u32)(sizeof(usize)*8) + t, entry_blocked) << t;
         out[k] = pass_bits[k] & mask;
     }
 }
@@ -375,12 +375,12 @@ template<typename T> bool Grid::is_blocked(u32 index, ArrayView<const bool> entr
 template bool Grid::is_blocked<u16>(u32, ArrayView<const bool>) const;
 template bool Grid::is_blocked<u32>(u32, ArrayView<const bool>) const;
 
-void Grid::mask_pass_bits(ArrayView<const u8> pass_bits, ArrayView<u8> out,
+void Grid::mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out,
                           ArrayView<const bool> entry_blocked) const
 {
     detail::grid::check_current(grid);
     fm_debug_assert(entry_blocked.size() == grid->entry_data.size());
-    const auto n = detail::grid::bitmask_size(grid->params.div_count) / 8;
+    const auto n = detail::grid::bitmask_size(grid->params.div_count) / (sizeof(usize)*8);
     fm_debug_assert(pass_bits.size() == n && out.size() == n);
     const auto& g = *grid;
     if (g.uses_u32)

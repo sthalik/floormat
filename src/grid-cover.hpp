@@ -11,7 +11,7 @@ namespace floormat::detail::grid {
 struct CoverGrid;
 struct CoverPool;
 bool stepped_rows_vectorize(u32 dc);
-void expand_pass_row(u16* out, const u8* row_bits, u32 dc);
+void expand_pass_row(u16* out, const usize* pass_bits, u32 y, u32 dc);
 } // namespace
 
 namespace floormat::Grid::Pass { class Pool; }

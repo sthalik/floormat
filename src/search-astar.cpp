@@ -22,7 +22,6 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
-#include <cstring>
 #include <bit>
 #include <cr/Algorithms.h>
 #include <cr/GrowableArray.h>
@@ -262,42 +261,42 @@ struct astar::chunk_bitmaps
     Grid::Object::Pool* objects;
     Search::cache& cache;
     const astar::pred& p;
-    const u8** bits;
-    u8* masked_bits;
+    const usize** bits;
+    usize* masked_bits;
     Array<bool>& entry_blocked;
-    u32 div_size, div_shift, div_count, bitmask_bytes;
+    u32 div_size, div_shift, div_count, bitmask_word_count;
 
-    CORRADE_ALWAYS_INLINE bool test_bit(const u8* b, Vector2ui pix) const
+    CORRADE_ALWAYS_INLINE bool test_bit(const usize* b, Vector2ui pix) const
     {
         fm_debug3_assert(pix.x() < chunk_size_xy && pix.y() < chunk_size_xy);
         const auto pos = pix >> div_shift;
         const auto i = pos.y() * div_count + pos.x();
-        return b[i >> 3] & (1u << (i & 7));
+        return b[i / (sizeof(usize)*8)] >> i % (sizeof(usize)*8) & 1;
     }
 
-    CORRADE_ALWAYS_INLINE bool test_bit(const u8* b, point pt) const
+    CORRADE_ALWAYS_INLINE bool test_bit(const usize* b, point pt) const
     {
         return test_bit(b, Vector2ui(Vector2i(intra_coord{pt})));
     }
 
     // Only while bits[chunk_idx] is null: the clear drops the chunk's nodes.
-    CORRADE_NEVER_INLINE const u8* resolve(point pt, usize chunk_idx)
+    CORRADE_NEVER_INLINE const usize* resolve(point pt, usize chunk_idx)
     {
         cache.clear_chunk((u32)chunk_idx);
         auto* c = w.at(pt.chunk3());
         if (!c)
-            return bits[chunk_idx] = std::bit_cast<const u8*>(uptr{1});
+            return bits[chunk_idx] = std::bit_cast<const usize*>(uptr{1});
         auto grid = pool[*c];
         grid.build_if_stale();
-        const u8* b = grid.bits().data;
+        const usize* b = grid.bits().data;
         if (objects)
         {
             auto og = (*objects)[*c];
             og.build_if_stale();
             if (og.blocked_objects(p, entry_blocked))
             {
-                auto* out = masked_bits + chunk_idx * bitmask_bytes;
-                og.mask_pass_bits({b, bitmask_bytes}, {out, bitmask_bytes}, entry_blocked);
+                auto* out = masked_bits + chunk_idx * bitmask_word_count;
+                og.mask_pass_bits({b, bitmask_word_count}, {out, bitmask_word_count}, entry_blocked);
                 b = out;
             }
         }
@@ -362,24 +361,26 @@ struct astar::chunk_bitmaps
                 return { 0, chunk_idx, tile_idx, pix };
         }
         u32 win = 0;
-        // A row is one u64. A narrower one would read past the last row.
-        if (constexpr u32 row_cells = 64; div_count == row_cells) [[likely]]
+        // A row is one word.
+        if (constexpr u32 row_cells = sizeof(usize)*8; div_count == row_cells) [[likely]]
         {
             const auto cell = Vector2ui(pix) / (u32)(cs/row_cells);
             fm_debug3_assert(cell.x() - 1 < div_count - 2 && cell.y() - 1 < div_count - 2);
             for (u32 r = 0; r < 3; r++)
-            {
-                u64 row;
-                std::memcpy(&row, b + (cell.y() - 1 + r)*(row_cells/8), sizeof row);
-                if constexpr (std::endian::native == std::endian::big)
-                    row = std::byteswap(row);
-                win |= (u32)((row >> (cell.x() - 1)) & 7) << r*3;
-            }
+                win |= (u32)((b[cell.y() - 1 + r] >> (cell.x() - 1)) & 7) << r*3;
         }
         else
-            for (int r = 0; r < 3; r++)
-                for (int c = 0; c < 3; c++)
-                    win |= (u32)test_bit(b, Vector2ui(pix + Vector2i{c - 1, r - 1}*step)) << (r*3 + c);
+        {
+            const auto cell = Vector2ui(pix) >> div_shift;
+            for (u32 r = 0; r < 3; r++)
+            {
+                const u32 i = (cell.y() - 1 + r)*div_count + cell.x() - 1;
+                usize w = b[i / (sizeof(usize)*8)] >> i % (sizeof(usize)*8);
+                if (i % (sizeof(usize)*8) > sizeof(usize)*8 - 3) [[unlikely]]
+                    w |= b[i / (sizeof(usize)*8) + 1] << (sizeof(usize)*8 - i % (sizeof(usize)*8));
+                win |= (u32)(w & 7) << r*3;
+            }
+        }
         return { win, chunk_idx, tile_idx, pix };
     }
 
@@ -1035,12 +1036,12 @@ auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::
     const auto params = pool.params();
     const auto nchunks = (usize)cache.size.product();
     if (chunk_bits.size() < nchunks)
-        chunk_bits = Array<const u8*>{ValueInit, nchunks};
+        chunk_bits = Array<const usize*>{ValueInit, nchunks};
     else
         fill(chunk_bits.prefix(nchunks), nullptr);
 
-    const auto bitmask_bytes = detail::grid::bitmask_size(params.div_count) / 8;
-    if (const auto n = (u32)(nchunks * bitmask_bytes); objects)
+    const auto bitmask_word_count = detail::grid::bitmask_size(params.div_count) / (u32)(sizeof(usize)*8);
+    if (const auto n = (u32)(nchunks * bitmask_word_count); objects)
     {
         if (arrayCapacity(masked_bits) < n)
             arrayReserve(masked_bits, n + n/2);
@@ -1055,7 +1056,7 @@ auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::
         .div_size = params.div_size(),
         .div_shift = (u32)std::countr_zero(params.div_size()), // xxx todo assumes power of two chunk size
         .div_count = params.div_count,
-        .bitmask_bytes = bitmask_bytes,
+        .bitmask_word_count = bitmask_word_count,
     };
 }
 
