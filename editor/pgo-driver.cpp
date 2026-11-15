@@ -45,6 +45,7 @@
 #include <mg/ImGuiIntegration/Integration.h>
 #include "compat/array-size.hpp"
 #include "compat/assert.hpp"
+#include "compat/debug.hpp"
 #include "compat/enum-bitset.hpp"
 #include "compat/function-view.hpp"
 #include "compat/borrowed-ptr.inl"
@@ -1175,8 +1176,8 @@ task app::scene_walk()
     // empty() stays false and the walk below runs that route to its end and reports success.
     if (!res.is_found())
     {
-        ERR_nospace << "driver: no path " << from << " -> " << to
-                    << ", closest " << res.distance() << " px over " << res.size() << " waypoints";
+        ERR << "driver: no path" << from << "->" << cat(to, ",")
+            << "closest" << res.distance() << "px over" << res.size() << "waypoints";
         fm_abort("%s", "walk: no path");
     }
     // res is moved into the script below, so the copy the overlay draws has to be taken first.
@@ -1289,8 +1290,8 @@ task app::scene_maze1()
         // Same partial-route trap as scene_walk.
         if (!res.is_found())
         {
-            ERR_nospace << "driver: maze1 has no path " << from << " -> " << to
-                        << ", closest " << res.distance() << " px over " << res.size() << " waypoints";
+            ERR << "driver: maze1 has no path" << from << "->" << cat(to, ",")
+                << "closest" << res.distance() << "px over" << res.size() << "waypoints";
             fm_abort("%s", "maze1: unroutable");
         }
 
@@ -1517,8 +1518,8 @@ task app::scene_maze2()
     // Same partial-route trap as scene_walk.
     if (!res.is_found())
     {
-        ERR_nospace << "driver: maze2 has no path " << from << " -> " << to
-                    << ", closest " << res.distance() << " px over " << res.size() << " waypoints";
+        ERR << "driver: maze2 has no path" << from << "->" << cat(to, ",")
+            << "closest" << res.distance() << "px over" << res.size() << "waypoints";
         fm_abort("%s", "maze2: unroutable");
     }
 
@@ -1556,8 +1557,8 @@ task app::scene_maze3()
                                           Search::blocks_all_but(C->id));
         if (!res.is_found())
         {
-            ERR_nospace << "driver: maze3 " << mazes::name(kind(k)) << " has no path "
-                        << r.from << " -> " << r.to << ", closest " << res.distance() << " px";
+            ERR << "driver: maze3" << mazes::name(kind(k)) << "has no path"
+                << r.from << "->" << cat(r.to, ",") << "closest" << res.distance() << "px";
             fm_abort("%s", "maze3: unroutable");
         }
         co_await pan_along_path(res.path());
@@ -1614,8 +1615,8 @@ task app::scene_maze_exit()
         // Same partial-route trap as scene_walk.
         if (!res.is_found())
         {
-            ERR_nospace << "driver: maze-exit seed " << seed << " has no path "
-                        << r.from << " -> " << r.to << ", closest " << res.distance() << " px";
+            ERR << "driver: maze-exit seed" << seed << "has no path"
+                << r.from << "->" << cat(r.to, ",") << "closest" << res.distance() << "px";
             fm_abort("%s", "maze-exit: unroutable");
         }
         const auto len = res.cost();
@@ -1667,8 +1668,8 @@ task app::scene_maze_test()
         const auto px = point_to_pixel(ensure_player_character(w)->position());
         if (px.x() < 0 || px.y() < 0 || px.x() >= win.x() || px.y() >= win.y())
         {
-            ERR_nospace << "driver: maze-test: player at pixel " << px << " after " << step
-                        << ", window " << win;
+            ERR << "driver: maze-test: player at pixel" << px << "after" << step
+                << nospace(", window") << win;
             fm_abort("%s", "maze-test: player off-screen");
         }
     };

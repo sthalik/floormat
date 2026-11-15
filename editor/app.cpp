@@ -2,6 +2,7 @@
 #include "editor.hpp"
 #include "pgo-scenes.hpp"
 #include "compat/assert.hpp"
+#include "compat/debug.hpp"
 #include "compat/game-mode.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/split-string.hpp"
@@ -40,7 +41,7 @@ bool parse_bool(StringView name, const Corrade::Utility::Arguments& args)
         return true;
     else if (find_arg(false_values, str))
         return false;
-    ERR_nospace << "invalid --" << name << " argument '" << str << "': should be 'true' or 'false'";
+    ERR << cat("invalid --", name) << "argument" << quoted(str) << nospace(": should be 'true' or 'false'");
     std::exit(EX_USAGE);
 }
 
@@ -53,7 +54,7 @@ u32 parse_uint(StringView name, const Corrade::Utility::Arguments& args)
     if (str.isEmpty() || str[0] < '0' || str[0] > '9' ||
         std::sscanf(str.data(), "%u%n", &value, &n) != 1 || (usize)n != str.size())
     {
-        ERR_nospace << "invalid --" << name << " argument '" << str << "': should be a number";
+        ERR << cat("invalid --", name) << "argument" << quoted(str) << nospace(": should be a number");
         std::exit(EX_USAGE);
     }
     return value;
@@ -136,7 +137,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     for (int i = 1; i < argc; i++)
         if (StringView{argv[i]}.hasPrefix("--driver"_s) || StringView{argv[i]}.hasPrefix("--scenes"_s))
         {
-            ERR_nospace << argv[i] << " needs a build without FLOORMAT_NO_PGO_DRIVER";
+            ERR << argv[i] << "needs a build without FLOORMAT_NO_PGO_DRIVER";
             std::exit(EX_USAGE);
         }
 #endif
@@ -167,7 +168,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         // split_string() yields nothing for it, which would pass as --scenes=none.
         if (arg.isEmpty())
         {
-            ERR_nospace << "invalid --scenes argument ''";
+            ERR << "invalid --scenes argument ''";
             std::exit(EX_USAGE);
         }
         const auto scenes = app::scenes();
@@ -211,10 +212,10 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
                 {
                     // Scoped because Error's dtor writes the newline and std::exit() skips dtors.
                     {
-                        auto err = ERR_nospace;
-                        err << "invalid --scenes name '" << name << "', known scenes:";
+                        auto err = ERR;
+                        err << "invalid --scenes name" << quoted(name) << nospace(", known scenes:");
                         for (const auto& s : scenes)
-                            err << " " << StringView{s.name};
+                            err << StringView{s.name};
                     }
                     std::exit(EX_USAGE);
                 }
@@ -226,25 +227,25 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     opts.driver_no_swapbuffers = args.isSet("driver-no-swapbuffers");
     if (opts.driver_no_swapbuffers && !opts.driver)
     {
-        ERR_nospace << "--driver-no-swapbuffers needs --scenes";
+        ERR << "--driver-no-swapbuffers needs --scenes";
         std::exit(EX_USAGE);
     }
     opts.driver_save_world = args.isSet("driver-save-world");
     if (opts.driver_save_world && !opts.driver)
     {
-        ERR_nospace << "--driver-save-world needs --scenes";
+        ERR << "--driver-save-world needs --scenes";
         std::exit(EX_USAGE);
     }
     opts.driver_repeat = parse_uint("driver-repeat", args);
     if (opts.driver_repeat == 0)
     {
-        ERR_nospace << "--driver-repeat must be at least 1";
+        ERR << "--driver-repeat must be at least 1";
         std::exit(EX_USAGE);
     }
     // An explicit 1 reads the same as the default.
     if (opts.driver_repeat != 1 && !opts.driver)
     {
-        ERR_nospace << "--driver-repeat needs --scenes";
+        ERR << "--driver-repeat needs --scenes";
         std::exit(EX_USAGE);
     }
 #endif
@@ -257,7 +258,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     // anything slower than 10 Hz would quietly run at 10.
     if (opts.fixed_framerate && opts.fixed_framerate < 10)
     {
-        ERR_nospace << "--fixed-framerate must be at least 10";
+        ERR << "--fixed-framerate must be at least 10";
         std::exit(EX_USAGE);
     }
     if (auto str = args.value<StringView>("geometry"))
@@ -266,7 +267,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         int n = 0, ret = std::sscanf(str.data(), "%hux%hu%n", &size.x(), &size.y(), &n);
         if (ret != 2 || (usize)n != str.size() || Vector2ui(size).product() == 0)
         {
-            ERR_nospace << "invalid --geometry argument '" << str << "'";
+            ERR << "invalid --geometry argument" << quoted(str);
             std::exit(EX_USAGE);
         }
         else
@@ -286,7 +287,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         opts.minimized = true;
     else
     {
-        ERR_nospace << "invalid window mode '" << str << "'";
+        ERR << "invalid window mode" << quoted(str);
         std::exit(EX_USAGE);
     }
     return opts;

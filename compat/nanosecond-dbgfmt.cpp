@@ -55,11 +55,9 @@ Debug& operator<<(Debug& dbg, const Ns& val)
         precision = 0;
     }
     if (!precision)
-        dbg << (u64)x << Debug::nospace << unit;
+        return dbg << cat((u64)x, unit);
     else
-        dbg << fraction((float)x, precision) << Debug::nospace << unit;
-
-    return dbg;
+        return dbg << cat(fraction((float)x, precision), unit);
 }
 
 } // namespace floormat

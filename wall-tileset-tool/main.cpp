@@ -57,12 +57,7 @@ std::string asformat(fmt::format_string<Xs...> fmt, Xs&&... args)
 
 Debug& operator<<(Debug& dbg, resolution res)
 {
-    auto flags = dbg.flags();
-    dbg << "";
-    dbg.setFlags(flags | Debug::Flag::NoSpace);
-    dbg << res.x() << "x"_s << res.y();
-    dbg.setFlags(flags);
-    return dbg;
+    return dbg << cat(res.x(), "x"_s, res.y());
 }
 
 template<usize N> constexpr bool any_bit_of(const std::array<bool, N>& array)
@@ -262,7 +257,7 @@ bool do_group(state st, usize i, usize j, Group& new_group)
         return false;
     }
 
-    DBG << "      " << Debug::nospace << count << (count == 1 ? "frame" : "frames");
+    DBG << cat("      ", count) << (count == 1 ? "frame" : "frames");
 
     fm_assert(start + count == st.n_frames);
     new_group.count = count;
@@ -369,11 +364,11 @@ argument_tuple parse_cmdline(int argc, const char* const* argv) noexcept
     //DBG << "output-dir" << opts.output_dir;
 
     if (!Path::exists(opts.input_file))
-        Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' doesn't exist";
+        ERR << "fatal: input file" << quoted(opts.input_file) << "doesn't exist";
     else if (!Path::isDirectory(opts.output_dir))
-        Error{Error::Flag::NoSpace} << "fatal: output directory '" << opts.output_dir << "' doesn't exist";
+        ERR << "fatal: output directory" << quoted(opts.output_dir) << "doesn't exist";
     else if (Path::isDirectory(opts.input_file))
-        Error{Error::Flag::NoSpace} << "fatal: input file '" << opts.input_file << "' is a directory";
+        ERR << "fatal: input file" << quoted(opts.input_file) << "is a directory";
     else
     {
         fm_assert(opts.output_dir);

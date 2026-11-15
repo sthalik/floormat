@@ -10,6 +10,7 @@
 #include "hole.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/borrowed-ptr.inl"
+#include "compat/debug.hpp"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
 #include <cr/GrowableArray.h>
@@ -278,9 +279,7 @@ void world::throw_on_wrong_scenery_type(object_id id, scenery_type actual, scene
 
 void world::throw_on_empty_scenery_proto(object_id id, global_coords pos, Vector2b offset)
 {
-    ERR_nospace << "scenery_proto subtype not set"
-                << " id:" << id
-                << " pos:" << point{pos, offset};
+    ERR << "scenery_proto subtype not set" << cat("id:", id) << cat("pos:", point{pos, offset});
     auto ch = Vector3i(pos.chunk3());
     auto t = Vector2i(pos.local());
     fm_throw("scenery_proto subtype not set! id:{} chunk:{}x{}x{} tile:{}x{}",

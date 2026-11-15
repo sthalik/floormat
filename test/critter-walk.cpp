@@ -2,6 +2,7 @@
 #include "run.hpp"
 #include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/debug.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
@@ -605,20 +606,20 @@ struct case_desc
 void print_case(const case_desc& cd, u32 call)
 {
     const auto& b = boxes[cd.box];
-    DBG_nospace << "critter-walk: " << entry_names[(u32)cd.wk.e] << " from " << cd.wk.start << " to "
-                << cd.wk.dest << " walk_r " << (int)cd.wk.walk_r << " start_r " << (int)cd.start_r
-                << " box " << b.size << " " << b.offset << " level " << level_names[(u32)cd.l.lv]
-                << " gap " << cd.l.gap << " side " << (int)cd.l.side << " overlap " << cd.l.overlap
-                << " place " << place_names[(u32)cd.pl] << " time " << time_names[(u32)cd.t]
-                << " random " << cd.random << " call " << call;
+    DBG << "critter-walk:" << entry_names[(u32)cd.wk.e] << "from" << cd.wk.start << "to"
+        << cd.wk.dest << "walk_r" << (int)cd.wk.walk_r << "start_r" << (int)cd.start_r
+        << "box" << b.size << b.offset << "level" << level_names[(u32)cd.l.lv]
+        << "gap" << cd.l.gap << "side" << (int)cd.l.side << "overlap" << cd.l.overlap
+        << "place" << place_names[(u32)cd.pl] << "time" << time_names[(u32)cd.t]
+        << "random" << cd.random << "call" << call;
 }
 
 void print_state(const char* name, const walker_state& s, Ns dt, critter::move_result res)
 {
-    DBG_nospace << name << ": pos " << s.pos << " r " << (int)s.r << " bbox " << s.bbox_offset << " "
-                << s.bbox_size << " delta " << s.delta << " moves " << (int)s.moves << " frame " << s.frame
-                << " anim_progress " << s.anim_progress << " dt " << dt.stamp
-                << " blocked " << res.blocked << " moved " << res.moved << " displaced " << res.displaced;
+    DBG << name << nospace(":") << "pos" << s.pos << "r" << (int)s.r << "bbox" << s.bbox_offset
+        << s.bbox_size << "delta" << s.delta << "moves" << (int)s.moves << "frame" << s.frame
+        << "anim_progress" << s.anim_progress << "dt" << dt.stamp
+        << "blocked" << res.blocked << "moved" << res.moved << "displaced" << res.displaced;
 }
 
 void check_call(const critter& C, const expected_call& x, critter::move_result res, Ns dt, const case_desc& cd,
@@ -634,7 +635,7 @@ void check_call(const critter& C, const expected_call& x, critter::move_result r
     print_case(cd, call);
     print_state("code ", s, dt, res);
     print_state("model", x.s, x.dt, x.res);
-    DBG_nospace << "model end " << end_names[(u32)x.end] << " events " << x.events;
+    DBG << "model end" << end_names[(u32)x.end] << "events" << x.events;
     fm_abort("critter-walk: the critter differs from the model");
 }
 
@@ -852,9 +853,9 @@ void walk_layout(product& P, const direction& d, u32 box, const layout& l, place
         if (!ok)
         {
             print_case(cd, 0);
-            DBG_nospace << "outcome: stop_after " << o.stop_after << " steps " << o.steps << " slides " << o.slides
-                        << " first_slide " << o.first_slide << " resumed " << o.resumed << ", expected stop_after "
-                        << x.stop_after << " slide " << x.slide << " slides " << x.slides;
+            DBG << "outcome: stop_after" << o.stop_after << "steps" << o.steps << "slides" << o.slides
+                << "first_slide" << o.first_slide << "resumed" << o.resumed << nospace(", expected")
+                << "stop_after" << x.stop_after << "slide" << x.slide << "slides" << x.slides;
             fm_abort("critter-walk: the walk doesn't end as its obstacle level says");
         }
     };

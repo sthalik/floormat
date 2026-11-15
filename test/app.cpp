@@ -2,6 +2,7 @@
 #include "loader/loader.hpp"
 #include "src/log.hpp"
 #include "compat/array-size.hpp"
+#include "compat/debug.hpp"
 #include "compat/headless.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/nanosecond.hpp"
@@ -257,7 +258,7 @@ Array<test_entry> select_tests(const Corrade::Utility::Arguments& args)
             j++;
         if (j == list_size)
         {
-            ERR_nospace << "unknown test '" << arg << "'";
+            ERR << "unknown test" << quoted(arg);
             std::exit(EX_USAGE);
         }
         if (!seen[j])
@@ -297,7 +298,7 @@ options parse_cmdline(int argc, char** argv)
     if (str.isEmpty() || str[0] < '0' || str[0] > '9' ||
         std::sscanf(str.data(), "%u%n", &value, &n) != 1 || (usize)n != str.size() || value == 0)
     {
-        ERR_nospace << "invalid --repeat argument '" << str << "': should be a positive number";
+        ERR << "invalid --repeat argument" << quoted(str) << nospace(": should be a positive number");
         std::exit(EX_USAGE);
     }
     const bool no_gl = args.isSet("no-gl");

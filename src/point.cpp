@@ -1,26 +1,17 @@
 #include "point.inl"
 #include "tile-constants.hpp"
+#include "compat/debug.hpp"
 #include <cr/StructuredBindings.h>
 
 namespace floormat {
 
 Debug& operator<<(Debug& dbg, const point& pt)
 {
-    dbg << "";
-    const auto flags = dbg.flags();
-    dbg.setFlags(flags | Debug::Flag::NoSpace);
-
     auto c = Vector3i(pt.chunk3());
     auto t = Vector2i(pt.local());
     auto o = pt.offset();
-
-    dbg << "point{";
-    dbg << "{" << c.x() << "," << c.y() << "," << c.z() << "},";
-    dbg << "{" << t.x() << "," << t.y() << "},";
-    dbg << "{" << o.x() << "," << o.y() << "}}";
-
-    dbg.setFlags(flags);
-    return dbg;
+    return dbg << cat("point{{", c.x(), ",", c.y(), ",", c.z(), "},{", t.x(), ",", t.y(), "},{",
+                      o.x(), ",", o.y(), "}}");
 }
 
 point operator+(point pt, Vector2i delta) { return point::normalize_coords(pt, delta); }

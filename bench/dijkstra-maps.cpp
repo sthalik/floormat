@@ -15,6 +15,7 @@
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/debug.hpp"
 #include "compat/function-view.hpp"
 #include <benchmark/benchmark.h>
 #include <mg/Functions.h>
@@ -73,13 +74,13 @@ void verify(kind k, u32 cell, u32 optimum)
 
     const auto rect = Search::cache::get_size_to_allocate(s.r.max_dist)*2u + Vector2ui{1};
     const auto h0 = Search::octile{pool.params().div_size()}(s.r.from, s.r.to);
-    DBG_nospace << "dijkstra-maps " << mazes::name(k) << " cell " << pool.params().div_size()
-                << ": open cells " << open_cells << "/" << side*side
-                << ", bfs tiles " << s.r.bfs_tiles
-                << ", cost " << res.cost() << ", optimum " << optimum
-                << ", h " << h0 << ", cost/h " << (float)optimum/(float)h0
-                << ", max_dist " << s.r.max_dist
-                << ", cache chunks " << rect.product();
+    DBG << "dijkstra-maps" << mazes::name(k) << "cell" << cat(pool.params().div_size(), ":")
+        << "open cells" << cat(open_cells, "/", side*side, ",")
+        << "bfs tiles" << cat(s.r.bfs_tiles, ",")
+        << "cost" << cat(res.cost(), ",") << "optimum" << cat(optimum, ",")
+        << "h" << cat(h0, ",") << "cost/h" << cat((float)optimum/(float)h0, ",")
+        << "max_dist" << cat(s.r.max_dist, ",")
+        << "cache chunks" << rect.product();
 }
 
 // A world per call, as in Dijkstra<>. A static one is destroyed after bench_app's loader.destroy(),

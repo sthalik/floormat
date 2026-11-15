@@ -12,6 +12,7 @@
 #include "intra-coord.inl"
 #include "compat/array-size.hpp"
 #include "compat/combinations.hpp"
+#include "compat/debug.hpp"
 #include "compat/fill.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/format.inl"
@@ -462,9 +463,7 @@ CORRADE_ALWAYS_INLINE u32 append_node(Array<visited>& nodes, u32& count, const v
 
 void print_push(u32 dist, point pt)
 {
-    DBG_nospace << " path:" << dist
-                << " pos:" << Vector3i(pt.coord())
-                << ";" << pt.offset();
+    DBG << cat(" path:", dist) << cat("pos:", Vector3i(pt.coord()), ";", pt.offset());
 }
 
 template<bool IsDiagonal, int Debug>
@@ -556,9 +555,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
 
 void print_closest(point cur, point to, u32 dist)
 {
-    DBG_nospace << "closest node"
-                << " px:" << point::distance(cur, to) << " path:" << dist
-                << " pos:" << cur;
+    DBG << "closest node" << cat("px:", point::distance(cur, to)) << cat("path:", dist) << cat("pos:", cur);
 }
 
 void print_result(const path_search_result& result, point from, point to)

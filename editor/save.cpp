@@ -3,6 +3,7 @@
 #include "floormat/main.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
+#include "compat/debug.hpp"
 #include "compat/format.inl"
 #include "compat/sysexits.hpp"
 #include <cstdio>
@@ -79,7 +80,7 @@ void app::load_world_file(StringView path)
     // Re-checked: --load-game resolves the path in parse_cmdline, long before this call.
     if (!Path::exists(path) || Path::isDirectory(path))
     {
-        WARN_nospace << "no such file '" << relative_to_temp_path(path) << "'";
+        WARN << "no such file" << quoted(relative_to_temp_path(path));
         return;
     }
     const auto name = relative_to_temp_path(path);
@@ -105,7 +106,7 @@ String app::resolve_load_game_path(StringView name)
     }
     if (!Path::exists(path) || Path::isDirectory(path))
     {
-        ERR_nospace << "--load-game: no such file '" << relative_to_temp_path(path) << "'";
+        ERR << "--load-game: no such file" << quoted(relative_to_temp_path(path));
         std::exit(EX_USAGE);
     }
     return path;

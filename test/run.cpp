@@ -77,12 +77,11 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         Debug{} << "**" << start.name << start.instance << nospace(":");
 
     constexpr auto print_pos = [](StringView prefix, point start, point pos, Ns time, Ns dt, const critter& npc) {
-        DBG_nospace << prefix
-                    << " " << pos
-                    << " time:" << time
-                    << " dt:" << dt
-                    << " dist:" << point::distance_l1(pos, start)
-                    << " delta:" << npc.delta;
+        DBG << prefix << pos
+            << cat("time:", time)
+            << cat("dt:", dt)
+            << cat("dist:", point::distance_l1(pos, start))
+            << cat("delta:", npc.delta);
     };
 
     auto fail = [b = grace.no_crash](const char* file, int line, const char* function) {
@@ -120,10 +119,8 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
                 if (!start.quiet) [[unlikely]]
                 {
                     print_pos("->", expected.pt, pos, time, dt, npc);
-                    DBG_nospace << "===>"
-                        << " iters,"
-                        << " time:" << time
-                        << " distance:" << point::distance_l1(last_pos, expected.pt) << " px"
+                    DBG << "===> iters," << cat("time:", time)
+                        << cat("distance:", point::distance_l1(last_pos, expected.pt)) << "px"
                         << Debug::newline;
                 }
                 break;
@@ -168,11 +165,11 @@ bool run(world& w, const function_view<Ns() const>& make_dt,
         if (time_diff > grace.time)
         {
             if (!start.silent) [[unlikely]]
-                Error{ standard_error(), Debug::Flag::NoSpace }
-                    << "!!! fatal: wrong time " << saved_time
-                    << " expected:" << expected.time
-                    << " diff:" << time_diff
-                    << " for " << start.name << "/" << start.instance;
+                Error{ standard_error() }
+                    << "!!! fatal: wrong time" << saved_time
+                    << cat("expected:", expected.time)
+                    << cat("diff:", time_diff)
+                    << "for" << cat(start.name, "/", start.instance);
             return fail(__FILE__, __LINE__, FM_PRETTY_FUNCTION);
         }
     }

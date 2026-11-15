@@ -1,5 +1,6 @@
 #include "global-coords.hpp"
 #include "point.inl"
+#include "compat/debug.hpp"
 #include "compat/hash.hpp"
 #include "compat/fwd/algorithm/sort.hpp"
 #include <array>
@@ -8,29 +9,15 @@ namespace floormat {
 
 Debug& operator<<(Debug& dbg, const chunk_coords& c)
 {
-    dbg << "";
-    const auto flags = dbg.flags();
-
-    dbg.setFlags(flags | Debug::Flag::NoSpace);
-    dbg << "chunk{" << c.x << "," << c.y << "}";
-
-    dbg.setFlags(flags);
-    return dbg;
+    return dbg << cat("chunk{", c.x, ",", c.y, "}");
 }
 
 Debug& operator<<(Debug& dbg, const chunk_coords_& c)
 {
-    dbg << "";
-    const auto flags = dbg.flags();
-
-    dbg.setFlags(flags | Debug::Flag::NoSpace);
-    dbg << "chunk{" << c.x << "," << c.y;
     if (c.z != 0)
-        dbg << "," << c.z;
-    dbg << "}";
-
-    dbg.setFlags(flags);
-    return dbg;
+        return dbg << cat("chunk{", c.x, ",", c.y, ",", c.z, "}");
+    else
+        return dbg << cat("chunk{", c.x, ",", c.y, "}");
 }
 
 usize chunk_coords_::hash() const noexcept

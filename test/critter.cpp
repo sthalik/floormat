@@ -751,7 +751,7 @@ void Test::test_critter()
 
     const bool is_noisy = !Start{}.quiet;
     if (is_noisy)
-        DBG_nospace << "";
+        DBG << "";
 
     test1("dt=16.667 accel=1",   constantly(Millisecond * 16.667),    1, Grace::default_max_steps);
     test1("dt=16.667 accel=2",   constantly(Millisecond * 16.667),    2, Grace::default_max_steps);

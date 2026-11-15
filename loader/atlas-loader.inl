@@ -3,6 +3,7 @@
 #include "atlas-loader-storage.hpp"
 #include "loader.hpp"
 #include "compat/assert.hpp"
+#include "compat/debug.hpp"
 #include "compat/exception.hpp"
 #include "compat/enumerate.hpp"
 #include <utility>
@@ -171,7 +172,7 @@ missing_warn:
     s.name_map[back] = -1uz;
 
     if (name != ::floormat::loader.INVALID)
-        DBG_nospace << t.loader_name() << " '" << name << "' doesn't exist";
+        DBG << t.loader_name() << quoted(name) << "doesn't exist";
 
     return invalid_atlas;
 }

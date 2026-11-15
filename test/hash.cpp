@@ -2,6 +2,7 @@
 #include "compat/hash.hpp"
 #include "compat/array-size.hpp"
 #include "compat/bitset.hpp"
+#include "compat/debug.hpp"
 #include "compat/zip.hpp"
 #include "src/global-coords.hpp"
 #include "src/world.hpp"
@@ -48,7 +49,7 @@ template<i16 CoordMax, i8 ZMax, u32 MaxCollisions>
 [[nodiscard]] bool test_collisions(const char* name)
 {
     constexpr usize Iters = (CoordMax*2 + 1)*(CoordMax*2 + 1)*(1+ZMax); // NOLINT(*-implicit-widening-of-multiplication-result)
-    constexpr usize BucketCount = Math::max(4096uz, usize(Math::ceil(Iters / 0.2f)));
+    static constexpr usize BucketCount = Math::max(4096uz, usize(Math::ceil(Iters / 0.2f)));
     u32 num_collisions = 0, iters = 0;
     auto seen_ = Pointer<bitset<BucketCount>>{InPlace};
     auto& seen = *seen_;
@@ -76,13 +77,12 @@ template<i16 CoordMax, i8 ZMax, u32 MaxCollisions>
     {
         if (first)
         {
-            DBG_nospace << "";
+            DBG << "";
         }
         first = false;
-        DBG_nospace << Debug::color(c) << status << Debug::resetColor
-                    << ": " << name << "\t"
-                    << num_collisions << "\t" << op << "\t" << MaxCollisions
-                    << "\t\t(iters:" << iters << " buckets:" << BucketCount << ")";
+        DBG << Debug::color(c) << status << Debug::resetColor << nospace(":")
+            << cat(name, "\t", num_collisions, "\t", op, "\t", MaxCollisions,
+                   "\t\t(iters:", iters, " buckets:", BucketCount, ")");
     };
 
 #define FM_FAIL fm_abort("test/hash: too many collisions")
@@ -91,7 +91,7 @@ template<i16 CoordMax, i8 ZMax, u32 MaxCollisions>
 #else
 #define FM_MAYBE_FAIL FM_MAYBE_FAIL_
 #endif
-#define FM_MAYBE_FAIL_ do { if (!success) { DBG_nospace << ""; FM_FAIL; } } while (false)
+#define FM_MAYBE_FAIL_ do { if (!success) { DBG << ""; FM_FAIL; } } while (false)
 
     if (num_collisions > MaxCollisions)
     {

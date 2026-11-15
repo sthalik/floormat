@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/debug.hpp"
 #include "loader/loader.hpp"
 #include "src/sprite-atlas-impl.hpp"
 #include "src/sprite-atlas.hpp"
@@ -176,7 +177,7 @@ void test_sprites()
     if (!atlas.layers.isEmpty())
     {
         const auto& shelf = *atlas.layers.back().shelves.back();
-        DBG_nospace << "sprites: last shelf layer:" << atlas.layers.size()-1 <<  " y:" << shelf.y;
+        DBG << cat("sprites: last shelf layer:", atlas.layers.size()-1) << cat("y:", shelf.y);
     }
 
     SpriteAtlas::dump_atlas(atlas, output);

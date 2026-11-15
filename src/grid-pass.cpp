@@ -6,6 +6,7 @@
 #include "object.hpp"
 #include "search-pred.hpp"
 #include "RTree-search.hpp"
+#include "compat/debug.hpp"
 #include "compat/function-view.hpp"
 #include <bit>
 #include <array>
@@ -221,7 +222,8 @@ PassGrid::PassGrid(chunk& c, Params params):
 #ifdef FLOORMAT_GRID_PASS_DEBUG
     ++grid_total_count;
     ++grid_alive_count;
-    DBG_nospace << "PassGrid ctor: total=" << grid_total_count << " alive=" << grid_alive_count << " pooled=" << grid_pooled_count;
+    DBG << cat("PassGrid ctor: total=", grid_total_count) << cat("alive=", grid_alive_count)
+        << cat("pooled=", grid_pooled_count);
 #endif
 }
 
@@ -229,7 +231,7 @@ PassGrid::~PassGrid() noexcept
 {
 #ifdef FLOORMAT_GRID_PASS_DEBUG
     --grid_alive_count;
-    DBG_nospace << "PassGrid dtor: alive=" << grid_alive_count << " pooled=" << grid_pooled_count;
+    DBG << cat("PassGrid dtor: alive=", grid_alive_count) << cat("pooled=", grid_pooled_count);
 #endif
 }
 

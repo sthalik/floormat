@@ -222,10 +222,9 @@ void main_impl::update_window_state() // todo window minimized, out of focus, fa
 
 #if 0
     constexpr auto b = [](bool x) { return x ? "1" : "0"; };
-    DBG_nospace << "window:"
-                << " " << _framebuffer_size.x() << "x" << _framebuffer_size.y()
-                << " hz:" << hz << " vsync:" << b(vsync)
-                << " focused:" << b(focused) << " hidden:" << b(hidden);
+    DBG << "window:" << cat(_framebuffer_size.x(), "x", _framebuffer_size.y())
+        << cat("hz:", hz) << cat("vsync:", b(vsync))
+        << cat("focused:", b(focused)) << cat("hidden:", b(hidden));
 #endif
 }
 

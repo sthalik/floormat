@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/combinations.hpp"
+#include "compat/debug.hpp"
 #include "compat/zip.hpp"
 #include "src/quads.hpp"
 #include <mg/Functions.h>
@@ -18,9 +19,9 @@ void assert_near(Vector3 expected, Vector3 actual, unsigned i, const char* label
         Math::abs(expected.y() - actual.y()) > eps ||
         Math::abs(expected.z() - actual.z()) > eps)
     {
-        ERR_nospace << "fatal: raw texcoord mismatch at [" << i << "] (" << label << ")";
-        ERR_nospace << "  expected: " << expected;
-        ERR_nospace << "    actual: " << actual;
+        ERR << "fatal: raw texcoord mismatch at" << cat("[", i, "]") << cat("(", label, ")");
+        ERR << "  expected:" << expected;
+        ERR << "    actual:" << actual;
         fm_abort("texcoord raw test failed");
     }
 }
