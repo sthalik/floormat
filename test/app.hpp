@@ -42,6 +42,7 @@ void test_dijkstra_reference();
 void test_emit_quick();
 void test_enumerate();
 void test_entity();
+void test_erase_if();
 void test_event_count();
 void test_float();
 void test_format();
