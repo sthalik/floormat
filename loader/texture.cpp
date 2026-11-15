@@ -10,7 +10,7 @@
 
 namespace floormat::detail::loader {
 
-fm_noinline
+[[fm_noinline]]
 Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_) noexcept(false)
 {
     ensure_plugins();
