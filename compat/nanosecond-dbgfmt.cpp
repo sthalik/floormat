@@ -1,7 +1,5 @@
 #include "debug.hpp"
 #include "nanosecond.inl"
-#include <cinttypes>
-#include <cstdio>
 #include <cr/Debug.h>
 
 namespace floormat {
@@ -41,13 +39,6 @@ Debug& operator<<(Debug& dbg, const Ns& val)
         unit = "µs";
         x *= 1e-3;
         precision = 3;
-    }
-    else if (val > Ns{100})
-    {
-        char buf[64];
-        std::snprintf(buf, sizeof buf, "%" PRIu64 "_%" PRIu64 " ₙₛ",
-                      val.stamp / 1000, val.stamp % 1000);
-        return dbg << buf;
     }
     else
     {

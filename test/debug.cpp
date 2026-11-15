@@ -109,7 +109,9 @@ void test_fraction()
 void test_ns()
 {
     check("dt: 37 ₙₛ", [](Debug& d) { d << "dt:" << Ns{37}; });
-    check("dt: 0_503 ₙₛ", [](Debug& d) { d << "dt:" << Ns{503}; });
+    check("dt: 503 ₙₛ", [](Debug& d) { d << "dt:" << Ns{503}; });
+    check("dt: 999 ₙₛ", [](Debug& d) { d << "dt:" << Ns{999}; });
+    check("dt: 1.000µs", [](Debug& d) { d << "dt:" << Ns{1000}; });
     check("dt: 2.003µs", [](Debug& d) { d << "dt:" << Ns{2003}; });
 }
 
