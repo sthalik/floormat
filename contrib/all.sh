@@ -6,13 +6,15 @@ test -z "${MAGNUM_LOG-}" && export MAGNUM_LOG=default
 
 level=0
 ts=0
-opts="$(getopt -n "$0" -o ta -l test::,all -- "$@")" || exit 64
+norelease=0
+opts="$(getopt -n "$0" -o tad -l test::,all,debug -- "$@")" || exit 64
 eval set -- "$opts"
 while :; do
     case "$1" in
         -t) ts=$((ts + 1)); level=$ts; shift;;
         -a|--all) ts=0; level=2; shift;;
         --test) ts=0; level=${2:-1}; shift 2;;
+        -d|--debug) norelease=1; shift;;
         --) shift; break;;
     esac
 done
@@ -82,6 +84,7 @@ printf "%s\\n" "$configurations" |
 while read wrapper configs; do
     case "$wrapper" in \#*) continue ;; esac
     for i in $configs; do
+        case "$norelease,$i" in 1,?*-release|1,clang-debug) continue;; esac
         (
             cd $i
             bprintf -- "***** Entering directory %s\\n" "$i"
@@ -105,6 +108,7 @@ while read wrapper configs; do
     case "$wrapper" in \#*) continue ;; esac
     for k in $types; do
         for i in $configs; do
+            case "$norelease,$i" in 1,?*-release|1,clang-debug) continue;; esac
             (
                 cd $i
                 bprintf -- "***** Entering directory %s\\n" "$i"
