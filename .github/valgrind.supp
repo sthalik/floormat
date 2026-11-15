@@ -1,25 +1,4 @@
 {
-   mesa-gallium-leaks
-   Memcheck:Leak
-   ...
-   obj:*/libgallium*.so*
-}
-
-{
-   mesa-swrast-leaks
-   Memcheck:Leak
-   ...
-   obj:*/swrast_dri.so*
-}
-
-{
-   llvm-leaks
-   Memcheck:Leak
-   ...
-   obj:*/libLLVM*.so*
-}
-
-{
    mesa-gallium-open-memfd
    CoreError:FdNotClosed
    fun:memfd_create*
@@ -52,15 +31,120 @@
 }
 
 {
-   gl-dispatch-leaks
+   llvm-timer-group-context-leaks
    Memcheck:Leak
+   match-leak-kinds: reachable
    ...
-   obj:*/libGLdispatch.so*
+   fun:_ZN4llvm17TimePassesHandlerC1Ev
+   ...
+   fun:glXCreateContextAttribsARB
+   ...
+   fun:App
+   fun:main
 }
 
 {
-   mesa-glx-leaks
+   llvm-timer-group-draw-leaks
    Memcheck:Leak
+   match-leak-kinds: reachable
    ...
-   obj:*/libGLX_mesa.so*
+   fun:_ZN4llvm17TimePassesHandlerC1Ev
+   ...
+   fun:_ZN6Magnum2GL4Mesh12drawInternalEiiijlii
+   ...
+   fun:_ZN8floormat9main_impl9drawEventEv
+}
+
+{
+   gallium-draw-test-leaks
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   obj:*/libgallium*.so*
+   ...
+   fun:_ZN6Magnum2GL4Mesh12drawInternalEiiijlii
+   ...
+   fun:_ZN8floormat4Test3App4execEv
+   fun:main
+}
+
+{
+   gallium-draw-editor-leaks
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   obj:*/libgallium*.so*
+   ...
+   fun:_ZN6Magnum2GL4Mesh12drawInternalEiiijlii
+   ...
+   fun:_ZN8floormat9main_impl9drawEventEv
+}
+
+{
+   glx-create-context-x11-error-leaks
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:_XError
+   ...
+   fun:glXCreateContextAttribsARB
+   ...
+   fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
+}
+
+{
+   x11-locale-leaks
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:XSetLocaleModifiers
+   ...
+   fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
+}
+
+{
+   x11-xim-leaks
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   ...
+   fun:_XimOpenIM
+   ...
+   fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
+}
+
+{
+   sdl2-glx-vendor-dlopen-leaks
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:dlopen*
+   ...
+   fun:glXChooseVisual
+   ...
+   fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
+}
+
+{
+   magnum-glx-vendor-dlopen-leaks
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:dlopen*
+   ...
+   fun:glXChooseFBConfig
+   ...
+   fun:App
+   fun:main
+}
+
+{
+   sdl2-error-buffer-leaks
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:realloc
+   ...
+   fun:SDL_GetErrBuf
+   ...
+   fun:_ZN8floormat9main_impl20probe_max_gl_versionEv
 }
