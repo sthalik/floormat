@@ -3,15 +3,15 @@
 #include "critter-script-cover-unreachable-spots.hpp"
 #include "grid-cover.hpp"
 #include "search-result.hpp"
-#include "compat/function-view.hpp"
 #include <array>
 #include <cr/Array.h>
 #include <cr/Optional.h>
 
-namespace floormat { class world; }
-namespace floormat::Grid { class GridRegistry; }
+namespace floormat { struct critter; }
 
 namespace floormat::Cover {
+
+class spot_tests;
 
 // path_to's max_dist: twice the distance plus path_slack, as the way around a blocker can be many
 // times longer than the straight line.
@@ -24,17 +24,6 @@ public:
     struct reachable_cover { Cover::Point::spot spot; point end; path_search_result path; };
     // done is true once the search ended, with cover when it found some.
     struct result { Optional<reachable_cover> cover; bool done = false; };
-    // hidden_from_reach's answer, and how many hidden_at calls it made, which step() caps per update.
-    struct hidden_result { bool hidden; u32 num_body_checks; };
-    // The script's tests of a spot, each with the threat at step()'s `threat`.
-    struct calls
-    {
-        function_view<hidden_result(point pos, Vector2i axis) const> hidden_from_reach;
-        function_view<bool(point pos, Vector2i axis) const> hidden_at;
-        function_view<point(const Cover::Point::spot& s) const> cover_end;
-        function_view<bool(point end, Vector2i axis) const> has_peek;
-        function_view<path_search_result(point to) const> path_to;
-    };
 
     static constexpr u32 radius = 2*chunk_size_xy;
 
@@ -42,11 +31,9 @@ public:
     // Keeps the unreachable spots and their failed Dijkstra calls, so a spot with no path from where the npc stood
     // stays skipped as it walks.
     void restart(point from, point threat);
-    // One update's work of the search. here is the npc's position, and from is what restart() would be given.
+    // One update's work of the search for c. from is what restart() would be given.
     // When the unreachable spots go stale, the search restarts, and a new threat octant resumes its scan.
-    result step(world& w, Cover::Point::finder& finder, Grid::GridRegistry& pools, point here, point from,
-                point threat, Vector2ui body, const Search::pred& pred, const Cover::Script::options& o,
-                u32 max_failed_dijkstra_calls, Cover::Script::counters& counters, const calls& f);
+    result step(critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat);
     void end();
     // Forgets the spots skipped under the old options, and kept spots that last_resort doesn't allow, which
     // neither a retreat nor step() checks again.
@@ -69,7 +56,8 @@ private:
         bool any() const;
     };
 
-    Optional<reachable_cover> take_last_resort(point here, const calls& f);
+    Optional<reachable_cover> take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,
+                                               point threat);
 
     unreachable_spots _unreachable;
     // The spots of tile _tile while _tile_threat is set, of which _tile_spot is next. They were listed with the

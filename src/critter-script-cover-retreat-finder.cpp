@@ -1,10 +1,13 @@
 #include "critter-script-cover-retreat-finder.hpp"
 #include "critter-script-cover.hpp"
 #include "critter-script-cover-point.hpp"
+#include "critter-script-cover-spot-tests.hpp"
+#include "critter.hpp"
 #include "grid-cover.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "search.hpp"
+#include "search-pred.hpp"
 #include "tile-defs.hpp"
 #include "world.hpp"
 #include "compat/assert.hpp"
@@ -68,18 +71,20 @@ void retreat_finder::begin(Vector2i body, u32 threat_octant)
     _octant = threat_octant;
 }
 
-retreat_finder::result retreat_finder::step(world& w, point from, point threat, Vector2i body,
-                                            const Search::pred& pred, u32 max_failed_dijkstra_calls,
-                                            Cover::Script::counters& counters, function_view<bool(point)> sees,
-                                            function_view<path_search_result(point)> path_to)
+retreat_finder::result retreat_finder::step(critter& c, spot_tests& t, const Cover::Script::options& o,
+                                            point threat)
 {
+    auto& w = c.world();
+    const auto from = c.position();
+    const auto body = Vector2i(c.bbox_size);
+    const auto pred = Search::blocks_all_but(c.id);
     if (const auto k = Cover::Point::nearest_octant(Vector2(threat - from)); k != _octant)
     {
         // Spots the threat saw from its old octant may be hidden now. The pass and its failed Dijkstra calls stay,
         // so a moving threat can't cause more than 2*max_failed_dijkstra_calls of them.
         _octant = k;
         _next = 0;
-        counters.num_retreat_restarts++;
+        t.counters.num_retreat_restarts++;
     }
     const auto octant_bit = 1u << _octant;
     const auto here = Math::sqrt((double)point::distance_squared(from, threat));
@@ -133,7 +138,7 @@ retreat_finder::result retreat_finder::step(world& w, point from, point threat, 
                 return {};
             rays_left--;
             _rays--;
-            if (sees(to))
+            if (t.sees(c, o, threat, to))
             {
                 s.seen_octants |= octant_bit;
                 _next++;
@@ -143,18 +148,19 @@ retreat_finder::result retreat_finder::step(world& w, point from, point threat, 
         dijkstra_left--;
         s.done = true;
         _next++;
-        if (auto path = path_to(to); path.is_found())
+        if (auto path = t.path_to(c, to); path.is_found())
             return {move(path), false};
         _num_failed_dijkstra_calls++;
     }
 }
 
-bool retreat_finder::keeps(point to, point threat, function_view<bool(point)> sees) const
+bool retreat_finder::keeps(critter& c, spot_tests& t, const Cover::Script::options& o, point to,
+                           point threat) const
 {
     fm_debug_assert(_next > 0);
     const auto from = to - _spots[_next - 1].offset;
     const auto dist = [&](point p) { return Math::sqrt((double)point::distance_squared(p, threat)); };
-    return dist(to) - dist(from) > min_retreat_gain && (_all || !sees(to));
+    return dist(to) - dist(from) > min_retreat_gain && (_all || !t.sees(c, o, threat, to));
 }
 
 Cover::Script::retreat_progress retreat_finder::progress() const

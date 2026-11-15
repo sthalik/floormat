@@ -1,14 +1,14 @@
 #pragma once
 #include "point.hpp"
-#include "search-pred.hpp"
 #include "search-result.hpp"
-#include "compat/function-view-fwd.hpp"
 #include <cr/Array.h>
 
-namespace floormat { class world; }
-namespace floormat::Cover::Script { struct counters; struct retreat_progress; }
+namespace floormat { struct critter; }
+namespace floormat::Cover::Script { struct options; struct retreat_progress; }
 
 namespace floormat::Cover {
+
+class spot_tests;
 
 class retreat_finder
 {
@@ -20,12 +20,10 @@ public:
     void begin(Vector2i body, u32 threat_octant);
     // One update's work of the retreat, within the max_retreat_*_per_update limits. Each of its two passes ends
     // after max_failed_dijkstra_calls spots with no path, the first also when _rays runs out.
-    result step(world& w, point from, point threat, Vector2i body, const Search::pred& pred,
-                u32 max_failed_dijkstra_calls, Cover::Script::counters& counters,
-                function_view<bool(point)> sees, function_view<path_search_result(point)> path_to);
+    result step(critter& c, spot_tests& t, const Cover::Script::options& o, point threat);
     // True when `to`, the end of step()'s last found path, is still over min_retreat_gain px farther from threat
-    // than that path's start, and the second pass found it or sees(to) is false.
-    bool keeps(point to, point threat, function_view<bool(point)> sees) const;
+    // than that path's start, and the second pass found it or a ray from threat doesn't reach it.
+    bool keeps(critter& c, spot_tests& t, const Cover::Script::options& o, point to, point threat) const;
 
     Cover::Script::retreat_progress progress() const;
 

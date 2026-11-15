@@ -1,10 +1,14 @@
 #include "critter-script-cover-search.hpp"
 #include "critter-script-cover-point.hpp"
+#include "critter-script-cover-spot-tests.hpp"
+#include "critter.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "tile-defs.hpp"
+#include "search-pred.hpp"
 #include "world.hpp"
 #include "compat/assert.hpp"
+#include "compat/function-view.hpp"
 #include <algorithm>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
@@ -75,12 +79,14 @@ void cover_search::restart(point from, point threat)
     _tile_threat = {};
 }
 
-auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegistry& pools, point here, point from,
-                        point threat, Vector2ui body, const Search::pred& pred, const Cover::Script::options& o,
-                        u32 max_failed_dijkstra_calls, Cover::Script::counters& counters,
-                        const calls& f) -> result
+auto cover_search::step(critter& c, spot_tests& t, const Cover::Script::options& o, point from,
+                        point threat) -> result
 {
     using fallback = Cover::Script::options::fallback;
+    auto& w = c.world();
+    const auto here = c.position();
+    const auto body = Vector2ui(c.bbox_size);
+    const auto pred = Search::blocks_all_but(c.id);
     // Listed spots hold only for the threat position they were listed for, and a Dijkstra search's result
     // only for the pass grids it ran in.
     const auto k = Cover::Point::nearest_octant(Vector2(threat - _from));
@@ -111,7 +117,7 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
     // With a spot kept for last_resort, the search ends in the update after its last spot, since that spot may
     // have used the update's one Dijkstra call.
     if (_tile == tiles.size() || _num_failed_dijkstra_calls == max_failed_dijkstra_calls)
-        return {take_last_resort(here, f), true};
+        return {take_last_resort(c, t, o, threat), true};
     // the offset of _from's tile's center, so that each area is a tile of the world
     const auto base = point{_from.coord(), {}} - _from;
     auto fills = max_search_octant_fills_per_update, dijkstra_left = max_search_dijkstra_calls_per_update;
@@ -124,8 +130,8 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
             const auto mid = base + tiles[_tile]*tile_size_xy;
             const Cover::Point::query q{_from, body, threat, radius, o.octants, o.listed_cover_end_dist(),
                                         Range2Di::fromCenter(mid, Vector2i{half_tile<int>}), fills};
-            const auto r = finder.find(w, pools, Grid::Cover::Params{o.div_size}, q, pred, true);
-            counters.num_find_cover_point_calls++;
+            const auto r = t.finder().find(w, t.pool_registry(), Grid::Cover::Params{o.div_size}, q, pred, true);
+            t.counters.num_find_cover_point_calls++;
             fills -= r.fills;
             if (r.out_of_fills)
                 return {};
@@ -158,9 +164,10 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
                 return {};
             if (o.threat_reach)
             {
-                const auto h = f.hidden_from_reach(s.pos, s.axis);
-                num_checks += h.num_body_checks;
-                if (!h.hidden)
+                const auto n = t.counters.num_body_checks;
+                const auto hidden = t.hidden_from_reach(c, o, threat, s.pos, s.axis);
+                num_checks += t.counters.num_body_checks - n;
+                if (!hidden)
                 {
                     if (o.last_resort >= fallback::in_reach && !_fallback_spots.in_reach)
                         _fallback_spots.in_reach = s;
@@ -170,8 +177,8 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
             }
             peek_spot_searches_left--;
             // A path to s.pos could pass end and come back.
-            const auto end = f.cover_end(s);
-            if (o.needs_peek && !f.has_peek(end, s.axis))
+            const auto end = t.cover_end(c, o, s, threat);
+            if (o.needs_peek && !t.peek_spot(c, o, end, s.axis, threat))
             {
                 if (o.last_resort >= fallback::no_peek && !_fallback_spots.peekless)
                     _fallback_spots.peekless = s;
@@ -183,7 +190,7 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
             dijkstra_left--;
             // TODO: the path may lead toward the threat. Avoiding it needs A.Dijkstra predicate changes and maybe
             // a path to the threat, or another measure of how close the path comes to it.
-            if (auto path = f.path_to(end); path.is_found())
+            if (auto path = t.path_to(c, end); path.is_found())
                 return {reachable_cover{s, end, move(path)}, true};
             // The npc can walk straight from s.pos to end, so s.pos has no path either.
             const auto reach = max_search_path_length(here, end) + point::distance(here, _from);
@@ -206,7 +213,8 @@ auto cover_search::step(world& w, Cover::Point::finder& finder, Grid::GridRegist
 
 // peekless if the threat and where it can walk still see none of the npc there, else in_reach if the threat
 // alone doesn't, with its cover_end() and a path there. Clears both. At most one path_to call, as in step().
-auto cover_search::take_last_resort(point here, const calls& f) -> Optional<reachable_cover>
+auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,
+                                    point threat) -> Optional<reachable_cover>
 {
     const auto [peekless, in_reach] = _fallback_spots;
     _fallback_spots = {};
@@ -214,22 +222,22 @@ auto cover_search::take_last_resort(point here, const calls& f) -> Optional<reac
     if (peekless)
     {
         const auto& s = *peekless;
-        if (f.hidden_from_reach(s.pos, s.axis).hidden)
+        if (t.hidden_from_reach(c, o, threat, s.pos, s.axis))
             spot = s;
     }
     if (!spot && in_reach)
     {
         const auto& s = *in_reach;
-        if (f.hidden_at(s.pos, s.axis))
+        if (t.hidden_at(c, threat, s.pos, s.axis))
             spot = s;
     }
     if (!spot)
         return {};
     const auto s = *spot;
-    const auto end = f.cover_end(s);
-    if (s.pos == here || end == here)
+    const auto end = t.cover_end(c, o, s, threat);
+    if (const auto here = c.position(); s.pos == here || end == here)
         return reachable_cover{s, end, {}};
-    if (auto path = f.path_to(end); path.is_found())
+    if (auto path = t.path_to(c, end); path.is_found())
         return reachable_cover{s, end, move(path)};
     return {};
 }
