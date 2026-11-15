@@ -131,7 +131,8 @@ private:
     Cover::Script::counters counters;
     Optional<int> gun_offset;
     state st = state::seek;
-    u8 replans = 0;
+    u8 num_blocked_walks = 0;
+    bool retreat_replanned = false;
 };
 
 StringView cover_script::name() const { return "cover"_s; }
@@ -544,7 +545,8 @@ void cover_script::begin_retreat(critter& C, bool restart)
     // A search still running then ends without starting another retreat.
     then = search_then::seek;
     search_retreated = true;
-    replans = 0;
+    retreat_replanned = false;
+    num_blocked_walks = 0;
 }
 
 void cover_script::retreat_step(critter& C)
@@ -677,7 +679,7 @@ void cover_script::check_walk(critter& C)
 // start, or is seen when the first pass chose it. C then looks for a retreat again, once per walk, as on a block.
 bool cover_script::check_retreat(critter& C)
 {
-    if (replans)
+    if (retreat_replanned)
         return false;
     const auto threat = find_threat(C);
     if (!threat || threat->position() == threat_pos)
@@ -686,7 +688,7 @@ bool cover_script::check_retreat(critter& C)
     if (retreat.keeps(walk.dest(), threat_pos, [&](point to) { return sees(C, threat_pos, to); }))
         return false;
     begin_retreat(C, true);
-    replans = 1;
+    retreat_replanned = true;
     retreat_step(C);
     return true;
 }
@@ -746,7 +748,8 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
         return;
     if (ret == walk_result::arrived)
     {
-        replans = 0;
+        retreat_replanned = false;
+        num_blocked_walks = 0;
         if (st == state::to_cover)
         {
             const auto& c = *cover;
@@ -774,7 +777,7 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
         take_cover(*C);
         return;
     }
-    if (st == state::retreat && !replans)
+    if (st == state::retreat && !retreat_replanned)
     {
         // Once per retreat, so walks that keep getting blocked can't rerun find_retreat's Dijkstra searches.
         const auto threat = find_threat(*C);
@@ -785,7 +788,7 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
         }
         threat_pos = threat->position();
         begin_retreat(*C, true);
-        replans = 1;
+        retreat_replanned = true;
         return;
     }
     if (st == state::retreat && search.running())
@@ -794,7 +797,7 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
         return;
     }
     st = state::seek;
-    wait_until = C->world().game_time() + (replans++ ? retry_time : Ns{});
+    wait_until = C->world().game_time() + (num_blocked_walks++ || retreat_replanned ? retry_time : Ns{});
 }
 
 // Turns C to the one of the 8 rotations nearest the direction from its center to threat, unless
@@ -865,7 +868,8 @@ bool cover_script::send_to(critter& C, const Cover::Point::spot& s, bool peek)
     if (!walk_to(C, to, pʹ ? state::exposed : state::hidden))
         return false;
     cover = Cover::Script::cover{.pos = end, .canonical = s.pos, .axis = s.axis, .peek = {}};
-    replans = 0;
+    retreat_replanned = false;
+    num_blocked_walks = 0;
     threat_pos = threat->position();
     if (pʹ)
     {
