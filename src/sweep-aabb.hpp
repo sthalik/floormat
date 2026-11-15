@@ -35,7 +35,7 @@ swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const Rayc
                                           const Search::pred& p, Grid::Object::Pool& objects,
                                           std::array<Array<bool>, 4>& entry_blocked);
 // Calls f for every collider blocking a step, in no particular order, until it returns false. A
-// collider found in several cells comes once per cell, with a step it blocks there.
+// collider can come more than once, each time with a step it blocks.
 void find_swept_collider(world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Grid::Pass::Pool* pool,
