@@ -1,19 +1,30 @@
+#include "cover-world.hpp"
 #include "compat/debug.hpp"
 #include "compat/assert.hpp"
 #include "compat/function-view.hpp"
 #include "compat/constantly.hpp"
 #include "compat/nanosecond.inl"
+#include "compat/borrowed-ptr.inl"
+#include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
+#include "src/critter-script.hpp"
+#include "src/critter-script-cover.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-registry.hpp"
 #include "src/raycast.hpp"
+#include "src/search.hpp"
+#include "src/search-astar.hpp"
 #include "src/search-pred.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/log.hpp"
 #include "src/point.inl"
+#include "src/intra-coord.inl"
 #include "loader/loader.hpp"
+#include <bit>
+#include <cr/Optional.h>
+#include <mg/Functions.h>
 #include <benchmark/benchmark.h>
 
 namespace floormat {
@@ -490,6 +501,110 @@ BENCHMARK(Critter_walk_5x5)
     ->ArgNames({"grids", "rays", "objects"})
     ->Args({0, 0, 0})->Args({1, 0, 0})->Args({1, 1, 0})->Args({1, 0, 1})->Args({1, 1, 1})
     ->Unit(benchmark::kMicrosecond);
+
+// One npc runs the cover script for 600 updates while the threat circles its start 256 px away. Each
+// iteration gets a fresh astar, so it fills the octants of a new encounter again.
+void Critter_cover(benchmark::State& st)
+{
+    constexpr u32 updates = 600, div_size = 8;
+    constexpr float radius = 256;
+    constexpr auto body = Vector2ui{24, 24};
+    constexpr auto center = Vector2i{352, 416};
+    constexpr auto at = [](Vector2i xy) { return point{Vector3i{xy, 0}}; };
+
+    auto w = world();
+    make_cover_world(w);
+    const auto add_critter = [&](point pos) {
+        critter_proto p;
+        p.name = "npc"_s;
+        p.bbox_size = Vector2ub(body);
+        p.offset = pos.offset();
+        return w.make_object<critter>(w.make_id(), pos.coord(), move(p));
+    };
+    const auto circle = [&](u32 k) {
+        const auto a = Rad{Deg{360.f * (float)k / (float)updates}};
+        return at(center + Vector2i(Math::round(Vector2{Math::cos(a), Math::sin(a)} * radius)));
+    };
+
+    const auto npc_start = at(center);
+    auto npc = add_critter(npc_start);
+    auto threat = add_critter(circle(0));
+    const auto skip_threat = Search::blocks_all_but(threat->id);
+    // The threat stays where it is when its box at pos would overlap a collider.
+    const auto move_threat = [&](point pos) {
+        const auto min = Vector2(pos.intra().center_shifted() - Vector2i(body/2u));
+        if (!Search::is_passable(w, pos.chunk3(), Range2D::fromSize(min, Vector2(body)), skip_threat))
+            return false;
+        auto i = threat->index();
+        threat->teleport_to(i, pos, N);
+        return true;
+    };
+    u32 k0 = 0;
+    while (!move_threat(circle(k0)))
+        fm_assert(++k0 < updates);
+    const auto threat_start = threat->position();
+
+    w.init_scripts();
+    const auto frame = Second / npc->atlas->info().fps;
+    Optional<astar> A;
+
+    const auto reset = [&] {
+        if (A)
+            npc->script.do_clear(npc);
+        auto i = npc->index();
+        npc->teleport_to(i, npc_start, N);
+        npc->delta = 0;
+        auto j = threat->index();
+        threat->teleport_to(j, threat_start, N);
+        A.emplace();
+        npc->script.do_reassign(critter_script::make_cover_script(*A, threat->id, div_size), npc);
+    };
+    const auto run = [&] {
+        for (u32 k = 1; k <= updates; k++)
+        {
+            (void)move_threat(circle(k0 + k));
+            w.increment_frame_no();
+            w.advance_game_time(frame);
+            auto i = npc->index();
+            npc->update(npc, i, frame);
+        }
+    };
+
+    reset();
+    run();
+    for (auto _ : st)
+    {
+        st.PauseTiming();
+        reset();
+        st.ResumeTiming();
+        run();
+    }
+
+    const auto s = Cover::Script::get_status(*npc);
+    fm_assert(s);
+    const auto& n = s->counters;
+    st.counters["num_searches"] = n.num_searches;
+    st.counters["num_find_cover_point_calls"] = n.num_find_cover_point_calls;
+    st.counters["num_rays"] = n.num_rays;
+    st.counters["num_body_checks"] = n.num_body_checks;
+    st.counters["num_dijkstra_calls"] = n.num_dijkstra_calls;
+    constexpr u32 sweep_mask = 0x11111111u;
+    u32 rays = 0, sweeps = 0;
+    auto& pool = A->pool_registry().cover_pool(Grid::Cover::Params{div_size});
+    for_cover_chunks([&](chunk_coords_ ch) {
+        const auto k = pool[w[ch]].built_octants();
+        rays += (u32)std::popcount(k & ~sweep_mask);
+        sweeps += (u32)std::popcount(k & sweep_mask);
+    });
+    st.counters["ray_fills"] = rays;
+    st.counters["sweep_fills"] = sweeps;
+    st.counters["octant_fill_ms"] = (double)pool.octant_fill_time().stamp * 1e-6;
+
+    npc->script.do_clear(npc);
+    w.finish_scripts();
+}
+
+BENCHMARK(Critter_cover)->Unit(benchmark::kMillisecond);
 
 } // namespace
 
