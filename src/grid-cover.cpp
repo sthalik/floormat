@@ -374,8 +374,8 @@ struct CoverGrid : GridBase
     void reset_for_reuse(chunk& ch, Params new_params);
     bool needs_rebuild() const { return is_marked_stale(); }
     void apply_params();
-    // A ray reads the pass grids and RTrees of the 3×3 around the chunk, and those hold objects of
-    // the next ring out. check_current() doesn't call this, so the accessors' Debug check skips ring 2.
+    // A ray reads the pass grids of the 3×3 around the chunk, and the RTrees of the 3×3 around each chunk it
+    // enters. check_current() doesn't call this, so the accessors' Debug check skips ring 2.
     bool ring2_is_current() const;
     /// @copydoc floormat::Grid::Cover::Grid::is_stale()
     bool is_stale() const;
