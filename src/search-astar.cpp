@@ -1325,6 +1325,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Objec
 
     // A step is one cell, so a cell holds one node.
     const auto step = (int)params.div_size();
+    fm_assert(goal_thres_sq(step) <= (u64)chunk_size_xy * chunk_size_xy);
     const auto oct = Search::octile{params.div_size()};
     auto& cache = *_cache;
     max_dist = cache.allocate(from, max_dist, params.div_size());
