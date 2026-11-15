@@ -77,6 +77,7 @@ private:
     Ns time_in(state phase) const;
     bool holds() const;
     bptr<object> find_threat(critter& C);
+    bool find_threat_or_retry(critter& C);
     bool sees(critter& C, point from, point to);
     bool sees_gun(critter& C, point pos, point threat);
     bool hidden_at(critter& C, point threat, point pos, Vector2i axis);
@@ -321,6 +322,19 @@ bptr<object> cover_script::find_threat(critter& C)
     return Cover::Script::find_object_at_z(C.world(), threat_id, C.position().chunk3().z);
 }
 
+// True with threat_pos set to where the threat stands. False, with C seeking after retry_time, when it's gone.
+bool cover_script::find_threat_or_retry(critter& C)
+{
+    const auto threat = find_threat(C);
+    if (!threat)
+    {
+        retry_later(C);
+        return false;
+    }
+    threat_pos = threat->position();
+    return true;
+}
+
 // Every ray the script casts goes through here, so counters.num_rays counts them all.
 bool cover_script::sees(critter& C, point from, point to)
 {
@@ -396,16 +410,11 @@ Vector2i cover_script::across() const
 // seeking after retry_time, when the threat is gone.
 bool cover_script::start_search(critter& C, search_then next)
 {
-    const auto threat = find_threat(C);
-    if (!threat)
-    {
-        retry_later(C);
+    if (!find_threat_or_retry(C))
         return false;
-    }
     st = state::search;
     then = next;
     search_retreated = false;
-    threat_pos = threat->position();
     search.begin(C.position(), threat_pos);
     return true;
 }
@@ -442,13 +451,8 @@ void cover_script::resume_search(critter& C)
 
 void cover_script::search_step(critter& C)
 {
-    const auto threat = find_threat(C);
-    if (!threat)
-    {
-        retry_later(C);
+    if (!find_threat_or_retry(C))
         return;
-    }
-    threat_pos = threat->position();
     const auto pred = blocks_all_but(C.id);
     auto r = search.step(C.world(), finder, A.pool_registry(), C.position(),
                          st == state::retreat ? walk.dest() : C.position(), threat_pos, Vector2ui(C.bbox_size), pred,
@@ -551,13 +555,8 @@ void cover_script::begin_retreat(critter& C, bool restart)
 
 void cover_script::retreat_step(critter& C)
 {
-    const auto threat = find_threat(C);
-    if (!threat)
-    {
-        retry_later(C);
+    if (!find_threat_or_retry(C))
         return;
-    }
-    threat_pos = threat->position();
     const auto pred = blocks_all_but(C.id);
     auto r = retreat.step(C.world(), C.position(), threat_pos, Vector2i(C.bbox_size), pred,
                           max_failed_dijkstra_calls, counters, [&](point to) { return sees(C, threat_pos, to); },
@@ -780,13 +779,8 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
     if (st == state::retreat && !retreat_replanned)
     {
         // Once per retreat, so walks that keep getting blocked can't rerun find_retreat's Dijkstra searches.
-        const auto threat = find_threat(*C);
-        if (!threat)
-        {
-            retry_later(*C);
+        if (!find_threat_or_retry(*C))
             return;
-        }
-        threat_pos = threat->position();
         begin_retreat(*C, true);
         retreat_replanned = true;
         return;
