@@ -108,11 +108,20 @@ void test_fraction()
 
 void test_ns()
 {
-    check("dt: 37 ₙₛ", [](Debug& d) { d << "dt:" << Ns{37}; });
-    check("dt: 503 ₙₛ", [](Debug& d) { d << "dt:" << Ns{503}; });
-    check("dt: 999 ₙₛ", [](Debug& d) { d << "dt:" << Ns{999}; });
-    check("dt: 1.000µs", [](Debug& d) { d << "dt:" << Ns{1000}; });
-    check("dt: 2.003µs", [](Debug& d) { d << "dt:" << Ns{2003}; });
+    check("dt: 37ₙₛ", [](Debug& d) { d << "dt:" << Ns{37}; });
+    check("dt: 503ₙₛ", [](Debug& d) { d << "dt:" << Ns{503}; });
+    check("dt: 999ₙₛ", [](Debug& d) { d << "dt:" << Ns{999}; });
+    check("dt: 1.000ᵤₛ", [](Debug& d) { d << "dt:" << Ns{1000}; });
+    check("dt: 2.003ᵤₛ", [](Debug& d) { d << "dt:" << Ns{2003}; });
+    check("dt: 49.999ᵤₛ", [](Debug& d) { d << "dt:" << Ns{49'999}; });
+    check("dt: 0.0500ₘₛ", [](Debug& d) { d << "dt:" << Ns{50'000}; });
+    check("dt: 12.3457ₘₛ", [](Debug& d) { d << "dt:" << Ns{12'345'678}; });
+    check("dt: 100.000ₘₛ", [](Debug& d) { d << "dt:" << Ns{100'000'000}; });
+    check("dt: 123.457ₘₛ", [](Debug& d) { d << "dt:" << Ns{123'456'789}; });
+    check("dt: 1.00ₛ", [](Debug& d) { d << "dt:" << Ns{1'000'000'000}; });
+    check("dt: 1.50ₛ", [](Debug& d) { d << "dt:" << Ns{1'500'000'000}; });
+    check("dt: 10.0ₛ", [](Debug& d) { d << "dt:" << Ns{10'000'000'000}; });
+    check("dt: 12.3ₛ", [](Debug& d) { d << "dt:" << Ns{12'345'678'901}; });
 }
 
 } // namespace

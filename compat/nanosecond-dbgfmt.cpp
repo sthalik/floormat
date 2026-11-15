@@ -11,16 +11,15 @@ Debug& operator<<(Debug& dbg, const Ns& val)
     int precision;
     if (val >= 10*Second)
     {
-        unit = "s";
+        unit = "ₛ";
         x *= 1e-9;
         precision = 1;
     }
     else if (val >= 1*Second)
     {
-        unit = "ₘₛ";
-        x *= 1e-6;
+        unit = "ₛ";
+        x *= 1e-9;
         precision = 2;
-
     }
     else if (val >= 100*Millisecond)
     {
@@ -36,13 +35,13 @@ Debug& operator<<(Debug& dbg, const Ns& val)
     }
     else if (val >= 1*Microsecond)
     {
-        unit = "µs";
+        unit = "ᵤₛ";
         x *= 1e-3;
         precision = 3;
     }
     else
     {
-        unit = " ₙₛ";
+        unit = "ₙₛ";
         precision = 0;
     }
     if (!precision)
