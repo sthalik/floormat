@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# Rebuilds opengl32.dll from opengl32.c, opengl32.def and gl.xml's core 3.3 functions with the C compiler of a
-# Clang build dir.
+# Rebuilds opengl32.dll from opengl32.c, opengl32.def and gl.xml's core 3.3 functions, and with-dll-dir.exe, with
+# the C compiler of a Clang build dir.
 
 set -eu
 cd -- "$(dirname -- "$0")/../.."
@@ -35,3 +35,4 @@ fi
 
 "$cc" -O2 -Wall -Wextra -shared -s -Wl,--no-insert-timestamp -I"$out" -o "$src/opengl32.dll" "$src/opengl32.c" \
     "$out/opengl32.def"
+"$cc" -O2 -Wall -Wextra -s -Wl,--no-insert-timestamp -o "$src/with-dll-dir.exe" "$src/with-dll-dir.c"
