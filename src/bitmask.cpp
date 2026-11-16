@@ -1,6 +1,5 @@
 #include "compat/exception.hpp"
 #include "anim-atlas.hpp"
-#include <array>
 #include <bit>
 #include <cstring>
 #include <cr/BitArray.h>
@@ -51,10 +50,14 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
     constexpr hn::Repartition<i32, decltype(d8)> di32;
     constexpr auto N = (u32)hn::MaxLanes(d8);
     // Added to the alpha byte only. Its bit 7 becomes alpha >= amin.
-    const auto bias = hn::BitCast(d8, hn::Set(di32, std::bit_cast<i32>(std::array<u8, 4>{0, 0, 0, 128 - amin})));
-    // Alpha is the high byte of a 32-bit pixel on little-endian, the low one on big-endian.
+    const auto bias = hn::Dup128VecFromValues(d8, 0, 0, 0, 128 - amin,
+                                                0, 0, 0, 128 - amin,
+                                                0, 0, 0, 128 - amin,
+                                                0, 0, 0, 128 - amin);
+    // Alpha occupies the high byte on SVE and little-endian targets.
     constexpr auto alpha_high = [](auto v) {
-        if constexpr (std::endian::native == std::endian::big)
+        if constexpr (std::endian::native == std::endian::big &&
+                      HWY_TARGET != HWY_SVE2_128 && HWY_TARGET != HWY_SVE_256)
             return hn::ShiftLeft<24>(v);
         else
             return v;
