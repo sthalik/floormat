@@ -120,7 +120,7 @@ function(fm-userconfig-src)
     add_compile_options(
         -Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded
         -Wstringop-overflow -Wstringop-truncation
-        -Wswitch-enum -Wlarger-than=8192
+        -Wswitch-enum
         -Wlogical-op
         -Wunsafe-loop-optimizations
         -Wctor-dtor-privacy -Wno-error=ctor-dtor-privacy
@@ -157,7 +157,6 @@ function(fm-userconfig-src)
         -Wno-error=array-bounds
         #-Wno-error=switch
         -Wno-error=nrvo
-        -Wlarger-than=65535 -Wno-error=larger-than=65535
     )
     add_compile_options(
         -Wdelete-incomplete -Werror=delete-incomplete
