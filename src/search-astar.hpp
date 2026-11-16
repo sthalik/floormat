@@ -33,7 +33,6 @@ public:
 
     astar();
     ~astar() noexcept;
-    void reserve(usize capacity);
 
     struct Search::cache* cache();
     Grid::GridRegistry& pool_registry();
@@ -87,8 +86,11 @@ private:
     bucket_queue make_queue(u32 bucket_count);
     chunk_bitmaps make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::Object::Pool* objects);
     bool seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist);
-    visited run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist);
-    visited run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, const endpoint& goal);
+    closest run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist,
+                            closest best);
+    closest run_goal_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, const endpoint& goal,
+                                 closest best);
+    u32 add_path_to_goal(point goal, point pt, u32 prev);
     template<int Debug, bool FindClosestOnFailure>
     closest expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goal, u32 max_dist, closest best, u32 max_pops);
     template<int Debug>
@@ -96,7 +98,8 @@ private:
 
     safe_ptr<struct Search::cache> _cache;
     safe_ptr<Grid::GridRegistry> _pool_registry;
-    Array<visited> nodes;
+    // In _cache's memory, valid from its allocate() to the next.
+    ArrayView<visited> nodes;
     u32 node_count = 0;
     Array<Array<frontier>> buckets;
     Array<u32> bucket_sizes;
@@ -104,7 +107,9 @@ private:
     Array<const usize*> chunk_bits;
     Array<usize> masked_bits;
     Array<bool> entry_blocked;
-    Array<u32> seed_search_state;
+    Array<u32> seed_search_state, goal_seed_search_state;
+    // Per position of the start's seed search window, the node add_path() put there, or -1.
+    Array<u32> seed_node_index;
     Array<Range2D> seed_rects;
     Array<goal_seed> goal_seeds;
     Array<u32> goal_seed_index;

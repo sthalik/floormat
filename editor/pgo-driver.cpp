@@ -34,6 +34,7 @@
 #include "src/search-astar.hpp"
 #include "src/search-pred.hpp"
 #include "src/search-result.hpp"
+#include "src/search-cache.hpp"
 #include "src/raycast.hpp"
 #include "main/clickable.hpp"
 #include "shaders/shader.hpp"
@@ -54,6 +55,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
 #include "compat/nanosecond.hpp"
+#include "compat/timer.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
@@ -103,6 +105,9 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_maze2, profile),
         FM_SCENE(scene_maze3, profile),
         FM_SCENE(scene_maze_exit, profile),
+        FM_SCENE(scene_maze4, profile),
+        FM_SCENE(scene_maze5, profile),
+        FM_SCENE(scene_maze6, profile),
         FM_SCENE(scene_raycast, profile),
         FM_SCENE(scene_object_ids, profile),
         FM_SCENE(scene_grids, profile),
@@ -1309,7 +1314,7 @@ task app::scene_maze1()
     {
         const auto from = maze_corner(leg), to = maze_corner(leg + 1);
         // Every cell walked once bounds the true path; the ratio never gets near that.
-        const auto max_dist = point::distance(from, to) * 31;
+        const auto max_dist = point::distance(from, to) * 41;
         auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, C->circumscribed_bbox_size(),
                                           Search::blocks_all_but(C->id));
         // Same partial-route trap as scene_walk.
@@ -1537,7 +1542,7 @@ task app::scene_maze2()
     co_yield {};
 
     const auto to = maze2_goal();
-    const auto max_dist = point::distance(from, to) * 13;
+    const auto max_dist = point::distance(from, to) * 17;
     auto res = M->astar().Dijkstra<1>(w, from, to, max_dist, C->circumscribed_bbox_size(),
                                       Search::blocks_all_but(C->id));
     // Same partial-route trap as scene_walk.
@@ -1681,6 +1686,61 @@ task app::scene_maze_exit()
         while (M->world().game_time() - t0 < hold);
         C->chunk().kill_object(*C, C->index());
     }
+}
+
+task app::scene_maze4() { co_await scene_long_route(mazes::long_route_outside::braid, mazes::long_route_entrance::open); }
+task app::scene_maze5() { co_await scene_long_route(mazes::long_route_outside::open, mazes::long_route_entrance::open); }
+task app::scene_maze6() { co_await scene_long_route(mazes::long_route_outside::open, mazes::long_route_entrance::walled); }
+
+task app::scene_long_route(mazes::long_route_outside outside, mazes::long_route_entrance entrance)
+{
+    constexpr u32 div = 8, short_max_dist = 5'120;
+    constexpr auto hold_dt = Second*5/2;
+    const bool shorten = pgo_driver_use_short_scenes();
+    const auto max_dist = shorten ? short_max_dist : Search::cache::max_dist_limit(div);
+    const auto hold = shorten ? short_hold_dt : hold_dt;
+    const bool walled = entrance == mazes::long_route_entrance::walled;
+    const char* const name = walled ? "maze6" : outside == mazes::long_route_outside::braid ? "maze4" : "maze5";
+    auto gen = Random::splitmix64{};
+    Random::seed(gen, 1);
+    const auto seed = Random::next(gen);
+    auto& w = M->world();
+    auto& objects = M->astar().pool_registry().object_pool(Pass::Params{div, mazes::bbox_size, pass_mode::pass});
+    const auto t0 = Time::now();
+    const auto r = mazes::build_long_route(w, outside, entrance, {0, 0, 0}, max_dist, seed, objects.pass_pool());
+    const auto build_time = Time::to_seconds(Time::now() - t0);
+    auto C = ensure_player_character(w);
+    auto index = C->index();
+    C->teleport_to(index, r.from.coord(), r.from.offset(), rotation_COUNT);
+    center_camera_on(r.from);
+    co_yield {};
+
+    auto res = M->astar().Dijkstra<1>(w, objects, r.from, r.to, r.max_dist, Vector2ui{mazes::bbox_size},
+                                      Search::blocks_all_but(C->id));
+    if (walled)
+    {
+        if (res.is_found())
+            fm_abort("%s: seed %llu has a path", name, (unsigned long long)seed);
+        fm_debug("%s: seed %llu, max_dist %u, %u nodes, built in %.2f s, searched in %.2f s",
+                 name, (unsigned long long)seed, r.max_dist, M->astar().last_node_count(),
+                 (double)build_time, (double)res.time());
+    }
+    else
+    {
+        if (!res.is_found())
+        {
+            ERR << "driver:" << name << "seed" << seed << "has no path" << r.from << "->" << cat(r.to, ",")
+                << "closest" << res.distance() << "px";
+            fm_abort("%s: unroutable", name);
+        }
+        fm_debug("%s: seed %llu, route %u px over %u tiles, max_dist %u, %u nodes, built in %.2f s, searched in %.2f s",
+                 name, (unsigned long long)seed, res.cost(), r.bfs_tiles, r.max_dist, M->astar().last_node_count(),
+                 (double)build_time, (double)res.time());
+        co_await pan_along_path(res.path());
+        _driver->route = Array<point>{InPlaceInit, res.path()};
+    }
+    co_await hold_for(hold);
+    _driver->route = {};
 }
 
 // The Maze test's build and solve teleport the player to the maze entrance. Unless the camera

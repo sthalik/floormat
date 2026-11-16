@@ -2,7 +2,9 @@
 #include "compat/defs.hpp"
 #include "grid-pass.hpp"
 #include "search-pred.hpp"
-#include <cr/Array.h>
+#include "tile-defs.hpp"
+#include "compat/virtual-memory.hpp"
+#include <cr/ArrayView.h>
 #include <mg/Vector2.h>
 
 namespace floormat {
@@ -13,19 +15,26 @@ struct local_coords;
 
 namespace floormat::Search {
 
+constexpr inline int seed_search_radius = 2*tile_size_xy;
+
 struct cache
 {
+    // The cells and the nodes of one search.
     static constexpr usize max_size_bytes = usize{4} << 30;
+    static constexpr u32 node_size = 16;
 
     Vector2ui size;
     Vector2i start{(int)((1u << 31) - 1)};
     u32 div_size_ = 0;
     u32 div_count_ = 0;
     // A node's index and dist, both -1 once clear_chunk() ran for the cell's chunk in this search.
-    // TODO Windows commits the whole window, 8 bytes a cell, though a search writes only the
-    // chunks it clears. Reserve it and commit each chunk's slice in clear_chunk().
+    // TODO allocate() commits the whole window, 8 bytes a cell, though a search writes only the
+    // chunks it clears. Commit each chunk's slice in clear_chunk().
     struct cell { u32 index, dist; };
-    Array<cell> cells;
+    ArrayView<cell> cells;
+    // The nodes from its start, the cells at its end.
+    virtual_memory memory;
+    usize nodes_committed = 0, cells_committed = 0;
 
     cache();
     ~cache() noexcept;
@@ -34,9 +43,15 @@ struct cache
     u32 get_chunk_index(Vector2i chunk) const;
     static u32 get_chunk_index(Vector2i start, Vector2ui size, Vector2i coord);
     u32 get_tile_index(intra_coord pos) const;
-    static Vector2ui get_size_to_allocate(u32 max_dist);
+    static Vector2ui get_size_to_allocate(point from, point to, u32 max_dist);
+    // A search appends at most this many nodes.
+    static u32 max_node_count(u32 max_dist, u32 div_size);
+    // The largest max_dist whose cells and max_node_count() nodes fit in max_size_bytes.
+    static u32 max_dist_limit(u32 div_size);
 
-    [[nodiscard]] u32 allocate(point from, u32 max_dist, u32 div_size);
+    [[nodiscard]] u32 allocate(point from, point to, u32 max_dist, u32 div_size);
+    // Returns the committed bytes below the cells, after committing up to `bytes` of them.
+    ArrayView<char> commit_nodes(usize bytes);
     void add_index(u32 chunk_index, u32 tile_index, u32 index, u32 dist);
     u32 lookup_index(u32 chunk_index, u32 tile_index);
     cell& at(u32 chunk_index, u32 tile_index);

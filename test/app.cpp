@@ -52,6 +52,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_erase_if),
     FM_TEST(test_pairwise),
     FM_TEST(test_math),
+    FM_TEST(test_virtual_memory),
     FM_TEST(test_rtree_pool),
     FM_TEST(test_rtree_upstream),
     FM_TEST(test_astar_pool),

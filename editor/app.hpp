@@ -19,7 +19,7 @@ namespace floormat::imgui { class text_painter_pool; }
 
 namespace floormat::pgo { struct task; struct state; struct scene; }
 
-namespace floormat::mazes { enum class kind : u8; }
+namespace floormat::mazes { enum class kind : u8; enum class long_route_outside : u8; enum class long_route_entrance : u8; }
 
 namespace floormat {
 
@@ -242,6 +242,10 @@ private:
     pgo::task scene_maze2();
     pgo::task scene_maze3();
     pgo::task scene_maze_exit();
+    pgo::task scene_maze4();
+    pgo::task scene_maze5();
+    pgo::task scene_maze6();
+    pgo::task scene_long_route(mazes::long_route_outside outside, mazes::long_route_entrance entrance);
     pgo::task scene_maze_test();
     pgo::task scene_grids();
     pgo::task scene_lightmap();

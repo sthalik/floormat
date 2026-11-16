@@ -150,7 +150,7 @@ void prim(cell_graph& g, rng& r)
     }
 }
 
-// The newest cell 3 times in 4. Always the newest (the recursive backtracker) has longer routes,
+// The newest cell 3 times in 4. Always the newest (randomized_dfs()) has longer routes,
 // but leaves long dead ends near the exit, which f >= C* keeps A* out of.
 void growing_tree(cell_graph& g, rng& r)
 {
@@ -179,6 +179,35 @@ void growing_tree(cell_graph& g, rng& r)
         g.connect(c, d);
         seen[d] = 1;
         active[top++] = d;
+    }
+}
+
+void randomized_dfs(cell_graph& g, rng& r)
+{
+    const auto n = g.w*g.h;
+    Array<u8> seen{ValueInit, n};
+    Array<u32> stack{NoInit, n};
+    u32 top = 0;
+    const auto start = r(n);
+    seen[start] = 1;
+    stack[top++] = start;
+    while (top > 0)
+    {
+        const auto c = stack[top - 1];
+        const auto nb = g.neighbors(c);
+        u32 cand[4], k = 0;
+        for (auto j = 0u; j < nb.count; j++)
+            if (!seen[nb.cell[j]])
+                cand[k++] = nb.cell[j];
+        if (k == 0)
+        {
+            top--;
+            continue;
+        }
+        const auto d = cand[r(k)];
+        g.connect(c, d);
+        seen[d] = 1;
+        stack[top++] = d;
     }
 }
 
@@ -332,6 +361,38 @@ point tile_point(chunk_coords_ origin, const wall_map& m, u32 t)
     return { global_coords{origin, {}} + Vector2i{(int)(t % m.size), (int)(t / m.size)}, {} };
 }
 
+point cell_center(point origin, Vector2i cell)
+{
+    constexpr auto pitch = (int)maze_pitch;
+    return point::normalize_coords(origin, cell*pitch*tile_size_xy + Vector2i{pitch*tile_size_xy/2 - half_tile<int>});
+}
+
+void draw_map(world& w, chunk_coords_ origin, const wall_map& m, i16 chunks, const wall_image_proto& wall)
+{
+    const auto ground = loader.ground_atlas("floor-tiles");
+    for (i16 cy = 0; cy < chunks; cy++)
+        for (i16 cx = 0; cx < chunks; cx++)
+        {
+            auto& c = w[chunk_coords_{(i16)(origin.x + cx), (i16)(origin.y + cy), 0}];
+            for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
+                for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
+                {
+                    auto t = c[local_coords{lx, ly}];
+                    t.ground() = { ground, variant_t((lx + ly) % ground->num_tiles()) };
+                    const auto x = (u32)cx*TILE_MAX_DIM + lx, y = (u32)cy*TILE_MAX_DIM + ly;
+                    if (x > m.size || y > m.size)
+                        continue;
+                    const auto bits = m.at(x, y);
+                    if (bits & wall_w)
+                        t.wall_west() = wall;
+                    if (bits & wall_n)
+                        t.wall_north() = wall;
+                }
+            c.mark_modified();
+            c.ensure_passability();
+        }
+}
+
 wall_map make_map(kind k, rng& r)
 {
     if (k == kind::rooms)
@@ -468,6 +529,27 @@ maze_endpoints pick_endpoints(const cell_graph& g, Search::octile oct)
     return best;
 }
 
+struct labyrinth_endpoints { u32 entrance, exit, cells; };
+
+// Returns two rows of the west column with the longest route of at most max_cells. It runs from the cell
+// west of `exit` along the ring to the cell west of `entrance`, then through the labyrinth to `exit`.
+labyrinth_endpoints pick_west_endpoints(const cell_graph& g, u32 max_cells)
+{
+    cell_bfs bfs{g};
+    labyrinth_endpoints best{};
+    for (u32 e = 0; e < g.h; e++)
+    {
+        bfs.run(e*g.w);
+        for (u32 t = 0; t < g.h; t++)
+        {
+            const auto cells = (e > t ? e - t : t - e) + 1 + bfs.dist[t*g.w];
+            if (t != e && cells <= max_cells && cells > best.cells)
+                best = {e, t, cells};
+        }
+    }
+    return best;
+}
+
 } // namespace
 
 StringView name(kind k)
@@ -488,30 +570,7 @@ route build(world& w, kind k, chunk_coords_ origin, Grid::Pass::Pool& pool)
     fm_assert(pool.params().bbox_size == bbox_size);
     auto r = rng{0x5eed0000u + (u32)k};
     const auto m = make_map(k, r);
-    const auto ground = loader.ground_atlas("floor-tiles");
-    const auto wall = wall_image_proto{loader.wall_atlas("empty", loader_policy::warn), 0};
-
-    for (i16 cy = 0; cy < map_chunks; cy++)
-        for (i16 cx = 0; cx < map_chunks; cx++)
-        {
-            auto& c = w[chunk_coords_{(i16)(origin.x + cx), (i16)(origin.y + cy), 0}];
-            for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
-                for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
-                {
-                    auto t = c[local_coords{lx, ly}];
-                    t.ground() = { ground, variant_t((lx + ly) % ground->num_tiles()) };
-                    const auto x = (u32)cx*TILE_MAX_DIM + lx, y = (u32)cy*TILE_MAX_DIM + ly;
-                    if (x > m.size || y > m.size)
-                        continue;
-                    const auto bits = m.at(x, y);
-                    if (bits & wall_w)
-                        t.wall_west() = wall;
-                    if (bits & wall_n)
-                        t.wall_north() = wall;
-                }
-            c.mark_modified();
-            c.ensure_passability();
-        }
+    draw_map(w, origin, m, map_chunks, wall_image_proto{loader.wall_atlas("empty", loader_policy::warn), 0});
 
     const auto a = farthest(m, 0), b = farthest(m, a.tile);
     const auto from = open_point(w, pool, tile_point(origin, m, a.tile));
@@ -616,18 +675,94 @@ route replace(world& w, chunk_coords_ origin, u32 cells, u64 seed,
             c.ensure_passability();
         }
 
-    const auto cell_point = [&](Vector2i cell) {
-        return point::normalize_coords(origin_pt, cell*pitch*tile_size_xy + Vector2i{pitch*tile_size_xy/2 - half_tile<int>});
-    };
     const auto entrance = Vector2i{(int)(endpoints.entrance % g.w), (int)(endpoints.entrance / g.w)};
-    const auto from = open_point(w, pool, cell_point(entrance));
-    const auto to = open_point(w, pool, cell_point(ex.outside));
+    const auto from = open_point(w, pool, cell_center(origin_pt, entrance));
+    const auto to = open_point(w, pool, cell_center(origin_pt, ex.outside));
 
     // Same bound as build(), over the footprint's diagonal.
     const auto route_tiles = (endpoints.dist + 1)*maze_pitch;
     const auto h_max = oct(Vector2i{(int)m.size + 1 + 2*pitch}*tile_size_xy) + 2*tile_size_xy;
     const auto max_dist = route_tiles*tile_size_xy + h_max + 2*tile_size_xy;
     return { from, to, max_dist, route_tiles };
+}
+
+route build_long_route(world& w, long_route_outside outside, long_route_entrance entrance, chunk_coords_ origin,
+                       u32 max_dist, u64 seed, Grid::Pass::Pool& pool)
+{
+    constexpr auto cell_px = maze_pitch*(u32)tile_size_xy;
+    fm_assert(origin.z == 0);
+    fm_assert(pool.params().bbox_size == bbox_size);
+    fm_assert(max_dist >= 16*cell_px);
+    auto r = rng{seed};
+
+    // Every node lies within max_dist/2 + 1 px per axis of the midpoint of `from` and `to`, near the centre.
+    const auto n = (max_dist/cell_px + 4) & ~1u, mid = n/2, max_side = mid - 2;
+    const auto max_cells = (max_dist - 2*tile_size_xy)/cell_px;
+    auto side = Math::min((u32)Math::ceil(Math::sqrt(4.*max_cells)), max_side);
+    auto lab = cell_graph{side, side};
+    labyrinth_endpoints endpoints{};
+    for (;;)
+    {
+        randomized_dfs(lab, r);
+        endpoints = pick_west_endpoints(lab, max_cells);
+        if (endpoints.cells*10 >= max_cells*9 || side == max_side)
+            break;
+        side = Math::min(Math::max(side + 1, side*5/4), max_side);
+        lab = cell_graph{side, side};
+    }
+    fm_assert(endpoints.cells > 0);
+
+    cell_graph g{n, n};
+    if (outside == long_route_outside::braid)
+    {
+        wilson(g, r);
+        braid(g, r);
+    }
+    else
+        for (auto& f : g.flags)
+            f = open_e | open_s;
+
+    const auto bx = mid + 1, by = mid - endpoints.exit;
+    const auto at = [&](u32 x, u32 y) { return y*n + x; };
+    for (u32 y = 0; y < side; y++)
+    {
+        g.flags[at(bx - 1, by + y)] &= (u8)~open_e;
+        for (u32 x = 0; x < side; x++)
+        {
+            const auto c = at(bx + x, by + y), l = y*side + x;
+            g.flags[c] = 0;
+            if (x + 1 < side && lab.is_open(l, l + 1))
+                g.connect(c, c + 1);
+            if (y + 1 < side && lab.is_open(l, l + side))
+                g.connect(c, c + n);
+        }
+    }
+    for (u32 x = 0; x < side; x++)
+        g.flags[at(bx + x, by - 1)] &= (u8)~open_s;
+    for (auto i = 0u; i <= side; i++)
+    {
+        g.connect(at(bx - 1 + i, by - 1), at(bx + i, by - 1));
+        g.connect(at(bx - 1 + i, by + side), at(bx + i, by + side));
+        g.connect(at(bx - 1, by - 1 + i), at(bx - 1, by + i));
+        g.connect(at(bx + side, by - 1 + i), at(bx + side, by + i));
+    }
+    const bool open = entrance == long_route_entrance::open;
+    if (open)
+        g.connect(at(bx - 1, by + endpoints.entrance), at(bx, by + endpoints.entrance));
+    {
+        cell_bfs bfs{g};
+        bfs.run(at(mid, mid));
+        fm_assert(bfs.dist[at(bx, mid)] == (open ? endpoints.cells : (u32)-1));
+    }
+
+    const auto m = draw_maze(g);
+    draw_map(w, origin, m, (i16)(m.size/TILE_MAX_DIM + 1),
+             wall_image_proto{loader.wall_atlas("concrete1", loader_policy::warn), 0});
+
+    const auto origin_pt = point{origin, local_coords{}, {}};
+    const auto from = open_point(w, pool, cell_center(origin_pt, Vector2i{(int)mid}));
+    const auto to = open_point(w, pool, cell_center(origin_pt, Vector2i{(int)bx, (int)mid}));
+    return { from, to, max_dist, endpoints.cells*maze_pitch };
 }
 
 } // namespace floormat::mazes
