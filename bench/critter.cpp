@@ -584,6 +584,7 @@ void Critter_cover(benchmark::State& st)
     st.counters["num_find_cover_point_calls"] = n.num_find_cover_point_calls;
     st.counters["num_rays"] = n.num_rays;
     st.counters["num_body_checks"] = n.num_body_checks;
+    st.counters["num_path_body_checks"] = n.num_path_body_checks;
     st.counters["num_dijkstra_calls"] = n.num_dijkstra_calls;
     constexpr u32 sweep_mask = 0x11111111u;
     u32 rays = 0, sweeps = 0;

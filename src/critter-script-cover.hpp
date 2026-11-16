@@ -45,8 +45,8 @@ struct options
     u32 threat_reach = 2*(u32)tile_size_xy;
     // The search skips spots whose cover has no peek spot.
     bool needs_peek = true;
-    // When the search ends with no other cover, the critter hides at a kept spot. If one is kept while the threat
-    // sees the critter, the critter retreats while the search goes on, once per search.
+    // The critter hides at a kept spot when the search ends with no other cover, or finds a path to cover in the
+    // threat's view. If one is kept while the critter is seen, it retreats once per search.
     fallback last_resort = fallback::in_reach;
 
     // The searches' max_cover_end_dist. 0 with threat_reach, as their move ignores it.
@@ -77,6 +77,8 @@ struct counters
     // Finished searches for cover, rays cast from the threat, tests of the body at a spot against the threat,
     // and Dijkstra searches, those of a retreat included.
     u32 num_searches = 0, num_rays = 0, num_body_checks = 0, num_dijkstra_calls = 0;
+    // hidden_at calls of spot_tests::is_seen_on_path.
+    u32 num_path_body_checks = 0;
     // The searches' Cover::Point::finder::find calls, each for one tile. A tile gets another call when the
     // threat moved since its list was made, or when the call ran out of fills.
     u32 num_find_cover_point_calls = 0;

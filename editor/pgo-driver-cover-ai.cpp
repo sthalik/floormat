@@ -62,7 +62,6 @@ constexpr local_coords map_player_tiles[] = {
     {14, 5}, {6, 6}, {8, 14}, {9, 8}, {2, 8}, {6, 12}, {8, 2}, {8, 9}, {13, 13}, {3, 9},
     {2, 13}, {10, 6}, {2, 2}, {6, 8}, {13, 2}, {7, 12}, {12, 11}, {4, 3}, {3, 12},
 };
-// Moves 11 on repeat moves 3 to 10.
 constexpr u32 map_moves = 10, short_map_moves = 3;
 // A player tile nearer the npc than this is skipped, since the player's body could stand in the
 // npc's way.
@@ -691,10 +690,55 @@ task app::scene_cover_ai_map()
         return std::pair{v.x(), v.y()};
     };
 
+    const auto press = [&](u32 button) {
+        base_test::Value v;
+        v.type = base_test::ValueType::u32;
+        v.u32 = button;
+        return tests().current_test->advance(*this, v);
+    };
+    Array<Cover::Point::spot> listed_spots;
+    const auto nearest_place_seeing_spot = [&]() -> Optional<point> {
+        const auto box = press(11);
+        fm_assert(box.type == base_test::ValueType::ai32 && box.ai32[3]);
+        const auto center = tile_pos({}) + Vector2i{box.ai32[0], box.ai32[1]};
+        const auto octant = (u32)box.ai32[2];
+        const auto from = tile_pos(map_player_tiles[at]);
+        auto& C = *w.find_object<critter>(npc_id);
+        auto q = *status().query;
+        q.pos = center;
+        q.threat = from;
+        q.radius = 16*tile_size_xy;
+        q.max_cover_end_dist = Cover::Script::options{}.listed_cover_end_dist();
+        arrayClear(listed_spots);
+        Cover::Script::list_spots(C, q, listed_spots);
+        constexpr i8 offsets[] = { -24, -8, 8, 24, };
+        Optional<point> to;
+        for (u8 y = 0; y < TILE_MAX_DIM; y++)
+            for (u8 x = 0; x < TILE_MAX_DIM; x++)
+                for (const auto oy : offsets)
+                    for (const auto ox : offsets)
+                    {
+                        const auto pt = point{chunk_coords_{}, {x, y}, {ox, oy}};
+                        if (Cover::Point::nearest_octant(Vector2(pt - center)) != octant ||
+                            to && point::distance_squared(pt, from) >= point::distance_squared(*to, from))
+                            continue;
+                        for (const auto& s : listed_spots)
+                            if (sees(pt, s.pos))
+                            {
+                                to = pt;
+                                break;
+                            }
+                    }
+        return to;
+    };
+
     const auto n_moves = pgo_driver_use_short_scenes() ? short_map_moves : map_moves;
+    const auto max_moves = n_moves + (u32)array_size(map_player_tiles);
     Array<point> covers;
-    arrayReserve(covers, n_moves + 1);
-    for (auto k = 0u; ; k++)
+    arrayReserve(covers, max_moves + 1);
+    Optional<point> to;
+    auto k = 0u;
+    for (;; k++)
     {
         const auto player = tile_pos(map_player_tiles[at]);
         auto deadline = M->world().game_time() + max_dt;
@@ -795,8 +839,11 @@ task app::scene_cover_ai_map()
                      "%u with peek spots, whole search %.0f us", k, tx, ty, cx, cy, px, py, n_spots, n_peeks,
                      (double)Time::to_milliseconds(box_time)*1e3);
         }
-        if (k == n_moves)
+        // Past n_moves, the player moves on while no place in the box's octant sees a listed spot.
+        if (k >= n_moves && (to = nearest_place_seeing_spot()))
             break;
+        if (k == max_moves)
+            fm_abort("cover-ai-map: move %u: no place in the box's octant sees a listed spot", k);
 
         deadline = M->world().game_time() + max_dt;
         while (!(status().st == state::hidden && npc_pos() == cover))
@@ -828,47 +875,9 @@ task app::scene_cover_ai_map()
     // that sees a listed spot. The box drops those it sees then, without starting over.
     u32 dropped = 0;
     {
-        const auto press = [&](u32 button) {
-            base_test::Value v;
-            v.type = base_test::ValueType::u32;
-            v.u32 = button;
-            return tests().current_test->advance(*this, v);
-        };
-        const auto box = press(11);
-        fm_assert(box.type == base_test::ValueType::ai32 && box.ai32[3]);
-        const auto center = tile_pos({}) + Vector2i{box.ai32[0], box.ai32[1]};
-        const auto octant = (u32)box.ai32[2];
-        const auto from = tile_pos(map_player_tiles[at]);
-        auto& C = *w.find_object<critter>(npc_id);
-        auto q = *status().query;
-        q.pos = center;
-        q.threat = from;
-        q.radius = 16*tile_size_xy;
-        q.max_cover_end_dist = Cover::Script::options{}.listed_cover_end_dist();
-        Array<Cover::Point::spot> listed_spots;
-        Cover::Script::list_spots(C, q, listed_spots);
         const auto before = press(10);
         fm_assert_equal(0u, before.au32[1]);
         fm_assert_equal(before.au32[2], (u32)listed_spots.size());
-        constexpr i8 offsets[] = { -24, -8, 8, 24, };
-        Optional<point> to;
-        for (u8 y = 0; y < TILE_MAX_DIM; y++)
-            for (u8 x = 0; x < TILE_MAX_DIM; x++)
-                for (const auto oy : offsets)
-                    for (const auto ox : offsets)
-                    {
-                        const auto pt = point{chunk_coords_{}, {x, y}, {ox, oy}};
-                        if (Cover::Point::nearest_octant(Vector2(pt - center)) != octant ||
-                            to && point::distance_squared(pt, from) >= point::distance_squared(*to, from))
-                            continue;
-                        for (const auto& s : listed_spots)
-                            if (sees(pt, s.pos))
-                            {
-                                to = pt;
-                                break;
-                            }
-                    }
-        fm_assert(to);
         auto player = ensure_player_character(w);
         auto index = player->index();
         player->teleport_to(index, *to, rotation_COUNT);
@@ -884,7 +893,7 @@ task app::scene_cover_ai_map()
     auto distinct = 0u;
     for (auto i = 0u; i < covers.size(); i++)
         distinct += !contains(covers.prefix(i), covers[i]);
-    fm_debug("cover-ai-map: %u moves, %u cover spots, %u spots dropped as seen, %u ms", n_moves, distinct, dropped,
+    fm_debug("cover-ai-map: %u moves, %u cover spots, %u spots dropped as seen, %u ms", k, distinct, dropped,
              (u32)Time::to_milliseconds(M->world().game_time()));
 
     tests().switch_to(Test::none);

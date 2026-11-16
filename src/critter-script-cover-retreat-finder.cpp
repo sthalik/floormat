@@ -26,6 +26,9 @@ namespace {
 constexpr u32 retreat_radius = 5*(u32)tile_size_xy;
 constexpr int min_retreat_gain = 3*tile_size_xy;
 constexpr u32 max_retreat_dijkstra_calls_per_update = 4;
+// is_seen_on_path's hidden_at calls that count as one Dijkstra search toward that cap, after an update's first.
+// A search that found a path took up to 0.71 ms among dense scenery, a call 0.33 to 0.82 microseconds.
+constexpr u32 hidden_at_calls_per_dijkstra_call = 710;
 // sees() calls, each one ray from the threat to a spot's center.
 constexpr u32 max_retreat_rays_per_update = 256;
 // Search::is_passable calls for the npc's body at a spot, each an R-tree search.
@@ -69,6 +72,7 @@ void retreat_finder::begin(Vector2i body, u32 threat_octant)
     _num_failed_dijkstra_calls = 0;
     _all = false;
     _octant = threat_octant;
+    _exposed_path = {};
 }
 
 retreat_finder::result retreat_finder::step(critter& c, spot_tests& t, const Cover::Script::options& o,
@@ -90,10 +94,26 @@ retreat_finder::result retreat_finder::step(critter& c, spot_tests& t, const Cov
     const auto here = Math::sqrt((double)point::distance_squared(from, threat));
     auto dijkstra_left = max_retreat_dijkstra_calls_per_update, rays_left = max_retreat_rays_per_update;
     auto passable_left = max_retreat_is_passable_calls_per_update;
+    const auto path_body_checks_before_step = t.counters.num_path_body_checks;
+    const auto take_exposed_path = [&]() -> result {
+        _path_from = _exposed_path_from;
+        _path_needs_ray_test = _exposed_path_needs_ray_test;
+        auto p = move(_exposed_path);
+        _exposed_path = {};
+        return {move(p), false, true};
+    };
+    const auto on_limit_reached = [&]() -> result {
+        if (_exposed_path.is_found())
+            return take_exposed_path();
+        else
+            return {};
+    };
     for (;;)
     {
         if (_next == _spots.size() || _num_failed_dijkstra_calls == max_failed_dijkstra_calls || !_all && !_rays)
         {
+            if (_all && _exposed_path.is_found())
+                return take_exposed_path();
             if (_all)
                 return {{}, true};
             _all = true;
@@ -121,7 +141,7 @@ retreat_finder::result retreat_finder::step(critter& c, spot_tests& t, const Cov
             continue;
         }
         if (!passable_left)
-            return {};
+            return on_limit_reached();
         passable_left--;
         const auto lo = Vector2(to.intra().center_shifted() - body/2);
         if (!Search::is_passable(w, to.chunk3(), Range2D::fromSize(lo, Vector2(body)), pred))
@@ -131,11 +151,15 @@ retreat_finder::result retreat_finder::step(critter& c, spot_tests& t, const Cov
             continue;
         }
         if (!dijkstra_left)
-            return {};
+            return on_limit_reached();
+        if (dijkstra_left < max_retreat_dijkstra_calls_per_update &&
+            t.counters.num_path_body_checks - path_body_checks_before_step >
+                (dijkstra_left - 1)*hidden_at_calls_per_dijkstra_call)
+            return on_limit_reached();
         if (!_all)
         {
             if (!rays_left)
-                return {};
+                return on_limit_reached();
             rays_left--;
             _rays--;
             if (t.sees(c, o, threat, to))
@@ -148,19 +172,34 @@ retreat_finder::result retreat_finder::step(critter& c, spot_tests& t, const Cov
         dijkstra_left--;
         s.done = true;
         _next++;
+        // TODO: a Dijkstra search mode that adds the threat seeing the npc to a path's cost could use another
+        // cost here than for paths to cover.
         if (auto path = t.path_to(c, to); path.is_found())
-            return {move(path), false};
+        {
+            if (!t.is_seen_on_path(c, o, threat, path))
+            {
+                _path_from = from;
+                _path_needs_ray_test = !_all;
+                return {move(path), false};
+            }
+            if (!_exposed_path.is_found())
+            {
+                _exposed_path = move(path);
+                _exposed_path_from = from;
+                _exposed_path_needs_ray_test = !_all;
+            }
+            continue;
+        }
         _num_failed_dijkstra_calls++;
     }
 }
 
-bool retreat_finder::keeps(critter& c, spot_tests& t, const Cover::Script::options& o, point to,
-                           point threat) const
+bool retreat_finder::is_still_retreat_spot(critter& c, spot_tests& t, const Cover::Script::options& o,
+                                           point to, point threat) const
 {
     fm_debug_assert(_next > 0);
-    const auto from = to - _spots[_next - 1].offset;
     const auto dist = [&](point p) { return Math::sqrt((double)point::distance_squared(p, threat)); };
-    return dist(to) - dist(from) > min_retreat_gain && (_all || !t.sees(c, o, threat, to));
+    return dist(to) - dist(_path_from) > min_retreat_gain && (!_path_needs_ray_test || !t.sees(c, o, threat, to));
 }
 
 Cover::Script::retreat_progress retreat_finder::progress() const

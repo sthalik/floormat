@@ -2,6 +2,7 @@
 #include "critter-script-cover-peek-spot.hpp"
 #include "critter-script-cover-search.hpp"
 #include "critter.hpp"
+#include "point.inl"
 #include "raycast.hpp"
 #include "search-astar.hpp"
 #include "search-pred.hpp"
@@ -12,6 +13,16 @@
 namespace floormat::Cover {
 
 using Search::blocks_all_but;
+
+namespace {
+
+constexpr inline float max_seen_from_path_start = 32;
+constexpr inline u32 path_body_check_spacing = 16;
+constexpr inline u32 threat_lattice_radius = 48;
+constexpr inline u32 threat_lattice_spacing = 32;
+constexpr inline u32 max_walk_to_hidden_position = (u32)max_seen_from_path_start + path_body_check_spacing;
+
+} // namespace
 
 spot_tests::spot_tests(astar& A, object_id threat_id, Optional<int> gun_offset) :
     _astar{A}, _threat_id{threat_id}, _gun_offset{gun_offset}
@@ -74,6 +85,92 @@ path_search_result spot_tests::path_to(critter& c, point to)
     if (path.is_found())
         (void)_astar.string_pull(w, path, body, pred);
     return path;
+}
+
+ArrayView<const point> spot_tests::threat_lattice(critter& c, const Cover::Script::options& o, point threat)
+{
+    auto& w = c.world();
+    Optional<u32> bbox_side;
+    if (const auto obj = w.find_object(_threat_id))
+        bbox_side = Math::max((u32)obj->bbox_size.x(), (u32)obj->bbox_size.y());
+    return _threat_lattice.reachable_lattice_points(w, _astar.pool_registry(), threat, bbox_side,
+                                                    Math::min(threat_lattice_radius, o.threat_reach),
+                                                    threat_lattice_spacing);
+}
+
+bool spot_tests::has_hidden_position_nearby(critter& c, const Cover::Script::options& o, point threat)
+{
+    auto& w = c.world();
+    const auto from = c.position();
+    if (const auto& r = _nearby_hidden_position;
+        r && r->frame_no == w.frame_no() && r->from == from && r->threat == threat)
+        return r->found;
+    const auto body = Vector2ui(c.bbox_size);
+    const auto threat_positions = threat_lattice(c, o, threat);
+    const auto side = Math::max(body.x(), body.y());
+    const auto spots = _npc_lattice.reachable_lattice_points(w, _astar.pool_registry(), from, side,
+                                                             max_walk_to_hidden_position, path_body_check_spacing,
+                                                             max_walk_to_hidden_position);
+    bool found = false;
+    for (auto i = 0u; i < spots.size() && !found; i++)
+    {
+        const auto q = spots[i];
+        found = true;
+        for (const auto& t : threat_positions)
+        {
+            counters.num_path_body_checks++;
+            if (!_finder.hidden_at(w, t, {q, Cover::Point::axis_toward(t - q)}, body))
+            {
+                found = false;
+                break;
+            }
+        }
+    }
+    _nearby_hidden_position = nearby_hidden_position_cache{w.frame_no(), from, threat, found};
+    return found;
+}
+
+bool spot_tests::is_seen_on_path(critter& c, const Cover::Script::options& o, point threat,
+                                 const path_search_result& path)
+{
+    auto& w = c.world();
+    const auto threat_positions = threat_lattice(c, o, threat);
+    const auto body = Vector2ui(c.bbox_size);
+    bool hidden_before = false, seen_past_start = false;
+    const auto is_seen_after_hidden = [&](point pos, float walked) {
+        for (const auto& t : threat_positions)
+        {
+            counters.num_path_body_checks++;
+            if (!_finder.hidden_at(w, t, {pos, Cover::Point::axis_toward(t - pos)}, body))
+            {
+                seen_past_start |= !hidden_before && walked > max_seen_from_path_start;
+                return hidden_before;
+            }
+        }
+        hidden_before = true;
+        return false;
+    };
+    // The line critter_walk walks.
+    const auto smoothings = path.smoothings();
+    const auto raw = path.path();
+    const auto smoothed = smoothings.size() >= 2;
+    const auto count = (u32)(smoothed ? smoothings.size() : raw.size());
+    const auto at = [&](u32 i) { return smoothed ? smoothings[i].pt : raw[i]; };
+    if (!count)
+        return false;
+    float walked = 0, next = 0;
+    for (auto i = 0u; i + 1 < count; i++)
+    {
+        const auto a = at(i);
+        const auto d = Vector2(at(i + 1) - a);
+        const auto len = d.length();
+        for (; next < walked + len; next += path_body_check_spacing)
+            if (is_seen_after_hidden(a + Vector2i(Math::round(d*((next - walked)/len))), next))
+                return true;
+        walked += len;
+    }
+    return is_seen_after_hidden(at(count - 1), walked) ||
+           seen_past_start && has_hidden_position_nearby(c, o, threat);
 }
 
 Cover::Point::finder& spot_tests::finder() { return _finder; }

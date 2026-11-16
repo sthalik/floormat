@@ -37,6 +37,8 @@ constexpr u32 max_peek_spot_searches_per_update = 1;
 // hidden_at calls made by hidden_from_reach, each up to 6 microseconds among dense scenery. Rejecting a spot
 // may take a single call, so a spot that hidden_from_reach rejects counts against this cap only.
 constexpr u32 max_search_body_checks_per_update = 64;
+// Updates the search goes on for after keeping a path that is_seen_on_path rejected, before it takes that path.
+constexpr u32 updates_before_exposed_cover = 4;
 
 // A query's pos lies up to half a tile from its tile's center on each axis, so the list reaches a
 // tile past cover_search::radius.
@@ -58,6 +60,7 @@ u32 max_search_path_length(point from, point to) { return point::distance(from, 
 void cover_search::begin(point from, point threat)
 {
     _fallback_spots = {};
+    _exposed_cover = {};
     _num_failed_dijkstra_calls = 0;
     const auto n = (u32)search_tiles().size();
     _tiles_left = n + n/2;
@@ -66,6 +69,7 @@ void cover_search::begin(point from, point threat)
 
 void cover_search::restart(point from, point threat)
 {
+    _exposed_cover = {};
     // More than a scan stays left after the restart's tile, so the count stays nonzero until the search ends.
     if (_tiles_left > search_tiles().size() + 1)
     {
@@ -105,6 +109,7 @@ auto cover_search::step(critter& c, spot_tests& t, const Cover::Script::options&
         if (from == _from && _tiles_left > tiles.size() - _octant_tiles[k] + 1)
         {
             _octant = k;
+            _exposed_cover = {};
             _tile = _octant_tiles[k];
             _tiles_left--;
             _tile_threat = {};
@@ -115,10 +120,29 @@ auto cover_search::step(critter& c, spot_tests& t, const Cover::Script::options&
     else if (_tile_threat != threat)
         _tile_threat = {};
 
-    // With a spot kept for last_resort, the search ends in the update after its last spot, since that spot may
-    // have used the update's one Dijkstra call.
+    // With a spot kept for last_resort or a path kept, the search ends in the update after its last spot, since
+    // that spot may have used the update's one Dijkstra call.
     if (_tile == tiles.size() || _num_failed_dijkstra_calls == max_failed_dijkstra_calls)
-        return {take_last_resort(c, t, o, threat), true};
+    {
+        const auto n = t.counters.num_dijkstra_calls;
+        auto r = take_last_resort(c, t, o, threat);
+        // take_exposed_cover may call path_to too, so it waits for the next update after a path_to call here.
+        if (!r && _exposed_cover && t.counters.num_dijkstra_calls != n)
+            return {};
+        else if (!r)
+            return {take_exposed_cover(c, t, o, threat), true};
+        else
+            return {move(r), true};
+    }
+    if (_exposed_cover && !_exposed_updates_left)
+    {
+        if (auto r = take_exposed_cover(c, t, o, threat))
+            return {move(r), true};
+        else
+            return {};
+    }
+    if (_exposed_cover)
+        _exposed_updates_left--;
     // the offset of _from's tile's center, so that each area is a tile of the world
     const auto base = point{_from.coord(), {}} - _from;
     auto fills = max_search_octant_fills_per_update, dijkstra_left = max_search_dijkstra_calls_per_update;
@@ -173,6 +197,11 @@ auto cover_search::step(critter& c, spot_tests& t, const Cover::Script::options&
                     if (o.last_resort >= fallback::in_reach && !_fallback_spots.in_reach)
                         _fallback_spots.in_reach = s;
                     arrayAppend(_tile_skipped, skipped_spot{s, _octant});
+                    if (_exposed_cover && _fallback_spots.any())
+                    {
+                        _tile = (u32)tiles.size();
+                        return {};
+                    }
                     continue;
                 }
             }
@@ -184,20 +213,40 @@ auto cover_search::step(critter& c, spot_tests& t, const Cover::Script::options&
                 if (o.last_resort >= fallback::no_peek && !_fallback_spots.peekless)
                     _fallback_spots.peekless = s;
                 arrayAppend(_tile_skipped, skipped_spot{s, _octant});
+                if (_exposed_cover && _fallback_spots.any())
+                {
+                    _tile = (u32)tiles.size();
+                    return {};
+                }
                 continue;
             }
             if (at_spot || end == here)
                 return {reachable_cover{s, end, {}}, true};
             dijkstra_left--;
-            // TODO: the path may lead toward the threat. Avoiding it needs A.Dijkstra predicate changes and maybe
-            // a path to the threat, or another measure of how close the path comes to it.
+            // TODO: a Dijkstra search mode that adds the threat seeing the npc to a path's cost, with one cost
+            // while the npc retreats and another when it goes to cover from state::retreat.
             if (auto path = t.path_to(c, end); path.is_found())
-                return {reachable_cover{s, end, move(path)}, true};
+            {
+                if (!t.is_seen_on_path(c, o, threat, path))
+                    return {reachable_cover{s, end, move(path)}, true};
+                arrayAppend(_tile_skipped, skipped_spot{s, _octant});
+                if (_exposed_cover)
+                    continue;
+                _exposed_cover = reachable_cover{s, end, move(path)};
+                _exposed_updates_left = updates_before_exposed_cover;
+                // take_last_resort may call path_to, so it runs in the next update.
+                if (_fallback_spots.any())
+                {
+                    _tile = (u32)tiles.size();
+                    return {};
+                }
+                continue;
+            }
             // The npc can walk straight from s.pos to end, so s.pos has no path either.
             const auto reach = max_search_path_length(here, end) + point::distance(here, _from);
             _unreachable.add_failed(w, s.pos, reach);
             if (++_num_failed_dijkstra_calls == max_failed_dijkstra_calls)
-                return {{}, !_fallback_spots.any()};
+                return {{}, !_fallback_spots.any() && !_exposed_cover};
         }
         _tile_threat = {};
         erase_if(_tile_skipped, [&](const skipped_spot& x) { return x.octant == _octant; });
@@ -205,9 +254,36 @@ auto cover_search::step(critter& c, spot_tests& t, const Cover::Script::options&
         fm_debug_assert(_tiles_left);
         _tiles_left--;
         if (_tile == tiles.size())
-            return {{}, !_fallback_spots.any()};
+            return {{}, !_fallback_spots.any() && !_exposed_cover};
     }
     return {};
+}
+
+// The kept spot if the threat and where it can walk still see none of the npc there, with cover_end() and a path
+// there. At most one path_to call, made when the npc or cover_end() moved.
+auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Script::options& o, point threat)
+    -> Optional<reachable_cover>
+{
+    if (!_exposed_cover)
+        return {};
+    auto r = move(*_exposed_cover);
+    _exposed_cover = {};
+    const auto s = r.spot;
+    if (!t.hidden_from_reach(c, o, threat, s.pos, s.axis))
+        return {};
+    else
+    {
+        const auto end = t.cover_end(c, o, s, threat);
+        const auto here = c.position();
+        if (s.pos == here || end == here)
+            return reachable_cover{s, end, {}};
+        else if (const auto raw = r.path.path(); end == r.end && !raw.isEmpty() && raw.front() == here)
+            return r;
+        else if (auto path = t.path_to(c, end); path.is_found())
+            return reachable_cover{s, end, move(path)};
+        else
+            return {};
+    }
 }
 
 // peekless if the threat and where it can walk still see none of the npc there, else in_reach if the threat
@@ -242,10 +318,12 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
 }
 
 void cover_search::end() { _tiles_left = 0; }
+void cover_search::give_up() { _tile = (u32)search_tiles().size(); }
 
 void cover_search::options_changed(Cover::Script::options::fallback last_resort)
 {
     _fallback_spots.drop(last_resort);
+    _exposed_cover = {};
     arrayClear(_tile_skipped);
 }
 

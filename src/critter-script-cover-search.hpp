@@ -35,6 +35,7 @@ public:
     // When the unreachable spots go stale, the search restarts, and a new threat octant resumes its scan.
     result step(critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat);
     void end();
+    void give_up();
     // Forgets the spots skipped under the old options, and kept spots that last_resort doesn't allow, which
     // neither a retreat nor step() checks again.
     void options_changed(Cover::Script::options::fallback last_resort);
@@ -58,7 +59,11 @@ private:
 
     Optional<reachable_cover> take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,
                                                point threat);
+    Optional<reachable_cover> take_exposed_cover(critter& c, spot_tests& t, const Cover::Script::options& o,
+                                                 point threat);
 
+    Optional<reachable_cover> _exposed_cover;
+    u32 _exposed_updates_left = 0;
     unreachable_spots _unreachable;
     // The spots of tile _tile while _tile_threat is set, of which _tile_spot is next. They were listed with the
     // threat at _tile_threat.
@@ -75,7 +80,7 @@ private:
     u32 _num_failed_dijkstra_calls = 0;
     std::array<u16, Grid::Cover::octant_count> _octant_tiles{};
     // Where the tiles and the threat's octant are measured from: the npc's position at the last restart to tile 0,
-    // or during a retreat walk the walk's end, so that cover back toward the threat comes later.
+    // or a retreat walk's end unless is_seen_on_path rejected it, so cover back toward the threat comes later.
     point _from;
 };
 
