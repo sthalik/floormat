@@ -155,6 +155,7 @@ private:
     void add_object_pre(const bptr<object>& e);
     [[nodiscard]] usize add_objectʹ(const bptr<object>& e);
     void add_object_unsorted(const bptr<object>& e);
+    void add_scenery_mesh(const object& e, SpriteBatch& sb, bool is_dynamic, i32 depth_offset);
 
     struct bbox final
     {
