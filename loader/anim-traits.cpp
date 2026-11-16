@@ -47,9 +47,7 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
     constexpr auto size = invalid_atlas_size;
     auto err_tex = ::floormat::loader.make_error_texture(size);
 
-    // Allocate the single frame in the shared sprite atlas so render-path
-    // lookups succeed for any object that ended up using this placeholder
-    // (e.g. missing asset with loader_policy::warn). Same pattern as loader/vobj.cpp.
+    // Placeholder frames need a sprite in the shared atlas so they can be drawn.
     const auto px_size = (usize)err_tex.pixels().size()[2];
     const auto row_stride = (usize)size.x() * px_size;
     const auto* src_base = (const char*)err_tex.pixels().data();

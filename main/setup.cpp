@@ -199,8 +199,7 @@ unsigned main_impl::get_window_refresh_rate(SDL_Window* window, unsigned min, un
         fm_warn_once("SDL_GetWindowDisplayIndex: %s", SDL_GetError());
     else if (SDL_DisplayMode dpymode{}; SDL_GetCurrentDisplayMode(index, &dpymode) < 0)
         fm_warn_once("SDL_GetCurrentDisplayMode: %s", SDL_GetError());
-    // SDL reports refresh_rate == 0 for "unspecified" (headless, RDP, some VMs),
-    // so clamp into [min, max] instead of asserting on the reported value.
+    // Fall back to min if SDL cannot report a positive refresh rate.
     else if (dpymode.refresh_rate > 0)
         return Math::clamp((unsigned)dpymode.refresh_rate, min, max);
     return min;
