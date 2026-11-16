@@ -2945,11 +2945,14 @@ path_search_result flank_route(cover_scene& s)
     fm_abort("no flank route");
 }
 
-// cover_scene with 64 px blocks around its wall. 16 times, the threat walks a flank_route(), and from the update
-// it first sees a pixel of the hidden npc, the npc must hide again within 1.25 times its shortest walk there.
+// cover_scene with 64 px blocks around its wall. 16 times, the threat walks a flank_route(), and each time it sees
+// a pixel of the hidden npc, the npc must hide again within 1.25 times its shortest walk there.
 void test_cover_script_rehides()
 {
     using walk_result = critter::walk_result;
+    // Each time the threat flanked the npc and the npc hid again: where it stood, where it hid, and the updates
+    // between.
+    struct return_to_cover { point from, to; u32 num_updates; };
     cover_scene s{point{ch, {10, 8}, {}}};
     const local_coords blocks[] = { {3, 3}, {8, 3}, {12, 3}, {3, 8}, {12, 8}, {3, 12}, {8, 12}, {12, 12} };
     for (const auto tile : blocks)
@@ -2966,8 +2969,11 @@ void test_cover_script_rehides()
         const auto route_len = path_length(route.path());
         critter_walk walk{move(route)};
         auto arrived = false, flanked = false;
-        auto walked = 0u, updates = 0u, hidden_after = 0u, retreating = 0u, seen = 0u;
+        auto walked = 0u, updates = 0u, retreating = 0u, seen = 0u;
+        auto was_flanked_since_hiding = false;
         point flanked_at;
+        Array<return_to_cover> returns_to_cover;
+        arrayReserve(returns_to_cover, 16);
         for (auto frames = 0u; ; frames++)
         {
             fm_assert(frames < 60*s.fps);
@@ -2979,11 +2985,13 @@ void test_cover_script_rehides()
                 arrived = r == walk_result::arrived;
                 walked++;
             }
-            if (!flanked && flanked_from(s, s.threat->position()))
+            if (!was_flanked_since_hiding && flanked_from(s, s.threat->position()))
             {
+                fm_assert(flanked || point::distance(s.threat->position(), end) <= tile_size_xy);
                 flanked = true;
+                was_flanked_since_hiding = true;
                 flanked_at = s.npc->position();
-                fm_assert(point::distance(s.threat->position(), end) <= tile_size_xy);
+                updates = 0;
             }
             const auto was_hidden = s.status().st == state::hidden;
             s.step();
@@ -3002,20 +3010,26 @@ void test_cover_script_rehides()
                 const auto& c = *t.cover;
                 hides = s.npc->position() == c.pos;
             }
-            if (hides && !was_hidden)
-                hidden_after = updates;
+            if (hides && !was_hidden && was_flanked_since_hiding)
+            {
+                arrayAppend(returns_to_cover, return_to_cover{flanked_at, s.npc->position(), updates});
+                was_flanked_since_hiding = false;
+            }
             if (arrived && hides)
                 break;
         }
         const auto& c = *s.status().cover;
         const auto cover = c.pos;
-        const auto shortest = s.A.Dijkstra<0, false>(s.w, flanked_at, cover, chunk_size_xy, body,
-                                                     Search::blocks_all_but(s.npc->id));
-        fm_assert(shortest.is_found());
         // The threat and the npc are made alike, so they walk as fast.
         const auto px_per_update = route_len / walked;
-        const auto limit = 1.25 * path_length(shortest.path()) / px_per_update;
-        fm_assert(hidden_after <= limit + 5);
+        for (const auto& r : returns_to_cover)
+        {
+            const auto shortest = s.A.Dijkstra<0, false>(s.w, r.from, r.to, chunk_size_xy, body,
+                                                         Search::blocks_all_but(s.npc->id));
+            fm_assert(shortest.is_found());
+            const auto limit = 1.25 * path_length(shortest.path()) / px_per_update;
+            fm_assert(r.num_updates <= limit + 5);
+        }
         fm_assert(retreating < s.fps/4);
         fm_assert(seen < s.fps/6);
         fm_assert(cant_be_shot_at(s.w, end, s.threat->id, cover, body, s.npc->id));
