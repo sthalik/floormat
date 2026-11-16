@@ -400,7 +400,7 @@ struct cell_bfs
     }
 };
 
-struct maze_ends
+struct maze_endpoints
 {
     u32 entrance;
     opening exit;
@@ -409,7 +409,7 @@ struct maze_ends
 
 // A* with a consistent h expands every node with g + h < C*. Picks the border entrance and exit
 // with the most cells under that bound, counted at cell resolution.
-maze_ends pick_ends(const cell_graph& g, Search::octile oct)
+maze_endpoints pick_endpoints(const cell_graph& g, Search::octile oct)
 {
     constexpr auto cell_px = maze_pitch*(u32)tile_size_xy;
     const auto n = g.w*g.h;
@@ -430,7 +430,7 @@ maze_ends pick_ends(const cell_graph& g, Search::octile oct)
     // A cell under the bound is at most as far from the entrance as the exit cell, so the count
     // of those caps the exit's score and skips the full count for most exits.
     Array<u32> at_most{NoInit, n};
-    maze_ends best{};
+    maze_endpoints best{};
     u32 best_count = 0;
     for (u32 s = 0; s < n; s++)
     {
@@ -535,8 +535,8 @@ route replace(world& w, chunk_coords_ origin, u32 cells, u64 seed,
     cell_graph g{cells, cells};
     growing_tree(g, r);
     const auto oct = Search::octile{pool.params().div_size()};
-    const auto ends = pick_ends(g, oct);
-    const auto& ex = ends.exit;
+    const auto endpoints = pick_endpoints(g, oct);
+    const auto& ex = endpoints.exit;
     auto m = draw_maze(g);
     {
         const auto x0 = (ex.cell % g.w)*maze_pitch, y0 = (ex.cell / g.w)*maze_pitch;
@@ -619,12 +619,12 @@ route replace(world& w, chunk_coords_ origin, u32 cells, u64 seed,
     const auto cell_point = [&](Vector2i cell) {
         return point::normalize_coords(origin_pt, cell*pitch*tile_size_xy + Vector2i{pitch*tile_size_xy/2 - half_tile<int>});
     };
-    const auto entrance = Vector2i{(int)(ends.entrance % g.w), (int)(ends.entrance / g.w)};
+    const auto entrance = Vector2i{(int)(endpoints.entrance % g.w), (int)(endpoints.entrance / g.w)};
     const auto from = open_point(w, pool, cell_point(entrance));
     const auto to = open_point(w, pool, cell_point(ex.outside));
 
     // Same bound as build(), over the footprint's diagonal.
-    const auto route_tiles = (ends.dist + 1)*maze_pitch;
+    const auto route_tiles = (endpoints.dist + 1)*maze_pitch;
     const auto h_max = oct(Vector2i{(int)m.size + 1 + 2*pitch}*tile_size_xy) + 2*tile_size_xy;
     const auto max_dist = route_tiles*tile_size_xy + h_max + 2*tile_size_xy;
     return { from, to, max_dist, route_tiles };
