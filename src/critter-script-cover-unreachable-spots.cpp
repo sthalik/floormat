@@ -59,7 +59,7 @@ void unreachable_spots::origin_moved(u32 dist)
         _reach += dist;
 }
 
-bool unreachable_spots::stale(const world& w, point search_from) const
+bool unreachable_spots::stale(const world& w, point search_origin) const
 {
     if (_spots.isEmpty())
         return false;
@@ -67,9 +67,9 @@ bool unreachable_spots::stale(const world& w, point search_from) const
         return true;
     auto reach = _reach;
     for (const auto& u : _spots)
-        reach = Math::max(reach, point::distance(search_from, u));
-    // search_from lies anywhere in its chunk, so the reach spans one chunk more than its length.
-    return w.max_pass_gen(search_from.chunk3(), reach / chunk_size_xy + 2) > _pass_gen;
+        reach = Math::max(reach, point::distance(search_origin, u));
+    // search_origin lies anywhere in its chunk, so the reach spans one chunk more than its length.
+    return w.max_pass_gen(search_origin.chunk3(), reach / chunk_size_xy + 2) > _pass_gen;
 }
 
 } // namespace floormat::Cover

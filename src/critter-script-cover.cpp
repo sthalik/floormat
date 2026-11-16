@@ -34,6 +34,9 @@ namespace {
 constexpr Ns hidden_time = 2*Second, exposed_time = 2*Second;
 // before looking for cover again when there was none, or the walk there was blocked twice
 constexpr Ns retry_time = Second;
+// On a retreat path that is_seen_on_path rejected, a search holding a fallback spot takes it once it has scanned
+// the npc's tile and the 8 around it.
+constexpr u32 tiles_searched_before_give_up = 9;
 
 struct cover_script;
 constexpr StringView script_name = name_of<cover_script>;
@@ -82,6 +85,7 @@ private:
     bool start_search(critter& C, search_then next);
     void begin_search(critter& C, search_then next);
     void flee(critter& C);
+    point search_origin(critter& C) const;
     void restart_search(critter& C);
     void resume_search(critter& C);
     void search_step(critter& C);
@@ -120,6 +124,7 @@ private:
     state st = state::seek;
     u8 num_blocked_walks = 0;
     bool retreat_replanned = false;
+    bool is_retreat_exposed = false;
 };
 
 StringView cover_script::name() const { return "cover"_s; }
@@ -370,7 +375,7 @@ void cover_script::begin_search(critter& C, search_then next)
         search_step(C);
 }
 
-// C looks for a retreat at once, and the search for cover runs during the walk, measured from its end.
+// C looks for a retreat at once, and the search for cover runs during the walk.
 void cover_script::flee(critter& C)
 {
     if (!start_search(C, search_then::seek))
@@ -379,13 +384,23 @@ void cover_script::flee(critter& C)
     retreat_step(C);
 }
 
-void cover_script::restart_search(critter& C)
+point cover_script::search_origin(critter& C) const
 {
-    search.restart(st == state::retreat ? walk.dest() : C.position(), threat_pos);
+    if (st != state::retreat)
+        return C.position();
+    else if (is_retreat_exposed)
+        return search.from();
+    else
+        return walk.dest();
 }
 
-// Back to the search after a retreat C didn't walk to its end, measured from where C stands rather than the
-// walk's end, which restart_search set, while its budget allows a restart.
+void cover_script::restart_search(critter& C)
+{
+    search.restart(search_origin(C), threat_pos);
+}
+
+// Back to the search after a retreat C didn't walk to its end, measured from where C stands, while its budget
+// allows a restart.
 void cover_script::resume_search(critter& C)
 {
     st = state::search;
@@ -397,9 +412,12 @@ void cover_script::search_step(critter& C)
 {
     if (!find_threat_or_retry(C))
         return;
-    auto r = search.step(C, tests, options, st == state::retreat ? walk.dest() : C.position(), threat_pos);
+    auto r = search.step(C, tests, options, search_origin(C), threat_pos);
     if (r.done)
         end_search(C, move(r.cover));
+    else if (st == state::retreat && is_retreat_exposed && search.has_last_resort() &&
+             search.progress().tile >= tiles_searched_before_give_up)
+        search.give_up();
 }
 
 // Takes r's cover, or continues the retreat, retreats or waits as `then` says when r is empty.
@@ -476,9 +494,10 @@ void cover_script::retreat_step(critter& C)
     {
         walk = critter_walk{move(r.path)};
         st = state::retreat;
-        // The search goes on measured from the walk's end.
-        if (search.running())
-            restart_search(C);
+        is_retreat_exposed = r.is_exposed;
+        // The search goes on measured from the walk's end, or from C when the threat sees C on the walk.
+        if (search.running() && (!r.is_exposed || search.from() != C.position()))
+            search.restart(r.is_exposed ? C.position() : walk.dest(), threat_pos);
     }
     else if (r.done)
     {
@@ -595,7 +614,7 @@ bool cover_script::check_retreat(critter& C)
     if (!threat || threat->position() == threat_pos)
         return false;
     threat_pos = threat->position();
-    if (retreat.keeps(C, tests, options, walk.dest(), threat_pos))
+    if (retreat.is_still_retreat_spot(C, tests, options, walk.dest(), threat_pos))
         return false;
     begin_retreat(C, true);
     retreat_replanned = true;

@@ -13,6 +13,12 @@
 
 namespace floormat::Cover {
 
+namespace {
+
+int cell_of(int px, int div) { return floor_div(px + half_tile<int>, div); }
+
+} // namespace
+
 bool movement_range::cache_key::operator==(const cache_key&) const = default;
 
 movement_range::movement_range()
@@ -28,7 +34,7 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
     // The fill reads cells within R + 2 div px of from, div being at most default_div_size, and each cell's grid
     // reads one chunk more.
     const auto pass_gen = w.max_pass_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
-    const cache_key key{from, bbox_side, max_dist, pass_gen};
+    const cache_key key{from, bbox_side, 0, 0, max_dist, pass_gen};
     if (_key == key)
         return points;
     _key = key;
@@ -39,13 +45,78 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
     fm_assert(R < (u16)-1);
 
     auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
-    const auto div = (int)pool.params().div_size(), dc = (int)pool.params().div_count;
+    const auto div = (int)pool.params().div_size();
     // A cell farther than n from the cell of from lies over R px away.
     const auto n = R/div + 1, side = 2*n + 1;
+    const auto g = Vector3i(from).xy();
+    const auto origin = compute_dijkstra_map(w, pool, from, n, R);
+
+    // A ray from inside the reached cells to a body outside them leaves through a border cell, which sees the
+    // body as well, to within a cell.
+    const auto reached = [&](int x, int y) {
+        return x >= 0 && y >= 0 && x < side && y < side && dist[y*side + x] <= R;
+    };
+    for (auto y = 0; y < side; y++)
+        for (auto x = 0; x < side; x++)
+        {
+            if (!reached(x, y))
+                continue;
+            bool border = false;
+            for (auto dy = -1; dy <= 1; dy++)
+                for (auto dx = -1; dx <= 1; dx++)
+                    border |= !reached(x + dx, y + dy);
+            if (border)
+                arrayAppend(points, from + ((origin + Vector2i{x, y})*div + Vector2i{div/2 - half_tile<int>} - g));
+        }
+    return points;
+}
+
+ArrayView<const point> movement_range::reachable_lattice_points(world& w, Grid::GridRegistry& pools, point from,
+                                                                Optional<u32> bbox_side, u32 radius, u32 spacing,
+                                                                u32 max_walk_dist)
+{
+    fm_assert(spacing);
+    const auto pass_gen = w.max_pass_gen(from.chunk3(), (radius + 2*astar::default_div_size)/chunk_size_xy + 2);
+    const cache_key key{from, bbox_side, radius, spacing, max_walk_dist, pass_gen};
+    if (_key == key)
+        return points;
+    _key = key;
+    arrayClear(points);
+    arrayAppend(points, from);
+    if (!radius || !bbox_side)
+        return points;
+
+    auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
+    const auto div = (int)pool.params().div_size();
+    const auto n = ((int)radius + div - 1)/div, side = 2*n + 1;
+    // No path inside the window is longer than one diagonal step per cell, so the fill isn't cut short.
+    fm_assert(side*side*2*div < (u16)-1);
+    const auto origin = compute_dijkstra_map(w, pool, from, n, (int)Math::min(max_walk_dist, (u32)(u16)-2));
+    const auto g = Vector3i(from).xy();
+    const auto k = (int)(radius/spacing);
+    for (auto j = -k; j <= k; j++)
+        for (auto i = -k; i <= k; i++)
+        {
+            if (!i && !j)
+                continue;
+            const auto d = Vector2i{i, j}*(int)spacing;
+            const auto pos = g + d;
+            const auto cell = Vector2i{cell_of(pos.x(), div), cell_of(pos.y(), div)} - origin;
+            fm_debug_assert(cell.x() >= 0 && cell.y() >= 0 && cell.x() < side && cell.y() < side);
+            if (dist[cell.y()*side + cell.x()] != (u16)-1)
+                arrayAppend(points, from + d);
+        }
+    return points;
+}
+
+Vector2i movement_range::compute_dijkstra_map(world& w, Pass::Pool& pool, point from, int n, int max_dist)
+{
+    const auto div = (int)pool.params().div_size(), dc = (int)pool.params().div_count;
+    const auto R = max_dist;
+    const auto side = 2*n + 1;
     const auto count = (u32)(side*side);
     const auto g = Vector3i(from).xy();
-    const auto cell_of = [div](int px) { return floor_div(px + half_tile<int>, div); };
-    const auto origin = Vector2i{cell_of(g.x()), cell_of(g.y())} - Vector2i{n};
+    const auto origin = Vector2i{cell_of(g.x(), div), cell_of(g.y(), div)} - Vector2i{n};
     const auto z = from.chunk3().z;
     if (arrayCapacity(dist) < count)
         arrayReserve(dist, count + count/2);
@@ -116,25 +187,7 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
                 std::push_heap(heap.begin(), heap.end(), std::greater<>{});
             }
     }
-
-    // A ray from inside the reached cells to a body outside them leaves through a border cell, which sees the
-    // body as well, to within a cell.
-    const auto reached = [&](int x, int y) {
-        return x >= 0 && y >= 0 && x < side && y < side && dist[y*side + x] <= R;
-    };
-    for (auto y = 0; y < side; y++)
-        for (auto x = 0; x < side; x++)
-        {
-            if (!reached(x, y))
-                continue;
-            bool border = false;
-            for (auto dy = -1; dy <= 1; dy++)
-                for (auto dx = -1; dx <= 1; dx++)
-                    border |= !reached(x + dx, y + dy);
-            if (border)
-                arrayAppend(points, from + ((origin + Vector2i{x, y})*div + Vector2i{div/2 - half_tile<int>} - g));
-        }
-    return points;
+    return origin;
 }
 
 } // namespace floormat::Cover

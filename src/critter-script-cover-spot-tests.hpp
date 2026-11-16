@@ -19,9 +19,15 @@ constexpr inline u32 max_failed_dijkstra_calls = 8;
 
 class spot_tests
 {
+    struct nearby_hidden_position_cache { u64 frame_no; point from, threat; bool found; };
+
+    ArrayView<const point> threat_lattice(critter& c, const Cover::Script::options& o, point threat);
+    bool has_hidden_position_nearby(critter& c, const Cover::Script::options& o, point threat);
+
     astar& _astar;
     Cover::Point::finder _finder;
-    Cover::movement_range _threat_range;
+    Cover::movement_range _threat_range, _threat_lattice, _npc_lattice;
+    Optional<nearby_hidden_position_cache> _nearby_hidden_position;
     object_id _threat_id;
     Optional<int> _gun_offset;
 
@@ -45,6 +51,9 @@ public:
     // A Dijkstra path from c to `to`, smoothed when string_pull can. Not found when no path within
     // max_search_path_length() leads there.
     path_search_result path_to(critter& c, point to);
+    // True when the threat, or a point near it that it can walk to, sees c's body on path after a stretch where it
+    // doesn't, or past path's first 32 px when c could walk 48 px to a position none of those points see.
+    bool is_seen_on_path(critter& c, const Cover::Script::options& o, point threat, const path_search_result& path);
 
     Cover::Point::finder& finder();
     Grid::GridRegistry& pool_registry();
