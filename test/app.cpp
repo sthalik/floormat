@@ -66,7 +66,6 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_bptr_intrusive),
     FM_TEST(test_chunk_iter),
     FM_TEST(test_entity),
-    FM_TEST(test_float),
     FM_TEST(test_format),
     FM_TEST(test_debug),
     FM_TEST(test_fps),

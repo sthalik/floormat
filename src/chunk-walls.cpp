@@ -215,7 +215,7 @@ constinit Array<WallFragment> corner_fragdata; // todo thread safety
 template<Group_ G, bool IsWest>
 void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                   SpriteList& wsl,
-                  global_coords coord, u32 tile, ArrayView<const WallFragment> fragments, float depth_start)
+                  global_coords coord, u32 tile, ArrayView<const WallFragment> fragments)
 {
     constexpr auto D = IsWest ? Direction_::W : Direction_::N;
     const auto& dir = A.calc_direction(D);
@@ -274,10 +274,10 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                     dir.top.mirrored);
                 const auto depth_offset = depth_offset_for_group<Group_::top, IsWest>(A.depth());
                 const Quads::depths depth = {
-                    Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y() - (int)Depth}, depth_offset),
-                    Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y() - (int)Depth}, depth_offset),
-                    Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y()}, depth_offset),
-                    Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y()}, depth_offset),
+                    Depth::value_at(tile_center + Vector2i{-half.x() - (int)Depth, -half.y() - (int)Depth}, depth_offset),
+                    Depth::value_at(tile_center + Vector2i{-half.x(), -half.y() - (int)Depth}, depth_offset),
+                    Depth::value_at(tile_center + Vector2i{-half.x() - (int)Depth, -half.y()}, depth_offset),
+                    Depth::value_at(tile_center + Vector2i{-half.x(), -half.y()}, depth_offset),
                 };
                 for (const auto& frag : fragments)
                 {
@@ -345,7 +345,6 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                             {-X - Depthʹ + rs.x(), -Y, frag_zmax},
                         }};
                         depth = Quads::depth_quad<0, 0, 1, 1>(
-                            depth_start,
                             tile_center + Vector2i{-half.x() - (int)re.x(), -half.y()},
                             tile_center + Vector2i{-half.x() - (int)Depth + (int)rs.x(), -half.y()},
                             depth_offset);
@@ -359,7 +358,6 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                             {-X, -Y          - re.x(), frag_zmax},
                         }};
                         depth = Quads::depth_quad(
-                            depth_start,
                             tile_center + Vector2i{-half.x(), -half.y() - (int)re.x()},
                             tile_center + Vector2i{-half.x(), -half.y() - (int)Depth + (int)rs.x()},
                             depth_offset);
@@ -425,11 +423,11 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
 
                 Quads::depths depth;
                 if constexpr (!IsWest)
-                    depth = Quads::depth_quad(depth_start, tile_center + Vector2i{-half.x() + (int)rs.x(), -half.y()},
+                    depth = Quads::depth_quad(tile_center + Vector2i{-half.x() + (int)rs.x(), -half.y()},
                                               tile_center + Vector2i{half.x() - (int)re.x(), -half.y()},
                                               depth_offset);
                 else
-                    depth = Quads::depth_quad(depth_start, tile_center + Vector2i{-half.x(), half.y() - (int)re.x()},
+                    depth = Quads::depth_quad(tile_center + Vector2i{-half.x(), half.y() - (int)re.x()},
                                               tile_center + Vector2i{-half.x(), -half.y() + (int)rs.x()},
                                               depth_offset);
 
@@ -467,11 +465,11 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
 
                 Quads::depths depth;
                 if constexpr (!IsWest)
-                    depth = Quads::depth_quad<0,0,1,1>(depth_start, tile_center + Vector2i{half.x() - (int)re.x(), -half.y() - (int)Depth},
+                    depth = Quads::depth_quad<0,0,1,1>(tile_center + Vector2i{half.x() - (int)re.x(), -half.y() - (int)Depth},
                                                        tile_center + Vector2i{half.x() - (int)re.x(), -half.y()},
                                                        depth_offset);
                 else
-                    depth = Quads::depth_quad<0,0,1,1>(depth_start, tile_center + Vector2i{-half.x(), half.y() - (int)re.x()},
+                    depth = Quads::depth_quad<0,0,1,1>(tile_center + Vector2i{-half.x(), half.y() - (int)re.x()},
                                                        tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()},
                                                        depth_offset);
 
@@ -510,17 +508,17 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
                 Quads::depths depth;
                 if constexpr (!IsWest)
                     depth = {
-                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x() + (int)rs.x(), -half.y() - (int)Depth}, depth_offset),
-                        Depth::value_at(depth_start, tile_center + Vector2i{half.x() - (int)re.x(), -half.y() - (int)Depth}, depth_offset),
-                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x() + (int)rs.x(), -half.y()}, depth_offset),
-                        Depth::value_at(depth_start, tile_center + Vector2i{half.x() - (int)re.x(), -half.y()}, depth_offset),
+                        Depth::value_at(tile_center + Vector2i{-half.x() + (int)rs.x(), -half.y() - (int)Depth}, depth_offset),
+                        Depth::value_at(tile_center + Vector2i{half.x() - (int)re.x(), -half.y() - (int)Depth}, depth_offset),
+                        Depth::value_at(tile_center + Vector2i{-half.x() + (int)rs.x(), -half.y()}, depth_offset),
+                        Depth::value_at(tile_center + Vector2i{half.x() - (int)re.x(), -half.y()}, depth_offset),
                     };
                 else
                     depth = {
-                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), -half.y() + (int)rs.x()}, depth_offset),
-                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x(), half.y() - (int)re.x()}, depth_offset),
-                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, -half.y() + (int)rs.x()}, depth_offset),
-                        Depth::value_at(depth_start, tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()}, depth_offset),
+                        Depth::value_at(tile_center + Vector2i{-half.x(), -half.y() + (int)rs.x()}, depth_offset),
+                        Depth::value_at(tile_center + Vector2i{-half.x(), half.y() - (int)re.x()}, depth_offset),
+                        Depth::value_at(tile_center + Vector2i{-half.x() - (int)Depth, -half.y() + (int)rs.x()}, depth_offset),
+                        Depth::value_at(tile_center + Vector2i{-half.x() - (int)Depth, half.y() - (int)re.x()}, depth_offset),
                     };
 
                 Quads::vertexes v;
@@ -538,7 +536,7 @@ void do_wall_part(wall_atlas& A, chunk& c, chunk::wall_stuff& W,
 }
 
 template<bool IsWest>
-void do_wall_tile(chunk& c, chunk::wall_stuff& W, SpriteList& wsl, global_coords coord, u32 k, float depth_start)
+void do_wall_tile(chunk& c, chunk::wall_stuff& W, SpriteList& wsl, global_coords coord, u32 k)
 {
     auto* Aʹ = W.atlases[k*2 + IsWest].get();
     if (!Aʹ)
@@ -548,9 +546,9 @@ void do_wall_tile(chunk& c, chunk::wall_stuff& W, SpriteList& wsl, global_coords
     const auto holes = find_wall_holes_in_world_coords(hole_data, c, pos, IsWest, HoleRegion::Wall);
     const auto fragments = cut_wall_face(fragdata, holes, pos, (float)(int)A.info().depth,
                                          IsWest, HoleRegion::Wall);
-    do_wall_part<Group_::wall, IsWest>(A, c, W, wsl, coord, k, fragments, depth_start);
-    do_wall_part<Group_::side, IsWest>(A, c, W, wsl, coord, k, fragments, depth_start);
-    do_wall_part<Group_::top,  IsWest>(A, c, W, wsl, coord, k, fragments, depth_start);
+    do_wall_part<Group_::wall, IsWest>(A, c, W, wsl, coord, k, fragments);
+    do_wall_part<Group_::side, IsWest>(A, c, W, wsl, coord, k, fragments);
+    do_wall_part<Group_::top,  IsWest>(A, c, W, wsl, coord, k, fragments);
 }
 
 } // namespace
@@ -564,7 +562,6 @@ void chunk::ensure_wall_mesh(SpriteBatch& sb)
         _walls_modified = false;
         wall_static_mesh.clear();
         auto& W = *_walls;
-        const float depth_start = sb.depth_start();
         for (u32 k = TILE_COUNT; k--; ) // front-to-back, so early-Z rejects more fragments
         {
             const auto coord = global_coords{_coord, local_coords{k}};
@@ -572,8 +569,8 @@ void chunk::ensure_wall_mesh(SpriteBatch& sb)
             static_assert(Wall::Group_COUNT == /* 5 */ 4);
             static_assert((int)Direction_::COUNT == 2);
 
-            do_wall_tile<false>(*this, W, wall_static_mesh, coord, k, depth_start);
-            do_wall_tile<true>(*this, W, wall_static_mesh, coord, k, depth_start);
+            do_wall_tile<false>(*this, W, wall_static_mesh, coord, k);
+            do_wall_tile<true>(*this, W, wall_static_mesh, coord, k);
         }
     }
     sb.emit(wall_static_mesh);

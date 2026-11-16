@@ -22,9 +22,9 @@
 namespace floormat::Test {
 namespace {
 
-float value_at(point p)
+u32 value_at(point p)
 {
-    return Depth::value_at(-1, p, 0);
+    return Depth::value_at(p, 0);
 }
 
 void test_point()
@@ -103,12 +103,6 @@ void test_point()
             tile_size_z * 3,
         });
     }
-}
-
-void test_clip_depth()
-{
-    const volatile float f = Depth::value_at(0, point{most_positive_point}, 1024);
-    fm_assert(f < 1.0f);
 }
 
 void test_shader_program()
@@ -225,7 +219,6 @@ void test_shader()
     test_tuc_stale_binding();
     test_tuc_eviction();
     test_lightmap_object_shadows();
-    test_clip_depth();
 }
 
 } // namespace floormat::Test

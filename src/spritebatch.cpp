@@ -11,7 +11,6 @@
 #include "loader/loader.hpp"
 #include "compat/assume-aligned.hpp"
 #include "compat/setenv.hpp"
-#include <bit>
 #include <cstring>
 #include <cr/GrowableArray.h>
 #include <cr/Memory.h>
@@ -92,40 +91,31 @@ void reserve_aligned(Array<u64>& A, u32 size)
         A = Utility::allocateAligned<u64, 64>(NoInit, ((u32)((float)size * 1.5f) + 7) & ~7u);
 }
 
-// Flipping the sign bit of a non-negative float and every bit of a negative one orders floats
-// as unsigned integers.
-u32 depth_key(float d)
-{
-    const auto u = std::bit_cast<u32>(d);
-    return u ^ ((u32)((i32)u >> 31) | 0x80000000u);
-}
-
 // Sorts depths[0, n) ascending and sets indexes[i] = base + the position depths[i] came from.
 // Equal depths keep their order. scratch needs n elements, starting on 64 bytes.
-void sort_depths(float* depths, u32* indexes, u32 base, u32 n, u64* scratch)
+void sort_depths(u32* depths, u32* indexes, u32 base, u32 n, u64* scratch)
 {
     scratch = assume_aligned<64>(scratch);
     // The index in the low half makes equal depths sort by position.
     for (auto i = 0u; i < n; i++)
-        scratch[i] = (u64)depth_key(depths[i]) << 32 | (base + i);
+        scratch[i] = (u64)depths[i] << 32 | (base + i);
     vqsort(scratch, n);
     for (auto i = 0u; i < n; i++)
     {
-        const auto key = (u32)(scratch[i] >> 32);
-        depths[i] = std::bit_cast<float>(key ^ ((u32)((i32)~key >> 31) | 0x80000000u));
+        depths[i] = (u32)(scratch[i] >> 32);
         indexes[i] = (u32)scratch[i];
     }
 }
 
 // k-way merge through a loser tree. Keys are unique, so equal depths leave in run order, which is
 // emission order: the same order as sorting (depth, emission index).
-void merge_runs(const float* D, const u32* S, const u32* Starts, u32 k, u32 size,
+void merge_runs(const u32* D, const u32* S, const u32* Starts, u32 k, u32 size,
                 merge_state::run* runs, u64* T, u32* M)
 {
-    // Above the key of every depth except NaN.
+    // Above every depth, which src/depth.cpp checks.
     constexpr auto exhausted = (u64)UINT32_MAX << 32;
 
-    // Sentinel nodes have key 0 and run k. The build pushes every one of them out of T.
+    // Sentinel nodes have depth 0 and run k. Depths start above 0, so the build pushes every one of them out of T.
     for (auto i = 0u; i < k; i++)
     {
         runs[i] = {Starts[i], Starts[i + 1]};
@@ -133,7 +123,7 @@ void merge_runs(const float* D, const u32* S, const u32* Starts, u32 k, u32 size
     }
     for (auto i = k - 1; i != (u32)-1; i--)
     {
-        auto cur = (u64)depth_key(D[Starts[i]]) << 32 | i;
+        auto cur = (u64)D[Starts[i]] << 32 | i;
         for (u32 p = (k + i) / 2; p > 0; p /= 2)
             if (cur > T[p])
                 std::swap(cur, T[p]);
@@ -146,7 +136,7 @@ void merge_runs(const float* D, const u32* S, const u32* Starts, u32 k, u32 size
         auto& rw = runs[w];
         M[i] = S[rw.pos];
         rw.pos++;
-        auto cur = rw.pos < rw.end ? (u64)depth_key(D[rw.pos]) << 32 | w : exhausted | w;
+        auto cur = rw.pos < rw.end ? (u64)D[rw.pos] << 32 | w : exhausted | w;
 
         // Selects, so the compiler emits cmov. A branch here mispredicts: the outcome depends on the depths.
         for (u32 p = (k + w) / 2; p > 0; p /= 2)
@@ -177,7 +167,7 @@ struct SpriteBatch::Impl
     Array<Quads::vertexes> verts;
     // depths[i] is the depth of quad sort_indexes[i]. Below AVX2, end_chunk<true> sorts both in
     // place, so the merge reads a key without going through sort_indexes first.
-    Array<float> depths;
+    Array<u32> depths;
     Array<u32> starts, sort_indexes, merge_output, perm;
     Array<u64> sort_keys;
 
@@ -195,8 +185,6 @@ struct SpriteBatch::Impl
 };
 
 ArrayView<const u32> SpriteBatch::merged_order() const { return impl->sort_indexes; }
-float SpriteBatch::depth_start() const { return _depth_start; }
-void SpriteBatch::set_depth_start(float value) { _depth_start = value; }
 
 SpriteBatch::SpriteBatch()
 {
@@ -265,7 +253,7 @@ void SpriteBatch::ensure_allocated(u32 count)
     impl.buffer_capacity = new_cap;
 }
 
-void SpriteBatch::emit(const Quads::vertexes& vertexes, float depth)
+void SpriteBatch::emit(const Quads::vertexes& vertexes, u32 depth)
 {
     auto& impl = *this->impl;
     fm_debug3_assert(impl.in_chunk);
@@ -428,7 +416,7 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
         reserve_aligned(impl.sort_keys, size);
         auto* const K = assume_aligned<64>(impl.sort_keys.data());
         for (auto i = 0u; i < size; i++)
-            K[i] = (u64)depth_key(D[i]) << 32 | S[i];
+            K[i] = (u64)D[i] << 32 | S[i];
         vqsort(K, size);
         for (auto i = 0u; i < size; i++)
             M[i] = (u32)K[i];

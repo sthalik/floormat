@@ -3,12 +3,13 @@
 #include "src/quads.hpp"
 #include "src/sprite-list.hpp"
 #include "src/hwy.hpp"
+#include "src/depth.hpp"
 #include "compat/enumerate.hpp"
+#include "compat/limits.hpp"
 #include "compat/fwd/algorithm/ranges_sort.hpp"
 #include "compat/zip.hpp"
 #include <vector>
 #include <bit>
-#include <cfloat>
 #include <utility>
 #include <hwy/targets.h>
 #include <cr/ArrayView.h>
@@ -24,14 +25,14 @@ constexpr Quads::vertexes dummy_quad{};
 struct fixture
 {
     SpriteBatch sb;
-    std::vector<float> depths;      // by emission index
+    std::vector<u32> depths;      // by emission index
     std::vector<u32> run_of;   // by emission index
     std::vector<u32> rank_of;  // by emission index, ascending depth within its run
     u32 nruns = 0;
     bool ranks_defined = true;      // false once some run has a repeated depth
 
     // Emitted in descending depth, so the sort has real work to do.
-    void add_run(std::vector<float> run)
+    void add_run(std::vector<u32> run)
     {
         std::ranges::sort(run, std::greater<>{});
         emit_run(run, true);
@@ -39,7 +40,7 @@ struct fixture
 
     // Already ascending and emitted with end_chunk<false> — the static scenery path, where
     // the run is sorted at build time and SpriteBatch is told to trust it.
-    void add_presorted_run(std::vector<float> run)
+    void add_presorted_run(std::vector<u32> run)
     {
         std::ranges::sort(run);
         emit_run(run, false);
@@ -64,11 +65,11 @@ struct fixture
             nruns++;
     }
 
-    void emit_run(const std::vector<float>& run, bool do_sort)
+    void emit_run(const std::vector<u32>& run, bool do_sort)
     {
         const auto first = (u32)depths.size();
         sb.begin_chunk((u32)run.size());
-        for (float d : run)
+        for (u32 d : run)
         {
             sb.emit(dummy_quad, d);
             depths.push_back(d);
@@ -166,20 +167,20 @@ struct fixture
     }
 };
 
-// Every strictly increasing run of length 1..max_len over {0 .. alphabet-1}. Strictly
+// Every strictly increasing run of length 1..max_len over {1 .. alphabet}. Strictly
 // increasing keeps within-run ranks well defined; ties across runs are what the merge
 // has to get right, and the k-tuple enumeration below covers those exhaustively.
-std::vector<std::vector<float>> enumerate_runs(u32 alphabet, u32 max_len)
+std::vector<std::vector<u32>> enumerate_runs(u32 alphabet, u32 max_len)
 {
-    std::vector<std::vector<float>> out;
+    std::vector<std::vector<u32>> out;
     for (u32 mask = 1; mask < 1u << alphabet; mask++)
     {
         if ((u32)std::popcount(mask) > max_len)
             continue;
-        std::vector<float> v;
+        std::vector<u32> v;
         for (auto i = 0u; i < alphabet; i++)
             if (mask & 1u << i)
-                v.push_back((float)i);
+                v.push_back(i + 1);
         out.push_back(std::move(v));
     }
     return out;
@@ -216,20 +217,20 @@ constexpr inline u32 run_lengths[] = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 3
 // Interleaved changes the winning run on every pop, blocked on k of them.
 enum class layout : u8 { interleaved, blocked, one_dominant, reverse_blocked };
 
-std::vector<float> make_run(layout kind, u32 run, u32 len)
+std::vector<u32> make_run(layout kind, u32 run, u32 len)
 {
-    std::vector<float> v;
+    std::vector<u32> v;
     v.reserve(len);
     for (auto i = 0u; i < len; i++)
         switch (kind)
         {
-        case layout::interleaved:     v.push_back((float)(i * 64 + run)); break;
-        case layout::blocked:         v.push_back((float)(run * 4096 + i)); break;
+        case layout::interleaved:     v.push_back(1 + i * 64 + run); break;
+        case layout::blocked:         v.push_back(1 + run * 4096 + i); break;
         // Runs exhaust in the reverse of tree order, so the sentinel propagates up from
         // the last leaf rather than the first.
-        case layout::reverse_blocked: v.push_back((float)((64 - run) * 4096 + i)); break;
+        case layout::reverse_blocked: v.push_back(1 + (64 - run) * 4096 + i); break;
         // One dense run spanning everything, the rest sparse — the clustered-scenery case.
-        case layout::one_dominant:    v.push_back(run == 0 ? (float)i : (float)(i * 512 + run)); break;
+        case layout::one_dominant:    v.push_back(1 + (run == 0 ? i : i * 512 + run)); break;
         }
     return v;
 }
@@ -242,21 +243,21 @@ void test_layout(layout kind, u32 k)
     f.check();
 }
 
-SpriteList make_list(u32 count, float first)
+SpriteList make_list(u32 count, u32 first)
 {
     SpriteList list;
     list.reserve(count);
     for (auto i = 0u; i < count; i++)
-        list.add(dummy_quad, first + 2 * (float)i);
+        list.add(dummy_quad, first + 4 * i);
     return list;
 }
 
 void test_emit_list()
 {
-    auto odd = make_list(37, 1), even = make_list(23, 0), empty = make_list(0, 0);
+    auto odd = make_list(37, 1), even = make_list(23, 2), empty = make_list(0, 0);
     fixture f;
     f.add_list(odd);
-    f.add_run({20.5f, 3.5f, 60.5f});
+    f.add_run({43, 7, 123});
     f.add_list(empty);
     f.add_list(even);
     f.check();
@@ -314,7 +315,7 @@ void run_cases()
         // sentinels on every iteration.
         fixture f;
         for (auto i = 0u; i < 17; i++)
-            f.add_run({(float)(17 - i)});
+            f.add_run({17 - i});
         f.check();
     }
 
@@ -322,7 +323,7 @@ void run_cases()
         // undefined.
         fixture f;
         for (auto i = 0u; i < 6; i++)
-            f.add_run(std::vector<float>(7, 42));
+            f.add_run(std::vector<u32>(7, 42));
         fm_assert(!f.ranks_defined);
         f.check();
     }
@@ -339,10 +340,10 @@ void run_cases()
     {   // The mixed scenery pass: dynamic runs closed by end_chunk<true>, static runs
         // pre-sorted and passed through. Both kinds feed the same sort.
         fixture f;
-        f.add_run({9, 3, 6});
-        f.add_presorted_run({1, 4, 7});
-        f.add_run({8, 2});
-        f.add_presorted_run({0, 5});
+        f.add_run({10, 4, 7});
+        f.add_presorted_run({2, 5, 8});
+        f.add_run({9, 3});
+        f.add_presorted_run({1, 6});
         f.check();
     }
 
@@ -360,11 +361,11 @@ void run_cases()
         f.check(false);
     }
 
-    {   // Negative, denormal and extreme depths: the key's sign flip has to order them all.
+    {   // Depths from 1 to just below the merge's sentinel.
         fixture f;
-        f.add_run({-1e30f, -1, 0});
-        f.add_run({-1e-30f, 1e-30f, 1e30f});
-        f.add_run({-FLT_MAX, FLT_MAX});
+        f.add_run({1, Depth::bias - 1, Depth::bias});
+        f.add_run({2, Depth::bias + 1, limits<u32>::max - 1});
+        f.add_run({limits<u32>::max - 2, 3});
         f.check();
     }
 

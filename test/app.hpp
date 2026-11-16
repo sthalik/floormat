@@ -44,7 +44,6 @@ void test_enumerate();
 void test_entity();
 void test_erase_if();
 void test_event_count();
-void test_float();
 void test_format();
 void test_fps();
 void test_function_view();

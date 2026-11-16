@@ -26,7 +26,7 @@ void chunk::ensure_ground_mesh(SpriteBatch& sb)
         ground_static_mesh.clear();
         ground_static_mesh.reserve(TILE_COUNT);
 
-        const float depth = Depth::value_at(sb.depth_start(), point{_coord, {}, {}}, -tile_size_xy * 4);
+        const auto depth = Depth::value_at(point{_coord, {}, {}}, -tile_size_xy * 4);
 
         for (auto i = 0uz; i < TILE_COUNT; i++)
         {

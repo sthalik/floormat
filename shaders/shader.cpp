@@ -5,6 +5,7 @@
 #include "compat/array-size.hpp"
 #include "compat/enumerate.hpp"
 #include "src/point.inl"
+#include "src/depth.hpp"
 #include <cr/Iterable.h>
 #include <mg/Functions.h>
 #include <mg/Vector4.h>
@@ -45,6 +46,7 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
     set_scale({640, 480});
     set_tint({1, 1, 1, 1});
     setUniform(OffsetUniform, Vector2(_real_camera_offsetʹ)*.5f);
+    setUniform(CameraDepthUniform, floormat::Depth::bias);
     setUniform(EnableLightmapUniform, _enable_lightmap);
     setUniform(SamplerUniform, _real_sampler = _sampler);
     setUniform(LightmapSamplerUniform, _real_lightmap_sampler = 0);
@@ -105,7 +107,10 @@ void tile_shader::draw_pre(GL::AbstractTexture& tex)
     const auto offsetʹ = 2*(win/2 + _camera_offsetʹ) - win;
     fm_assert((Math::abs(offsetʹ) <= Vector2i{1 << 24}).all());
     if (offsetʹ != _real_camera_offsetʹ)
+    {
         setUniform(OffsetUniform, Vector2(_real_camera_offsetʹ = offsetʹ)*.5f);
+        setUniform(CameraDepthUniform, floormat::Depth::value_atʹ(pixel_to_point(win/2, win, _camera_offsetʹ, 0)));
+    }
 
     auto id = tuc.bind(tex);
     set_sampler(id);

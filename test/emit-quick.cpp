@@ -2,6 +2,8 @@
 #include "compat/array-size.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/zip.hpp"
+#include "src/depth.hpp"
+#include "src/point.inl"
 #include "src/spritebatch.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/anim.hpp"
@@ -81,7 +83,7 @@ void test_quad(state& s, const anim_atlas& atlas, rotation r, u32 frame, Vector3
     s.fb.clearColor(0, clear_color);
     s.fb.bind();
     s.shader.set_tint({1, 1, 1, 1});
-    s.sb.emit_quick(s.shader, atlas, r, frame, Vector3(anchor), {1, 1, 1, 1});
+    s.sb.emit_quick(s.shader, atlas, r, frame, Vector3(anchor), {Depth::bias, Depth::bias, Depth::bias, Depth::bias});
     const auto img = s.fb.read({{lo.x(), fb_size.y() - hi.y()}, {hi.x(), fb_size.y() - lo.y()}},
                                Image2D{PixelFormat::RGBA8Unorm});
     fm_assert(img.data().size() == expected.size()*sizeof(Color4ub));
@@ -156,7 +158,7 @@ void test_order(state& s)
     for (const auto& x : list)
     {
         s.shader.set_tint(x.tint);
-        s.sb.emit_quick(s.shader, atlas, rotation::N, 0, x.center, {1, 1, 1, 1});
+        s.sb.emit_quick(s.shader, atlas, rotation::N, 0, x.center, {Depth::bias, Depth::bias, Depth::bias, Depth::bias});
     }
     const auto img = s.fb.read({{}, fb_size}, Image2D{PixelFormat::RGBA8Unorm});
     const auto px = img.pixels<Color4ub>();
@@ -177,6 +179,62 @@ void test_order(state& s)
                          c.r(), c.g(), c.b(), c.a(), expected.r(), expected.g(), expected.b(), expected.a());
         }
     }
+}
+
+void test_depth_order(state& s)
+{
+    const auto& atlas = *loader.invalid_anim_atlas().atlas;
+    const auto& f = atlas.frame(rotation::N, 0);
+    const auto size = Vector2i(f.size);
+    const auto p0 = Vector2(fb_size)*.5f + tile_shader::project(Vector3(atlas.group(rotation::N).offset)) - Vector2(f.ground);
+    const auto lo = Vector2i(p0), hi = lo + size;
+    fm_assert(Vector2(lo) == p0);
+
+    GL::Renderbuffer color, depth;
+    color.setStorage(GL::RenderbufferFormat::RGBA8, fb_size);
+    depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, fb_size);
+    GL::Framebuffer fb{{{}, fb_size}};
+    fb.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, color);
+    fb.attachRenderbuffer(GL::Framebuffer::BufferAttachment::Depth, depth);
+    fm_assert(fb.checkStatus(GL::FramebufferTarget::Draw) == GL::Framebuffer::Status::Complete);
+
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::Greater);
+
+    for (const auto pos : { point{}, point{{5000, 5000, 0}, {}, {}} })
+    {
+        const auto center = Vector3(Vector3i(pos));
+        s.shader.set_camera_offset(-Vector2d(tile_shader::project(center)));
+
+        fb.clearColor(0, clear_color);
+        GL::Renderer::setDepthMask(true);
+        fb.clearDepth(0);
+        fb.bind();
+        const auto draw = [&](Vector4 tint, i32 offset) {
+            const auto d = Depth::value_at(pos, offset);
+            s.shader.set_tint(tint);
+            s.sb.emit_quick(s.shader, atlas, rotation::N, 0, center, {d, d, d, d});
+        };
+        draw({1, 0, 0, 1}, 0);
+        GL::Renderer::setDepthMask(false);
+        draw({0, 0, 1, 1}, 1);
+        draw({0, 0, 0, 1}, -1);
+
+        const auto img = fb.read({{lo.x(), fb_size.y() - hi.y()}, {hi.x(), fb_size.y() - lo.y()}},
+                                 Image2D{PixelFormat::RGBA8Unorm});
+        const auto* drawn = reinterpret_cast<const Color4ub*>(img.data().data());
+        constexpr Color4ub expected{0, 0, 255, 255};
+        for (auto i = 0u; i < (u32)size.product(); i++)
+            if (const auto c = drawn[i]; c != expected)
+                fm_abort("at (%d,%d,%d) pixel %u is %02x%02x%02x%02x, should be %02x%02x%02x%02x",
+                         (int)center.x(), (int)center.y(), (int)center.z(), i,
+                         c.r(), c.g(), c.b(), c.a(), expected.r(), expected.g(), expected.b(), expected.a());
+    }
+
+    s.shader.set_camera_offset({});
+    GL::Renderer::setDepthMask(true);
+    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::Less);
+    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
 } // namespace
@@ -201,6 +259,7 @@ void test_emit_quick()
     for (const auto& v : loader.vobj_list())
         test_frame(s, *v.atlas, rotation::N, 0);
     test_order(s);
+    test_depth_order(s);
 }
 
 } // namespace floormat::Test

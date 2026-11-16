@@ -20,16 +20,16 @@ constexpr Quads::vertexes dummy_quad{};
 
 enum class layout : u8 { blocked, interleaved, shuffled };
 
-std::vector<float> flatten(const std::vector<std::vector<float>>& runs)
+std::vector<u32> flatten(const std::vector<std::vector<u32>>& runs)
 {
-    auto ret = std::vector<float>{};
+    auto ret = std::vector<u32>{};
     for (const auto& run : runs)
         ret.insert(ret.end(), run.begin(), run.end());
     return ret;
 }
 
 // merged_order() must be a permutation of emission indexes whose depths never decrease.
-bool check_order(benchmark::State& state, const SpriteBatch& sb, const std::vector<float>& depths)
+bool check_order(benchmark::State& state, const SpriteBatch& sb, const std::vector<u32>& depths)
 {
     const auto order = sb.merged_order();
     const auto n = (u32)depths.size();
@@ -60,10 +60,10 @@ bool check_order(benchmark::State& state, const SpriteBatch& sb, const std::vect
 // Every layout produces k ascending runs of the same length, so the merge does the same
 // number of extractions either way. What differs is how often the winning run changes,
 // which is the only input to the loser tree's branches.
-std::vector<std::vector<float>> make_runs(u32 k, layout l)
+std::vector<std::vector<u32>> make_runs(u32 k, layout l)
 {
     const auto m = nquads / k;
-    auto runs = std::vector<std::vector<float>>(k, std::vector<float>(m));
+    auto runs = std::vector<std::vector<u32>>(k, std::vector<u32>(m));
 
     switch (l)
     {
@@ -72,18 +72,18 @@ std::vector<std::vector<float>> make_runs(u32 k, layout l)
         // touching the next.
         for (auto r = 0u; r < k; r++)
             for (auto i = 0u; i < m; i++)
-                runs[r][i] = (float)(r*m + i);
+                runs[r][i] = 1 + r*m + i;
         break;
     case layout::interleaved:
         // Strict round robin. The winner changes on every single extraction.
         for (auto r = 0u; r < k; r++)
             for (auto i = 0u; i < m; i++)
-                runs[r][i] = (float)(i*k + r);
+                runs[r][i] = 1 + i*k + r;
         break;
     case layout::shuffled:
         {
             auto rng = std::mt19937{0x9e3779b9};
-            auto dist = std::uniform_real_distribution<float>{0, (float)nquads};
+            auto dist = std::uniform_int_distribution<u32>{1, nquads};
             for (auto r = 0u; r < k; r++)
             {
                 for (auto i = 0u; i < m; i++)
@@ -98,7 +98,7 @@ std::vector<std::vector<float>> make_runs(u32 k, layout l)
 
 // Fraction of extractions whose winner equals the previous one -- the `head[w] <= second`
 // fast path in sort_vertex_buffer, and the thing the three layouts exist to vary.
-double streak_rate(const std::vector<std::vector<float>>& runs)
+double streak_rate(const std::vector<std::vector<u32>>& runs)
 {
     const auto k = (u32)runs.size();
     auto pos = std::vector<u32>(k, 0);
@@ -107,7 +107,7 @@ double streak_rate(const std::vector<std::vector<float>>& runs)
     for (;;)
     {
         u32 w = (u32)-1;
-        float best = 0;
+        u32 best = 0;
         for (auto r = 0u; r < k; r++)
         {
             if (pos[r] == runs[r].size())
@@ -129,13 +129,13 @@ double streak_rate(const std::vector<std::vector<float>>& runs)
     return total ? (double)same / total : 0;
 }
 
-void refill(SpriteBatch& sb, const std::vector<std::vector<float>>& runs)
+void refill(SpriteBatch& sb, const std::vector<std::vector<u32>>& runs)
 {
     sb.clear();
     for (const auto& run : runs)
     {
         sb.begin_chunk((u32)run.size());
-        for (float d : run)
+        for (u32 d : run)
             sb.emit(dummy_quad, d);
         sb.end_chunk<false>(); // already ascending, so no per-run sort in the timed path
     }
@@ -144,7 +144,7 @@ void refill(SpriteBatch& sb, const std::vector<std::vector<float>>& runs)
 // One entry suffices because repetitions of a fixture are consecutive.
 struct fixture
 {
-    std::vector<std::vector<float>> runs;
+    std::vector<std::vector<u32>> runs;
     double streak;
     u32 k;
     layout l;
@@ -165,11 +165,11 @@ const fixture& get_fixture(u32 k, layout l)
 
 // m is quads per chunk. Keep it small: end_chunk<true>'s only production caller closes a run of
 // one chunk's dynamic objects.
-std::vector<std::vector<float>> make_chunks(u32 k, u32 m, u32 seed)
+std::vector<std::vector<u32>> make_chunks(u32 k, u32 m, u32 seed)
 {
     auto rng = std::mt19937{seed};
-    auto dist = std::uniform_real_distribution<float>{0, (float)(k*m)};
-    auto runs = std::vector<std::vector<float>>(k, std::vector<float>(m));
+    auto dist = std::uniform_int_distribution<u32>{1, k*m};
+    auto runs = std::vector<std::vector<u32>>(k, std::vector<u32>(m));
     for (auto& run : runs)
         for (auto& d : run)
             d = dist(rng);
@@ -177,9 +177,9 @@ std::vector<std::vector<float>> make_chunks(u32 k, u32 m, u32 seed)
 }
 
 // Random interleaving alternates between argument sets, so all of them stay cached.
-const std::vector<std::vector<std::vector<float>>>& get_chunk_fixtures(benchmark::State& state)
+const std::vector<std::vector<std::vector<u32>>>& get_chunk_fixtures(benchmark::State& state)
 {
-    static std::map<std::pair<u32, u32>, std::vector<std::vector<std::vector<float>>>> cache;
+    static std::map<std::pair<u32, u32>, std::vector<std::vector<std::vector<u32>>>> cache;
     const auto k = (u32)state.range(0), m = (u32)state.range(1), count = (u32)state.range(2);
     const auto key = std::pair{k, m};
     for (auto i = (u32)cache[key].size(); i < count; i++)
@@ -187,13 +187,13 @@ const std::vector<std::vector<std::vector<float>>>& get_chunk_fixtures(benchmark
     return cache[key];
 }
 
-void fill_chunks(SpriteBatch& sb, const std::vector<std::vector<float>>& runs, bool do_sort, bool merge)
+void fill_chunks(SpriteBatch& sb, const std::vector<std::vector<u32>>& runs, bool do_sort, bool merge)
 {
     sb.clear();
     for (const auto& run : runs)
     {
         sb.begin_chunk((u32)run.size());
-        for (float d : run)
+        for (u32 d : run)
             sb.emit(dummy_quad, d);
         do_sort ? sb.end_chunk<true>() : sb.end_chunk<false>();
     }
@@ -240,16 +240,16 @@ void chunk_args(benchmark::Benchmark* b)
 
 // Models chunk::ensure_scenery_mesh: per chunk, an even run of dynamic objects, then an odd one of
 // sorted static scenery. Depths overlap fully along an anti-diagonal, and by half between adjacent ones.
-std::vector<std::vector<float>> make_mixed(u32 g, u32 s, u32 d, u32 seed)
+std::vector<std::vector<u32>> make_mixed(u32 g, u32 s, u32 d, u32 seed)
 {
-    constexpr float W = 1024;
+    constexpr u32 W = 1024;
     auto rng = std::mt19937{seed};
-    auto dist = std::uniform_real_distribution<float>{0, W};
-    auto runs = std::vector<std::vector<float>>{};
+    auto dist = std::uniform_int_distribution<u32>{1, W};
+    auto runs = std::vector<std::vector<u32>>{};
     for (auto cy = 0u; cy < g; cy++)
         for (auto cx = 0u; cx < g; cx++)
         {
-            const auto base = (float)(cx + cy) * W;
+            const auto base = (cx + cy) * W;
             auto& dyn = runs.emplace_back(d);
             for (auto& x : dyn)
                 x = base + dist(rng) + dist(rng);
@@ -263,8 +263,8 @@ std::vector<std::vector<float>> make_mixed(u32 g, u32 s, u32 d, u32 seed)
 
 struct mixed_fixture
 {
-    std::vector<std::vector<float>> runs;
-    std::vector<float> flat;
+    std::vector<std::vector<u32>> runs;
+    std::vector<u32> flat;
     double streak;
 };
 
@@ -291,14 +291,14 @@ const std::vector<mixed_fixture>& get_mixed_fixtures(benchmark::State& state)
     return cache[key];
 }
 
-void fill_mixed(SpriteBatch& sb, const std::vector<std::vector<float>>& runs, bool merge)
+void fill_mixed(SpriteBatch& sb, const std::vector<std::vector<u32>>& runs, bool merge)
 {
     sb.clear();
     for (auto i = 0u; i < runs.size(); i++)
     {
         const auto& run = runs[i];
         sb.begin_chunk((u32)run.size());
-        for (float d : run)
+        for (u32 d : run)
             sb.emit(dummy_quad, d);
         if (i % 2 == 0)
             sb.end_chunk<true>();
@@ -381,7 +381,7 @@ SpriteList& get_list_fixture(u32 m)
     if (cur != m)
     {
         auto rng = std::mt19937{0x9e3779b9};
-        auto dist = std::uniform_real_distribution<float>{0, (float)m};
+        auto dist = std::uniform_int_distribution<u32>{0, m - 1};
         list.clear();
         for (auto i = 0u; i < m; i++)
             list.add(dummy_quad, dist(rng));
