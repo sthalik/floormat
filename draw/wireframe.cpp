@@ -22,7 +22,7 @@ void draw_closed_polyline(tile_shader& shader, const vertex_array& corners, floa
         return ImVec2(tile_shader::point_to_pixel(c, win, camera));
     }, corners);
 
-    // background list, so imgui windows stay on top as they did when this was a GL draw
+    // Keep the wireframe behind ImGui windows.
     ImGui::GetBackgroundDrawList()->AddPolyline(points.data(), (int)num_corners, color,
                                                line_width, ImDrawFlags_Closed);
 }

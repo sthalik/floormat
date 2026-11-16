@@ -157,10 +157,8 @@ void main_impl::draw_world() noexcept
     _drawn_camera_offset = _shader.camera_offsetʹ();
     _drawn_window_size = sz;
 
-    // Front-to-back, so the opaque pass rejects more fragments early. get_draw_bounds() emits
-    // z-major, but depth is dominated by x+y: z spans 16 levels against a much wider visible xy.
-    // Sorted here rather than there because update_world() reads the same array and changes
-    // behaviour with its order.
+    // Draw chunks front to back for early depth rejection.
+    // Keep this sort out of get_draw_bounds(), which also determines object update order.
     std::sort(chunks.begin(), chunks.end(), [](chunk_coords_ a, chunk_coords_ b) {
         constexpr auto w = chunk_size<i32>;
         return w * ((i32)a.x + a.y) + tile_size_z * a.z

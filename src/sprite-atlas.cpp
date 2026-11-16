@@ -118,9 +118,7 @@ void grow_texture(Atlas& atlas, u16 new_layer_count)
     // layers packed since the last upload exist only on the CPU side
     auto copied_layer_count = Math::min((Int)atlas.layers.size(), (Int)atlas.texture_layer_count);
 
-    // glTexStorage3D is immutable, so growth is reallocate-and-copy:
-    // allocate a fresh Texture2DArray with the bigger layer count, then move
-    // the old contents over.
+    // Texture storage is immutable, so growing the atlas requires a new texture.
     GL::Texture2DArray new_texture;
     new_texture.setStorage(1, GL::TextureFormat::RGBA8,
                            {layer_size, (Int)new_layer_count})
