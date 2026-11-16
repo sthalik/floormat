@@ -48,11 +48,7 @@ void main_impl::do_update(Ns dt)
 
 void main_impl::clear_framebuffer()
 {
-#ifdef FM_USE_DEPTH32
     framebuffer.fb.clearColor(0, clear_color);
-#else
-    GL::defaultFramebuffer.clearColor(clear_color);
-#endif
 }
 
 void main_impl::cache_draw_on_startup()
@@ -113,9 +109,7 @@ void main_impl::drawEvent()
 
     if (!s.driver_no_swapbuffers) [[likely]]
     {
-#ifdef FM_USE_DEPTH32
         GL::Framebuffer::blit(framebuffer.fb, GL::defaultFramebuffer, framebuffer.fb.viewport(), GL::FramebufferBlit::Color);
-#endif
         swapBuffers();
     }
     redraw();
@@ -166,11 +160,7 @@ void main_impl::draw_world() noexcept
     });
 
     arrayResize(_clickable_scenery, 0);
-#ifdef FM_USE_DEPTH32
     framebuffer.fb.clearDepth(0);
-#else
-    GL::defaultFramebuffer.clearDepth(0);
-#endif
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::setDepthMask(true);

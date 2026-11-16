@@ -14,14 +14,9 @@
 #include <cstdio>
 #include <mg/DebugOutput.h>
 #include <mg/Sdl2Application.h>
-
-#define FM_USE_DEPTH32
-
-#ifdef FM_USE_DEPTH32
 #include <mg/Framebuffer.h>
 #include <mg/Renderbuffer.h>
 #include <mg/Texture.h>
-#endif
 
 namespace floormat {
 
@@ -33,13 +28,11 @@ class astar;
 
 struct main_impl final : private Platform::Sdl2Application, public floormat_main
 {
-#ifdef FM_USE_DEPTH32
     struct Framebuffer final {
         GL::Framebuffer fb{NoCreate};
         GL::Renderbuffer depth{NoCreate};
         GL::Texture2D color{NoCreate};
     };
-#endif
 
     explicit main_impl(floormat_app& app, fm_settings&& opts, int& argc, char** argv) noexcept;
     ~main_impl() noexcept override;
@@ -150,9 +143,7 @@ private:
     class world _world{};
     u32 _mouse_cursor = (u32)-1;
     SpriteBatch _sprite_batch;
-#ifdef FM_USE_DEPTH32
     Framebuffer framebuffer;
-#endif
     safe_ptr<class astar> _astar;
     Vector2 _dpi_scale = Vector2{1};
 
