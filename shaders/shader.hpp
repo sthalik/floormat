@@ -16,7 +16,7 @@ struct tile_shader final : private GL::AbstractShaderProgram
     using Position           = GL::Attribute<0, Vector3>;
     using TextureCoordinates = GL::Attribute<1, Vector3>;
     using LightCoord         = GL::Attribute<2, Vector2>;
-    using Depth              = GL::Attribute<3, float>;
+    using Depth              = GL::Attribute<3, UnsignedInt>;
 
     explicit tile_shader(texture_unit_cache& tuc);
     ~tile_shader() override;
@@ -60,7 +60,8 @@ private:
         ScaleUniform = 0, OffsetUniform = 1, TintUniform = 2,
         EnableLightmapUniform = 3,
         SamplerUniform = 4, LightmapSamplerUniform = 5,
-        UNIFORM_COUNT = 6
+        CameraDepthUniform = 6,
+        UNIFORM_COUNT = 7
     };
 
     void setUniform(Uniform u, auto value);
@@ -74,6 +75,7 @@ private:
         "enable_lightmap"_s,
         "sampler"_s,
         "lightmap_sampler"_s,
+        "camera_depth"_s,
     };
 
     static constexpr StringView attribute_names[] = {

@@ -51,7 +51,6 @@ void chunk::ensure_scenery_mesh(SpriteBatch& sb, bool render_vobjs)
 [[fm_noinline]]
 void chunk::add_scenery_mesh(const object& e, SpriteBatch& sb, bool is_dynamic, i32 depth_offset)
 {
-    const float depth_start = sb.depth_start();
     const auto& atlas = e.atlas;
     //const auto pos = e->coord.local();
     //const auto coord = Vector3(pos) * TILE_SIZE + Vector3(Vector2(fr.offset), 0);
@@ -66,7 +65,7 @@ void chunk::add_scenery_mesh(const object& e, SpriteBatch& sb, bool is_dynamic, 
 
     if (is_dynamic)
     {
-        const auto depth = Depth::value_at(depth_start, center, depth_offset);
+        const auto depth = Depth::value_at(center, depth_offset);
         const auto v = Quads::make_vertexes(quad, uv3, depth);
         sb.emit(v, depth);
     }
@@ -92,9 +91,9 @@ void chunk::add_scenery_mesh(const object& e, SpriteBatch& sb, bool is_dynamic, 
 
         //const auto depth_bias = i32((u32)e.bbox_size.min());
         const auto depth_bias = hi.sum();
-        const auto front_depth      = Depth::value_at(depth_start, center, depth_offset + depth_bias);
-        const auto back_left_depth  = Depth::value_at(depth_start, center, depth_offset + hi.y() - lo.x());
-        const auto back_right_depth = Depth::value_at(depth_start, center, depth_offset + hi.x() - lo.y());
+        const auto front_depth      = Depth::value_at(center, depth_offset + depth_bias);
+        const auto back_left_depth  = Depth::value_at(center, depth_offset + hi.y() - lo.x());
+        const auto back_right_depth = Depth::value_at(center, depth_offset + hi.x() - lo.y());
 
         const float x_nw = Math::clamp(nw.x(), left_x, right_x);
         const float x_se = Math::clamp(se.x(), left_x, right_x);
@@ -112,10 +111,10 @@ void chunk::add_scenery_mesh(const object& e, SpriteBatch& sb, bool is_dynamic, 
             const float south = (float)(hi.y() - lo.x()) + (xc - w.x()),
                         east_side = (float)(hi.x() - lo.y()) + (east.x() - xc);
             const auto off = (i32)Math::floor(Math::min(south, east_side));
-            return Depth::value_at(depth_start, center, depth_offset + off);
+            return Depth::value_at(center, depth_offset + off);
         };
         // quad[0]=BR, quad[1]=TR, quad[2]=BL, quad[3]=TL
-        auto vert = [&](float x, float t, float depth) -> Quads::vertex {
+        auto vert = [&](float x, float t, u32 depth) -> Quads::vertex {
             const float s = (x - left_x) / (right_x - left_x);
             return { quad[2] + s * (quad[0] - quad[2]) + t * (quad[3] - quad[2]),
                      uv3[2] + s * (uv3[0] - uv3[2]) + t * (uv3[3] - uv3[2]),
@@ -128,7 +127,7 @@ void chunk::add_scenery_mesh(const object& e, SpriteBatch& sb, bool is_dynamic, 
             if (!(xb > xa))
                 continue;
             const float ta = t_at(xa), tb = t_at(xb);
-            const float da = depth_at(xa), db = depth_at(xb);
+            const u32 da = depth_at(xa), db = depth_at(xb);
 
             if (ta > 0.f || tb > 0.f)
             {
@@ -140,7 +139,7 @@ void chunk::add_scenery_mesh(const object& e, SpriteBatch& sb, bool is_dynamic, 
             }
             if (ta < 1.f || tb < 1.f)
             {
-                const float back_depth = xa + xb < 2 * x_nw ? back_left_depth : back_right_depth;
+                const u32 back_depth = xa + xb < 2 * x_nw ? back_left_depth : back_right_depth;
                 const Quads::vertexes v = {{
                     vert(xb, tb, db), vert(xb, 1.f, db),
                     vert(xa, ta, da), vert(xa, 1.f, da),

@@ -12,6 +12,7 @@
 #include "src/RTree-search.hpp"
 #include "src/spritebatch.hpp"
 #include "src/point.inl"
+#include "src/depth.hpp"
 #include "floormat/main.hpp"
 #include "floormat/draw-bounds.hpp"
 #include "shaders/shader.hpp"
@@ -78,7 +79,8 @@ void app::draw_cursor()
                 const auto pos = Vector3i(pt)*iTILE_SIZE + offset;
                 if (!chunk::can_place_object(w, pt.chunk3(), sel, pt.local()))
                     shader.set_tint({1, 0, 1, 0.5f});
-                sb.emit_quick(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), {1.f, 1.f, 1.f, 1.f});
+                const auto d = Depth::value_atʹ(point{pos});
+                sb.emit_quick(shader, *sel.atlas, sel.r, sel.frame, Vector3(pos), {d, d, d, d});
             }
         }
         else if (const auto* vo = _editor->current_vobj_editor())
@@ -92,7 +94,8 @@ void app::draw_cursor()
                 shader.set_tint({1, 1, 1, 0.75f});
                 auto [sb] = M->meshes();
                 const auto pos = Vector3i(pt)*iTILE_SIZE;
-                sb.emit_quick(shader, *atlas, rotation::N, 0, Vector3(pos), {1.f, 1.f, 1.f, 1.f});
+                const auto d = Depth::value_atʹ(point{pos});
+                sb.emit_quick(shader, *atlas, rotation::N, 0, Vector3(pos), {d, d, d, d});
             }
         }
     }

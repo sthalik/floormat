@@ -21,7 +21,7 @@ void SpriteList::reserve(u32 count)
     arrayReserve(Depths, count);
 }
 
-void SpriteList::add(const Quads::vertexes& vertexes, float depth)
+void SpriteList::add(const Quads::vertexes& vertexes, u32 depth)
 {
     arrayAppend(Vertexes, vertexes);
     arrayAppend(Depths, depth);

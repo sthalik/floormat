@@ -168,8 +168,6 @@ private:
     static GLConfiguration make_gl_conf(const fm_settings& s);
     static WindowFlags make_window_flags(const fm_settings& s);
     static GL::Version probe_max_gl_version();
-
-    void maybe_enable_clipcontrol_zero_to_one();
 };
 
 } // namespace floormat
