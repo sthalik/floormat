@@ -1,0 +1,60 @@
+name: aarch64-be
+
+on:
+  push:
+    branches: [master, wip]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: SVE${{ matrix.vector-bits }}
+    runs-on: [self-hosted, linux, x64, aarch64-be]
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        vector-bits: [128, 512]
+    env:
+      FLOORMAT_SVE_BITS: ${{ matrix.vector-bits }}
+      CCACHE_DIR: /cache/ccache
+      CCACHE_MAXSIZE: 10G
+      CCACHE_COMPILERCHECK: content
+      CCACHE_BASEDIR: ${{ github.workspace }}/source
+    steps:
+    - name: Remove previous checkout
+      run: rm -rf -- "$GITHUB_WORKSPACE/source"
+
+    - uses: actions/checkout@v7
+      with:
+        path: source
+        submodules: recursive
+        persist-credentials: false
+
+    - name: Build
+      working-directory: source
+      run: |
+        exec 9</run/host-cpu.lock
+        flock -s -w 1800 -E 75 9
+        ccache --show-stats
+        cmake -G Ninja -S external/corrade -B build/native -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build/native --parallel 4 --target corrade-rc
+        cmake -G Ninja -S . -B build/aarch64-be --toolchain cmake/aarch64-be-linux-gnu.cmake \
+          -DCMAKE_BUILD_TYPE=Release -DCORRADE_RC_EXECUTABLE="$PWD/build/native/Release/bin/corrade-rc"
+        cmake --build build/aarch64-be --parallel 4 --target install
+
+    - name: Test without a GL context
+      working-directory: source
+      run: .github/test-aarch64-be.sh "$PWD/build/aarch64-be"
+      timeout-minutes: 60
+
+    - name: Compiler cache statistics
+      if: ${{ !cancelled() }}
+      run: ccache --show-stats
+
+    - name: Remove checkout
+      if: ${{ always() }}
+      run: rm -rf -- "$GITHUB_WORKSPACE/source"
