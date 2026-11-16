@@ -18,7 +18,6 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 
     GL::Renderer::setDepthMask(true);
 
-#ifdef FM_USE_DEPTH32
     {
         framebuffer.fb = GL::Framebuffer{{ {}, fb_size }};
 
@@ -34,12 +33,6 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
 
         framebuffer.fb.bind();
     }
-#else
-    GL::defaultFramebuffer.setViewport({{}, fb_size });
-    GL::defaultFramebuffer.clearColor(Color4{0.f, 0.f, 0.f, 1.f});
-    GL::defaultFramebuffer.clearDepthStencil(0, 0);
-    GL::defaultFramebuffer.bind();
-#endif
 
     // -- state ---
     glEnable(GL_LINE_SMOOTH);
@@ -173,9 +166,7 @@ auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
     return GLConfiguration{}
         .setFlags(flags)
         .setVersion(version)
-#ifdef FM_USE_DEPTH32
         .setDepthBufferSize(0)
-#endif
         .setColorBufferSize({8, 8, 8, 0})
         .setStencilBufferSize(0);
 }
