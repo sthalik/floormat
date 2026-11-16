@@ -76,7 +76,7 @@ std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& s
 Image2D read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect);
 void read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect, const MutableImageView2D& out);
 GL::Texture2D copy_slot(Atlas& atlas, const Sprite& sprite);
-void dump_atlas(Atlas& atlas, StringView out_path);
-void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path);
+void dump_atlas(Atlas& atlas, StringView out_filename);
+void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_filename);
 
 } // namespace floormat::SpriteAtlas

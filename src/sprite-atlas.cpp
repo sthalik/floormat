@@ -528,7 +528,7 @@ GL::Texture2D copy_slot(Atlas& atlas, const Sprite& sprite)
     return ret;
 }
 
-void dump_atlas(Atlas& atlas, StringView out_path)
+void dump_atlas(Atlas& atlas, StringView out_filename)
 {
     fm_assert(!atlas.layers.isEmpty());
     flush(atlas);
@@ -538,7 +538,7 @@ void dump_atlas(Atlas& atlas, StringView out_path)
     // compression workspace. atlas.png becomes atlas.000.png, atlas.001.png, ...
     constexpr u64 pixels_per_chunk = u64{1024} * 1024 * 128;
 
-    const auto split = Utility::Path::splitExtension(out_path);
+    const auto split = Utility::Path::splitExtension(out_filename);
     const auto base = split.first();
     const auto ext = split.second();
     const auto w = (Int)atlas.layer_width, h = (Int)atlas.layer_height;
@@ -577,7 +577,7 @@ void dump_atlas(Atlas& atlas, StringView out_path)
     }
 }
 
-void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path)
+void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_filename)
 {
     // sprite.width_minus1/height_minus1 always describe the ORIGINAL dims. When the packer
     // stores the sprite rotated, the atlas slot is transposed
@@ -619,8 +619,8 @@ void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_path)
     PluginManager::Manager<Trade::AbstractImageConverter> mgr;
     auto conv = mgr.loadAndInstantiate("AnyImageConverter");
     fm_assert(conv);
-    if (!conv->convertToFile(view, out_path))
-        fm_throw("can't write sprite dump to '{}'", out_path);
+    if (!conv->convertToFile(view, out_filename))
+        fm_throw("can't write sprite dump to '{}'", out_filename);
 }
 
 
@@ -711,14 +711,14 @@ void sprite_atlas::reset()
     SpriteAtlas::free_atlas(*_atlas);
 }
 
-void sprite_atlas::dump(StringView out_path)
+void sprite_atlas::dump(StringView out_filename)
 {
-    SpriteAtlas::dump_atlas(*_atlas, out_path);
+    SpriteAtlas::dump_atlas(*_atlas, out_filename);
 }
 
-void sprite_atlas::dump_sprite(sprite s, StringView out_path)
+void sprite_atlas::dump_sprite(sprite s, StringView out_filename)
 {
-    SpriteAtlas::dump_sprite(*_atlas, *s.raw(), out_path);
+    SpriteAtlas::dump_sprite(*_atlas, *s.raw(), out_filename);
 }
 
 } // namespace floormat
