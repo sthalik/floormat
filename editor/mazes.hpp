@@ -36,6 +36,14 @@ constexpr inline u32 exit_cells = 80;
 constexpr inline u32 exit_cells = 24;
 #endif
 
+enum class long_route_outside : u8 { braid, open };
+enum class long_route_entrance : u8 { open, walled };
+
+// Returns the endpoints, one wall apart, of a route through the labyrinth's entrance that takes up to max_dist.
+// With a walled entrance there is none. `outside` is the map around the labyrinth. `pool` as for build().
+route build_long_route(world& w, long_route_outside outside, long_route_entrance entrance, chunk_coords_ origin,
+                       u32 max_dist, u64 seed, Grid::Pass::Pool& pool);
+
 // Destroys every object but `keep` on tiles [0, 2*cells]² and the square outside the exit.
 // `pool` must be the one Dijkstra reads for the walker's bbox.
 route replace(world& w, chunk_coords_ origin, u32 cells, u64 seed,

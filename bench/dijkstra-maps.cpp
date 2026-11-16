@@ -72,7 +72,7 @@ void verify(kind k, u32 cell, u32 optimum)
                     open_cells += g.bit(Pass::Grid::get_bitmask_index(i, j, div_count));
         }
 
-    const auto rect = Search::cache::get_size_to_allocate(s.r.max_dist)*2u + Vector2ui{1};
+    const auto rect = Search::cache::get_size_to_allocate(s.r.from, s.r.to, s.r.max_dist);
     const auto h0 = Search::octile{pool.params().div_size()}(s.r.from, s.r.to);
     DBG << "dijkstra-maps" << mazes::name(k) << "cell" << cat(pool.params().div_size(), ":")
         << "open cells" << cat(open_cells, "/", side*side, ",")

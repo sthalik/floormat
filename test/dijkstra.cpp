@@ -9,6 +9,7 @@
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
 #include "src/search-cache.hpp"
+#include "src/search-octile.hpp"
 #include "src/search.hpp"
 #include "src/sweep-aabb.hpp"
 #include "src/raycast-line.hpp"
@@ -258,35 +259,31 @@ void test_cache_margin()
         }
 }
 
-// max_dist drops to the largest whose Search::cache rectangle fits in its max_size_bytes.
-void test_large_search_limit()
+// max_dist drops to the largest whose Search::cache cells and max_node_count() nodes fit in max_size_bytes.
+void check_search_limit(u32 div)
 {
-    if (is_valgrind())
-        return;
-    constexpr u32 cell = astar::default_div_size, max_dist = 523'777;
+    using Search::cache;
+    const auto L = cache::max_dist_limit(div);
+    const auto side = (L + 1)/chunk_size_xy + 4;
     const auto from = point{global_coords{flush_ch, flush_tile}, {}};
-    u32 clamped;
-    {
-        auto c = Search::cache{};
-        clamped = c.allocate(from, max_dist, cell);
-        fm_assert(clamped < max_dist);
-        fm_assert(c.cells.size() * sizeof(Search::cache::cell) <= Search::cache::max_size_bytes);
-        fm_assert(c.allocate(from, clamped, cell) == clamped);
-        fm_assert(c.allocate(from, clamped + 1, cell) == clamped);
-    }
+    auto c = cache{};
+    fm_assert(c.allocate(from, from, L + 1, div) == L);
+    fm_assert(c.allocate(from, from, L, div) == L);
+    const auto bytes = c.cells.size()*sizeof(cache::cell) + (usize)cache::max_node_count(L, div)*cache::node_size;
+    if (bytes > cache::max_size_bytes)
+        fm_abort("search limit at div %u: max_dist %u needs %zu bytes", div, L, bytes);
 
-    auto w = world();
-    auto A = astar{};
-    const auto search = [&](Vector2i off, u32 dist) {
-        return A.Dijkstra<0, false>(w, from, from + off, dist, Vector2ui{cell}, Search::never_continue);
-    };
-    const auto near = Vector2i{97, 53};
-    const auto small = search(near, 1024), large = search(near, max_dist);
-    fm_assert(small.is_found() && large.is_found());
-    fm_assert(small.cost() == large.cost());
-    fm_assert(large.path().back() == from + near);
-    fm_assert(search({(int)clamped - tile_size_xy, 0}, max_dist).is_found());
-    fm_assert(!search({(int)clamped + tile_size_xy, 0}, max_dist).is_found());
+    for (const auto d : { Vector2i{(int)L/2, 0}, Vector2i{-(int)L/3, (int)L/5}, Vector2i{(int)L + 1, -(int)L - 1} })
+    {
+        const auto to = point::normalize_coords(from, d);
+        fm_assert(c.allocate(from, to, L, div) == L);
+        const auto lo = c.start, hi = c.start + Vector2i(c.size) - Vector2i{1};
+        fm_assert((c.size <= Vector2ui{side}).all());
+        for (const auto ch : { Vector2i(from.chunk()), Vector2i(to.chunk()) })
+            fm_assert((lo <= ch - Vector2i{1}).all() && (ch + Vector2i{1} <= hi).all());
+    }
+    fm_assert(c.allocate(from, point::normalize_coords(from, {0, (int)L + 2}), L, div) == L);
+    fm_assert(c.size == Vector2ui{3} && c.start == Vector2i(from.chunk()) - Vector2i{1});
 }
 
 void add_pocket(world& w, point pt, u32 size, int open)
@@ -468,7 +465,7 @@ void check_corridor_goal(u32 cell)
     if (r1.cost() < x_travel)
         fm_abort("corridor goal at div %u: cost %u, the way around is at least %u", cell, r1.cost(), x_travel);
     // With max_dist at that bound, A* runs out of nodes again, and the goal's seed search after
-    // it finds no link under max_dist.
+    // it finds no path under max_dist.
     auto r3 = A.Dijkstra<0, false>(w, pool, from, goal, x_travel, Vector2ui(size), pred);
     auto r4 = A.Dijkstra<0, true>(w, pool, from, goal, x_travel, Vector2ui(size), pred);
     if (r3.is_found() || r4.is_found())
@@ -579,6 +576,115 @@ void add_rect(world& w, Vector2i min, Vector2i max)
     fm_assert(size.x() % 2 == 0 && size.y() % 2 == 0);
     const auto tile = (center + half_tile<Vector2i>) / tile_size<int>;
     add_block(w, local_coords{(u8)tile.x(), (u8)tile.y()}, Vector2ub(size), Vector2b(center - tile*tile_size<int>));
+}
+
+// The box fits 5 positions across this square spiral corridor, so none of its cells is set, and A* enters
+// or leaves it only through a seed search. Each seed's path runs the whole spiral.
+void check_spiral_corridor(u32 cell)
+{
+    constexpr u32 max_dist = 2048, size = 16;
+    constexpr int pitch = 28, wall = 8, wall_count = 10;
+    constexpr auto origin = Vector2i{512, 512};
+    const auto centre = at_px(origin + Vector2i{pitch/2}), outside = at_px(origin + Vector2i{pitch/2, pitch/2 + 200});
+    const Search::pred pred{Search::without_critters};
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{cell, size, pass_mode::pass}};
+    fm_assert(pool.params().div_size() == cell);
+
+    auto w = world();
+    add_floors(w, centre, max_dist, cell);
+    constexpr Vector2i dirs[] = { {1, 0}, {0, 1}, {-1, 0}, {0, -1} };
+    auto a = origin;
+    for (int i = 0; i < wall_count; i++)
+    {
+        const auto b = a + dirs[i % 4]*((i/2 + 1)*pitch);
+        add_rect(w, Math::min(a, b) - Vector2i{wall/2}, Math::max(a, b) + Vector2i{wall/2});
+        a = b;
+    }
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+    fm_assert(box_free(w, centre, Vector2ui(size)));
+    fm_assert(!A.cache()->is_passable_for_bbox(w, pool, centre, pred));
+    fm_assert(A.cache()->is_passable_for_bbox(w, pool, outside, pred));
+
+    // The corridor's centre line is 20 pitches long, and a path is at most 4 px shorter along each of its 8 legs.
+    constexpr u32 corridor_len = 20*pitch - 8*4;
+    // Seed paths that each copy the spiral stored 897 nodes out and 5528 in at div 8, 487 and 1724 at div 16.
+    const auto max_out = cell == 8 ? 500u : 300u, max_in = cell == 8 ? 5100u : 1500u;
+    for (const bool outward : { true, false })
+    {
+        const auto from = outward ? centre : outside, to = outward ? outside : centre;
+        auto r = A.Dijkstra<0, false>(w, pool, from, to, max_dist, Vector2ui(size), pred);
+        const auto n = A.last_node_count(), max = outward ? max_out : max_in;
+        if (!r.is_found())
+            fm_abort("spiral corridor at div %u, outward %d: not found", cell, (int)outward);
+        fm_assert(r.path().front() == from && r.path().back() == to);
+        if (r.cost() < corridor_len)
+            fm_abort("spiral corridor at div %u, outward %d: cost %u under %u", cell, (int)outward, r.cost(), corridor_len);
+        if (n > max)
+            fm_abort("spiral corridor at div %u, outward %d: %u nodes, over %u", cell, (int)outward, n, max);
+    }
+}
+
+// No seed search runs, so every node is a lattice point. With the goal sealed off, A* expands every
+// one whose f is below max_dist, which nearly fills the octagon around from and to's midpoint.
+void check_search_node_count(u32 div)
+{
+    constexpr u32 max_dist = 8192, size = 16;
+    const auto from = at_px({512, 512}), to = at_px({704, 512});
+    const Search::pred pred{Search::without_critters};
+    auto A = astar{};
+    auto pool = Grid::Pass::Pool{Grid::Pass::Params{div, size, pass_mode::pass}};
+    fm_assert(pool.params().div_size() == div);
+
+    auto w = world();
+    add_floors(w, from, max_dist/2 + chunk_size_xy, div);
+    add_rect(w, {640, 448}, {656, 576});
+    add_rect(w, {752, 448}, {768, 576});
+    add_rect(w, {656, 448}, {752, 464});
+    add_rect(w, {656, 560}, {752, 576});
+    auto& c = w[flush_ch];
+    c.mark_passability_modified();
+    c.ensure_passability();
+    fm_assert(box_free(w, to, Vector2ui(size)));
+
+    auto r = A.Dijkstra<0, true>(w, pool, from, to, max_dist, Vector2ui(size), pred);
+    fm_assert(!r.is_found());
+    const auto n = A.last_node_count();
+    const auto oct = Search::octile{div};
+    const auto area = [&](double R) { return 4*R*R*oct.axial/(oct.diag*(double)div*div); };
+    const double hi = Math::floor(area(max_dist/2. + div) + 8*(max_dist/2. + div)/div) + 2;
+    const double lo = .9 * area((max_dist - oct(to - from))/2.);
+    if (n > Search::cache::max_node_count(max_dist, div) || n > hi || n < lo)
+        fm_abort("search node count at div %u: %u nodes, expected %.0f to %.0f, max_node_count %u",
+                 div, n, lo, hi, Search::cache::max_node_count(max_dist, div));
+}
+
+void test_large_search_limit()
+{
+    if (is_valgrind())
+        return;
+    for (auto div : { 4u, 8u, 16u, 32u, 64u })
+        check_search_limit(div);
+    for (auto div : { 8u, 16u })
+        check_search_node_count(div);
+
+    constexpr u32 cell = astar::default_div_size;
+    const auto L = Search::cache::max_dist_limit(cell), max_dist = 2*L;
+    const auto from = point{global_coords{flush_ch, flush_tile}, {}};
+    auto w = world();
+    auto A = astar{};
+    const auto search = [&](Vector2i off, u32 dist) {
+        return A.Dijkstra<0, false>(w, from, from + off, dist, Vector2ui{cell}, Search::never_continue);
+    };
+    const auto near = Vector2i{97, 53};
+    const auto small = search(near, 1024), large = search(near, max_dist);
+    fm_assert(small.is_found() && large.is_found());
+    fm_assert(small.cost() == large.cost());
+    fm_assert(large.path().back() == from + near);
+    fm_assert(search({(int)L - tile_size_xy, 0}, max_dist).is_found());
+    fm_assert(!search({(int)L + tile_size_xy, 0}, max_dist).is_found());
 }
 
 bool is_segment_clear(world& w, point a, point b, Vector2ui size, const Search::pred& p)
@@ -964,6 +1070,8 @@ void Test::test_dijkstra()
         check_seeds_past_max_dist(cell);
         check_corridor_goal(cell);
     }
+    for (auto cell : { 8u, 16u })
+        check_spiral_corridor(cell);
     check_post_field();
     check_walled_off_goal(false);
     check_walled_off_goal(true);
