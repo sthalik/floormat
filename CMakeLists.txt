@@ -163,6 +163,11 @@ if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
     fm_load_userconfig()
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_library(floormat-linux-stack OBJECT cmake/linux-stack-size.c)
+    target_compile_definitions(floormat-linux-stack PRIVATE FLOORMAT_STACK_SIZE=41943040)
+endif()
+
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_HAS_EXCEPTIONS=0)
     #add_definitions(-D_USE_MATH_DEFINES=1)
@@ -299,6 +304,10 @@ endif()
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/win32-app-manifest.cmake")
 
 function(fm_install_executable self)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_sources(${self} PRIVATE $<TARGET_OBJECTS:floormat-linux-stack>)
+    endif()
+
     get_property(self_ TARGET "${self}" PROPERTY OUTPUT_NAME)
     if (NOT "${self_}" STREQUAL "")
         set(exe "${self_}")
