@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Runs floormat's GL tests and editor scenes on Mesa (zink by default) with every extension outside core GL 3.3
-# disabled, then once per extension that a Magnum or floormat code path depends on. Run with --help.
+# disabled. --all also runs once per extension that a Magnum or floormat code path depends on. Run with --help.
 
 set -o pipefail
 set -eu
@@ -49,30 +49,48 @@ extension_combinations="GL_ARB_texture_storage+GL_ARB_texture_view"
 driver=zink
 build_dir=build/clang-asan
 only=
+all=
+editor_only=
 
 usage() {
-    echo "usage: ${self} [--zink|--llvmpipe|--softpipe] [--only=none|GL_X[+GL_Y...]] [build-dir]" >&2
+    echo "usage: ${self} [--zink|--llvmpipe|--softpipe] [--only=none|GL_X[+GL_Y...]|--all] [--editor] [build-dir]" \
+        "[-- editor-args...]" >&2
     echo "       runs Mesa zink on the GPU's Vulkan driver by default, or llvmpipe or softpipe on the CPU" >&2
     echo "       build-dir defaults to build/clang-asan and must be installed already" >&2
-    echo "       --only=none runs with every extension outside core 3.3 disabled, --only=GL_X+GL_Y with all but those" >&2
-    echo "       without --only, runs none, then GL_X for each extension that changes a code path," >&2
+    echo "       --only=none, the default, runs with every extension outside core 3.3 disabled," >&2
+    echo "       --only=GL_X+GL_Y with all but those" >&2
+    echo "       --all runs none, then GL_X for each extension that changes a code path," >&2
     echo "       then each of: $extension_combinations" >&2
+    echo "       --editor opens floormat-editor's window instead of running floormat-test and the editor's scenes" >&2
+    echo "       editor-args go to floormat-editor after the script's own, which they override" >&2
     exit 64
 }
 
-for arg; do
-    case "$arg" in
+while test $# -gt 0; do
+    case "$1" in
         --zink) driver=zink ;;
         --llvmpipe) driver=llvmpipe ;;
         --softpipe) driver=softpipe ;;
-        --only=?*) only="${arg#--only=}" ;;
+        --only=?*) only="${1#--only=}" ;;
+        --all) all=1 ;;
+        --editor) editor_only=1 ;;
+        --) shift; break ;;
         -*) usage ;;
-        *) build_dir="${arg%/}" ;;
+        *) build_dir="${1%/}" ;;
     esac
+    shift
 done
+if test -n "$all" && { test -n "$only" || test -n "$editor_only"; }; then
+    usage
+fi
+only="${only:-none}"
 
 if ! test -f "$build_dir/install/bin/floormat-test.exe"; then
     echo "fatal: $build_dir/install/bin/floormat-test.exe not found, run ninja install first" >&2
+    exit 1
+fi
+if test -e "$build_dir/install/bin/opengl32.dll"; then
+    echo "fatal: $build_dir/install/bin/opengl32.dll would load instead of Mesa's" >&2
     exit 1
 fi
 
@@ -101,19 +119,24 @@ download_mesa() {
 download_mesa
 download_gl_xml
 
-# Windows locks a running exe's file, so a hard link would fail the build dir's ninja install.
 run_dir="build/gl33-$(basename -- "$build_dir")"
 rm -rf -- "$run_dir"
-mkdir -p -- "$run_dir/logs" "$run_dir/allowed"
-cp -af -- "$build_dir/install/bin" "$build_dir/install/share" "$run_dir/"
-cp -f -- "$mesa_dir/x64/opengl32.dll" "$mesa_dir/x64/libgallium_wgl.dll" "$run_dir/bin/"
+mkdir -p -- "$run_dir/logs" "$run_dir/allowed" "$run_dir/dlls"
 
 export GALLIUM_DRIVER="$driver" LP_NUM_THREADS="$(nproc)" MESA_DEBUG=1
 export MESA_GL_VERSION_OVERRIDE=3.3FC MESA_GLSL_VERSION_OVERRIDE=330
 unset MESA_EXTENSION_OVERRIDE MAGNUM_DISABLE_EXTENSIONS FLOORMAT_GL33_ALLOWED_FUNCTIONS FLOORMAT_GL33_ALLOWED_ENUMS
 
+# Runs the build's $2 with the DLLs in directory $1 loaded instead of System32's.
+with_dll_dir() {
+    local dir="$1" exe="$2"
+    shift 2
+    $runner contrib/gl33-proxy/with-dll-dir.exe "$(cygpath -aw "$dir")" "$(cygpath -aw "$build_dir/install/bin/$exe")" \
+        "$@"
+}
+
 magnum_gl_info() {
-    $runner "$run_dir/bin/magnum-gl-info.exe" "$@"
+    with_dll_dir "$mesa_dir/x64" magnum-gl-info.exe "$@"
 }
 
 # Reads Magnum's log on stdin and prints the extensions it lists under "Using optional features".
@@ -176,8 +199,9 @@ echo "$magnum_disable" > "$run_dir/magnum-disabled.txt"
 
 # Mesa drops what it can't disable from the extension string only, so contrib/gl33-proxy hides every function outside
 # core 3.3 from wglGetProcAddress and reports the enums outside core 3.3 that core functions get.
-mv -f -- "$run_dir/bin/opengl32.dll" "$run_dir/bin/opengl32-mesa.dll"
-cp -f -- contrib/gl33-proxy/opengl32.dll "$run_dir/bin/"
+cp -f -- contrib/gl33-proxy/opengl32.dll "$run_dir/dlls/"
+cp -f -- "$mesa_dir/x64/opengl32.dll" "$run_dir/dlls/opengl32-mesa.dll"
+ln -f -- "$mesa_dir/x64/libgallium_wgl.dll" "$run_dir/dlls/"
 gl_functions_required_by $core_versions > "$run_dir/allowed/core.txt"
 gl_enums_required_by $core_versions > "$run_dir/allowed/core-enums.txt"
 
@@ -195,9 +219,11 @@ echo "code paths:" $code_paths
 failed=0
 
 # Runs floormat-test and the editor with every extension outside core 3.3 disabled, except those $1 joins with +.
+# The other arguments go to the editor.
 run_tests_with() {
     local name="$1" keep= test_status=0 editor_status=0 errors enums proxy=
     local test_log="$run_dir/logs/$name-test.log" editor_log="$run_dir/logs/$name-editor.log"
+    shift
     if test "$name" != none; then
         keep="$(echo "$name" | tr + ' ')"
     fi
@@ -208,35 +234,47 @@ run_tests_with() {
     export FLOORMAT_GL33_ALLOWED_ENUMS="$(cygpath -m "$PWD/$run_dir/allowed/$name-enums.txt")"
     export MESA_EXTENSION_OVERRIDE="$(printf -- '-%s ' $(set_difference "$mesa_disable" "$keep"))"
     export MAGNUM_DISABLE_EXTENSIONS="$(echo $(set_difference "$magnum_disable" "$keep"))"
-    MAGNUM_LOG=verbose $runner "$run_dir/bin/floormat-test.exe" --gl-only > "$test_log" 2>&1 || test_status=$?
-    FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=1 $runner "$run_dir/bin/floormat-editor.exe" --window=minimized --vsync=off \
-        --scenes="$editor_scenes" --driver-no-swapbuffers > "$editor_log" 2>&1 || editor_status=$?
+    if test -n "$editor_only"; then
+        with_dll_dir "$run_dir/dlls" floormat-editor.exe "$@" 2>&1 | tee "$editor_log" || editor_status=$?
+        set -- "$editor_log"
+    else
+        MAGNUM_LOG=verbose with_dll_dir "$run_dir/dlls" floormat-test.exe --gl-only > "$test_log" 2>&1 ||
+            test_status=$?
+        FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=1 with_dll_dir "$run_dir/dlls" floormat-editor.exe --window=minimized \
+            --vsync=off --scenes="$editor_scenes" "$@" > "$editor_log" 2>&1 || editor_status=$?
+        set -- "$test_log" "$editor_log"
+    fi
     unset FLOORMAT_GL33_ALLOWED_FUNCTIONS FLOORMAT_GL33_ALLOWED_ENUMS MESA_EXTENSION_OVERRIDE MAGNUM_DISABLE_EXTENSIONS
 
-    errors="$(cat "$test_log" "$editor_log" | grep -c '^Mesa: error: ' || true)"
-    enums="$(cat "$test_log" "$editor_log" | grep -c '^gl33-proxy: gl[A-Za-z0-9_]* got ' || true)"
-    for log in "$test_log" "$editor_log"; do
+    errors="$(cat "$@" | grep -c '^Mesa: error: ' || true)"
+    enums="$(cat "$@" | grep -c '^gl33-proxy: gl[A-Za-z0-9_]* got ' || true)"
+    for log; do
         if ! grep -q '^gl33-proxy: [0-9]* GL functions allowed by ' "$log"; then
             proxy=", gl33-proxy not loaded"
         fi
     done
-    echo "$name: floormat-test exit $test_status, floormat-editor exit $editor_status, $errors Mesa errors," \
-        "$enums enums reported by gl33-proxy$proxy"
-    grep -ho 'gl33-proxy: gl[A-Za-z0-9_]* was called.*' "$test_log" "$editor_log" || true
-    { grep -ho 'gl33-proxy: gl[A-Za-z0-9_]* got .*' "$test_log" "$editor_log" || true; } | sort -u | append_enum_names
+    if test -n "$editor_only"; then
+        echo "$name: floormat-editor exit $editor_status, $errors Mesa errors, $enums enums reported by" \
+            "gl33-proxy$proxy"
+    else
+        echo "$name: floormat-test exit $test_status, floormat-editor exit $editor_status, $errors Mesa errors," \
+            "$enums enums reported by gl33-proxy$proxy"
+    fi
+    grep -ho 'gl33-proxy: gl[A-Za-z0-9_]* was called.*' "$@" || true
+    { grep -ho 'gl33-proxy: gl[A-Za-z0-9_]* got .*' "$@" || true; } | sort -u | append_enum_names
     if test "$test_status" != 0 || test "$editor_status" != 0 || test "$errors" != 0 || test "$enums" != 0 ||
        test -n "$proxy"; then
         failed=1
     fi
 }
 
-if test -n "$only"; then
-    run_tests_with "$only"
-else
-    run_tests_with none
+if test -n "$all"; then
+    run_tests_with none "$@"
     for ext in $code_paths $extension_combinations; do
-        run_tests_with "$ext"
+        run_tests_with "$ext" "$@"
     done
+else
+    run_tests_with "$only" "$@"
 fi
 
 echo "logs: $run_dir/logs"
