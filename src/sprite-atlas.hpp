@@ -62,15 +62,11 @@ public:
     // Release the GL texture and bookkeeping. layer_width and layer_height are preserved.
     void reset();
 
-    // Debug: dump each atlas layer (or slabs of layers) to PNG files at
-    // `out_path.NNN.png`. Forwards to SpriteAtlas::dump_atlas so callers
-    // don't need the impl header.
-    void dump(StringView out_path);
+    // Writes the layers stacked vertically into files a.000.png, a.001.png, ... for an out_filename of a.png.
+    void dump(StringView out_filename);
 
-    // Debug: dump a single sprite's atlas sub-rect as a PNG at `out_path`.
-    // Useful for verifying that the pixels at (sprite.x, sprite.y, layer)
-    // actually match what the caller expects to render.
-    void dump_sprite(sprite s, StringView out_path);
+    // Writes s to out_filename in its original orientation.
+    void dump_sprite(sprite s, StringView out_filename);
 
     SpriteAtlas::Atlas* raw();
     const SpriteAtlas::Atlas* raw() const;
