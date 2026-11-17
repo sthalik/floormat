@@ -366,9 +366,10 @@ u32 nearest_octant(Vector2 v)
     const auto d = Math::dot(Vector2d(dirs[k]), vd);
     if (Math::dot(Vector2d(dirs[next]), vd) >= d)
         return next;
-    if (Math::dot(Vector2d(dirs[prev]), vd) > d)
+    else if (Math::dot(Vector2d(dirs[prev]), vd) > d)
         return prev;
-    return k;
+    else
+        return k;
 }
 
 void nearest_tiles(u32 radius, Array<Vector2i>& out)

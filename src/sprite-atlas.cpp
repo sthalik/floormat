@@ -332,24 +332,25 @@ static void copy_to_slot(char* dst, const Sprite& sprite, const ImageView2D& pix
         const usize row = (usize)orig_w * px_size;
         for (u32 y = 0; y < orig_h; y++)
             std::memcpy(dst + (usize)y * row, src_base + (usize)y * src_row_stride, row);
-        return;
     }
-
-    // Rotate 90° CCW in GL bottom-up memory. Derivation (both views
-    // bu-oriented): dst_bu[y_r][x_r] = src_bu[orig_h-1-x_r][y_r].
-    // Slot dims are (slot_w=orig_h, slot_h=orig_w).
-    const u32 slot_w = orig_h;
-    const u32 slot_h = orig_w;
-    const usize dst_row_stride = (usize)slot_w * px_size;
-    for (u32 y_r = 0; y_r < slot_h; y_r++)
+    else
     {
-        char* dst_row = dst + (usize)y_r * dst_row_stride;
-        for (u32 x_r = 0; x_r < slot_w; x_r++)
+        // Rotate 90° CCW in GL bottom-up memory. Derivation (both views
+        // bu-oriented): dst_bu[y_r][x_r] = src_bu[orig_h-1-x_r][y_r].
+        // Slot dims are (slot_w=orig_h, slot_h=orig_w).
+        const u32 slot_w = orig_h;
+        const u32 slot_h = orig_w;
+        const usize dst_row_stride = (usize)slot_w * px_size;
+        for (u32 y_r = 0; y_r < slot_h; y_r++)
         {
-            const char* src_px = src_base
-                               + (usize)(slot_w - 1 - x_r) * src_row_stride
-                               + (usize)y_r * px_size;
-            std::memcpy(dst_row + (usize)x_r * px_size, src_px, px_size);
+            char* dst_row = dst + (usize)y_r * dst_row_stride;
+            for (u32 x_r = 0; x_r < slot_w; x_r++)
+            {
+                const char* src_px = src_base
+                                   + (usize)(slot_w - 1 - x_r) * src_row_stride
+                                   + (usize)y_r * px_size;
+                std::memcpy(dst_row + (usize)x_r * px_size, src_px, px_size);
+            }
         }
     }
 }
@@ -371,12 +372,14 @@ void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels
         fm_assert(Vector2ui(pixels.size()) == slot_size(sprite));
         const ImageView3D view3d{pixels.storage(), pixels.format(), {pixels.size(), 1}, pixels.data()};
         atlas.texture.setSubImage(0, {(Int)sprite.x, (Int)sprite.y, (Int)sprite.layer}, view3d);
-        return;
     }
-    const auto size = slot_size(sprite);
-    Array<char> slot{NoInit, (usize)size.x() * size.y() * pixels.pixelSize()};
-    copy_to_slot(slot.data(), sprite, pixels);
-    upload_slot(atlas, sprite, pixels.format(), slot);
+    else
+    {
+        const auto size = slot_size(sprite);
+        Array<char> slot{NoInit, (usize)size.x() * size.y() * pixels.pixelSize()};
+        copy_to_slot(slot.data(), sprite, pixels);
+        upload_slot(atlas, sprite, pixels.format(), slot);
+    }
 }
 
 void stage_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels)

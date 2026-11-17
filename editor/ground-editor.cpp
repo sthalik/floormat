@@ -183,9 +183,10 @@ auto ground_editor::check_snap(int mods) const -> editor_snap_mode
 
     if (shift)
         return editor_snap_mode::horizontal;
-    if (ctrl)
+    else if (ctrl)
         return editor_snap_mode::vertical;
-    return editor_snap_mode::none;
+    else
+        return editor_snap_mode::none;
 }
 
 } // namespace floormat
