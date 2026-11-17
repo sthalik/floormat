@@ -13,6 +13,8 @@ namespace floormat {
 
 class sprite
 {
+    const SpriteAtlas::Sprite* _s;
+
 public:
     sprite(const SpriteAtlas::Sprite* s);
 
@@ -24,13 +26,12 @@ public:
     u32 width() const;
     u32 height() const;
     bool is_rotated() const;
-
-private:
-    const SpriteAtlas::Sprite* _s;
 };
 
 class sprite_atlas
 {
+    Pointer<SpriteAtlas::Atlas> _atlas;
+
 public:
     explicit sprite_atlas();
     explicit sprite_atlas(u16 layer_width, u16 layer_height);
@@ -70,9 +71,6 @@ public:
 
     SpriteAtlas::Atlas* raw();
     const SpriteAtlas::Atlas* raw() const;
-
-private:
-    Pointer<SpriteAtlas::Atlas> _atlas;
 };
 
 } // namespace floormat
