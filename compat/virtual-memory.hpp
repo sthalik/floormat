@@ -5,6 +5,11 @@ namespace floormat {
 
 class virtual_memory
 {
+    void release() noexcept;
+
+    char* _data = nullptr;
+    usize _size = 0;
+
 public:
     virtual_memory() noexcept;
     ~virtual_memory() noexcept;
@@ -20,12 +25,6 @@ public:
     char* data() const { return _data; }
     usize size() const { return _size; }
     static usize page_size();
-
-private:
-    void release() noexcept;
-
-    char* _data = nullptr;
-    usize _size = 0;
 };
 
 } // namespace floormat

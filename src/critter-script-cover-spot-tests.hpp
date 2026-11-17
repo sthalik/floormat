@@ -19,6 +19,12 @@ constexpr inline u32 max_failed_dijkstra_calls = 8;
 
 class spot_tests
 {
+    astar& _astar;
+    Cover::Point::finder _finder;
+    Cover::movement_range _threat_range;
+    object_id _threat_id;
+    Optional<int> _gun_offset;
+
 public:
     spot_tests(astar& A, object_id threat_id, Optional<int> gun_offset);
 
@@ -46,13 +52,6 @@ public:
     Optional<int> gun_offset() const;
 
     Cover::Script::counters counters;
-
-private:
-    astar& _astar;
-    Cover::Point::finder _finder;
-    Cover::movement_range _threat_range;
-    object_id _threat_id;
-    Optional<int> _gun_offset;
 };
 
 } // namespace floormat::Cover

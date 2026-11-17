@@ -11,15 +11,6 @@ namespace floormat::Cover {
 
 class movement_range
 {
-public:
-    movement_range();
-
-    // from, then the centers of the cells of the walking pass grid for bbox_side that a Dijkstra fill from its
-    // cell reaches within max_dist px and that border a cell the fill doesn't reach.
-    ArrayView<const point> border(world& w, Grid::GridRegistry& pools, point from, Optional<u32> bbox_side,
-                                  u32 max_dist);
-
-private:
     struct cache_key
     {
         point from;
@@ -36,6 +27,14 @@ private:
     Array<u8> passable;
     Array<u64> heap;
     Optional<cache_key> _key;
+
+public:
+    movement_range();
+
+    // from, then the centers of the cells of the walking pass grid for bbox_side that a Dijkstra fill from its
+    // cell reaches within max_dist px and that border a cell the fill doesn't reach.
+    ArrayView<const point> border(world& w, Grid::GridRegistry& pools, point from, Optional<u32> bbox_side,
+                                  u32 max_dist);
 };
 
 } // namespace floormat::Cover

@@ -19,6 +19,8 @@ constexpr inline mlt_params chunk_table_params = mlt_params{
 
 class chunk_table
 {
+    multi_level_table<chunk*, chunk_table_params> _table;
+
 public:
     chunk*       chunk_at(chunk_coords_ ch) noexcept;
     const chunk* chunk_at(chunk_coords_ ch) const noexcept;
@@ -34,9 +36,6 @@ public:
 
     // tests
     const multi_level_table<chunk*, chunk_table_params>& raw_table() const noexcept;
-
-private:
-    multi_level_table<chunk*, chunk_table_params> _table;
 };
 
 } // namespace floormat::detail

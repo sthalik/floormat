@@ -13,6 +13,14 @@ constexpr inline Ns unreachable_spot_retry_time = Minute;
 
 class unreachable_spots
 {
+    // Spots that path_to found no path to, or that joins() ties to one.
+    Array<point> _spots;
+    // How far from search_from the Dijkstra searches that put spots in _spots could reach, and world::pass_gen()
+    // once the last of them ended.
+    u32 _reach = 0;
+    u64 _pass_gen = 0;
+    Ns _expires_at{};
+
 public:
     unreachable_spots();
 
@@ -29,15 +37,6 @@ public:
     // True when a chunk holding a listed spot or one a failed Dijkstra search could cross, or a neighbour of one,
     // has a pass_gen() newer than the last failure, or once unreachable_spot_retry_time passed since the first.
     bool stale(const world& w, point search_from) const;
-
-private:
-    // Spots that path_to found no path to, or that joins() ties to one.
-    Array<point> _spots;
-    // How far from search_from the Dijkstra searches that put spots in _spots could reach, and world::pass_gen()
-    // once the last of them ended.
-    u32 _reach = 0;
-    u64 _pass_gen = 0;
-    Ns _expires_at{};
 };
 
 } // namespace floormat::Cover

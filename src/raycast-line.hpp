@@ -12,6 +12,23 @@ namespace floormat::Raycast {
 /// ties away from `start_pos`, so the line from `end_pos` to `start_pos` can differ on ties.
 class bresenham_line
 {
+    /// @brief step*minor/major rounded with ties up, as an unsigned offset from `start_pos`'s
+    /// minor coordinate.
+    u64 minor_at(u32 step) const;
+    /// @brief The first step k with minor_at(k) >= @p m.
+    /// @param m 0 through minor_len.
+    u32 first_step_at_minor(u64 m) const;
+    /// @brief The point @p step units from `start_pos` along the major axis and @p minor along
+    /// the minor axis, each in the direction the line moves.
+    ///
+    /// The octant is _y_major, _major_sign and _minor_sign.
+    Vector2i octant_to_point(u32 step, u64 minor) const;
+
+    Vector2i _start_pos;
+    u32 _major_len = 0, _minor_len = 0;
+    i32 _major_sign = 1, _minor_sign = 1;
+    bool _y_major = false;
+
 public:
     /// @brief For a step that changes both coordinates, the other two points of the 2x2 block
     /// that holds point_at(step) and point_at(step + 1).
@@ -65,24 +82,6 @@ public:
     ///
     /// They are consecutive, because both coordinates change monotonically along the line.
     step_interval interval_bounds_to_steps(u32 axis, i32 lo, i32 hi) const;
-
-private:
-    /// @brief step*minor/major rounded with ties up, as an unsigned offset from `start_pos`'s
-    /// minor coordinate.
-    u64 minor_at(u32 step) const;
-    /// @brief The first step k with minor_at(k) >= @p m.
-    /// @param m 0 through minor_len.
-    u32 first_step_at_minor(u64 m) const;
-    /// @brief The point @p step units from `start_pos` along the major axis and @p minor along
-    /// the minor axis, each in the direction the line moves.
-    ///
-    /// The octant is _y_major, _major_sign and _minor_sign.
-    Vector2i octant_to_point(u32 step, u64 minor) const;
-
-    Vector2i _start_pos;
-    u32 _major_len = 0, _minor_len = 0;
-    i32 _major_sign = 1, _minor_sign = 1;
-    bool _y_major = false;
 };
 
 } // namespace floormat::Raycast
