@@ -165,7 +165,8 @@ void test_sprites()
         if ((u32)size.max() > SpriteAtlas::max_sprite_xy)
             continue;
         auto* sprite = SpriteAtlas::alloc_sprite(atlas, (u32)size.x(), (u32)size.y());
-        SpriteAtlas::upload_sprite(atlas, *sprite, img);
+        SpriteAtlas::stage_sprite(atlas, *sprite, img);
+        SpriteAtlas::flush(atlas);
         alloc_count++;
     }
 

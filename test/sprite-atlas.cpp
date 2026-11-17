@@ -107,7 +107,8 @@ void upload_and_readback_is_lossless()
     Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src};
 
     Sprite* s = alloc_sprite(a, w, h);
-    upload_sprite(a, *s, view);
+    stage_sprite(a, *s, view);
+    flush(a);
 
     auto img = read_layer_pixels(a.texture, (Int)s->layer, Range2Di::fromSize({(Int)s->x, (Int)s->y}, {(Int)w, (Int)h}));
 
@@ -127,7 +128,8 @@ void realloc_preserves_uploaded_pixels()
     Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src};
 
     Sprite* s = alloc_sprite(a, w, h);
-    upload_sprite(a, *s, view);
+    stage_sprite(a, *s, view);
+    flush(a);
 
     grow_texture(a, Math::max<u16>(1, a.texture_layer_count) * 4); // force a grow-blit
 
@@ -147,7 +149,8 @@ void grow_keeps_bound_framebuffer()
     unsigned char src[w * h * 4];
     fill_pattern(src, w, h);
     Sprite* s = alloc_sprite(a, w, h);
-    upload_sprite(a, *s, Magnum::ImageView2D{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src});
+    stage_sprite(a, *s, Magnum::ImageView2D{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src});
+    flush(a);
 
     constexpr auto size = Vector2i{13, 11};
     constexpr auto viewport = Range2Di{{3, 2}, {12, 9}};
