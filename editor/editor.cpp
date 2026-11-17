@@ -229,9 +229,9 @@ palette_texture_ref editor::palette_texture(sprite s)
     using namespace GL::Extensions;
     auto& c = *_imgui_palette_cache;
     const auto& ctx = GL::Context::current();
+    auto& atlas = loader.atlas();
     if (ctx.isExtensionSupported<ARB::texture_view>() && ctx.isExtensionSupported<ARB::texture_storage>())
     {
-        auto& atlas = loader.atlas();
         auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
         if (atlas.texture_gen() != c.texture_gen) [[unlikely]]
         {
@@ -256,22 +256,23 @@ palette_texture_ref editor::palette_texture(sprite s)
         const auto tc = atlas.texcoords_for(s, false);
         return { view.id(), {{ tc[3].xy(), tc[1].xy(), tc[0].xy(), tc[2].xy() }} };
     }
-
-    auto& atlas = loader.atlas();
-    auto& copies = c.sprite_copies;
-    auto it = copies.find(s.raw());
-    if (it == copies.end())
+    else
     {
-        Hash::set_open_addressing_load_factor(copies, copies.size()+1);
-        it = copies.insert({s.raw(), SpriteAtlas::copy_slot(*atlas.raw(), *s.raw())}).first;
+        auto& copies = c.sprite_copies;
+        auto it = copies.find(s.raw());
+        if (it == copies.end())
+        {
+            Hash::set_open_addressing_load_factor(copies, copies.size()+1);
+            it = copies.insert({s.raw(), SpriteAtlas::copy_slot(*atlas.raw(), *s.raw())}).first;
+        }
+        const auto tc = atlas.texcoords_for(s, false);
+        const auto layer_size = Vector2{(float)atlas.layer_width(), (float)atlas.layer_height()};
+        const auto origin = Vector2{(float)s.x(), (float)s.y()};
+        const auto slot_size = s.is_rotated() ? Vector2{(float)s.height(), (float)s.width()}
+        : Vector2{(float)s.width(), (float)s.height()};
+        const auto to_slot = [&](const Vector3& t) { return (t.xy() * layer_size - origin) / slot_size; };
+        return { it->second.id(), {{ to_slot(tc[3]), to_slot(tc[1]), to_slot(tc[0]), to_slot(tc[2]) }} };
     }
-    const auto tc = atlas.texcoords_for(s, false);
-    const auto layer_size = Vector2{(float)atlas.layer_width(), (float)atlas.layer_height()};
-    const auto origin = Vector2{(float)s.x(), (float)s.y()};
-    const auto slot_size = s.is_rotated() ? Vector2{(float)s.height(), (float)s.width()}
-                                          : Vector2{(float)s.width(), (float)s.height()};
-    const auto to_slot = [&](const Vector3& t) { return (t.xy() * layer_size - origin) / slot_size; };
-    return { it->second.id(), {{ to_slot(tc[3]), to_slot(tc[1]), to_slot(tc[0]), to_slot(tc[2]) }} };
 }
 
 const ground_editor* editor::current_ground_editor() const noexcept
