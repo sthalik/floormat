@@ -1,7 +1,11 @@
 #pragma once
+#include "sprite-constants.hpp"
+#include "compat/assert.hpp"
 #include <array>
+#include <bit>
 #include <cr/Array.h>
 #include <cr/Pointer.h>
+#include <mg/Functions.h>
 #include <mg/TextureArray.h>
 #include <mg/Vector3.h>
 
@@ -33,7 +37,6 @@ struct Layer
 struct HeightClass
 {
     Array<Shelf*> shelves {};
-    u32 height;
 };
 
 // A sprite added but not yet in the texture: its pixels sit at `staging_offset` in Atlas::staging, tightly
@@ -45,10 +48,73 @@ struct PendingSprite
     u32 staging_offset;
 };
 
+constexpr inline u32 size_class_divisor = 16; // height classes per octave = divisor/2 (recommended: 16)
+constexpr inline u32 min_height_class = 4;
+
+constexpr u32 quantize_height(u32 h)
+{
+    fm_debug_assert(h > 0);
+    u32 bucket = Math::max(min_height_class, std::bit_ceil(h) / size_class_divisor);
+    return (h + bucket - 1) / bucket * bucket;
+}
+
+constexpr inline auto class_heights = [] {
+    constexpr u32 count = [] {
+        u32 n = 0, prev = 0;
+        for (u32 h = 1; h <= max_sprite_xy; h++)
+        {
+            const u32 q = quantize_height(h);
+            fm_assert(q >= prev);
+            n += q != prev;
+            prev = q;
+        }
+        return n;
+    }();
+    std::array<u32, count> heights{};
+    u32 filled = 0;
+    for (u32 h = 1; h <= max_sprite_xy; h++)
+        if (const u32 q = quantize_height(h); filled == 0 || q != heights[filled-1])
+            heights[filled++] = q;
+    fm_assert(filled == count);
+    fm_assert(heights[count-1] == max_sprite_xy);
+    std::array<u16, count> ret{};
+    for (u32 i = 0; i < count; i++)
+    {
+        fm_assert(heights[i] == (u16)heights[i]);
+        ret[i] = (u16)heights[i];
+    }
+    return ret;
+}();
+
+constexpr inline std::array<u8, max_sprite_xy> height_class_indices = [] {
+    std::array<u32, max_sprite_xy> indices{};
+    u32 index = 0;
+    for (u32 h = 1; h <= max_sprite_xy; h++)
+    {
+        if (quantize_height(h) != class_heights[index])
+            index++;
+        indices[h-1] = index;
+    }
+    fm_assert(indices[max_sprite_xy-1] == class_heights.size()-1);
+    std::array<u8, max_sprite_xy> ret{};
+    for (u32 i = 0; i < max_sprite_xy; i++)
+    {
+        fm_assert(indices[i] == (u8)indices[i]);
+        ret[i] = (u8)indices[i];
+    }
+    return ret;
+}();
+
+constexpr u32 height_class_index(u32 h)
+{
+    fm_debug_assert(h > 0 && h <= max_sprite_xy);
+    return height_class_indices[h-1];
+}
+
 struct Atlas
 {
     Array<Layer> layers {};
-    Array<Pointer<HeightClass>> height_classes {};
+    std::array<HeightClass, class_heights.size()> height_classes {};
     // Added sprites wait here until texture() needs them, so adding needs no GL context.
     Array<PendingSprite> pending {};
     Array<char> staging {};
@@ -58,7 +124,6 @@ struct Atlas
     u32 texture_gen = 0;
 };
 
-u32 quantize_height(u32 h);
 u32 max_2d_texture_size();
 u16 get_next_layer_count(u16 layer_count, const Atlas& A);
 void grow_texture(Atlas& atlas, u16 new_layer_count);
