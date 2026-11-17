@@ -32,8 +32,7 @@ namespace floormat::entities {
 template<typename Obj, typename Type> struct entity_field_base {};
 
 template<typename Obj, typename Type, FieldReader<Obj, Type> R, FieldWriter<Obj, Type> W, typename... Ts>
-struct entity_field : entity_field_base<Obj, Type> {
-private:
+class entity_field : public entity_field_base<Obj, Type> {
     static constexpr auto default_predicate = constantly(field_status::enabled);
     static constexpr auto default_c_range   = constantly(constraints::range<Type>{});
     static constexpr auto default_c_length  = constantly(constraints::max_length{usize(-1)});

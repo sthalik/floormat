@@ -108,14 +108,6 @@ struct global_coords final
     struct raw_coords_ { u32 x, y; operator Vector2ui() const; };
     using chunk_xy_bias = std::integral_constant<u32, 1u << (chunk_coord_bits-1)>; // 32768, biases chunk x/y non-negative
 
-private:
-    using u0 = std::integral_constant<u32, chunk_xy_bias::value>;
-    using s0 = std::integral_constant<i32, i32(u0::value)>;
-    using z0 = std::integral_constant<i32, (1 << 0)>;
-    using z_mask = std::integral_constant<u32, (1u << 4) - 1u << 20>;
-    const u32 x = u0::value<<4|z0::value<<20, y = u0::value<<4;
-
-public:
     constexpr global_coords() noexcept = default;
     constexpr global_coords(const global_coords&) noexcept = default;
     constexpr global_coords& operator=(const global_coords& other) noexcept;
@@ -161,6 +153,13 @@ public:
     constexpr Vector2i operator-(global_coords other) const noexcept;
 
     usize hash() const noexcept;
+
+private:
+    using u0 = std::integral_constant<u32, chunk_xy_bias::value>;
+    using s0 = std::integral_constant<i32, i32(u0::value)>;
+    using z0 = std::integral_constant<i32, (1 << 0)>;
+    using z_mask = std::integral_constant<u32, (1u << 4) - 1u << 20>;
+    const u32 x = u0::value<<4|z0::value<<20, y = u0::value<<4;
 };
 
 constexpr global_coords& global_coords::operator=(const global_coords& other) noexcept
