@@ -61,7 +61,6 @@ class world final
 
 public:
     static constexpr object_id object_counter_init = 1024;
-    static constexpr usize initial_collect_every = 64;
 
     explicit world();
     ~world() noexcept;
