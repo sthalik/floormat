@@ -334,24 +334,6 @@ static void upload_slot(Atlas& atlas, const Sprite& sprite, PixelFormat format, 
     atlas.texture.setSubImage(0, {(Int)sprite.x, (Int)sprite.y, (Int)sprite.layer}, view3d);
 }
 
-void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels)
-{
-    ensure_texture(atlas);
-    if (!sprite.is_rotated)
-    {
-        fm_assert(Vector2ui(pixels.size()) == slot_size(sprite));
-        const ImageView3D view3d{pixels.storage(), pixels.format(), {pixels.size(), 1}, pixels.data()};
-        atlas.texture.setSubImage(0, {(Int)sprite.x, (Int)sprite.y, (Int)sprite.layer}, view3d);
-    }
-    else
-    {
-        const auto size = slot_size(sprite);
-        Array<char> slot{NoInit, (usize)size.x() * size.y() * pixels.pixelSize()};
-        copy_to_slot(slot.data(), sprite, pixels);
-        upload_slot(atlas, sprite, pixels.format(), slot);
-    }
-}
-
 void stage_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels)
 {
     const auto size = slot_size(sprite);
@@ -571,7 +553,7 @@ void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_filename)
     ArrayView<const char> pixels = img.data();
     if (rotated)
     {
-        // Invert upload_sprite's 90° CCW.
+        // Invert copy_to_slot's 90° CCW.
         unrotated = Array<u32>{NoInit, (usize)orig_w * (usize)orig_h};
         const auto* slot = reinterpret_cast<const u32*>(img.data().data());
         for (u32 y_o = 0; y_o < orig_h; y_o++)

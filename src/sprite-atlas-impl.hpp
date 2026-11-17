@@ -131,7 +131,6 @@ void ensure_texture(Atlas& atlas);
 void free_atlas(Atlas& atlas);
 Shelf* alloc_new_shelf(Atlas& atlas, u32 height);
 Sprite* alloc_sprite(Atlas& atlas, u32 w, u32 h, bool allow_rotate = true);
-void upload_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels);
 void stage_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels);
 void flush(Atlas& atlas);
 std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sprite, bool mirror);
