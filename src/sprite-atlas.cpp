@@ -175,6 +175,7 @@ Shelf* alloc_new_shelf(Atlas& atlas, u32 height)
 
     const u32 hc_idx = height_class_index(height);
     const u32 q_height = class_heights[hc_idx];
+    fm_assert(q_height <= atlas.layer_height);
     HeightClass& hc = atlas.height_classes[hc_idx];
 
     // scan existing layers for one with vertical room for q_height.
@@ -234,8 +235,8 @@ static Shelf* get_shelf(Atlas& atlas, u32 w, u32 h, bool& is_rotated)
 Sprite* alloc_sprite(Atlas& atlas, u32 w, u32 h, bool allow_rotate)
 {
     fm_assert(w > 0 && h > 0);
-    fm_assert(w <= max_sprite_xy && h <= max_sprite_xy);
-    fm_assert(Math::max(w, h) <= atlas.layer_width && quantize_height(Math::max(w, h)) <= atlas.layer_height);
+    fm_assert(Math::max(w, h) <= Math::min(atlas.layer_width, atlas.layer_height));
+    fm_assert(Math::max(w, h) <= max_sprite_xy);
 
     Shelf* shelf;
     bool is_rotated;
@@ -576,6 +577,8 @@ void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_filename)
         fm_throw("can't write sprite dump to '{}'", out_filename);
 }
 
+static_assert(class_heights.back() <= max_layer_height);
+static_assert(class_heights.back() == max_sprite_xy);
 
 } // namespace floormat::SpriteAtlas
 
@@ -626,7 +629,7 @@ sprite sprite_atlas::add(const ImageView2D& pixels, bool allow_rotate)
             w = Math::min(w, max_size);
             h = Math::min(h, max_size);
         }
-        fm_assert(w > 0 && h > 0);
+        fm_assert(Math::min(w, h) >= SpriteAtlas::max_sprite_xy);
         _atlas->layer_width = (u16)w;
         _atlas->layer_height = (u16)h;
     }
