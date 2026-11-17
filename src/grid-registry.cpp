@@ -22,13 +22,15 @@ Pool& GridRegistry::find_or_add(pools_by_params<Pool>& pools, const Pass::Params
             slot.emplace(forward<Args>(args)...);
         return *slot;
     }
-
-    for (auto& pool : pools.fallback)
-        if (pool->params() == p)
-            return *pool;
-    arrayReserve(pools.fallback, 4);
-    arrayAppend(pools.fallback, InPlaceInit, InPlaceInit, forward<Args>(args)...);
-    return *pools.fallback.back();
+    else
+    {
+        for (auto& pool : pools.fallback)
+            if (pool->params() == p)
+                return *pool;
+        arrayReserve(pools.fallback, 4);
+        arrayAppend(pools.fallback, InPlaceInit, InPlaceInit, forward<Args>(args)...);
+        return *pools.fallback.back();
+    }
 }
 
 Pass::Pool& GridRegistry::pass_pool(const Pass::Params& p)
@@ -53,13 +55,15 @@ Cover::Pool& GridRegistry::cover_pool(const Cover::Params& pʹ)
             slot.emplace(p, pass_pool(pass_params));
         return *slot;
     }
-
-    for (auto& pool : cover_.fallback)
-        if (pool->params() == p)
-            return *pool;
-    arrayReserve(cover_.fallback, 4);
-    arrayAppend(cover_.fallback, InPlaceInit, InPlaceInit, p, pass_pool(pass_params));
-    return *cover_.fallback.back();
+    else
+    {
+        for (auto& pool : cover_.fallback)
+            if (pool->params() == p)
+                return *pool;
+        arrayReserve(cover_.fallback, 4);
+        arrayAppend(cover_.fallback, InPlaceInit, InPlaceInit, p, pass_pool(pass_params));
+        return *cover_.fallback.back();
+    }
 }
 
 } // namespace floormat::Grid

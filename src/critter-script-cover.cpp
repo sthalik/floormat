@@ -233,9 +233,8 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
                 step_out(C);
             else
                 leave_peek(*C);
-            return;
         }
-        if (const auto threat = find_threat(*C); !threat)
+        else if (const auto threat = find_threat(*C); !threat)
             retry_later(*C);
         else if (const auto pos = threat->position(); pos != threat_pos)
         {
@@ -472,23 +471,22 @@ void cover_script::begin_retreat(critter& C, bool restart)
 void cover_script::retreat_step(critter& C)
 {
     if (!find_threat_or_retry(C))
-        return;
-    auto r = retreat.step(C, tests, options, threat_pos);
-    if (r.path.is_found())
+        void();
+    else if (auto r = retreat.step(C, tests, options, threat_pos); r.path.is_found())
     {
         walk = critter_walk{move(r.path)};
         st = state::retreat;
         // The search goes on measured from the walk's end.
         if (search.running())
             restart_search(C);
-        return;
     }
-    if (!r.done)
-        return;
-    if (search.running())
-        resume_search(C);
-    else
-        retry_later(C);
+    else if (r.done)
+    {
+        if (search.running())
+            resume_search(C);
+        else
+            retry_later(C);
+    }
 }
 
 // Sets st to `then` when C stands at `to`, else starts the walk there along path_to's path. False
@@ -657,8 +655,8 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
 {
     const auto ret = walk.update(C, i, dt);
     if (ret == walk_result::none)
-        return;
-    if (ret == walk_result::arrived)
+        void();
+    else if (ret == walk_result::arrived)
     {
         retreat_replanned = false;
         num_blocked_walks = 0;
@@ -682,29 +680,25 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
             st = state::exposed;
             face_threat(*C, i, threat_pos);
         }
-        return;
     }
-    if (st == state::to_peek)
-    {
+    else if (st == state::to_peek)
         take_cover(*C);
-        return;
-    }
-    if (st == state::retreat && !retreat_replanned)
+    else if (st == state::retreat && !retreat_replanned)
     {
         // Once per retreat, so walks that keep getting blocked can't rerun find_retreat's Dijkstra searches.
-        if (!find_threat_or_retry(*C))
-            return;
-        begin_retreat(*C, true);
-        retreat_replanned = true;
-        return;
+        if (find_threat_or_retry(*C))
+        {
+            begin_retreat(*C, true);
+            retreat_replanned = true;
+        }
     }
-    if (st == state::retreat && search.running())
-    {
+    else if (st == state::retreat && search.running())
         resume_search(*C);
-        return;
+    else
+    {
+        st = state::seek;
+        wait_until = C->world().game_time() + (num_blocked_walks++ || retreat_replanned ? retry_time : Ns{});
     }
-    st = state::seek;
-    wait_until = C->world().game_time() + (num_blocked_walks++ || retreat_replanned ? retry_time : Ns{});
 }
 
 // Turns C to the one of the 8 rotations nearest the direction from its center to threat, unless

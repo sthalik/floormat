@@ -58,9 +58,10 @@ struct args
     {
         if (f == func::getopt)
             return getopt::getopt(argc, argv, optstring, st);
-        if (f == func::getopt_long)
+        else if (f == func::getopt_long)
             return getopt::getopt_long(argc, argv, optstring, longopts, &idx, st);
-        return getopt::getopt_long_only(argc, argv, optstring, longopts, nullptr, st);
+        else
+            return getopt::getopt_long_only(argc, argv, optstring, longopts, nullptr, st);
     }
 
     void next(int ret, int optind)

@@ -69,9 +69,10 @@ auto bresenham_line::interval_bounds_to_steps(u32 axis, i32 lo, i32 hi) const ->
     b = b > len ? len : b;
     if (a > b)
         return { 1, 0 };
-    if (is_major)
+    else if (is_major)
         return { (u32)a, (u32)b };
-    return { first_step_at_minor((u64)a), b == len ? _major_len : first_step_at_minor((u64)b + 1) - 1 };
+    else
+        return { first_step_at_minor((u64)a), b == len ? _major_len : first_step_at_minor((u64)b + 1) - 1 };
 }
 
 u64 bresenham_line::minor_at(u32 step) const
