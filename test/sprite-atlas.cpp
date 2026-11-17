@@ -19,6 +19,27 @@
 namespace floormat::SpriteAtlas {
 namespace {
 
+u32 used_height_class_count(const Atlas& a)
+{
+    u32 count = 0;
+    for (const auto& hc : a.height_classes)
+        count += !hc.shelves.isEmpty();
+    return count;
+}
+
+void height_class_table_matches_quantize_height()
+{
+    u32 prev = 0;
+    for (u32 h = 1; h <= max_sprite_xy; h++)
+    {
+        const u32 i = height_class_index(h);
+        fm_assert(class_heights[i] == quantize_height(h));
+        fm_assert(i >= prev);
+        prev = i;
+    }
+    fm_assert(prev == class_heights.size() - 1);
+}
+
 void two_shelves_in_same_class_do_not_overlap()
 {
     Atlas a;
@@ -44,10 +65,10 @@ void sprites_of_differing_sizes_create_distinct_height_classes()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
-    alloc_sprite(a, 100, 10);  // quantized height 16
-    alloc_sprite(a, 100, 20);  // quantized height 24
+    alloc_sprite(a, 100, 10);  // quantized height 12
+    alloc_sprite(a, 100, 20);  // quantized height 20
     alloc_sprite(a, 100, 40);  // quantized height 40
-    fm_assert(a.height_classes.size() == 3);
+    fm_assert(used_height_class_count(a) == 3);
 }
 
 void get_next_layer_count_at_16bit_boundary()
@@ -334,12 +355,12 @@ void free_atlas_clears_state_and_allows_reuse()
     alloc_sprite(a, 20, 30);
     alloc_sprite(a, 40, 60);
     fm_assert(a.layers.size() > 0);
-    fm_assert(a.height_classes.size() > 0);
+    fm_assert(used_height_class_count(a) > 0);
 
     free_atlas(a);
     fm_assert(a.texture_layer_count == 0);
     fm_assert(a.layers.size() == 0);
-    fm_assert(a.height_classes.size() == 0);
+    fm_assert(used_height_class_count(a) == 0);
     fm_assert(a.layer_width == 256 && a.layer_height == 256);
 
     // Fresh batch must work.
@@ -414,6 +435,7 @@ namespace floormat::Test {
 void test_sprite_atlas()
 {
     using namespace SpriteAtlas;
+    height_class_table_matches_quantize_height();
     two_shelves_in_same_class_do_not_overlap();
     exhausting_a_layer_creates_another_layer();
     sprites_of_differing_sizes_create_distinct_height_classes();

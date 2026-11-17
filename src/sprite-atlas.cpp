@@ -5,7 +5,6 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "compat/enumerate.hpp"
-#include "compat/fwd/algorithm/lower_bound.hpp"
 #include <cmath>
 #include <cstdio>
 #include <bit>
@@ -27,16 +26,6 @@
 #include <mg/AbstractImageConverter.h>
 
 namespace floormat::SpriteAtlas {
-
-constexpr u32 size_class_divisor = 16; // height classes per octave = divisor/2 (recommended: 16)
-
-u32 quantize_height(u32 h)
-{
-    constexpr u32 min_height_class = 4;
-    fm_debug_assert(h > 0);
-    u32 bucket = Math::max(min_height_class, std::bit_ceil(h) / size_class_divisor);
-    return (h + bucket - 1) / bucket * bucket;
-}
 
 u32 max_2d_texture_size()
 {
@@ -173,7 +162,8 @@ void free_atlas(Atlas& atlas)
 {
     atlas.texture = GL::Texture2DArray{NoCreate};
     atlas.layers = {};
-    atlas.height_classes = {};
+    for (auto& hc : atlas.height_classes)
+        arrayClear(hc.shelves);
     atlas.pending = {};
     atlas.staging = {};
     atlas.texture_layer_count = 0;
@@ -183,21 +173,9 @@ Shelf* alloc_new_shelf(Atlas& atlas, u32 height)
 {
     fm_assert(height > 0 && height <= max_sprite_xy);
 
-    const u32 q_height = quantize_height(height);
-    fm_debug_assert((u16)q_height == q_height);
-
-    // locate the HeightClass for this q_height.
-    auto& hcs = atlas.height_classes;
-    auto* it = std::lower_bound(hcs.data(), hcs.data() + hcs.size(), q_height,
-                                [](const Pointer<HeightClass>& p, u32 h) { return p->height < h; });
-    auto hc_idx = (u32)std::distance(hcs.data(), it);
-    if (hc_idx == hcs.size() || hcs[hc_idx]->height != q_height)
-    {
-        // No HeightClass exists for this size yet — insert one in place.
-        arrayReserve(hcs, 16);
-        arrayInsert(hcs, hc_idx, InPlaceInit, InPlaceInit, HeightClass { .height = q_height });
-    }
-    HeightClass& hc = *hcs[hc_idx];
+    const u32 hc_idx = height_class_index(height);
+    const u32 q_height = class_heights[hc_idx];
+    HeightClass& hc = atlas.height_classes[hc_idx];
 
     // scan existing layers for one with vertical room for q_height.
     auto layer_idx = (u32)-1;
@@ -234,15 +212,7 @@ Shelf* alloc_new_shelf(Atlas& atlas, u32 height)
 
 static Shelf* find_shelf_with_space(Atlas& atlas, u32 w, u32 h)
 {
-    const u32 q_height = quantize_height(h);
-
-    auto& hcs = atlas.height_classes;
-    auto* it = std::lower_bound(hcs.data(), hcs.data() + hcs.size(), q_height,
-                                [](const Pointer<HeightClass>& p, u32 hh) { return p->height < hh; });
-    if (it == hcs.data() + hcs.size() || (*it)->height != q_height)
-        return nullptr;
-
-    for (auto* sh : (*it)->shelves)
+    for (auto* sh : atlas.height_classes[height_class_index(h)].shelves)
         if (atlas.layer_width - (u32)sh->next_x >= w)
             return sh;
 
