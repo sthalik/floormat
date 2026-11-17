@@ -236,7 +236,8 @@ palette_texture_ref editor::palette_texture(sprite s)
         if (atlas.texture_gen() != c.texture_gen) [[unlikely]]
         {
             arrayReserve(c.retired_views, Math::max(c.retired_views.size() + c.layer_views.size(), 16uz));
-            // This frame's draw commands still name the old views.
+            // keep old textures with pending draw commands until clear_imgui_palette_cache() is called.
+            // in the common scenario they're stuck inside imgui draw lists that haven't been issued yet.
             for (auto& v : c.layer_views)
                 if (v.id())
                     arrayAppend(c.retired_views, move(v));
