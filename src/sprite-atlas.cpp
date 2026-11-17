@@ -235,7 +235,7 @@ Sprite* alloc_sprite(Atlas& atlas, u32 w, u32 h, bool allow_rotate)
 {
     fm_assert(w > 0 && h > 0);
     fm_assert(w <= max_sprite_xy && h <= max_sprite_xy);
-    fm_assert(Math::max(w, h) <= Math::min<u32>(atlas.layer_width, atlas.layer_height));
+    fm_assert(Math::max(w, h) <= atlas.layer_width && quantize_height(Math::max(w, h)) <= atlas.layer_height);
 
     Shelf* shelf;
     bool is_rotated;
