@@ -34,7 +34,7 @@ class sprite_atlas
 
 public:
     explicit sprite_atlas();
-    explicit sprite_atlas(u16 layer_width, u16 layer_height);
+    explicit sprite_atlas(u32 layer_width, u32 layer_height);
     ~sprite_atlas() noexcept;
 
     sprite_atlas(const sprite_atlas&) = delete;
@@ -42,9 +42,9 @@ public:
     sprite_atlas(sprite_atlas&&) noexcept;
     sprite_atlas& operator=(sprite_atlas&&) noexcept;
 
-    u16 layer_width() const;
-    u16 layer_height() const;
-    u16 layer_count() const;
+    u32 layer_width() const;
+    u32 layer_height() const;
+    u32 layer_count() const;
     u32 texture_gen() const;
 
     sprite add(const ImageView2D& pixels, bool allow_rotate = true);

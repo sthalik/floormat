@@ -76,11 +76,11 @@ void get_next_layer_count_at_16bit_boundary()
     Atlas a;
     a.layer_width = a.layer_height = 256;
     // cur=43689 is the largest u16 input to the 1.5x branch whose result
-    // still fits in u16: ceil(43689 * 1.5) + 1 == 65535.
+    // still fits in u16: ceil(43690 * 1.5) == 65535.
     // At cur=43690+ the function hits its fm_assert guarding against u16
     // overflow of the returned value — we can't catch that from a test, but
     // the boundary value above breaks if anyone alters the formula.
-    fm_assert(get_next_layer_count(43689, a) == 65535);
+    fm_assert(get_next_layer_count(43690, a) == 65535);
 }
 
 // Fill a buffer with a deterministic-but-varied RGBA8 pattern so round-trip
@@ -131,7 +131,7 @@ void realloc_preserves_uploaded_pixels()
     stage_sprite(a, *s, view);
     flush(a);
 
-    grow_texture(a, Math::max<u16>(1, a.texture_layer_count) * 4); // force a grow-blit
+    grow_texture(a, Math::max(u32{1}, a.texture_layer_count) * 4); // force a grow-blit
 
     // Read back from the same (unchanged) coordinates after grow.
     auto img = read_layer_pixels(a.texture, (Int)s->layer, Range2Di::fromSize({(Int)s->x, (Int)s->y}, {(Int)w, (Int)h}));
@@ -163,7 +163,7 @@ void grow_keeps_bound_framebuffer()
     GLint read_fb = 0;
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fb);
 
-    grow_texture(a, Math::max<u16>(1, a.texture_layer_count) * 4);
+    grow_texture(a, Math::max(u32{1}, a.texture_layer_count) * 4);
 
     GLint draw_fbʹ = 0, read_fbʹ = 0, vp[4] = {};
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fbʹ);
@@ -324,7 +324,7 @@ void each_texture_gets_new_texture_gen()
     const auto gen1 = atlas.texture_gen();
     const auto layers = atlas.raw()->texture_layer_count;
     fm_assert_equal(gen0 + 1, gen1);
-    grow_texture(*atlas.raw(), (u16)(layers * 2));
+    grow_texture(*atlas.raw(), layers * 2);
     fm_assert_equal(gen1 + 1, atlas.texture_gen());
     atlas.reset();
     fm_assert_equal(gen1 + 1, atlas.texture_gen());
@@ -403,8 +403,8 @@ void max_dimension_sprite_stores_without_truncation()
     Atlas a;
     a.layer_width = a.layer_height = max_sprite_xy;   // 1024 — matches the 10-bit storage cap
     Sprite* s = alloc_sprite(a, max_sprite_xy, max_sprite_xy);
-    fm_assert((u32)s->width_minus1 + 1 == max_sprite_xy);
-    fm_assert((u32)s->height_minus1 + 1 == max_sprite_xy);
+    fm_assert(s->width  == max_sprite_xy);
+    fm_assert(s->height == max_sprite_xy);
 }
 
 void tallest_layer_stores_y_without_truncation()
