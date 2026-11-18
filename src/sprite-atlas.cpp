@@ -5,6 +5,7 @@
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
 #include "compat/enumerate.hpp"
+#include "compat/gl-error.hpp"
 #include "compat/limits.hpp"
 #include <cstring>
 #include <cstdio>
@@ -179,13 +180,14 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
 
     // Texture storage is immutable, so growing the atlas requires a new texture.
     GL::Texture2DArray new_texture;
-    new_texture.setStorage(1, GL::TextureFormat::RGBA8,
-                           {layer_size, (Int)new_layer_count})
-               .setMagnificationFilter(GL::SamplerFilter::Nearest)
-               .setMinificationFilter(GL::SamplerFilter::Linear)
-               .setWrapping(GL::SamplerWrapping::ClampToEdge);
-
     {
+        const with_gl_errors scope{gl_error_policy::error};
+        fm_assert(fm_check_glcall(new_texture.setStorage(1, GL::TextureFormat::RGBA8,
+                                                         {layer_size, (Int)new_layer_count})).second());
+        new_texture.setMagnificationFilter(GL::SamplerFilter::Nearest)
+                   .setMinificationFilter(GL::SamplerFilter::Linear)
+                   .setWrapping(GL::SamplerWrapping::ClampToEdge);
+
         const framebuffer_saver saver;
         auto rect = Range2Di{{}, layer_size};
         constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
@@ -339,12 +341,15 @@ void stage_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels)
 void flush(Atlas& atlas)
 {
     ensure_texture(atlas);
-    for (auto i = 0u; i < (u32)atlas.pending.size(); i++)
     {
-        const auto& p = atlas.pending[i];
-        const auto end = i + 1 < atlas.pending.size() ? (usize)atlas.pending[i + 1].staging_offset
-                                                       : atlas.staging.size();
-        upload_slot(atlas, *p.sprite, p.format, atlas.staging.slice(p.staging_offset, end));
+        const with_gl_errors scope{gl_error_policy::error};
+        for (auto i = 0u; i < (u32)atlas.pending.size(); i++)
+        {
+            const auto& p = atlas.pending[i];
+            const auto end = i + 1 < atlas.pending.size() ? (usize)atlas.pending[i + 1].staging_offset
+                                                           : atlas.staging.size();
+            upload_slot(atlas, *p.sprite, p.format, atlas.staging.slice(p.staging_offset, end));
+        }
     }
     // Keeps the capacity stage_sprite() reserved, so the next add() doesn't allocate it again.
     arrayClear(atlas.pending);
@@ -426,6 +431,7 @@ std::array<Vector3, 4> texcoords_for_sprite(const Atlas& atlas, const Sprite& sp
 void read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect, const MutableImageView2D& out)
 {
     fm_assert(out.size() == rect.size());
+    const with_gl_errors scope{gl_error_policy::error};
     if (GL::Context::current().isExtensionSupported<GL::Extensions::ARB::get_texture_sub_image>())
     {
         const MutableImageView3D out3{out.storage(), out.format(), {out.size(), 1}, out.data()};
@@ -450,13 +456,14 @@ Image2D read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect)
 GL::Texture2D copy_slot(Atlas& atlas, const Sprite& sprite)
 {
     flush(atlas);
+    const with_gl_errors scope{gl_error_policy::error};
     const auto size = Vector2i(slot_size(sprite));
     const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
     GL::Texture2D ret;
+    fm_assert(fm_check_glcall(ret.setStorage(1, GL::TextureFormat::RGBA8, size)).second());
     ret.setWrapping(GL::SamplerWrapping::ClampToEdge)
        .setMagnificationFilter(GL::SamplerFilter::Nearest)
-       .setMinificationFilter(GL::SamplerFilter::Nearest)
-       .setStorage(1, GL::TextureFormat::RGBA8, size);
+       .setMinificationFilter(GL::SamplerFilter::Nearest);
     {
         const framebuffer_saver saver;
         constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};

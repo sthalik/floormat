@@ -105,6 +105,8 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_event_count),
     FM_TEST(test_inplace_function),
     FM_TEST(test_function_view),
+    FM_TEST_GL(test_gl_error),
+    FM_TEST_GL(test_gl_call),
     FM_TEST_GL(test_sprite_atlas),
     FM_TEST(test_spritebatch),
     FM_TEST(test_critter),

@@ -50,6 +50,8 @@ void test_format();
 void test_fps();
 void test_function_view();
 void test_getopt();
+void test_gl_call();
+void test_gl_error();
 void test_grid();
 void test_hash();
 void test_hole();
