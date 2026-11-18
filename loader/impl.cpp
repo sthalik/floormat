@@ -63,9 +63,11 @@ void loader_impl::ensure_plugins()
     importer_plugins.emplace();
     image_importer = importer_plugins->loadAndInstantiate("StbImageImporter");
     tga_importer = importer_plugins->loadAndInstantiate("TgaImporter");
+    jxl_importer = importer_plugins->loadAndInstantiate("JxlImporter");
 
     fm_assert(image_importer);
     fm_assert(tga_importer);
+    fm_assert(jxl_importer);
 }
 
 void loader_impl::destroy()

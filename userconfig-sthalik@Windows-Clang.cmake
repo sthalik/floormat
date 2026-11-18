@@ -275,6 +275,17 @@ function(fm-userconfig-external)
     sets(STRING CORRADE_TESTSUITE_TEST_TARGET corrade-test)
 endfunction()
 
+function(fm-userconfig-external-post)
+    # Highway's SSE4 also needs AES and PCLMUL. Nothing uses them, and Sandy Bridge Core i3 lacks AES.
+    target_compile_definitions(floormat-hwy PUBLIC HWY_DISABLE_PCLMUL_AES)
+    foreach(t jxl_dec-obj jxl_enc-obj jxl_cms)
+        if(TARGET ${t})
+            target_compile_definitions(${t} PRIVATE HWY_DISABLE_PCLMUL_AES)
+            target_compile_options(${t} PRIVATE -mprefer-vector-width=256)
+        endif()
+    endforeach()
+endfunction()
+
 # for test_app sources only
 function(fm-userconfig-src)
     add_compile_options(-Wall -Wextra -Wpedantic -Wno-old-style-cast -Wno-padded -Weverything)

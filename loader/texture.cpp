@@ -21,20 +21,22 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
         fm_assert(prefix[N-1] == '/');
     fm_soft_assert(filename_.size() + prefix.size() + max_extension_length + 1 < fm_FILENAME_MAX);
     fm_soft_assert(check_atlas_name(filename_));
-    fm_soft_assert(tga_importer);
+    fm_assert(image_importer);
+    fm_assert(tga_importer);
+    fm_assert(jxl_importer);
 
     char buf[fm_FILENAME_MAX];
     const auto path_no_ext = make_atlas_path(buf, prefix, filename_);
     const auto len = path_no_ext.size();
 
-    for (auto extension : { ".tga"_s, ".png"_s, ".webp"_s, })
+    for (auto extension : { ".jxl"_s, ".tga"_s, ".png"_s, })
     {
         fm_soft_assert(len + extension.size() < array_size(buf));
         std::memcpy(buf + len, extension.data(), extension.size());
         buf[len + extension.size()] = '\0';
         auto path = StringView{buf, len + extension.size(), StringViewFlag::NullTerminated};
         fm_debug_assert(path.size() < array_size(buf));
-        auto& importer = extension == ".tga"_s ? tga_importer : image_importer;
+        auto& importer = extension == ".tga"_s ? tga_importer : extension == ".jxl"_s ? jxl_importer : image_importer;
         if (Path::exists(path) && importer->openFile(path))
         {
             auto img = importer->image2D(0);

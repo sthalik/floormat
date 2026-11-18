@@ -22,6 +22,7 @@ if(WIN32 OR MAGNUM_BUILD_PLUGINS_STATIC)
     target_link_libraries(${self} PUBLIC
         MagnumPlugins::StbImageImporter
         MagnumPlugins::StbImageConverter
+        MagnumPlugins::JxlImporter
         Magnum::AnyImageConverter
         Magnum::TgaImporter
     )

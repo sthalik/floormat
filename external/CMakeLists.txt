@@ -117,6 +117,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_GLTFIMPORTER                           OFF
          MAGNUM_WITH_ICOIMPORTER                            OFF
          MAGNUM_WITH_JPEGIMPORTER                           OFF
+         MAGNUM_WITH_JXLIMPORTER                            ON
          MAGNUM_WITH_KTXIMPORTER                            OFF
          MAGNUM_WITH_OBJIMPORTER                            OFF
          MAGNUM_WITH_OPENEXRIMPORTER                        OFF
@@ -150,6 +151,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          MAGNUM_WITH_GLTFSCENECONVERTER                     OFF
          MAGNUM_WITH_IMAGECONVERTER                         ON
          MAGNUM_WITH_JPEGIMAGECONVERTER                     OFF
+         MAGNUM_WITH_JXLIMAGECONVERTER                      ON
          MAGNUM_WITH_KTXIMAGECONVERTER                      OFF
          MAGNUM_WITH_MESHOPTIMIZERSCENECONVERTER            OFF
          MAGNUM_WITH_MINIEXRIMAGECONVERTER                  OFF
@@ -323,6 +325,37 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         install(TARGETS benchmark RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
     endfunction()
 
+    function(fm_add_libjxl)
+        sets(BOOL
+             BUILD_TESTING                  OFF
+             PROVISION_DEPENDENCIES         OFF
+             JPEGXL_ENABLE_FUZZERS          OFF
+             JPEGXL_ENABLE_TOOLS            OFF
+             JPEGXL_ENABLE_DOXYGEN          OFF
+             JPEGXL_ENABLE_MANPAGES         OFF
+             JPEGXL_ENABLE_BENCHMARK        OFF
+             JPEGXL_ENABLE_EXAMPLES         OFF
+             JPEGXL_BUNDLE_LIBPNG           OFF
+             JPEGXL_ENABLE_JNI              OFF
+             JPEGXL_ENABLE_TRANSCODE_JPEG   OFF
+             JPEGXL_FORCE_SYSTEM_HWY        ON
+        )
+        if(CMAKE_VERSION VERSION_GREATER_EQUAL 4.4)
+            cmake_diagnostic(SET CMD_DEPRECATED IGNORE)
+            cmake_diagnostic(SET CMD_AUTHOR IGNORE)
+            #cmake_diagnostic(DEMOTE CMD_DEPRECATED IGNORE)
+        endif()
+        if(POLICY CMP0218)
+            cmake_policy(SET CMP0218 OLD)
+        endif()
+        set(CMAKE_WARN_DEPRECATED OFF) # still needed even with cmake_diagnostic()
+        # LINK_ONLY keeps floormat-hwy's definitions out of libjxl, which sets its own HWY_DISABLED_TARGETS.
+        add_library(hwy INTERFACE)
+        target_include_directories(hwy SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/highway")
+        target_link_libraries(hwy INTERFACE $<LINK_ONLY:floormat-hwy>)
+        add_subdirectory(libjxl SYSTEM)
+    endfunction()
+
     fm_run_hook(fm-userconfig-external)
 
     function(fm_add_libs)
@@ -340,6 +373,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         else()
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
         endif()
+        fm_add_libjxl()
         add_subdirectory(fmt SYSTEM)
         add_subdirectory(json SYSTEM)
         add_subdirectory(corrade SYSTEM)
@@ -381,11 +415,9 @@ foreach(t ${floormat-hwy-sorts})
 endforeach()
 add_library(floormat-hwy STATIC ${floormat-hwy-sources})
 target_include_directories(floormat-hwy SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/highway")
-# Highway's SSE4 also needs AES and PCLMUL. Nothing uses them, and Sandy Bridge Core i3 lacks AES.
 target_compile_definitions(floormat-hwy PUBLIC
     VQSORT_ONLY_STATIC=1
     HWY_WANT_SSE4=1
-    HWY_DISABLE_PCLMUL_AES
     "HWY_DISABLED_TARGETS=(HWY_AVX3_ZEN4|HWY_AVX3_DL|HWY_AVX3_SPR|HWY_AVX10_2)"
 )
 # VQSort replaces NaN before sorting. Below AVX3 its check is _mm_cmpunord_ps(v, v), which finite math folds to false.
@@ -439,8 +471,10 @@ find_package(ImGui QUIET REQUIRED)
 set(fm-quiet-message ${fm-external-configured})
 find_package(Corrade QUIET REQUIRED)
 find_package(Magnum QUIET REQUIRED)
-find_package(MagnumPlugins QUIET REQUIRED)
+find_package(MagnumPlugins QUIET REQUIRED JxlImporter)
 find_package(MagnumIntegration QUIET REQUIRED ImGui)
+find_package(HWY QUIET REQUIRED)
+find_package(Jxl QUIET REQUIRED)
 
 if(NOT FLOORMAT_SUBMODULE-DEPENDENCIES)
     find_package(fmt QUIET REQUIRED)
@@ -458,4 +492,5 @@ endfunction()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     fm_install_library(fmt::fmt)
+    fm_install_library(jxl)
 endif()

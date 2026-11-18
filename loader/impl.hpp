@@ -30,6 +30,7 @@ struct loader_impl final : loader_
     Optional<PluginManager::Manager<Trade::AbstractImporter>> importer_plugins;
     Containers::Pointer<Trade::AbstractImporter> image_importer;
     Containers::Pointer<Trade::AbstractImporter> tga_importer;
+    Containers::Pointer<Trade::AbstractImporter> jxl_importer;
 
     void ensure_plugins();
 

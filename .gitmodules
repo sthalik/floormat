@@ -38,3 +38,6 @@
 [submodule "highway"]
 	path = external/highway
 	url = https://github.com/google/highway
+[submodule "libjxl"]
+	path = external/libjxl
+	url = https://github.com/libjxl/libjxl

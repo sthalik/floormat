@@ -9,6 +9,10 @@
 #include "loader/ground-cell.hpp"
 #include "loader/wall-cell.hpp"
 #include "loader/anim-cell.hpp"
+#include <cr/StridedArrayView.h>
+#include <mg/Color.h>
+#include <mg/ImageData.h>
+#include <mg/PixelFormat.h>
 
 namespace floormat {
 
@@ -45,11 +49,37 @@ constexpr const char* sceneries[] = {
     "table0",
 };
 
+constexpr Color3ub jxl_rgb8_pixels[3][5] = {
+    { {97, 134, 171}, {208, 245, 26}, {63, 100, 137}, {174, 211, 248}, {29, 66, 103} },
+    { {54, 91, 128}, {165, 202, 239}, {20, 57, 94}, {131, 168, 205}, {242, 23, 60} },
+    { {11, 48, 85}, {122, 159, 196}, {233, 14, 51}, {88, 125, 162}, {199, 236, 17} },
+};
+
+constexpr Color4ub jxl_rgba8_pixels[2][3] = {
+    { {228, 25, 78, 128}, {131, 184, 237, 254}, {34, 87, 140, 97} },
+    { {7, 60, 113, 0}, {166, 219, 16, 255}, {69, 122, 175, 31} },
+};
+
+template<typename T, u32 W, u32 H>
+void check_texture_pixels(StringView name, PixelFormat format, const T (&expected)[H][W])
+{
+    const auto img = loader.texture("images/"_s, name);
+    fm_assert(img.format() == format);
+    fm_assert(img.size() == Vector2i{(int)W, (int)H});
+    const auto pixels = img.pixels<T>();
+    for (auto y = 0u; y < H; y++)
+        for (auto x = 0u; x < W; x++)
+            if (pixels[y][x] != expected[y][x])
+                fm_abort("'%s': wrong pixel at {%u, %u}", name.data(), x, y);
+}
+
 } // namespace
 
 void Test::test_loader()
 {
     fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
+    check_texture_pixels("jxl-test-rgb8"_s, PixelFormat::RGB8Unorm, jxl_rgb8_pixels);
+    check_texture_pixels("jxl-test-rgba8"_s, PixelFormat::RGBA8Unorm, jxl_rgba8_pixels);
 }
 
 void Test::test_loader2()
