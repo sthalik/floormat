@@ -4,34 +4,28 @@
 #include <array>
 #include <bit>
 #include <cr/Array.h>
-#include <cr/Pointer.h>
-#include <mg/Functions.h>
 #include <mg/TextureArray.h>
-#include <mg/Vector3.h>
 
 namespace floormat::SpriteAtlas {
 
-struct Sprite {
-    u64 x : 14, y : 14, layer : 14, width_minus1 : 10, height_minus1 : 10;
-    u64 is_rotated : 1;
+constexpr inline u32 size_class_divisor = 16; // height classes per octave = divisor/2 (recommended: 16)
+constexpr inline u32 min_height_class_pixels = 4;
 
-    u64 _pad0 : 1 = 0;
+struct Sprite {
+    u32 x, y, layer, width, height;
+    bool is_rotated;
 };
 
 struct Shelf
 {
     Array<Pointer<Sprite>> sprites {};
-    // One past the shelf's last used column, so it can equal layer_width. 15 bits hold 1 << 14,
-    // the widest layer the 14-bit Sprite::x can address.
-    u64 y : 14, next_x : 15, layer : 14;
-
-    u64 _pad0 : 21 = 0;
+    u32 y, next_x, layer;
 };
 
 struct Layer
 {
     Array<Pointer<Shelf>> shelves {};
-    u16 next_y = 0;
+    u32 next_y = 0;
 };
 
 struct HeightClass
@@ -48,13 +42,10 @@ struct PendingSprite
     u32 staging_offset;
 };
 
-constexpr inline u32 size_class_divisor = 16; // height classes per octave = divisor/2 (recommended: 16)
-constexpr inline u32 min_height_class = 4;
-
 constexpr u32 quantize_height(u32 h)
 {
     fm_debug_assert(h > 0);
-    u32 bucket = Math::max(min_height_class, std::bit_ceil(h) / size_class_divisor);
+    u32 bucket = Math::max(min_height_class_pixels, std::bit_ceil(h) / size_class_divisor);
     return (h + bucket - 1) / bucket * bucket;
 }
 
@@ -70,20 +61,18 @@ constexpr inline auto class_heights = [] {
         }
         return n;
     }();
-    std::array<u32, count> heights{};
+    std::array<u16, count> heights;
     u32 filled = 0;
     for (u32 h = 1; h <= max_sprite_xy; h++)
-        if (const u32 q = quantize_height(h); filled == 0 || q != heights[filled-1])
-            heights[filled++] = q;
+        if (const auto q = quantize_height(h); filled == 0 || q != heights[filled-1])
+        {
+            using type = decltype(heights)::value_type;
+            fm_assert(q == type(q));
+            heights[filled++] = (type)q;
+        }
     fm_assert(filled == count);
-    fm_assert(heights[count-1] == max_sprite_xy);
-    std::array<u16, count> ret{};
-    for (u32 i = 0; i < count; i++)
-    {
-        fm_assert(heights[i] == (u16)heights[i]);
-        ret[i] = (u16)heights[i];
-    }
-    return ret;
+    fm_assert(heights.back() == max_sprite_xy);
+    return heights;
 }();
 
 constexpr inline std::array<u8, max_sprite_xy> height_class_indices = [] {
@@ -119,14 +108,21 @@ struct Atlas
     Array<PendingSprite> pending {};
     Array<char> staging {};
     GL::Texture2DArray texture{NoCreate};
-    u16 layer_width = 0, layer_height = 0;
-    u16 texture_layer_count = 0;
+    u32 layer_width = 0, layer_height = 0;
+    u32 texture_layer_count = 0; // allocated layers
+    u32 used_layers = 0; // layers with actual valid pixels uploaded (sprites added before the last flush()).
     u32 texture_gen = 0;
+
+    struct Limits
+    {
+        u32 size = 0, layers = 0;
+        void ensure_filled();
+    } limits;
 };
 
-u32 max_2d_texture_size();
-u16 get_next_layer_count(u16 layer_count, const Atlas& A);
-void grow_texture(Atlas& atlas, u16 new_layer_count);
+Atlas::Limits get_texture_limits();
+u32 get_next_layer_count(u32 layer_count, const Atlas& A);
+void grow_texture(Atlas& atlas, u32 new_layer_count);
 void ensure_texture(Atlas& atlas);
 void free_atlas(Atlas& atlas);
 Shelf* alloc_new_shelf(Atlas& atlas, u32 height);
