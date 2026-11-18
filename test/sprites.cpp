@@ -146,9 +146,9 @@ void test_sprites()
     fm_assert(files.size() > 0);
 
     SpriteAtlas::Atlas atlas;
-    const auto max_size = SpriteAtlas::max_2d_texture_size();
-    atlas.layer_width = (u16)Math::min<unsigned>(SpriteAtlas::max_layer_width, max_size);
-    atlas.layer_height = (u16)Math::min<unsigned>(SpriteAtlas::max_layer_height, max_size);
+    const auto max_size = SpriteAtlas::get_texture_limits().size;
+    atlas.layer_width = Math::min(SpriteAtlas::max_layer_width, max_size);
+    atlas.layer_height = Math::min(SpriteAtlas::max_layer_height, max_size);
 
     u32 png_count = 0, alloc_count = 0;
     for (const String& path : files)

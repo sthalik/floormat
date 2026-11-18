@@ -58,7 +58,7 @@ void exhausting_a_layer_creates_another_layer()
     // 4 shelves fit in one layer (256 / 64 = 4); the 5th must land in a new one.
     for (int i = 0; i < 5; i++)
         alloc_new_shelf(a, 64);
-    fm_assert(a.layers.size() >= 2);
+    fm_assert(a.layers.size() == 2);
 }
 
 void sprites_of_differing_sizes_create_distinct_height_classes()
@@ -71,16 +71,18 @@ void sprites_of_differing_sizes_create_distinct_height_classes()
     fm_assert(used_height_class_count(a) == 3);
 }
 
-void get_next_layer_count_at_16bit_boundary()
+void next_layer_count_doubles_then_grows_by_half()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
-    // cur=43689 is the largest u16 input to the 1.5x branch whose result
-    // still fits in u16: ceil(43689 * 1.5) + 1 == 65535.
-    // At cur=43690+ the function hits its fm_assert guarding against u16
-    // overflow of the returned value — we can't catch that from a test, but
-    // the boundary value above breaks if anyone alters the formula.
-    fm_assert(get_next_layer_count(43689, a) == 65535);
+    constexpr u32 layers_per_gibibyte = (1u << 30) / (256 * 256 * 4);
+    fm_assert(get_next_layer_count(0, a) == 1);
+    u32 n = 1;
+    for (; n < layers_per_gibibyte; n *= 2)
+        fm_assert(get_next_layer_count(n, a) == 2 * n);
+    fm_assert(n == layers_per_gibibyte);
+    fm_assert(get_next_layer_count(n, a) == n + n / 2);
+    fm_assert(get_next_layer_count(n + 1, a) == n + n / 2 + 2);
 }
 
 // Fill a buffer with a deterministic-but-varied RGBA8 pattern so round-trip
@@ -131,7 +133,7 @@ void realloc_preserves_uploaded_pixels()
     stage_sprite(a, *s, view);
     flush(a);
 
-    grow_texture(a, Math::max<u16>(1, a.texture_layer_count) * 4); // force a grow-blit
+    grow_texture(a, Math::max(u32{1}, a.texture_layer_count) * 4); // force a grow-blit
 
     // Read back from the same (unchanged) coordinates after grow.
     auto img = read_layer_pixels(a.texture, (Int)s->layer, Range2Di::fromSize({(Int)s->x, (Int)s->y}, {(Int)w, (Int)h}));
@@ -163,7 +165,7 @@ void grow_keeps_bound_framebuffer()
     GLint read_fb = 0;
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fb);
 
-    grow_texture(a, Math::max<u16>(1, a.texture_layer_count) * 4);
+    grow_texture(a, Math::max(u32{1}, a.texture_layer_count) * 4);
 
     GLint draw_fbʹ = 0, read_fbʹ = 0, vp[4] = {};
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fbʹ);
@@ -312,6 +314,19 @@ void staged_adds_reach_texture()
     }
 }
 
+void texture_growth_stops_at_layer_limit()
+{
+    sprite_atlas atlas{64, 64};
+    atlas.raw()->limits = { .size = 64, .layer_count = 3, };
+    constexpr u32 n = 3, w = 40, h = 40;
+    Array<unsigned char> src{ValueInit, w*h*4};
+    const Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src};
+    for (auto i = 0u; i < n; i++)
+        atlas.add(view, false);
+    auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
+    fm_assert(atlas.layer_count() == n && tex.imageSize(0).z() == (Int)n);
+}
+
 void each_texture_gets_new_texture_gen()
 {
     sprite_atlas atlas{64, 64};
@@ -324,7 +339,7 @@ void each_texture_gets_new_texture_gen()
     const auto gen1 = atlas.texture_gen();
     const auto layers = atlas.raw()->texture_layer_count;
     fm_assert_equal(gen0 + 1, gen1);
-    grow_texture(*atlas.raw(), (u16)(layers * 2));
+    grow_texture(*atlas.raw(), layers * 2);
     fm_assert_equal(gen1 + 1, atlas.texture_gen());
     atlas.reset();
     fm_assert_equal(gen1 + 1, atlas.texture_gen());
@@ -401,10 +416,10 @@ void sprites_do_not_overlap_pairwise()
 void max_dimension_sprite_stores_without_truncation()
 {
     Atlas a;
-    a.layer_width = a.layer_height = max_sprite_xy;   // 1024 — matches the 10-bit storage cap
+    a.layer_width = a.layer_height = max_sprite_xy;
     Sprite* s = alloc_sprite(a, max_sprite_xy, max_sprite_xy);
-    fm_assert((u32)s->width_minus1 + 1 == max_sprite_xy);
-    fm_assert((u32)s->height_minus1 + 1 == max_sprite_xy);
+    fm_assert(s->width  == max_sprite_xy);
+    fm_assert(s->height == max_sprite_xy);
 }
 
 void tallest_layer_stores_y_without_truncation()
@@ -442,13 +457,14 @@ void test_sprite_atlas()
     two_shelves_in_same_class_do_not_overlap();
     exhausting_a_layer_creates_another_layer();
     sprites_of_differing_sizes_create_distinct_height_classes();
-    get_next_layer_count_at_16bit_boundary();
+    next_layer_count_doubles_then_grows_by_half();
     upload_and_readback_is_lossless();
     realloc_preserves_uploaded_pixels();
     grow_keeps_bound_framebuffer();
     copy_slot_keeps_pixels_and_bound_framebuffer();
     texcoords_encode_expected_corners();
     staged_adds_reach_texture();
+    texture_growth_stops_at_layer_limit();
     each_texture_gets_new_texture_gen();
     wrapper_accessors_roundtrip_values();
     free_atlas_clears_state_and_allows_reuse();

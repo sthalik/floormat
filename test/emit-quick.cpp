@@ -55,7 +55,7 @@ Array<Color4ub> expected_pixels(const anim_atlas& atlas, rotation r, u32 frame)
 {
     const auto& g = atlas.group(r);
     const auto& sp = *g.sprites[frame];
-    const auto w = (u32)sp.width_minus1 + 1, h = (u32)sp.height_minus1 + 1;
+    const auto w = sp.width, h = sp.height;
     fm_assert(Vector2ui{w, h} == atlas.frame(r, frame).size);
     const bool rotated = sp.is_rotated, mirror = !g.mirror_from.isEmpty();
     const auto sw = rotated ? h : w, sh = rotated ? w : h;
@@ -74,7 +74,7 @@ void test_quad(state& s, const anim_atlas& atlas, rotation r, u32 frame, Vector3
                ArrayView<const Color4ub> expected)
 {
     const auto& f = atlas.frame(r, frame);
-    const auto m = Vector2i{(Int)margin};
+    constexpr auto m = Vector2i{(Int)margin};
     // The clickable rect's corner, so the drawn pixels are the ones the bitmask hit-tests.
     const auto p0 = tile_shader::point_to_pixelʹ(anchor + Vector3i(atlas.group(r).offset), fb_size, {}) - Vector2i(f.ground);
     const auto lo = p0 - m, hi = p0 + Vector2i(f.size) + m;
