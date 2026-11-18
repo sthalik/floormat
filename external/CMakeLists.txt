@@ -77,7 +77,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          FMT_MODULE                                         OFF # GCC 14 ICE <https://github.com/sthalik/floormat/actions/runs/23699910581/job/69041568292>
 
          JSON_Diagnostics                                   ON
-         JSON_Install                                       ON
+         JSON_Install                                       OFF
          JSON_MultipleHeaders                               ON
          JSON_SystemInclude                                 ON
 
@@ -174,7 +174,28 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
 
          MAGNUM_WITH_IMGUI                                  ON
          MAGNUM_WITH_IMGUIINTEGRATION                       ON
+
+         MAGNUM_STBIMAGEIMPORTER_NO_BMP                     ON
+         MAGNUM_STBIMAGEIMPORTER_NO_GIF                     ON
+         MAGNUM_STBIMAGEIMPORTER_NO_HDR                     ON
+         MAGNUM_STBIMAGEIMPORTER_NO_JPEG                    ON
+         MAGNUM_STBIMAGEIMPORTER_NO_PIC                     ON
+         MAGNUM_STBIMAGEIMPORTER_NO_PNM                     ON
+         MAGNUM_STBIMAGEIMPORTER_NO_PSD                     ON
+         # Prevent STB competing with Magnum's builtin TgaImporter and TgaImageConverter
+         MAGNUM_STBIMAGEIMPORTER_NO_TGA                     ON
+         MAGNUM_STBIMAGECONVERTER_NO_BMP                    ON
+         MAGNUM_STBIMAGECONVERTER_NO_HDR                    ON
+         MAGNUM_STBIMAGECONVERTER_NO_JPEG                   ON
+         MAGNUM_STBIMAGECONVERTER_NO_TGA                    ON
     )
+    if(MAGNUM_BUILD_PLUGINS_STATIC)
+        sets(BOOL
+             MAGNUM_WITH_SHADERTOOLS OFF
+             MAGNUM_WITH_SHADERCONVERTER OFF
+        )
+    endif()
+
     if(WIN32)
     sets(BOOL
          SDL2_DISABLE_INSTALL                               OFF
@@ -222,6 +243,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
          SDL_XINPUT                                         OFF
     )
     endif(WIN32)
+
     if(WIN32)
         sets(BOOL MAGNUM_WITH_WINDOWLESSWGLAPPLICATION ON)
     elseif(APPLE)
@@ -234,7 +256,7 @@ endif()
 set(fm-quiet-message 0)
 
 function(message m)
-    if(NOT fm-quiet-message OR m MATCHES "^(FATAL_ERROR|SEND_ERROR|WARNING|AUTHOR_WARNING)$")
+    if(NOT "${fm-quiet-message}" OR "${m}" MATCHES "^(FATAL_ERROR|SEND_ERROR|WARNING)$")
         # Join ARGV# as message() does. Expanding a list would drop ";" inside
         # arguments, and add ";" between arguments inside "[...]".
         set(text "")
@@ -248,12 +270,8 @@ function(message m)
     endif()
 endfunction()
 
-set(system "")
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.25)
-    set(system "SYSTEM")
-endif()
-
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
+    set(fm-quiet-message ${fm-external-configured})
     sets(PATH IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
 
     function(fm_add_sdl2)
@@ -267,7 +285,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
                     string(REGEX REPLACE "-RTC[1csu]+|-guard:cf" "" ${flag_var} "${${flag_var}}")
                 endforeach()
             endif()
-            add_subdirectory(sdl2 ${system})
+            add_subdirectory(sdl2 SYSTEM)
             # Debug configs build SDL2 shared and SDL2-static doesn't exist there.
             foreach(tgt SDL2 SDL2-static)
                 if(TARGET ${tgt})
@@ -299,16 +317,14 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
         #add_compile_options(-Wno-error=c2y-extensions)
-        add_subdirectory(benchmark ${system})
-        install(TARGETS benchmark RUNTIME DESTINATION "bin")
+        add_subdirectory(benchmark SYSTEM)
+        install(TARGETS benchmark RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
     endfunction()
 
     fm_run_hook(fm-userconfig-external)
 
     function(fm_add_libs)
-        if(fm-external-configured)
-            set(fm-quiet-message 1)
-        endif()
+        set(fm-quiet-message ${fm-external-configured})
         #if(MAGNUM_BUILD_TESTS OR CORRADE_BUILD_TESTS AND NOT DEFINED CORRADE_TESTSUITE_TEST_TARGET)
         if(CORRADE_BUILD_TESTS AND NOT DEFINED CORRADE_TESTSUITE_TEST_TARGET)
             sets(STRING CORRADE_TESTSUITE_TEST_TARGET corrade-test)
@@ -322,9 +338,9 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         else()
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
         endif()
-        add_subdirectory(fmt ${system})
-        add_subdirectory(json ${system})
-        add_subdirectory(corrade ${system})
+        add_subdirectory(fmt SYSTEM)
+        add_subdirectory(json SYSTEM)
+        add_subdirectory(corrade SYSTEM)
         if(MSVC)
             target_compile_options(CorradeTestSuiteObjects PUBLIC -GR)
             target_compile_options(CorradeTestSuite PUBLIC -GR)
@@ -332,7 +348,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
             target_compile_options(CorradeTestSuiteObjects PUBLIC -frtti)
             target_compile_options(CorradeTestSuite PUBLIC -frtti)
         endif()
-        add_subdirectory(magnum ${system})
+        add_subdirectory(magnum SYSTEM)
         if(MSVC)
             foreach(t CorradeTestSuiteObjects MagnumDebugTools MagnumOpenGLTester)
                 if(TARGET ${t})
@@ -344,36 +360,12 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
                 endif()
             endforeach()
         endif()
-        # loader/texture.cpp sends .tga to Magnum's own TgaImporter and TgaImageConverter,
-        # which are separate plugins. Every other asset is PNG, including what
-        # sprite-atlas.cpp writes through AnyImageConverter. Leaving TGA in here would have
-        # the Stb plugins advertise Tga aliases competing with those.
-        sets(BOOL
-             MAGNUM_STBIMAGEIMPORTER_NO_BMP                     ON
-             MAGNUM_STBIMAGEIMPORTER_NO_GIF                     ON
-             MAGNUM_STBIMAGEIMPORTER_NO_HDR                     ON
-             MAGNUM_STBIMAGEIMPORTER_NO_JPEG                    ON
-             MAGNUM_STBIMAGEIMPORTER_NO_PIC                     ON
-             MAGNUM_STBIMAGEIMPORTER_NO_PNM                     ON
-             MAGNUM_STBIMAGEIMPORTER_NO_PSD                     ON
-             MAGNUM_STBIMAGEIMPORTER_NO_TGA                     ON
-
-             MAGNUM_STBIMAGECONVERTER_NO_BMP                    ON
-             MAGNUM_STBIMAGECONVERTER_NO_HDR                    ON
-             MAGNUM_STBIMAGECONVERTER_NO_JPEG                   ON
-             MAGNUM_STBIMAGECONVERTER_NO_TGA                    ON)
-        add_subdirectory(magnum-plugins ${system})
-        add_subdirectory(magnum-integration ${system})
+        add_subdirectory(magnum-plugins SYSTEM)
+        add_subdirectory(magnum-integration SYSTEM)
         target_compile_definitions(MagnumImGuiIntegration PRIVATE MAGNUM_IMGUIINTEGRATION_GL330_ONLY)
     endfunction()
-
-    if(MAGNUM_BUILD_PLUGINS_STATIC)
-        sets(BOOL
-             MAGNUM_WITH_SHADERTOOLS OFF
-             MAGNUM_WITH_SHADERCONVERTER OFF
-        )
-    endif()
     fm_add_libs()
+    set(fm-quiet-message 0)
 endif()
 
 add_subdirectory(swl-variant)
@@ -442,9 +434,7 @@ endif()
 
 find_package(SDL2 QUIET REQUIRED)
 find_package(ImGui QUIET REQUIRED)
-if(fm-external-configured)
-    set(fm-quiet-message 1)
-endif()
+set(fm-quiet-message ${fm-external-configured})
 find_package(Corrade QUIET REQUIRED)
 find_package(Magnum QUIET REQUIRED)
 find_package(MagnumPlugins QUIET REQUIRED)
@@ -456,3 +446,14 @@ endif()
 
 set(fm-quiet-message 0)
 sets(INTERNAL fm-external-configured 1)
+
+function(fm_install_library target)
+    install(FILES
+            $<$<AND:$<TARGET_EXISTS:${target}>,$<STREQUAL:$<TARGET_PROPERTY:${target},TYPE>,SHARED_LIBRARY>>:$<TARGET_FILE:${target}>>
+            DESTINATION bin
+    )
+endfunction()
+
+if(FLOORMAT_SUBMODULE-DEPENDENCIES)
+    fm_install_library(fmt::fmt)
+endif()
