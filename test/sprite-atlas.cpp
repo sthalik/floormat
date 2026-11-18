@@ -4,7 +4,10 @@
 #include "src/sprite-atlas.hpp"
 #include "src/sprite-atlas-impl.hpp"
 #include "src/sprite-constants.hpp"
+#include <initializer_list>
 #include <cr/GrowableArray.h>
+#include <cr/StridedArrayView.h>
+#include <mg/Color.h>
 #include <mg/Framebuffer.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -59,6 +62,28 @@ void exhausting_a_layer_creates_another_layer()
     for (int i = 0; i < 5; i++)
         alloc_new_shelf(a, 64);
     fm_assert(a.layers.size() == 2);
+}
+
+void sprite_taller_than_wide_is_rotated()
+{
+    Atlas a;
+    a.layer_width = a.layer_height = 256;
+    alloc_sprite(a, 31, 19, false);
+    const Sprite* s23 = alloc_sprite(a, 29, 23, false);
+    const Sprite* s = alloc_sprite(a, 23, 31);
+    fm_assert(s->is_rotated);
+    fm_assert(s->layer == s23->layer && s->y == s23->y && s->x >= s23->x + s23->width);
+}
+
+void sprite_is_not_rotated_when_shelf_for_rotation_is_full()
+{
+    Atlas a;
+    a.layer_width = a.layer_height = 256;
+    alloc_sprite(a, 251, 23, false);
+    const Sprite* s31 = alloc_sprite(a, 29, 31, false);
+    const Sprite* s = alloc_sprite(a, 23, 31);
+    fm_assert(!s->is_rotated);
+    fm_assert(s->layer == s31->layer && s->y == s31->y && s->x >= s31->x + s31->width);
 }
 
 void sprites_of_differing_sizes_create_distinct_height_classes()
@@ -237,41 +262,136 @@ void copy_slot_keeps_pixels_and_bound_framebuffer()
     }
 }
 
-void texcoords_encode_expected_corners()
+Vector2 source_texel_uv(const Atlas& a, const Sprite& s, u32 x, u32 y_from_bottom)
+{
+    const u32 ax = s.is_rotated ? s.x + s.height-1 - y_from_bottom : s.x + x;
+    const u32 ay = s.is_rotated ? s.y + x : s.y + y_from_bottom;
+    return { ((float)ax + 0.5f) / (float)a.layer_width, ((float)ay + 0.5f) / (float)a.layer_height };
+}
+
+void texcoords_show_expected_source_corners()
 {
     Atlas a;
     a.layer_width = 256;
     a.layer_height = 512;
-    constexpr u32 w = 30, h = 40;
-    Sprite* s = alloc_sprite(a, w, h, false);
-
-    // texcoords_for_sprite uses direct positional UV (no 1-y flip) because
-    // sub-rect atlas uploads place PNG row 0 at GL texel y=sprite.y+h-1 (top
-    // of the sub-region in GL bottom-up). Expected UVs:
-    //   u in [(x+0.5)/lw, (x+w-0.5)/lw]
-    //   v in [(y+0.5)/lh, (y+h-0.5)/lh]
-    const auto lw = (float)a.layer_width, lh = (float)a.layer_height;
-    const float ul = ((float)s->x + 0.5f) / lw;
-    const float ur = ((float)s->x + (float)w - 0.5f) / lw;
-    const float vl = ((float)s->y + 0.5f) / lh;
-    const float vh = ((float)s->y + (float)h - 0.5f) / lh;
-    const float layer = (float)s->layer;
-
-    const auto coords = texcoords_for_sprite(a, *s, /*mirror=*/ false);
-
-    // Order-agnostic: every vertex must carry the right layer, and the four
-    // (u, v) pairs must span the expected bounding box.
-    float umin = 999, umax = -999, vmin = 999, vmax = -999;
-    for (const auto& c : coords)
-    {
-        fm_assert(c.z() == layer);
-        umin = Math::min(umin, c.x()); umax = Math::max(umax, c.x());
-        vmin = Math::min(vmin, c.y()); vmax = Math::max(vmax, c.y());
-    }
+    const Sprite sprites[] = {
+        { .x = 37, .y = 53, .layer = 3, .width = 29, .height = 41, .is_rotated = false },
+        { .x = 61, .y = 19, .layer = 5, .width = 23, .height = 43, .is_rotated = true },
+    };
     // tolerance, not ==: -Ofast's fast-math can reorder FP ops across TUs.
     constexpr float eps = 1e-6f;
-    fm_assert(Math::abs(umin - ul) <= eps && Math::abs(umax - ur) <= eps);
-    fm_assert(Math::abs(vmin - vl) <= eps && Math::abs(vmax - vh) <= eps);
+    for (const Sprite& s : sprites)
+    {
+        const Vector2ui rects[][2] = { {{0, 0}, {s.width, s.height}}, {{5, 7}, {13, 17}}, {{3, 11}, {7, 19}} };
+        for (const auto& [offset, size] : rects)
+            for (bool mirror : {false, true})
+            {
+                const u32 left = offset.x(), right = offset.x() + size.x() - 1;
+                const u32 bottom = s.height - offset.y() - size.y(), top = s.height - offset.y() - 1;
+                const u32 l = mirror ? right : left, r = mirror ? left : right;
+                const Vector2 expected[4] = {
+                    source_texel_uv(a, s, r, bottom), source_texel_uv(a, s, r, top),
+                    source_texel_uv(a, s, l, bottom), source_texel_uv(a, s, l, top),
+                };
+                const auto coords = texcoords_for_subrect(a, s, offset, size, mirror);
+                for (auto i = 0u; i < 4; i++)
+                {
+                    fm_assert(coords[i].z() == (float)s.layer);
+                    fm_assert(Math::abs(coords[i].x() - expected[i].x()) <= eps);
+                    fm_assert(Math::abs(coords[i].y() - expected[i].y()) <= eps);
+                }
+            }
+    }
+}
+
+Array<Color4ub> make_pixels(u32 w, u32 h, u8 seed)
+{
+    Array<Color4ub> ret{NoInit, w * h};
+    for (u32 i = 0; i < w * h; i++)
+        ret[i] = {(u8)i, (u8)(i >> 8), seed, 255};
+    return ret;
+}
+
+ImageView2D view_of(const Array<Color4ub>& pixels, u32 w, u32 h)
+{
+    fm_assert(pixels.size() == w * h);
+    return ImageView2D{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, pixels};
+}
+
+struct sprite_pixels { sprite s; ArrayView<const Color4ub> pixels; };
+
+void assert_layer_contents(sprite_atlas& atlas, u32 layer, std::initializer_list<sprite_pixels> sprites)
+{
+    constexpr auto magenta = Color4ub{255, 0, 255, 255};
+    auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
+    const auto w = atlas.layer_width(), h = atlas.layer_height();
+    auto img = read_layer_pixels(tex, (Int)layer, {{}, {(Int)w, (Int)h}});
+    const auto texels = img.pixels<Color4ub>();
+    for (const auto& [s, pixels] : sprites)
+        fm_assert(!s.is_rotated() && pixels.size() == s.width() * s.height());
+    for (u32 y = 0; y < h; y++)
+        for (u32 x = 0; x < w; x++)
+        {
+            auto expected = magenta;
+            for (const auto& [s, pixels] : sprites)
+                if (s.layer() == layer && x >= s.x() && x < s.x() + s.width() && y >= s.y() && y < s.y() + s.height())
+                    expected = pixels[(y - s.y()) * s.width() + x - s.x()];
+            fm_assert(texels[y][x] == expected);
+        }
+}
+
+void texture_growth_clears_new_layers_to_magenta()
+{
+    sprite_atlas atlas{64, 64};
+    constexpr u32 w = 40, h = 40;
+    const auto pixels0 = make_pixels(w, h, 1), pixels1 = make_pixels(w, h, 2);
+    const auto s0 = atlas.add(view_of(pixels0, w, h), false);
+    assert_layer_contents(atlas, 0, {{s0, pixels0}});
+    const auto s1 = atlas.add(view_of(pixels1, w, h), false);
+    fm_assert(s1.layer() == 1);
+    assert_layer_contents(atlas, 0, {{s0, pixels0}});
+    assert_layer_contents(atlas, 1, {{s1, pixels1}});
+}
+
+void reset_discards_pending_sprites()
+{
+    sprite_atlas atlas{64, 64};
+    const auto a = make_pixels(40, 40, 1), b = make_pixels(7, 11, 2), c = make_pixels(40, 40, 3);
+    atlas.add(view_of(a, 40, 40), false);
+    (void)atlas.texture();
+    const auto sb = atlas.add(view_of(b, 7, 11), false);
+    fm_assert(sb.layer() == 0);
+    atlas.reset();
+    const auto sc = atlas.add(view_of(c, 40, 40), false);
+    assert_layer_contents(atlas, 0, {{sc, c}});
+}
+
+void rgb_sprites_read_back_opaque()
+{
+    sprite_atlas atlas{64, 64};
+    PixelStorage storage;
+    storage.setAlignment(1);
+    constexpr u32 w = 7, h = 11;
+    u8 rgb[w * h * 3];
+    for (u32 i = 0; i < w * h * 3; i++)
+        rgb[i] = (u8)(i * 7 + 1);
+    const ImageView2D view{storage, Magnum::PixelFormat::RGB8Unorm, {(Int)w, (Int)h}, rgb};
+    const sprite sprites[] = { atlas.add(view, true), atlas.add(view, false) };
+    fm_assert(sprites[0].is_rotated() && !sprites[1].is_rotated());
+    auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
+    for (const auto s : sprites)
+    {
+        const auto sw = s.is_rotated() ? h : w, sh = s.is_rotated() ? w : h;
+        auto img = read_layer_pixels(tex, (Int)s.layer(), Range2Di::fromSize({(Int)s.x(), (Int)s.y()}, {(Int)sw, (Int)sh}));
+        const auto texels = img.pixels<Color4ub>();
+        for (u32 y = 0; y < h; y++)
+            for (u32 x = 0; x < w; x++)
+            {
+                const u8* p = rgb + (y * w + x) * 3;
+                const auto texel = s.is_rotated() ? texels[x][h-1 - y] : texels[y][x];
+                fm_assert(texel == Color4ub(p[0], p[1], p[2], 255));
+            }
+    }
 }
 
 // add() only stages pixels. texture() grows the texture over every layer packed since and uploads
@@ -295,6 +415,7 @@ void staged_adds_reach_texture()
     }
     fm_assert(sprites[n]->is_rotated);
     fm_assert(sprites[n-1]->layer == n-1);
+    fm_assert(atlas.raw()->texture.id() == 0 && atlas.texture_gen() == 0 && atlas.raw()->pending.size() == n + 1);
 
     auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
     fm_assert(atlas.layer_count() == n && tex.imageSize(0).z() == 4);
@@ -413,6 +534,34 @@ void sprites_do_not_overlap_pairwise()
     }
 }
 
+void rotated_sprites_stay_in_layer_and_do_not_overlap()
+{
+    Atlas a;
+    a.layer_width = a.layer_height = max_sprite_xy;
+    constexpr u32 N = 400;
+    struct R { u32 x, y, layer, w, h; };
+    R rects[N];
+    u32 rotated_count = 0;
+    for (auto& [i, r] : enumerate(rects))
+    {
+        const u32 w = 3 + (i * 37) % 290, h = 2 + (i * 53) % 230;
+        const Sprite* s = alloc_sprite(a, w, h);
+        rotated_count += s->is_rotated;
+        r = R{ s->x, s->y, s->layer, s->is_rotated ? h : w, s->is_rotated ? w : h };
+        fm_assert(r.x + r.w <= a.layer_width && r.y + r.h <= a.layer_height);
+    }
+    fm_assert(rotated_count > 0);
+
+    for (const auto& [A, B] : combinations(rects))
+    {
+        if (A.layer != B.layer)
+            continue;
+        const bool overlap = A.x < B.x + B.w && B.x < A.x + A.w
+                          && A.y < B.y + B.h && B.y < A.y + A.h;
+        fm_assert(!overlap);
+    }
+}
+
 void max_dimension_sprite_stores_without_truncation()
 {
     Atlas a;
@@ -456,19 +605,25 @@ void test_sprite_atlas()
     height_class_table_matches_quantize_height();
     two_shelves_in_same_class_do_not_overlap();
     exhausting_a_layer_creates_another_layer();
+    sprite_taller_than_wide_is_rotated();
+    sprite_is_not_rotated_when_shelf_for_rotation_is_full();
     sprites_of_differing_sizes_create_distinct_height_classes();
     next_layer_count_doubles_then_grows_by_half();
     upload_and_readback_is_lossless();
     realloc_preserves_uploaded_pixels();
     grow_keeps_bound_framebuffer();
     copy_slot_keeps_pixels_and_bound_framebuffer();
-    texcoords_encode_expected_corners();
+    texcoords_show_expected_source_corners();
+    texture_growth_clears_new_layers_to_magenta();
+    reset_discards_pending_sprites();
+    rgb_sprites_read_back_opaque();
     staged_adds_reach_texture();
     texture_growth_stops_at_layer_limit();
     each_texture_gets_new_texture_gen();
     wrapper_accessors_roundtrip_values();
     free_atlas_clears_state_and_allows_reuse();
     sprites_do_not_overlap_pairwise();
+    rotated_sprites_stay_in_layer_and_do_not_overlap();
     max_dimension_sprite_stores_without_truncation();
     tallest_layer_stores_y_without_truncation();
 }
