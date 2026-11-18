@@ -313,11 +313,12 @@ Vector2i visibility_tests::move_spot_to_cover_end(Vector2i pos, Vector2i axis, V
                   Math::max(T, pos + ext_hi + across*m) + Vector2i{1}, end_rects);
     bool live[2] = { true, true };
     int lo[2] = { 0, 0 };
-    for (auto t = step_px; t <= m && (live[0] || live[1]); t += step_px)
+    for (auto tʹ = step_px; tʹ < m + step_px && (live[0] || live[1]); tʹ += step_px)
         for (auto i = 0u; i < 2; i++)
         {
             if (!live[i])
                 continue;
+            const auto t = Math::min(tʹ, m);
             const auto dir = i ? -across : across;
             const auto r = end_test(pos + dir*t, axis, across);
             if (r == end_step::stopped)

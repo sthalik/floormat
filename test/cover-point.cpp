@@ -689,6 +689,32 @@ void test_moves_to_cover_end(u8 octants, bool north_leg)
     fm_assert(!hidden_from_turned(w, T, farther, octants));
 }
 
+// test_moves_to_cover_end's wall. The end lies d px from the spot, and steps are half the body. A limit
+// from d + 1 to one step past d reaches the end. A limit below d + 1 leaves the spot in place.
+void test_cover_end_limit_between_steps(u8 octants)
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 160});
+    rebuild(w);
+
+    const point npc{ch, {6, 8}, {0, -12}}, threat{ch, {12, 8}, {}};
+    constexpr auto radius = 3*(u32)tile_size_xy;
+    const auto at_limit = [&](u32 limit) {
+        const auto r = find(w, npc, threat, radius, 8, body, Search::without_critters, false, octants, limit);
+        fm_assert(r.found);
+        return r.pos;
+    };
+    const auto start = at_limit(0), end = at_limit(2*(u32)tile_size_xy);
+    const auto d = (u32)Math::abs(Vector3i(end).y() - Vector3i(start).y());
+    fm_assert(d > 0);
+    const auto step = body.y()/2;
+    for (auto limit = 1u; limit <= d; limit++)
+        fm_assert(at_limit(limit) == start);
+    for (auto limit = d + 1; limit <= d + step; limit++)
+        fm_assert(at_limit(limit) == end);
+}
+
 // test_cover_script's wall and threat. The npc hid at hidden, where the threat sees no pixel of its body.
 // 1 px farther along the wall on one side, a point within threat_reach px of the threat's cell sees one.
 void test_cover_script_at_wall_end(point hidden)
@@ -3547,6 +3573,7 @@ void Test::test_cover_point()
     {
         test_moves_to_cover_end(octants, false);
         test_moves_to_cover_end(octants, true);
+        test_cover_end_limit_between_steps(octants);
     }
     test_lists_by_area(3, 2*tile_size_xy);
     test_lists_by_area_long_wall();
