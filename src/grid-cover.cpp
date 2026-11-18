@@ -13,6 +13,7 @@
 #include "compat/timer.hpp"
 #include <bit>
 #include <array>
+#include <numeric>
 #include <cr/Memory.h>
 #include <mg/Functions.h>
 
@@ -178,7 +179,20 @@ float raycast_one(chunk& self,
     };
 
     const point from{self.coord(), intra_coord{origin_local}};
-    const point to = from + delta;
+    // Past the world's edge counts as open, as a missing chunk does. The ray keeps delta's exact direction,
+    // so it stops up to 4 px short of the edge, at the last whole step that fits.
+    const auto z = self.coord().z;
+    const auto room_hi = point{{chunk_xy_max, chunk_xy_max, z}, {TILE_MAX_DIM - 1, TILE_MAX_DIM - 1},
+                               Vector2b(half_tile<Vector2i> - Vector2i{1})} - from;
+    const auto room_lo = from - point{{chunk_xy_min, chunk_xy_min, z}, {}, Vector2b(-half_tile<Vector2i>)};
+    auto n = std::gcd(Math::abs(delta.x()), Math::abs(delta.y()));
+    const auto step = n ? delta / n : delta;
+    for (auto i = 0u; i < 2; i++)
+        if (step[i])
+            n = Math::min(n, (step[i] > 0 ? room_hi[i] : room_lo[i]) / Math::abs(step[i]));
+    if (n == 0)
+        return (float)max_ray_px;
+    const point to = from + step*n;
 
     const auto r = Raycast::detail::do_raycasting<false, false>(nullptr, self.world(), from, to, 0, pass_pool,
                                                                 nullptr, Search::without_dynamic_objects, 0);

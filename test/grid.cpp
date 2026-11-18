@@ -1742,6 +1742,73 @@ void test_cover_matches_reference(u32 div_size, ArrayView<const u32> octants)
     check_cover_octants(w, g, div_size, octants);
 }
 
+// make_cover_scene's own chunk, without its neighbors, and with walls a tile short of the chunk's edges.
+// Nothing lies within 20 px of the edges.
+void make_cover_chunk(world& w, chunk_coords_ ch)
+{
+    auto& c = w[ch];
+    add_ground_all(c);
+    for (u8 j = 0; j < TILE_MAX_DIM; j++)
+        for (u8 i = 0; i < TILE_MAX_DIM; i++)
+        {
+            const auto inner = i > 0 && j > 0 && i < TILE_MAX_DIM - 1 && j < TILE_MAX_DIM - 1;
+            if (inner && j == 5 && i != 7 && i != 8)
+                c[{i, j}].wall_north() = wall_proto();
+            if (inner && i == 10 && j != 3 && j != 11)
+                c[{i, j}].wall_west() = wall_proto();
+            if ((i*7 + j*3) % 5 == 0)
+            {
+                scenery_proto p;
+                p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
+                p.subtype   = generic_scenery_proto{};
+                p.bbox_size = {24, 24};
+                p.pass      = pass_mode::blocked;
+                w.make_scenery(w.make_id(), {ch, local_coords{i, j}}, move(p));
+            }
+        }
+    rebuild_passability(c);
+}
+
+// A chunk at the world's edge holds the distances the same chunk holds alone at COORD: past the edge
+// counts as open, as a missing chunk does. Each chunk gets its own world.
+void test_cover_world_edge(u32 div_size)
+{
+    const auto built = [div_size](chunk_coords_ ch, auto&& fn) {
+        auto w = world();
+        make_cover_chunk(w, ch);
+        Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+        Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
+        Grid::Cover::Grid g = pool[w[ch]];
+        g.build_if_stale();
+        for (auto k = 0u; k < Grid::Cover::octant_count; k++)
+            (void)g.ensure_octant(k);
+        fm_assert(g.built_octants() == (u32)-1);
+        fn(g);
+    };
+    const auto dc = chunk_size_xy / div_size;
+    Array<u16> expected{NoInit, (usize)(dc*dc*Grid::Cover::octant_count)};
+    built(COORD, [&](Grid::Cover::Grid& g) {
+        for (auto k = 0u; k < Grid::Cover::octant_count; k++)
+            for (auto i = 0u; i < dc*dc; i++)
+                expected[k*dc*dc + i] = g.distance(i, k);
+    });
+
+    constexpr auto lo = (i16)chunk_xy_min, hi = (i16)chunk_xy_max;
+    for (const auto xy : { Vector2s{hi, hi}, Vector2s{hi, lo}, Vector2s{lo, hi}, Vector2s{lo, lo},
+                           Vector2s{hi, 0}, Vector2s{lo, 0}, Vector2s{0, hi}, Vector2s{0, lo} })
+        built(chunk_coords_{xy.x(), xy.y(), 0}, [&](Grid::Cover::Grid& g) {
+            for (auto k = 0u; k < Grid::Cover::octant_count; k++)
+                for (auto i = 0u; i < dc*dc; i++)
+                    if (g.distance(i, k) != expected[k*dc*dc + i])
+                    {
+                        Error{standard_error()} << "!!! fatal: div_size" << div_size << "chunk" << xy
+                                                << "octant" << k << "cell" << i % dc << i / dc << "distance"
+                                                << g.distance(i, k) << "but expected" << expected[k*dc*dc + i];
+                        fm_assert(false);
+                    }
+        });
+}
+
 // A diagonal octant extends the edge cell's ray one step per cell, so a long run of steps must
 // still match a ray cast from the cell itself.
 void test_cover_diagonal_tracks_ray(u32 div_size)
@@ -3546,6 +3613,8 @@ void test_grid()
     }
     hwy::SetSupportedTargetsForTest(0);
     vqsort_refresh_targets();
+    for (const auto ds : { 8u, 16u })
+        test_cover_world_edge(ds);
     test_cover_rebuilds_on_neighbor_change(16);
     for (const auto ds : { 8u, 16u })
     {
