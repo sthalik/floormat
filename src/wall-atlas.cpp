@@ -142,21 +142,6 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
     }
 
     {
-        Array<bool> top_frame_mask{ValueInit, _frame_array.size()};
-        for (const Direction& D : _dir_array)
-        {
-            // Only a group without from_rotation owns its frame range.
-            // Mirrored directions point at the source; iterating the source
-            // direction alone covers their frames.
-            if (!D.top.is_defined || D.top.from_rotation != (u8)-1)
-                continue;
-            const auto lo = D.top.index;
-            const auto hi = lo + D.top.count;
-            fm_assert(hi <= _frame_array.size());
-            for (auto i = lo; i < hi; i++)
-                top_frame_mask[i] = true;
-        }
-
         const u32 full_height = img_size.y();
         arrayReserve(_frame_sprites, _frame_array.size());
         for (usize fi = 0; fi < _frame_array.size(); fi++)
