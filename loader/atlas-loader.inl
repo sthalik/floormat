@@ -177,6 +177,7 @@ missing_warn:
     return invalid_atlas;
 }
 
+// TODO: get_atlas() should catch throws from here, follow loader_policy, and fall back to get_invalid_atlas().
 template<typename ATLAS, typename TRAITS>
 auto atlas_loader<ATLAS, TRAITS>::make_atlas(StringView name, const Cell& c) -> AtlasPtr
 {
