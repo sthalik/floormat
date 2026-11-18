@@ -323,6 +323,33 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         install(TARGETS benchmark RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
     endfunction()
 
+    function(fm_add_libjxl)
+        sets(BOOL
+             BUILD_TESTING                  OFF
+             PROVISION_DEPENDENCIES         OFF
+             JPEGXL_ENABLE_FUZZERS          OFF
+             JPEGXL_ENABLE_TOOLS            OFF
+             JPEGXL_ENABLE_DOXYGEN          OFF
+             JPEGXL_ENABLE_MANPAGES         OFF
+             JPEGXL_ENABLE_BENCHMARK        OFF
+             JPEGXL_ENABLE_EXAMPLES         OFF
+             JPEGXL_BUNDLE_LIBPNG           OFF
+             JPEGXL_ENABLE_JNI              OFF
+             JPEGXL_ENABLE_TRANSCODE_JPEG   OFF
+             JPEGXL_FORCE_SYSTEM_HWY        OFF # XXX
+        )
+        if(CMAKE_VERSION VERSION_GREATER_EQUAL 4.4)
+            cmake_diagnostic(SET CMD_DEPRECATED IGNORE)
+            cmake_diagnostic(SET CMD_AUTHOR IGNORE)
+            #cmake_diagnostic(DEMOTE CMD_DEPRECATED IGNORE)
+        endif()
+        if(POLICY CMP0218)
+            cmake_policy(SET CMP0218 OLD)
+        endif()
+        set(CMAKE_WARN_DEPRECATED OFF) # still needed even with cmake_diagnostic()
+        add_subdirectory(libjxl SYSTEM)
+    endfunction()
+
     fm_run_hook(fm-userconfig-external)
 
     function(fm_add_libs)
@@ -340,6 +367,7 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         else()
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
         endif()
+        fm_add_libjxl()
         add_subdirectory(fmt SYSTEM)
         add_subdirectory(json SYSTEM)
         add_subdirectory(corrade SYSTEM)
@@ -458,4 +486,5 @@ endfunction()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
     fm_install_library(fmt::fmt)
+    fm_install_library(jxl)
 endif()
