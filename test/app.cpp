@@ -47,6 +47,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_enumerate),
     FM_TEST(test_zip),
     FM_TEST(test_tie),
+    FM_TEST(test_checked_cast),
     FM_TEST(test_combinations),
     FM_TEST(test_range_algorithms),
     FM_TEST(test_erase_if),

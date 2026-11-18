@@ -2,6 +2,7 @@
 #include "compat/assert.hpp"
 #include "compat/limits.hpp"
 #include "compat/function-view.hpp"
+#include "compat/exception.inl"
 #include "entity/metadata.hpp"
 #include "entity/accessor.hpp"
 #include <tuple>
@@ -293,6 +294,64 @@ constexpr bool test_enum_range()
     return true;
 }
 
+void test_unsigned_range()
+{
+    using range = erased_constraints::range;
+    range r{.min{.i = 0}, .max{.i = 255}, .type = range::type_int};
+    const auto a = r.convert<u8>();
+    fm_assert(a.first() == 0 && a.second() == 255);
+    r.max.i = 65535;
+    const auto b = r.convert<u16>();
+    fm_assert(b.first() == 0 && b.second() == 65535);
+    r.max.i = 4294967295LL;
+    const auto c = r.convert<u32>();
+    fm_assert(c.first() == 0 && c.second() == 4294967295u);
+
+    r.type = range::type_int4;
+    r.min.i4 = {0, 17, 19, 23};
+    r.max.i4 = {255, 253, 251, 239};
+    const auto d = r.convert<Vector2ub>();
+    fm_assert(d.first() == Vector2ub{0, 17} && d.second() == Vector2ub{255, 253});
+    const auto e = r.convert<Vector3ub>();
+    fm_assert(e.first() == Vector3ub{0, 17, 19} && e.second() == Vector3ub{255, 253, 251});
+    const auto f = r.convert<Vector4ub>();
+    fm_assert(f.first() == Vector4ub{0, 17, 19, 23} && f.second() == Vector4ub{255, 253, 251, 239});
+}
+
+template<typename T>
+void assert_convert_throws(const erased_constraints::range& r, StringView message)
+{
+    bool caught = false;
+    try
+    {
+        (void)r.convert<T>();
+    }
+    catch (const floormat::exception& e)
+    {
+        caught = true;
+        fm_assert(StringView{e.what()} == message);
+    }
+    fm_assert(caught);
+}
+
+void test_unsigned_range_overflow()
+{
+    using range = erased_constraints::range;
+    range r{.min{.i = 256}, .max{.i = 255}, .type = range::type_int};
+    assert_convert_throws<u8>(r, "checked_cast: 256 is out of range [0, 255]"_s);
+    r.min.i = 0;
+    r.max.i = 257;
+    assert_convert_throws<u8>(r, "checked_cast: 257 is out of range [0, 255]"_s);
+
+    r.type = range::type_int4;
+    r.min.i4 = {0, 258, 19, 23};
+    r.max.i4 = {255, 253, 251, 239};
+    assert_convert_throws<Vector4ub>(r, "checked_cast: 258 is out of range [0, 255]"_s);
+    r.min.i4 = {0, 17, 19, 23};
+    r.max.i4 = {255, 253, 259, 239};
+    assert_convert_throws<Vector4ub>(r, "checked_cast: 259 is out of range [0, 255]"_s);
+}
+
 } // namespace
 
 void Test::test_entity()
@@ -313,6 +372,8 @@ void Test::test_entity()
     static_assert(test_range3());
     test_range4();
     static_assert(test_enum_range());
+    test_unsigned_range();
+    test_unsigned_range_overflow();
 }
 
 } // namespace floormat
