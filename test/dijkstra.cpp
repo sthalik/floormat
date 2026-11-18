@@ -16,6 +16,7 @@
 #include "compat/function-view.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-registry.hpp"
+#include "src/hole.hpp"
 #include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "src/world.hpp"
@@ -1063,6 +1064,50 @@ void check_door_in_wall_gap()
     fm_assert(search() == through.cost());
 }
 
+// Holes cut a wall as on tile 14:10 of chunk (0, -1) in doc/saves/quicksave.dat. A 28-px box fits through
+// the gap only centred at x 888..904, which holds one node column, 894.
+void check_wall_cut_by_holes()
+{
+    constexpr u32 max_dist = 512, size = 28;
+    const auto from = at_px({896, 832}), to = at_px({896, 384});
+    auto w = world();
+    add_floors(w, from, max_dist, astar::default_div_size);
+    const auto wall = wall_image_proto{ loader.wall_atlas("concrete1"), 0 };
+    auto& c = w[flush_ch];
+    for (auto x = 0u; x < TILE_MAX_DIM; x++)
+        c[{x, 10u}].wall_north() = wall;
+    const auto add_hole = [&](local_coords tile, Vector2b offset, Vector2ub bbox_size) {
+        auto proto = hole_proto{};
+        proto.offset = offset;
+        proto.bbox_size = bbox_size;
+        (void)w.make_object<hole>(w.make_id(), global_coords{flush_ch, tile}, move(proto));
+        c.mark_passability_modified();
+        c.ensure_passability();
+    };
+    const auto S = add_walker(w, from, size);
+    add_hole({14, 11}, {0, -14}, {154, 166});
+
+    auto A = astar{};
+    const auto own = S->circumscribed_bbox_size();
+    fm_assert(own == Vector2ui{size});
+    const auto pred_fn = Search::blocks_all_but(S->id);
+    const Search::pred pred{pred_fn};
+    fm_assert(!A.Dijkstra<0, false>(w, from, to, max_dist, own, pred).is_found());
+
+    add_hole({14, 10}, {}, {44, 124});
+    for (int x : { 887, 888, 904, 905 })
+        fm_assert(box_free(w, at_px({x, 598}), own) == (x >= 888 && x <= 904));
+    auto r = A.Dijkstra<0, false>(w, from, to, max_dist, own, pred);
+    if (!r.is_found())
+        fm_abort("wall cut by holes: no path through the gap");
+    fm_assert(A.string_pull(w, r, own, pred));
+    const auto sp = std::as_const(r).smoothings();
+    for (auto k = 0uz; k + 1 < sp.size(); k++)
+        if (!is_segment_clear(w, sp[k].pt, sp[k+1].pt, own, pred))
+            fm_abort("wall cut by holes: smoothed segment %zu crosses a collider", k);
+    walk_to(w, S, move(r), to, "wall cut by holes", astar::default_div_size);
+}
+
 } // namespace
 
 void Test::test_dijkstra()
@@ -1216,6 +1261,7 @@ void Test::test_dijkstra()
         check_pull_around_critter(cell);
     }
     check_door_in_wall_gap();
+    check_wall_cut_by_holes();
 }
 
 } // namespace floormat
