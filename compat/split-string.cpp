@@ -42,7 +42,7 @@ StringView split_string_view::iterator::find_delimiter() const noexcept
     case split_mode::character:
         return _rest.find(_delim);
     case split_mode::any_character:
-        return _rest.findAny(_delims);
+        return _rest.findAny(_delims, 1);
     case split_mode::substring:
         // stringFindString() reports an empty needle as a match at every position. Treat it as
         // no delimiter at all, like the empty character set, which also keeps a zero-size result
