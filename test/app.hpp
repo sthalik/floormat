@@ -26,6 +26,7 @@ void test_bitset();
 void test_bptr();
 void test_bptr_intrusive();
 void test_chase_lev_deque();
+void test_checked_cast();
 void test_chunk_iter();
 void test_clickable();
 void test_combinations();

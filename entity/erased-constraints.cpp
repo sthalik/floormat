@@ -1,5 +1,6 @@
 #include "erased-constraints.hpp"
 #include "compat/assert.hpp"
+#include "compat/checked-cast.hpp"
 #include "compat/limits.hpp"
 #include <cmath>
 #include <cr/Pair.h>
@@ -41,8 +42,7 @@ template<typename T> Pair<T, T> range::convert() const
             {
                 if (type == type_int)
                 {
-                    fm_assert(min.i >= 0 && max.i >= 0);
-                    return { T(min.i), T(max.i) };
+                    return { checked_cast<T>(min.i), checked_cast<T>(max.i) };
                 }
                 else
                 {
@@ -71,8 +71,7 @@ template<typename T> Pair<T, T> range::convert() const
                     {
                         for (auto i = 0uz; i < Size; i++)
                         {
-                            fm_assert(min.i4[i] >= 0 && max.i4[i] >= 0);
-                            a[i] = U(min.i4[i]), b[i] = U(max.i4[i]);
+                            a[i] = checked_cast<U>(min.i4[i]), b[i] = checked_cast<U>(max.i4[i]);
                         }
                     }
                     else
