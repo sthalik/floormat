@@ -92,6 +92,7 @@ void copy_to_slot(char* dst, const Sprite& sprite, const ImageView2D& pixels)
     const auto src_view = pixels.pixels();
     const usize src_row_stride = (usize)src_view.stride()[0];
     const auto* src_base = static_cast<const char*>(src_view.data());
+    fm_assert(src_base);
 
     if (!sprite.is_rotated)
     {
@@ -285,12 +286,11 @@ Shelf* alloc_new_shelf(Atlas& atlas, u32 height)
 
 Sprite* alloc_sprite(Atlas& atlas, u32 w, u32 h, bool allow_rotate)
 {
-    fm_assert(w > 0 && h > 0);
+    fm_soft_assert(w > 0 && h > 0);
     const auto max_allowed_size = Math::min({atlas.layer_width, atlas.layer_height, max_sprite_xy});
     if (Math::max(w, h) > max_allowed_size) [[unlikely]]
-        fm_abort("alloc_sprite: {%u,%u} > min(L_w:%u, L_h:%u, M:%u)",
-                 (unsigned)w, (unsigned)h,
-                 (unsigned)atlas.layer_width, (unsigned)atlas.layer_height, (unsigned)max_sprite_xy);
+        fm_throw("alloc_sprite: {{{},{}}} > min(L_w:{}, L_h:{}, M:{})",
+                 w, h, atlas.layer_width, atlas.layer_height, max_sprite_xy);
 
     Shelf* shelf;
     bool is_rotated;
@@ -602,6 +602,8 @@ const Atlas* sprite_atlas::raw() const { return _atlas.get(); }
 
 sprite sprite_atlas::add(const ImageView2D& pixels, bool allow_rotate)
 {
+    const auto format = pixels.format();
+    fm_soft_assert(format == PixelFormat::RGBA8Unorm || format == PixelFormat::RGB8Unorm);
     auto image_size = Vector2ui(pixels.size());
 
     if (Math::min(_atlas->layer_width, _atlas->layer_height) == 0)

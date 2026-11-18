@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "compat/combinations.hpp"
 #include "compat/enumerate.hpp"
+#include "compat/exception.inl"
 #include "src/sprite-atlas.hpp"
 #include "src/sprite-atlas-impl.hpp"
 #include "src/sprite-constants.hpp"
@@ -394,6 +395,23 @@ void rgb_sprites_read_back_opaque()
     }
 }
 
+void add_rejects_bad_format_and_size()
+{
+    sprite_atlas atlas{64, 64};
+    const char r8[4 * 4] = {};
+    bool caught = false;
+    try { atlas.add(ImageView2D{Magnum::PixelFormat::R8Unorm, {4, 4}, r8}); }
+    catch (const floormat::exception&) { caught = true; }
+    fm_assert(caught);
+
+    const auto too_wide = make_pixels(65, 4, 1);
+    caught = false;
+    try { atlas.add(view_of(too_wide, 65, 4)); }
+    catch (const floormat::exception&) { caught = true; }
+    fm_assert(caught);
+    fm_assert(atlas.layer_count() == 0 && atlas.raw()->pending.isEmpty());
+}
+
 // add() only stages pixels. texture() grows the texture over every layer packed since and uploads
 // them, a rotated sprite transposed.
 void staged_adds_reach_texture()
@@ -617,6 +635,7 @@ void test_sprite_atlas()
     texture_growth_clears_new_layers_to_magenta();
     reset_discards_pending_sprites();
     rgb_sprites_read_back_opaque();
+    add_rejects_bad_format_and_size();
     staged_adds_reach_texture();
     texture_growth_stops_at_layer_limit();
     each_texture_gets_new_texture_gen();

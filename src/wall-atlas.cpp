@@ -107,7 +107,6 @@ wall_atlas::wall_atlas(wall_atlas_def def, String path, const ImageView2D& img)
 {
     //Debug{} << "make wall_atlas" << _info.name;
     const Vector2ui img_size{(u32)img.size().x(), (u32)img.size().y()};
-    fm_soft_assert(img.pixelSize() >= 3 && img.pixelSize() <= 4);
     fm_soft_assert(img_size.product() > 0);
     {
         const auto frame_count = _frame_array.size();
