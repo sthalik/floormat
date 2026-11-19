@@ -236,7 +236,7 @@ void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted
         e->chunk().add_object(e);
     else
         e->chunk().add_object_unsorted(e);
-    // objects made before init_scripts() are covered by its sweep instead
+    // init_scripts() calls init_script() on objects made before it
     if (_script_initialized && !_script_finalized) [[unlikely]]
         e->init_script(e);
 }

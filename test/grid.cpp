@@ -1310,7 +1310,7 @@ void test_bit_exact(const exact_config& cfg, pass_mode min_pass)
               my = cfg.chunk_delta.y()*chunk_size<int> + cfg.at_y*tile_size_xy
                    + cfg.obstacle_offset.y() - cfg.obstacle_size/2;
     const int Mx = mx + cfg.obstacle_size, My = my + cfg.obstacle_size;
-    // only the cells that can reach the obstacle; a full dc² sweep is 1024² at div_size 1
+    // The loop tests only the cells whose box can overlap the obstacle, since dc² is 1024² at div_size 1.
     const int pad = (int)cfg.bbox_size + 2*d;
     const int i_lo = Math::max(0, (mx - pad + half_tile<int>) / d), i_hi = Math::min(dc - 1, (Mx + pad + half_tile<int>) / d),
               j_lo = Math::max(0, (my - pad + half_tile<int>) / d), j_hi = Math::min(dc - 1, (My + pad + half_tile<int>) / d);
@@ -1625,9 +1625,8 @@ Array<Vector2i> cover_crossed_cells(u32 k)
     return ret;
 }
 
-// What an octant that steps (q, p) cells holds by the rules on fill_stepped(), worked out cell by
-// cell in its row order. The step on row n of the sweep is R(n) - R(n - |p|), R(n) being n/|p|
-// steps rounded. Pixels are in 1/cover_fixed_one px and saturate.
+// Returns what octant k holds by fill_stepped()'s rules, cell by cell in row order. On row n a cell holds the cell
+// (q, p) away plus R(n) - R(n - |p|), saturating, R(n) being n/|p| steps rounded to 1/cover_fixed_one px.
 Array<u16> cover_stepped_reference(chunk& c, const Pass::Grid& pg, u32 div_size, u32 k,
                                         Pass::Pool& pass_pool)
 {

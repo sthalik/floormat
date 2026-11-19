@@ -37,8 +37,7 @@ chunk_rect window(point from, point to, u32 max_dist)
     for (auto i = 0u; i < 2; i++)
     {
         const i64 s = 2*(i64)base[i] + d[i];
-        // A* reads under a chunk past a node, `from` or `to`, in the nodes' 3x3 windows, the seeds,
-        // both seed searches and can_reach_goal().
+        // Each side gets one more chunk, since A* reads cells less than a chunk beyond the nodes, `from` and `to`.
         const auto lo = chunk_of(((s - M) >> 1) + 1) - 1, hi = chunk_of(((s + M + 1) >> 1) - 1) + 1;
         r.start[i] = f[i] + (int)lo;
         r.size[i] = (u32)(hi - lo + 1);
@@ -56,7 +55,7 @@ double node_bound(u32 max_dist, u32 div_size)
     const auto oct = octile{div_size};
     const double R = max_dist/2. + div_size, d = div_size;
     // The start's seed search adds at most one node per position of its window, plus its seeds. The goal's
-    // builds two paths at most: its path from `from` and the one make_result() takes.
+    // seed search builds at most two paths, its path from `from` and the one make_result() takes.
     constexpr double W = 2*seed_search_radius + 1;
     const auto seed_side = (double)(2*(seed_search_radius + div_size - 1)/div_size + 1);
     const double seed_nodes = 3*W*W + seed_side*seed_side + 16;
@@ -146,7 +145,7 @@ ArrayView<char> cache::commit_nodes(usize bytes)
     bytes = Math::min(bytes, limit);
     if (bytes > nodes_committed)
     {
-        // Above cells_committed, an earlier search's cells committed them.
+        // allocate() already committed the bytes at or above cells_committed, for cells.
         if (const auto end = Math::min(bytes, cells_committed); end > nodes_committed)
             memory.commit(nodes_committed, end - nodes_committed);
         const auto page = virtual_memory::page_size();
@@ -168,7 +167,8 @@ u32 cache::get_chunk_index(Vector2i chunk) const { return get_chunk_index(start,
 
 u32 cache::get_tile_index(intra_coord posʹ) const
 {
-    const auto pos = Vector2ui(Vector2i(posʹ)) >> (u32)std::countr_zero(div_size_); // xxx todo assumes power of two chunk size
+    // xxx todo assumes power of two chunk size
+    const auto pos = Vector2ui(Vector2i(posʹ)) >> (u32)std::countr_zero(div_size_);
     auto idx = pos.y() * div_count_ + pos.x();
     fm_debug3_assert(idx < div_count_ * div_count_);
     return idx;

@@ -119,10 +119,10 @@ constexpr inline hole_z_profile hole_z_profiles[] = {
 constexpr inline int pin_size = 4, grid_pin_size = 8, pin_pitch = 3*tile_size_xy/2,
                      pin_field = pgo::raycast_radius_max + pin_pitch;
 
-// The lattice is cartesian and the sweep is angular, so whether a ray meets a pin comes down to
-// its slope, and long runs of the sweep thread between rows and reach full length. These arcs sit
-// on the sweep's own angles instead, one every pin_clump_deg. A lone pin would not do: 8 px
-// subtends 0.45 deg at half a chunk while the sweep steps 0.044 deg, so it would answer 20 rays
+// The lattice is cartesian and the rays are spaced by angle, so whether a ray meets a pin comes down
+// to its slope, and long runs of neighbouring rays thread between rows and reach full length. These arcs
+// sit on the rays' own angles instead, one every pin_clump_deg. A lone pin would not do: 8 px subtends
+// 0.45 deg at half a chunk while neighbouring rays are 0.044 deg apart, so it would answer 20 rays
 // out of 8192. Each arc spans half its sector, leaving the other half for rays that run long.
 //
 // The rings of one sector share that angular span rather than tiling more of it, so only the
@@ -348,7 +348,7 @@ void generate_raycast_pins(world& w)
     for (auto k = 0u; k < num_clumps; k++)
         for (auto ring = 0u; ring < pin_clump_rings; ring++)
         {
-            // Radius varies per arc so the sweep meets them at a spread of distances rather than
+            // Radius varies per arc so the rays meet them at a spread of distances rather than
             // all at once. Under pin_clump_r0 a ray stops before the DDA crosses a chunk edge.
             const auto h = hash2(k*pin_clump_rings + ring, pin_clump_seed);
             const auto r = (float)(pin_clump_r0 + (int)(h % (u32)(pin_field - pin_clump_r0)));

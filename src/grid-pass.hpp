@@ -57,7 +57,8 @@ struct Params
     constexpr Params(u32 div_size, pass_mode min_pass): Params{div_size, div_size, min_pass} {}
     constexpr Params(u32 div_size, u32 bbox_size, pass_mode min_pass);
 
-    constexpr u32 div_size() const { return chunk_size_xy >> std::countr_zero(div_count); } // xxx todo assumes power of two chunk size
+    // xxx todo assumes power of two chunk size
+    constexpr u32 div_size() const { return chunk_size_xy >> std::countr_zero(div_count); }
     constexpr u32 node_offset() const { return bbox_size / 2 % div_size(); }
 
     [[nodiscard]] Params validate() const;

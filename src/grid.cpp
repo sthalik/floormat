@@ -70,7 +70,7 @@ void GridBase::reset_base_for_reuse(chunk& ch)
 bool GridBase::is_current() const
 {
     const auto newer = [&](const chunk& ch) { return ch.pass_gen() > built_pass_gen; };
-    // A neighbour that is gone is skipped. world::collect() marks the grids that read a deleted chunk.
+    // A neighbour that is gone is skipped. world::collect() marks stale the grids that read a deleted chunk.
     if (newer(*c))
         return false;
 
@@ -88,8 +88,9 @@ u32 GridBase::pack_bit_index(u32 i, u32 j, u32 div_count)
 
 u32 GridBase::pack_bit_index_from_coord(intra_coord posʹ, u32 div_count)
 {
-    const auto pos = Vector2ui(Vector2i(posʹ)) >> (u32)(std::countr_zero(chunk_size_xy) - std::countr_zero(div_count)); // xxx todo assumes power of two chunk size
-    // per-axis: an out-of-range x with a small y still packs below div_count²
+    // xxx todo assumes power of two chunk size
+    const auto pos = Vector2ui(Vector2i(posʹ)) >> (u32)(std::countr_zero(chunk_size_xy) - std::countr_zero(div_count));
+    // The assert checks each axis, since an out-of-range x with a small y still gives an index below div_count².
     fm_debug3_assert(pos.max() < div_count);
     return pack_bit_index(pos.x(), pos.y(), div_count);
 }

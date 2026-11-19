@@ -22,7 +22,7 @@ inline constexpr u32 octant_count = 32;
 inline constexpr u16 blocked = (u16)-1;
 constexpr inline u32 max_div_size = 64;
 
-// Within 0.7° of k*11.25°. Octant k's distances run along it.
+// Returns a direction within 0.7° of k*11.25°, along which octant k measures distances.
 Vector2 octant_direction(u32 k);
 
 struct Params
@@ -48,8 +48,8 @@ public:
     static u32 get_cell_index(u32 x, u32 y, u32 div_count);
     u32 get_cell_index_from_coord(intra_coord pos) const;
 
-    // From the cell's center in div_size units, rounded. div_count() means no hit within
-    // chunk_size_xy - div_size/2 px. A cell whose shoot_through pass bit is clear holds `blocked`.
+    // Returns the rounded distance in div_size units from the cell center to the first obstacle along the octant,
+    // or div_count() if none lies within chunk_size_xy - div_size/2 px. A clear shoot_through bit gives `blocked`.
     u16 distance(u32 index, u32 octant) const;
 
     u32 div_count() const;
@@ -91,7 +91,8 @@ public:
 
     Params params() const;
     u32 pooled_count() const;
-    // since the pool was made
+    // These return the number of octants filled since the pool was made, and the time spent filling them,
+    // pass-grid rebuilds included.
     u32 octant_fills() const;
     Ns octant_fill_time() const;
 };

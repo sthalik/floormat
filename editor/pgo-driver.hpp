@@ -98,7 +98,7 @@ struct state final
     // units and window_size() is in framebuffer units, which differ under HiDPI.
     Vector2i base_window_size;
     u64 scene_mask = 0;
-    // scene_raycast raycasts and draws its own sweep. Going through the raycast test would have
+    // scene_raycast casts and draws its own rays. Going through the raycast test would have
     // shown one ray of the batch, since a test keeps a single result and the driver fires many.
     std::array<Raycast::raycast_result_s, max_rays_per_frame> rays;
     u32 num_rays = 0;

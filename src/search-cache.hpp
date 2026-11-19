@@ -19,7 +19,7 @@ constexpr inline int seed_search_radius = 2*tile_size_xy;
 
 struct cache
 {
-    // The cells and the nodes of one search.
+    // Caps the bytes of one search's cells and nodes together.
     static constexpr usize max_size_bytes = usize{4} << 30;
     static constexpr u32 node_size = 16;
 
@@ -28,11 +28,10 @@ struct cache
     u32 div_size_ = 0;
     u32 div_count_ = 0;
     // A node's index and dist, both -1 once clear_chunk() ran for the cell's chunk in this search.
-    // TODO allocate() commits the whole window, 8 bytes a cell, though a search writes only the
-    // chunks it clears. Commit each chunk's slice in clear_chunk().
+    // TODO commit each chunk's cells in clear_chunk(), instead of the whole window in allocate().
     struct cell { u32 index, dist; };
     ArrayView<cell> cells;
-    // The nodes from its start, the cells at its end.
+    // Holds the nodes from its start and the cells at its end.
     virtual_memory memory;
     usize nodes_committed = 0, cells_committed = 0;
 
@@ -55,7 +54,8 @@ struct cache
     void add_index(u32 chunk_index, u32 tile_index, u32 index, u32 dist);
     u32 lookup_index(u32 chunk_index, u32 tile_index);
     cell& at(u32 chunk_index, u32 tile_index);
-    // Drops the chunk's nodes, so it runs once per chunk and search, before the chunk's first lookup.
+    // Sets index and dist of the chunk's cells to -1. Call it once per chunk and search, before the chunk's
+    // first lookup.
     void clear_chunk(u32 chunk_index);
 
     bool is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, const pred& p);

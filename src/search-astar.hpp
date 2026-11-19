@@ -39,7 +39,7 @@ public:
     Grid::GridRegistry& pool_registry();
     u32 last_node_count() const { return node_count; }
 
-    // To path around critters and doors, p must block them, as Search::blocks_all_but(self) does.
+    // To route around critters and doors, p must block them, as Search::blocks_all_but(self) does.
     // todo add simple bresenham short-circuit
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, point from, point to,
@@ -56,17 +56,16 @@ public:
 
     struct string_pull_result
     {
-        // Corners appended, including ones a turn later removed.
+        // corners_added counts corners appended, including ones removed later.
         u32 corners_added = 0, los_checks = 0;
         bool smoothed = false;
         explicit operator bool() const { return smoothed; }
     };
 
-    // Han, Uras, Koenig, "Toward a String-Pulling Approach to Path Smoothing on Grid Graphs",
-    // SoCS 2020, Algorithm 1, over the steps of the raw path, one cell of the pool for own_size
-    // each. Not smoothed when it gives up, with smoothings() left empty. p as for Dijkstra.
+    // Returns whether it smoothed result's path by Algorithm 1 of Han, Uras and Koenig (SoCS 2020), run on
+    // raw_path() split into moves one cell long, with p as for Dijkstra(). On failure, smoothings() is left empty.
     string_pull_result string_pull(world& w, path_search_result& result, Vector2ui own_size, const pred& p);
-    // `pool` is the one the search ran on: steps of another cell size split its segments wrong.
+    // `pool` must be the one the search ran on. Another cell size fails the assert in string_pull().
     string_pull_result string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,
                                    Vector2ui own_size, const pred& p);
     string_pull_result string_pull(world& w, Grid::Object::Pool& objects, path_search_result& result,

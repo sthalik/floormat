@@ -255,7 +255,7 @@ constexpr auto short_hold_dt = Second/10;
 constexpr u32 short_dwell_frames = 1;
 
 // Which waypoints of scene_raycast's circle one frame's batch of rays takes. `radar` takes the
-// batch adjacent and advances the whole wedge by its own size, so the beam sweeps exactly its own
+// batch adjacent and advances the whole wedge by its own size, so the beam turns by exactly its own
 // width a frame -- 1.2 to 5.9 degrees depending on radius, a revolution in one to five seconds --
 // and covers the circle with no gap and no overlap. `spokes` instead cuts the circle into one
 // sector per ray and takes the same offset inside each, which spreads the batch out but stops
@@ -268,8 +268,8 @@ constexpr inline auto sweep_order = ray_order::radar;
 // spoke by one waypoint a frame -- a fiftieth of a degree at the longest radius -- so consecutive
 // frames draw the same picture. An eighth of a sector is 1.4 degrees a frame, a revolution in
 // about four seconds, and still far enough that no frame repeats its neighbour's rays. Any stride
-// coprime with the frame count visits every offset exactly once, which is what keeps the sweep
-// exhaustive; the golden ratio does that too but spins the wheel faster than the eye follows.
+// coprime with the frame count visits every offset exactly once; the golden ratio does that too
+// but turns the spokes faster than the eye follows.
 constexpr inline u32 sweep_sector_div = 8;
 
 u32 frame_stride(u32 num_frames)
@@ -1296,7 +1296,7 @@ task app::scene_slide()
              polls, point::distance(from, last), off);
 }
 
-// The maze's own check, kept apart from the ray sweep because it never had anything to do with
+// The maze's own check, kept apart from scene_raycast because it never had anything to do with
 // it. Dijkstra<1> prints len/len0/ratio: a ratio near 1 would mean the carve left a straight shot
 // open and the dead ends cost A* nothing.
 task app::scene_maze1()
@@ -1394,7 +1394,7 @@ task app::scene_raycast()
     num_pins--; // the player
 
     // A cursor is allowed past the window edge -- the bounds test lives in on_mouse_up_down(),
-    // which the driver bypasses. The sweep leaves the viewport on its own at this radius; this
+    // which the driver bypasses. The rays take the cursor out of the viewport on their own at this radius; this
     // states the property in one place instead of leaving it incidental.
     const auto win = M->window_size();
     const auto far_away = point::normalize_coords(from, Vector2i{4*chunk_size<int>});
@@ -1415,8 +1415,8 @@ task app::scene_raycast()
 
     const auto cast = [&](u32 k, Vector2i offset) {
         const auto to = point::normalize_coords(from, offset);
-        // Nothing reads the cursor here any more, but the sweep is what the editor's own
-        // pixel_to_point() path gets exercised by, and it keeps the pointer on the ray.
+        // Nothing reads the cursor here any more, but moving it to each ray's endpoint exercises the
+        // editor's own pixel_to_point() path, and it keeps the pointer on the ray.
         set_cursor_at(to);
         // Asserts the cursor resolved to a world point.
         (void)cursor_point();
@@ -1485,7 +1485,7 @@ task app::scene_raycast()
     constexpr int spin_r1 = 5*tile_size_xy/4;
     const auto spin_r0 = pgo::raycast_radii[array_size(pgo::raycast_radii)-1];
     const auto spin_rays0 = num_rays;
-    // Where the radar sweep's last revolution ended.
+    // Starts where the circles' last revolution ended.
     float theta = 0;
     u32 revs = 0, skipped = 0;
     // (0, 0) is never on the circle, so the first ray is kept.
@@ -1814,10 +1814,7 @@ task app::scene_cover()
     set_mouse_button_state(mouse_button_left, false);
     co_yield {};
 
-    // Stepping the selection is also what forces the next fill -- update_post() runs
-    // ensure_octant() on whatever is selected before it background-fills anything else. Eight of
-    // the 32 are aligned and sweep the pass bitmap with a recurrence; the other 24 are 16384
-    // raycasts each, which is the bulk of what this scene costs.
+    // update_post() fills the selected octant before any other.
     u32 built = 0;
     for (auto k = 0u; k < Grid::Cover::octant_count; k++)
     {
@@ -1830,14 +1827,14 @@ task app::scene_cover()
         built |= val.u32;
     }
     // Every octant was selected once and each selection is ensured on the next frame, so a gap
-    // here means a fill silently failed rather than that the scene ran short.
+    // here means filling an octant silently failed rather than that the scene ran short.
     fm_assert_equal((u32)-1, built);
 
     fm_debug("cover: %u octants at %u ms each, all built", Grid::Cover::octant_count,
              (u32)Time::to_milliseconds(dt));
 
-    // Left alive, cover_test keeps calling fill_next_unfilled() every frame of whatever scene
-    // comes next -- tests_post_update() is gated on current_test alone, not the editor mode.
+    // tests_post_update() runs in every editor mode, so a cover_test left alive keeps calling
+    // fill_next_unfilled() every frame of the next scene.
     tests().switch_to(floormat::tests::Test::none);
     do_key(key_mode_none);
     co_yield {};
@@ -1951,7 +1948,7 @@ task app::scene_grids()
     // Params in play: raycast_params, the player's walk pool's, and cover's 8/8 shoot_through.
     // Pins per occupancy sample, and samples per frame. The work is the sample count -- each is
     // 16 pins and three pool builds -- and steps_per_frame does not change it. Frames are not
-    // work: 84% of a fill frame is draw_world() re-emitting every stool placed so far, which grows
+    // work: 84% of a frame placing pins is draw_world() re-emitting every stool placed so far, which grows
     // with the pin count and has nothing to do with the grids. A pin marks the grids stale when
     // placed, so a second sample in the same frame still rebuilds for real.
     constexpr u32 pins_per_step = 16, steps_per_frame = 8, max_pins = 1u << 14;
@@ -1959,9 +1956,8 @@ task app::scene_grids()
     // Stop once the bitmap is this full. Past it a new pin only takes cells an earlier one had
     // already taken, while a build still walks every object in the chunk. Read off cover's grid.
     constexpr float fill_target = .9f;
-    // Cover's 8 aligned octants sweep the pass bitmap with a recurrence and are nearly free. The
-    // other 24 raycast every cell -- 16384 rays each at cover_test's div_size of 8. Filling all
-    // 32 twice would cost more than the rest of the driver, so the expensive half is sampled.
+    // These count the octants cover_test fills, one per click, on the empty chunk and again on the filled one.
+    // fill_octant() raycasts only cells near the grid's edge, and computes the others without a raycast.
     constexpr u32 cover_octant_budget = 12, short_cover_octant_budget = 2;
     const bool shorten = pgo_driver_use_short_scenes();
     const auto steps = shorten ? short_steps_per_frame : steps_per_frame;
@@ -1999,7 +1995,7 @@ task app::scene_grids()
     (void)cursor_point();
     const auto step_test = [&]
     {
-        // Unlike the raycast sweep, the cursor stays put on purpose. What changed between frames
+        // Unlike in scene_raycast, the cursor stays put on purpose. What changed between frames
         // is the world, not the cursor, and re-extracting is the whole point.
         set_mouse_button_state(mouse_button_left, true);
         set_mouse_button_state(mouse_button_left, false);
@@ -2053,15 +2049,13 @@ task app::scene_grids()
              num_pins, (double)fill*100, (double)fill_target*100, num_builds,
              octant_budget, Grid::Cover::octant_count);
 
-    // Test::none, not just key_mode_none. tests_post_update() is gated on current_test alone
-    // (editor/update.cpp:307) and never on the editor mode, and cover_test::update_post() runs
-    // fill_next_unfilled() -- up to 16384 raycasts -- on every frame it holds a result. Left
-    // alive it also followed this scene into the next one's world.
+    // tests_post_update() runs in every editor mode, so with key_mode_none alone cover_test goes on
+    // filling octants, up to 886 raycasts a frame, and follows this scene into the next one's world.
     tests().switch_to(floormat::tests::Test::none);
     do_key(key_mode_none);
 
     // Steady state: nothing added, no pool marked stale, no test stepped. What a frame costs once
-    // the world stops changing, which the fill loop cannot say -- each of its frames carries 16
+    // the world stops changing, which the loop placing pins cannot say -- each of its frames carries 16
     // object creations and three full pass builds.
     //
     // Bounded by update() time so the frame count is the same everywhere, and measured against

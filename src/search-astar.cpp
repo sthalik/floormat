@@ -45,15 +45,16 @@ struct astar::frontier
     u32 g_score = (u32)-1;
 };
 
-// Where the goal's seed search reached a set cell. `cost` px lead from its lattice point through via to `to`.
+// Where the goal's seed search reached a cell whose pass bit is set.
+// The path from its lattice point through via to `to` costs `cost` px.
 struct astar::goal_seed
 {
     u32 cost = (u32)-1;
     point via;
 };
 
-// One bucket per f modulo mask + 1, LIFO within a bucket. Pops in f order only while
-// every live f lies at most mask above the lowest.
+// One bucket per f modulo mask + 1, LIFO within a bucket. pop() returns nodes in f order only while every f in
+// the queue lies at most mask above the lowest.
 struct astar::bucket_queue
 {
     // B[i].size() is the capacity. arrayRemoveSuffix() doesn't inline, so pop() would be a call.
@@ -161,7 +162,7 @@ bool same_ray(Vector2i a, Vector2i b)
            && (i64)a.x() * b.x() + (i64)a.y() * b.y() > 0;
 }
 
-// Han's order: the smaller angle from ref, and on the same ray, the farther one.
+// A corner improves on another when its angle from ref is smaller or, on the same ray, when it is farther.
 struct corner_pick
 {
     Vector2i vec;
@@ -292,8 +293,8 @@ void set_result_from_idx(path_search_result& result,
     arrayClear(temp_nodes);
 }
 
-// A pop's 3x3 window. When all 8 neighbours lie in the pop's chunk, chunk_idx is that chunk's
-// index and tile_idx the pop's cell in the cache, else chunk_idx is (u32)-1.
+// The 3x3 window of the node removed from the queue. When all 8 neighbours lie in its chunk, chunk_idx is that
+// chunk's index and tile_idx its cell in the cache, else chunk_idx is (u32)-1.
 struct neighbourhood
 {
     u32 window;
@@ -309,9 +310,8 @@ point node_at_or_below(point pt, u32 div_size, u32 node_offset)
 
 } // namespace
 
-// One bitmap pointer per chunk of the cache rectangle. Nothing marks a grid stale
-// during a search, so a pointer stays valid until it ends. Null: not resolved. Pointer value 1:
-// no chunk, so `(uptr)b > 1` tests for a bitmap in one comparison.
+// bits[i] is the bitmap of the cache's chunk i, null until resolved or 1 for a missing chunk, so `(uptr)b > 1`
+// tests for a bitmap. Nothing marks a grid stale during a search, so the pointers stay valid until it ends.
 struct astar::chunk_bitmaps
 {
     world& w;
@@ -337,7 +337,8 @@ struct astar::chunk_bitmaps
         return test_bit(b, Vector2ui(Vector2i(intra_coord{pt})));
     }
 
-    // Only while bits[chunk_idx] is null: the clear drops the chunk's nodes.
+    // Returns the bitmap of pt's chunk, or pointer value 1 when it is missing, and stores it in bits[chunk_idx].
+    // Call it only while bits[chunk_idx] is null, since clear_chunk() sets the chunk's cells to -1.
     CORRADE_NEVER_INLINE const usize* resolve(point pt, usize chunk_idx)
     {
         cache.clear_chunk((u32)chunk_idx);
@@ -371,9 +372,8 @@ struct astar::chunk_bitmaps
         return cache.is_passable_for_bbox(w, pool, pt, p);
     }
 
-    // Next to the chunk edge, the neighbours lie in up to three other chunks. 0 while one of
-    // them is unresolved or missing: resolving it here could build a grid that no move reads,
-    // and a missing chunk's cells take the world test.
+    // Returns pt's 3x3 window, or 0 while a chunk it covers is unresolved or missing. Resolving one could build
+    // a grid no move reads, and a missing chunk's cells are tested with cache.is_passable_for_bbox().
     CORRADE_NEVER_INLINE u32 window_edge(point pt, Vector2i pix)
     {
         constexpr int cs = (int)chunk_size_xy;
@@ -400,7 +400,7 @@ struct astar::chunk_bitmaps
         return win;
     }
 
-    // Bit (dy+1)*3 + dx+1 is the cell holding pt + (dx, dy)*div_size.
+    // Returns pt's 3x3 window. Bit (dy+1)*3 + dx+1 is the pass bit of the cell holding pt + (dx, dy)*div_size.
     CORRADE_ALWAYS_INLINE neighbourhood window(point pt)
     {
         constexpr int cs = (int)chunk_size_xy;
@@ -492,7 +492,8 @@ struct astar::endpoint
         return Search::is_passable_(c, neighbors, center - own_lo, center + own_hi, p);
     }
 
-    // exact, so a goal whose cell bit is clear stays reachable
+    // Returns true when p blocks no collider overlapping the bounding box of the boxes at pt and at other, so
+    // a goal whose cell bit is clear can still be reached.
     bool is_passable_to(point other, const pred& p) const
     {
         const auto other_center = center + Vector2(other - pt);
@@ -666,8 +667,8 @@ void print_result(const path_search_result& result, point from, point to)
 
 using Search::seed_search_radius;
 
-// From step - 1 up, the radius holds the nodes around the goal. 2*step - 2 also holds some nodes a cell
-// farther, which a goal whose nearest nodes are blocked links to without the goal's seed search.
+// Returns R, where nodes within R√2 px of the goal may link to it. 2*step - 2 holds some nodes a cell farther
+// than the nearest, so a goal whose nearest nodes are blocked can skip its seed search.
 constexpr int goal_radius(int step) { return 2*step - 2; }
 constexpr u64 goal_thres_sq(int step) { return 2 * (u64)goal_radius(step) * (u64)goal_radius(step); }
 constexpr int goal_seed_radius(int step) { return seed_search_radius + step - 1; }
@@ -692,10 +693,8 @@ bool can_reach_goal(chunk_bitmaps& bm, const endpoint& goal)
 
 constexpr inline u32 enclosed_goal_pops = 1u << 15;
 
-// True when no search node can reach the goal. Floods set cells from those can_reach_goal()
-// accepts and those the goal seeds lead to, by A*'s steps, which test the same cells in either direction.
-// Gives up at a node, within seed_search_radius + 2*step of `from` per axis, where the seeds lie, at the
-// window's edge, or past max_cells.
+// Returns true when a flood fill over A*'s moves, from the points linking to the goal, finds no search node.
+// A move tests the same cells either way. It returns false near `from`, at the window's edge or past max_cells.
 bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goal,
                    ArrayView<const goal_seed> seeds, Array<point>& cells)
 {
@@ -764,7 +763,7 @@ bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goa
             }
         }
     }
-    // A mark left behind would turn away a node of dist (u32)-2.
+    // A mark left behind would make do_dir() skip a node of dist (u32)-2.
     for (const auto pt : cells)
         cache.at(cache.get_chunk_index(Vector2i(pt.chunk())), cache.get_tile_index(intra_coord{pt})).dist = (u32)-1;
     arrayClear(cells);
@@ -784,9 +783,8 @@ bucket_queue make_bucket_queue(Array<Array<frontier>>& buckets, Array<u32>& size
 
 } // namespace
 
-// Dijkstra over integer positions near `source`, against the colliders, stops at every position but `source`
-// that is_passable_between_nodes() accepts.
-// cf. HPA*'s start insertion (Botea et al. 2004, "Near Optimal Hierarchical Path-Finding", 3.2.1).
+// Runs Dijkstra on integer positions within R px of `source` per axis, and ends each path at a position other
+// than `source` that is_passable_between_nodes() accepts. cf. HPA*'s start insertion, Botea et al. 2004, 3.2.1.
 struct astar::seed_search
 {
     static constexpr int R = seed_search_radius, W = 2*R + 1;
@@ -1155,8 +1153,7 @@ bool astar::seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start,
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
         const auto tile_idx = cache.get_tile_index(intra_coord{pt});
         auto dist = oct(from, pt);
-        // the cell bit only covers the seed itself, so sweep the bbox over the
-        // from -> seed motion, as at the goal
+        // The cell bit covers only the seed, so test the bounding box of the boxes at `from` and at the seed.
         // bm.is_passable() also resolves pt's chunk, which add_index() needs.
         if (bm.is_passable(pt, chunk_idx) && start.is_passable_to(pt, bm.p))
         {
@@ -1192,7 +1189,7 @@ auto astar::run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& 
             f_lo = Math::min(f_lo, f_score);
             f_hi = Math::max(f_hi, f_score);
         }
-        // The seeds' f spreads by more than the 3x3's.
+        // The seeds' f range can exceed that of the 3x3 points seed_ring() pushes, which the queue was sized for.
         if (const auto bucket_count = std::bit_ceil(Math::max(f_hi - f_lo, 2*oct.diag) + 2); bucket_count > Q.mask + 1)
             Q = make_queue(bucket_count);
         for (auto i = 0u; i < count; i++)
@@ -1208,7 +1205,7 @@ auto astar::run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& 
 }
 
 // Returns best, with to_node replaced by a cheaper path to `to` if the goal's seed search finds one from `from`
-// or from a node already searched.
+// or from a node A* has generated.
 auto astar::run_goal_seed_search(chunk_bitmaps& bm, const endpoint& start, const endpoint& goal, closest best) -> closest
 {
     const auto step = (int)bm.div_size;
@@ -1225,8 +1222,8 @@ auto astar::run_goal_seed_search(chunk_bitmaps& bm, const endpoint& start, const
         best.to_node = { .dist = g >> search.oct.shift, .prev = add_path_to_goal(goal.pt, start.pt, (u32)-1), .pt = goal.pt, };
         best.goal_seed_idx = (u32)-1;
     }
-    // A node still in A*'s queue may get a lower dist, which expand_nodes() links when it pops the node. One
-    // left out of the queue at f >= max_dist may too, and cost >= h keeps its link at max_dist or more.
+    // A node still in A*'s queue may get a lower dist, and expand_nodes() sets to_node.prev when it pops the node.
+    // One left out of the queue at f >= max_dist may too, and cost >= h keeps its path at max_dist or more.
     for (auto i = 0u; i < goal_seeds.size(); i++)
     {
         const auto& gs = goal_seeds[i];
@@ -1263,7 +1260,8 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
     // copies: read through `this`, they would be reloaded after every call
     const auto seed_off = goal_seed_off;
     const auto seed_n = goal_seed_n;
-    // A resume can add goal seeds. With none, a span of 0 fails every range check.
+    // goal_seeds is empty unless run_goal_seed_search() ran earlier in this Dijkstra() call.
+    // With none, a span of 0 fails every range check.
     const auto goal_seed_span = goal_seeds.isEmpty() ? 0u : seed_n * (u32)step;
     const auto goal_seed_thres_sq = goal_seeds.isEmpty()
                                     ? goal_thres_sq(step)
@@ -1282,7 +1280,7 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
             if (pops == max_pops && to_node.dist == max_dist) [[unlikely]]
                 break;
         const auto front = Q.pop();
-        // Every later pop has f at least this one's, and f bounds any path through the node.
+        // Every node removed later has f at least this one's, and f bounds any path through the node.
         if (front.f_score >= to_node.dist) [[unlikely]]
             break;
         const auto cur_idx = front.node;
@@ -1313,7 +1311,7 @@ auto astar::expand_nodes(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& goa
         {
             if (goal_dist_sq <= goal_thres_sq(step) && goal.is_passable_to(cur_pt, bm.p))
             {
-                // Octile like the steps, so h never exceeds this edge's cost. h is 0 at the goal.
+                // The edge costs the octile distance, as moves do, so h never exceeds it. h is 0 at the goal.
                 const auto new_dist = cur_dist + oct(goal_delta);
                 if (new_dist < to_node.dist)
                 {
@@ -1436,8 +1434,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Objec
     if (!start.is_passable(p) || !goal.is_passable(p))
         return {};
 
-    // Outside it, `to` lies over max_dist from `from`, and the cells around it can lie outside the
-    // cache.
+    // to_in_cache is false only when `to` lies over max_dist from `from`, and then the cells around `to` can lie
+    // outside the cache.
     const auto to_off = Vector2ui(Vector2i(to.chunk()) - cache.start - Vector2i{1});
     const auto to_in_cache = to_off.x() < cache.size.x() - 2 && to_off.y() < cache.size.y() - 2;
     if constexpr (!FindClosestOnFailure)
@@ -1445,8 +1443,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Objec
             return {};
 
     auto bm = make_bitmaps(w, pool, p, objects);
-    // Seeds lie up to seed_radius px from `from` per axis, so their f spreads by up to twice its
-    // octile. A step raises f by at most 2*diag.
+    // Seeds lie up to seed_radius px from `from` per axis, so their f range is at most twice its octile distance.
+    // A move raises f by at most 2*diag.
     const auto seed_radius = 2*step - 1;
     auto Q = make_queue(std::bit_ceil(2*Math::max(oct(Vector2i{seed_radius}), oct.diag) + 2));
 
@@ -1498,8 +1496,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Objec
         }
     }
 
-    // The 3x3 seeds, or the nodes near the goal, can all lie where the lattice can't leave, such as a room or a
-    // corridor whose exit holds no node line.
+    // The 3x3 seeds, or the nodes near the goal, can all lie where no path of passable lattice points leads out,
+    // such as a room or a corridor whose exit holds no row or column of passable lattice points.
     if (best.to_node.dist == max_dist)
     {
         if (near_goal && !goal_seeded)
@@ -1616,7 +1614,8 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* ob
 
     arrayAppend(sp, path_search_result::waypoint{ P[0], 0 });
     i8 turn = 0;
-    // Algorithm 1 was written for grid cells. The bound keeps a cycle on rects from hanging.
+    // Algorithm 1 was written for grid cells. budget ends the loop, which with rect colliders can append and
+    // remove the same corners forever.
     auto budget = 8*n + 64;
     u32 seg = 0, seg_last = n > 2 ? steps_of_segment(raw[0], raw[1], cell).count : 0;
 
@@ -1638,7 +1637,8 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* ob
         {
             if (ref.isZero())
                 return give_up();
-            // A rect smaller than a step can lie between two lines Han takes as clear.
+            // Algorithm 1 assumes the line to pick is clear. A rect smaller than a cell can lie between it and the
+            // line to P[i-1], so the loop tests it.
             auto pick = res.best;
             for (auto k = 0u; pick.found; k++)
             {
@@ -1649,8 +1649,8 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* ob
                     return give_up();
                 pick = check.best;
             }
-            // Pixel rounding can clear the line to P[i-1] past a corner its exact segment clips. That
-            // corner lies across ref from pick, so limit excludes it and no pick remains.
+            // Pixel rounding can make los() find no collider on the line to P[i-1] past a corner its exact segment
+            // clips. That corner lies across ref from pick, so limit excludes it and no pick remains.
             if (!pick.found)
             {
                 if (los(O, P[i-1], ref, nullptr).blocked)

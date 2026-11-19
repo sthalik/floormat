@@ -15,8 +15,8 @@ struct path_search_result final
     struct waypoint
     {
         point pt;
-        // The raw_path() segment whose step string pulling was at when it added the waypoint.
-        // 0 for the first waypoint, raw_path().size() - 1 for the last.
+        // j for the segment from raw_path()[j] to raw_path()[j + 1] holding the point string_pull() tested when it
+        // added this waypoint. The first holds 0 and the last raw_path().size() - 1, the index of the last point.
         u32 raw_index;
     };
 

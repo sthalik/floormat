@@ -6,7 +6,7 @@
 
 namespace floormat::Search {
 
-// Step costs of a search stepping `step` px, a power of two. Must match search-astar.cpp directions.
+// Move costs of a search on cells `step` px wide, a power of two. Must match search-astar.cpp directions.
 struct octile
 {
     u32 axial, diag, shift;

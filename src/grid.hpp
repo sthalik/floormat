@@ -19,7 +19,7 @@ namespace floormat::Grid::detail {
 struct GridBase;
 struct PoolBase;
 
-// Whole 64-bit words, so the clear_rect_*() functions never read past the end of a small grid.
+// Returns div_count² rounded up to a multiple of 64, so clear_rect_*() never accesses past a small grid's end.
 constexpr u32 bitmask_size(u32 div_count)
 {
     return (div_count * div_count + 63) & ~63u;
@@ -40,7 +40,7 @@ struct GridBase
     chunk* c;
     chunk_coords_ coord;
     std::array<chunk*, 8> neighbors{};
-    u64 built_pass_gen = 0; // world::pass_gen() after the last build, or 0 when stale
+    u64 built_pass_gen = 0; // world::pass_gen() after the last build, or 0 while marked stale
     u64 build_no = 0;
     u32 in_use_index = (u32)-1;
 

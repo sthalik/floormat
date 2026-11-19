@@ -193,7 +193,7 @@ void Cover_Build(benchmark::State& state)
 
 BENCHMARK(Cover_Build)->Arg(16)->Arg(8)->Unit(benchmark::kMillisecond);
 
-// The eight octants that sweep the pass bitmap. Only cells on the far edge cast a ray.
+// The eight octants along an axis or a diagonal. Only cells on the far edge cast a ray.
 void Cover_Aligned(benchmark::State& state)
 {
     auto w = world();
