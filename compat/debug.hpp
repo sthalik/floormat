@@ -74,7 +74,7 @@ auto nospace(T&& value, Ts&&... values)
 template<DebugPrintable T>
 auto quoted(T&& value, char c = '\'')
 {
-    return floormat::detail::corrade_debug::Quoted<T&&>{ .value = floormat::forward<T>(value), .c = { c, '\0' } };
+    return floormat::detail::corrade_debug::Quoted<T&&>{ .value = forward<T>(value), .c = { c, '\0' } };
 }
 
 template<DebugPrintable T> auto quoted2(T&& value) { return quoted(forward<T>(value), '"'); }

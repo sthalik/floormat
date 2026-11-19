@@ -44,7 +44,7 @@ constexpr bool operator==(const list_iterator& a, const list_iterator& b) noexce
 constexpr list_iterator begin(const list& l) noexcept { return {l.head}; }
 constexpr list_iterator end(const list&) noexcept { return {nullptr}; }
 
-template<typename R> concept begin_callable = requires(R&& r) { floormat::begin(floormat::forward<R>(r)); };
+template<typename R> concept begin_callable = requires(R&& r) { floormat::begin(forward<R>(r)); };
 
 static_assert(range<int[3]>);
 static_assert(range<const int[3]>);

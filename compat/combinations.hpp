@@ -70,7 +70,7 @@ public:
 };
 
 template<typename V>
-constexpr element<V>::element(It first, It second) noexcept : _first{floormat::move(first)}, _second{floormat::move(second)} {}
+constexpr element<V>::element(It first, It second) noexcept : _first{move(first)}, _second{move(second)} {}
 
 template<typename V>
 template<usize N>
@@ -156,7 +156,7 @@ constexpr bool iterator<V>::operator==(sentinel) const noexcept
 }
 
 template<typename R>
-constexpr view<R>::view(R&& r) noexcept(std::is_nothrow_constructible_v<base_type, R>) : _base{floormat::forward<R>(r)} {}
+constexpr view<R>::view(R&& r) noexcept(std::is_nothrow_constructible_v<base_type, R>) : _base{forward<R>(r)} {}
 
 template<typename R>
 constexpr auto view<R>::begin() noexcept -> iterator<base_type>
@@ -184,7 +184,7 @@ namespace floormat {
 template<typename R> requires range<R>
 constexpr detail::combinations::view<R> combinations(R&& r) noexcept(std::is_nothrow_constructible_v<detail::combinations::view<R>, R>)
 {
-    return detail::combinations::view<R>{floormat::forward<R>(r)};
+    return detail::combinations::view<R>{forward<R>(r)};
 }
 
 } // namespace floormat

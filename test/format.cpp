@@ -11,7 +11,7 @@ template<typename... Xs>
 void check(StringView expected, fmt::format_string<Xs...> fmt, Xs&&... args)
 {
     char buf[64];
-    const auto len = snformat(buf, fmt, floormat::forward<Xs>(args)...);
+    const auto len = snformat(buf, fmt, forward<Xs>(args)...);
     fm_assert(len == expected.size());
     fm_assert(StringView{buf, len} == expected);
 }

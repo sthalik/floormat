@@ -94,7 +94,7 @@ public:
 };
 
 template<typename V>
-constexpr element<V>::element(It it) noexcept : _it{floormat::move(it)} {}
+constexpr element<V>::element(It it) noexcept : _it{move(it)} {}
 
 template<typename V>
 constexpr decltype(auto) element<V>::value() noexcept
@@ -198,7 +198,7 @@ constexpr bool iterator<V>::operator==(const end_type<V>& end) const noexcept
 }
 
 template<typename R>
-constexpr view<R>::view(R&& r) noexcept(std::is_nothrow_constructible_v<base_type, R>) : _base{floormat::forward<R>(r)} {}
+constexpr view<R>::view(R&& r) noexcept(std::is_nothrow_constructible_v<base_type, R>) : _base{forward<R>(r)} {}
 
 template<typename R>
 constexpr auto view<R>::begin() noexcept -> iterator<base_type>
@@ -243,7 +243,7 @@ namespace floormat {
 template<typename R> requires range<R>
 constexpr detail::enumerate::view<R> enumerate(R&& r) noexcept(std::is_nothrow_constructible_v<detail::enumerate::view<R>, R>)
 {
-    return detail::enumerate::view<R>{floormat::forward<R>(r)};
+    return detail::enumerate::view<R>{forward<R>(r)};
 }
 
 } // namespace floormat

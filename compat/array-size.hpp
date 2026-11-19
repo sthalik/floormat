@@ -43,18 +43,18 @@ namespace floormat {
 
 template<typename T> struct array_traits : detail::array_traits_base<T>
 {
-    template<typename... Us> static constexpr T make(Us&&... elements) { return T{::floormat::forward<Us>(elements)...}; }
+    template<typename... Us> static constexpr T make(Us&&... elements) { return T{forward<Us>(elements)...}; }
 };
 
 template<typename T, usize N> struct array_traits<std::array<T, N>> : detail::array_traits_base<std::array<T, N>>
 {
     // std::array wraps a single T[N] member, so the inner braces are the array's
-    template<typename... Us> static constexpr std::array<T, N> make(Us&&... elements) { return std::array<T, N>{{ ::floormat::forward<Us>(elements)... }}; }
+    template<typename... Us> static constexpr std::array<T, N> make(Us&&... elements) { return std::array<T, N>{{ forward<Us>(elements)... }}; }
 };
 
 template<usize N, typename T> struct array_traits<StaticArray<N, T>> : detail::array_traits_base<StaticArray<N, T>>
 {
-    template<typename... Us> static constexpr StaticArray<N, T> make(Us&&... elements) { return StaticArray<N, T>{InPlaceInit, ::floormat::forward<Us>(elements)...}; }
+    template<typename... Us> static constexpr StaticArray<N, T> make(Us&&... elements) { return StaticArray<N, T>{InPlaceInit, forward<Us>(elements)...}; }
 };
 
 // a C array has no .data() and can't be returned

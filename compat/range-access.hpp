@@ -193,7 +193,7 @@ constexpr usize ref_view<R>::size() const noexcept requires sized_range<const R>
 }
 
 template<typename R>
-constexpr owning_view<R>::owning_view(R&& r) noexcept(std::is_nothrow_move_constructible_v<R>) : _r{floormat::move(r)} {}
+constexpr owning_view<R>::owning_view(R&& r) noexcept(std::is_nothrow_move_constructible_v<R>) : _r{move(r)} {}
 
 template<typename R>
 constexpr R& owning_view<R>::base() noexcept

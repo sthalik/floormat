@@ -47,17 +47,17 @@ private:
 namespace floormat::detail {
 
 template<typename F>
-requires requires (F&& fn) { requires !std::is_void_v<decltype(floormat::forward<F>(fn)())>; }
+requires requires (F&& fn) { requires !std::is_void_v<decltype(forward<F>(fn)())>; }
 [[nodiscard]] auto check_glcall(F&& fn, StringView expression, gl_error_policy policy,
                                 std::source_location location = std::source_location::current())
 {
-    using R = decltype(floormat::forward<F>(fn)());
+    using R = decltype(forward<F>(fn)());
     using T = std::conditional_t<std::is_lvalue_reference_v<R>,
                                  Reference<std::remove_reference_t<R>>,
                                  std::remove_cvref_t<R>>;
     Optional<T> result;
-    const bool ok = check_glcall([&] { result.emplace(floormat::forward<F>(fn)()); }, expression, policy, location);
-    return Pair<T, bool>{floormat::move(*result), ok};
+    const bool ok = check_glcall([&] { result.emplace(forward<F>(fn)()); }, expression, policy, location);
+    return Pair<T, bool>{move(*result), ok};
 }
 
 } // namespace floormat::detail
