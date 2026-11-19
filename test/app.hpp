@@ -64,6 +64,7 @@ void test_loader2();
 void test_loader3();
 void test_local();
 void test_magnum_math();
+void test_map();
 void test_math();
 void test_multi_level_table();
 void test_pairwise();
