@@ -29,6 +29,11 @@ void seed(xoshiro256starstar& state, u64 value);
 // Zero selects the standard's default seed.
 void seed(ranlux48& state, u64 value);
 
+void seed_from_entropy(splitmix64& state);
+void seed_from_entropy(xoshiro256starstar& state);
+// seed() takes the value modulo 2147483563, so this starts fewer than 2^31 sequences.
+void seed_from_entropy(ranlux48& state);
+
 u64 next(splitmix64& state);
 u64 next(xoshiro256starstar& state);
 // 48-bit outputs.

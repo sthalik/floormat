@@ -2,9 +2,11 @@
 #include "compat/enumerate.hpp"
 #include "compat/limits.hpp"
 #include "compat/zip.hpp"
+#include "random/os-seed.hpp"
 #include "random/random.hpp"
 #include <bit>
 #include <cmath>
+#include <cstring>
 #include <random>
 
 namespace floormat::Test {
@@ -290,6 +292,30 @@ void test_gaussian_types()
     }
 }
 
+void test_seed_from_entropy()
+{
+    u8 a[8], b[8];
+    Random::os_random_bytes(a);
+    Random::os_random_bytes(b);
+    fm_assert(std::memcmp(a, b, sizeof a) != 0);
+
+    Random::splitmix64 s0, s1;
+    Random::seed_from_entropy(s0);
+    Random::seed_from_entropy(s1);
+    fm_assert(Random::next(s0) != Random::next(s1));
+
+    Random::xoshiro256starstar x0, x1;
+    Random::seed_from_entropy(x0);
+    Random::seed_from_entropy(x1);
+    fm_assert((x0.s[0] | x0.s[1] | x0.s[2] | x0.s[3]) != 0);
+    fm_assert(Random::next(x0) != Random::next(x1));
+
+    Random::ranlux48 r0, r1;
+    Random::seed_from_entropy(r0);
+    Random::seed_from_entropy(r1);
+    fm_assert(Random::next(r0) != Random::next(r1));
+}
+
 } // namespace
 
 void test_random()
@@ -301,6 +327,7 @@ void test_random()
     test_gaussian<double>(0x7fcb08b40c66e350);
     test_gaussian<float>(0x9c8265a5f7ca8afe);
     test_gaussian_types();
+    test_seed_from_entropy();
 
     constexpr u32 max_steps = 1 << 20;
 
