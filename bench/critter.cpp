@@ -9,6 +9,10 @@
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
 #include "src/critter-script-cover.hpp"
+#include "src/critter-script-cover-search.hpp"
+#include "src/search-result.hpp"
+#include "src/chunk.hpp"
+#include "src/tile-image.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-registry.hpp"
@@ -22,7 +26,10 @@
 #include "src/point.inl"
 #include "src/intra-coord.inl"
 #include "loader/loader.hpp"
+#include <algorithm>
 #include <bit>
+#include <cmath>
+#include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <mg/Functions.h>
 #include <benchmark/benchmark.h>
@@ -603,6 +610,281 @@ void Critter_cover(benchmark::State& st)
 }
 
 BENCHMARK(Critter_cover)->Unit(benchmark::kMillisecond);
+
+// In degrees from the axis of the npc's cover toward the threat, one per chase cycle.
+constexpr float chase_bearings[] = { 90, -90, 135, -135, 180, 60, -60, 45 };
+
+// scene_cover_ai_map's walls in chunk 0, with bare ground in the chunks around it.
+void make_cover_chase_world(world& w)
+{
+    constexpr local_coords west_walls[] = { {5, 5}, {5, 6}, {11, 7}, {11, 8}, {9, 10}, {9, 11}, {8, 7}, };
+    constexpr local_coords north_walls[] = { {9, 4}, {10, 4}, {11, 9}, {12, 9}, {4, 10}, {5, 10}, {6, 10}, {8, 7}, };
+    const auto floor = tile_image_proto{ loader.ground_atlas("tiles"), 0 };
+    const auto wall = wall_image_proto{ loader.wall_atlas("test1"), 0 };
+    for_cover_chunks([&](chunk_coords_ ch) {
+        auto& c = w[ch];
+        for (auto j = 0u; j < TILE_MAX_DIM; j++)
+            for (auto i = 0u; i < TILE_MAX_DIM; i++)
+                c[{i, j}].ground() = floor;
+    });
+    auto& c = w[chunk_coords_{}];
+    for (const auto tile : west_walls)
+        c[tile].wall_west() = wall;
+    for (const auto tile : north_walls)
+        c[tile].wall_north() = wall;
+    for_cover_chunks([&](chunk_coords_ ch) {
+        w[ch].mark_modified();
+        w[ch].ensure_passability();
+    });
+}
+
+// 5 s after the npc first stands exposed at a cover, the threat goes where it sees the npc's body at that cover,
+// from each of chase_bearings in turn, and the next cycle starts once the npc hides at another cover.
+void Critter_cover_chase(benchmark::State& st)
+{
+    using state = Cover::Script::status::state;
+    constexpr u32 div_size = 8, max_dijkstra_calls_per_bearing = 8;
+    // Dijkstra searches per cycle for a walking threat that stopped short of its destination.
+    constexpr u32 max_threat_dijkstra_calls_per_cycle = 8;
+    constexpr int lattice_spacing = 16, lattice_half_width = 6*(int)tile_size_xy;
+    constexpr int lattice_points_per_side = 2*lattice_half_width/lattice_spacing + 1;
+    constexpr float min_dist_from_cover = 2*tile_size_xy, max_dist_from_cover = 6*tile_size_xy;
+    constexpr float max_bearing_error = 22.5f;
+    constexpr auto body = Vector2ui{24, 24};
+    constexpr auto time_before_chase = 5*Second, max_phase_time = 60*Second;
+    constexpr auto hidden_time = 2*Second; // the script's hidden_time
+    const bool is_teleport = st.range(0);
+
+    auto w = world();
+    make_cover_chase_world(w);
+    const auto add_critter = [&](point pos) {
+        critter_proto p;
+        p.name = "npc"_s;
+        p.bbox_size = Vector2ub(body);
+        p.offset = pos.offset();
+        return w.make_object<critter>(w.make_id(), pos.coord(), move(p));
+    };
+
+    // scene_cover_ai_map's npc tile and first player tile
+    const auto npc_start = point{chunk_coords_{}, {7, 8}, {}}, threat_start = point{chunk_coords_{}, {14, 5}, {}};
+    auto npc = add_critter(npc_start);
+    auto threat = add_critter(threat_start);
+    const auto blocks_all_but_threat = Search::blocks_all_but(threat->id);
+    const auto is_passable_for_threat = [&](point pos) {
+        const auto min = Vector2(pos.intra().center_shifted() - Vector2i(body/2u));
+        return w.at(pos.chunk3()) &&
+               Search::is_passable(w, pos.chunk3(), Range2D::fromSize(min, Vector2(body)), blocks_all_but_threat);
+    };
+
+    w.init_scripts();
+    const auto frame = Second / npc->atlas->info().fps;
+    Optional<astar> A;
+    Cover::Point::finder finder;
+    Array<point> destinations;
+    arrayReserve(destinations, lattice_points_per_side*lattice_points_per_side);
+    u32 num_updates = 0, num_cycles = 0, num_cycles_without_peek = 0;
+
+    // Returns the threat's path to the lattice point nearest it within max_bearing_error of bearing from c.pos,
+    // from which it sees the npc's body at c. Only the max_dijkstra_calls_per_bearing nearest are tried.
+    const auto path_to_chase_destination = [&](const Cover::Script::cover& c, float bearing) {
+        const auto t = Rad{Deg{bearing}};
+        const auto a = Vector2(c.axis);
+        const auto bearing_dir = Vector2{a.x()*Math::cos(t) - a.y()*Math::sin(t),
+                                         a.x()*Math::sin(t) + a.y()*Math::cos(t)};
+        const auto from = threat->position();
+        arrayClear(destinations);
+        for (int y = -lattice_half_width; y <= lattice_half_width; y += lattice_spacing)
+            for (int x = -lattice_half_width; x <= lattice_half_width; x += lattice_spacing)
+            {
+                const auto v = Vector2{(float)x, (float)y};
+                const auto len = v.length();
+                if (len < min_dist_from_cover || len > max_dist_from_cover)
+                    continue;
+                const auto bearing_error = Deg{Rad{std::atan2(Math::cross(bearing_dir, v), Math::dot(bearing_dir, v))}};
+                if (Math::abs((float)bearing_error) > max_bearing_error)
+                    continue;
+                const auto pt = c.pos + Vector2i{x, y};
+                if (is_passable_for_threat(pt) && !finder.hidden_at(w, pt, {c.canonical, c.axis}, body))
+                    arrayAppend(destinations, pt);
+            }
+        std::sort(destinations.begin(), destinations.end(), [&](point p, point q) {
+            return (p - from).dot() < (q - from).dot();
+        });
+        for (u32 k = 0; k < Math::min((u32)destinations.size(), max_dijkstra_calls_per_bearing); k++)
+        {
+            const auto to = destinations[k];
+            auto path = A->Dijkstra<0, false>(w, from, to, Cover::max_search_path_length(from, to), body,
+                                              blocks_all_but_threat);
+            if (path.is_found())
+            {
+                (void)A->string_pull(w, path, body, blocks_all_but_threat);
+                return path;
+            }
+        }
+        return path_search_result{};
+    };
+    const auto walk_threat = [&](path_search_result path) {
+        threat->script.do_reassign(critter_script::make_walk_script(move(path)), threat);
+    };
+    const auto stop_threat = [&] {
+        if (threat->moves.AUTO)
+            threat->script.do_clear(threat);
+    };
+
+    const auto reset_critters = [&] {
+        if (A)
+            npc->script.do_clear(npc);
+        stop_threat();
+        auto i = npc->index();
+        npc->teleport_to(i, npc_start, N);
+        npc->delta = 0;
+        auto j = threat->index();
+        threat->teleport_to(j, threat_start, N);
+        threat->delta = 0;
+        A.emplace();
+        npc->script.do_reassign(critter_script::make_cover_script(*A, threat->id, div_size), npc);
+    };
+    const auto run_cycles = [&] {
+        Optional<Cover::Script::cover> cover_at_chase_start;
+        Optional<Ns> first_hidden_time, first_exposed_time;
+        Ns phase_start_time = w.game_time();
+        point destination;
+        u32 bearing_index = 0, num_threat_dijkstra_calls = 0;
+        num_updates = num_cycles = num_cycles_without_peek = 0;
+
+        while (bearing_index < array_size(chase_bearings))
+        {
+            w.increment_frame_no();
+            w.advance_game_time(frame);
+            auto j = threat->index();
+            threat->update(threat, j, frame);
+            auto i = npc->index();
+            npc->update(npc, i, frame);
+            num_updates++;
+
+            const auto s = Cover::Script::get_status(*npc);
+            fm_assert(s);
+            const auto now = w.game_time();
+            if (now - phase_start_time > max_phase_time) [[unlikely]]
+            {
+                Error{standard_error()} << "cover chase: phase over" << max_phase_time
+                                        << "bearing" << chase_bearings[bearing_index] << "state" << (unsigned)s->st
+                                        << "npc" << npc->position() << "threat" << threat->position();
+                fm_abort("cover chase timed out");
+            }
+
+            if (!cover_at_chase_start)
+            {
+                if (!first_hidden_time)
+                {
+                    if (s->st == state::hidden)
+                        first_hidden_time = now;
+                    continue;
+                }
+                if (s->st == state::exposed && !first_exposed_time)
+                    first_exposed_time = now;
+                const bool is_chase_due = first_exposed_time
+                                          ? now >= *first_exposed_time + time_before_chase
+                                          : s->st == state::hidden &&
+                                            now >= *first_hidden_time + hidden_time + time_before_chase;
+                if (!is_chase_due)
+                    continue;
+                fm_assert(s->cover);
+                auto path = path_search_result{};
+                for (; bearing_index < array_size(chase_bearings); bearing_index++)
+                    if (path = path_to_chase_destination(*s->cover, chase_bearings[bearing_index]); path.is_found())
+                        break;
+                if (!path.is_found())
+                    break;
+                cover_at_chase_start = s->cover;
+                destination = path.path().back();
+                num_cycles_without_peek += !first_exposed_time;
+                num_threat_dijkstra_calls = 0;
+                phase_start_time = now;
+                if (is_teleport)
+                {
+                    auto k = threat->index();
+                    threat->teleport_to(k, destination, N);
+                }
+                else
+                    walk_threat(move(path));
+                continue;
+            }
+
+            const bool has_npc_reacted = s->st == state::seek || s->st == state::search ||
+                                         s->st == state::find_retreat || s->st == state::retreat;
+            const bool is_new_cover = s->cover && s->cover->canonical != cover_at_chase_start->canonical;
+            if (has_npc_reacted)
+                stop_threat();
+            else if (s->st == state::hidden && is_new_cover &&
+                     finder.hidden_at(w, threat->position(), {s->cover->canonical, s->cover->axis}, body))
+            {
+                cover_at_chase_start = {};
+                first_hidden_time = now;
+                first_exposed_time = {};
+                phase_start_time = now;
+                num_cycles++;
+                bearing_index++;
+            }
+            else if (!is_teleport && !is_new_cover && !threat->moves.AUTO && threat->position() != destination &&
+                     num_threat_dijkstra_calls < max_threat_dijkstra_calls_per_cycle)
+            {
+                const auto from = threat->position();
+                const auto max_dist = Cover::max_search_path_length(from, destination);
+                auto path = A->Dijkstra<0, false>(w, from, destination, max_dist, body, blocks_all_but_threat);
+                if (path.is_found())
+                {
+                    (void)A->string_pull(w, path, body, blocks_all_but_threat);
+                    walk_threat(move(path));
+                }
+                num_threat_dijkstra_calls++;
+            }
+        }
+    };
+
+    reset_critters();
+    run_cycles();
+    for (auto _ : st)
+    {
+        st.PauseTiming();
+        reset_critters();
+        st.ResumeTiming();
+        run_cycles();
+    }
+
+    const auto s = Cover::Script::get_status(*npc);
+    fm_assert(s);
+    const auto& n = s->counters;
+    st.counters["num_cycles"] = num_cycles;
+    st.counters["num_cycles_without_peek"] = num_cycles_without_peek;
+    st.counters["num_updates"] = num_updates;
+    st.counters["script_ms"] = (double)s->total_update.stamp * 1e-6;
+    st.counters["num_searches"] = n.num_searches;
+    st.counters["num_find_cover_point_calls"] = n.num_find_cover_point_calls;
+    st.counters["num_rays"] = n.num_rays;
+    st.counters["num_body_checks"] = n.num_body_checks;
+    st.counters["num_path_body_checks"] = n.num_path_body_checks;
+    st.counters["num_dijkstra_calls"] = n.num_dijkstra_calls;
+    st.counters["num_retreat_restarts"] = n.num_retreat_restarts;
+    // octants 0, 4, …, 28 lie along an axis or a 45° diagonal
+    constexpr u32 octilinear_octants = 0x11111111u;
+    u32 num_octilinear_octants = 0, num_non_octilinear_octants = 0;
+    auto& pool = A->pool_registry().cover_pool(Grid::Cover::Params{div_size});
+    for_cover_chunks([&](chunk_coords_ ch) {
+        const auto k = pool[w[ch]].built_octants();
+        num_octilinear_octants += (u32)std::popcount(k & octilinear_octants);
+        num_non_octilinear_octants += (u32)std::popcount(k & ~octilinear_octants);
+    });
+    st.counters["num_octilinear_octants"] = num_octilinear_octants;
+    st.counters["num_non_octilinear_octants"] = num_non_octilinear_octants;
+    st.counters["ms_filling_octants"] = (double)pool.octant_fill_time().stamp * 1e-6;
+
+    stop_threat();
+    npc->script.do_clear(npc);
+    w.finish_scripts();
+}
+
+BENCHMARK(Critter_cover_chase)->ArgName("teleport")->Arg(0)->Arg(1)->Unit(benchmark::kMillisecond);
 
 } // namespace
 
