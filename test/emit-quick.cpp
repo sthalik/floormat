@@ -61,12 +61,12 @@ Array<Color4ub> expected_pixels(const anim_atlas& atlas, rotation r, u32 frame)
     const auto sw = rotated ? h : w, sh = rotated ? w : h;
     const auto img = SpriteAtlas::read_layer_pixels(static_cast<GL::Texture2DArray&>(loader.atlas().texture()),
                                                     (Int)sp.layer, Range2Di::fromSize({(Int)sp.x, (Int)sp.y}, {(Int)sw, (Int)sh}));
-    const auto* slot = reinterpret_cast<const Color4ub*>(img.data().data());
+    const auto* rect_pixels = reinterpret_cast<const Color4ub*>(img.data().data());
     const auto cw = w + 2*margin;
     Array<Color4ub> ret{DirectInit, (usize)cw*(h + 2*margin), clear_color_ub};
     for (auto y = 0u; y < h; y++)
         for (auto x = 0u; x < w; x++)
-            ret[(y + margin)*cw + margin + (mirror ? w-1-x : x)] = rotated ? slot[x*sw + h-1-y] : slot[y*w + x];
+            ret[(y + margin)*cw + margin + (mirror ? w-1-x : x)] = rotated ? rect_pixels[x*sw + h-1-y] : rect_pixels[y*w + x];
     return ret;
 }
 

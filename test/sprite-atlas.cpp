@@ -217,7 +217,7 @@ void grow_keeps_bound_framebuffer()
         fm_assert(data[i] == (char)src[i]);
 }
 
-void copy_slot_keeps_pixels_and_bound_framebuffer()
+void copy_rect_keeps_pixels_and_bound_framebuffer()
 {
     sprite_atlas atlas{64, 64};
     constexpr u32 w = 7, h = 11, rw = 3, rh = 13;
@@ -241,7 +241,7 @@ void copy_slot_keeps_pixels_and_bound_framebuffer()
     GLint read_fb = 0;
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fb);
 
-    GL::Texture2D copies[2] = { copy_slot(*atlas.raw(), *sprites[0].raw()), copy_slot(*atlas.raw(), *sprites[1].raw()) };
+    GL::Texture2D copies[2] = { copy_rect(*atlas.raw(), *sprites[0].raw()), copy_rect(*atlas.raw(), *sprites[1].raw()) };
     GLint draw_fbʹ = 0, read_fbʹ = 0, vp[4] = {};
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fbʹ);
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fbʹ);
@@ -255,11 +255,11 @@ void copy_slot_keeps_pixels_and_bound_framebuffer()
         const auto s = sprites[i];
         const auto sw = s.is_rotated() ? s.height() : s.width(), sh = s.is_rotated() ? s.width() : s.height();
         fm_assert(copies[i].imageSize(0) == Vector2i{(Int)sw, (Int)sh});
-        const auto slot = read_layer_pixels(tex, (Int)s.layer(), Range2Di::fromSize({(Int)s.x(), (Int)s.y()}, {(Int)sw, (Int)sh}));
+        const auto rect_pixels = read_layer_pixels(tex, (Int)s.layer(), Range2Di::fromSize({(Int)s.x(), (Int)s.y()}, {(Int)sw, (Int)sh}));
         const auto copy = copies[i].image(0, Magnum::Image2D{Magnum::PixelFormat::RGBA8Unorm});
-        fm_assert(copy.data().size() == slot.data().size());
-        for (usize j = 0; j < slot.data().size(); j++)
-            fm_assert(copy.data()[j] == slot.data()[j]);
+        fm_assert(copy.data().size() == rect_pixels.data().size());
+        for (usize j = 0; j < rect_pixels.data().size(); j++)
+            fm_assert(copy.data()[j] == rect_pixels.data()[j]);
     }
 }
 
@@ -445,11 +445,11 @@ void staged_adds_reach_texture()
         const auto s = sprite{sprites[i]};
         const auto sw = s.is_rotated() ? s.height() : s.width(), sh = s.is_rotated() ? s.width() : s.height();
         auto img = read_layer_pixels(tex, (Int)s.layer(), Range2Di::fromSize({(Int)s.x(), (Int)s.y()}, {(Int)sw, (Int)sh}));
-        const auto* slot = reinterpret_cast<const u32*>(img.data().data());
+        const auto* rect_pixels = reinterpret_cast<const u32*>(img.data().data());
         const auto* orig = reinterpret_cast<const u32*>(src[i].data());
         for (auto y = 0u; y < s.height(); y++)
             for (auto x = 0u; x < s.width(); x++)
-                fm_assert(orig[y*s.width() + x] == (s.is_rotated() ? slot[x*sw + s.height()-1-y] : slot[y*sw + x]));
+                fm_assert(orig[y*s.width() + x] == (s.is_rotated() ? rect_pixels[x*sw + s.height()-1-y] : rect_pixels[y*sw + x]));
     }
 }
 
@@ -630,7 +630,7 @@ void test_sprite_atlas()
     upload_and_readback_is_lossless();
     realloc_preserves_uploaded_pixels();
     grow_keeps_bound_framebuffer();
-    copy_slot_keeps_pixels_and_bound_framebuffer();
+    copy_rect_keeps_pixels_and_bound_framebuffer();
     texcoords_show_expected_source_corners();
     texture_growth_clears_new_layers_to_magenta();
     reset_discards_pending_sprites();
