@@ -300,8 +300,8 @@ auto pass_mask(D d, const usize* pass_bits, u32 n)
 // redoes the edge cell that reads one. Returns false and touches nothing when the row doesn't split
 // into whole vectors.
 template<u32 DivSize, typename T>
-bool sweep_row_vectorized(u16* prev, T* out, const usize* pass_bits, u32 y, i32 sx,
-                          u32 step, u32 runtime_div_size)
+bool sweep_row_vectorized(u16* __restrict prev, T* __restrict out, const usize* __restrict pass_bits,
+                          u32 y, i32 sx, u32 step, u32 runtime_div_size)
 {
     const u32 div_size = DivSize ? DivSize : runtime_div_size, dc = chunk_size_xy / div_size;
     namespace hn = hwy::HWY_NAMESPACE;
@@ -374,7 +374,7 @@ bool stepped_rows_vectorize(u32 dc)
 }
 
 // One u16 per cell, all ones where passable, so a vector can load from any cell.
-void expand_pass_row(u16* out, const usize* pass_bits, u32 y, u32 dc)
+void expand_pass_row(u16* __restrict out, const usize* __restrict pass_bits, u32 y, u32 dc)
 {
     namespace hn = hwy::HWY_NAMESPACE;
     constexpr DU16 d;
@@ -387,8 +387,8 @@ void expand_pass_row(u16* out, const usize* pass_bits, u32 y, u32 dc)
 // order and masks[j] the pass masks of the row j back. A cell whose cell a step away is off the
 // grid reads spare cells of next and masks, so the caller redoes it.
 template<typename T>
-void sweep_stepped_row(const u16* next, u16* cur, const u16* const* masks, T* out,
-                       const stepped_octant& o, u32 step, const u16* stop_px,
+void sweep_stepped_row(const u16* __restrict next, u16* __restrict cur, const u16* const* __restrict masks,
+                       T* __restrict out, const stepped_octant& o, u32 step, const u16* __restrict stop_px,
                        u32 div_size)
 {
     namespace hn = hwy::HWY_NAMESPACE;
