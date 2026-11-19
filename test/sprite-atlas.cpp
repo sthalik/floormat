@@ -37,11 +37,11 @@ void height_class_table_matches_quantize_height()
     for (u32 h = 1; h <= max_sprite_xy; h++)
     {
         const u32 i = height_class_index(h);
-        fm_assert(class_heights[i] == quantize_height(h));
+        fm_assert(height_classes[i] == quantize_height(h));
         fm_assert(i >= prev);
         prev = i;
     }
-    fm_assert(prev == class_heights.size() - 1);
+    fm_assert(prev == height_classes.size() - 1);
 }
 
 void two_shelves_in_same_class_do_not_overlap()
@@ -65,7 +65,7 @@ void exhausting_a_layer_creates_another_layer()
     fm_assert(a.layers.size() == 2);
 }
 
-void sprite_taller_than_wide_is_rotated()
+void sprite_takes_other_orientation_before_new_shelf()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
@@ -76,15 +76,49 @@ void sprite_taller_than_wide_is_rotated()
     fm_assert(s->layer == s23->layer && s->y == s23->y && s->x >= s23->x + s23->width);
 }
 
-void sprite_is_not_rotated_when_shelf_for_rotation_is_full()
+void sprite_takes_orientation_wasting_less_area()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
-    alloc_sprite(a, 251, 23, false);
-    const Sprite* s31 = alloc_sprite(a, 29, 31, false);
-    const Sprite* s = alloc_sprite(a, 23, 31);
+    alloc_sprite(a, 31, 19, false);
+    const Sprite* s23 = alloc_sprite(a, 29, 23, false);
+    const Sprite* s = alloc_sprite(a, 17, 23);
     fm_assert(!s->is_rotated);
-    fm_assert(s->layer == s31->layer && s->y == s31->y && s->x >= s31->x + s31->width);
+    fm_assert(s->layer == s23->layer && s->y == s23->y);
+}
+
+void sprite_takes_taller_class_only_while_own_class_has_no_shelf()
+{
+    Atlas a;
+    a.layer_width = a.layer_height = 256;
+    alloc_sprite(a, 200, 35, false);
+    const Sprite* s40 = alloc_sprite(a, 10, 40, false);
+    const Sprite* s35 = alloc_sprite(a, 100, 35, false);
+    fm_assert(s35->y != s40->y && s35->x == 0);
+    const Sprite* s31 = alloc_sprite(a, 100, 31, false);
+    fm_assert(s31->layer == s35->layer && s31->y == s35->y);
+}
+
+void taller_class_takes_orientation_wasting_less_area()
+{
+    Atlas a;
+    a.layer_width = a.layer_height = 256;
+    alloc_sprite(a, 10, 60, false);
+    const Sprite* s36 = alloc_sprite(a, 10, 36, false);
+    const Sprite* s = alloc_sprite(a, 30, 49);
+    fm_assert(s->is_rotated);
+    fm_assert(s->layer == s36->layer && s->y == s36->y);
+}
+
+void sprite_takes_taller_class_leaving_at_most_half_its_height_empty()
+{
+    Atlas a;
+    a.layer_width = a.layer_height = 256;
+    const Sprite* s47 = alloc_sprite(a, 11, 47, false);
+    const Sprite* s33 = alloc_sprite(a, 13, 33, false);
+    fm_assert(s33->layer == s47->layer && s33->y == s47->y);
+    const Sprite* s31 = alloc_sprite(a, 17, 31, false);
+    fm_assert(s31->y != s47->y);
 }
 
 void sprites_of_differing_sizes_create_distinct_height_classes()
@@ -623,8 +657,11 @@ void test_sprite_atlas()
     height_class_table_matches_quantize_height();
     two_shelves_in_same_class_do_not_overlap();
     exhausting_a_layer_creates_another_layer();
-    sprite_taller_than_wide_is_rotated();
-    sprite_is_not_rotated_when_shelf_for_rotation_is_full();
+    sprite_takes_other_orientation_before_new_shelf();
+    sprite_takes_orientation_wasting_less_area();
+    sprite_takes_taller_class_only_while_own_class_has_no_shelf();
+    taller_class_takes_orientation_wasting_less_area();
+    sprite_takes_taller_class_leaving_at_most_half_its_height_empty();
     sprites_of_differing_sizes_create_distinct_height_classes();
     next_layer_count_doubles_then_grows_by_half();
     upload_and_readback_is_lossless();
