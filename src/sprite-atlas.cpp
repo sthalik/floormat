@@ -157,7 +157,7 @@ void Atlas::Limits::ensure_filled()
 
 u32 get_next_layer_count(u32 layer_count, const Atlas& A)
 {
-    // Growth policy: double while VRAM footprint is modest, switch to 1.5x
+    // Growth policy: double while VRAM footprint is modest, switch to 1.25x
     // once the atlas crosses 1 GiB
     const auto cur_bytes = (u64)layer_count * (u64)A.layer_width * (u64)A.layer_height * 4;
     constexpr u64 gibibyte = 1 << 30;
@@ -168,7 +168,7 @@ u32 get_next_layer_count(u32 layer_count, const Atlas& A)
     }
     else if (cur_bytes >= gibibyte)
     {
-        auto new_size = (u32)Math::ceil((float)layer_count*1.5f);
+        auto new_size = layer_count + (layer_count + 3) / 4;
         fm_assert(new_size > layer_count);
         return new_size;
     }

@@ -131,7 +131,7 @@ void sprites_of_differing_sizes_create_distinct_height_classes()
     fm_assert(used_height_class_count(a) == 3);
 }
 
-void next_layer_count_doubles_then_grows_by_half()
+void next_layer_count_doubles_then_grows_by_a_quarter()
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
@@ -141,8 +141,8 @@ void next_layer_count_doubles_then_grows_by_half()
     for (; n < layers_per_gibibyte; n *= 2)
         fm_assert(get_next_layer_count(n, a) == 2 * n);
     fm_assert(n == layers_per_gibibyte);
-    fm_assert(get_next_layer_count(n, a) == n + n / 2);
-    fm_assert(get_next_layer_count(n + 1, a) == n + n / 2 + 2);
+    fm_assert(get_next_layer_count(n, a) == n + n / 4);
+    fm_assert(get_next_layer_count(n + 1, a) == n + n / 4 + 2);
 }
 
 // Fill a buffer with a deterministic-but-varied RGBA8 pattern so round-trip
@@ -663,7 +663,7 @@ void test_sprite_atlas()
     taller_class_takes_orientation_wasting_less_area();
     sprite_takes_taller_class_leaving_at_most_half_its_height_empty();
     sprites_of_differing_sizes_create_distinct_height_classes();
-    next_layer_count_doubles_then_grows_by_half();
+    next_layer_count_doubles_then_grows_by_a_quarter();
     upload_and_readback_is_lossless();
     realloc_preserves_uploaded_pixels();
     grow_keeps_bound_framebuffer();
