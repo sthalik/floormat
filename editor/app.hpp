@@ -253,6 +253,9 @@ private:
     pgo::task scene_cover_ai();
     pgo::task scene_cover_ai_map();
     pgo::task scene_cover_wait();
+    pgo::task scene_cover_chase();
+    pgo::task scene_cover_chase_teleport();
+    pgo::task scene_cover_chase_impl(bool is_teleport);
     pgo::task scene_clickables();
     pgo::task scene_torture_flat();
     pgo::task scene_torture_all_z();

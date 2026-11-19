@@ -97,7 +97,7 @@ struct state final
     // What the frame-0 pin actually produced. Not settings().resolution: that is in window
     // units and window_size() is in framebuffer units, which differ under HiDPI.
     Vector2i base_window_size;
-    u32 scene_mask = 0;
+    u64 scene_mask = 0;
     // scene_raycast raycasts and draws its own sweep. Going through the raycast test would have
     // shown one ray of the batch, since a test keeps a single result and the driver fires many.
     std::array<Raycast::raycast_result_s, max_rays_per_frame> rays;
