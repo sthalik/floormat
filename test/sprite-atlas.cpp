@@ -180,10 +180,11 @@ void upload_and_readback_is_lossless()
         fm_assert(data[i] == (char)src[i]);
 }
 
-void realloc_preserves_uploaded_pixels()
+void realloc_preserves_uploaded_pixels(layer_copy_mode mode)
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
+    a.layer_copy = mode;
     constexpr u32 w = 4, h = 4;
     unsigned char src[w * h * 4];
     fill_pattern(src, w, h);
@@ -203,10 +204,11 @@ void realloc_preserves_uploaded_pixels()
         fm_assert(data[i] == (char)src[i]);
 }
 
-void grow_keeps_bound_framebuffer()
+void grow_keeps_bound_framebuffer(layer_copy_mode mode)
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
+    a.layer_copy = mode;
     constexpr u32 w = 4, h = 4;
     unsigned char src[w * h * 4];
     fill_pattern(src, w, h);
@@ -375,9 +377,10 @@ void assert_layer_contents(sprite_atlas& atlas, u32 layer, std::initializer_list
         }
 }
 
-void texture_growth_clears_new_layers_to_magenta()
+void texture_growth_clears_new_layers_to_magenta(layer_copy_mode mode)
 {
     sprite_atlas atlas{64, 64};
+    atlas.set_layer_copy(mode);
     constexpr u32 w = 40, h = 40;
     const auto pixels0 = make_pixels(w, h, 1), pixels1 = make_pixels(w, h, 2);
     const auto s0 = atlas.add(view_of(pixels0, w, h), false);
@@ -448,9 +451,10 @@ void add_rejects_bad_format_and_size()
 
 // add() only stages pixels. texture() grows the texture over every layer packed since and uploads
 // them, a rotated sprite transposed.
-void staged_adds_reach_texture()
+void staged_adds_reach_texture(layer_copy_mode mode)
 {
     sprite_atlas atlas{64, 64};
+    atlas.set_layer_copy(mode);
     // 40x40 leaves no room for a second shelf in a 64 px layer, so each takes a new layer
     constexpr u32 n = 3, w = 40, h = 40, rw = 7, rh = 11;
     Array<unsigned char> src[n + 1];
@@ -487,9 +491,10 @@ void staged_adds_reach_texture()
     }
 }
 
-void texture_growth_stops_at_layer_limit()
+void texture_growth_stops_at_layer_limit(layer_copy_mode mode)
 {
     sprite_atlas atlas{64, 64};
+    atlas.set_layer_copy(mode);
     atlas.raw()->limits = { .size = 64, .layers = 3, };
     constexpr u32 n = 3, w = 40, h = 40;
     Array<unsigned char> src{ValueInit, w*h*4};
@@ -500,9 +505,10 @@ void texture_growth_stops_at_layer_limit()
     fm_assert(atlas.layer_count() == n && tex.imageSize(0).z() == (Int)n);
 }
 
-void each_texture_gets_new_texture_gen()
+void each_texture_gets_new_texture_gen(layer_copy_mode mode)
 {
     sprite_atlas atlas{64, 64};
+    atlas.set_layer_copy(mode);
     constexpr u32 w = 40, h = 40;
     Array<unsigned char> src{ValueInit, w*h*4};
     const Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src};
@@ -665,17 +671,20 @@ void test_sprite_atlas()
     sprites_of_differing_sizes_create_distinct_height_classes();
     next_layer_count_doubles_then_grows_by_a_quarter();
     upload_and_readback_is_lossless();
-    realloc_preserves_uploaded_pixels();
-    grow_keeps_bound_framebuffer();
+    for (const auto mode : { layer_copy_mode::blit, layer_copy_mode::readback })
+    {
+        realloc_preserves_uploaded_pixels(mode);
+        grow_keeps_bound_framebuffer(mode);
+        texture_growth_clears_new_layers_to_magenta(mode);
+        staged_adds_reach_texture(mode);
+        texture_growth_stops_at_layer_limit(mode);
+        each_texture_gets_new_texture_gen(mode);
+    }
     copy_rect_keeps_pixels_and_bound_framebuffer();
     texcoords_show_expected_source_corners();
-    texture_growth_clears_new_layers_to_magenta();
     reset_discards_pending_sprites();
     rgb_sprites_read_back_opaque();
     add_rejects_bad_format_and_size();
-    staged_adds_reach_texture();
-    texture_growth_stops_at_layer_limit();
-    each_texture_gets_new_texture_gen();
     wrapper_accessors_roundtrip_values();
     free_atlas_clears_state_and_allows_reuse();
     sprites_do_not_overlap_pairwise();

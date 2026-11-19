@@ -7,6 +7,10 @@ namespace Magnum::GL { class AbstractTexture; }
 namespace floormat::SpriteAtlas {
 struct Atlas;
 struct Sprite;
+
+// While the texture grows, blit needs VRAM for the old and the new texture at once.
+// readback needs system memory for the used layers instead.
+enum class layer_copy_mode : u8 { blit, readback, };
 } // namespace floormat::SpriteAtlas
 
 namespace floormat {
@@ -46,6 +50,7 @@ public:
     u32 layer_height() const;
     u32 layer_count() const;
     u32 texture_gen() const;
+    void set_layer_copy(SpriteAtlas::layer_copy_mode mode);
 
     sprite add(const ImageView2D& pixels, bool allow_rotate = true);
 
