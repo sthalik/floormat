@@ -75,7 +75,7 @@ void retreat_finder::begin(Vector2i body, u32 threat_octant)
     _exposed_path = {};
 }
 
-retreat_finder::result retreat_finder::step(critter& c, spot_tests& t, const Cover::Script::options& o,
+retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cover::Script::options& o,
                                             point threat)
 {
     auto& w = c.world();

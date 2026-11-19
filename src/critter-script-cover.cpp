@@ -368,7 +368,7 @@ bool cover_script::start_search(critter& C, search_then next)
     return true;
 }
 
-// start_search, then the search's first step in the same update.
+// start_search, then the search's first tick() in the same update.
 void cover_script::begin_search(critter& C, search_then next)
 {
     if (start_search(C, next))
@@ -412,7 +412,7 @@ void cover_script::search_step(critter& C)
 {
     if (!find_threat_or_retry(C))
         return;
-    auto r = search.step(C, tests, options, search_origin(C), threat_pos);
+    auto r = search.tick(C, tests, options, search_origin(C), threat_pos);
     if (r.done)
         end_search(C, move(r.cover));
     else if (st == state::retreat && is_retreat_exposed && search.has_last_resort() &&
@@ -490,7 +490,7 @@ void cover_script::retreat_step(critter& C)
 {
     if (!find_threat_or_retry(C))
         void();
-    else if (auto r = retreat.step(C, tests, options, threat_pos); r.path.is_found())
+    else if (auto r = retreat.tick(C, tests, options, threat_pos); r.path.is_found())
     {
         walk = critter_walk{move(r.path)};
         st = state::retreat;

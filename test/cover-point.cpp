@@ -3118,28 +3118,28 @@ void test_seen_on_path()
     fm_assert_equal(65u + 29u, t.counters.num_path_body_checks);
 }
 
-// Steps search until an update tests a path with is_seen_on_path, which must not end the search.
-void step_until_path_checked(cover_scene& s, Cover::spot_tests& t, Cover::cover_search& search,
+// Calls search.tick() until an update tests a path with is_seen_on_path, which must not end the search.
+void tick_until_path_checked(cover_scene& s, Cover::spot_tests& t, Cover::cover_search& search,
                              const Cover::Script::options& o, point from, point threat)
 {
     for (auto i = 0u; ; i++)
     {
         fm_assert(i < 100);
         const auto checks = t.counters.num_path_body_checks;
-        fm_assert(!search.step(*s.npc, t, o, from, threat).done);
+        fm_assert(!search.tick(*s.npc, t, o, from, threat).done);
         if (t.counters.num_path_body_checks != checks)
             return;
     }
 }
 
-// Steps search through the 4 updates after the one that kept a path, each of which must reject another path.
-void step_rejecting_paths(cover_scene& s, Cover::spot_tests& t, Cover::cover_search& search,
+// Calls search.tick() in the 4 updates after the one that kept a path, each of which must reject another path.
+void tick_rejecting_paths(cover_scene& s, Cover::spot_tests& t, Cover::cover_search& search,
                           const Cover::Script::options& o, point from, point threat)
 {
     for (auto i = 0u; i < 4; i++)
     {
         const auto checks = t.counters.num_path_body_checks;
-        fm_assert(!search.step(*s.npc, t, o, from, threat).done);
+        fm_assert(!search.tick(*s.npc, t, o, from, threat).done);
         fm_assert(t.counters.num_path_body_checks != checks);
     }
 }
@@ -3157,9 +3157,9 @@ void test_search_takes_exposed_cover()
     const Cover::Script::options o{.last_resort = fallback::none};
     const auto from = s.npc->position(), threat = s.threat->position();
     search.begin(from, threat);
-    step_until_path_checked(s, t, search, o, from, threat);
-    step_rejecting_paths(s, t, search, o, from, threat);
-    const auto r = search.step(*s.npc, t, o, from, threat);
+    tick_until_path_checked(s, t, search, o, from, threat);
+    tick_rejecting_paths(s, t, search, o, from, threat);
+    const auto r = search.tick(*s.npc, t, o, from, threat);
     fm_assert(r.done && r.cover && r.cover->end == exposed_cover_end);
     fm_assert_equal(5u, t.counters.num_dijkstra_calls);
     fm_assert(t.is_seen_on_path(*s.npc, o, threat, r.cover->path));
@@ -3176,11 +3176,11 @@ void test_search_drops_exposed_cover_now_seen()
     const Cover::Script::options o{.last_resort = fallback::none};
     const auto from = s.npc->position(), threat = s.threat->position();
     search.begin(from, threat);
-    step_until_path_checked(s, t, search, o, from, threat);
-    step_rejecting_paths(s, t, search, o, from, threat);
+    tick_until_path_checked(s, t, search, o, from, threat);
+    tick_rejecting_paths(s, t, search, o, from, threat);
     const point moved{ch, {7, 4}, {0, 5}};
     s.move_threat(moved);
-    fm_assert(!search.step(*s.npc, t, o, from, moved).done);
+    fm_assert(!search.tick(*s.npc, t, o, from, moved).done);
 }
 
 // In rehides_round_6_scene the search holds the in_reach spot (148, 524) when it rejects the path to (468, 507).
@@ -3194,11 +3194,11 @@ void test_search_takes_exposed_cover_over_seen_fallback()
     const Cover::Script::options o{};
     const auto from = s.npc->position(), threat = s.threat->position();
     search.begin(from, threat);
-    step_until_path_checked(s, t, search, o, from, threat);
+    tick_until_path_checked(s, t, search, o, from, threat);
     fm_assert(search.has_last_resort());
     s.w[ch].remove_object(*block, block->index());
     rebuild(s.w);
-    const auto r = search.step(*s.npc, t, o, from, threat);
+    const auto r = search.tick(*s.npc, t, o, from, threat);
     fm_assert(r.done && r.cover && r.cover->end == exposed_cover_end);
 }
 
@@ -3215,11 +3215,11 @@ void test_fallback_after_exposed_cover_ends_search()
     const Cover::Script::options o{};
     const auto from = s.npc->position(), threat = s.threat->position();
     search.begin(from, threat);
-    step_until_path_checked(s, t, search, o, from, threat);
+    tick_until_path_checked(s, t, search, o, from, threat);
     fm_assert(!search.has_last_resort());
-    fm_assert(!search.step(*s.npc, t, o, from, threat).done);
+    fm_assert(!search.tick(*s.npc, t, o, from, threat).done);
     fm_assert(search.has_last_resort());
-    const auto r = search.step(*s.npc, t, o, from, threat);
+    const auto r = search.tick(*s.npc, t, o, from, threat);
     fm_assert(r.done && r.cover && r.cover->end == point{ch, {3, 2}, {4, 20}});
 }
 

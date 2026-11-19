@@ -33,11 +33,11 @@ public:
     void restart(point from, point threat);
     // One update's work of the search for c. from is what restart() would be given.
     // When the unreachable spots go stale, the search restarts, and a new threat octant resumes its scan.
-    result step(critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat);
+    result tick(critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat);
     void end();
     void give_up();
     // Forgets the spots skipped under the old options, and kept spots that last_resort doesn't allow, which
-    // neither a retreat nor step() checks again.
+    // neither a retreat nor tick() checks again.
     void options_changed(Cover::Script::options::fallback last_resort);
 
     bool running() const;
@@ -68,7 +68,7 @@ private:
     // The spots of tile _tile while _tile_threat is set, of which _tile_spot is next. They were listed with the
     // threat at _tile_threat.
     Array<Cover::Point::spot> _tile_spots;
-    // The spots step() skipped, each with its octant, in the tile that octant's scan has reached. A tile listed
+    // The spots tick() skipped, each with its octant, in the tile that octant's scan has reached. A tile listed
     // again skips without testing those it skipped in the current octant.
     Array<skipped_spot> _tile_skipped;
     Optional<point> _tile_threat;
