@@ -1408,7 +1408,7 @@ void test_cover_east_distance(u32 div_size)
     const auto pos = Vector2i{400, 508};
     const auto center_x = (u32)pos.x() / div_size * div_size + div_size / 2;
     const auto expected = 512 - center_x;
-    // aligned octants count from the cleared cells, up to half the pass grid's bbox short
+    // octilinear octants count from the cleared cells, up to half the pass grid's bbox short
     const auto slack = 2 * Math::max(div_size, Pass::Grid::min_bbox_size);
     const auto d = east_px(pos);
     fm_assert(d <= expected && d + slack >= expected);
@@ -1482,8 +1482,8 @@ Vector2 cover_direction(u32 k)
     return Vector2{cover_step(k)}.normalized();
 }
 
-// What src/grid-cover.cpp casts its rays along: fill_aligned() along the direction, fill_stepped()
-// along whole steps.
+// What src/grid-cover.cpp casts its rays along: fill_octilinear_octant() along the direction,
+// fill_non_octilinear_octant() along whole steps.
 Vector2i cover_ray_delta(u32 k)
 {
     if (k % 4 == 0)
@@ -1503,7 +1503,7 @@ float cover_ray_px(chunk& c, u32 x, u32 y, u32 div_size, Vector2i delta, Pass::P
     return Math::min(px, (float)chunk_size_xy);
 }
 
-// fill_aligned() in src/grid-cover.cpp carries 1/64 px, saturating at UINT16_MAX
+// fill_octilinear_octant() in src/grid-cover.cpp carries 1/64 px, saturating at UINT16_MAX
 constexpr u32 cover_fixed_one = (UINT16_MAX + 1) / chunk_size_xy;
 
 u32 cover_fixed(float px)
@@ -1522,12 +1522,12 @@ u32 cover_units(float px, u32 div_size)
     return cover_units_fixed(cover_fixed(px), div_size);
 }
 
-// What an aligned octant holds, worked out cell by cell: walk from the cell along the octant
+// What an octilinear octant holds, worked out cell by cell: walk from the cell along the octant
 // until a blocked cell, adding one step per passable cell on the way, or until the edge of the
 // grid, adding the ray from the last cell. A cell m cells from that edge is S(m) - S(m-1) px
 // further than its next one, S(m) being m steps rounded. Pixels are in 1/cover_fixed_one px.
-Array<u16> cover_aligned_reference(chunk& c, const Pass::Grid& pg, u32 div_size, u32 k,
-                                        Pass::Pool& pass_pool)
+Array<u16> cover_octilinear_reference(chunk& c, const Pass::Grid& pg, u32 div_size, u32 k,
+                                           Pass::Pool& pass_pool)
 {
     const auto dir = cover_direction(k);
     const float ax = Math::abs(dir.x()), ay = Math::abs(dir.y());
@@ -1625,10 +1625,10 @@ Array<Vector2i> cover_crossed_cells(u32 k)
     return ret;
 }
 
-// Returns what octant k holds by fill_stepped()'s rules, cell by cell in row order. On row n a cell holds the cell
+// Returns what non-octilinear octant k holds, cell by cell in row order. On row n a cell holds the cell
 // (q, p) away plus R(n) - R(n - |p|), saturating, R(n) being n/|p| steps rounded to 1/cover_fixed_one px.
-Array<u16> cover_stepped_reference(chunk& c, const Pass::Grid& pg, u32 div_size, u32 k,
-                                        Pass::Pool& pass_pool)
+Array<u16> cover_non_octilinear_reference(chunk& c, const Pass::Grid& pg, u32 div_size, u32 k,
+                                               Pass::Pool& pass_pool)
 {
     const auto s = cover_step(k);
     const auto crossed = cover_crossed_cells(k);
@@ -1701,8 +1701,8 @@ void check_cover_octants(world& w, Grid::Cover::Grid& g, u32 div_size, ArrayView
     {
         (void)g.ensure_octant(k);
         fm_assert(g.built_octants() & 1u << k);
-        const auto expected = k % 4 == 0 ? cover_aligned_reference(c, pg, div_size, k, pass_pool)
-                                         : cover_stepped_reference(c, pg, div_size, k, pass_pool);
+        const auto expected = k % 4 == 0 ? cover_octilinear_reference(c, pg, div_size, k, pass_pool)
+                                         : cover_non_octilinear_reference(c, pg, div_size, k, pass_pool);
         for (auto i = 0u; i < dc*dc; i++)
         {
             // a passable cell is at least div_size - 1 px from a blocker, which rounds to 1
@@ -1874,7 +1874,7 @@ void test_expand_pass_row()
 {
     for (auto dc = 8u; dc <= chunk_size_xy; dc += 8)
     {
-        if (!Grid::detail::stepped_rows_vectorize(dc))
+        if (!Grid::detail::can_vectorize_non_octilinear_rows(dc))
             continue;
         for (auto pattern = 0u; pattern < 4; pattern++)
         {
@@ -1904,10 +1904,10 @@ void test_expand_pass_row()
     }
 }
 
-// A stepped octant carries the rays of cells near the far edges a step at a time, along the line
+// A non-octilinear octant carries the rays of cells near the far edges a step at a time, along the line
 // each ray runs on. With nothing blocked in the chunk, a cell must hold its own ray to within one
 // unit.
-void test_cover_stepped_tracks_ray(u32 div_size, ArrayView<const u32> octants)
+void test_cover_non_octilinear_octant_tracks_ray(u32 div_size, ArrayView<const u32> octants)
 {
     auto w = world();
     for (i16 y = -1; y <= 1; y++)
@@ -2057,9 +2057,9 @@ void test_cover_blocked_cells(u32 div_size)
     }
 }
 
-// Each fill_stepped<T>() has its own inlined copy of expand_pass_row(), which test_expand_pass_row() doesn't run.
-// The blockers make the first byte of a row's pass bits differ between rows.
-void test_cover_stepped_blocked_cells(u32 div_size, ArrayView<const u32> octants)
+// Each fill_non_octilinear_octant<T>() has its own inlined copy of expand_pass_row(), which test_expand_pass_row()
+// doesn't run. The blockers make the first byte of a row's pass bits differ between rows.
+void test_cover_non_octilinear_octant_blocked_cells(u32 div_size, ArrayView<const u32> octants)
 {
     auto w = world();
     auto& c = w[COORD];
@@ -2107,7 +2107,7 @@ void test_cover_stepped_blocked_cells(u32 div_size, ArrayView<const u32> octants
                 {
                     ERR << "!!! fatal: div_size" << div_size << "octant" << k << "cell" << x << y
                         << "distance" << d << "but passable" << passable;
-                    fm_abort("a stepped octant's cell disagrees with the pass grid");
+                    fm_abort("a non-octilinear octant's cell disagrees with the pass grid");
                 }
             }
     }
@@ -3572,12 +3572,12 @@ void test_grid()
             test_hole_marker_never_blocks(ds, p);
         test_hole_still_opens_blocked_ground(ds);
     }
-    u32 all_octants[Grid::Cover::octant_count], stepped_octants[Grid::Cover::octant_count - 8];
+    u32 all_octants[Grid::Cover::octant_count], non_octilinear_octants[Grid::Cover::octant_count - 8];
     for (auto k = 0u, n = 0u; k < Grid::Cover::octant_count; k++)
     {
         all_octants[k] = k;
         if (k % 4 != 0)
-            stepped_octants[n++] = k;
+            non_octilinear_octants[n++] = k;
     }
     test_cover_octant_directions();
     for (const i64 target : hwy::SupportedAndGeneratedTargets())
@@ -3596,9 +3596,9 @@ void test_grid()
         constexpr u32 first_steps[] = { 1u, 2u };
         for (const auto ds : { 4u, 8u, 16u })
         {
-            const auto octants = ds < 8 ? ArrayView<const u32>{first_steps} : stepped_octants;
-            test_cover_stepped_tracks_ray(ds, octants);
-            test_cover_stepped_blocked_cells(ds, octants);
+            const auto octants = ds < 8 ? ArrayView<const u32>{first_steps} : non_octilinear_octants;
+            test_cover_non_octilinear_octant_tracks_ray(ds, octants);
+            test_cover_non_octilinear_octant_blocked_cells(ds, octants);
         }
         for (const auto ds : { 8u, 16u })
             test_cover_blocked_cells(ds);

@@ -298,18 +298,19 @@ void set_find_counters(benchmark::State& state, const Cover::Point::result& r)
     state.counters["candidates"] = r.candidates;
 }
 
-// Octants built on the 3×3 chunks, the ones casting a ray per cell apart from those sweeping the pass bitmap.
-void set_fill_counters(benchmark::State& state, world& w, Grid::Cover::Pool& pool, u32 sweeps_before)
+// Counts the octants built on the 3×3 chunks, those along an axis or a diagonal apart from the rest.
+void set_built_octant_counters(benchmark::State& state, world& w, Grid::Cover::Pool& pool,
+                               u32 num_octilinear_octants_built_before)
 {
-    constexpr u32 sweep_mask = 0x11111111u;
-    u32 rays = 0, sweeps = 0;
+    constexpr u32 octilinear_octants = 0x11111111u;
+    u32 num_non_octilinear_octants = 0, num_octilinear_octants = 0;
     for_cover_chunks([&](chunk_coords_ ch) {
         const auto k = pool[w[ch]].built_octants();
-        rays += (u32)std::popcount(k & ~sweep_mask);
-        sweeps += (u32)std::popcount(k & sweep_mask);
+        num_non_octilinear_octants += (u32)std::popcount(k & ~octilinear_octants);
+        num_octilinear_octants += (u32)std::popcount(k & octilinear_octants);
     });
-    state.counters["ray_fills"] = rays;
-    state.counters["sweep_fills"] = sweeps - sweeps_before;
+    state.counters["num_non_octilinear_octants"] = num_non_octilinear_octants;
+    state.counters["num_octilinear_octants"] = num_octilinear_octants - num_octilinear_octants_built_before;
 }
 
 // Every grid and octant the query reads is built, as for each later seek from the same threat.
@@ -354,7 +355,7 @@ void Cover_Find_Octants(benchmark::State& state)
         r = finder.find(w, *pools, params, q, Search::never_continue);
     }
     set_find_counters(state, r);
-    set_fill_counters(state, w, pools->cover_pool(params), 9);
+    set_built_octant_counters(state, w, pools->cover_pool(params), 9);
 }
 
 // The first seek in an area: every grid the query reads is built from nothing.
@@ -376,7 +377,7 @@ void Cover_Find_Fresh(benchmark::State& state)
         r = finder.find(w, *pools, params, q, Search::never_continue);
     }
     set_find_counters(state, r);
-    set_fill_counters(state, w, pools->cover_pool(params), 0);
+    set_built_octant_counters(state, w, pools->cover_pool(params), 0);
 }
 
 void find_args(benchmark::Benchmark* b)

@@ -10,7 +10,7 @@ struct Ns;
 namespace floormat::Grid::detail {
 struct CoverGrid;
 struct CoverPool;
-bool stepped_rows_vectorize(u32 dc);
+bool can_vectorize_non_octilinear_rows(u32 dc);
 void expand_pass_row(u16* out, const usize* pass_bits, u32 y, u32 dc);
 } // namespace
 

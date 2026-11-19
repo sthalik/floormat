@@ -344,7 +344,7 @@ void test_slide_past_wall_end()
 
     place(C, start);
     const auto d = press(C, key_NE, frames);
-    const auto stepped = C->position();
+    const auto pos_after_frame_updates = C->position();
 
     place(C, start);
     C->set_keys(key_NE.L, key_NE.R, key_NE.U, key_NE.D);
@@ -352,9 +352,10 @@ void test_slide_past_wall_end()
     C->update(C, i, dt_60hz * frames);
     C->set_keys(false, false, false, false);
 
-    if (C->position() != stepped)
+    if (C->position() != pos_after_frame_updates)
     {
-        Error{standard_error()} << "!!! fatal: one update ended at" << C->position() << "instead of" << stepped;
+        Error{standard_error()} << "!!! fatal: one update ended at" << C->position()
+                                << "instead of" << pos_after_frame_updates;
         fm_assert(false);
     }
     // The box top meets the wall at y = -npc_bbox/2, so further north means it got past the end.
