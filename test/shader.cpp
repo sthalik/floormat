@@ -13,10 +13,12 @@
 #include <mg/Color.h>
 #include <mg/DefaultFramebuffer.h>
 #include <mg/Image.h>
+#include <mg/Mesh.h>
 #include <mg/PixelFormat.h>
 #include <mg/Renderer.h>
 #include <mg/Shader.h>
 #include <mg/Texture.h>
+#include <mg/TextureArray.h>
 #include <mg/TextureFormat.h>
 
 namespace floormat::Test {
@@ -138,6 +140,48 @@ void test_tuc_stale_binding()
     fm_assert_equal(2uz, tuc.stats().cache_miss);
 }
 
+void test_shader_lightmap_binding()
+{
+    texture_unit_cache tuc;
+    tile_shader S{tuc};
+    GL::Texture2DArray atlas;
+    atlas.setStorage(1, GL::TextureFormat::RGBA8, Vector3i{1});
+    GL::Texture2D lightmap;
+    lightmap.setStorage(1, GL::TextureFormat::RGBA8, Vector2i{1});
+    GL::Mesh mesh;
+    mesh.setCount(3);
+
+    const auto draw = [&](const GL::Texture2D* expected = nullptr) {
+        GL::Texture2D::unbind(0);
+        S.draw(atlas, mesh);
+
+        GLint program = 0, unit = -1, active = 0, texture = 0;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &program);
+        glGetUniformiv((GLuint)program, glGetUniformLocation((GLuint)program, "lightmap_sampler"), &unit);
+        glGetIntegerv(GL_ACTIVE_TEXTURE, &active);
+        glActiveTexture(GL_TEXTURE0 + (GLenum)unit);
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+        glActiveTexture((GLenum)active);
+        fm_assert(texture != 0);
+        if (expected)
+            fm_assert_equal(expected->id(), (GLuint)texture);
+        fm_assert((GL::Texture2D::wrap((GLuint)texture).imageSize(0) > Vector2i{}).all());
+        fm_assert(unit != S.sampler());
+        fm_assert_equal((GLenum)GL_NO_ERROR, glGetError());
+    };
+
+    draw();
+    const auto stats = tuc.stats();
+    draw();
+    fm_assert_equal(stats.cache_miss, tuc.stats().cache_miss);
+    S.set_lightmap(&lightmap);
+    draw(&lightmap);
+    S.set_lightmap(nullptr);
+    draw();
+    tuc.invalidate();
+    draw();
+}
+
 Pair<Color4ub, Color4ub> lit_behind_object(lightmap_shader& L, pass_mode pass)
 {
     constexpr auto light_pos = Vector2(4, 8) * TILE_SIZE2, behind = Vector2(12, 8) * TILE_SIZE2,
@@ -216,6 +260,7 @@ void test_shader()
 {
     test_point();
     test_shader_program();
+    test_shader_lightmap_binding();
     test_tuc_stale_binding();
     test_tuc_eviction();
     test_lightmap_object_shadows();

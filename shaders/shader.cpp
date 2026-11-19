@@ -11,6 +11,7 @@
 #include <mg/Vector4.h>
 #include <mg/Context.h>
 #include <mg/Shader.h>
+#include <mg/TextureFormat.h>
 #include <mg/GL/Version.h>
 
 namespace floormat {
@@ -50,6 +51,7 @@ tile_shader::tile_shader(texture_unit_cache& tuc) : tuc{tuc}
     setUniform(EnableLightmapUniform, _enable_lightmap);
     setUniform(SamplerUniform, _real_sampler = _sampler);
     setUniform(LightmapSamplerUniform, _real_lightmap_sampler = 0);
+    _lightmap_fallback.setStorage(1, GL::TextureFormat::RGBA8, Vector2i{1});
 }
 
 tile_shader::~tile_shader() = default;
@@ -117,9 +119,7 @@ void tile_shader::draw_pre(GL::AbstractTexture& tex)
     if (_sampler != _real_sampler)
         setUniform(SamplerUniform, _real_sampler = _sampler);
 
-    // GL rejects a draw with two sampler types on one unit. The cache
-    // never hands out unit 0, so the atlas can't be there.
-    const auto lightmap_id = _lightmap ? tuc.bind(_lightmap) : 0;
+    const auto lightmap_id = tuc.bind(_lightmap ? _lightmap : &_lightmap_fallback);
     if (lightmap_id != _real_lightmap_sampler)
         setUniform(LightmapSamplerUniform, _real_lightmap_sampler = lightmap_id);
 }
