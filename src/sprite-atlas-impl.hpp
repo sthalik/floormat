@@ -49,7 +49,7 @@ constexpr u32 quantize_height(u32 h)
     return (h + bucket - 1) / bucket * bucket;
 }
 
-constexpr inline auto class_heights = [] {
+constexpr inline auto height_classes = [] {
     constexpr u32 count = [] {
         u32 n = 0, prev = 0;
         for (u32 h = 1; h <= max_sprite_xy; h++)
@@ -80,11 +80,11 @@ constexpr inline std::array<u8, max_sprite_xy> height_class_indices = [] {
     u32 index = 0;
     for (u32 h = 1; h <= max_sprite_xy; h++)
     {
-        if (quantize_height(h) != class_heights[index])
+        if (quantize_height(h) != height_classes[index])
             index++;
         indices[h-1] = index;
     }
-    fm_assert(indices[max_sprite_xy-1] == class_heights.size()-1);
+    fm_assert(indices[max_sprite_xy-1] == height_classes.size()-1);
     std::array<u8, max_sprite_xy> ret{};
     for (u32 i = 0; i < max_sprite_xy; i++)
     {
@@ -103,7 +103,7 @@ constexpr u32 height_class_index(u32 h)
 struct Atlas
 {
     Array<Layer> layers {};
-    std::array<HeightClass, class_heights.size()> height_classes {};
+    std::array<HeightClass, SpriteAtlas::height_classes.size()> height_classes {};
     // Added sprites wait here until texture() needs them, so adding needs no GL context.
     Array<PendingSprite> pending {};
     Array<char> staging {};

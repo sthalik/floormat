@@ -64,16 +64,25 @@ Shelf* find_shelf_with_space(Atlas& atlas, u32 w, u32 h)
     return nullptr;
 }
 
-Shelf* get_shelf(Atlas& atlas, u32 w, u32 h, bool& is_rotated)
+struct TallerShelf
 {
-    if (auto* shelf = find_shelf_with_space(atlas, w, h))
-        return shelf;
-    if (auto* shelf = find_shelf_with_space(atlas, h, w))
-    {
-        is_rotated = !is_rotated;
-        return shelf;
-    }
-    return alloc_new_shelf(atlas, h);
+    Shelf* shelf = nullptr;
+    u32 loss = 0;
+};
+
+TallerShelf find_taller_shelf_with_space(Atlas& atlas, u32 w, u32 h)
+{
+    const u32 own_class = height_class_index(h);
+    if (!atlas.height_classes[own_class].shelves.isEmpty())
+        return {};
+    // A smaller limit wastes more area in an atlas of few sprites.
+    // Allowing any taller class wastes more in an atlas of many.
+    for (u32 i = own_class + 1; i < height_classes.size() && height_classes[i] - h <= h / 2; i++)
+        for (auto* sh : atlas.height_classes[i].shelves)
+            if (atlas.layer_width - sh->next_x >= w)
+                return { sh, w * (height_classes[i] - h) };
+
+    return {};
 }
 
 Vector2ui rect_size(const Sprite& sprite)
@@ -250,7 +259,7 @@ Shelf* alloc_new_shelf(Atlas& atlas, u32 height)
     fm_assert(height > 0 && height <= max_sprite_xy);
 
     const u32 hc_idx = height_class_index(height);
-    const u32 q_height = class_heights[hc_idx];
+    const u32 q_height = height_classes[hc_idx];
     fm_assert(q_height <= atlas.layer_height);
     HeightClass& hc = atlas.height_classes[hc_idx];
 
@@ -294,20 +303,33 @@ Sprite* alloc_sprite(Atlas& atlas, u32 w, u32 h, bool allow_rotate)
         fm_throw("alloc_sprite: {{{},{}}} > min(L_w:{}, L_h:{}, M:{})",
                  w, h, atlas.layer_width, atlas.layer_height, max_sprite_xy);
 
-    Shelf* shelf;
-    bool is_rotated;
-
-    if (!allow_rotate) [[unlikely]]
+    const u32 unrotated_loss = w * (quantize_height(h) - h), rotated_loss = h * (quantize_height(w) - w);
+    bool is_rotated = allow_rotate && rotated_loss < unrotated_loss;
+    Shelf* shelf = find_shelf_with_space(atlas, is_rotated ? h : w, is_rotated ? w : h);
+    if (!shelf && allow_rotate)
     {
-        is_rotated = false;
-        shelf = find_shelf_with_space(atlas, w, h);
-        if (!shelf)
-            shelf = alloc_new_shelf(atlas, h);
+        shelf = find_shelf_with_space(atlas, is_rotated ? w : h, is_rotated ? h : w);
+        if (shelf)
+            is_rotated = !is_rotated;
     }
-    else
+    if (!shelf)
     {
-        const auto [min, max] = Math::minmax(w, h);
-        shelf = get_shelf(atlas, max, min, is_rotated = h > w);
+        auto taller = find_taller_shelf_with_space(atlas, is_rotated ? h : w, is_rotated ? w : h);
+        if (allow_rotate)
+        {
+            const auto other = find_taller_shelf_with_space(atlas, is_rotated ? w : h, is_rotated ? h : w);
+            if (other.shelf && (!taller.shelf || other.loss < taller.loss))
+            {
+                taller = other;
+                is_rotated = !is_rotated;
+            }
+        }
+        shelf = taller.shelf;
+    }
+    if (!shelf)
+    {
+        is_rotated = allow_rotate && h > w;
+        shelf = alloc_new_shelf(atlas, is_rotated ? w : h);
     }
 
     const u32 rect_w = is_rotated ? h : w;

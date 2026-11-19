@@ -176,10 +176,7 @@ void test_sprites()
         << "layers" << atlas.texture_layer_count;
 
     if (!atlas.layers.isEmpty())
-    {
-        const auto& shelf = *atlas.layers.back().shelves.back();
-        DBG << cat("sprites: last shelf layer:", atlas.layers.size()-1) << cat("y:", shelf.y);
-    }
+        DBG << cat("sprites: last layer:", atlas.layers.size()-1) << cat("next_y:", atlas.layers.back().next_y);
 
     SpriteAtlas::dump_atlas(atlas, output);
 }
