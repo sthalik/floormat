@@ -6,11 +6,15 @@
 #pragma warning(disable : 4996) // zero-length array
 #endif
 
+#include "app.hpp"
 #include "compat/map.hpp"
 #include "compat/assert.hpp"
 #include "compat/zip.hpp"
 #include <array>
+#include <tuple>
+#include <cr/Pair.h>
 #include <cr/StaticArray.h>
+#include <cr/StructuredBindings.h>
 #include <mg/Vector3.h>
 
 namespace floormat {
@@ -87,13 +91,114 @@ constexpr bool test6()
     return true;
 }
 
+constexpr bool test_tuple()
+{
+    constexpr auto tuple = std::tuple{3, 11u, 29L};
+    auto tuple2 = map([](auto x) constexpr { return x*2; }, tuple);
+    static_assert(std::is_same_v<decltype(tuple2), std::tuple<int, unsigned, long>>);
+    fm_assert(tuple2 == std::tuple{6, 22u, 58L});
+
+    auto tuple3 = map<std::tuple<long, unsigned, int>>([](auto x) constexpr { return x + 1; }, tuple);
+    static_assert(std::is_same_v<decltype(tuple3), std::tuple<long, unsigned, int>>);
+    fm_assert(tuple3 == std::tuple{4L, 12u, 30});
+
+    auto values = map([](const auto& x) constexpr -> const auto& { return x; }, tuple);
+    static_assert(std::is_same_v<decltype(values), std::tuple<int, unsigned, long>>);
+    fm_assert(values == tuple);
+
+    unsigned calls = 0;
+    auto ordered = map([&](auto x) constexpr { return x + ++calls; }, std::tuple{3u, 11u, 29u});
+    fm_assert(ordered == std::tuple{4u, 13u, 32u});
+    fm_assert(calls == 3);
+    return true;
+}
+
+constexpr bool test_empty_tuple()
+{
+    auto tuple = map([](int x) constexpr { return x; }, std::tuple<>{});
+    static_assert(std::is_same_v<decltype(tuple), std::tuple<>>);
+    fm_assert(tuple == std::tuple<>{});
+    return true;
+}
+
+constexpr bool test_tuple_references()
+{
+    int a = 3;
+    unsigned b = 11;
+    const std::tuple<int&, const unsigned&> tuple{a, b};
+    auto values = map([](auto& x) constexpr -> auto& { return x; }, tuple);
+    static_assert(std::is_same_v<decltype(values), std::tuple<int, unsigned>>);
+    fm_assert(values == std::tuple{3, 11u});
+
+    auto references = map<std::tuple<int&, const unsigned&>>(
+        [](auto& x) constexpr -> auto& { return x; }, tuple);
+    static_assert(std::is_same_v<decltype(references), std::tuple<int&, const unsigned&>>);
+    fm_assert(&std::get<0>(references) == &a && &std::get<1>(references) == &b);
+    std::get<0>(references) = 17;
+    b = 29;
+    fm_assert(a == 17 && std::get<1>(references) == 29);
+    fm_assert(values == std::tuple{3, 11u});
+    return true;
+}
+
+constexpr bool test_pair()
+{
+    auto tuple = map([](auto x) constexpr { return x*3; }, std::pair{3, 11u});
+    static_assert(std::is_same_v<decltype(tuple), std::tuple<int, unsigned>>);
+    fm_assert(tuple == std::tuple{9, 33u});
+
+    auto pair = map([](auto x) constexpr { return x*3; }, Pair<int, unsigned>{3, 11u});
+    static_assert(std::is_same_v<decltype(pair), std::tuple<int, unsigned>>);
+    fm_assert(pair == std::tuple{9, 33u});
+    return true;
+}
+
+constexpr bool test_zip_tuple()
+{
+    auto a = std::array{3};
+    auto b = std::array{11u};
+    auto zipped = zip(a, b);
+    auto tuple = map([](auto x) constexpr { return x*3; }, *zipped.begin());
+    static_assert(std::is_same_v<decltype(tuple), std::tuple<int, unsigned>>);
+    fm_assert(tuple == std::tuple{9, 33u});
+    return true;
+}
+
 static_assert(test1());
 static_assert(test2());
 static_assert(test3());
 static_assert(test4());
 static_assert(test5());
 static_assert(test6());
+static_assert(test_tuple());
+static_assert(test_empty_tuple());
+static_assert(test_tuple_references());
+static_assert(test_pair());
+static_assert(test_zip_tuple());
 
 } // namespace
+
+namespace Test {
+
+void test_map()
+{
+    volatile int a = 3;
+    volatile unsigned b = 11;
+    const std::tuple<volatile int&, const volatile unsigned&> tuple{a, b};
+    auto values = map([](auto& x) -> auto& { return x; }, tuple);
+    static_assert(std::is_same_v<decltype(values), std::tuple<int, unsigned>>);
+    fm_assert(values == std::tuple{3, 11u});
+
+    auto references = map<std::tuple<volatile int&, const volatile unsigned&>>(
+        [](auto& x) -> auto& { return x; }, tuple);
+    static_assert(std::is_same_v<decltype(references), std::tuple<volatile int&, const volatile unsigned&>>);
+    fm_assert(&std::get<0>(references) == &a && &std::get<1>(references) == &b);
+    std::get<0>(references) = 17;
+    b = 29;
+    fm_assert(a == 17 && std::get<1>(references) == 29);
+    fm_assert(values == std::tuple{3, 11u});
+}
+
+} // namespace Test
 
 } // namespace floormat
