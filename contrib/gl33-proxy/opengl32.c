@@ -114,6 +114,7 @@ static BOOL CALLBACK init(PINIT_ONCE once, PVOID param, PVOID* context);
 static void ensure_init(void);
 static void check_enum(const char* function, const char* param, GLenum value);
 
+#include "minimum-values.h"
 #include "wrappers.h"
 
 static BOOL CALLBACK init(PINIT_ONCE once, PVOID param, PVOID* context)
