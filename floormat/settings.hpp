@@ -3,6 +3,8 @@
 #include <cr/String.h>
 #include <mg/Vector2.h>
 
+namespace floormat::SpriteAtlas { enum class layer_copy_mode : u8; }
+
 namespace floormat {
 
 struct fm_settings
@@ -18,6 +20,8 @@ struct fm_settings
     const char* const* argv = nullptr; int argc = 0;
     Magnum::Math::Vector2<int> resolution{1024, 720};
     u32 fixed_framerate = 0;   // 0 = feed update() the measured frame time
+    // The enum is opaque here, so {} stands for blit.
+    SpriteAtlas::layer_copy_mode atlas_layer_copy{};
     bool driver = false;
     // Safe because driver waits are counted in frames, never in wall-clock.
     bool driver_no_swapbuffers = false;
