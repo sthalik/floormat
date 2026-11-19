@@ -262,7 +262,7 @@ constexpr u32 short_dwell_frames = 1;
 // reading as motion; there the per-frame advance is a stride that has to be coprime with the frame
 // count. Either casts every waypoint exactly once per radius.
 enum class ray_order : u8 { spokes, radar };
-constexpr inline auto sweep_order = ray_order::radar;
+constexpr inline auto scene_raycast_ray_order = ray_order::radar;
 
 // Which offset inside a sector frame f takes, under `spokes`. Taking them in order advances every
 // spoke by one waypoint a frame -- a fiftieth of a degree at the longest radius -- so consecutive
@@ -270,11 +270,11 @@ constexpr inline auto sweep_order = ray_order::radar;
 // about four seconds, and still far enough that no frame repeats its neighbour's rays. Any stride
 // coprime with the frame count visits every offset exactly once; the golden ratio does that too
 // but turns the spokes faster than the eye follows.
-constexpr inline u32 sweep_sector_div = 8;
+constexpr inline u32 frame_stride_divisor = 8;
 
 u32 frame_stride(u32 num_frames)
 {
-    auto s = num_frames / sweep_sector_div;
+    auto s = num_frames / frame_stride_divisor;
     while (s > 1 && std::gcd(s, num_frames) != 1)
         s--;
     return Math::max(s, 1u);
@@ -1461,8 +1461,8 @@ task app::scene_raycast()
             u32 k = 0;
             for (auto j = 0u; j < rays_per_frame; j++)
             {
-                const auto idx = sweep_order == ray_order::spokes ? j*num_frames + off
-                                                                  : f*rays_per_frame + j;
+                const auto idx = scene_raycast_ray_order == ray_order::spokes ? j*num_frames + off
+                                                                              : f*rays_per_frame + j;
                 if (idx >= m)
                     continue;
                 cast(k++, wp[idx * wp_stride]);
@@ -1473,7 +1473,7 @@ task app::scene_raycast()
         total_frames += num_frames;
         // Each of the m waypoints cast exactly once, whichever order they went out in.
         fm_assert_equal(m, num_rays - rays0);
-        const auto advance = sweep_order == ray_order::spokes ? stride : rays_per_frame;
+        const auto advance = scene_raycast_ray_order == ray_order::spokes ? stride : rays_per_frame;
         fm_debug("raycast: %u rays around a %d px circle of %u waypoints in %u frames, "
                  "%.2f deg/frame, %u/%u sampled rays hit at %.0f px mean",
                  m, ray_len, n, num_frames, 360.*advance/m, sampled_hits, num_sampled,
@@ -1527,7 +1527,7 @@ task app::scene_raycast()
 
     fm_debug("raycast: %u rays over %u radii in %s batches of %u, %u pins",
              num_rays, (u32)array_size(pgo::raycast_radii),
-             sweep_order == ray_order::spokes ? "spoke" : "radar", rays_per_frame, num_pins);
+             scene_raycast_ray_order == ray_order::spokes ? "spoke" : "radar", rays_per_frame, num_pins);
     co_yield {};
 }
 

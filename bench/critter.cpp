@@ -632,16 +632,16 @@ void Critter_cover(benchmark::State& st)
     st.counters["num_body_checks"] = n.num_body_checks;
     st.counters["num_path_body_checks"] = n.num_path_body_checks;
     st.counters["num_dijkstra_calls"] = n.num_dijkstra_calls;
-    constexpr u32 sweep_mask = 0x11111111u;
-    u32 rays = 0, sweeps = 0;
+    constexpr u32 octilinear_octants = 0x11111111u;
+    u32 num_non_octilinear_octants = 0, num_octilinear_octants = 0;
     auto& pool = A->pool_registry().cover_pool(Grid::Cover::Params{div_size});
     for_cover_chunks([&](chunk_coords_ ch) {
         const auto k = pool[w[ch]].built_octants();
-        rays += (u32)std::popcount(k & ~sweep_mask);
-        sweeps += (u32)std::popcount(k & sweep_mask);
+        num_non_octilinear_octants += (u32)std::popcount(k & ~octilinear_octants);
+        num_octilinear_octants += (u32)std::popcount(k & octilinear_octants);
     });
-    st.counters["ray_fills"] = rays;
-    st.counters["sweep_fills"] = sweeps;
+    st.counters["num_non_octilinear_octants"] = num_non_octilinear_octants;
+    st.counters["num_octilinear_octants"] = num_octilinear_octants;
     st.counters["num_octant_fills"] = pool.octant_fills();
     st.counters["octant_fill_ms"] = (double)pool.octant_fill_time().stamp * 1e-6;
 

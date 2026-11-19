@@ -702,12 +702,12 @@ bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goa
     auto& cache = bm.cache;
     const auto step = (int)bm.div_size;
     const auto from = start.pt, to = goal.pt;
-    const auto near_from = [&](point pt) {
+    const auto is_within_start_seed_search = [&](point pt) {
         const auto d = Math::abs(pt - from);
         return Math::max(d.x(), d.y()) <= seed_search_radius + 2*step;
     };
     // The start's seed search can reach `to` itself.
-    if (near_from(to))
+    if (is_within_start_seed_search(to))
         return false;
 
     // false: give up
@@ -716,7 +716,7 @@ bool goal_enclosed(chunk_bitmaps& bm, const endpoint& start, const endpoint& goa
         if (c.dist == mark)
             return true;
         const auto off = Vector2ui(Vector2i(pt.chunk()) - cache.start - Vector2i{1});
-        if (c.index != (u32)-1 || near_from(pt) || cells.size() == max_cells
+        if (c.index != (u32)-1 || is_within_start_seed_search(pt) || cells.size() == max_cells
             || off.x() >= cache.size.x() - 2 || off.y() >= cache.size.y() - 2)
             return false;
         c.dist = mark;
