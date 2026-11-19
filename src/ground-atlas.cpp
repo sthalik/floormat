@@ -9,6 +9,7 @@
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>
 #include <mg/ImageView.h>
+#include <mg/PixelFormat.h>
 #include <mg/PixelStorage.h>
 
 namespace floormat {
@@ -26,6 +27,7 @@ ground_atlas::ground_atlas(ground_def info, const ImageView2D& image) :
 
     const Vector2ui img_size{(u32)image.size().x(), (u32)image.size().y()};
     fm_soft_assert(img_size.product() > 0);
+    fm_soft_assert(image.format() == PixelFormat::RGB8Unorm);
     fm_soft_assert(img_size % Vector2ui{_def.size} == Vector2ui());
     const Vector2ui tile_px = img_size / Vector2ui{_def.size};
 

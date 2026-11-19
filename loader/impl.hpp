@@ -38,8 +38,8 @@ struct loader_impl final : loader_
     Array<char> font_buf;
     StringView shader(StringView filename) noexcept override;
     ArrayView<const void> font() noexcept override;
-    Trade::ImageData2D make_error_texture(Vector2ui size) override;
-    Trade::ImageData2D make_error_texture(Vector2ui size, Vector4ub color) override;
+    Trade::ImageData2D make_error_texture(Vector2ui size, PixelFormat format) override;
+    Trade::ImageData2D make_error_texture(Vector2ui size, PixelFormat format, Vector4ub color) override;
     Trade::ImageData2D texture(StringView prefix, StringView filename) noexcept(false) override;
     Trade::ImageData2D image(StringView path) noexcept(false) override;
 

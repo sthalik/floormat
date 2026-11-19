@@ -14,6 +14,7 @@
 #include <mg/Color.h>
 #include <mg/TextureFormat.h>
 #include <mg/ImageView.h>
+#include <mg/PixelFormat.h>
 
 namespace floormat {
 
@@ -57,7 +58,7 @@ anim_atlas::anim_atlas(String name, const ImageView2D& image, anim_def info, boo
 
     const Size<3> size = image.pixels().size();
     fm_soft_assert(size[0]*size[1] == _info.pixel_size.product());
-    fm_soft_assert(size[2] >= 3 && size[2] <= 4);
+    fm_soft_assert(image.format() == PixelFormat::RGB8Unorm || image.format() == PixelFormat::RGBA8Unorm);
 
     for (const auto pixel_size = _info.pixel_size;
          const auto& group : _info.groups)

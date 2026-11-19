@@ -8,6 +8,7 @@
 #include <cr/Optional.h>
 #include <mg/ImageView.h>
 #include <mg/ImageData.h>
+#include <mg/PixelFormat.h>
 
 namespace floormat::detail::loader {
 
@@ -30,7 +31,7 @@ auto ground_traits::make_invalid_atlas(Storage& s) -> Cell
     fm_debug_assert(!s.invalid_atlas);
     auto atlas = ::floormat::bptr<Atlas>{InPlace,
         ground_def{::floormat::loader.INVALID, Vector2ub{1,1}, pass_mode::pass},
-        ::floormat::loader.make_error_texture(Vector2ui(tile_size_xy))};
+        ::floormat::loader.make_error_texture(Vector2ui(tile_size_xy), PixelFormat::RGB8Unorm)};
     return ground_cell{ atlas, atlas->name(), atlas->num_tiles2(), atlas->pass_mode() };
 }
 
