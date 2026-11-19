@@ -1,6 +1,7 @@
 #pragma once
 #include <cr/StringView.h>
 #include <mg/AbstractShaderProgram.h>
+#include <mg/Texture.h>
 #include <mg/Vector4.h>
 
 namespace Magnum::GL { class AbstractTexture; }
@@ -87,6 +88,7 @@ private:
 
     texture_unit_cache& tuc; // NOLINT(*-avoid-const-or-ref-data-members)
     GL::AbstractTexture* _lightmap = nullptr;
+    GL::Texture2D _lightmap_fallback;
     Vector2d _camera_offset;
     Vector2i _camera_offsetʹ;
     Vector4 _tint, _real_tint;
