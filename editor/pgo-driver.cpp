@@ -116,6 +116,8 @@ ArrayView<const pgo::scene> app::scenes() noexcept
         FM_SCENE(scene_cover_ai, coverage),
         FM_SCENE(scene_cover_ai_map, coverage),
         FM_SCENE(scene_cover_wait, coverage),
+        FM_SCENE(scene_cover_chase, coverage),
+        FM_SCENE(scene_cover_chase_teleport, coverage),
         FM_SCENE(scene_clickables, profile),
         FM_SCENE(scene_torture_flat, profile),
         FM_SCENE(scene_torture_all_z, profile),
@@ -123,7 +125,7 @@ ArrayView<const pgo::scene> app::scenes() noexcept
     };
 #undef FM_SCENE
 
-    static_assert(array_size(Scenes) <= 32); // pgo::state::scene_mask
+    static_assert(array_size(Scenes) <= 64); // pgo::state::scene_mask
 
     return Scenes;
 }
@@ -2161,7 +2163,7 @@ void app::driver_tick()
             while (i < Scenes.size() && StringView{Scenes[i].name} != name)
                 i++;
             fm_assert(i < Scenes.size()); // name not found
-            D.scene_mask |= 1u << i;
+            D.scene_mask |= u64{1} << i;
         }
     }
 
@@ -2199,7 +2201,7 @@ void app::driver_tick()
         }
         for (;;)
         {
-            while (D.scene_index < Scenes.size() && !(D.scene_mask & 1u << D.scene_index))
+            while (D.scene_index < Scenes.size() && !(D.scene_mask & u64{1} << D.scene_index))
                 D.scene_index++;
             if (D.scene_index < Scenes.size())
                 break;

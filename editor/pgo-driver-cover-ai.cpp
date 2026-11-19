@@ -7,10 +7,15 @@
 #include "src/tile.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/critter.hpp"
+#include "src/critter-script.hpp"
 #include "src/critter-script-cover.hpp"
+#include "src/critter-script-cover-search.hpp"
 #include "src/raycast.hpp"
+#include "src/search.hpp"
 #include "src/search-astar.hpp"
+#include "src/search-result.hpp"
 #include "src/point.inl"
+#include "src/intra-coord.inl"
 #include "compat/any-of.hpp"
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
@@ -19,9 +24,12 @@
 #include "compat/tie.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
+#include <algorithm>
+#include <cmath>
 #include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
 #include <mg/BatchFunctions.h>
+#include <mg/Functions.h>
 
 #ifndef FLOORMAT_NO_PGO_DRIVER
 
@@ -66,6 +74,20 @@ constexpr u32 map_moves = 10, short_map_moves = 3;
 // A player tile nearer the npc than this is skipped, since the player's body could stand in the
 // npc's way.
 constexpr u32 map_min_player_dist = 2*tile_size_xy;
+
+// In degrees from the axis of the npc's cover toward the player, one per chase cycle, as in bench/critter.cpp.
+constexpr float chase_bearings[] = { 90, -90, 135, -135, 180, 60, -60, 45 };
+constexpr u32 num_short_scene_bearings = 2;
+
+void set_map_walls(chunk& c)
+{
+    auto wall = loader.wall_atlas("test1", loader_policy::warn);
+    for (const auto tile : map_west_walls)
+        c[tile].wall_west() = { wall, (variant_t)-1 };
+    for (const auto tile : map_north_walls)
+        c[tile].wall_north() = { wall, (variant_t)-1 };
+    c.mark_modified();
+}
 
 // What cover_ai_test's "Other cover spots" box lists once its search has reached every tile: the
 // spots of one search over its default radius, 1024 px, around the tile c stands on and from
@@ -633,12 +655,7 @@ task app::scene_cover_ai_map()
     {
         auto& c = w[chunk_coords_{}];
         maybe_initialize_chunk_(c.coord(), c);
-        auto wall = loader.wall_atlas("test1", loader_policy::warn);
-        for (const auto tile : map_west_walls)
-            c[tile].wall_west() = { wall, (variant_t)-1 };
-        for (const auto tile : map_north_walls)
-            c[tile].wall_north() = { wall, (variant_t)-1 };
-        c.mark_modified();
+        set_map_walls(c);
     }
 
     const auto tile_pos = [](local_coords tile) { return point{chunk_coords_{}, tile, {}}; };
@@ -1058,6 +1075,241 @@ task app::scene_cover_wait()
         fm_assert(Second/max_hz <= min_dt && max_dt_seen <= Second/min_hz);
     fm_debug("cover-wait: %u hidden and %u exposed waits ended on time, dt %llu to %llu ns, %u ms", num_hidden,
              num_exposed, (unsigned long long)min_dt.stamp, (unsigned long long)max_dt_seen.stamp,
+             (u32)Time::to_milliseconds(w.game_time()));
+
+    tests().switch_to(Test::none);
+    do_key(key_mode_none);
+    co_yield {};
+}
+
+task app::scene_cover_chase() { co_await scene_cover_chase_impl(false); }
+task app::scene_cover_chase_teleport() { co_await scene_cover_chase_impl(true); }
+
+// The npc hides behind scene_cover_ai_map's walls and peeks out. 5 s after it first stands exposed at a cover,
+// the player goes where it sees the npc's body there, from each of chase_bearings in turn.
+task app::scene_cover_chase_impl(bool is_teleport)
+{
+    using tests::base_test;
+    using tests::Test;
+    using state = Cover::Script::status::state;
+    constexpr u32 max_dijkstra_calls_per_bearing = 8;
+    // Dijkstra searches per cycle for a walking player that stopped short of its destination.
+    constexpr u32 max_player_dijkstra_calls_per_cycle = 8;
+    constexpr int lattice_spacing = 16, lattice_half_width = 6*(int)tile_size_xy;
+    constexpr int lattice_points_per_side = 2*lattice_half_width/lattice_spacing + 1;
+    constexpr float min_dist_from_cover = 2*tile_size_xy, max_dist_from_cover = 6*tile_size_xy;
+    constexpr float max_bearing_error = 22.5f;
+    constexpr auto time_before_chase = 5*Second;
+    constexpr auto hidden_time = 2*Second; // the script's hidden_time
+    const char* const name = is_teleport ? "cover-chase-teleport" : "cover-chase";
+
+    auto& w = M->world();
+    {
+        auto& c = w[chunk_coords_{}];
+        maybe_initialize_chunk_(c.coord(), c);
+        set_map_walls(c);
+    }
+    const auto tile_pos = [](local_coords tile) { return point{chunk_coords_{}, tile, {}}; };
+    auto player = ensure_player_character(w);
+    {
+        auto index = player->index();
+        player->teleport_to(index, tile_pos(map_player_tiles[0]), rotation_COUNT);
+    }
+
+    do_key(key_mode_tests);
+    tests().switch_to(Test::cover_ai);
+    object_id npc_id;
+    {
+        base_test::Value v;
+        v.type = base_test::ValueType::u32;
+        v.u32 = 0;
+        v = tests().current_test->advance(*this, v);
+        fm_assert(v.type == base_test::ValueType::u64);
+        npc_id = v.u64;
+        auto npc = w.find_object<critter>(npc_id);
+        fm_assert(npc);
+        auto index = npc->index();
+        npc->teleport_to(index, tile_pos(map_npc_tile), rotation_COUNT);
+    }
+    center_camera_on(tile_pos({8, 8}));
+    M->reset_fps();
+    co_yield {};
+
+    const auto npc = [&] {
+        auto C = w.find_object<critter>(npc_id);
+        fm_assert(C);
+        return C;
+    };
+    const auto status = [&] {
+        const auto s = Cover::Script::get_status(*npc());
+        fm_assert(s);
+        return *s;
+    };
+    const auto print = [](point pt) {
+        const auto v = Vector3i(pt).xy();
+        return std::pair{v.x(), v.y()};
+    };
+    const auto npc_body_size = Vector2ui(npc()->bbox_size);
+    const auto player_size = player->circumscribed_bbox_size();
+    const auto blocks_all_but_player = Search::blocks_all_but(player->id);
+    const auto is_passable_for_player = [&](point pos) {
+        const auto min = Vector2(pos.intra().center_shifted() - Vector2i(player_size/2u));
+        const auto box = Range2D::fromSize(min, Vector2(player_size));
+        return w.at(pos.chunk3()) && Search::is_passable(w, pos.chunk3(), box, blocks_all_but_player);
+    };
+
+    auto& A = M->astar();
+    Cover::Point::finder finder;
+    Array<point> destinations;
+    arrayReserve(destinations, lattice_points_per_side*lattice_points_per_side);
+    // Returns the player's path to the lattice point nearest it within max_bearing_error of bearing from c.pos,
+    // from which it sees the npc's body at c. Only the max_dijkstra_calls_per_bearing nearest are tried.
+    const auto path_to_chase_destination = [&](const Cover::Script::cover& c, float bearing) {
+        const auto t = Rad{Deg{bearing}};
+        const auto a = Vector2(c.axis);
+        const auto bearing_dir = Vector2{a.x()*Math::cos(t) - a.y()*Math::sin(t),
+                                         a.x()*Math::sin(t) + a.y()*Math::cos(t)};
+        const auto from = player->position();
+        arrayClear(destinations);
+        for (int y = -lattice_half_width; y <= lattice_half_width; y += lattice_spacing)
+            for (int x = -lattice_half_width; x <= lattice_half_width; x += lattice_spacing)
+            {
+                const auto v = Vector2{(float)x, (float)y};
+                const auto len = v.length();
+                if (len < min_dist_from_cover || len > max_dist_from_cover)
+                    continue;
+                const auto bearing_error = Deg{Rad{std::atan2(Math::cross(bearing_dir, v), Math::dot(bearing_dir, v))}};
+                if (Math::abs((float)bearing_error) > max_bearing_error)
+                    continue;
+                const auto pt = c.pos + Vector2i{x, y};
+                if (is_passable_for_player(pt) && !finder.hidden_at(w, pt, {c.canonical, c.axis}, npc_body_size))
+                    arrayAppend(destinations, pt);
+            }
+        std::sort(destinations.begin(), destinations.end(), [&](point p, point q) {
+            return (p - from).dot() < (q - from).dot();
+        });
+        for (u32 k = 0; k < Math::min((u32)destinations.size(), max_dijkstra_calls_per_bearing); k++)
+        {
+            const auto to = destinations[k];
+            const auto max_dist = Cover::max_search_path_length(from, to);
+            auto path = A.Dijkstra<0, false>(w, from, to, max_dist, player_size, blocks_all_but_player);
+            if (path.is_found())
+            {
+                (void)A.string_pull(w, path, player_size, blocks_all_but_player);
+                return path;
+            }
+        }
+        return path_search_result{};
+    };
+    const auto walk_player = [&](path_search_result path) {
+        player->script.do_reassign(critter_script::make_walk_script(move(path)), player);
+    };
+    const auto stop_player = [&] {
+        if (player->moves.AUTO)
+            player->script.do_clear(player);
+    };
+
+    const auto num_bearings = pgo_driver_use_short_scenes() ? num_short_scene_bearings
+                                                            : (u32)array_size(chase_bearings);
+    Optional<Cover::Script::cover> cover_at_chase_start;
+    Optional<Ns> first_hidden_time, first_exposed_time;
+    Ns chase_start_time;
+    auto deadline = w.game_time() + max_dt;
+    point destination;
+    u32 bearing_index = 0, num_player_dijkstra_calls = 0, num_cycles = 0, num_cycles_without_peek = 0;
+
+    while (bearing_index < num_bearings)
+    {
+        co_yield {};
+        const auto s = status();
+        const auto now = w.game_time();
+        if (now >= deadline)
+        {
+            const auto [x, y] = print(npc()->position());
+            const auto [px, py] = print(player->position());
+            fm_abort("%s: bearing %.0f: state %u, npc (%d, %d), player (%d, %d), chasing %d", name,
+                     (double)chase_bearings[bearing_index], (unsigned)s.st, x, y, px, py, (int)!!cover_at_chase_start);
+        }
+
+        if (!cover_at_chase_start)
+        {
+            if (!first_hidden_time)
+            {
+                if (s.st == state::hidden)
+                    first_hidden_time = now;
+                continue;
+            }
+            if (s.st == state::exposed && !first_exposed_time)
+                first_exposed_time = now;
+            const bool is_chase_due = first_exposed_time
+                                      ? now >= *first_exposed_time + time_before_chase
+                                      : s.st == state::hidden &&
+                                        now >= *first_hidden_time + hidden_time + time_before_chase;
+            if (!is_chase_due)
+                continue;
+            fm_assert(s.cover);
+            auto path = path_search_result{};
+            for (; bearing_index < num_bearings; bearing_index++)
+                if (path = path_to_chase_destination(*s.cover, chase_bearings[bearing_index]); path.is_found())
+                    break;
+            if (!path.is_found())
+                break;
+            cover_at_chase_start = s.cover;
+            destination = path.path().back();
+            num_cycles_without_peek += !first_exposed_time;
+            num_player_dijkstra_calls = 0;
+            chase_start_time = now;
+            deadline = now + max_dt;
+            if (is_teleport)
+            {
+                auto index = player->index();
+                player->teleport_to(index, destination, rotation_COUNT);
+            }
+            else
+                walk_player(move(path));
+            continue;
+        }
+
+        const bool has_npc_reacted = s.st == state::seek || s.st == state::search ||
+                                     s.st == state::find_retreat || s.st == state::retreat;
+        const bool is_new_cover = s.cover && s.cover->canonical != cover_at_chase_start->canonical;
+        if (has_npc_reacted)
+            stop_player();
+        else if (s.st == state::hidden && is_new_cover &&
+                 finder.hidden_at(w, player->position(), {s.cover->canonical, s.cover->axis}, npc_body_size))
+        {
+            const auto [dx, dy] = print(destination);
+            const auto [bx, by] = print(cover_at_chase_start->pos);
+            const auto [cx, cy] = print(s.cover->pos);
+            fm_debug("%s: bearing %.0f, player to (%d, %d): cover (%d, %d) to (%d, %d) in %u ms, "
+                     "longest script update %.0f us", name, (double)chase_bearings[bearing_index], dx, dy, bx, by,
+                     cx, cy, (u32)Time::to_milliseconds(now - chase_start_time),
+                     (double)Time::to_milliseconds(s.max_update)*1e3);
+            cover_at_chase_start = {};
+            first_hidden_time = now;
+            first_exposed_time = {};
+            deadline = now + max_dt;
+            num_cycles++;
+            bearing_index++;
+        }
+        else if (!is_teleport && !is_new_cover && !player->moves.AUTO && player->position() != destination &&
+                 num_player_dijkstra_calls < max_player_dijkstra_calls_per_cycle)
+        {
+            const auto from = player->position();
+            const auto max_dist = Cover::max_search_path_length(from, destination);
+            auto path = A.Dijkstra<0, false>(w, from, destination, max_dist, player_size, blocks_all_but_player);
+            if (path.is_found())
+            {
+                (void)A.string_pull(w, path, player_size, blocks_all_but_player);
+                walk_player(move(path));
+            }
+            num_player_dijkstra_calls++;
+        }
+    }
+    stop_player();
+    if (!num_cycles)
+        fm_abort("%s: no bearing has a destination", name);
+    fm_debug("%s: %u cycles, %u without a peek, %u ms", name, num_cycles, num_cycles_without_peek,
              (u32)Time::to_milliseconds(w.game_time()));
 
     tests().switch_to(Test::none);

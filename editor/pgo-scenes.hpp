@@ -12,7 +12,7 @@ namespace floormat::pgo {
 
 struct scene_name
 {
-    char str[15];
+    char str[23];
     u8 size;
 
     template<usize N>

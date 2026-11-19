@@ -185,7 +185,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
             if (name == "help"_s || name == "list"_s)
             {
                 for (const auto& s : scenes)
-                    std::printf("%-16s%s\n", s.name.str,
+                    std::printf("%-24s%s\n", s.name.str,
                                 s.mode == driver_mode::coverage ? "coverage" : "profile");
                 std::fflush(stdout);
                 std::exit(0);
