@@ -25,6 +25,7 @@ app::app(fm_settings&& opts) :
     _driver{InPlaceInit},
     key_modifiers{}
 {
+    loader.atlas().set_layer_copy(M->settings().atlas_layer_copy);
     reset_world_post();
     auto& w = M->world();
     constexpr chunk_coords_ coord{0, 0, 0};

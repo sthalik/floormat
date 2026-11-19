@@ -10,6 +10,7 @@
 #include "compat/split-string.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
+#include "src/sprite-atlas.hpp"
 #include "src/world.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
@@ -141,6 +142,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
         .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns to FILE, one per line", "FILE")
         .addBooleanOption("show-fps").setHelp("show-fps", "print FPS to stderr every 5 seconds")
+        .addOption("atlas-layer-copy", "blit").setHelp("atlas-layer-copy", "how the sprite atlas texture grows: blit keeps the old and the new texture in VRAM at once, readback copies the old one's layers through system memory", "blit|readback")
 #ifndef FLOORMAT_NO_PGO_DRIVER
         .addOption("scenes", "off").setHelp("scenes", "run driver scenes, then quit; names or list|all|coverage|profile|none", "a,b,c")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
@@ -153,6 +155,15 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
     opts.log_frame_times = String{args.value<StringView>("log-frame-times")};
     opts.show_fps = args.isSet("show-fps");
     opts.vsync = parse_bool("vsync", args);
+    if (const auto str = args.value<StringView>("atlas-layer-copy"); str == "blit"_s)
+        opts.atlas_layer_copy = SpriteAtlas::layer_copy_mode::blit;
+    else if (str == "readback"_s)
+        opts.atlas_layer_copy = SpriteAtlas::layer_copy_mode::readback;
+    else
+    {
+        ERR << "invalid --atlas-layer-copy argument" << quoted(str);
+        std::exit(EX_USAGE);
+    }
 #ifndef FLOORMAT_NO_PGO_DRIVER
     if (const auto arg = args.value<StringView>("scenes"); arg != "off"_s)
     {
