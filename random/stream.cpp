@@ -1,4 +1,7 @@
 #include "random.hpp"
+#include "chacha.hpp"
+#include "os-seed.hpp"
+#include <charconv>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -34,9 +37,12 @@ void write(Next&& next)
 
 int usage()
 {
-    std::fputs("usage: floormat-random-stream xoshiro256starstar|splitmix64|mix-counter|ranlux48|gaussian [seed]\n"
+    std::fputs("usage: floormat-random-stream "
+               "xoshiro256starstar|splitmix64|mix-counter|ranlux48|gaussian|chacha8 [seed]\n"
                "Writes raw little-endian outputs to stdout until the reader closes it.\n"
-               "gaussian writes the normal CDF of each deviate as 32 bits.\n", stderr);
+               "gaussian writes the normal CDF of each deviate as 32 bits.\n"
+               "chacha8 reads its key as 64 hex digits from seed, else from the OS, and prints it to stderr.\n",
+               stderr);
     return EXIT_FAILURE;
 }
 
@@ -83,6 +89,30 @@ int main(int argc, char** argv)
             const double p = 0.5 * std::erfc(-Random::gaussian(Random::next(g)) * 0.70710678118654752);
             return (u64)std::fmin(p * 0x1p32, 0xffffffff);
         });
+    }
+    else if (!std::strcmp(name, "chacha8"))
+    {
+        u8 key[32];
+        if (argc == 3)
+        {
+            const char* hex = argv[2];
+            if (std::strlen(hex) != 2 * sizeof key)
+                return usage();
+            for (u32 i = 0; i < sizeof key; i++)
+            {
+                const auto [ptr, ec] = std::from_chars(hex + 2*i, hex + 2*i + 2, key[i], 16);
+                if (ec != std::errc{} || ptr != hex + 2*i + 2)
+                    return usage();
+            }
+        }
+        else
+            Random::os_random_bytes(key);
+        std::fputs("chacha8 key ", stderr);
+        for (u8 byte : key)
+            std::fprintf(stderr, "%02x", byte);
+        std::fputc('\n', stderr);
+        Random::ChaCha::csprng g{key};
+        write<8>([&] { return g.next(); });
     }
     else
         return usage();

@@ -25,6 +25,7 @@ void test_bitmask();
 void test_bitset();
 void test_bptr();
 void test_bptr_intrusive();
+void test_chacha();
 void test_chase_lev_deque();
 void test_checked_cast();
 void test_chunk_iter();

@@ -64,6 +64,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_intra_coord),
     FM_TEST(test_crc64),
     FM_TEST(test_random),
+    FM_TEST(test_chacha),
     FM_TEST(test_bptr),
     FM_TEST(test_bptr_intrusive),
     FM_TEST(test_chunk_iter),
