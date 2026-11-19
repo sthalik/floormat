@@ -30,7 +30,7 @@ class retreat_finder
     path_search_result _exposed_path;
     point _exposed_path_from;
     bool _exposed_path_needs_ray_test = true;
-    // The start of the path step() returned last, which is_still_retreat_spot() reads.
+    // The start of the path tick() returned last, which is_still_retreat_spot() reads.
     point _path_from;
     bool _path_needs_ray_test = true;
 
@@ -42,8 +42,8 @@ public:
     void begin(Vector2i body, u32 threat_octant);
     // One update's work of the retreat, within the max_retreat_*_per_update limits. Each of its two passes ends
     // after max_failed_dijkstra_calls spots with no path, the first also when _rays runs out.
-    result step(critter& c, spot_tests& t, const Cover::Script::options& o, point threat);
-    // True when `to`, the end of step()'s last found path, is still over min_retreat_gain px farther from threat
+    result tick(critter& c, spot_tests& t, const Cover::Script::options& o, point threat);
+    // True when `to`, the end of tick()'s last found path, is still over min_retreat_gain px farther from threat
     // than that path's start, and the second pass found it or a ray from threat doesn't reach it.
     bool is_still_retreat_spot(critter& c, spot_tests& t, const Cover::Script::options& o, point to,
                                point threat) const;

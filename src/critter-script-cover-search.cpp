@@ -84,7 +84,7 @@ void cover_search::restart(point from, point threat)
     _tile_threat = {};
 }
 
-auto cover_search::step(critter& c, spot_tests& t, const Cover::Script::options& o, point from,
+auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options& o, point from,
                         point threat) -> result
 {
     using fallback = Cover::Script::options::fallback;
@@ -287,7 +287,7 @@ auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Sc
 }
 
 // peekless if the threat and where it can walk still see none of the npc there, else in_reach if the threat
-// alone doesn't, with its cover_end() and a path there. Clears both. At most one path_to call, as in step().
+// alone doesn't, with its cover_end() and a path there. Clears both. At most one path_to call, as in tick().
 auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,
                                     point threat) -> Optional<reachable_cover>
 {
