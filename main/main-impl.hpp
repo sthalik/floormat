@@ -12,7 +12,6 @@
 #include "clickable.hpp"
 #include <concepts>
 #include <cstdio>
-#include <mg/DebugOutput.h>
 #include <mg/Sdl2Application.h>
 #include <mg/Framebuffer.h>
 #include <mg/Renderbuffer.h>
@@ -100,7 +99,7 @@ struct main_impl final : private Platform::Sdl2Application, public floormat_main
     void start_text_input() noexcept override;
     void stop_text_input() noexcept override;
 
-    static void debug_callback(unsigned src, unsigned type, unsigned id, unsigned severity, StringView str);
+    static void debug_callback(u32 src, u32 type, u32 id, u32 severity, StringView str);
 
     void set_cursor(u32 cursor) noexcept override;
 
@@ -153,7 +152,7 @@ private:
     template<std::invocable<chunk&, i16, i16, i8> Function>
     void draw_world_0(const Function& fun, ArrayView<chunk_coords_> chunks);
 
-    void register_debug_callback();
+    static void register_debug_callback();
 
     static Configuration make_conf(const fm_settings& s);
     static GLConfiguration make_gl_conf(const fm_settings& s);
