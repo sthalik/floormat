@@ -89,6 +89,7 @@ usage() {
     echo "       then each of: $extension_combinations" >&2
     echo "       --editor opens floormat-editor's window instead of running floormat-test and the editor's scenes" >&2
     echo "       editor-args go to floormat-editor after the script's own, which they override" >&2
+    echo "       queried GL limits are the minimums of GL 3.3 and of the kept extensions; a call past one aborts" >&2
     exit 64
 }
 
@@ -313,6 +314,7 @@ if test -n "$all"; then
         run_tests_with "$ext" "$@"
     done
 else
+    grep -hoE 'gl33-proxy: gl[A-Za-z0-9_]* (passed|linked) .*' "$@" || true
     run_tests_with "$only" "$@"
 fi
 
