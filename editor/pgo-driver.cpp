@@ -56,6 +56,7 @@
 #include "compat/nanosecond.inl"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"
+#include "compat/valgrind.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
 #include "floormat/settings.hpp"
@@ -1956,12 +1957,12 @@ task app::scene_grids()
     // Stop once the bitmap is this full. Past it a new pin only takes cells an earlier one had
     // already taken, while a build still walks every object in the chunk. Read off cover's grid.
     constexpr float fill_target = .9f;
-    // These count the octants cover_test fills, one per click, on the empty chunk and again on the filled one.
+    // These count the octants cover_test fills, one per frame, on the empty chunk and again on the filled one.
     // fill_octant() raycasts only cells near the grid's edge, and computes the others without a raycast.
-    constexpr u32 cover_octant_budget = 12, short_cover_octant_budget = 2;
+    constexpr u32 cover_octant_budget = Grid::Cover::octant_count, short_cover_octant_budget = 2;
     const bool shorten = pgo_driver_use_short_scenes();
     const auto steps = shorten ? short_steps_per_frame : steps_per_frame;
-    const auto octant_budget = shorten ? short_cover_octant_budget : cover_octant_budget;
+    const auto octant_budget = is_valgrind() ? short_cover_octant_budget : cover_octant_budget;
 
     populate_scene_grids();
     auto& w = M->world();
@@ -1986,8 +1987,8 @@ task app::scene_grids()
     };
 
     // The grid and cover tests own the grids they draw, so driving them is both the only way to
-    // see this scene work and the only route the two overlays get profiled at all. Each click is
-    // one step: grid_test re-extracts the chunk bitmap, cover_test fills one more octant.
+    // see this scene work and the only route the two overlays get profiled at all. Each click makes
+    // grid_test re-extract the chunk bitmap.
     do_key(key_mode_tests);
     set_cursor_at(center);
     // Both tests read cursor_state().point() and quietly do nothing when it is empty, so without
@@ -2004,11 +2005,18 @@ task app::scene_grids()
     // Empty chunk first. With nothing to stop them the cover rays run their full chunk length,
     // which is the expensive end of fill_octant; after the pins go in they die immediately.
     tests().switch_to(floormat::tests::Test::cover);
+    // After a click, cover_test fills the selected octant in the next frame. A click every frame only re-extracts.
+    step_test();
+    co_yield {};
+    u32 built = 0;
     for (auto i = 0u; i < octant_budget; i++)
     {
-        step_test();
         co_yield {};
+        const auto val = tests().current_test->advance(*this, {});
+        fm_assert(val.type == tests::base_test::ValueType::u32);
+        built |= val.u32;
     }
+    fm_assert_equal(octant_budget, (u32)std::popcount(built));
 
     tests().switch_to(floormat::tests::Test::grid);
     u32 num_pins = 0, num_builds = 0;
@@ -2038,11 +2046,17 @@ task app::scene_grids()
     fm_assert(!pass_raycast[c].is_all_empty());
 
     tests().switch_to(floormat::tests::Test::cover);
+    step_test();
+    co_yield {};
+    built = 0;
     for (auto i = 0u; i < octant_budget; i++)
     {
-        step_test();
         co_yield {};
+        const auto val = tests().current_test->advance(*this, {});
+        fm_assert(val.type == tests::base_test::ValueType::u32);
+        built |= val.u32;
     }
+    fm_assert_equal(octant_budget, (u32)std::popcount(built));
 
     fm_debug("grids: %u pins to %.0f%% full of %.0f%%, %u pass builds over 3 pools, "
              "%u cover octants of %u either side",
