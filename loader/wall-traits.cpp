@@ -10,6 +10,7 @@
 #include <cr/Optional.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
+#include <mg/PixelFormat.h>
 
 namespace floormat::detail::loader {
 
@@ -42,7 +43,7 @@ auto wall_traits::make_invalid_atlas(Storage& s) -> Cell
             } }),
             {{ {.val = 0}, {}, }},
             {true, false},
-        }, name, ::floormat::loader.make_error_texture(frame_size));
+        }, name, ::floormat::loader.make_error_texture(frame_size, PixelFormat::RGB8Unorm));
     return { .atlas = move(a), .name = name, };
 }
 

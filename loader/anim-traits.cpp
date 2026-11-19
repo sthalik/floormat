@@ -18,6 +18,7 @@
 #include <cr/Path.h>
 #include <mg/ImageData.h>
 #include <mg/ImageView.h>
+#include <mg/PixelFormat.h>
 #include <mg/PixelStorage.h>
 
 namespace floormat::detail::loader {
@@ -45,7 +46,7 @@ auto anim_traits::make_invalid_atlas(Storage& s) -> Cell
 {
     fm_debug_assert(!s.invalid_atlas);
     constexpr auto size = invalid_atlas_size;
-    auto err_tex = ::floormat::loader.make_error_texture(size);
+    auto err_tex = ::floormat::loader.make_error_texture(size, PixelFormat::RGBA8Unorm);
 
     // Placeholder frames need a sprite in the shared atlas so they can be drawn.
     const auto px_size = (usize)err_tex.pixels().size()[2];
@@ -95,7 +96,7 @@ auto anim_traits::make_invalid_atlas(StringView name, placeholder_anim_params pa
         // Last frame, so door_scenery::depth_offset draws an open placeholder door at the open offset.
         .action_frame = nframes - 1,
     };
-    auto err_tex = ::floormat::loader.make_error_texture(size);
+    auto err_tex = ::floormat::loader.make_error_texture(size, PixelFormat::RGBA8Unorm);
     return ::floormat::bptr<class anim_atlas>{InPlace, name, err_tex, move(def), true};
 }
 
