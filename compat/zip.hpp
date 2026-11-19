@@ -251,7 +251,7 @@ constexpr bool iterator<Vs...>::operator==(const sentinel<Vs...>& s) const noexc
 
 template<typename... Rs>
 constexpr view<Rs...>::view(Rs&&... rs) noexcept((std::is_nothrow_constructible_v<floormat::detail::range::all_t<Rs>, Rs> && ...)) :
-    _bases{ {detail::range::all_t<Rs>{floormat::forward<Rs>(rs)}}... }
+    _bases{ {detail::range::all_t<Rs>{forward<Rs>(rs)}}... }
 {}
 
 template<typename... Rs>
@@ -290,7 +290,7 @@ namespace floormat {
 template<typename... Rs> requires (range<Rs> && ...)
 constexpr detail::zip::view<Rs...> zip(Rs&&... rs) noexcept(std::is_nothrow_constructible_v<detail::zip::view<Rs...>, Rs...>)
 {
-    return detail::zip::view<Rs...>{floormat::forward<Rs>(rs)...};
+    return detail::zip::view<Rs...>{forward<Rs>(rs)...};
 }
 
 } // namespace floormat

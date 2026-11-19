@@ -19,7 +19,7 @@ constexpr CORRADE_ALWAYS_INLINE void visit_tuple(F&& fun, Tuple&& tuple)
 
     fun(std::get<N>(tuple));
     if constexpr(N+1 < Size())
-        visit_tuple<F, Tuple, N+1>(floormat::forward<F>(fun), floormat::forward<Tuple>(tuple));
+        visit_tuple<F, Tuple, N+1>(forward<F>(fun), forward<Tuple>(tuple));
 }
 
 template<typename F, typename Tuple, usize N>
@@ -32,7 +32,7 @@ constexpr CORRADE_ALWAYS_INLINE bool find_in_tuple(F&& fun, Tuple&& tuple)
     if (fun(std::get<N>(tuple)))
         return true;
     if constexpr(N+1 < Size())
-        return find_in_tuple<F, Tuple, N+1>(floormat::forward<F>(fun), floormat::forward<Tuple>(tuple));
+        return find_in_tuple<F, Tuple, N+1>(forward<F>(fun), forward<Tuple>(tuple));
     return false;
 }
 
@@ -49,7 +49,7 @@ constexpr void visit_tuple(F&& fun, Tuple&& tuple)
 {
     using Size = std::tuple_size<std::decay_t<Tuple>>;
     if constexpr(Size() > 0)
-        detail::visit_tuple<F, Tuple, 0>(floormat::forward<F>(fun), floormat::forward<Tuple>(tuple));
+        detail::visit_tuple<F, Tuple, 0>(forward<F>(fun), forward<Tuple>(tuple));
 }
 
 template<typename F, typename Tuple>
@@ -57,7 +57,7 @@ constexpr bool find_in_tuple(F&& fun, Tuple&& tuple)
 {
     using Size = std::tuple_size<std::decay_t<Tuple>>;
     if constexpr(Size() > 0)
-        return detail::find_in_tuple<F, Tuple, 0>(floormat::forward<F>(fun), floormat::forward<Tuple>(tuple));
+        return detail::find_in_tuple<F, Tuple, 0>(forward<F>(fun), forward<Tuple>(tuple));
     else
         return false;
 }
@@ -79,7 +79,7 @@ struct Entity final {
         struct field final : entity_field<Obj, Type, R, W, Ts...>
         {
             constexpr field(StringView field_name, R r, W w, Ts&&... ts) noexcept :
-                entity_field<Obj, Type, R, W, Ts...>{field_name, r, w, floormat::forward<Ts>(ts)...}
+                entity_field<Obj, Type, R, W, Ts...>{field_name, r, w, forward<Ts>(ts)...}
             {}
         };
 

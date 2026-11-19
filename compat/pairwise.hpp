@@ -77,7 +77,7 @@ constexpr bool iterator<V>::operator==(sentinel) const noexcept
 }
 
 template<typename R>
-constexpr view<R>::view(R&& r) noexcept(std::is_nothrow_constructible_v<base_type, R>) : _base{floormat::forward<R>(r)} {}
+constexpr view<R>::view(R&& r) noexcept(std::is_nothrow_constructible_v<base_type, R>) : _base{forward<R>(r)} {}
 
 template<typename R>
 constexpr auto view<R>::begin() noexcept -> iterator<base_type>
@@ -105,7 +105,7 @@ namespace floormat {
 template<typename R> requires range<R>
 constexpr detail::pairwise::view<R> pairwise(R&& r) noexcept(std::is_nothrow_constructible_v<detail::pairwise::view<R>, R>)
 {
-    return detail::pairwise::view<R>{floormat::forward<R>(r)};
+    return detail::pairwise::view<R>{forward<R>(r)};
 }
 
 } // namespace floormat

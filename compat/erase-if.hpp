@@ -21,7 +21,7 @@ constexpr usize erase_if(C& c, Pred&& pred)
         {
             if (!pred(*first))
             {
-                *out = floormat::move(*first);
+                *out = move(*first);
                 ++out;
             }
         }

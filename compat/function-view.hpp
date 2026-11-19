@@ -24,12 +24,12 @@ struct invoker
     {
         T& f = *static_cast<T*>(const_cast<void*>(e.obj));
         if constexpr (std::is_void_v<R>)
-            return static_cast<void>(common_function_impl::invoke_target(f, floormat::forward<Args>(args)...));
+            return static_cast<void>(common_function_impl::invoke_target(f, forward<Args>(args)...));
         else
-            return common_function_impl::invoke_target(f, floormat::forward<Args>(args)...);
+            return common_function_impl::invoke_target(f, forward<Args>(args)...);
     }
 
-    static constexpr R invoke_function(entity e, Args... args) noexcept(Noexcept) { return e.fn(floormat::forward<Args>(args)...); }
+    static constexpr R invoke_function(entity e, Args... args) noexcept(Noexcept) { return e.fn(forward<Args>(args)...); }
 
     [[noreturn]] static R invoke_empty(entity, Args...) noexcept { fm_abort("called an empty function_view"); }
 };
@@ -79,7 +79,7 @@ public:
             _thunk = &invoker_type::invoke_empty;
     }
 
-    constexpr R operator()(Args... args) const noexcept(Noexcept) { return _thunk(_bound, floormat::forward<Args>(args)...); }
+    constexpr R operator()(Args... args) const noexcept(Noexcept) { return _thunk(_bound, forward<Args>(args)...); }
 
     constexpr explicit operator bool() const noexcept { return !common_function_impl::pointers_equal(_thunk, &invoker_type::invoke_empty); }
     friend constexpr bool operator==(const function_view_base& f, decltype(nullptr)) noexcept { return !f; }
