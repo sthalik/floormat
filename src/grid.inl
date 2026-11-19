@@ -76,7 +76,7 @@ T* Pool<T>::take(chunk& ch) requires BitGrid<T>
     return new T{ch, params};
 }
 
-// Up to 8 chunk lookups per call, so only accessors a query calls once per chunk check, not per cell.
+// Each call looks up as many as 8 chunks, so only accessors that a query calls once per chunk run this check.
 template <typename T>
 void check_current([[maybe_unused]] T* grid)
 {

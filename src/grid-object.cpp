@@ -59,7 +59,8 @@ struct ObjectGrid : GridBase
                                                                            const Array<T>& runs, u32 index) const;
     bool is_entry_blocked(u32 k, const Search::pred& p) const;
     bool objects_maybe_dirty() const;
-    // An objects_gen() stamp marks no grid, so a moving critter never visits its neighbours' grids.
+    // A new objects_gen() value marks no grid stale. objects_maybe_dirty() compares the 9 chunks' values
+    // instead, so moving a critter writes to no grid.
     bool needs_rebuild() const { return is_marked_stale() || objects_maybe_dirty(); }
     void build_impl(chunk* self);
     template<typename T> bool build_impl(Array<T>& cells, Array<T>& runs, Array<u32>& scratch_runs);

@@ -86,12 +86,11 @@ inflated_cells::inflated_cells(const Pass::Params& params):
     {
         const auto half_div = (float)(div_size / 2);
         half_div_minus_half_tile = half_div - half_tile<float>;
-        // A bit must hold for every position in the cell, not just its anchor
-        // a = i*div_size + half_div - half_tile. pack_bit_index_from_coord() floors, and
-        // positions are integer pixels, so the cell spans [a - reach_below, a + reach_above].
+        // A bit must be correct at every integer position in the cell. pack_bit_index_from_coord() floors, so the
+        // cell spans [a - reach_below, a + reach_above] for a = i*div_size + half_div - half_tile.
         const auto reach_below = half_div;
         const auto reach_above = (float)(div_size - 1 - div_size / 2);
-        // interval overlap, so the cell's low end meets the obstacle's high end and vice versa
+        // Intervals overlap when each one's low endpoint lies below the other's high endpoint.
         grow_lo = bbox_hi + reach_above;
         grow_hi = bbox_lo + reach_below;
     }
@@ -100,7 +99,7 @@ inflated_cells::inflated_cells(const Pass::Params& params):
 cell_range inflated_cells::operator()(float x0, float y0, float x1, float y1) const
 {
     const float bx0 = x0 - grow_lo, by0 = y0 - grow_lo, bx1 = x1 + grow_hi, by1 = y1 + grow_hi;
-    // open interval (rect_intersects is strict): include j iff bx0 < j*div_size + hdmht < bx1
+    // rect_intersects() is strict, so cell i is included when bx0 < i*div_size + half_div_minus_half_tile < bx1.
     int i_lo = (int)Math::floor((bx0 - half_div_minus_half_tile) * inv_div) + 1;
     int i_hi = (int)Math::ceil ((bx1 - half_div_minus_half_tile) * inv_div) - 1;
     int j_lo = (int)Math::floor((by0 - half_div_minus_half_tile) * inv_div) + 1;

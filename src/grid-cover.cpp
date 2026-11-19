@@ -37,8 +37,8 @@ namespace {
 using Grid::Cover::Params;
 using Grid::Cover::octant_count;
 
-// Octant k steps octant_steps[k] cells at a time, within 0.7° of k*11.25°, so filling it can carry
-// a distance from a cell to the cell a step away.
+// Octant k's cell offset octant_steps[k] points within 0.7° of k*11.25°, so each cell's distance follows
+// from the distance of the cell one offset away.
 constexpr std::array<Vector2b, octant_count> octant_steps = [] {
     constexpr std::array<std::array<i8, 2>, 8> quadrant = {{
         {1, 0}, {5, 1}, {5, 2}, {3, 2}, {1, 1}, {2, 3}, {2, 5}, {1, 5},
@@ -78,8 +78,8 @@ struct stepped_octant
 {
     i8 q, p;
     u8 count;
-    // Cells the segment between the centers of a cell and the cell a step away passes through,
-    // ends left out, farthest first. Both cells meeting at a corner on the segment count.
+    // Cells the segment between the centers of a cell and the cell one offset away passes through, other than
+    // those two cells, farthest first. Both cells meeting at a corner on the segment count.
     std::array<crossed_cell, 8> cells;
 };
 
@@ -90,9 +90,8 @@ consteval stepped_octant make_stepped_octant(Vector2b step)
     stepped_octant ret{(i8)q, (i8)p, 0, {}};
     if (is_aligned(step))
         return ret;
-    // In doubled coordinates the segment runs from (0, 0) to (2q, 2p) and cell (i, j) spans 2i - 1
-    // to 2i + 1 and 2j - 1 to 2j + 1. A cell within the segment's bounding box is crossed when its
-    // corners aren't all strictly on one side of the line.
+    // In doubled coordinates the segment joins (0, 0) and (2q, 2p), and cell (i, j) has corners (2i ± 1, 2j ± 1).
+    // A cell in the segment's bounding box is crossed unless its corners all lie strictly on one side of the line.
     for (int j = p < 0 ? p : 0; j <= (p < 0 ? 0 : p); j++)
         for (int i = q < 0 ? q : 0; i <= (q < 0 ? 0 : q); i++)
         {
@@ -137,8 +136,8 @@ constexpr std::array<u8, octant_count> octant_order = {
     17, 18, 19, 21, 22, 23, 25, 26, 27, 29, 30, 31,
 };
 
-// fill_aligned() carries pixels in 1/fixed_one px in u16. Carries saturate at UINT16_MAX,
-// which rounds to dc, the cap.
+// While filling, pixel distances are held in u16 as multiples of 1/fixed_one px.
+// Sums saturate at UINT16_MAX, which rounds to dc, the cap.
 constexpr u32 fixed_one = (UINT16_MAX + 1) / chunk_size_xy; // xxx todo assumes power of two chunk size
 
 u32 to_fixed(float px)
@@ -158,9 +157,8 @@ T fixed_to_units(u32 fixed, u32 div_size)
     return (T)((fixed + unit / 2) / unit);
 }
 
-// Pixels from the center of cell (cell_x, cell_y) to the first hit on the way to the center plus
-// delta, at most max_ray_px. Calls do_raycasting() itself, since raycast() reads the clock twice
-// per ray.
+// Returns the distance in px from cell (cell_x, cell_y)'s center to the first collider toward the center plus
+// delta, at most max_ray_px. It calls do_raycasting() directly, since raycast() reads the clock twice per ray.
 float raycast_one(chunk& self,
                   u32 cell_x, u32 cell_y,
                   u32 div_size, Vector2i delta,
@@ -229,15 +227,13 @@ struct CoverGrid : GridBase
     u32 cell_count;
     // A distance is at most dc, and (T)-1 is Grid::Cover::blocked, so u8 needs dc < UINT8_MAX.
     bool narrow;
-    // cell_count rounded up, so every plane starts on 64 bytes
+    // cell_count rounded up, so every plane starts on a 64-byte boundary
     u32 plane_stride;
-    // Units of params.div_size, as u8 when narrow. Octant k of cell i is at
-    // k*plane_stride + i, so filling an octant writes one contiguous plane. Planes not in built_octants hold
-    // stale data.
+    // Holds distances in params.div_size units, as u8 when narrow, with octant k of cell i at k*plane_stride + i.
+    // A plane whose bit in built_octants is clear holds stale data.
     Array<u16> distances;
-    // fill_aligned()'s previous row in pixels, or fill_stepped()'s ring_rows rows of pixels and as
-    // many of pass masks. Rows are row_size() apart, starting at row[line_cells], on 64 bytes, with
-    // spare cells either side.
+    // Holds fill_aligned()'s previous row of pixel distances, or fill_stepped()'s rows of them and of pass masks.
+    // Each row starts on a 64-byte boundary, row_size() after the one before, with spare cells either side.
     Array<u16> row;
     u32 built_octants = 0;
 
@@ -247,8 +243,8 @@ struct CoverGrid : GridBase
     void reset_for_reuse(chunk& ch, Params new_params);
     bool needs_rebuild() const { return is_marked_stale(); }
     void apply_params();
-    // A ray reads the pass grids of the 3×3 around the chunk, and the RTrees of the 3×3 around each chunk it
-    // enters. check_current() doesn't call this, so the accessors' Debug check skips ring 2.
+    // Returns true when no chunk at Chebyshev distance 2 changed after the build. Rays read RTrees that far.
+    // check_current() doesn't call this, so the accessors' Debug check skips those chunks.
     bool ring2_is_current() const;
     /// @copydoc floormat::Grid::Cover::Grid::is_stale()
     bool is_stale() const;
@@ -309,10 +305,8 @@ auto pass_mask(D d, const usize* pass_bits, u32 n)
     }
 }
 
-// One row of a vertical or diagonal octant: a blocked cell stores (T)-1 and carries 0, and a passable
-// one is a step further than prev[x + sx]. prev[-1] and prev[dc] must be readable, and the caller
-// redoes the edge cell that reads one. Returns false and touches nothing when the row doesn't split
-// into whole vectors.
+// Computes one row of fill_aligned() into prev and out, or returns false and writes nothing when the row doesn't
+// split into whole vectors. It reads prev[-1] or prev[dc], which must be readable, and callers redo that cell.
 template<u32 DivSize, typename T>
 bool sweep_row_vectorized(u16* __restrict prev, T* __restrict out, const usize* __restrict pass_bits,
                           u32 y, i32 sx, u32 step, u32 runtime_div_size)
@@ -322,7 +316,7 @@ bool sweep_row_vectorized(u16* __restrict prev, T* __restrict out, const usize* 
     constexpr DU16 d;
     constexpr hn::Rebind<u8, decltype(d)> d8;
     const auto N = (u32)hn::Lanes(d);
-    // whole vectors, each starting on a byte of the pass grid
+    // Every vector must start on a byte of the pass grid, so the lane count must be a multiple of 8 and divide dc.
     if (N % 8 != 0 || dc % N != 0)
         return false;
 
@@ -379,7 +373,8 @@ bool sweep_row(u16* prev, T* out, const usize* pass_bits, u32 y, i32 sx, u32 ste
         }
 }
 
-// whole vectors, each starting on a byte of the pass grid
+// Returns true when the lane count is a multiple of 8 and divides dc, so every vector starts on a byte of
+// the pass grid.
 bool stepped_rows_vectorize(u32 dc)
 {
     namespace hn = hwy::HWY_NAMESPACE;
@@ -397,9 +392,8 @@ void expand_pass_row(u16* __restrict out, const usize* __restrict pass_bits, u32
         hn::StoreU(hn::VecFromMask(d, pass_mask(d, pass_bits, y*dc + x)), d, out + x);
 }
 
-// One row of a stepped octant, as fill_stepped() describes it. next is the row |p| back in sweep
-// order and masks[j] the pass masks of the row j back. A cell whose cell a step away is off the
-// grid reads spare cells of next and masks, so the caller redoes it.
+// Computes one row of octant o. next holds the distances |p| rows back, and masks[j] the pass masks j rows back.
+// The |q| cells on the side q points to read spare cells of next and masks, so the caller redoes them.
 template<typename T>
 void sweep_stepped_row(const u16* __restrict next, u16* __restrict cur, const u16* const* __restrict masks,
                        T* __restrict out, const stepped_octant& o, u32 step, const u16* __restrict stop_px,
@@ -418,7 +412,7 @@ void sweep_stepped_row(const u16* __restrict next, u16* __restrict cur, const u1
     for (u32 x = 0; x < dc; x += N)
     {
         auto px = hn::SaturatedAdd(hn::LoadU(d, next + ((isize)x + o.q)), vstep);
-        // farthest first, so the nearest blocked cell wins
+        // o.cells runs farthest first, so px keeps the stop_px of the nearest blocked cell.
         for (u32 c = 0; c < o.count; c++)
         {
             const auto& cell = o.cells[c];
@@ -438,7 +432,7 @@ void sweep_stepped_row(const u16* __restrict next, u16* __restrict cur, const u1
 }
 
 // An aligned octant steps a whole cell at a time, so a passable cell is one step further than the
-// next one along the octant. Only a cell whose next one is off the grid casts a ray.
+// next one along the octant. Only a cell whose next one is off the grid gets its distance from raycast_one().
 template<typename T>
 void fill_aligned(CoverGrid& g, u32 k, chunk& self, const usize* bits, Vector2 dir,
                   i32 sx, i32 sy, float step_px)
@@ -451,8 +445,8 @@ void fill_aligned(CoverGrid& g, u32 k, chunk& self, const usize* bits, Vector2 d
     const auto ray_fixed = [&](u32 x, u32 y) {
         return to_fixed(raycast_one(self, x, y, div_size, delta, pass_pool));
     };
-    // The n-th step in sweep order is the difference of rounded multiples, so a carry over any
-    // run of steps is off by at most 1/fixed_one px.
+    // step_at(n) is the length of n offsets minus that of n - 1, each rounded, so a distance summed over any
+    // number of consecutive offsets is off by at most 1/fixed_one px.
     const auto step_at = [step = (double)step_px * fixed_one](u32 n) {
         return (u32)(n*step + .5) - (u32)((n - 1)*step + .5);
     };
@@ -462,7 +456,7 @@ void fill_aligned(CoverGrid& g, u32 k, chunk& self, const usize* bits, Vector2 d
         u16 steps[chunk_size_xy];
         for (u32 n = 1; n < dc; n++)
             steps[n] = (u16)step_at(n);
-        // rows don't depend on each other, so carry the next cell's pixels along each one
+        // Each cell's distance is the next cell's along the row plus one offset's length, so rows are independent.
         for (u32 y = 0; y < dc; y++)
         {
             u32 px = 0;
@@ -485,7 +479,7 @@ void fill_aligned(CoverGrid& g, u32 k, chunk& self, const usize* bits, Vector2 d
         return;
     }
 
-    // Each row needs the one before it in sweep order. Walking x against sx reads row[x + sx]
+    // Each row needs the row computed before it. Looping over x in the direction of sx reads prev[x + sx]
     // before this row overwrites it.
     u16* const prev = g.row.data() + line_cells;
     const auto scalar_cell = [&](u32 n, u32 x, u32 y) {
@@ -518,10 +512,8 @@ void fill_aligned(CoverGrid& g, u32 k, chunk& self, const usize* bits, Vector2 d
     }
 }
 
-// The other octants step (q, p) cells at a time, sweeping rows from the edge p points at. A passable
-// cell whose cell a step away is off the grid casts a ray. Else the nearest blocked cell that the
-// segment between their centers crosses stops it, at that cell's center along the major axis, or
-// else it is a step further than the cell a step away, which carries 0 when blocked.
+// Rows go from the edge p points at. A passable cell whose cell (q, p) away is off the grid gets its distance from
+// raycast_one(). Others are one offset farther than that cell, or as far as the nearest blocked cell between them.
 template<typename T>
 void fill_stepped(CoverGrid& g, u32 k, chunk& self, const usize* bits)
 {
@@ -533,13 +525,14 @@ void fill_stepped(CoverGrid& g, u32 k, chunk& self, const usize* bits)
     const u32 aq = (u32)Math::abs(q), ap = (u32)Math::abs(p);
     const double len = Math::sqrt((double)(q*q + p*p));
 
-    // A ray along whole steps runs through the centers of the cells that carry its distance.
+    // delta is a multiple of (q, p), so the ray lies on the line through the centers of the cells whose distances
+    // follow from its result.
     const auto delta = Vector2i{q, p} * (i32)Math::ceil(chunk_size_xy / len);
     const auto ray_fixed = [&](u32 x, u32 y) {
         return to_fixed(raycast_one(self, x, y, div_size, delta, pass_pool));
     };
-    // R(n) is n/|p| steps rounded, and row n of the sweep adds R(n) - R(n - |p|), so a carry over
-    // any run of steps is off by at most 1/fixed_one px.
+    // R(n) is the length of n/|p| offsets, rounded, and row n from the edge p points at adds R(n) - R(n - |p|),
+    // so a distance summed over any number of consecutive offsets is off by at most 1/fixed_one px.
     const double row_fixed = div_size * len * fixed_one / ap;
     const auto R = [row_fixed](u32 n) { return (u32)(n*row_fixed + .5); };
     std::array<u16, std::tuple_size_v<decltype(o.cells)>> stop_px;
@@ -662,7 +655,7 @@ u32 CoverGrid::get_cell_index_from_coord(intra_coord pos) const
 
 void CoverGrid::build_impl(chunk* self)
 {
-    // else a rebuild serves the previous build's octants 1..31 until re-filled
+    // Without this, a rebuild leaves all octants marked built, holding the previous build's distances.
     built_octants = 0;
     fill_octant(0, *self);
 }
@@ -781,7 +774,8 @@ Params Params::validate() const
 {
     fm_assert(div_size > 0);
     fm_assert(chunk_size_xy % div_size == 0);
-    // reads a pass pool of the same div_size, see Pass::Params::validate()
+    // A cover grid reads a pass grid of the same div_size, which Pass::Params::validate() requires to be below
+    // chunk_size_xy.
     fm_assert(div_size < chunk_size_xy);
     fm_assert(div_size <= max_div_size);
     return *this;

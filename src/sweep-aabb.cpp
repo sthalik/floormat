@@ -18,8 +18,8 @@ namespace floormat {
 
 namespace {
 
-// on_blocker(step, collider, rect) returns the new bound: rects blocking only at or past it are
-// skipped, and the walk ends once a cell's steps reach it.
+// on_blocker(step, collider, rect) returns the new bound. Rects blocking only at or past it are skipped, and
+// traverse_line_cells() stops once a cell's steps reach it.
 template<typename Pool, typename F>
 void sweep_aabb(world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
                 u32 first_step, u32 last_step, Vector2ui bbox_size,
@@ -37,16 +37,16 @@ void sweep_aabb(world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
         return lo <= hi ? lo : INT64_MAX;
     };
 
-    // The first step >= k0 that a box overlapping [r0, r1) blocks, from the pixels of steps k0 to
-    // k1 and the orthogonal points of the moves from k0 - 1 to k1.
+    // Returns the first step >= k0 that a box overlapping [r0, r1) blocks, from the pixels of steps k0 to k1 and
+    // the orthogonal points of the moves starting at steps k0 - 1 to k1, or INT64_MAX.
     const auto first_blocked = [&](Vector2i r0, Vector2i r1, u32 k0, u32 k1) -> i64 {
-        // centers whose box overlaps [r0, r1), strictly as rect_intersects
+        // x and y hold the steps whose box overlaps [r0, r1) on that axis, strictly as in rect_intersects().
         const auto x = line.interval_bounds_to_steps(0, r0.x() - hi.x() + 1, r1.x() + lo.x() - 1);
         const auto y = line.interval_bounds_to_steps(1, r0.y() - hi.y() + 1, r1.y() + lo.y() - 1);
         const i64 x0 = x.first, x1 = x.last, y0 = y.first, y1 = y.last;
         const i64 m0 = Math::max((i64)k0 - 1, (i64)first_step), m1 = Math::min((i64)k1, (i64)last_step - 1);
         const auto pixel = meet(x0, x1, y0, y1, k0, k1);
-        // (x of t + 1, y of t) and (x of t, y of t + 1) block the move from t to t + 1
+        // (x of t + 1, y of t) and (x of t, y of t + 1) block the move from step t to t + 1
         const auto off0 = meet(x0 - 1, x1 - 1, y0, y1, m0, m1);
         const auto off1 = meet(x0, x1, y0 - 1, y1 - 1, m0, m1);
         return Math::min(pixel, Math::min(off0, off1) == INT64_MAX ? INT64_MAX : Math::min(off0, off1) + 1);
@@ -77,7 +77,7 @@ void sweep_aabb(world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
                     const auto step = first_blocked(r0, r1, k0, k1);
                     if (step >= bound)
                         return true;
-                    // last, since without_critters looks up the object
+                    // The predicate runs last, since without_critters looks up the object.
                     if (p(*c, x) == path_search_continue::pass)
                         return true;
                     bound = on_blocker(step, x, Range2D{Vector2(r0), Vector2(r1)});

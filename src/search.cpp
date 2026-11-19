@@ -30,7 +30,7 @@ bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const F& f)
     bool ret = true;
     (void)is_passable_common(c, min, max, [&](u64 x, const Chunk_RTree::Rect& r) {
         auto data = std::bit_cast<collision_data>(x);
-        // hole markers live in hole_rtree()
+        // hole markers are stored in hole_rtree()
         fm_debug3_assert(data.type != (u64)collision_type::none);
         if (data.pass == (u64)pass_mode::pass)
             return true;

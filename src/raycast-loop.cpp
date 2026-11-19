@@ -32,8 +32,8 @@ Vector2 dir_inverse(Vector2 dir)
 #if !defined _MSC_VER || defined __clang__
     return Vector2{1} / dir;
 #else
-    // Under cl's -fp:fast, min/max don't keep the NaN order ray_aabb_intersection relies on.
-    // 1/1e-20 still fits after the slab test multiplies it by a distance.
+    // Under cl's -fp:fast, min/max don't keep the argument order that makes ray_aabb_intersection drop a NaN.
+    // 1/1e-20 times a distance is still a finite float in the slab test.
     return Vector2{1} / Math::copysign(Math::max(Math::abs(dir), Vector2{1e-20f}), dir);
 #endif
 }
@@ -79,12 +79,12 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
     const auto [bmin, bmax] = box_minmax;
     const auto grown = ray_aabb_intersection(ray_origin, ray_dir_inv_norm,
                                              {{bmin - Vector2{radius}, bmax + Vector2{radius}}}, signs);
-    // radius 0 skips the corner test, whose entry point rounding can put outside on both axes
+    // radius 0 skips the corner test, since rounding can put the entry point outside the box on both axes.
     if (!grown.result || radius == 0)
         return { grown.tmin, grown.result };
 
-    // An entry outside the box on both axes lies in a corner square. Crossing from there
-    // into an edge strip passes through the corner's circle, so that circle decides.
+    // An entry outside the box on both axes lies in a corner square of the enlarged box. Crossing from there
+    // into an edge strip passes through the corner's circle, so the circle test gives the result.
     const auto p = ray_origin + ray_dir * grown.tmin;
     const bool out_x = p.x() < bmin.x() || p.x() > bmax.x(),
                out_y = p.y() < bmin.y() || p.y() > bmax.y();
@@ -333,8 +333,8 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                && (!x1 || !y1 || visit_corner_objects.template operator()<T>(x + 1, y + 1));
     };
 
-    // Cells count from the line's chunk, so a cell's chunk and its cell within it are a shift and a mask
-    // away. While stepped, step k's cell comes from the previous cell's exit.
+    // Cells count from the line's chunk, so a cell's chunk and its cell within it are computed with a shift and
+    // a mask. The bool below is true when step k's cell was found from where the line left the previous cell.
     Vector2i global_cell;
     bool stepped = false;
     auto k = first_step;
@@ -346,7 +346,8 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         run_pending = false;
         return visit(line_cell{cell.chunks, cell.chunk_offset, run_first, run_last});
     };
-    // Returns false after loading a chunk whose object grid isn't T, so the other width's walk goes on.
+    // Returns false after loading a chunk whose object grid isn't T,
+    // so the loop over cells continues with the other index type.
     const auto walk = [&]<typename T>() -> bool {
         constexpr bool is_u32 = std::is_same_v<T, u32>;
         for (;;)
@@ -434,7 +435,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                 const bool exit_major = last == last_major, exit_minor = last == last_minor;
                 const auto next = global_cell + (exit_major ? major_step : Vector2i{}) + (exit_minor ? minor_step : Vector2i{});
                 // Only a step out through both sides at once has orthogonal points outside this cell and the next.
-                // Point i moves along axis i first, and the minor offset at last is b, as in orthogonal_at().
+                // Point i moves along axis i first, and the minor offset at step last is b, as in orthogonal_at().
                 if (exit_major && exit_minor)
                 {
                     const auto e = (i64)((2*(u64)last + 1)*minor_len) - (i64)((2*(u64)b + 1)*len);
@@ -474,8 +475,8 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                 continue;
             }
 
-            // A diagonal step through the corner of four cells puts its orthogonal points in two cells
-            // neither end of the step is in. Visited without a bit lookup, since it's rare.
+            // A diagonal step through the corner of four cells puts its orthogonal points in two cells neither
+            // endpoint of the step is in. They are visited without a bit lookup, since such steps are rare.
             stepped = false;
             if (const auto o = line.orthogonal_at(last); o.diagonal)
             {
@@ -514,7 +515,8 @@ struct line_pixel
     Vector2i pixel;
 };
 
-// The first pixel of the line's supercover in the closed rect [lo, hi], or bound if its key isn't below it.
+// Returns the first pixel of the line's supercover in the closed rect [lo, hi], or bound when no pixel in the rect
+// has a key below bound.
 line_pixel first_pixel_in_bounds(const bresenham_line& line, Vector2i lo, Vector2i hi, i64 bound)
 {
     const auto x = line.interval_bounds_to_steps(0, lo.x(), hi.x()), y = line.interval_bounds_to_steps(1, lo.y(), hi.y());
@@ -523,7 +525,7 @@ line_pixel first_pixel_in_bounds(const bresenham_line& line, Vector2i lo, Vector
     if (const auto k = Math::max(x0, y0); k <= Math::min(x1, y1) && 2*k < bound)
         ret = { 2*k, line.point_at((u32)k) };
     // The steps putting orthogonal point i in the rect form a range. If its first step's point i
-    // isn't in the supercover, a main pixel in the rect comes before every later one.
+    // isn't in the supercover, a step's own pixel, point_at(k), in the rect comes before every later one.
     for (auto i = 0u; i < 2; i++)
     {
         const auto t  = i == 0 ? Math::max(x0 - 1, y0) : Math::max(x0, y0 - 1);
@@ -672,20 +674,20 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                                                                         collision_data x, const Range2D& range) {
         if (radius == 0)
         {
-            // a rect owns the pixels in [min, max), as walking does
+            // a rect covers the pixels in [min, max), as for critter movement
             const auto hit = first_pixel_in_bounds(line, Vector2i(Math::ceil(range.min())) + nb_world,
                                                    Vector2i(Math::ceil(range.max())) - Vector2i{1} + nb_world,
                                                    best_key);
             if (hit.key >= best_key) [[likely]]
                 return;
-            // last, since without_critters looks up the object
+            // The predicate runs last, since without_critters looks up the object.
             if constexpr (UsingRayPredicate)
                 if (pred(nb, x) == path_search_continue::pass)
                     return;
             best_key = hit.key;
             best_px = hit.pixel;
-            // The ray crosses the square of a pixel with a lower key by step key/2, in a
-            // cell that finds its rect. One more step covers t_entry's rounding.
+            // The ray crosses the square of a pixel with a lower key by step key/2, in the cell whose R-tree query
+            // returns its rect. One more step covers t_entry's rounding.
             min_tmin = (float)(hit.key/2 + 1) * step_len;
             result.collision = point::normalize_coords(from, hit.pixel - from_px);
         }
@@ -709,10 +711,11 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         b = false;
     };
 
-    // Returns false after building a chunk's object grid that isn't T, so the other width's walk goes on.
+    // Returns false after building a chunk's object grid that isn't T,
+    // so the loop over cells continues with the other index type.
     const auto walk = [&]<typename T>() -> bool {
-        // a hit's tmin can lie up to a full rect extent past the cell that found it,
-        // so keep walking until the cell entry distance passes the best hit
+        // A hit's tmin can lie up to a full rect extent past the cell whose query returned it, so the loop goes on
+        // until the cell entry distance passes the best hit.
         while (t_entry <= ray_len + eps && (b || t_entry <= min_tmin))
         {
             Vector2i this_chunk_off{chunk_off_x, chunk_off_y};

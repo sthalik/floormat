@@ -15,7 +15,7 @@ struct line_cell
 {
     // The 3x3 chunks around the cell's, row by row from (-1, -1). Any may be null.
     std::array<chunk*, 9> chunks;
-    // From the line's chunk.
+    // Offset of the cell's chunk from the line's chunk, in chunks.
     Vector2i chunk_offset;
     // The cell holds no pixel of the line other than those of steps first_step to last_step and
     // the orthogonal points of steps first_step - 1 to last_step.
@@ -27,9 +27,8 @@ template<typename T>
 using object_cell_visitor = function_view<bool(const line_cell&, const Grid::Object::Grid&,
                                                Grid::Object::cell_object_view<T>, ArrayView<const bool>) const>;
 
-// Visits the squares between 4 neighbouring nodes that the line's pixels cross, or chunks for nullptr, in ch's
-// frame from first_step to last_step until a visitor returns false. Skips a square whose corners are set and where
-// p blocks no object. Orthogonal points count when in the supercover, or always with both_orthogonal.
+// Visits the squares between 4 neighbouring nodes, or whole chunks when pool is nullptr, that the line's pixels
+// from first_step to last_step cross. Skips a square whose corners are set and where p blocks no object.
 template<typename Pool>
 void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
@@ -43,7 +42,8 @@ struct aabb_result
     bool result;
 };
 
-// Defined in the .cpp, which honors inf, so a finite-math caller still gets ±inf.
+// Defined in raycast-loop.cpp, which GCC and Clang compile without -ffinite-math-only, so a zero component gives
+// ±inf there. Under cl it gives ±1e20.
 Vector2 dir_inverse(Vector2 dir);
 std::array<u8, 2> ray_aabb_signs(Vector2 ray_dir_inv_norm);
 aabb_result ray_aabb_intersection(Vector2 ray_origin, Vector2 ray_dir_inv_norm,

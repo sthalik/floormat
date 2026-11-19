@@ -12,9 +12,8 @@ bresenham_line::bresenham_line(Vector2i start_pos, Vector2i end_pos) : _start_po
     _minor_len = (u32)(_y_major ? adx : ady);
     _major_sign = (_y_major ? dy : dx) < 0 ? -1 : 1;
     _minor_sign = (_y_major ? dx : dy) < 0 ? -1 : 1;
-    // With major below 2^31, 2*step is below 2^32 and minor below 2^31, so the products in
-    // minor_at(), first_step_at_minor() and orthogonal_at() stay below 2^63 and fit i64. World
-    // coordinates span 2^26 units.
+    // With major below 2^31, 2*step is below 2^32 and minor below 2^31, so the products in minor_at(),
+    // first_step_at_minor() and orthogonal_at() stay below 2^63 and fit i64. World coordinates span 2^26 units.
     fm_assert(_major_len < 1u << 31);
 }
 
@@ -37,8 +36,8 @@ auto bresenham_line::orthogonal_at(u32 step) const -> orthogonal_points
     const auto m0 = minor_at(step);
     if (m0 == minor_at(step + 1))
         return { .points = {}, .in_supercover = {}, .diagonal = false };
-    // Twice the line's minor coordinate at major k + 1/2, minus the edge between m0 and m0 + 1,
-    // all times major. The line meets the edge before k + 1/2 when e > 0.
+    // e is major times twice the difference between the line's minor coordinate at major coordinate k + 1/2 and
+    // the edge between minor cells m0 and m0 + 1. The line crosses the edge before k + 1/2 when e > 0.
     const auto e = (i64)((2*k + 1) * minor) - (i64)((2*m0 + 1) * major);
     const auto major_first = octant_to_point(step + 1, m0), minor_first = octant_to_point(step, m0 + 1);
     if (!_y_major)

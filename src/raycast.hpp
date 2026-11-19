@@ -21,8 +21,8 @@ struct raycast_diag_s;
 struct raycast_result_s
 {
     point from, to;
-    // On the collider. Radius 0: the first pixel of the line's supercover inside it. Otherwise the
-    // point nearest the projectile's center at contact, from + dir * tmin; return tmin if a caller needs it.
+    // With radius 0 this is the first pixel of the line's supercover inside the collider. Otherwise it is the
+    // collider's point nearest the projectile's center at contact, from + dir * tmin.
     point collision;
     collision_data collider;
     float time = 0;
@@ -30,8 +30,8 @@ struct raycast_result_s
          success    : 1 = false;
 };
 
-// A set bit holds for integer positions, while the ray's center reaches up to 1 px past the
-// cell's last one, and a rect's pixel squares reach 0.5 px below its min.
+// Returns ceil(2*radius + 3), the smallest pass grid bbox_size raycast() accepts for this radius. A set bit holds
+// only for integer positions, while the ray's center reaches up to 1 px past the cell's last one.
 constexpr u32 min_pool_bbox_size(float radius)
 {
     const float size = 2*radius + 3;

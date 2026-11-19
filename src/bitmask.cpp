@@ -16,7 +16,7 @@
 #include <hwy/foreach_target.h>
 #include <hwy/highway.h>
 
-// foreach_target.h compiles this file once per target, and HWY_ONCE only holds on the last pass.
+// foreach_target.h includes this file again for each target, and HWY_ONCE is true only in the last inclusion.
 #ifndef FLOORMAT_BITMASK_CPP_SHARED
 #define FLOORMAT_BITMASK_CPP_SHARED
 namespace floormat {
@@ -43,13 +43,13 @@ void bm_rows(const u8* __restrict src, u8* __restrict dest, u32 W, u32 H, u32 S)
     // BitsFromMask exists only on fixed-width targets. Scalable ones (SVE, RVV) take the scalar loop.
 #if HWY_MAX_BYTES <= 64
     namespace hn = hwy::HWY_NAMESPACE;
-    // A block's N bits and up to 7 carried ones fit in acc.
+    // A block's N bits, shifted left by up to 7, fit in acc.
     constexpr hn::CappedTag<u8, 32> d8;
     constexpr hn::Repartition<i8, decltype(d8)> di8;
     constexpr hn::Repartition<i16, decltype(d8)> di16;
     constexpr hn::Repartition<i32, decltype(d8)> di32;
     constexpr auto N = (u32)hn::MaxLanes(d8);
-    // Added to the alpha byte only. Its bit 7 becomes alpha >= amin.
+    // bias is added to the alpha byte only, whose bit 7 then holds alpha >= amin.
     const auto bias = hn::Dup128VecFromValues(d8, 0, 0, 0, 128 - amin,
                                                 0, 0, 0, 128 - amin,
                                                 0, 0, 0, 128 - amin,
