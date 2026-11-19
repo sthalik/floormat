@@ -183,6 +183,18 @@ set_intersection() {
                                          NF && ($1 in keep)' | sort -u
 }
 
+# Prints the words of $@ and the extensions Mesa needs enabled for them, one per line.
+# Mesa 26.2.6 rejects the anisotropy enums unless GL_EXT_texture_filter_anisotropic is enabled.
+mesa_extensions_required_by() {
+    local ext
+    for ext; do
+        echo "$ext"
+        case "$ext" in
+            GL_ARB_texture_filter_anisotropic) echo GL_EXT_texture_filter_anisotropic ;;
+        esac
+    done
+}
+
 # Prints the gl_functions_required_by or gl_enums_required_by lines on stdin, except those whose name needs
 # an extension that the arguments lack, per $spec_dependencies.
 drop_names_with_missing_dependencies() {
@@ -259,12 +271,13 @@ failed=0
 # Runs floormat-test and the editor with every extension outside core 3.3 disabled, except those $1 joins with +.
 # The other arguments go to the editor.
 run_tests_with() {
-    local name="$1" keep= test_status=0 editor_status=0 errors enums proxy=
+    local name="$1" keep= mesa_keep= test_status=0 editor_status=0 errors enums proxy=
     local test_log="$run_dir/logs/$name-test.log" editor_log="$run_dir/logs/$name-editor.log"
     shift
     if test "$name" != none; then
         keep="$(echo "$name" | tr + ' ')"
     fi
+    mesa_keep="$(mesa_extensions_required_by $keep)"
 
     gl_functions_required_by $keep | drop_names_with_missing_dependencies $keep |
         sort -u - "$run_dir/allowed/core.txt" > "$run_dir/allowed/$name.txt"
@@ -272,7 +285,7 @@ run_tests_with() {
     gl_enums_required_by $keep | drop_names_with_missing_dependencies $keep |
         sort -u - "$run_dir/allowed/core-enums.txt" > "$run_dir/allowed/$name-enums.txt"
     export FLOORMAT_GL33_ALLOWED_ENUMS="$(cygpath -m "$PWD/$run_dir/allowed/$name-enums.txt")"
-    export MESA_EXTENSION_OVERRIDE="$(printf -- '-%s ' $(set_difference "$mesa_disable" "$keep"))"
+    export MESA_EXTENSION_OVERRIDE="$(printf -- '-%s ' $(set_difference "$mesa_disable" "$mesa_keep"))"
     export MAGNUM_DISABLE_EXTENSIONS="$(echo $(set_difference "$magnum_disable" "$keep"))"
     if test -n "$editor_only"; then
         with_dll_dir "$run_dir/dlls" floormat-editor.exe "$@" 2>&1 | tee "$editor_log" || editor_status=$?
@@ -301,6 +314,7 @@ run_tests_with() {
             "$enums enums reported by gl33-proxy$proxy"
     fi
     grep -ho 'gl33-proxy: gl[A-Za-z0-9_]* was called.*' "$@" || true
+    grep -hoE 'gl33-proxy: gl[A-Za-z0-9_]* (passed|linked) .*' "$@" || true
     { grep -ho 'gl33-proxy: gl[A-Za-z0-9_]* got .*' "$@" || true; } | sort -u | append_enum_names
     if test "$test_status" != 0 || test "$editor_status" != 0 || test "$errors" != 0 || test "$enums" != 0 ||
        test -n "$proxy"; then
@@ -314,7 +328,6 @@ if test -n "$all"; then
         run_tests_with "$ext" "$@"
     done
 else
-    grep -hoE 'gl33-proxy: gl[A-Za-z0-9_]* (passed|linked) .*' "$@" || true
     run_tests_with "$only" "$@"
 fi
 
