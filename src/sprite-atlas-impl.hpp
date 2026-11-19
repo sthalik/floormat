@@ -34,7 +34,7 @@ struct HeightClass
 };
 
 // A sprite added but not yet in the texture: its pixels sit at `staging_offset` in Atlas::staging, tightly
-// packed in the slot's orientation.
+// packed in the rect's orientation.
 struct PendingSprite
 {
     const Sprite* sprite;
@@ -135,7 +135,7 @@ std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& s
                                              bool mirror);
 Image2D read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect);
 void read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect, const MutableImageView2D& out);
-GL::Texture2D copy_slot(Atlas& atlas, const Sprite& sprite);
+GL::Texture2D copy_rect(Atlas& atlas, const Sprite& sprite);
 void dump_atlas(Atlas& atlas, StringView out_filename);
 void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_filename);
 

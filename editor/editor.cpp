@@ -264,15 +264,15 @@ palette_texture_ref editor::palette_texture(sprite s)
         if (it == copies.end())
         {
             Hash::set_open_addressing_load_factor(copies, copies.size()+1);
-            it = copies.insert({s.raw(), SpriteAtlas::copy_slot(*atlas.raw(), *s.raw())}).first;
+            it = copies.insert({s.raw(), SpriteAtlas::copy_rect(*atlas.raw(), *s.raw())}).first;
         }
         const auto tc = atlas.texcoords_for(s, false);
         const auto layer_size = Vector2{(float)atlas.layer_width(), (float)atlas.layer_height()};
         const auto origin = Vector2{(float)s.x(), (float)s.y()};
-        const auto slot_size = s.is_rotated() ? Vector2{(float)s.height(), (float)s.width()}
+        const auto rect_size = s.is_rotated() ? Vector2{(float)s.height(), (float)s.width()}
         : Vector2{(float)s.width(), (float)s.height()};
-        const auto to_slot = [&](const Vector3& t) { return (t.xy() * layer_size - origin) / slot_size; };
-        return { it->second.id(), {{ to_slot(tc[3]), to_slot(tc[1]), to_slot(tc[0]), to_slot(tc[2]) }} };
+        const auto to_rect = [&](const Vector3& t) { return (t.xy() * layer_size - origin) / rect_size; };
+        return { it->second.id(), {{ to_rect(tc[3]), to_rect(tc[1]), to_rect(tc[0]), to_rect(tc[2]) }} };
     }
 }
 

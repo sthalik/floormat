@@ -76,14 +76,14 @@ Shelf* get_shelf(Atlas& atlas, u32 w, u32 h, bool& is_rotated)
     return alloc_new_shelf(atlas, h);
 }
 
-Vector2ui slot_size(const Sprite& sprite)
+Vector2ui rect_size(const Sprite& sprite)
 {
     const auto size = Vector2ui{sprite.width, sprite.height};
     return !sprite.is_rotated ? size : size.flipped();
 }
 
-// Writes the sprite's pixels to dst tightly packed, in the slot's orientation.
-void copy_to_slot(char* dst, const Sprite& sprite, const ImageView2D& pixels)
+// Writes the sprite's pixels to dst tightly packed, in the rect's orientation.
+void copy_to_rect(char* dst, const Sprite& sprite, const ImageView2D& pixels)
 {
     const auto orig_w = sprite.width, orig_h = sprite.height;
     fm_assert((u32)pixels.size().x() == orig_w);
@@ -105,28 +105,28 @@ void copy_to_slot(char* dst, const Sprite& sprite, const ImageView2D& pixels)
     {
         // Rotate 90° CCW in GL bottom-up memory. Derivation (both views
         // bu-oriented): dst_bu[y_r][x_r] = src_bu[orig_h-1-x_r][y_r].
-        // Slot dims are (slot_w=orig_h, slot_h=orig_w).
-        const u32 slot_w = orig_h;
-        const u32 slot_h = orig_w;
-        const usize dst_row_stride = (usize)slot_w * px_size;
-        for (u32 y_r = 0; y_r < slot_h; y_r++)
+        // Rect dims are (rect_w=orig_h, rect_h=orig_w).
+        const u32 rect_w = orig_h;
+        const u32 rect_h = orig_w;
+        const usize dst_row_stride = (usize)rect_w * px_size;
+        for (u32 y_r = 0; y_r < rect_h; y_r++)
         {
             char* dst_row = dst + (usize)y_r * dst_row_stride;
-            for (u32 x_r = 0; x_r < slot_w; x_r++)
+            for (u32 x_r = 0; x_r < rect_w; x_r++)
             {
-                const char* src_px = src_base + (usize)(slot_w - 1 - x_r) * src_row_stride + (usize)y_r * px_size;
+                const char* src_px = src_base + (usize)(rect_w - 1 - x_r) * src_row_stride + (usize)y_r * px_size;
                 std::memcpy(dst_row + (usize)x_r * px_size, src_px, px_size);
             }
         }
     }
 }
 
-void upload_slot(Atlas& atlas, const Sprite& sprite, PixelFormat format, ArrayView<const char> slot)
+void upload_rect(Atlas& atlas, const Sprite& sprite, PixelFormat format, ArrayView<const char> pixels)
 {
-    const auto size = slot_size(sprite);
+    const auto size = rect_size(sprite);
     PixelStorage storage;
     storage.setAlignment(1);
-    const ImageView3D view3d{storage, format, {(Int)size.x(), (Int)size.y(), 1}, slot};
+    const ImageView3D view3d{storage, format, {(Int)size.x(), (Int)size.y(), 1}, pixels};
     atlas.texture.setSubImage(0, {(Int)sprite.x, (Int)sprite.y, (Int)sprite.layer}, view3d);
 }
 
@@ -310,9 +310,9 @@ Sprite* alloc_sprite(Atlas& atlas, u32 w, u32 h, bool allow_rotate)
         shelf = get_shelf(atlas, max, min, is_rotated = h > w);
     }
 
-    const u32 slot_w = is_rotated ? h : w;
+    const u32 rect_w = is_rotated ? h : w;
     const u32 x = shelf->next_x;
-    shelf->next_x = x + slot_w;
+    shelf->next_x = x + rect_w;
 
     arrayReserve(shelf->sprites, 16);
     auto& sp = arrayAppend(shelf->sprites, InPlaceInit, InPlaceInit, Sprite {
@@ -328,12 +328,12 @@ Sprite* alloc_sprite(Atlas& atlas, u32 w, u32 h, bool allow_rotate)
 
 void stage_sprite(Atlas& atlas, const Sprite& sprite, const ImageView2D& pixels)
 {
-    const auto size = slot_size(sprite);
+    const auto size = rect_size(sprite);
     const auto offset = atlas.staging.size();
     const auto bytes = (usize)size.x() * size.y() * pixels.pixelSize();
     fm_assert(offset + bytes <= limits<u32>::max);
     arrayReserve(atlas.staging, 1 << 20);
-    copy_to_slot(arrayAppend(atlas.staging, NoInit, bytes).data(), sprite, pixels);
+    copy_to_rect(arrayAppend(atlas.staging, NoInit, bytes).data(), sprite, pixels);
     arrayReserve(atlas.pending, 64);
     arrayAppend(atlas.pending, PendingSprite{ &sprite, pixels.format(), (u32)offset });
 }
@@ -348,7 +348,7 @@ void flush(Atlas& atlas)
             const auto& p = atlas.pending[i];
             const auto end = i + 1 < atlas.pending.size() ? (usize)atlas.pending[i + 1].staging_offset
                                                            : atlas.staging.size();
-            upload_slot(atlas, *p.sprite, p.format, atlas.staging.slice(p.staging_offset, end));
+            upload_rect(atlas, *p.sprite, p.format, atlas.staging.slice(p.staging_offset, end));
         }
     }
     // Keeps the capacity stage_sprite() reserved, so the next add() doesn't allocate it again.
@@ -453,11 +453,11 @@ Image2D read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect)
     return ret;
 }
 
-GL::Texture2D copy_slot(Atlas& atlas, const Sprite& sprite)
+GL::Texture2D copy_rect(Atlas& atlas, const Sprite& sprite)
 {
     flush(atlas);
     const with_gl_errors scope{gl_error_policy::error};
-    const auto size = Vector2i(slot_size(sprite));
+    const auto size = Vector2i(rect_size(sprite));
     const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
     GL::Texture2D ret;
     fm_assert(fm_check_glcall(ret.setStorage(1, GL::TextureFormat::RGBA8, size)).second());
@@ -525,33 +525,33 @@ void dump_atlas(Atlas& atlas, StringView out_filename)
 void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_filename)
 {
     // sprite.width/height always describe the ORIGINAL dims. When the packer
-    // stores the sprite rotated, the atlas slot is transposed
-    // (slot_w = orig_h, slot_h = orig_w); read the slot and un-rotate
+    // stores the sprite rotated, the atlas rect is transposed
+    // (rect_w = orig_h, rect_h = orig_w); read the rect and un-rotate
     // before writing so the output matches what the caller expects.
     const auto orig_w = sprite.width;
     const auto orig_h = sprite.height;
     const bool rotated = sprite.is_rotated;
-    const auto slot_w = rotated ? orig_h : orig_w;
-    const auto slot_h = rotated ? orig_w : orig_h;
+    const auto rect_w = rotated ? orig_h : orig_w;
+    const auto rect_h = rotated ? orig_w : orig_h;
     const Int layer = (Int)sprite.layer;
 
     flush(atlas);
-    auto img = read_layer_pixels(atlas.texture, layer, Range2Di::fromSize({(Int)sprite.x, (Int)sprite.y}, {(Int)slot_w, (Int)slot_h}));
+    auto img = read_layer_pixels(atlas.texture, layer, Range2Di::fromSize({(Int)sprite.x, (Int)sprite.y}, {(Int)rect_w, (Int)rect_h}));
 
     const Vector2i dst_size{(Int)orig_w, (Int)orig_h};
     Array<u32> unrotated;
     ArrayView<const char> pixels = img.data();
     if (rotated)
     {
-        // Invert copy_to_slot's 90° CCW.
+        // Invert copy_to_rect's 90° CCW.
         unrotated = Array<u32>{NoInit, (usize)orig_w * (usize)orig_h};
-        const auto* slot = reinterpret_cast<const u32*>(img.data().data());
+        const auto* rect_pixels = reinterpret_cast<const u32*>(img.data().data());
         for (u32 y_o = 0; y_o < orig_h; y_o++)
         {
             u32* dst_row = unrotated.data() + (usize)y_o * (usize)orig_w;
-            const u32 slot_col = orig_h - 1 - y_o;
+            const u32 rect_col = orig_h - 1 - y_o;
             for (u32 x_o = 0; x_o < orig_w; x_o++)
-                dst_row[x_o] = slot[(usize)x_o * (usize)slot_w + (usize)slot_col];
+                dst_row[x_o] = rect_pixels[(usize)x_o * (usize)rect_w + (usize)rect_col];
         }
         pixels = {reinterpret_cast<const char*>(unrotated.data()),
                   unrotated.size() * sizeof(u32)};
