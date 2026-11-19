@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "compat/array-size.hpp"
 #include "compat/combinations.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/exception.inl"
@@ -528,6 +529,42 @@ void each_texture_gets_new_texture_gen(layer_copy_mode mode)
     fm_assert_equal(gen1 + 2, atlas.texture_gen());
 }
 
+void switching_layer_copy_between_growths_preserves_pixels()
+{
+    sprite_atlas atlas{64, 64};
+    // 40x40 leaves no room for a second shelf in a 64 px layer, so each takes a new layer
+    constexpr u32 w = 40, h = 40;
+    constexpr u32 sprite_counts[] = { 1, 2, 4, 8 };
+    Array<unsigned char> src[8];
+    const Sprite* sprites[8];
+    u32 num_added = 0;
+    for (u32 step = 0; step < array_size(sprite_counts); step++)
+    {
+        atlas.set_layer_copy(step % 2 == 0 ? layer_copy_mode::blit : layer_copy_mode::readback);
+        for (; num_added < sprite_counts[step]; num_added++)
+        {
+            src[num_added] = Array<unsigned char>{NoInit, w*h*4};
+            fill_pattern(src[num_added].data(), w, h);
+            for (auto& c : src[num_added])
+                c = (unsigned char)(c + 37*num_added);
+            const Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src[num_added]};
+            sprites[num_added] = atlas.add(view, false).raw();
+        }
+        auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
+        fm_assert_equal(step + 1, atlas.texture_gen());
+        fm_assert_equal((Int)sprite_counts[step], tex.imageSize(0).z());
+        for (u32 i = 0; i < num_added; i++)
+        {
+            const auto& s = *sprites[i];
+            const auto img = read_layer_pixels(tex, (Int)s.layer, Range2Di::fromSize({(Int)s.x, (Int)s.y}, {(Int)w, (Int)h}));
+            const auto data = img.data();
+            fm_assert_equal(src[i].size(), data.size());
+            for (usize j = 0; j < data.size(); j++)
+                fm_assert(data[j] == (char)src[i][j]);
+        }
+    }
+}
+
 void wrapper_accessors_roundtrip_values()
 {
     sprite_atlas atlas{256, 256};
@@ -680,6 +717,7 @@ void test_sprite_atlas()
         texture_growth_stops_at_layer_limit(mode);
         each_texture_gets_new_texture_gen(mode);
     }
+    switching_layer_copy_between_growths_preserves_pixels();
     copy_rect_keeps_pixels_and_bound_framebuffer();
     texcoords_show_expected_source_corners();
     reset_discards_pending_sprites();
