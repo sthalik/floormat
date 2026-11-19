@@ -186,6 +186,18 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
     fm_assert(new_layer_count > atlas.texture_layer_count && new_layer_count >= atlas.layers.size());
 
     const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
+    const auto layer_bytes = (usize)atlas.layer_width * atlas.layer_height * 4;
+
+    Array<char> uploaded_layer_pixels;
+    if (atlas.layer_copy == layer_copy_mode::readback && atlas.uploaded_layer_count > 0)
+    {
+        uploaded_layer_pixels = Array<char>{NoInit, layer_bytes * atlas.uploaded_layer_count};
+        for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
+            read_layer_pixels(atlas.texture, (Int)i, {{}, layer_size},
+                              MutableImageView2D{PixelFormat::RGBA8Unorm, layer_size,
+                                                 uploaded_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
+        atlas.texture = GL::Texture2DArray{NoCreate};
+    }
 
     // Texture storage is immutable, so growing the atlas requires a new texture.
     GL::Texture2DArray new_texture;
@@ -209,7 +221,14 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
             dst_fb.clearColor(0, Color4{1.f, 0.f, 1.f, 1.f});
         }
 
-        if (atlas.uploaded_layer_count > 0)
+        if (!uploaded_layer_pixels.isEmpty())
+        {
+            for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
+                new_texture.setSubImage(0, {0, 0, (Int)i},
+                                        ImageView3D{PixelFormat::RGBA8Unorm, {layer_size, 1},
+                                                    uploaded_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
+        }
+        else if (atlas.uploaded_layer_count > 0)
         {
             GL::Framebuffer src_fb{rect};
             for (Int i = 0; i < (Int)atlas.uploaded_layer_count; i++)
@@ -627,6 +646,7 @@ u32 sprite_atlas::layer_width()  const { return _atlas->layer_width; }
 u32 sprite_atlas::layer_height() const { return _atlas->layer_height; }
 u32 sprite_atlas::layer_count()  const { return (u32)_atlas->layers.size(); }
 u32 sprite_atlas::texture_gen()  const { return _atlas->texture_gen; }
+void sprite_atlas::set_layer_copy(layer_copy_mode mode) { _atlas->layer_copy = mode; }
 Atlas* sprite_atlas::raw() { return _atlas.get(); }
 const Atlas* sprite_atlas::raw() const { return _atlas.get(); }
 

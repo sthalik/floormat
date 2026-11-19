@@ -1,4 +1,5 @@
 #pragma once
+#include "sprite-atlas.hpp"
 #include "sprite-constants.hpp"
 #include "compat/assert.hpp"
 #include <array>
@@ -112,6 +113,7 @@ struct Atlas
     u32 texture_layer_count = 0; // allocated layers
     u32 uploaded_layer_count = 0; // sprites added before the last flush()
     u32 texture_gen = 0;
+    layer_copy_mode layer_copy = layer_copy_mode::blit;
 
     struct Limits
     {
