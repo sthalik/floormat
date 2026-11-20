@@ -14,6 +14,7 @@
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
 #include "src/critter-script-cover.hpp"
+#include "src/critter-script-cover-movement-range.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-registry.hpp"
 #include "src/point.inl"
@@ -23,8 +24,11 @@
 #include "src/world.hpp"
 #include "floormat/main.hpp"
 #include <bit>
+#include <cmath>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
+#include <mg/Constants.h>
+#include <mg/Functions.h>
 
 namespace floormat::tests {
 
@@ -49,14 +53,57 @@ constexpr int default_spots_radius_tiles = 16, max_spots_radius_log2 = 6;
 // The overlay's search per frame, as the script's search per update in critter-script-cover.cpp. A
 // tile whose listing needs another octant filled waits for the next frame.
 constexpr u32 spots_tiles_per_frame = 32, spots_fills_per_frame = 1;
+// Rotations of the player's reach about a spot, in octants, that octant rings test, and each ring's color. A
+// positive rotation turns clockwise on screen. The two of 1 octant come first, as bits 0 and 1.
+constexpr int neighbor_octant_offsets[] = { -1, 1, -2, 2, };
+constexpr ImU32 seen_from_neighbor_octant_colors[] = {
+    0xff33ccff_imcol, 0x33e6ffff_imcol, 0x9966ffff_imcol, 0xffb340ff_imcol,
+};
+static_assert(array_size(seen_from_neighbor_octant_colors) == array_size(neighbor_octant_offsets));
+constexpr ImU32 seen_from_reach_color = 0xa6a6a6ff_imcol, crossing_line_color = 0xffffffe6_imcol;
+// Listed spots get octant tests until this many µs passed in a frame. Every result goes stale when the player
+// moves, so a frame would otherwise test all of them.
+constexpr double max_octant_test_µs_per_frame = 2000;
 
 enum class note : u8 { none, no_free_spot, no_start, start_taken, no_path, no_other_cover, };
+
+// Which rotations of the player's reach about a spot see the npc's body at the spot.
+struct octant_test_result
+{
+    // Bit k is set when the reach rotated by neighbor_octant_offsets[k] octants sees it. Left 0 when
+    // is_seen_from_reach, since no rotation is tested then.
+    u8 octants_seeing_spot = 0;
+    // True when a point of the reach sees it unrotated.
+    bool is_seen_from_reach = false;
+
+    bool is_rejected_by_3_octants() const { return is_seen_from_reach || octants_seeing_spot & 0b11; }
+    bool is_rejected_by_5_octants() const { return is_seen_from_reach || octants_seeing_spot; }
+};
 
 // Cover::Script::find_peek's spot for a listed spot, found when the spot was listed.
 struct spot_state
 {
     Cover::Script::peek peek;
+    // Empty until tested for octant_test_cache_key.
+    Optional<octant_test_result> octant_test;
     bool has_peek = false;
+};
+
+// A spot and its octant test, for the cover's pos and canonical.
+struct spot_octant_test
+{
+    Cover::Point::spot spot;
+    octant_test_result result;
+};
+
+// What an octant test depends on besides the spot. A change makes every result stale.
+struct octant_test_key
+{
+    point player;
+    u32 threat_reach;
+    u64 pass_gen;
+
+    bool operator==(const octant_test_key&) const = default;
 };
 
 struct counts { u32 num_searches = 0, num_rays = 0, num_dijkstra_calls = 0; };
@@ -132,6 +179,67 @@ void draw_dot(ImDrawList& draw, app& a, point pt, float radius, ImU32 color)
     draw.AddCircleFilled(ImVec2(a.point_to_pixel(pt)), radius, color);
 }
 
+// Returns which rotations of reach about s see a body of body_size at s.
+octant_test_result find_octants_seeing_spot(world& w, Cover::Point::finder& f, Vector2ui body_size,
+                                            const Cover::Point::spot& s, ArrayView<const point> reach)
+{
+    octant_test_result r;
+    for (auto i = 0u; i < reach.size() && !r.is_seen_from_reach; i++)
+        r.is_seen_from_reach = !f.is_hidden_at(w, reach[i], s, body_size);
+    const auto pos = Vector3i(s.pos).xy();
+    for (auto k = 0u; k < array_size(neighbor_octant_offsets) && !r.is_seen_from_reach; k++)
+    {
+        const auto angle = (float)neighbor_octant_offsets[k] * Math::Constants<float>::tau() /
+                           Grid::Cover::octant_count;
+        const auto cs = std::cos(angle), sn = std::sin(angle);
+        bool is_seen = false;
+        for (auto i = 0u; i < reach.size() && !is_seen; i++)
+        {
+            const auto v = Vector2(Vector3i(reach[i]).xy() - pos);
+            const auto d = Vector2i(Math::round(Vector2{v.x()*cs - v.y()*sn, v.x()*sn + v.y()*cs}));
+            is_seen = d != Vector2i{} && !f.is_hidden_at(w, s.pos + d, s, body_size);
+        }
+        r.octants_seeing_spot |= (u8)((u32)is_seen << k);
+    }
+    return r;
+}
+
+const char* octant_test_label(const octant_test_result& r)
+{
+    if (r.is_seen_from_reach)
+        return "seen from the reach unrotated";
+    else if (r.is_rejected_by_3_octants())
+        return "rejected by 3 octants";
+    else if (r.is_rejected_by_5_octants())
+        return "rejected only by 5 octants";
+    else
+        return "hidden in all 5 octants";
+}
+
+// Draws a ring around pt for each rotation that sees the spot, from radius outward. One line crosses them out
+// when 3 octants reject the spot, two lines when only 5 do.
+void draw_octant_rings(ImDrawList& draw, app& a, point pt, float radius, const octant_test_result& r)
+{
+    constexpr float ring_spacing = 2, ring_thickness = 1.5f, line_thickness = 2.5f;
+    const auto px = ImVec2(a.point_to_pixel(pt));
+    if (r.is_seen_from_reach)
+        draw.AddCircle(px, radius, seen_from_reach_color, 0, ring_thickness);
+    else if (r.is_rejected_by_5_octants())
+    {
+        auto outer = radius;
+        for (auto k = 0u; k < array_size(seen_from_neighbor_octant_colors); k++)
+            if (r.octants_seeing_spot >> k & 1)
+            {
+                draw.AddCircle(px, outer, seen_from_neighbor_octant_colors[k], 0, ring_thickness);
+                outer += ring_spacing;
+            }
+        const auto d = outer * 0.75f;
+        draw.AddLine({px.x - d, px.y + d}, {px.x + d, px.y - d}, crossing_line_color, line_thickness);
+        if (!r.is_rejected_by_3_octants())
+            draw.AddLine({px.x - d, px.y - d}, {px.x + d, px.y + d}, crossing_line_color, line_thickness);
+    }
+}
+
 critter_proto npc_proto(point at)
 {
     critter_proto p;
@@ -186,6 +294,8 @@ struct cover_ai_test final : base_test
     void draw_cover_picker(app& a);
     void update_rates(app& a, const Cover::Script::status& s);
     void update_ray(app& a, const critter& c, const Cover::Script::status& s);
+    void update_octant_tests(app& a, const critter& c, const Cover::Script::status& s);
+    void draw_octant_legend();
     void log_script(app& a, const critter& c, const Cover::Script::status& s);
 
     weak_bptr<critter> npc;
@@ -196,6 +306,9 @@ struct cover_ai_test final : base_test
     // The tiles of the overlay's search, as offsets from search_center, nearest first.
     Array<Vector2i> tiles;
     Cover::Script::options options;
+    Cover::movement_range player_reach;
+    Optional<octant_test_key> octant_test_cache_key;
+    Optional<spot_octant_test> cover_pos_octant_test, canonical_octant_test;
     // spots_player: where the player stood when drop_seen_spots last ran, or the search started.
     point start_pos, search_center, spots_player;
     object_id threat = 0, script_list_npc = 0;
@@ -212,7 +325,7 @@ struct cover_ai_test final : base_test
     int radius_tiles = default_spots_radius_tiles;
     note last_note = note::none;
     u8 search_octants = 0;
-    bool show_spots = false;
+    bool show_spots = false, show_octant_rings = false;
     bool has_start : 1 = false, has_snapshot : 1 = false, has_search : 1 = false, has_script_list : 1 = false;
 };
 
@@ -700,13 +813,94 @@ void cover_ai_test::update_post(app& a, const Ns&)
     update_rates(a, *s);
     update_ray(a, *c, *s);
     log_script(a, *c, *s);
-    if (!show_spots)
-        return;
-    if (spots_stale(a))
-        restart_spots(a, *c);
-    else
-        drop_seen_spots(a, *c);
-    search_spots(a, *c, true);
+    if (show_spots)
+    {
+        if (spots_stale(a))
+            restart_spots(a, *c);
+        else
+            drop_seen_spots(a, *c);
+        search_spots(a, *c, true);
+    }
+    if (show_octant_rings)
+        update_octant_tests(a, *c, *s);
+}
+
+// Tests the cover's pos and canonical, then the listed spots not yet tested until max_octant_test_µs_per_frame
+// passed.
+void cover_ai_test::update_octant_tests(app& a, const critter& c, const Cover::Script::status& s)
+{
+    auto& w = a.main().world();
+    const auto player = find_player(a, c);
+    Optional<octant_test_key> key;
+    if (player)
+        key = octant_test_key{player->position(), options.threat_reach, w.pass_gen()};
+    if (key != octant_test_cache_key)
+    {
+        octant_test_cache_key = key;
+        cover_pos_octant_test = NullOpt;
+        canonical_octant_test = NullOpt;
+        for (auto& st : spot_states)
+            st.octant_test = NullOpt;
+    }
+    if (player)
+    {
+        const auto from = player->position();
+        const auto side = Math::max((u32)player->bbox_size.x(), (u32)player->bbox_size.y());
+        const auto reach = player_reach.border(w, a.main().astar().pool_registry(), from, {threat, c.id}, side,
+                                               options.threat_reach);
+        const auto body = Vector2ui(c.bbox_size);
+        const auto test_spot = [&](Optional<spot_octant_test>& t, const Cover::Point::spot& spot) {
+            if (!t || t->spot.pos != spot.pos || t->spot.axis != spot.axis)
+                t = spot_octant_test{spot, find_octants_seeing_spot(w, finder, body, spot, reach)};
+        };
+        if (s.cover)
+        {
+            const auto& cover = *s.cover;
+            test_spot(cover_pos_octant_test, {cover.pos, cover.axis});
+            test_spot(canonical_octant_test, {cover.canonical, cover.axis});
+        }
+        const auto start = Time::now();
+        const auto elapsed_us = [&] {
+            auto t = start;
+            return us(t.update());
+        };
+        for (auto i = 0u; i < spots.size() && elapsed_us() < max_octant_test_µs_per_frame; i++)
+            if (!spot_states[i].octant_test)
+                spot_states[i].octant_test = find_octants_seeing_spot(w, finder, body, spots[i], reach);
+    }
+}
+
+// The octant rings' legend, and how many tested spots each case holds.
+void cover_ai_test::draw_octant_legend()
+{
+    constexpr const char* neighbor_octant_labels[] = {
+        "1 octant counterclockwise", "1 octant clockwise", "2 octants counterclockwise", "2 octants clockwise",
+    };
+    static_assert(array_size(neighbor_octant_labels) == array_size(seen_from_neighbor_octant_colors));
+    ImGui::TextWrapped("A ring around a spot: the player's reach, rotated about the spot, sees the npc there. The "
+                       "reach is the player, and where it can walk in 2 tiles when that box is ticked. Listed spots, "
+                       "the cover (big green dot) and its canonical spot (small green dot) get rings.");
+    for (auto k = 0u; k < array_size(seen_from_neighbor_octant_colors); k++)
+        ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(seen_from_neighbor_octant_colors[k]), "rotated %s",
+                           neighbor_octant_labels[k]);
+    ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(seen_from_reach_color), "seen unrotated, no other ring");
+    text("One line through the rings: 3 octants reject the spot. Two lines: only 5 do.");
+
+    u32 num_tested = 0, num_seen_from_reach = 0, num_rejected_by_3 = 0, num_rejected_only_by_5 = 0;
+    for (const auto& st : spot_states)
+        if (st.octant_test)
+        {
+            const auto& r = *st.octant_test;
+            num_tested++;
+            num_seen_from_reach += r.is_seen_from_reach;
+            num_rejected_by_3 += !r.is_seen_from_reach && r.is_rejected_by_3_octants();
+            num_rejected_only_by_5 += !r.is_rejected_by_3_octants() && r.is_rejected_by_5_octants();
+        }
+    char buf[192];
+    snformat(buf, "{} of {} listed spots tested: {} seen unrotated, {} rejected by 3 octants, {} only by 5, "
+                  "{} hidden in all 5", num_tested, spots.size(), num_seen_from_reach, num_rejected_by_3,
+             num_rejected_only_by_5, num_tested - num_seen_from_reach - num_rejected_by_3 - num_rejected_only_by_5);
+    ImGui::TextWrapped("%s", buf);
 }
 
 void cover_ai_test::update_pre(app& a, const Ns&)
@@ -817,6 +1011,8 @@ void cover_ai_test::draw_overlay(app& a)
             draw_dot(bg, a, spot.pos, 3, 0x4db3ffe6_imcol);
             if (st.has_peek)
                 draw_dot(bg, a, st.peek.pos, 2.5f, 0xff8c26e6_imcol);
+            if (show_octant_rings && st.octant_test)
+                draw_octant_rings(bg, a, spot.pos, 5, *st.octant_test);
         }
     }
     const auto c = npc.lock();
@@ -831,6 +1027,15 @@ void cover_ai_test::draw_overlay(app& a)
         return;
     const auto& cover = *status.cover;
     draw_dot(fg, a, cover.pos, 6, 0x33ff33ff_imcol);
+    if (show_octant_rings)
+    {
+        if (cover.canonical != cover.pos)
+            draw_dot(fg, a, cover.canonical, 3, 0x33ff33ff_imcol);
+        if (cover_pos_octant_test)
+            draw_octant_rings(fg, a, cover_pos_octant_test->spot.pos, 8, cover_pos_octant_test->result);
+        if (canonical_octant_test && canonical_octant_test->spot.pos != cover.pos)
+            draw_octant_rings(fg, a, canonical_octant_test->spot.pos, 5, canonical_octant_test->result);
+    }
     if (cover.peek)
     {
         const auto& p = *cover.peek;
@@ -982,6 +1187,9 @@ void cover_ai_test::draw_ui(app& a, float)
         options.octants = octant_choices[k];
         apply_options();
     }
+    ImGui::Checkbox("Octant rings", &show_octant_rings);
+    if (show_octant_rings)
+        draw_octant_legend();
 
     snformat(buf, "{}x{}", options.div_size, options.div_size);
     if (auto b = begin_combo("Cover div", buf))
@@ -1081,6 +1289,13 @@ void cover_ai_test::draw_ui(app& a, float)
         coord_or_dash(!!peek_at, peek_at ? *peek_at : point{});
         do_column("last gun point");
         coord_or_dash(!!gun_at, gun_at ? *gun_at : point{});
+        if (show_octant_rings)
+        {
+            do_column("cover's octant test");
+            text(cover_pos_octant_test ? octant_test_label(cover_pos_octant_test->result) : "-");
+            do_column("canonical's octant test");
+            text(canonical_octant_test ? octant_test_label(canonical_octant_test->result) : "-");
+        }
         do_column("player");
         coord_or_dash(!!player, player ? player->position() : point{});
 
