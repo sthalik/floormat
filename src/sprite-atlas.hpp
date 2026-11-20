@@ -10,7 +10,9 @@ struct Sprite;
 
 // While the texture grows, blit needs VRAM for the old and the new texture. The readback modes need system memory.
 // If the GL can't make their objects, sparse_texture switches to fallback and pixel_buffer_readback to readback.
-enum class layer_copy_mode : u8 { blit, readback, sparse_texture, pixel_buffer_readback, fallback = blit, };
+enum class layer_copy_mode : u8 {
+    blit, readback, sparse_texture, pixel_buffer_readback, fallback = blit,
+};
 } // namespace floormat::SpriteAtlas
 
 namespace floormat {

@@ -321,6 +321,26 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
         if (atlas.layer_copy == layer_copy_mode::sparse_texture && !can_make_sparse_texture(atlas, new_layer_count))
             atlas.layer_copy = layer_copy_mode::fallback;
 
+        // Texture storage is immutable, so growing the atlas requires a new texture.
+        GL::Texture2DArray new_texture{NoCreate};
+        auto new_capacity = new_layer_count;
+        // Sparse storage is made before the old layers are read, so a failure switches their copy to fallback.
+        if (atlas.layer_copy == layer_copy_mode::sparse_texture)
+        {
+            const with_gl_errors scope{gl_error_policy::error};
+            const auto sparse_texture_layer_count =
+                Math::min(atlas.limits.layer_count, atlas.limits.sparse_array_texture_layer_count);
+            const auto page_size_index = *find_virtual_page_size_index(atlas);
+            new_texture = make_sparse_texture(layer_size, sparse_texture_layer_count, page_size_index);
+            if (new_texture.id())
+                new_capacity = sparse_texture_layer_count;
+            else
+                atlas.layer_copy = layer_copy_mode::fallback;
+        }
+        // texture_unit_cache takes a reused name as still bound, so this runs before the old texture is deleted.
+        if (!new_texture.id())
+            new_texture = GL::Texture2DArray{};
+
         const auto layers_per_pixel_buffer =
             (u32)Math::max(usize{1}, atlas.limits.max_pixel_buffer_bytes / layer_bytes);
         Array<GL::Buffer> used_layer_pixel_buffers;
@@ -346,31 +366,13 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
             atlas.texture = GL::Texture2DArray{NoCreate};
         }
 
-        // Texture storage is immutable, so growing the atlas requires a new texture.
-        GL::Texture2DArray new_texture{NoCreate};
-        auto new_capacity = new_layer_count;
         {
             const with_gl_errors scope{gl_error_policy::error};
             if (atlas.layer_copy == layer_copy_mode::sparse_texture)
-            {
-                const auto sparse_texture_layer_count =
-                    Math::min(atlas.limits.layer_count, atlas.limits.sparse_array_texture_layer_count);
-                new_texture = make_sparse_texture(layer_size, sparse_texture_layer_count,
-                                                  *find_virtual_page_size_index(atlas));
-                if (new_texture.id())
-                {
-                    commit_sparse_texture_layers(new_texture, layer_size, 0, new_layer_count);
-                    new_capacity = sparse_texture_layer_count;
-                }
-                else
-                    atlas.layer_copy = layer_copy_mode::fallback;
-            }
-            if (!new_texture.id())
-            {
-                new_texture = GL::Texture2DArray{};
+                commit_sparse_texture_layers(new_texture, layer_size, 0, new_layer_count);
+            else
                 fm_assert(fm_check_glcall(new_texture.setStorage(1, GL::TextureFormat::RGBA8,
                                                                  {layer_size, (Int)new_layer_count})).second());
-            }
             new_texture.setMagnificationFilter(GL::SamplerFilter::Nearest)
                        .setMinificationFilter(GL::SamplerFilter::Linear)
                        .setWrapping(GL::SamplerWrapping::ClampToEdge);
