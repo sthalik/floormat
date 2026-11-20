@@ -26,7 +26,10 @@ class spot_tests
 
     astar& _astar;
     Cover::Point::finder _finder;
-    Cover::movement_range _threat_range, _threat_lattice, _npc_lattice;
+    Cover::movement_range _threat_range;
+    // A lattice is the set of points from + (i, j)*spacing.
+    // These hold the walkable ones near the threat and near the npc.
+    Cover::movement_range _threat_lattice, _npc_lattice;
     Optional<nearby_hidden_position_cache> _nearby_hidden_position;
     object_id _threat_id;
     Optional<int> _gun_offset;
@@ -38,8 +41,8 @@ public:
     bool has_line_of_sight(critter& c, const Cover::Script::options& o, point from, point to);
     // True when threat sees no pixel of c's body centered on pos, flush against a blocker along axis.
     bool is_hidden_at(critter& c, point threat, point pos, Vector2i axis);
-    // threat, then the centers of the cells of its walking pass grid that a Dijkstra fill from its cell reaches
-    // within o.threat_reach px and that border a cell the fill doesn't reach.
+    // Returns the threat's reach, which is threat and points along the edge of the area it can walk to within
+    // o.threat_reach px.
     ArrayView<const point> reach_positions(critter& c, const Cover::Script::options& o, point threat);
     // True when no point of reach_positions() for threat sees a pixel of c's body
     // centered on pos, flush along axis.

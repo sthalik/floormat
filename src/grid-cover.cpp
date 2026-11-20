@@ -37,8 +37,8 @@ namespace {
 using Grid::Cover::Params;
 using Grid::Cover::octant_count;
 
-// Octant k steps octant_steps[k] cells at a time, within 0.7° of k*11.25°, so a fill can carry a
-// distance from a cell to the cell a step away.
+// Octant k steps octant_steps[k] cells at a time, within 0.7° of k*11.25°, so filling it can carry
+// a distance from a cell to the cell a step away.
 constexpr std::array<Vector2b, octant_count> octant_steps = [] {
     constexpr std::array<std::array<i8, 2>, 8> quadrant = {{
         {1, 0}, {5, 1}, {5, 2}, {3, 2}, {1, 1}, {2, 3}, {2, 5}, {1, 5},
@@ -232,7 +232,7 @@ struct CoverGrid : GridBase
     // cell_count rounded up, so every plane starts on 64 bytes
     u32 plane_stride;
     // Units of params.div_size, as u8 when narrow. Octant k of cell i is at
-    // k*plane_stride + i, so a fill writes one contiguous plane. Planes not in built_octants hold
+    // k*plane_stride + i, so filling an octant writes one contiguous plane. Planes not in built_octants hold
     // stale data.
     Array<u16> distances;
     // fill_aligned()'s previous row in pixels, or fill_stepped()'s ring_rows rows of pixels and as

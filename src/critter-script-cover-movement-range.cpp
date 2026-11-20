@@ -34,8 +34,8 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
                                               Optional<u32> bbox_side, u32 max_dist)
 {
     const auto R = (int)max_dist;
-    // The fill reads cells within R + 2 div px of from, div being at most default_div_size, and each cell's grid
-    // reads one chunk more.
+    // The Dijkstra search reads cells within R + 2 div px of from, div being at most default_div_size, and each
+    // cell's grid reads one chunk more.
     const auto collider_gen =
         w.max_collider_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
     const cache_key key{from, excluded_blocker_ids, bbox_side, 0, 0, max_dist, collider_gen};
@@ -95,7 +95,7 @@ ArrayView<const point> movement_range::reachable_lattice_points(world& w, Grid::
     auto& objects = pools.object_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
     const auto div = (int)objects.params().div_size();
     const auto n = ((int)radius + div - 1)/div, side = 2*n + 1;
-    // No path inside the window is longer than one diagonal step per cell, so the fill isn't cut short.
+    // No path inside the window is longer than one diagonal step per cell, so the Dijkstra search isn't cut short.
     fm_assert(side*side*2*div < (u16)-1);
     const auto origin = compute_dijkstra_map(w, objects, from, excluded_blocker_ids, n,
                                              (int)Math::min(max_walk_dist, (u32)(u16)-2));

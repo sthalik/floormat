@@ -22,13 +22,13 @@ namespace {
 
 constexpr u32 path_slack = 5*(u32)tile_size_xy;
 // The work the search may do in one update. Counts, not time, so that the npc behaves the same on every machine.
-// TODO: each critter has its own limits, so n critters searching in different chunks can do n
-// octant fills in one frame.
+// TODO: each critter has its own limits, so n critters searching in different chunks can fill n
+// octants in one frame.
 
 // Tiles of search_tiles(), each listed by one Cover::Point::finder::find call over the tile's area.
 constexpr u32 max_search_tiles_per_update = 32;
-// An octant fill computes how far a shot travels from each cell of a chunk's cover grid along one of 32
-// directions. A stale grid's rebuild counts as one. A rebuild and a fill took 0.66 ms at div 8.
+// Filling an octant computes how far a shot travels from each cell of a chunk's cover grid along one of 32
+// directions. A stale grid's rebuild counts as one. A rebuild and filling one octant took 0.66 ms at div 8.
 constexpr u32 max_search_octant_fills_per_update = 1;
 // path_to calls, each one Dijkstra search. One that found a path took up to 0.71 ms among dense scenery.
 constexpr u32 max_search_dijkstra_calls_per_update = 1;
