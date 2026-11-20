@@ -413,14 +413,6 @@ constexpr step_s next_step(point from, point to)
     return { count, step };
 }
 
-// Returns the step whose pixel is px, or -1u when the line misses px.
-u32 step_at(const Raycast::bresenham_line& line, Vector2i px)
-{
-    const auto x = line.interval_bounds_to_steps(0, px.x(), px.x()), y = line.interval_bounds_to_steps(1, px.y(), px.y());
-    const auto k = Math::max(x.first, y.first);
-    return k <= Math::min(x.last, y.last) ? k : -1u;
-}
-
 Ns return_unspent_dt(const Ns& ticks, float speed)
 {
     constexpr auto max_ns = double(u64{1} << 53);
@@ -428,6 +420,13 @@ Ns return_unspent_dt(const Ns& ticks, float speed)
 }
 
 } // namespace
+
+u32 step_at(const Raycast::bresenham_line& line, Vector2i px)
+{
+    const auto x = line.interval_bounds_to_steps(0, px.x(), px.x()), y = line.interval_bounds_to_steps(1, px.y(), px.y());
+    const auto k = Math::max(x.first, y.first);
+    return k <= Math::min(x.last, y.last) ? k : -1u;
+}
 
 // Diagonal when minor/major > tan 22.5° = √2 - 1, that is (minor + major)² > 2·major².
 rotation nearest_rotation(Vector2i vec)

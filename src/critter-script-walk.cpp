@@ -5,6 +5,10 @@
 #include "critter.hpp"
 #include "search-result.hpp"
 #include "search-astar.hpp"
+#include "raycast-line.hpp"
+#include "rotation.inl"
+#include "sweep-aabb.hpp"
+#include "compat/function-view.hpp"
 #include "entity/name-of.hpp"
 #include <utility>
 
@@ -30,6 +34,53 @@ critter_walk::critter_walk(path_search_result pathʹ) :
 
 point critter_walk::dest() const { return _dest; }
 bool critter_walk::is_line() const { return mode == walk_mode::line; }
+
+bool critter_walk::is_remaining_path_unblocked(critter& c) const
+{
+    if (mode != walk_mode::smoothed)
+        return true;
+    const auto sp = path.smoothings();
+    const auto self_id = c.id;
+    const auto pred = [self_id](const class chunk&, collision_data x) {
+        return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
+    };
+    const auto pos = c.position();
+    auto r = c.r;
+    for (auto j = path_index; j < sp.size(); j++)
+    {
+        const auto from = sp[j-1].pt, to = sp[j].pt;
+        const auto ch = from.chunk3();
+        const auto origin = point{ch, {}, {}};
+        const auto line = Raycast::bresenham_line{from - origin, to - origin};
+        auto k = 0u;
+        if (j == path_index)
+        {
+            k = pos.chunk3().z == ch.z ? step_at(line, pos - origin) : -1u;
+            if (k == -1u)
+                return false;
+        }
+        if (k == line.steps())
+            continue;
+        const auto new_r = nearest_rotation(to - from);
+        if (new_r != r)
+        {
+            if (j == path_index)
+            {
+                if (!c.can_rotate(new_r))
+                    return false;
+            }
+            else if (!c.can_rotate(from.coord(), new_r, r, from.offset(), rotate_point(c.bbox_offset, c.r, r),
+                                   rotate_size(c.bbox_size, c.r, r)))
+                return false;
+        }
+        const auto [bb_off, size] = rotate_bbox(c.bbox_offset, c.bbox_size, c.r, new_r);
+        const auto box_line = Raycast::bresenham_line{from - origin + Vector2i(bb_off), to - origin + Vector2i(bb_off)};
+        if (find_swept_collider(c.world(), ch, box_line, k, line.steps(), Vector2ui(size), pred).has_collider)
+            return false;
+        r = new_r;
+    }
+    return true;
+}
 
 auto critter_walk::update(const bptr<critter>& c, usize& i, const Ns& dt) -> walk_result
 {

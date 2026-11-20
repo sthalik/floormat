@@ -31,6 +31,8 @@ public:
         point end;
         path_search_result path;
         Optional<Cover::Script::peek> peek_spot;
+        // False for the in_reach fallback, which a point of reach_positions() saw.
+        bool is_hidden_from_reach = true;
     };
     // done is true once the search ended, with cover when it found some.
     struct result { Optional<reachable_cover> cover; bool done = false; };

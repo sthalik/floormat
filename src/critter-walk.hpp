@@ -19,6 +19,9 @@ public:
     point dest() const;
     // True for a walk built from a point, straight only when the point lies on an axis or diagonal from the start.
     bool is_line() const;
+    // True when c can move its box along the rest of a smoothed path as move_toward() would, with no collider but
+    // c in the way. Other walks return true untested, as their move_toward() slides past blocked diagonal steps.
+    bool is_remaining_path_unblocked(critter& c) const;
 
 private:
     enum class walk_mode : u8 { none, line, path, smoothed, };
