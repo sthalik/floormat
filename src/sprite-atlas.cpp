@@ -15,6 +15,8 @@
 #include <cr/StringView.h>
 #include <cr/StructuredBindings.h>
 #include <mg/BatchFunctions.h>
+#include <mg/Buffer.h>
+#include <mg/BufferImage.h>
 #include <mg/Texture.h>
 #include <mg/TextureArray.h>
 #include <mg/TextureFormat.h>
@@ -176,6 +178,49 @@ void commit_sparse_texture_layers(GL::Texture2DArray& texture, Vector2i layer_si
     glBindTexture(GL_TEXTURE_2D_ARRAY, (GLuint)old_texture);
 }
 
+Array<GL::Buffer> read_layers_into_pixel_buffers(GL::Texture2DArray& texture, Vector2i layer_size, u32 layer_count,
+                                                 u32 layers_per_buffer, bool buffer_storage_supported)
+{
+    const auto layer_bytes = (usize)layer_size.product() * 4;
+    const u32 buffer_count = (layer_count + layers_per_buffer - 1) / layers_per_buffer;
+    Array<GL::Buffer> buffers{DirectInit, buffer_count, NoCreate};
+    for (u32 j = 0; j < buffer_count; j++)
+    {
+        const u32 num_layers = Math::min(layers_per_buffer, layer_count - j * layers_per_buffer);
+        const usize buffer_bytes = layer_bytes * num_layers;
+        buffers[j] = GL::Buffer{GL::Buffer::TargetHint::PixelPack};
+        const bool is_allocated = buffer_storage_supported
+            ? fm_warn_glcall(buffers[j].setStorage(buffer_bytes, GL::Buffer::StorageFlag::ClientStorage)).second()
+            : fm_warn_glcall(buffers[j].setData({nullptr, buffer_bytes}, GL::BufferUsage::StreamRead)).second();
+        if (!is_allocated)
+        {
+            buffers = {};
+            break;
+        }
+    }
+    if (!buffers.isEmpty())
+    {
+        const with_gl_errors scope{gl_error_policy::error};
+        const framebuffer_saver saver;
+        GL::Framebuffer fb{{{}, layer_size}};
+        glPixelStorei(GL_PACK_ALIGNMENT, 4);
+        glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+        glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
+        glPixelStorei(GL_PACK_SKIP_ROWS, 0);
+        for (u32 i = 0; i < layer_count; i++)
+        {
+            fb.attachTextureLayer(GL::Framebuffer::ColorAttachment{0}, texture, 0, (Int)i);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.id());
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, buffers[i / layers_per_buffer].id());
+            glReadPixels(0, 0, layer_size.x(), layer_size.y(), GL_RGBA, GL_UNSIGNED_BYTE,
+                         reinterpret_cast<void*>(uptr{i % layers_per_buffer} * layer_bytes));
+        }
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        GL::Context::current().resetState(GL::Context::State::Buffers | GL::Context::State::PixelStorage);
+    }
+    return buffers;
+}
+
 } // namespace
 
 Atlas::Limits get_texture_limits()
@@ -197,6 +242,7 @@ Atlas::Limits get_texture_limits()
         .layer_count = (u32)max.z(),
         .sparse_texture_size = (u32)Math::max(sparse_texture_size, 0),
         .sparse_array_texture_layer_count = (u32)Math::max(sparse_array_texture_layer_count, 0),
+        .buffer_storage_supported = ctx.isExtensionSupported<ARB::buffer_storage>(),
     };
 }
 
@@ -275,6 +321,20 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
         if (atlas.layer_copy == layer_copy_mode::sparse_texture && !can_make_sparse_texture(atlas, new_layer_count))
             atlas.layer_copy = layer_copy_mode::fallback;
 
+        const auto layers_per_pixel_buffer =
+            (u32)Math::max(usize{1}, atlas.limits.max_pixel_buffer_bytes / layer_bytes);
+        Array<GL::Buffer> uploaded_layer_pixel_buffers;
+        if (atlas.layer_copy == layer_copy_mode::pixel_buffer_readback && atlas.uploaded_layer_count > 0)
+        {
+            uploaded_layer_pixel_buffers =
+                read_layers_into_pixel_buffers(atlas.texture, layer_size, atlas.uploaded_layer_count,
+                                               layers_per_pixel_buffer, atlas.limits.buffer_storage_supported);
+            if (!uploaded_layer_pixel_buffers.isEmpty())
+                atlas.texture = GL::Texture2DArray{NoCreate};
+            else
+                atlas.layer_copy = layer_copy_mode::readback;
+        }
+
         Array<char> uploaded_layer_pixels;
         if (atlas.layer_copy == layer_copy_mode::readback && atlas.uploaded_layer_count > 0)
         {
@@ -317,7 +377,18 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
 
             clear_layers_to_magenta(new_texture, layer_size, atlas.uploaded_layer_count, new_layer_count);
 
-            if (!uploaded_layer_pixels.isEmpty())
+            if (!uploaded_layer_pixel_buffers.isEmpty())
+            {
+                for (u32 j = 0; j < (u32)uploaded_layer_pixel_buffers.size(); j++)
+                {
+                    const u32 first = j * layers_per_pixel_buffer;
+                    const u32 num_layers = Math::min(layers_per_pixel_buffer, atlas.uploaded_layer_count - first);
+                    GL::BufferImage3D image{PixelFormat::RGBA8Unorm, {layer_size, (Int)num_layers},
+                                            move(uploaded_layer_pixel_buffers[j]), layer_bytes * num_layers};
+                    new_texture.setSubImage(0, {0, 0, (Int)first}, image);
+                }
+            }
+            else if (!uploaded_layer_pixels.isEmpty())
             {
                 for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
                     new_texture.setSubImage(0, {0, 0, (Int)i},
