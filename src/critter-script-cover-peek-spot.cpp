@@ -12,6 +12,7 @@
 
 namespace floormat::Cover {
 
+// TODO: once critters have a facing, take the gun's position from c's facing, which may point away from threat.
 point gun_point(const critter& c, point pos, point threat, Vector2i across, Optional<int> offset)
 {
     if (pos == threat)
