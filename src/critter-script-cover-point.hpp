@@ -32,7 +32,7 @@ struct query
     /// candidates. Areas that tile the plane together accept the spots one search without an area
     /// does, since each candidate is judged alone. Two areas can accept the same spot.
     Optional<Range2Di> area = {};
-    /// The most octant fills the call may do, a stale grid's rebuild counting as one. A read that
+    /// The most octants the call may fill, a stale grid's rebuild counting as one. A read that
     /// needs one more ends the call with out_of_fills before any candidate is tried.
     u32 max_fills = (u32)-1;
 };
@@ -58,11 +58,11 @@ struct result
     /// The candidates pushed flush to a blocker and still seen by the threat in its own or a neighbor octant,
     /// among those tried before pos, or among all of them when found is false.
     u32 rejected = 0;
-    /// Octant fills the call did, rebuilds included.
+    /// Octants the call filled, rebuilds included.
     u32 fills = 0;
     bool found = false;
     /// The call stopped at q.max_fills and found nothing. The same query goes on from there, as the
-    /// fills done stay in the grids.
+    /// octants it filled stay in the grids.
     bool out_of_fills = false;
 };
 

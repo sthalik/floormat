@@ -529,8 +529,8 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
         return cells[i];
     };
 
-    // Octant k's distance at cell n, empty when n's chunk doesn't exist or out of fills. Cells under
-    // a body near a chunk edge lie in the next chunk, whose octants are filled lazily too.
+    // Octant k's distance at cell n, empty when n's chunk doesn't exist or filling k would pass q.max_fills.
+    // Cells under a body near a chunk edge lie in the next chunk, whose octants are filled lazily too.
     const auto distance_at = [&](Vector2i n, u32 k) -> Optional<u16> {
         const auto pt = to_point(center_of(n));
         auto* c = w.at(pt.chunk3());

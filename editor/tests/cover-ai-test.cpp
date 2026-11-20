@@ -47,7 +47,7 @@ constexpr float pick_radius = 6;
 // from 1 tile up to 1 << max_spots_radius_log2 tiles.
 constexpr int default_spots_radius_tiles = 16, max_spots_radius_log2 = 6;
 // The overlay's search per frame, as the script's search per update in critter-script-cover.cpp. A
-// tile whose listing needs another fill waits for the next frame.
+// tile whose listing needs another octant filled waits for the next frame.
 constexpr u32 spots_tiles_per_frame = 32, spots_fills_per_frame = 1;
 
 enum class note : u8 { none, no_free_spot, no_start, start_taken, no_path, no_other_cover, };
@@ -109,7 +109,7 @@ u32 search_chunk_radius(point center, point threat, u32 radius)
 
 double us(const Ns& t) { return (double)(u64)t * 1e-3; }
 
-// Octant fills of the cover pool the npc's script searches with, and their time, since the pool
+// Octants filled in the cover pool the npc's script searches with, and their time, since the pool
 // was made. A search fills the octants it reads in each chunk the first time.
 struct fill_count { u32 n = 0; Ns time{}; };
 
@@ -395,7 +395,7 @@ u32 cover_ai_test::seen_spots(app& a, const critter& c)
 }
 
 // Lists the next tile's spots that no earlier tile listed, as two tiles can list one spot, with their peek spots.
-// Returns its octant fills, or empty, with the tile left for the next call, when it needs more than max_fills.
+// Returns how many octants it filled, or empty when it would pass max_fills, leaving the tile for the next call.
 Optional<u32> cover_ai_test::search_tile(app& a, critter& c, point player, u32 max_fills)
 {
     const auto f0 = fills(a);
@@ -441,7 +441,7 @@ Optional<u32> cover_ai_test::search_tile(app& a, critter& c, point player, u32 m
     return r.fills;
 }
 
-// Without limited, lists every tile left, whatever the fills.
+// Without limited, lists every tile left, however many octants that fills.
 void cover_ai_test::search_spots(app& a, critter& c, bool limited)
 {
     const auto player = find_player(a, c);
@@ -714,7 +714,7 @@ void cover_ai_test::update_pre(app& a, const Ns&)
     fills_before_update = fills(a);
 }
 
-// The octant fills are those of the whole world update, of which the script's update is the only
+// The octants filled are those of the whole world update, of which the script's update is the only
 // part that reads cover grids.
 void cover_ai_test::log_script(app& a, const critter& c, const Cover::Script::status& s)
 {

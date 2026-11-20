@@ -11,6 +11,8 @@ namespace floormat::Cover {
 // A critter or a closed door that blocks a path moves no pass_gen(), so is_stale() can't see it leave.
 constexpr inline Ns unreachable_spot_retry_time = Minute;
 
+// is_stale() ignores chunk::objects_gen(), since every critter step in range would then clear the list, restart
+// the search and rerun the Dijkstra searches that failed.
 class unreachable_spots
 {
     // Spots that path_to found no path to, or that can_move_straight_to_listed_spot() ties to one.

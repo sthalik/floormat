@@ -47,12 +47,12 @@ class movement_range
 public:
     movement_range();
 
-    // from, then the centers of the cells of the walking pass grid for bbox_side that a Dijkstra fill from its
-    // cell reaches within max_dist px and that border a cell the fill doesn't reach. Critters never block.
+    // Returns `from` and points along the edge of the area walkable from it within max_dist px. Critters don't
+    // count as blockers, since they may move out of the way.
     ArrayView<const point> border(world& w, Grid::GridRegistry& pools, point from, Optional<u32> bbox_side,
                                   u32 max_dist);
-    // from, then each other from + (i, j)*spacing within radius px on each axis, when its cell of the walking pass
-    // grid for bbox_side lies within max_walk_dist px of walking from from's cell without leaving the square.
+    // Returns `from`, then the points `from` + (i, j)*spacing in the square `from` ± radius
+    // that are walkable from it within max_walk_dist px without leaving the square.
     ArrayView<const point> reachable_lattice_points(world& w, Grid::GridRegistry& pools, point from,
                                                     std::array<object_id, 2> excluded_blocker_ids,
                                                     Optional<u32> bbox_side, u32 radius, u32 spacing,

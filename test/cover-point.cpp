@@ -430,8 +430,8 @@ void test_lists_cover_spots()
 }
 
 // test_lists_cover_spots' scene on fresh pools, searched with max_fills = 1 until a call finds
-// cover. Each call does one fill, and together they do the fills of one unlimited search and find
-// its spot.
+// cover. Each call fills one octant, and together they fill the octants of one unlimited search and
+// find its spot.
 void test_max_fills()
 {
     auto w = world();

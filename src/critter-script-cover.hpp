@@ -60,11 +60,15 @@ struct cover_peek
     point pos, gun, gun_ray_from;
 };
 
-// The cover the critter hides at, peeks from or walks to, or took last. canonical is the spot found for it, from
-// where pos lies along their face as far as the threat alone, without its turns, sees no pixel.
+// The cover the critter hides at, peeks from or walks to, or took last.
 struct cover
 {
-    point pos, canonical;
+    // Where the critter hides between shots, next to its peek spot. It is canonical moved along the blocker's
+    // face as far as no point of the threat's reach sees a pixel of the critter.
+    point pos;
+    // The spot the search found, which the tests that make the critter flee use. A cover spot the threat sees is
+    // moved from it again.
+    point canonical;
     // canonical's axis, toward the threat.
     Vector2i axis;
     // The last spot find_peek_pos found. Taking new cover clears it.
@@ -80,7 +84,7 @@ struct counters
     // is_hidden_at calls of spot_tests::is_seen_on_path.
     u32 num_path_body_checks = 0;
     // The searches' Cover::Point::finder::find calls, each for one tile. A tile gets another call when the
-    // threat moved since its list was made, or when the call ran out of fills.
+    // threat moved since its list was made, or when the call ended with out_of_fills.
     u32 num_find_cover_point_calls = 0;
     // The times find_retreat went back to its first spot because the threat moved to another octant of the cover
     // grid, seen from the critter, or a retreat walk was blocked or flanked.
