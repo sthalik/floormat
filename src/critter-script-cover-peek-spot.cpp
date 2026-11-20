@@ -3,6 +3,7 @@
 #include "critter.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
+#include "rotation.inl"
 #include "search.hpp"
 #include "tile-defs.hpp"
 #include "compat/function-view.hpp"
@@ -15,7 +16,8 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
 {
     if (pos == threat)
         return pos;
-    const auto dist = offset ? *offset : Math::dot(Vector2i(c.bbox_size), across)/2;
+    const auto size = Vector2i(rotate_size(c.bbox_size, c.r, nearest_rotation(threat - pos)));
+    const auto dist = offset ? *offset : Math::dot(size, across)/2;
     const auto f = Vector2(threat - pos);
     return pos + Vector2i(Math::round(f.perpendicular() * ((float)dist / f.length())));
 }
