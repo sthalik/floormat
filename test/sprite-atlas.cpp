@@ -502,7 +502,7 @@ void texture_growth_stops_at_layer_limit(layer_copy_mode mode)
 {
     sprite_atlas atlas{64, 64};
     atlas.set_layer_copy(mode);
-    atlas.raw()->limits = { .size = 64, .layers = 3, };
+    atlas.raw()->limits = { .size = 64, .layer_count = 3, };
     constexpr u32 n = 3, w = 40, h = 40;
     Array<unsigned char> src{ValueInit, w*h*4};
     const Magnum::ImageView2D view{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, src};
@@ -561,7 +561,7 @@ void sparse_texture_grows_in_place()
     auto& A = *atlas.raw();
     A.limits.ensure_filled();
     const bool is_sparse_texture_possible = can_make_sparse_texture(A, 1);
-    const auto capacity = Math::min(A.limits.layers, A.limits.sparse_array_texture_layer_count);
+    const auto capacity = Math::min(A.limits.layer_count, A.limits.sparse_array_texture_layer_count);
     const Array<Color4ub> pixels[] = { make_pixels(w, h, 1), make_pixels(w, h, 2), make_pixels(w, h, 3) };
 
     const auto s0 = atlas.add(view_of(pixels[0], w, h), false);
@@ -657,8 +657,8 @@ void sparse_storage_error_falls_back_to_regular_texture()
         debug_output_guard = ScopeGuard{[] { GL::Renderer::enable(GL::Renderer::Feature::DebugOutput); }};
     }
     // Sparse storage with more layers than GL_MAX_SPARSE_ARRAY_TEXTURE_LAYERS_ARB is a GL error.
-    A.limits.layers = A.limits.sparse_array_texture_layer_count =
-        Math::max(A.limits.layers, A.limits.sparse_array_texture_layer_count) + 1;
+    A.limits.layer_count = A.limits.sparse_array_texture_layer_count =
+        Math::max(A.limits.layer_count, A.limits.sparse_array_texture_layer_count) + 1;
     const Array<Color4ub> pixels[] = { make_pixels(w, h, 1), make_pixels(w, h, 2), make_pixels(w, h, 3) };
     std::ostringstream out;
     const auto s0 = atlas.add(view_of(pixels[0], w, h), false);
@@ -700,7 +700,7 @@ void switching_layer_copy_between_growths_preserves_pixels()
     auto& A = *atlas.raw();
     A.limits.ensure_filled();
     const bool is_sparse_texture_possible = can_make_sparse_texture(A, 1);
-    const auto capacity = Math::min(A.limits.layers, A.limits.sparse_array_texture_layer_count);
+    const auto capacity = Math::min(A.limits.layer_count, A.limits.sparse_array_texture_layer_count);
     // The fallback columns hold the values without sparse textures, where sparse growth blits.
     struct growth_step
     {

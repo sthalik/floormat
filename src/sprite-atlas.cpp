@@ -194,7 +194,7 @@ Atlas::Limits get_texture_limits()
     }
     return {
         .size = std::bit_floor((u32)max.x()),
-        .layers = (u32)max.z(),
+        .layer_count = (u32)max.z(),
         .sparse_texture_size = (u32)Math::max(sparse_texture_size, 0),
         .sparse_array_texture_layer_count = (u32)Math::max(sparse_array_texture_layer_count, 0),
     };
@@ -220,7 +220,7 @@ bool can_make_sparse_texture(const Atlas& atlas, u32 layer_count)
 {
     fm_debug_assert(atlas.limits.size > 0);
     const auto sparse_texture_layer_count =
-        Math::min(atlas.limits.layers, atlas.limits.sparse_array_texture_layer_count);
+        Math::min(atlas.limits.layer_count, atlas.limits.sparse_array_texture_layer_count);
     return layer_count > 0 && layer_count <= sparse_texture_layer_count &&
            Math::max(atlas.layer_width, atlas.layer_height) <= atlas.limits.sparse_texture_size &&
            find_virtual_page_size_index(atlas);
@@ -294,7 +294,7 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
             if (atlas.layer_copy == layer_copy_mode::sparse_texture)
             {
                 const auto sparse_texture_layer_count =
-                    Math::min(atlas.limits.layers, atlas.limits.sparse_array_texture_layer_count);
+                    Math::min(atlas.limits.layer_count, atlas.limits.sparse_array_texture_layer_count);
                 new_texture = make_sparse_texture(layer_size, sparse_texture_layer_count,
                                                   *find_virtual_page_size_index(atlas));
                 if (new_texture.id())
@@ -353,8 +353,9 @@ void ensure_texture(Atlas& atlas)
 
     atlas.limits.ensure_filled();
     fm_assert(Math::max(atlas.layer_width, atlas.layer_height) <= atlas.limits.size);
-    if (atlas.layers.size() > atlas.limits.layers) [[unlikely]]
-        fm_abort("ensure_texture: %u layers > max %u", (unsigned)atlas.layers.size(), (unsigned)atlas.limits.layers);
+    if (atlas.layers.size() > atlas.limits.layer_count) [[unlikely]]
+        fm_abort("ensure_texture: %u layers > max %u",
+                 (unsigned)atlas.layers.size(), (unsigned)atlas.limits.layer_count);
 
     const auto num_layers = (u32)atlas.layers.size();
     auto layer_count = atlas.texture_layer_count;
@@ -365,7 +366,7 @@ void ensure_texture(Atlas& atlas)
     else
         while (layer_count < num_layers)
             layer_count = get_next_layer_count(layer_count, atlas);
-    grow_texture(atlas, Math::min(layer_count, atlas.limits.layers));
+    grow_texture(atlas, Math::min(layer_count, atlas.limits.layer_count));
 }
 
 void free_atlas(Atlas& atlas)

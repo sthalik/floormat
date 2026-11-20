@@ -119,7 +119,7 @@ struct Atlas
 
     struct Limits
     {
-        u32 size = 0, layers = 0;
+        u32 size = 0, layer_count = 0;
         u32 sparse_texture_size = 0, sparse_array_texture_layer_count = 0; // 0 without ARB_sparse_texture
         void ensure_filled();
     } limits;
