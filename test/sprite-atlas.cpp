@@ -659,7 +659,17 @@ void sparse_storage_error_falls_back_to_regular_texture()
     // Sparse storage with more layers than GL_MAX_SPARSE_ARRAY_TEXTURE_LAYERS_ARB is a GL error.
     A.limits.layer_count = A.limits.sparse_array_texture_layer_count =
         Math::max(A.limits.layer_count, A.limits.sparse_array_texture_layer_count) + 1;
-    const Array<Color4ub> pixels[] = { make_pixels(w, h, 1), make_pixels(w, h, 2), make_pixels(w, h, 3) };
+    const Array<Color4ub> pixels[] = {
+        make_pixels(w, h, 1), make_pixels(w, h, 2), make_pixels(w, h, 3), make_pixels(w, h, 4), make_pixels(w, h, 5),
+    };
+    const auto assert_one_set_storage_error = [](const std::ostringstream& out) {
+        const auto str = out.str();
+        const auto text = StringView{str.data(), str.size()};
+        fm_assert(text.contains("setStorage"_s));
+        const auto error = text.find("GL error"_s);
+        fm_assert(!error.isEmpty());
+        fm_assert(!text.exceptPrefix(usize(error.end() - text.data())).contains("GL error"_s));
+    };
     std::ostringstream out;
     const auto s0 = atlas.add(view_of(pixels[0], w, h), false);
     {
@@ -685,12 +695,26 @@ void sparse_storage_error_falls_back_to_regular_texture()
     assert_layer_contents(atlas, 2, {{s2, pixels[2]}});
     assert_layer_contents(atlas, 3, {});
     fm_assert(GL::Renderer::error() == GL::Renderer::Error::NoError);
-    const auto str = out.str();
-    const auto text = StringView{str.data(), str.size()};
-    fm_assert(text.contains("setStorage"_s));
-    const auto error = text.find("GL error"_s);
-    fm_assert(!error.isEmpty());
-    fm_assert(!text.exceptPrefix(usize(error.end() - text.data())).contains("GL error"_s));
+    assert_one_set_storage_error(out);
+
+    atlas.set_layer_copy(layer_copy_mode::sparse_texture);
+    const auto s3 = atlas.add(view_of(pixels[3], w, h), false), s4 = atlas.add(view_of(pixels[4], w, h), false);
+    std::ostringstream out2;
+    {
+        const Error redirect{&out2};
+        (void)atlas.texture();
+    }
+    fm_assert_equal(3u, atlas.texture_gen());
+    fm_assert_equal(5u, A.texture_layer_count);
+    fm_assert(!has_sparse_storage(A.texture));
+    fm_assert(A.layer_copy == layer_copy_mode::fallback);
+    assert_layer_contents(atlas, 0, {{s0, pixels[0]}});
+    assert_layer_contents(atlas, 1, {{s1, pixels[1]}});
+    assert_layer_contents(atlas, 2, {{s2, pixels[2]}});
+    assert_layer_contents(atlas, 3, {{s3, pixels[3]}});
+    assert_layer_contents(atlas, 4, {{s4, pixels[4]}});
+    fm_assert(GL::Renderer::error() == GL::Renderer::Error::NoError);
+    assert_one_set_storage_error(out2);
 }
 
 void switching_layer_copy_between_growths_preserves_pixels()
@@ -701,7 +725,7 @@ void switching_layer_copy_between_growths_preserves_pixels()
     A.limits.ensure_filled();
     const bool is_sparse_texture_possible = can_make_sparse_texture(A, 1);
     const auto capacity = Math::min(A.limits.layer_count, A.limits.sparse_array_texture_layer_count);
-    // The fallback columns hold the values without sparse textures, where sparse growth blits.
+    // The fallback columns hold the values without sparse textures, where sparse_texture switches to fallback.
     struct growth_step
     {
         layer_copy_mode mode;
