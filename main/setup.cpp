@@ -22,7 +22,7 @@ void main_impl::recalc_viewport(Vector2i fb_size, Vector2i win_size) noexcept
         framebuffer.fb = GL::Framebuffer{{ {}, fb_size }};
 
         framebuffer.color = GL::Texture2D{};
-        framebuffer.color.setStorage(1, GL::TextureFormat::RGBA8, fb_size);
+        framebuffer.color.setStorage(1, GL::TextureFormat::RGB8, fb_size);
         framebuffer.depth = GL::Renderbuffer{};
         framebuffer.depth.setStorage(GL::RenderbufferFormat::DepthComponent32F, fb_size);
 
