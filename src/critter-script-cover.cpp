@@ -669,6 +669,7 @@ void cover_script::check_hidden(critter& C, point threat)
     pass_gen_at_last_check = C.world().pass_gen();
     num_reach_positions_tested = options.threat_reach ? 0 : -1u;
     const auto& c = *cover;
+    // TODO: once critters have a facing, a threat that faces away from C may not see it.
     if (!tests.is_hidden_at(C, threat, c.canonical, c.axis))
         flee(C);
     else if (refresh_cover(C))
@@ -900,6 +901,7 @@ void cover_script::face_threat(critter& C, usize i, point threat)
     if (v.isZero())
         return;
     const auto r = nearest_rotation(v);
+    // TODO: once critters have a facing, turning may take time, and C may shoot only once it faces threat.
     if (r != C.r && C.can_rotate(r))
         C.rotate(i, r);
 }
