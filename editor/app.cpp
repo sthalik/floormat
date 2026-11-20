@@ -142,7 +142,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
         .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns to FILE, one per line", "FILE")
         .addBooleanOption("show-fps").setHelp("show-fps", "print FPS to stderr every 5 seconds")
-        .addOption("atlas-layer-copy", "sparse-texture").setHelp("atlas-layer-copy", "how the sprite atlas texture grows: blit keeps the old and the new texture in VRAM at once, readback copies the old one's layers through system memory, sparse-texture commits new layers in place where ARB_sparse_texture allows and blits otherwise", "blit|readback|sparse-texture")
+        .addOption("atlas-layer-copy", "sparse-texture").setHelp("atlas-layer-copy", "how the sprite atlas texture grows: blit keeps the old and the new texture in VRAM at once, readback copies the old one's layers through system memory, pixel-buffer-readback copies them through GL pixel buffer objects, sparse-texture commits new layers in place where ARB_sparse_texture allows and blits otherwise", "blit|readback|pixel-buffer-readback|sparse-texture")
 #ifndef FLOORMAT_NO_PGO_DRIVER
         .addOption("scenes", "off").setHelp("scenes", "run driver scenes, then quit; names or list|all|coverage|profile|none", "a,b,c")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
@@ -159,6 +159,8 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         opts.atlas_layer_copy = SpriteAtlas::layer_copy_mode::blit;
     else if (str == "readback"_s)
         opts.atlas_layer_copy = SpriteAtlas::layer_copy_mode::readback;
+    else if (str == "pixel-buffer-readback"_s)
+        opts.atlas_layer_copy = SpriteAtlas::layer_copy_mode::pixel_buffer_readback;
     else if (str == "sparse-texture"_s)
         opts.atlas_layer_copy = SpriteAtlas::layer_copy_mode::sparse_texture;
     else
