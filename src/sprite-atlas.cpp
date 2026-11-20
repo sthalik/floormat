@@ -473,18 +473,11 @@ void read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect, co
 {
     fm_assert(out.size() == rect.size());
     const with_gl_errors scope{gl_error_policy::error};
-    if (GL::Context::current().isExtensionSupported<GL::Extensions::ARB::get_texture_sub_image>())
-    {
-        const MutableImageView3D out3{out.storage(), out.format(), {out.size(), 1}, out.data()};
-        texture.subImage(0, Range3Di{{rect.min(), layer}, {rect.max(), layer + 1}}, out3);
-    }
-    else
-    {
-        const framebuffer_saver saver;
-        GL::Framebuffer fb{rect};
-        fb.attachTextureLayer(GL::Framebuffer::ColorAttachment{0}, texture, 0, layer);
-        fb.read(rect, out);
-    }
+    // NVIDIA's first glGetTextureSubImage on a texture is slower than a framebuffer read.
+    const framebuffer_saver saver;
+    GL::Framebuffer fb{rect};
+    fb.attachTextureLayer(GL::Framebuffer::ColorAttachment{0}, texture, 0, layer);
+    fb.read(rect, out);
 }
 
 Image2D read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect)
