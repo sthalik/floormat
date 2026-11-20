@@ -8,9 +8,9 @@ namespace floormat::SpriteAtlas {
 struct Atlas;
 struct Sprite;
 
-// While the texture grows, blit needs VRAM for the old and the new texture at once.
-// readback needs system memory for the used layers instead.
-enum class layer_copy_mode : u8 { blit, readback, };
+// While the texture grows, blit needs VRAM for the old and the new texture at once. readback needs system memory.
+// sparse_texture commits layers in place. An atlas that can't make a sparse texture switches to fallback.
+enum class layer_copy_mode : u8 { blit, readback, sparse_texture, fallback = blit, };
 } // namespace floormat::SpriteAtlas
 
 namespace floormat {
