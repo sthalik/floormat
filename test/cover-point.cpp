@@ -3296,6 +3296,34 @@ void test_cover_script_needs_peek(bool turned_off)
     fm_assert(turned_off != !!Cover::Script::find_peek(*s.npc, {c.canonical, {1, 0}}));
 }
 
+// add_long_wall's blockers go away while the npc searches, testing only where the threat stands, after it listed
+// the spots behind them. No cover is left, so the search ends without one.
+void test_cover_script_search_cover_removed()
+{
+    cover_scene s;
+    s.w[ch].remove_object(*s.wall, s.wall->index());
+    const bptr<scenery> walls[] = {
+        add_blocker(s.w, {5, 8}, {16, 240}, {0, -104}),
+        add_blocker(s.w, {5, 8}, {16, 240}, {0, 104}),
+    };
+    rebuild(s.w);
+    Cover::Script::set_options(*s.npc, {.octants = 0, .max_cover_end_dist = 0, .threat_reach = 0,
+                                        .last_resort = fallback::none});
+    for (auto frames = 0u; s.status().counters.num_rays == 0; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.step();
+    }
+    const auto t0 = s.status();
+    fm_assert(t0.st == state::search && t0.counters.num_dijkstra_calls == 0);
+    for (const auto& x : walls)
+        s.w[ch].remove_object(*x, x->index());
+    rebuild(s.w);
+    s.finish_search();
+    const auto t = s.status();
+    fm_assert(t.st == state::seek && !t.cover);
+}
+
 // The threat stands 56 px east of cover_scene's wall and the npc as far west of it, with a 64 px block 4 tiles
 // west of the npc. With arms, walls run 2 tiles east from the wall's ends. Returns where the npc hides.
 point threat_reach_hides(bool reach, bool arms)
@@ -3659,6 +3687,7 @@ void Test::test_cover_point()
     test_cover_script_rehides();
     test_cover_script_needs_peek(false);
     test_cover_script_needs_peek(true);
+    test_cover_script_search_cover_removed();
     test_cover_script_threat_reach_skips();
     test_cover_script_threat_reach_wall();
     test_cover_script_cover_end_reach(true);

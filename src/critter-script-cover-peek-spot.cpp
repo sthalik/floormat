@@ -11,13 +11,6 @@
 
 namespace floormat::Cover {
 
-namespace {
-
-// peek_spot() looks for a peek spot at most this many px from `from`, the cover end.
-constexpr int max_peek_spot_dist = 2*tile_size_xy;
-
-} // namespace
-
 point gun_point(const critter& c, point pos, point threat, Vector2i across, Optional<int> offset)
 {
     if (pos == threat)
