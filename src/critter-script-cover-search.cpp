@@ -316,6 +316,7 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
     const auto [peekless, in_reach] = _fallback_spots;
     _fallback_spots = {};
     Optional<Cover::Point::spot> spot;
+    auto is_hidden_from_reach = true;
     if (peekless)
     {
         const auto& s = *peekless;
@@ -326,16 +327,19 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
     {
         const auto& s = *in_reach;
         if (t.is_hidden_at(c, threat, s.pos, s.axis))
+        {
             spot = s;
+            is_hidden_from_reach = false;
+        }
     }
     if (!spot)
         return {};
     const auto s = *spot;
     const auto end = t.cover_end(c, o, s, threat);
     if (const auto here = c.position(); s.pos == here || end == here)
-        return reachable_cover{s, end, {}, {}};
+        return reachable_cover{s, end, {}, {}, is_hidden_from_reach};
     if (auto path = t.path_to(c, end); path.is_found())
-        return reachable_cover{s, end, move(path), {}};
+        return reachable_cover{s, end, move(path), {}, is_hidden_from_reach};
     return {};
 }
 

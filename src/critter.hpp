@@ -3,6 +3,8 @@
 #include "script.hpp"
 #include <cr/String.h>
 
+namespace floormat::Raycast { class bresenham_line; }
+
 namespace floormat {
 
 class anim_atlas;
@@ -111,6 +113,9 @@ private:
 // The one of the 8 rotations whose direction is nearest vec's. vec must not be zero. No vec lies
 // on a boundary between two of them, since tan 22.5° is irrational.
 rotation nearest_rotation(Vector2i vec);
+
+// Returns the step whose pixel is px, or -1u when the line misses px.
+u32 step_at(const Raycast::bresenham_line& line, Vector2i px);
 
 template<> struct object_type_<struct critter> : std::integral_constant<object_type, object_type::critter> {};
 template<> struct object_type_<struct critter_proto> : std::integral_constant<object_type, object_type::critter> {};
