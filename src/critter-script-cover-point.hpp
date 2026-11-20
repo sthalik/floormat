@@ -22,7 +22,7 @@ struct query
     u32 radius;
     /// 0, or an odd number up to 9 of cover grid octants, centered on the bearing from a candidate to
     /// the threat, that must each hide the body, so a threat that moves a little still doesn't see it.
-    /// An accepted spot must also stay hidden from the threat turned about it by up to octants/2.
+    /// An accepted spot must also stay hidden from the threat in each of the octants/2 octants beside its own.
     u8 octants = 0;
     /// 0, or how far in px an accepted spot may move along the face it is flush against, toward the
     /// side where the body is first seen. It stops at the last px where the body is still hidden,
@@ -55,7 +55,7 @@ struct result
     ArrayView<const spot> spots;
     /// The number of candidates, including those never tried.
     u32 candidates = 0;
-    /// The candidates pushed flush to a blocker and still seen by the threat or a turned one,
+    /// The candidates pushed flush to a blocker and still seen by the threat in its own or a neighbor octant,
     /// among those tried before pos, or among all of them when found is false.
     u32 rejected = 0;
     /// Octant fills the call did, rebuilds included.

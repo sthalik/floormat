@@ -54,7 +54,7 @@ private:
 
         // Forgets the spots last_resort doesn't keep.
         void drop(Cover::Script::options::fallback last_resort);
-        bool any() const;
+        bool has_cover_spot() const;
     };
 
     Optional<reachable_cover> take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,

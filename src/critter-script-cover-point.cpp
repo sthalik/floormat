@@ -123,25 +123,25 @@ enum class end_step : u8 { hidden, seen, stopped, };
 struct visibility_tests
 {
     visibility_tests(world& w, const query& q, const Search::pred& pred, Array<slope_range>& runs,
-                     Array<Range2Di>& turned_rects, Array<Range2Di>& end_rects);
+                     Array<Range2Di>& neighbor_octant_rects, Array<Range2Di>& end_rects);
 
     point to_point(Vector2i px) const { return q_pos + (px - P); }
-    bool passable(Vector2i center) const;
+    bool is_passable(Vector2i center) const;
     int reach(Vector2i dir) const;
     void collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi, Array<Range2Di>& out) const;
     square_box body_at(Vector2i pos, Vector2i axis, Vector2i across, Vector2i threat) const;
     void build_runs(const square_box& body, Vector2i axis, Vector2i across, ArrayView<const Range2Di> from);
-    bool hidden(const square_box& body) const;
-    bool hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayView<const Range2Di> rects);
-    bool hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects);
-    bool hidden_from_turned(Vector2i pos, Vector2i axis);
+    bool is_hidden(const square_box& body) const;
+    bool is_hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayView<const Range2Di> rects);
+    bool is_hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects);
+    bool is_hidden_from_threat_in_neighbor_octants(Vector2i pos, Vector2i axis);
     end_step end_test(Vector2i pos, Vector2i axis, Vector2i across);
     Vector2i move_spot_to_cover_end(Vector2i pos, Vector2i axis, Vector2i across);
 
     world& w;
     Search::pred pred;
     Array<slope_range>& runs;
-    Array<Range2Di>& turned_rects;
+    Array<Range2Di>& neighbor_octant_rects;
     Array<Range2Di>& end_rects;
     point q_pos;
     Vector2i P, T;
@@ -150,24 +150,24 @@ struct visibility_tests
     int half, step_px;
     u32 max_cover_end_dist;
     // cos and sin of j octants, at j - 1, for j from 1 to half
-    Vector2 turns[4];
+    Vector2 octant_cos_sin[4];
 };
 
 visibility_tests::visibility_tests(world& w, const query& q, const Search::pred& pred, Array<slope_range>& runs,
-                                   Array<Range2Di>& turned_rects, Array<Range2Di>& end_rects) :
-    w{w}, pred{pred}, runs{runs}, turned_rects{turned_rects}, end_rects{end_rects}, q_pos{q.pos},
+                                   Array<Range2Di>& neighbor_octant_rects, Array<Range2Di>& end_rects) :
+    w{w}, pred{pred}, runs{runs}, neighbor_octant_rects{neighbor_octant_rects}, end_rects{end_rects}, q_pos{q.pos},
     P{Vector3i(q.pos).xy()}, T{Vector3i(q.threat).xy()}, body_size{q.body_size},
     body_lo{Vector2i(q.body_size / 2u)}, body_hi{Vector2i(q.body_size) - body_lo},
     ext_lo{body_lo}, ext_hi{body_hi - Vector2i{1}}, half{(int)(q.octants/2u)},
     step_px{Math::max(1, (int)Math::min(q.body_size.x(), q.body_size.y())/2)},
     max_cover_end_dist{q.max_cover_end_dist}
 {
-    fm_assert(half <= (int)std::size(turns));
+    fm_assert(half <= (int)std::size(octant_cos_sin));
     for (auto j = 1; j <= half; j++)
-        turns[j - 1] = { std::cos((float)j * octant_step), std::sin((float)j * octant_step) };
+        octant_cos_sin[j - 1] = { std::cos((float)j * octant_step), std::sin((float)j * octant_step) };
 }
 
-bool visibility_tests::passable(Vector2i center) const
+bool visibility_tests::is_passable(Vector2i center) const
 {
     const auto pt = to_point(center);
     const auto min = Vector2(pt.intra().center_shifted() - body_lo);
@@ -243,7 +243,7 @@ void visibility_tests::build_runs(const square_box& body, Vector2i axis, Vector2
     arrayResize(runs, NoInit, n);
 }
 
-bool visibility_tests::hidden(const square_box& body) const
+bool visibility_tests::is_hidden(const square_box& body) const
 {
     if (body.d0 <= 1)
         return false;
@@ -256,39 +256,38 @@ bool visibility_tests::hidden(const square_box& body) const
 
 // True when threat sees no pixel of a body centered on pos, judged along axis and along the axis toward threat.
 // rects holds collect_rects() for threat over a box holding threat and the body, or over a larger one.
-bool visibility_tests::hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayView<const Range2Di> rects)
+bool visibility_tests::is_hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayView<const Range2Di> rects)
 {
     const auto seen_along = [&](Vector2i ax) {
         const auto ac = across_of(ax);
         const auto body = body_at(pos, ax, ac, threat);
         build_runs(body, ax, ac, rects);
-        return !hidden(body);
+        return !is_hidden(body);
     };
     const auto own = axis_toward(threat - pos);
     return !seen_along(axis) || own != axis && !seen_along(own);
 }
 
-// hidden_by() with rects refilled for the box spanning threat and the body.
-bool visibility_tests::hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects)
+// is_hidden_by() with rects refilled for the box spanning threat and the body.
+bool visibility_tests::is_hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects)
 {
     arrayClear(rects);
     collect_rects(threat, Math::min(threat, pos - ext_lo) - Vector2i{1}, Math::max(threat, pos + ext_hi) + Vector2i{1},
                   rects);
-    return hidden_by(threat, pos, axis, rects);
+    return is_hidden_by(threat, pos, axis, rects);
 }
 
-// True when the threat turned about pos by up to q.octants/2 octants either way, rounded to whole
-// px, sees no pixel of a body centered on pos and pushed along axis. Each turned threat gets its
-// own R-tree search, as shifting the rects would need a box spanning every candidate's turns.
-bool visibility_tests::hidden_from_turned(Vector2i pos, Vector2i axis)
+// True when the threat, at its distance from pos in each of the q.octants/2 octants on either side of its own,
+// sees no pixel of a body centered on pos and pushed along axis. Each position gets an R-tree search of its own.
+bool visibility_tests::is_hidden_from_threat_in_neighbor_octants(Vector2i pos, Vector2i axis)
 {
     const auto v = Vector2(T - pos);
     for (auto j = 0; j < half; j++)
-        for (const auto s : { turns[j].y(), -turns[j].y() })
+        for (const auto s : { octant_cos_sin[j].y(), -octant_cos_sin[j].y() })
         {
-            const auto c = turns[j].x();
+            const auto c = octant_cos_sin[j].x();
             const auto t = pos + Vector2i(Math::round(Vector2{v.x()*c - v.y()*s, v.x()*s + v.y()*c}));
-            if (!hidden_from(t, pos, axis, turned_rects))
+            if (!is_hidden_from(t, pos, axis, neighbor_octant_rects))
                 return false;
         }
     return true;
@@ -298,9 +297,9 @@ end_step visibility_tests::end_test(Vector2i pos, Vector2i axis, Vector2i across
 {
     const auto body = body_at(pos, axis, across, T);
     build_runs(body, axis, across, end_rects);
-    if (!hidden(body) || !hidden_from_turned(pos, axis))
+    if (!is_hidden(body) || !is_hidden_from_threat_in_neighbor_octants(pos, axis))
         return end_step::seen;
-    return passable(pos) && !passable(pos + axis) ? end_step::hidden : end_step::stopped;
+    return is_passable(pos) && !is_passable(pos + axis) ? end_step::hidden : end_step::stopped;
 }
 
 // The moved bodies can lie past the box of rects, which holds only the candidates' area, so this
@@ -400,7 +399,7 @@ struct finder::Impl
     Array<Range2Di> rects;
     Array<slope_range> runs;
     Array<spot> spots;
-    Array<Range2Di> turned_rects;
+    Array<Range2Di> neighbor_octant_rects;
     Array<Range2Di> end_rects;
     Array<Range2Di> also_from_rects;
     Array<u32> also_from_rect_ends;
@@ -413,7 +412,7 @@ finder::finder()
     arrayReserve(impl->cands, 16);
     arrayReserve(impl->rects, 16);
     arrayReserve(impl->runs, 16);
-    arrayReserve(impl->turned_rects, 16);
+    arrayReserve(impl->neighbor_octant_rects, 16);
     arrayReserve(impl->end_rects, 16);
 }
 
@@ -422,7 +421,8 @@ finder::~finder() noexcept = default;
 result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params params,
                     const query& q, const Search::pred& pred, bool list_spots)
 {
-    auto& [known, cells, cands, rects, runs, spots, turned_rects, end_rects, also_from_rects, also_from_rect_ends] = *impl;
+    auto& [known, cells, cands, rects, runs, spots, neighbor_octant_rects, end_rects,
+           also_from_rects, also_from_rect_ends] = *impl;
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     // Odd, so the octants checked lie evenly on both sides of the nearest one.
     fm_assert(q.octants == 0 || q.octants % 2 == 1 && q.octants <= 9);
@@ -436,7 +436,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
     const auto ds = (int)cover_pool.params().div_size;
     const auto dc = chunk_size_xy / (u32)ds;
     const auto R = (int)q.radius;
-    visibility_tests X{w, q, pred, runs, turned_rects, end_rects};
+    visibility_tests X{w, q, pred, runs, neighbor_octant_rects, end_rects};
     const auto &P = X.P, &T = X.T, &body_lo = X.body_lo, &body_hi = X.body_hi;
     const auto to_point = [&](Vector2i px) { return X.to_point(px); };
 
@@ -546,7 +546,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
         return cell_span{cell_of(center - body_lo), cell_of(center + body_hi - Vector2i{1})};
     };
 
-    const auto passable = [&](Vector2i center) { return X.passable(center); };
+    const auto is_passable = [&](Vector2i center) { return X.is_passable(center); };
 
     // A body flush against a blocker covers cells the blocker clears. The slope check covers those.
     const auto body_hidden = [&](Vector2i center) {
@@ -601,7 +601,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
             // Its hidden is then also implied by hidden_in_octants(), unless the center is blocked.
             const auto info = look({x, y});
             const auto blocker_px = info.distance*(u32)ds;
-            const auto ok = info.hidden && (float)blocker_px <= against && passable(center)
+            const auto ok = info.hidden && (float)blocker_px <= against && is_passable(center)
                             && (q.octants ? hidden_in_octants(center) : body_hidden(center));
             if (out_of_fills)
             {
@@ -669,7 +669,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
     };
 
     const auto place = [&](Vector2i start, Vector2i axis) -> Optional<Vector2i> {
-        if (!passable(start))
+        if (!is_passable(start))
             return {};
         // A blocker stops the body over at least the body's size along the axis, so steps of half
         // of it can't skip one.
@@ -677,7 +677,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
         for (auto p = step_px; p < max_push + step_px && hi_px < 0; p += step_px)
         {
             const auto pp = Math::min(p, max_push);
-            if (passable(start + axis*pp))
+            if (is_passable(start + axis*pp))
                 lo_px = pp;
             else
                 hi_px = pp;
@@ -687,7 +687,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
         while (hi_px - lo_px > 1)
         {
             const auto mid = (lo_px + hi_px) / 2;
-            if (passable(start + axis*mid))
+            if (is_passable(start + axis*mid))
                 lo_px = mid;
             else
                 hi_px = mid;
@@ -704,7 +704,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
             continue;
         auto body = X.body_at(*p, axis, across, T);
         X.build_runs(body, axis, across, rects);
-        auto seen = !X.hidden(body);
+        auto seen = !X.is_hidden(body);
         if (seen)
         {
             if (const auto t = shift_to_cover(body))
@@ -714,9 +714,9 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
                     body = X.body_at(*p, axis, across, T);
                     X.build_runs(body, axis, across, rects);
                 }
-            seen = !X.hidden(body);
+            seen = !X.is_hidden(body);
         }
-        if (seen || !X.hidden_from_turned(*p, axis))
+        if (seen || !X.is_hidden_from_threat_in_neighbor_octants(*p, axis))
         {
             if (!ret.found)
                 ret.rejected++;
@@ -748,9 +748,9 @@ bool finder::is_hidden_at(world& w, point threat, const spot& s, Vector2ui body_
 {
     fm_assert(s.pos.chunk3().z == threat.chunk3().z);
     auto& I = *impl;
-    visibility_tests X{w, {s.pos, body_size, threat, 0}, Search::never_continue, I.runs, I.turned_rects,
+    visibility_tests X{w, {s.pos, body_size, threat, 0}, Search::never_continue, I.runs, I.neighbor_octant_rects,
                        I.end_rects};
-    return X.hidden_from(X.T, X.P, s.axis, I.rects);
+    return X.is_hidden_from(X.T, X.P, s.axis, I.rects);
 }
 
 point finder::move_to_cover_end(world& w, const query& q, Vector2i axis, const Search::pred& pred,
@@ -758,12 +758,12 @@ point finder::move_to_cover_end(world& w, const query& q, Vector2i axis, const S
 {
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     auto& I = *impl;
-    visibility_tests X{w, q, pred, I.runs, I.turned_rects, I.end_rects};
+    visibility_tests X{w, q, pred, I.runs, I.neighbor_octant_rects, I.end_rects};
     const auto across = across_of(axis);
     const auto end = X.move_spot_to_cover_end(X.P, axis, across);
     const auto hidden_from_all = [&](Vector2i pos) {
         for (const auto& t : also_from)
-            if (!X.hidden_from(Vector3i(t).xy(), pos, axis, I.rects))
+            if (!X.is_hidden_from(Vector3i(t).xy(), pos, axis, I.rects))
                 return false;
         return true;
     };
@@ -792,7 +792,7 @@ point finder::move_to_cover_end(world& w, const query& q, Vector2i axis, const S
                 arrayAppend(I.also_from_rect_ends, (u32)I.also_from_rects.size());
             }
             const auto first = i ? I.also_from_rect_ends[i - 1] : 0u;
-            hidden = X.hidden_by(t, pos, axis, I.also_from_rects.slice(first, I.also_from_rect_ends[i]));
+            hidden = X.is_hidden_by(t, pos, axis, I.also_from_rects.slice(first, I.also_from_rect_ends[i]));
         }
         if (hidden)
             a = mid;

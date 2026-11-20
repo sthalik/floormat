@@ -13,7 +13,7 @@ constexpr inline Ns unreachable_spot_retry_time = Minute;
 
 class unreachable_spots
 {
-    // Spots that path_to found no path to, or that joins() ties to one.
+    // Spots that path_to found no path to, or that can_move_straight_to_listed_spot() ties to one.
     Array<point> _spots;
     // How far from search_origin the Dijkstra searches that put spots in _spots could reach, and world::pass_gen()
     // once the last of them ended.
@@ -27,7 +27,7 @@ public:
     void clear();
     // True when a body centered on `to` can move in a straight line to a listed spot no more than a tile away
     // on each axis. Then path_to finds no path to `to` either, unless its max_dist is larger.
-    bool joins(world& w, point to, Vector2i body, const Search::pred& pred) const;
+    bool can_move_straight_to_listed_spot(world& w, point to, Vector2i body, const Search::pred& pred) const;
     // Appends pos unless the list holds it already, as a tile listed again lists its unreachable spots again.
     void add(point pos);
     // Adds pos, which path_to found no path to. reach is how far from search_origin its Dijkstra search

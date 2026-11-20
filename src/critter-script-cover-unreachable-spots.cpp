@@ -19,7 +19,7 @@ void unreachable_spots::clear()
     _reach = 0;
 }
 
-bool unreachable_spots::joins(world& w, point to, Vector2i body, const Search::pred& pred) const
+bool unreachable_spots::can_move_straight_to_listed_spot(world& w, point to, Vector2i body, const Search::pred& pred) const
 {
     for (const auto& u : _spots)
     {

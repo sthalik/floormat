@@ -35,7 +35,7 @@ public:
     spot_tests(astar& A, object_id threat_id, Optional<int> gun_offset);
 
     // Every ray the script casts goes through here, so counters.num_rays counts them all.
-    bool sees(critter& c, const Cover::Script::options& o, point from, point to);
+    bool has_line_of_sight(critter& c, const Cover::Script::options& o, point from, point to);
     // True when threat sees no pixel of c's body centered on pos, flush against a blocker along axis.
     bool is_hidden_at(critter& c, point threat, point pos, Vector2i axis);
     // threat, then the centers of the cells of its walking pass grid that a Dijkstra fill from its cell reaches
