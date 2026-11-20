@@ -228,7 +228,9 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             peek_spot_searches_left--;
             // A path to s.pos could pass end and come back.
             const auto end = t.cover_end(c, o, s, threat);
-            if (o.needs_peek && !t.peek_spot(c, o, end, s.axis, threat))
+            const auto peek = o.needs_peek ? t.peek_spot(c, o, end, s.axis, threat)
+                                           : Optional<Cover::Script::peek>{};
+            if (o.needs_peek && !peek)
             {
                 if (o.last_resort >= fallback::no_peek && !_fallback_spots.peekless)
                     _fallback_spots.peekless = s;
@@ -241,18 +243,18 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                 continue;
             }
             if (at_spot || end == here)
-                return {reachable_cover{s, end, {}}, true};
+                return {reachable_cover{s, end, {}, peek}, true};
             dijkstra_left--;
             // TODO: a Dijkstra search mode that adds the threat seeing the npc to a path's cost, with one cost
             // while the npc retreats and another when it goes to cover from state::retreat.
             if (auto path = t.path_to(c, end); path.is_found())
             {
                 if (!t.is_seen_on_path(c, o, threat, path))
-                    return {reachable_cover{s, end, move(path)}, true};
+                    return {reachable_cover{s, end, move(path), peek}, true};
                 arrayAppend(_tile_skipped, skipped_spot{s, _octant});
                 if (_exposed_cover)
                     continue;
-                _exposed_cover = reachable_cover{s, end, move(path)};
+                _exposed_cover = reachable_cover{s, end, move(path), {}};
                 _exposed_updates_left = updates_before_exposed_cover;
                 // take_last_resort may call path_to, so it runs in the next update.
                 if (_fallback_spots.has_cover_spot())
@@ -296,11 +298,11 @@ auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Sc
         const auto end = t.cover_end(c, o, s, threat);
         const auto here = c.position();
         if (s.pos == here || end == here)
-            return reachable_cover{s, end, {}};
+            return reachable_cover{s, end, {}, {}};
         else if (const auto raw = r.path.path(); end == r.end && !raw.isEmpty() && raw.front() == here)
             return r;
         else if (auto path = t.path_to(c, end); path.is_found())
-            return reachable_cover{s, end, move(path)};
+            return reachable_cover{s, end, move(path), {}};
         else
             return {};
     }
@@ -331,9 +333,9 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
     const auto s = *spot;
     const auto end = t.cover_end(c, o, s, threat);
     if (const auto here = c.position(); s.pos == here || end == here)
-        return reachable_cover{s, end, {}};
+        return reachable_cover{s, end, {}, {}};
     if (auto path = t.path_to(c, end); path.is_found())
-        return reachable_cover{s, end, move(path)};
+        return reachable_cover{s, end, move(path), {}};
     return {};
 }
 

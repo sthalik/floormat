@@ -1040,6 +1040,28 @@ void test_cover_script_keeps_peeking(point hidden, point peek)
     fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, hidden2, body, s.npc->id));
 }
 
+// The threat moves to the wall's west side as in test_cover_script_keeps_peeking, and stays there. No update
+// makes more than one Dijkstra search, and the npc peeks from a new spot.
+void test_cover_script_follow_path_calls(point peek)
+{
+    using state = Cover::Script::status::state;
+    cover_scene s;
+    Cover::Script::set_options(*s.npc, {.search_every_move = true});
+    s.step_until(state::exposed);
+    fm_assert(s.npc->position() == peek);
+    s.move_threat(point{ch, {2, 8}, {}});
+    auto peeked = false;
+    for (auto n = 0u; n < 10*s.fps; n++)
+    {
+        const auto t0 = s.status();
+        s.step();
+        const auto t = s.status();
+        fm_assert(t.counters.num_dijkstra_calls - t0.counters.num_dijkstra_calls <= 1);
+        peeked |= t.st == state::exposed && s.npc->position() != peek;
+    }
+    fm_assert(peeked);
+}
+
 // Half a second after the npc is back at cover from its first peek, the threat moves north-east of
 // the wall, from where it can shoot the npc at the cover spot. The npc walks past the wall's south
 // end to a spot the wall hides from there, stays there for the rest of its 2 s hidden, which the
@@ -3694,6 +3716,7 @@ void Test::test_cover_point()
     test_cover_script_orders(hidden);
     test_cover_script_threat_off_floor();
     test_cover_script_keeps_peeking(hidden, c0.peek);
+    test_cover_script_follow_path_calls(c0.peek);
     test_cover_script_leave_peek_enclosed();
     test_cover_script_walking_threat(hidden);
     test_cover_script_follows_while_hidden();
