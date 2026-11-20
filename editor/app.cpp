@@ -142,7 +142,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
         .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns to FILE, one per line", "FILE")
         .addBooleanOption("show-fps").setHelp("show-fps", "print FPS to stderr every 5 seconds")
-        .addOption("atlas-layer-copy", "blit").setHelp("atlas-layer-copy", "how the sprite atlas texture grows: blit keeps the old and the new texture in VRAM at once, readback copies the old one's layers through system memory, sparse-texture commits new layers in place where ARB_sparse_texture allows and blits otherwise", "blit|readback|sparse-texture")
+        .addOption("atlas-layer-copy", "sparse-texture").setHelp("atlas-layer-copy", "how the sprite atlas texture grows: blit keeps the old and the new texture in VRAM at once, readback copies the old one's layers through system memory, sparse-texture commits new layers in place where ARB_sparse_texture allows and blits otherwise", "blit|readback|sparse-texture")
 #ifndef FLOORMAT_NO_PGO_DRIVER
         .addOption("scenes", "off").setHelp("scenes", "run driver scenes, then quit; names or list|all|coverage|profile|none", "a,b,c")
         .addOption("driver-repeat", "1").setHelp("driver-repeat", "run the scene table N times", "N")
