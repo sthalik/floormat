@@ -59,7 +59,7 @@ void unreachable_spots::origin_moved(u32 dist)
         _reach += dist;
 }
 
-bool unreachable_spots::stale(const world& w, point search_origin) const
+bool unreachable_spots::is_stale(const world& w, point search_origin) const
 {
     if (_spots.isEmpty())
         return false;

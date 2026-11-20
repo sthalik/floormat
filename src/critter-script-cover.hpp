@@ -77,7 +77,7 @@ struct counters
     // Finished searches for cover, rays cast from the threat, tests of the body at a spot against the threat,
     // and Dijkstra searches, those of a retreat included.
     u32 num_searches = 0, num_rays = 0, num_body_checks = 0, num_dijkstra_calls = 0;
-    // hidden_at calls of spot_tests::is_seen_on_path.
+    // is_hidden_at calls of spot_tests::is_seen_on_path.
     u32 num_path_body_checks = 0;
     // The searches' Cover::Point::finder::find calls, each for one tile. A tile gets another call when the
     // threat moved since its list was made, or when the call ran out of fills.

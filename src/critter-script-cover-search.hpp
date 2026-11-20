@@ -40,7 +40,7 @@ public:
     // neither a retreat nor tick() checks again.
     void options_changed(Cover::Script::options::fallback last_resort);
 
-    bool running() const;
+    bool is_running() const;
     point from() const;
     Cover::Script::search_progress progress() const;
     bool has_last_resort() const;

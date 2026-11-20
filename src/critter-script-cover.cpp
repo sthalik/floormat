@@ -211,7 +211,7 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
         search_step(*C);
         // This runs after search_step, so cover found in this update needs no retreat.
         if (st == state::search && search.has_last_resort() && !search_retreated &&
-            !tests.hidden_at(*C, threat_pos, C->position(), Cover::Point::axis_toward(threat_pos - C->position())))
+            !tests.is_hidden_at(*C, threat_pos, C->position(), Cover::Point::axis_toward(threat_pos - C->position())))
             begin_retreat(*C);
         go_on(C, i, dt);
         return;
@@ -226,7 +226,7 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
         go_on(C, i, dt);
         return;
     case state::retreat:
-        if ((options.search_every_move || !check_retreat(*C)) && search.running())
+        if ((options.search_every_move || !check_retreat(*C)) && search.is_running())
             search_step(*C);
         go_on(C, i, dt);
         return;
@@ -296,7 +296,7 @@ void cover_script::set_options(critter& C, const Cover::Script::options& o)
     const auto old = options.hold;
     options = o;
     search.options_changed(o.last_resort);
-    if (search.running() && (st == state::search || st == state::find_retreat || st == state::retreat))
+    if (search.is_running() && (st == state::search || st == state::find_retreat || st == state::retreat))
         restart_search(C);
     if (o.hold == old)
         return;
@@ -343,7 +343,7 @@ bool cover_script::sees_gun(critter& C, point pos, point threat)
 bool cover_script::refresh_cover(critter& C)
 {
     auto& c = *cover;
-    if (c.pos == c.canonical || tests.hidden_at(C, threat_pos, c.pos, c.axis))
+    if (c.pos == c.canonical || tests.is_hidden_at(C, threat_pos, c.pos, c.axis))
         return false;
     c.pos = tests.cover_end(C, options, {c.canonical, c.axis}, threat_pos);
     return true;
@@ -496,12 +496,12 @@ void cover_script::retreat_step(critter& C)
         st = state::retreat;
         is_retreat_exposed = r.is_exposed;
         // The search goes on measured from the walk's end, or from C when the threat sees C on the walk.
-        if (search.running() && (!r.is_exposed || search.from() != C.position()))
+        if (search.is_running() && (!r.is_exposed || search.from() != C.position()))
             search.restart(r.is_exposed ? C.position() : walk.dest(), threat_pos);
     }
     else if (r.done)
     {
-        if (search.running())
+        if (search.is_running())
             resume_search(C);
         else
             retry_later(C);
@@ -561,7 +561,7 @@ void cover_script::check_hidden(critter& C, point threat)
 {
     threat_pos = threat;
     const auto& c = *cover;
-    if (!tests.hidden_at(C, threat, c.canonical, c.axis))
+    if (!tests.is_hidden_at(C, threat, c.canonical, c.axis))
         flee(C);
     else if (refresh_cover(C))
         walk_to_cover(C, {});
@@ -573,7 +573,7 @@ void cover_script::check_exposed(critter& C, point threat)
 {
     threat_pos = threat;
     const auto& c = *cover;
-    if (!tests.hidden_at(C, threat, c.canonical, c.axis))
+    if (!tests.is_hidden_at(C, threat, c.canonical, c.axis))
     {
         flee(C);
         return;
@@ -592,7 +592,7 @@ void cover_script::check_walk(critter& C)
     const auto pos = threat->position();
     threat_pos = pos;
     const auto& c = *cover;
-    if (!tests.hidden_at(C, pos, c.canonical, c.axis))
+    if (!tests.is_hidden_at(C, pos, c.canonical, c.axis))
     {
         flee(C);
         return;
@@ -687,7 +687,7 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
             else
                 st = state::hidden;
         }
-        else if (st == state::retreat && search.running())
+        else if (st == state::retreat && search.is_running())
         {
             st = state::search;
             face_threat(*C, i, threat_pos);
@@ -711,7 +711,7 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
             retreat_replanned = true;
         }
     }
-    else if (st == state::retreat && search.running())
+    else if (st == state::retreat && search.is_running())
         resume_search(*C);
     else
     {

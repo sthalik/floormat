@@ -31,11 +31,11 @@ constexpr u32 max_search_tiles_per_update = 32;
 constexpr u32 max_search_octant_fills_per_update = 1;
 // path_to calls, each one Dijkstra search. One that found a path took up to 0.71 ms among dense scenery.
 constexpr u32 max_search_dijkstra_calls_per_update = 1;
-// Listed cover spots that hidden_from_reach doesn't reject. Each gets cover_end, up to 0.1 ms among dense
+// Listed cover spots that is_hidden_from_reach doesn't reject. Each gets cover_end, up to 0.1 ms among dense
 // scenery, and with needs_peek a search for its peek spot, which casts rays and took up to 42 microseconds.
 constexpr u32 max_peek_spot_searches_per_update = 1;
-// hidden_at calls made by hidden_from_reach, each up to 6 microseconds among dense scenery. Rejecting a spot
-// may take a single call, so a spot that hidden_from_reach rejects counts against this cap only.
+// is_hidden_at calls made by is_hidden_from_reach, each up to 6 microseconds among dense scenery. Rejecting a spot
+// may take a single call, so a spot that is_hidden_from_reach rejects counts against this cap only.
 constexpr u32 max_search_body_checks_per_update = 64;
 // Updates the search goes on for after keeping a path that is_seen_on_path rejected, before it takes that path.
 constexpr u32 updates_before_exposed_cover = 4;
@@ -96,7 +96,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     // only for the pass grids it ran in.
     const auto k = Cover::Point::nearest_octant(Vector2(threat - _from));
     const auto& tiles = search_tiles();
-    if (_unreachable.stale(w, _from))
+    if (_unreachable.is_stale(w, _from))
     {
         _unreachable.clear();
         _num_failed_dijkstra_calls = 0;
@@ -190,7 +190,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             if (o.threat_reach)
             {
                 const auto n = t.counters.num_body_checks;
-                const auto hidden = t.hidden_from_reach(c, o, threat, s.pos, s.axis);
+                const auto hidden = t.is_hidden_from_reach(c, o, threat, s.pos, s.axis);
                 num_checks += t.counters.num_body_checks - n;
                 if (!hidden)
                 {
@@ -269,7 +269,7 @@ auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Sc
     auto r = move(*_exposed_cover);
     _exposed_cover = {};
     const auto s = r.spot;
-    if (!t.hidden_from_reach(c, o, threat, s.pos, s.axis))
+    if (!t.is_hidden_from_reach(c, o, threat, s.pos, s.axis))
         return {};
     else
     {
@@ -297,13 +297,13 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
     if (peekless)
     {
         const auto& s = *peekless;
-        if (t.hidden_from_reach(c, o, threat, s.pos, s.axis))
+        if (t.is_hidden_from_reach(c, o, threat, s.pos, s.axis))
             spot = s;
     }
     if (!spot && in_reach)
     {
         const auto& s = *in_reach;
-        if (t.hidden_at(c, threat, s.pos, s.axis))
+        if (t.is_hidden_at(c, threat, s.pos, s.axis))
             spot = s;
     }
     if (!spot)
@@ -327,7 +327,7 @@ void cover_search::options_changed(Cover::Script::options::fallback last_resort)
     arrayClear(_tile_skipped);
 }
 
-bool cover_search::running() const { return _tiles_left != 0; }
+bool cover_search::is_running() const { return _tiles_left != 0; }
 point cover_search::from() const { return _from; }
 
 Cover::Script::search_progress cover_search::progress() const

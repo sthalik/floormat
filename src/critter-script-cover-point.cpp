@@ -744,7 +744,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
     return ret;
 }
 
-bool finder::hidden_at(world& w, point threat, const spot& s, Vector2ui body_size)
+bool finder::is_hidden_at(world& w, point threat, const spot& s, Vector2ui body_size)
 {
     fm_assert(s.pos.chunk3().z == threat.chunk3().z);
     auto& I = *impl;

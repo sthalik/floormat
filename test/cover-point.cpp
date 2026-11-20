@@ -2914,7 +2914,7 @@ void test_cover_script_threat_off_floor()
 bool edge_seen(cover_scene& s, point from, point pos)
 {
     static Cover::Point::finder finder;
-    return !finder.hidden_at(s.w, from, {pos, Cover::Point::axis_toward(from - pos)}, body);
+    return !finder.is_hidden_at(s.w, from, {pos, Cover::Point::axis_toward(from - pos)}, body);
 }
 
 // True when the threat at from sees a pixel of the npc where it stands or at its canonical, either of which makes

@@ -1182,7 +1182,7 @@ task app::scene_cover_chase_impl(bool is_teleport)
                 if (Math::abs((float)bearing_error) > max_bearing_error)
                     continue;
                 const auto pt = c.pos + Vector2i{x, y};
-                if (is_passable_for_player(pt) && !finder.hidden_at(w, pt, {c.canonical, c.axis}, npc_body_size))
+                if (is_passable_for_player(pt) && !finder.is_hidden_at(w, pt, {c.canonical, c.axis}, npc_body_size))
                     arrayAppend(destinations, pt);
             }
         std::sort(destinations.begin(), destinations.end(), [&](point p, point q) {
@@ -1276,7 +1276,7 @@ task app::scene_cover_chase_impl(bool is_teleport)
         if (has_npc_reacted)
             stop_player();
         else if (s.st == state::hidden && is_new_cover &&
-                 finder.hidden_at(w, player->position(), {s.cover->canonical, s.cover->axis}, npc_body_size))
+                 finder.is_hidden_at(w, player->position(), {s.cover->canonical, s.cover->axis}, npc_body_size))
         {
             const auto [dx, dy] = print(destination);
             const auto [bx, by] = print(cover_at_chase_start->pos);
