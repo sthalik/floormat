@@ -506,6 +506,39 @@ BENCHMARK(Critter_walk_5x5)
     ->Args({0, 0, 0})->Args({1, 0, 0})->Args({1, 1, 0})->Args({1, 0, 1})->Args({1, 1, 1})
     ->Unit(benchmark::kMicrosecond);
 
+// Each statistic is the largest over the iterations added, so a slow iteration isn't averaged away.
+struct script_update_times
+{
+    Array<Ns> times;
+    Ns max_time, max_p50, max_p99, max_p999;
+
+    explicit script_update_times(u32 updates_per_iteration) { arrayReserve(times, updates_per_iteration); }
+
+    void add_update_time(Ns t) { arrayAppend(times, t); }
+    void discard_iteration() { arrayClear(times); }
+
+    void end_iteration()
+    {
+        if (times.isEmpty())
+            return;
+        std::sort(times.begin(), times.end());
+        const auto at = [&](double fraction) { return times[(usize)(fraction * (double)(times.size() - 1))]; };
+        max_time = Math::max(max_time, times.back());
+        max_p50 = Math::max(max_p50, at(.5));
+        max_p99 = Math::max(max_p99, at(.99));
+        max_p999 = Math::max(max_p999, at(.999));
+        arrayClear(times);
+    }
+
+    void set_counters(benchmark::State& st) const
+    {
+        st.counters["max_update_ms"] = (double)max_time.stamp * 1e-6;
+        st.counters["p50_update_us"] = (double)max_p50.stamp * 1e-3;
+        st.counters["p99_update_us"] = (double)max_p99.stamp * 1e-3;
+        st.counters["p999_update_us"] = (double)max_p999.stamp * 1e-3;
+    }
+};
+
 // One npc runs the cover script for 600 updates while the threat circles its start 256 px away. Each
 // iteration gets a fresh astar, so it fills the octants of a new encounter again.
 void Critter_cover(benchmark::State& st)
@@ -563,6 +596,7 @@ void Critter_cover(benchmark::State& st)
         A.emplace();
         npc->script.do_reassign(critter_script::make_cover_script(*A, threat->id, div_size), npc);
     };
+    script_update_times times{updates};
     const auto run = [&] {
         for (u32 k = 1; k <= updates; k++)
         {
@@ -571,18 +605,23 @@ void Critter_cover(benchmark::State& st)
             w.advance_game_time(frame);
             auto i = npc->index();
             npc->update(npc, i, frame);
+            times.add_update_time(Cover::Script::get_status(*npc)->last_update);
         }
     };
 
     reset();
     run();
+    times.discard_iteration();
     for (auto _ : st)
     {
         st.PauseTiming();
+        times.end_iteration();
         reset();
         st.ResumeTiming();
         run();
     }
+    times.end_iteration();
+    times.set_counters(st);
 
     const auto s = Cover::Script::get_status(*npc);
     fm_assert(s);
@@ -603,6 +642,7 @@ void Critter_cover(benchmark::State& st)
     });
     st.counters["ray_fills"] = rays;
     st.counters["sweep_fills"] = sweeps;
+    st.counters["num_octant_fills"] = pool.octant_fills();
     st.counters["octant_fill_ms"] = (double)pool.octant_fill_time().stamp * 1e-6;
 
     npc->script.do_clear(npc);
@@ -683,6 +723,7 @@ void Critter_cover_chase(benchmark::State& st)
     Array<point> destinations;
     arrayReserve(destinations, lattice_points_per_side*lattice_points_per_side);
     u32 num_updates = 0, num_cycles = 0, num_cycles_without_peek = 0;
+    script_update_times times{8192};
 
     // Returns the threat's path to the lattice point nearest it within max_bearing_error of bearing from c.pos,
     // from which it sees the npc's body at c. Only the max_dijkstra_calls_per_bearing nearest are tried.
@@ -764,6 +805,7 @@ void Critter_cover_chase(benchmark::State& st)
 
             const auto s = Cover::Script::get_status(*npc);
             fm_assert(s);
+            times.add_update_time(s->last_update);
             const auto now = w.game_time();
             if (now - phase_start_time > max_phase_time) [[unlikely]]
             {
@@ -844,13 +886,17 @@ void Critter_cover_chase(benchmark::State& st)
 
     reset_critters();
     run_cycles();
+    times.discard_iteration();
     for (auto _ : st)
     {
         st.PauseTiming();
+        times.end_iteration();
         reset_critters();
         st.ResumeTiming();
         run_cycles();
     }
+    times.end_iteration();
+    times.set_counters(st);
 
     const auto s = Cover::Script::get_status(*npc);
     fm_assert(s);
@@ -877,6 +923,7 @@ void Critter_cover_chase(benchmark::State& st)
     });
     st.counters["num_octilinear_octants"] = num_octilinear_octants;
     st.counters["num_non_octilinear_octants"] = num_non_octilinear_octants;
+    st.counters["num_octant_fills"] = pool.octant_fills();
     st.counters["ms_filling_octants"] = (double)pool.octant_fill_time().stamp * 1e-6;
 
     stop_threat();
