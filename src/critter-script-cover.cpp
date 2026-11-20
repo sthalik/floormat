@@ -74,12 +74,12 @@ private:
 
     void update(const bptr<critter>& C, usize& i, const Ns& dt);
     void go_on(const bptr<critter>& C, usize& i, const Ns& dt);
-    bool wait_for(critter& C) const;
+    bool should_switch_state(critter& C) const;
     Ns time_in(state phase) const;
-    bool holds() const;
+    bool is_phase_held() const;
     bptr<object> find_threat(critter& C);
     bool find_threat_or_retry(critter& C);
-    bool sees_gun(critter& C, point pos, point threat);
+    bool has_line_of_fire(critter& C, point pos, point threat);
     bool refresh_cover(critter& C);
     Vector2i across() const;
     bool start_search(critter& C, search_then next);
@@ -120,7 +120,7 @@ private:
     Optional<Cover::Script::cover> cover;
     // Where the threat stood at the last check or search.
     point threat_pos;
-    Ns wait_until{}, prev_game_time{}, last_update{}, max_update{}, total_update{};
+    Ns game_time_to_switch_state{}, prev_game_time{}, last_update{}, max_update{}, total_update{};
     state st = state::seek;
     u8 num_blocked_walks = 0;
     bool retreat_replanned = false;
@@ -195,16 +195,16 @@ void cover_script::on_update(const bptr<critter>& C, usize& i, const Ns& dt)
 void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
 {
     // Game time that passes while C gets no updates, as outside the chunks the editor updates, doesn't count
-    // toward a wait, so wait_until moves forward by the game time since C's last update, less this update's dt.
+    // toward a wait, so game_time_to_switch_state moves forward by the game time since C's last update, less dt.
     const auto now = C->world().game_time();
-    wait_until += Math::max(now - prev_game_time, dt) - dt;
+    game_time_to_switch_state += Math::max(now - prev_game_time, dt) - dt;
     prev_game_time = now;
-    if (st != state::seek && (st != state::hidden && st != state::exposed || holds()))
-        wait_until += dt;
+    if (st != state::seek && (st != state::hidden && st != state::exposed || is_phase_held()))
+        game_time_to_switch_state += dt;
     switch (st)
     {
     case state::seek:
-        if (wait_for(*C))
+        if (should_switch_state(*C))
             seek(C);
         return;
     case state::search:
@@ -232,7 +232,7 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
         return;
     case state::hidden:
     case state::exposed:
-        if (!holds() && wait_for(*C))
+        if (!is_phase_held() && should_switch_state(*C))
         {
             if (st == state::hidden)
                 step_out(C);
@@ -268,9 +268,9 @@ void cover_script::go_on(const bptr<critter>& C, usize& i, const Ns& dt)
         face_threat(*C, i, threat_pos);
 }
 
-bool cover_script::wait_for(critter& C) const
+bool cover_script::should_switch_state(critter& C) const
 {
-    return C.world().game_time() >= wait_until;
+    return C.world().game_time() >= game_time_to_switch_state;
 }
 
 // The wait C starts phase with, hidden or exposed: hidden_time or exposed_time, or none when
@@ -284,7 +284,7 @@ Ns cover_script::time_in(state phase) const
 }
 
 // True when options.hold keeps C in the phase it stands in, so its wait isn't spent.
-bool cover_script::holds() const
+bool cover_script::is_phase_held() const
 {
     using hold_phase = Cover::Script::options::hold_phase;
     return options.hold == (st == state::hidden ? hold_phase::hidden : hold_phase::exposed);
@@ -303,7 +303,7 @@ void cover_script::set_options(critter& C, const Cover::Script::options& o)
     const auto hiding = st == state::hidden || st == state::to_cover;
     const auto peeking = st == state::exposed || st == state::to_peek;
     if (hiding && o.hold == hold_phase::exposed || peeking && o.hold == hold_phase::hidden)
-        wait_until = C.world().game_time();
+        game_time_to_switch_state = C.world().game_time();
 }
 
 // The threat, or empty when it's gone or on another floor than C, as rays and cover searches stay on one floor.
@@ -325,12 +325,12 @@ bool cover_script::find_threat_or_retry(critter& C)
     return true;
 }
 
-// True when a ray from threat reaches gun_point() of C's body centered on pos. The peek of cover then holds the
-// ray's ends, for the status.
-bool cover_script::sees_gun(critter& C, point pos, point threat)
+// True when a ray from threat reaches gun_point() of C's body centered on pos. Cover's peek spot then stores
+// both points for the status.
+bool cover_script::has_line_of_fire(critter& C, point pos, point threat)
 {
     const auto gun = Cover::gun_point(C, pos, threat, across(), tests.gun_offset());
-    if (!tests.sees(C, options, threat, gun))
+    if (!tests.has_line_of_sight(C, options, threat, gun))
         return false;
     auto& c = *cover;
     auto& p = *c.peek;
@@ -455,7 +455,7 @@ void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachabl
         return;
     case search_then::seek:
         walk_to_cover(C, move(reachable.path));
-        wait_until = C.world().game_time() + time_in(state::hidden);
+        game_time_to_switch_state = C.world().game_time() + time_in(state::hidden);
         return;
     case search_then::follow:
         // Without a path to the peek spot, C hides at the cover it has a path to, and steps out from there.
@@ -463,7 +463,7 @@ void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachabl
             return;
         c.peek = {};
         walk_to_cover(C, move(reachable.path));
-        wait_until = C.world().game_time() + time_in(state::hidden);
+        game_time_to_switch_state = C.world().game_time() + time_in(state::hidden);
         return;
     }
     fm_assert(false);
@@ -543,7 +543,7 @@ void cover_script::walk_to_cover(critter& C, path_search_result path)
 void cover_script::retry_later(critter& C)
 {
     st = state::seek;
-    wait_until = C.world().game_time() + retry_time;
+    game_time_to_switch_state = C.world().game_time() + retry_time;
 }
 
 void cover_script::seek(const bptr<critter>& C) { begin_search(*C, search_then::seek); }
@@ -578,7 +578,7 @@ void cover_script::check_exposed(critter& C, point threat)
         flee(C);
         return;
     }
-    if (!sees_gun(C, C.position(), threat))
+    if (!has_line_of_fire(C, C.position(), threat))
         peek_again(C);
 }
 
@@ -600,7 +600,7 @@ void cover_script::check_walk(critter& C)
     // A moved cover may lie off a straight walk's line, so C walks a path there, or walks straight without one.
     if (st == state::to_cover && refresh_cover(C) && walk.is_line() && !walk_to(C, c.pos, state::hidden))
         walk_to_cover(C, {});
-    if (st == state::to_peek && !sees_gun(C, walk.dest(), pos))
+    if (st == state::to_peek && !has_line_of_fire(C, walk.dest(), pos))
         peek_again(C);
 }
 
@@ -641,17 +641,17 @@ void cover_script::step_out(const bptr<critter>& C)
     {
         walk = critter_walk{*p};
         st = state::to_peek;
-        wait_until = C->world().game_time() + time_in(state::exposed);
+        game_time_to_switch_state = C->world().game_time() + time_in(state::exposed);
     }
     else
-        wait_until = C->world().game_time() + hidden_time;
+        game_time_to_switch_state = C->world().game_time() + hidden_time;
 }
 
 // Ends C's time out with a walk back to cover. A cover that refresh_cover moved may lie off the line that
 // find_peek_pos checked clear, so C walks a path there, or straight when path_to finds none.
 void cover_script::leave_peek(critter& C)
 {
-    wait_until = C.world().game_time() + time_in(state::hidden);
+    game_time_to_switch_state = C.world().game_time() + time_in(state::hidden);
     const auto& c = *cover;
     if (!refresh_cover(C) || !walk_to(C, c.pos, state::hidden))
         walk_to_cover(C, {});
@@ -665,7 +665,7 @@ void cover_script::take_cover(critter& C)
     refresh_cover(C);
     const auto& c = *cover;
     if (walk_to(C, c.pos, state::hidden))
-        wait_until = C.world().game_time() + time_in(state::hidden);
+        game_time_to_switch_state = C.world().game_time() + time_in(state::hidden);
     else
         retry_later(C);
 }
@@ -716,7 +716,7 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
     else
     {
         st = state::seek;
-        wait_until = C->world().game_time() + (num_blocked_walks++ || retreat_replanned ? retry_time : Ns{});
+        game_time_to_switch_state = C->world().game_time() + (num_blocked_walks++ || retreat_replanned ? retry_time : Ns{});
     }
 }
 
@@ -754,7 +754,7 @@ Optional<Cover::Script::peek> cover_script::peek_for(critter& C, const Cover::Po
     const auto threat = find_threat(C);
     if (!threat)
         return {};
-    // sees() counts every ray, and the counters leave this out.
+    // has_line_of_sight() counts every ray, and the counters leave this out.
     const auto pos = threat->position();
     const auto n = tests.counters.num_rays;
     const auto p = tests.peek_spot(C, options, tests.cover_end(C, options, s, pos), s.axis, pos);
@@ -795,7 +795,7 @@ bool cover_script::send_to(critter& C, const Cover::Point::spot& s, bool peek)
     using hold_phase = Cover::Script::options::hold_phase;
     if (options.hold != hold_phase::none)
         options.hold = pʹ ? hold_phase::exposed : hold_phase::hidden;
-    wait_until = C.world().game_time() + time_in(pʹ ? state::exposed : state::hidden);
+    game_time_to_switch_state = C.world().game_time() + time_in(pʹ ? state::exposed : state::hidden);
     if (st == state::exposed)
         face_threat(C, C.index(), threat_pos);
     return true;

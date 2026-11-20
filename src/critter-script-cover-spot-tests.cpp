@@ -29,7 +29,7 @@ spot_tests::spot_tests(astar& A, object_id threat_id, Optional<int> gun_offset) 
 {
 }
 
-bool spot_tests::sees(critter& c, const Cover::Script::options& o, point from, point to)
+bool spot_tests::has_line_of_sight(critter& c, const Cover::Script::options& o, point from, point to)
 {
     counters.num_rays++;
     return Cover::Script::line_of_sight(c.world(), _astar.pool_registry(), o.div_size, from, to, c.id).success;
@@ -70,7 +70,7 @@ Optional<Cover::Script::peek> spot_tests::peek_spot(critter& c, const Cover::Scr
                                                     Vector2i axis, point threat)
 {
     return Cover::peek_spot(c, from, axis, threat, _gun_offset, blocks_all_but(c.id),
-                            [&](point to) { return sees(c, o, threat, to); });
+                            [&](point to) { return has_line_of_sight(c, o, threat, to); });
 }
 
 path_search_result spot_tests::path_to(critter& c, point to)

@@ -179,7 +179,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             if (skipped)
                 continue;
             const auto at_spot = s.pos == here;
-            if (!at_spot && _unreachable.joins(w, s.pos, Vector2i(body), pred))
+            if (!at_spot && _unreachable.can_move_straight_to_listed_spot(w, s.pos, Vector2i(body), pred))
             {
                 _unreachable.add(s.pos);
                 continue;
@@ -197,7 +197,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                     if (o.last_resort >= fallback::in_reach && !_fallback_spots.in_reach)
                         _fallback_spots.in_reach = s;
                     arrayAppend(_tile_skipped, skipped_spot{s, _octant});
-                    if (_exposed_cover && _fallback_spots.any())
+                    if (_exposed_cover && _fallback_spots.has_cover_spot())
                     {
                         _tile = (u32)tiles.size();
                         return {};
@@ -213,7 +213,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                 if (o.last_resort >= fallback::no_peek && !_fallback_spots.peekless)
                     _fallback_spots.peekless = s;
                 arrayAppend(_tile_skipped, skipped_spot{s, _octant});
-                if (_exposed_cover && _fallback_spots.any())
+                if (_exposed_cover && _fallback_spots.has_cover_spot())
                 {
                     _tile = (u32)tiles.size();
                     return {};
@@ -235,7 +235,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                 _exposed_cover = reachable_cover{s, end, move(path)};
                 _exposed_updates_left = updates_before_exposed_cover;
                 // take_last_resort may call path_to, so it runs in the next update.
-                if (_fallback_spots.any())
+                if (_fallback_spots.has_cover_spot())
                 {
                     _tile = (u32)tiles.size();
                     return {};
@@ -246,7 +246,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             const auto reach = max_search_path_length(here, end) + point::distance(here, _from);
             _unreachable.add_failed(w, s.pos, reach);
             if (++_num_failed_dijkstra_calls == max_failed_dijkstra_calls)
-                return {{}, !_fallback_spots.any() && !_exposed_cover};
+                return {{}, !_fallback_spots.has_cover_spot() && !_exposed_cover};
         }
         _tile_threat = {};
         erase_if(_tile_skipped, [&](const skipped_spot& x) { return x.octant == _octant; });
@@ -254,7 +254,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
         fm_debug_assert(_tiles_left);
         _tiles_left--;
         if (_tile == tiles.size())
-            return {{}, !_fallback_spots.any() && !_exposed_cover};
+            return {{}, !_fallback_spots.has_cover_spot() && !_exposed_cover};
     }
     return {};
 }
@@ -335,7 +335,7 @@ Cover::Script::search_progress cover_search::progress() const
     return {.tile = _tile, .tiles_left = _tiles_left, .num_tiles = (u32)search_tiles().size()};
 }
 
-bool cover_search::has_last_resort() const { return _fallback_spots.any(); }
+bool cover_search::has_last_resort() const { return _fallback_spots.has_cover_spot(); }
 
 void cover_search::fallback_spots::drop(Cover::Script::options::fallback last_resort)
 {
@@ -355,6 +355,6 @@ void cover_search::fallback_spots::drop(Cover::Script::options::fallback last_re
     fm_assert(false);
 }
 
-bool cover_search::fallback_spots::any() const { return peekless || in_reach; }
+bool cover_search::fallback_spots::has_cover_spot() const { return peekless || in_reach; }
 
 } // namespace floormat::Cover

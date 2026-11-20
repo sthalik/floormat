@@ -555,9 +555,9 @@ void test_lists_by_area_long_wall()
     check_lists_by_area(w, point{ch, {6, 8}, {4, 4}}, point{ch, {12, 8}, {}}, 0, 2*tile_size_xy, 1);
 }
 
-// Where find puts the threat turned about pos by j octants, rounded to whole px. It
+// Where find puts the threat in octant j beside its own, at its distance from pos, rounded to whole px. It
 // rounds float math, so each component must lie at least 1e-3 px from a half pixel.
-Vector2i turned_threat(Vector2i threat, Vector2i pos, int j)
+Vector2i threat_in_neighbor_octant(Vector2i threat, Vector2i pos, int j)
 {
     const auto v = Vector2d(threat - pos);
     const auto a = j * 2 * Math::Constants<double>::pi() / Grid::Cover::octant_count;
@@ -585,9 +585,9 @@ Array<point> copy_spots(const Cover::Point::result& r)
     return ret;
 }
 
-// test_hides_behind_wall's first scene. With 3 octants, the spots listed are those listed with
-// none that the threat turned an octant either way doesn't see, and some near the wall's ends are
-// left out. Both take the same first spot, behind the wall's middle.
+// test_hides_behind_wall's first scene. With 3 octants, the spots listed are those listed without octants that
+// the threat in the octant on either side of its own doesn't see, and some near the wall's ends are left out.
+// Both take the same first spot, behind the wall's middle.
 void test_octants_wall_middle()
 {
     auto w = world();
@@ -611,7 +611,8 @@ void test_octants_wall_middle()
     {
         const auto v = Vector3i(p).xy();
         fm_assert(hidden_from(w, T, p));
-        const auto hidden = hidden_from(w, turned_threat(T, v, -1), p) && hidden_from(w, turned_threat(T, v, 1), p);
+        const auto hidden = hidden_from(w, threat_in_neighbor_octant(T, v, -1), p) &&
+                            hidden_from(w, threat_in_neighbor_octant(T, v, 1), p);
         const auto listed = contains(spots3, p);
         fm_assert(listed == hidden);
         kept += hidden;
@@ -621,10 +622,10 @@ void test_octants_wall_middle()
 }
 
 // The npc stands west of the wall near its north end, and the threat east of it, a little south.
-// Without octants, each spot found lies at the north end, which the threat turned an octant north
-// sees. Spots farther south hidden from all three lie past the radius, and with 3 octants the test
-// from the turned threat rejects every candidate the cover grid passes.
-void test_octants_turned_threat_sees()
+// Without octants, each spot found lies at the north end, which the threat in the octant north of its own sees.
+// Spots farther south hidden from all three lie past the radius, and with 3 octants the test of the threat in a
+// neighbor octant rejects every candidate the cover grid passes.
+void test_octants_threat_in_neighbor_octant_sees()
 {
     auto w = world();
     add_ground(w);
@@ -643,26 +644,27 @@ void test_octants_turned_threat_sees()
     for (const auto p : spots0)
     {
         fm_assert(hidden_from(w, T, p));
-        fm_assert(!hidden_from(w, turned_threat(T, Vector3i(p).xy(), -1), p));
+        fm_assert(!hidden_from(w, threat_in_neighbor_octant(T, Vector3i(p).xy(), -1), p));
     }
 }
 
-// True when neither the threat nor the threat turned about pos by up to octants/2 octants either
-// way hits a body centered on pos.
-bool hidden_from_turned(world& w, Vector2i threat, point pos, u8 octants)
+// True when neither the threat nor the threat in each of the octants/2 octants on either side of its own, at
+// its distance from pos, hits a body centered on pos.
+bool is_hidden_from_threat_in_own_and_neighbor_octants(world& w, Vector2i threat, point pos, u8 octants)
 {
     const auto v = Vector3i(pos).xy();
     if (!hidden_from(w, threat, pos))
         return false;
     for (auto j = 1; j <= octants/2; j++)
-        if (!hidden_from(w, turned_threat(threat, v, -j), pos) || !hidden_from(w, turned_threat(threat, v, j), pos))
+        if (!hidden_from(w, threat_in_neighbor_octant(threat, v, -j), pos) ||
+            !hidden_from(w, threat_in_neighbor_octant(threat, v, j), pos))
             return false;
     return true;
 }
 
 // A wall 160 px long, x [440, 456) and y [432, 592), with the threat east of its middle and the
 // npc west of it, 12 px north of its middle. The spot behind the wall moves north, to the nearer
-// end, up to where the body 1 px farther north is hit from the threat or a turned threat. With
+// end, up to where the body 1 px farther north is hit from the threat in its own or a neighbor octant. With
 // north_leg, a wall going west from the north end stops that, and the spot moves to the south end.
 void test_moves_to_cover_end(u8 octants, bool north_leg)
 {
@@ -685,8 +687,8 @@ void test_moves_to_cover_end(u8 octants, bool north_leg)
     fm_assert(Math::abs(p.y() - p0.y()) <= (int)max_cover_end_dist);
     fm_assert(passable(w, r.pos, body) && !passable(w, r.pos + r.axis, body));
     const auto farther = r.pos + Vector2i{0, north_leg ? 1 : -1};
-    fm_assert(hidden_from_turned(w, T, r.pos, octants));
-    fm_assert(!hidden_from_turned(w, T, farther, octants));
+    fm_assert(is_hidden_from_threat_in_own_and_neighbor_octants(w, T, r.pos, octants));
+    fm_assert(!is_hidden_from_threat_in_own_and_neighbor_octants(w, T, farther, octants));
 }
 
 // test_moves_to_cover_end's wall. The end lies d px from the spot, and steps are half the body. A limit
@@ -1041,8 +1043,8 @@ void test_cover_script_keeps_peeking(point hidden, point peek)
 // Half a second after the npc is back at cover from its first peek, the threat moves north-east of
 // the wall, from where it can shoot the npc at the cover spot. The npc walks past the wall's south
 // end to a spot the wall hides from there, stays there for the rest of its 2 s hidden, which the
-// walk doesn't spend, then steps out. The wall is too narrow for that spot to hide the npc from
-// the threat turned an octant either way, or after it walks 2 tiles, so octants and threat_reach are 0.
+// walk doesn't spend, then steps out. The wall is too narrow for that spot to hide the npc from the threat
+// in the octant on either side of its own, or after it walks 2 tiles, so octants and threat_reach are 0.
 void test_cover_script_follows_while_hidden()
 {
     cover_scene s;
@@ -1734,8 +1736,8 @@ void test_cover_script_seek_no_path()
     fm_assert(!s.seen_from(west, c1.pos));
 }
 
-// As in test_cover_script_seek_no_path, with max_cover_end_dist 0, which leaves a walled-in spot in each cell
-// along the wall. unreachable.joins() ties them to the first, which had no path, so the search tries no other.
+// As in test_cover_script_seek_no_path, but max_cover_end_dist 0 leaves a walled-in spot per cell by the wall.
+// can_move_straight_to_listed_spot() ties them to the first, which had no path, so the search tries no other.
 void test_cover_script_no_path_ties()
 {
     const point west{ch, {2, 8}, {}};
@@ -2650,10 +2652,10 @@ void test_cover_script_retreat_end_seen(point hidden)
 
 // A wall at tile (12, 8) whose west face, over 7 tiles from the npc, is the only cover from the
 // threat at (15, 8). The npc stands while its search reaches there, filling at most one octant
-// and running at most one Dijkstra search per update, then walks there and hides. With turned
-// set, the threat moves 1 px north in each of the first 2 updates, which keeps its octant and the
-// search's progress, then moves to the north-east, another octant, which starts the search over.
-void test_cover_script_far_cover(bool turned)
+// and running at most one Dijkstra search per update, then walks there and hides. With threat_changes_octant
+// set, the threat moves 1 px north in each of the first 2 updates, which keeps its octant and the search's
+// progress, then moves to the north-east, another octant, which starts the search over.
+void test_cover_script_far_cover(bool threat_changes_octant)
 {
     auto w = world();
     add_ground(w);
@@ -2681,7 +2683,7 @@ void test_cover_script_far_cover(bool turned)
         fm_assert(updates < 2000);
         fm_assert(npc->position() == npc_pos);
         const auto fills = pool.octant_fills(), num_dijkstra_calls = status().counters.num_dijkstra_calls;
-        if (turned && updates <= 2)
+        if (threat_changes_octant && updates <= 2)
             move_threat(updates == 2 ? point{ch, {12, 1}, {}} : threat->position() - Vector2i{0, 1});
         step();
         const auto t = status();
@@ -2689,7 +2691,7 @@ void test_cover_script_far_cover(bool turned)
         fm_assert(t.counters.num_dijkstra_calls - num_dijkstra_calls <= 1);
         if (t.st != state::search)
             break;
-        if (turned && updates == 2)
+        if (threat_changes_octant && updates == 2)
         {
             fm_assert(t.search.tile < last_tile && t.search.tile <= 32);
             restarted = true;
@@ -2699,8 +2701,8 @@ void test_cover_script_far_cover(bool turned)
         last_tile = t.search.tile;
     }
     fm_assert(updates > 2);
-    fm_assert(!turned || restarted);
-    if (turned)
+    fm_assert(!threat_changes_octant || restarted);
+    if (threat_changes_octant)
     {
         w.finish_scripts();
         return;
@@ -2911,7 +2913,7 @@ void test_cover_script_threat_off_floor()
 }
 
 // True when the threat at from sees a pixel of the npc's body centered on pos, as the npc's script tests it.
-bool edge_seen(cover_scene& s, point from, point pos)
+bool is_body_exposed_at(cover_scene& s, point from, point pos)
 {
     static Cover::Point::finder finder;
     return !finder.is_hidden_at(s.w, from, {pos, Cover::Point::axis_toward(from - pos)}, body);
@@ -2919,12 +2921,12 @@ bool edge_seen(cover_scene& s, point from, point pos)
 
 // True when the threat at from sees a pixel of the npc where it stands or at its canonical, either of which makes
 // it leave.
-bool flanked_from(cover_scene& s, point from)
+bool is_flanked_from(cover_scene& s, point from)
 {
-    if (edge_seen(s, from, s.npc->position()))
+    if (is_body_exposed_at(s, from, s.npc->position()))
         return true;
     const auto& c = *s.status().cover;
-    return edge_seen(s, from, c.canonical);
+    return is_body_exposed_at(s, from, c.canonical);
 }
 
 // Replaces out with the points of path's segments, a px apart.
@@ -2953,8 +2955,8 @@ double path_length(ArrayView<const point> path)
     return len;
 }
 
-// The threat's path to where flanked_from(), true from no point farther than a tile from its end. It ends half a
-// tile past where flanked_from() first holds, on its way to a spot 2 to 5 tiles from the npc or a tile center.
+// Returns a path for the threat along which is_flanked_from() holds only within a tile of its end. It ends half a
+// tile past where is_flanked_from() first holds, on its way to a spot 2 to 5 tiles from the npc or a tile center.
 path_search_result flank_route(cover_scene& s)
 {
     const auto npc = s.npc->position(), from = s.threat->position();
@@ -2965,7 +2967,7 @@ path_search_result flank_route(cover_scene& s)
         const auto px = Vector3i(p).xy();
         if (p.chunk3() != ch || (px < Vector2i{lo}).any() || (px > Vector2i{hi}).any())
             return {};
-        if (!passable(s.w, p, body) || !flanked_from(s, p))
+        if (!passable(s.w, p, body) || !is_flanked_from(s, p))
             return {};
         const auto toward = s.A.Dijkstra<0, false>(s.w, from, p, chunk_size_xy, size,
                                                     Search::blocks_all_but(s.threat->id));
@@ -2973,18 +2975,18 @@ path_search_result flank_route(cover_scene& s)
             return {};
         path_points(toward.path(), pts);
         auto first = 0u;
-        while (first < pts.size() && !flanked_from(s, pts[first]))
+        while (first < pts.size() && !is_flanked_from(s, pts[first]))
             first++;
         if (first == 0 || first == pts.size())
             return {};
         const auto end = pts[Math::min(first + half_tile<u32>, (u32)pts.size() - 1)];
         auto route = s.A.Dijkstra<0, false>(s.w, from, end, chunk_size_xy, size, Search::blocks_all_but(s.threat->id));
-        if (!route.is_found() || !flanked_from(s, end))
+        if (!route.is_found() || !is_flanked_from(s, end))
             return {};
         path_points(route.path(), pts);
         auto ok = true;
         for (const auto& x : pts)
-            ok &= point::distance(x, end) <= tile_size_xy || !flanked_from(s, x);
+            ok &= point::distance(x, end) <= tile_size_xy || !is_flanked_from(s, x);
         if (!ok)
             return {};
         return move(route);
@@ -3046,7 +3048,7 @@ void test_cover_script_rehides()
                 arrived = r == walk_result::arrived;
                 walked++;
             }
-            if (!was_flanked_since_hiding && flanked_from(s, s.threat->position()))
+            if (!was_flanked_since_hiding && is_flanked_from(s, s.threat->position()))
             {
                 fm_assert(flanked || point::distance(s.threat->position(), end) <= tile_size_xy);
                 flanked = true;
@@ -3064,19 +3066,19 @@ void test_cover_script_rehides()
             }
             updates++;
             retreating += t.st == state::find_retreat || t.st == state::retreat;
-            seen += edge_seen(s, s.threat->position(), s.npc->position());
-            auto hides = false;
+            seen += is_body_exposed_at(s, s.threat->position(), s.npc->position());
+            auto is_in_cover = false;
             if (t.st == state::hidden)
             {
                 const auto& c = *t.cover;
-                hides = s.npc->position() == c.pos;
+                is_in_cover = s.npc->position() == c.pos;
             }
-            if (hides && !was_hidden && was_flanked_since_hiding)
+            if (is_in_cover && !was_hidden && was_flanked_since_hiding)
             {
                 arrayAppend(returns_to_cover, return_to_cover{flanked_at, s.npc->position(), updates});
                 was_flanked_since_hiding = false;
             }
-            if (arrived && hides)
+            if (arrived && is_in_cover)
                 break;
         }
         const auto& c = *s.status().cover;
@@ -3383,7 +3385,7 @@ void test_cover_script_cover_end_after_pass_change()
 }
 
 // Replaces cover_scene's wall with one 584 px long, 56 px west of a threat at tile (6, 8). The wall hides the gun
-// of an npc behind it within max_peek_dist of any spot there, so no spot has a peek spot.
+// of an npc behind it within max_peek_spot_dist of any spot there, so no spot has a peek spot.
 void add_longer_wall(cover_scene& s)
 {
     s.w[ch].remove_object(*s.wall, s.wall->index());
@@ -3499,7 +3501,7 @@ void test_cover_script_leave_peek_enclosed()
         for (const auto dx : {0, -64, 64, -128, 128})
         {
             const auto p = s.threat->position() + Vector2i{dx, sign*dy};
-            if (edge_seen(s, p, c0.pos) && !edge_seen(s, p, c0.canonical) && s.seen_from(p, peek))
+            if (is_body_exposed_at(s, p, c0.pos) && !is_body_exposed_at(s, p, c0.canonical) && s.seen_from(p, peek))
             {
                 to = p;
                 break;
@@ -3568,7 +3570,7 @@ void Test::test_cover_point()
     test_lists_by_area(0);
     test_lists_by_area(3);
     test_octants_wall_middle();
-    test_octants_turned_threat_sees();
+    test_octants_threat_in_neighbor_octant_sees();
     for (const auto octants : { u8{0}, u8{3} })
     {
         test_moves_to_cover_end(octants, false);

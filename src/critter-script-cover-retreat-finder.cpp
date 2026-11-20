@@ -29,7 +29,7 @@ constexpr u32 max_retreat_dijkstra_calls_per_update = 4;
 // is_seen_on_path's is_hidden_at calls that count as one Dijkstra search toward that cap, after an update's first.
 // A search that found a path took up to 0.71 ms among dense scenery, a call 0.33 to 0.82 microseconds.
 constexpr u32 hidden_at_calls_per_dijkstra_call = 710;
-// sees() calls, each one ray from the threat to a spot's center.
+// has_line_of_sight() calls, each one ray from the threat to a spot's center.
 constexpr u32 max_retreat_rays_per_update = 256;
 // Search::is_passable calls for the npc's body at a spot, each an R-tree search.
 constexpr u32 max_retreat_is_passable_calls_per_update = 512;
@@ -162,7 +162,7 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
                 return on_limit_reached();
             rays_left--;
             _rays--;
-            if (t.sees(c, o, threat, to))
+            if (t.has_line_of_sight(c, o, threat, to))
             {
                 s.seen_octants |= octant_bit;
                 _next++;
@@ -199,7 +199,7 @@ bool retreat_finder::is_still_retreat_spot(critter& c, spot_tests& t, const Cove
 {
     fm_debug_assert(_next > 0);
     const auto dist = [&](point p) { return Math::sqrt((double)point::distance_squared(p, threat)); };
-    return dist(to) - dist(_path_from) > min_retreat_gain && (!_path_needs_ray_test || !t.sees(c, o, threat, to));
+    return dist(to) - dist(_path_from) > min_retreat_gain && (!_path_needs_ray_test || !t.has_line_of_sight(c, o, threat, to));
 }
 
 Cover::Script::retreat_progress retreat_finder::progress() const

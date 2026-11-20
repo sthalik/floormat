@@ -33,7 +33,7 @@ struct options
     // first, and walks never stop early. For comparing CPU time.
     bool search_every_move = false;
     // Cover::Point::query::octants of the script's searches. With 3, a cover spot must also hide the critter
-    // from the threat turned 11.25° either way about it.
+    // from the threat in the octant on either side of its own, 11.25° away.
     u8 octants = 3;
     // How far in px the critter's cover may lie from its spot, along their face.
     u32 max_cover_end_dist = 5*(u32)tile_size_xy;
@@ -135,7 +135,7 @@ void list_spots(critter& c, Array<Cover::Point::spot>& out);
 Cover::Point::result list_spots(critter& c, const Cover::Point::query& q, Array<Cover::Point::spot>& out);
 
 // The peek spot the script steps out to after send_to_cover(c, s), with the threat where it stands now. Empty
-// when c runs another script or none, no threat is on c's floor, or no direction has one within max_peek_dist.
+// when c runs another script or none, no threat is on c's floor, or no peek spot lies within max_peek_spot_dist.
 Optional<peek> find_peek(critter& c, const Cover::Point::spot& s);
 
 // Walks c along a Dijkstra path to hide for hidden_time at s moved to its cover's end, as cover is from canonical.

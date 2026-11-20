@@ -13,7 +13,8 @@ namespace floormat::Cover {
 
 namespace {
 
-constexpr int max_peek_dist = 2*tile_size_xy;
+// peek_spot() looks for a peek spot at most this many px from `from`, the cover end.
+constexpr int max_peek_spot_dist = 2*tile_size_xy;
 
 } // namespace
 
@@ -55,7 +56,7 @@ Optional<Cover::Script::peek> peek_spot(critter& c, point from, Vector2i axis, p
         };
 
         int lo = 0, hi = 0;
-        for (auto t = step; len2(t) <= max_peek_dist*max_peek_dist && !hi; t += step)
+        for (auto t = step; len2(t) <= max_peek_spot_dist*max_peek_spot_dist && !hi; t += step)
         {
             if (!clear(t))
             {
