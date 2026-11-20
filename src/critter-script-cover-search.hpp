@@ -23,8 +23,15 @@ u32 search_chunk_radius(point at, point threat, u32 radius, const Cover::Script:
 class cover_search
 {
 public:
-    // end is cover_end() of spot, and path leads there. path is empty when the npc stands on spot or end.
-    struct reachable_cover { Cover::Point::spot spot; point end; path_search_result path; };
+    // end is cover_end() of spot, and path leads there, empty when the npc stands on spot or end. peek_spot is
+    // the peek spot from end for the threat that tick() was given, when that tick() looked for one.
+    struct reachable_cover
+    {
+        Cover::Point::spot spot;
+        point end;
+        path_search_result path;
+        Optional<Cover::Script::peek> peek_spot;
+    };
     // done is true once the search ended, with cover when it found some.
     struct result { Optional<reachable_cover> cover; bool done = false; };
 

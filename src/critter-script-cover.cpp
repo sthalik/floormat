@@ -89,7 +89,9 @@ private:
     void restart_search(critter& C);
     void resume_search(critter& C);
     void search_step(critter& C);
-    void end_search(critter& C, Optional<Cover::cover_search::reachable_cover> r);
+    void end_search(critter& C, Optional<Cover::cover_search::reachable_cover> r, bool is_search_not_done);
+    void walk_to_peek_spot_or_cover(critter& C, path_search_result path);
+    void walk_to_found_cover(critter& C);
     void begin_retreat(critter& C, bool restart = false);
     void retreat_step(critter& C);
     bool walk_to(critter& C, point to, state then);
@@ -118,6 +120,9 @@ private:
     // A retreat started since start_search, so a kept last_resort spot starts no other.
     bool search_retreated = false;
     Optional<Cover::Script::cover> cover;
+    // The path to cover that end_search keeps while C stands an update in state::search, as the search spent the
+    // update's Dijkstra call. walk_to_found_cover then walks C to the peek spot, or along this path without one.
+    Optional<path_search_result> path_to_found_cover;
     // Where the threat stood at the last check or search.
     point threat_pos;
     Ns game_time_to_switch_state{}, prev_game_time{}, last_update{}, max_update{}, total_update{};
@@ -199,7 +204,9 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
     const auto now = C->world().game_time();
     game_time_to_switch_state += Math::max(now - prev_game_time, dt) - dt;
     prev_game_time = now;
-    if (st != state::seek && (st != state::hidden && st != state::exposed || is_phase_held()))
+    // With path_to_found_cover, C stands exposed at its last peek spot, and is_phase_held() treats it as exposed.
+    const auto stands = st == state::hidden || st == state::exposed || path_to_found_cover;
+    if (st != state::seek && (!stands || is_phase_held()))
         game_time_to_switch_state += dt;
     switch (st)
     {
@@ -208,11 +215,17 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
             seek(C);
         return;
     case state::search:
-        search_step(*C);
-        // This runs after search_step, so cover found in this update needs no retreat.
-        if (st == state::search && search.has_last_resort() && !search_retreated &&
-            !tests.is_hidden_at(*C, threat_pos, C->position(), Cover::Point::axis_toward(threat_pos - C->position())))
-            begin_retreat(*C);
+        if (path_to_found_cover)
+            walk_to_found_cover(*C);
+        else
+        {
+            search_step(*C);
+            // This runs after search_step, so cover found in this update needs no retreat.
+            if (st == state::search && !path_to_found_cover && search.has_last_resort() && !search_retreated &&
+                !tests.is_hidden_at(*C, threat_pos, C->position(),
+                                 Cover::Point::axis_toward(threat_pos - C->position())))
+                begin_retreat(*C);
+        }
         go_on(C, i, dt);
         return;
     case state::to_cover:
@@ -369,6 +382,7 @@ bool cover_script::start_search(critter& C, search_then next)
     st = state::search;
     then = next;
     search_retreated = false;
+    path_to_found_cover = {};
     search.begin(C.position(), threat_pos);
     return true;
 }
@@ -417,16 +431,19 @@ void cover_script::search_step(critter& C)
 {
     if (!find_threat_or_retry(C))
         return;
+    const auto n = tests.counters.num_dijkstra_calls;
     auto r = search.tick(C, tests, options, search_origin(C), threat_pos);
     if (r.done)
-        end_search(C, move(r.cover));
+        end_search(C, move(r.cover), tests.counters.num_dijkstra_calls == n);
     else if (st == state::retreat && is_retreat_exposed && search.has_last_resort() &&
              search.progress().tile >= tiles_searched_before_give_up)
         search.give_up();
 }
 
 // Takes r's cover, or continues the retreat, retreats or waits as `then` says when r is empty.
-void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachable_cover> r)
+// is_search_not_done is false when this update already made a Dijkstra search.
+void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachable_cover> r,
+                              bool is_search_not_done)
 {
     search.end();
     const auto from = search.from();
@@ -463,15 +480,57 @@ void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachabl
         game_time_to_switch_state = C.world().game_time() + time_in(state::hidden);
         return;
     case search_then::follow:
-        // Without a path to the peek spot, C hides at the cover it has a path to, and steps out from there.
-        if (const auto p = find_peek_pos(C, threat_pos); p && walk_to(C, *p, state::exposed))
-            return;
-        c.peek = {};
-        walk_to_cover(C, move(reachable.path));
-        game_time_to_switch_state = C.world().game_time() + time_in(state::hidden);
+        if (reachable.peek_spot)
+        {
+            const auto& [pos, gun] = *reachable.peek_spot;
+            c.peek = Cover::Script::cover_peek{pos, gun, threat_pos};
+        }
+        else
+            find_peek_pos(C, threat_pos);
+        if (is_search_not_done || !c.peek)
+            walk_to_peek_spot_or_cover(C, move(reachable.path));
+        else if (const auto& p = *c.peek; p.pos == C.position())
+            walk_to_peek_spot_or_cover(C, move(reachable.path));
+        else
+            path_to_found_cover = move(reachable.path);
         return;
     }
     fm_assert(false);
+}
+
+// Walks C to its cover's peek spot, or along path to hide at cover for hidden_time when it has none or no path
+// leads there. C then steps out from cover.
+void cover_script::walk_to_peek_spot_or_cover(critter& C, path_search_result path)
+{
+    auto& c = *cover;
+    if (c.peek)
+    {
+        const auto& p = *c.peek;
+        if (!walk_to(C, p.pos, state::exposed))
+            c.peek = {};
+    }
+    if (!c.peek)
+    {
+        walk_to_cover(C, move(path));
+        game_time_to_switch_state = C.world().game_time() + time_in(state::hidden);
+    }
+}
+
+// Runs walk_to_peek_spot_or_cover with path_to_found_cover. When the threat moved since the last check,
+// find_peek_pos runs again for where it stands, and threat_pos keeps its value, so a later check sees the move.
+void cover_script::walk_to_found_cover(critter& C)
+{
+    auto path = move(*path_to_found_cover);
+    path_to_found_cover = {};
+    const auto threat = find_threat(C);
+    if (!threat)
+        retry_later(C);
+    else
+    {
+        if (const auto pos = threat->position(); pos != threat_pos)
+            find_peek_pos(C, pos);
+        walk_to_peek_spot_or_cover(C, move(path));
+    }
 }
 
 // Puts C in state::find_retreat, standing while it looks for a path to the nearest spot within retreat_radius
@@ -790,6 +849,7 @@ bool cover_script::send_to(critter& C, const Cover::Point::spot& s, bool peek)
     cover = Cover::Script::cover{.pos = end, .canonical = s.pos, .axis = s.axis, .peek = {}};
     retreat_replanned = false;
     num_blocked_walks = 0;
+    path_to_found_cover = {};
     threat_pos = threat->position();
     if (pʹ)
     {
