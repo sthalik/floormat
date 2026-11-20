@@ -293,12 +293,17 @@ bool cover_script::is_phase_held() const
 void cover_script::set_options(critter& C, const Cover::Script::options& o)
 {
     using hold_phase = Cover::Script::options::hold_phase;
-    const auto old = options.hold;
+    const auto old = options;
     options = o;
-    search.options_changed(o.last_resort);
-    if (search.is_running() && (st == state::search || st == state::find_retreat || st == state::retreat))
-        restart_search(C);
-    if (o.hold == old)
+    // hold and search_every_move change no search result. begin() keeps the unreachable spots, as path_to reads
+    // no option.
+    const auto same_results = o.octants == old.octants && o.max_cover_end_dist == old.max_cover_end_dist &&
+                              o.div_size == old.div_size && o.threat_reach == old.threat_reach &&
+                              o.needs_peek == old.needs_peek && o.last_resort == old.last_resort;
+    if (!same_results && search.is_running() &&
+        (st == state::search || st == state::find_retreat || st == state::retreat))
+        search.begin(search_origin(C), threat_pos);
+    if (o.hold == old.hold)
         return;
     const auto hiding = st == state::hidden || st == state::to_cover;
     const auto peeking = st == state::exposed || st == state::to_peek;

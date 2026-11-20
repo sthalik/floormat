@@ -340,13 +340,6 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
 void cover_search::end() { _tiles_left = 0; }
 void cover_search::give_up() { _tile = (u32)search_tiles().size(); }
 
-void cover_search::options_changed(Cover::Script::options::fallback last_resort)
-{
-    _fallback_spots.drop(last_resort);
-    _exposed_cover = {};
-    arrayClear(_tile_skipped);
-}
-
 bool cover_search::is_running() const { return _tiles_left != 0; }
 point cover_search::from() const { return _from; }
 
@@ -356,24 +349,6 @@ Cover::Script::search_progress cover_search::progress() const
 }
 
 bool cover_search::has_last_resort() const { return _fallback_spots.has_cover_spot(); }
-
-void cover_search::fallback_spots::drop(Cover::Script::options::fallback last_resort)
-{
-    using fallback = Cover::Script::options::fallback;
-    switch (last_resort)
-    {
-    case fallback::none:
-        peekless = {};
-        in_reach = {};
-        return;
-    case fallback::no_peek:
-        in_reach = {};
-        return;
-    case fallback::in_reach:
-        return;
-    }
-    fm_assert(false);
-}
 
 bool cover_search::fallback_spots::has_cover_spot() const { return peekless || in_reach; }
 
