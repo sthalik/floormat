@@ -39,9 +39,6 @@ public:
     result tick(critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat);
     void end();
     void give_up();
-    // Forgets the spots skipped under the old options, and kept spots that last_resort doesn't allow, which
-    // neither a retreat nor tick() checks again.
-    void options_changed(Cover::Script::options::fallback last_resort);
 
     bool is_running() const;
     point from() const;
@@ -55,8 +52,6 @@ private:
     {
         Optional<Cover::Point::spot> peekless, in_reach;
 
-        // Forgets the spots last_resort doesn't keep.
-        void drop(Cover::Script::options::fallback last_resort);
         bool has_cover_spot() const;
     };
 

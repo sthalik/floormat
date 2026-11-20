@@ -3422,6 +3422,36 @@ void add_longer_wall(cover_scene& s)
     rebuild(s.w);
 }
 
+// add_longer_wall's spots have no peek spot. needs_peek is turned off once a restart can no longer move the search
+// back to its first tile, and the npc finds the cover a search without needs_peek finds from the start.
+void test_cover_script_late_options()
+{
+    const point threat_pos{ch, {6, 8}, {}};
+    auto o = Cover::Script::options{.last_resort = fallback::none};
+    cover_scene s{threat_pos};
+    add_longer_wall(s);
+    Cover::Script::set_options(*s.npc, o);
+    for (auto frames = 0u; s.status().search.tiles_left == 0 ||
+                           s.status().search.tiles_left > s.status().search.num_tiles + 1; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.step();
+        fm_assert(s.status().st == state::search);
+    }
+    o.needs_peek = false;
+    Cover::Script::set_options(*s.npc, o);
+    s.finish_search();
+    cover_scene fresh{threat_pos};
+    add_longer_wall(fresh);
+    Cover::Script::set_options(*fresh.npc, o);
+    fresh.step();
+    fresh.finish_search();
+    const auto t = s.status(), t_fresh = fresh.status();
+    fm_assert(t.st == state::to_cover && t_fresh.st == state::to_cover);
+    const auto &c = *t.cover, &c_fresh = *t_fresh.cover;
+    fm_assert_equal(Vector3i(c_fresh.pos), Vector3i(c.pos));
+}
+
 // Steps until the npc's search ends, and returns whether the npc moved before. With may_retreat, the npc must
 // retreat while the search runs, and without it never.
 bool moves_during_search(cover_scene& s, bool may_retreat)
@@ -3660,6 +3690,7 @@ void Test::test_cover_point()
     test_cover_script_far_cover(true);
     test_cover_script_search_threat_back_and_forth();
     test_cover_script_div_change();
+    test_cover_script_late_options();
     test_cover_script_orders(hidden);
     test_cover_script_threat_off_floor();
     test_cover_script_keeps_peeking(hidden, c0.peek);
