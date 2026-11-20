@@ -1,4 +1,5 @@
 #include "critter-script-cover-movement-range.hpp"
+#include "grid-object.hpp"
 #include "grid-registry.hpp"
 #include "point.inl"
 #include "search-astar.hpp"
@@ -6,6 +7,7 @@
 #include "world.hpp"
 #include "compat/assert.hpp"
 #include "compat/floor-divmod.hpp"
+#include "compat/function-view.hpp"
 #include <algorithm>
 #include <functional>
 #include <cr/GrowableArray.h>
@@ -27,14 +29,16 @@ movement_range::movement_range()
     arrayReserve(heap, 16);
 }
 
-ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pools, point from, Optional<u32> bbox_side,
-                                              u32 max_dist)
+ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pools, point from,
+                                              std::array<object_id, 2> excluded_blocker_ids,
+                                              Optional<u32> bbox_side, u32 max_dist)
 {
     const auto R = (int)max_dist;
     // The fill reads cells within R + 2 div px of from, div being at most default_div_size, and each cell's grid
     // reads one chunk more.
-    const auto pass_gen = w.max_pass_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
-    const cache_key key{from, bbox_side, 0, 0, max_dist, pass_gen};
+    const auto collider_gen =
+        w.max_collider_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
+    const cache_key key{from, excluded_blocker_ids, bbox_side, 0, 0, max_dist, collider_gen};
     if (_key == key)
         return points;
     _key = key;
@@ -44,12 +48,12 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
         return points;
     fm_assert(R < (u16)-1);
 
-    auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
-    const auto div = (int)pool.params().div_size();
+    auto& objects = pools.object_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
+    const auto div = (int)objects.params().div_size();
     // A cell farther than n from the cell of from lies over R px away.
     const auto n = R/div + 1, side = 2*n + 1;
     const auto g = Vector3i(from).xy();
-    const auto origin = compute_dijkstra_map(w, pool, from, n, R);
+    const auto origin = compute_dijkstra_map(w, objects, from, excluded_blocker_ids, n, R);
 
     // A ray from inside the reached cells to a body outside them leaves through a border cell, which sees the
     // body as well, to within a cell.
@@ -72,12 +76,14 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
 }
 
 ArrayView<const point> movement_range::reachable_lattice_points(world& w, Grid::GridRegistry& pools, point from,
+                                                                std::array<object_id, 2> excluded_blocker_ids,
                                                                 Optional<u32> bbox_side, u32 radius, u32 spacing,
                                                                 u32 max_walk_dist)
 {
     fm_assert(spacing);
-    const auto pass_gen = w.max_pass_gen(from.chunk3(), (radius + 2*astar::default_div_size)/chunk_size_xy + 2);
-    const cache_key key{from, bbox_side, radius, spacing, max_walk_dist, pass_gen};
+    const auto collider_gen =
+        w.max_collider_gen(from.chunk3(), (radius + 2*astar::default_div_size)/chunk_size_xy + 2);
+    const cache_key key{from, excluded_blocker_ids, bbox_side, radius, spacing, max_walk_dist, collider_gen};
     if (_key == key)
         return points;
     _key = key;
@@ -86,12 +92,13 @@ ArrayView<const point> movement_range::reachable_lattice_points(world& w, Grid::
     if (!radius || !bbox_side)
         return points;
 
-    auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
-    const auto div = (int)pool.params().div_size();
+    auto& objects = pools.object_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
+    const auto div = (int)objects.params().div_size();
     const auto n = ((int)radius + div - 1)/div, side = 2*n + 1;
     // No path inside the window is longer than one diagonal step per cell, so the fill isn't cut short.
     fm_assert(side*side*2*div < (u16)-1);
-    const auto origin = compute_dijkstra_map(w, pool, from, n, (int)Math::min(max_walk_dist, (u32)(u16)-2));
+    const auto origin = compute_dijkstra_map(w, objects, from, excluded_blocker_ids, n,
+                                             (int)Math::min(max_walk_dist, (u32)(u16)-2));
     const auto g = Vector3i(from).xy();
     const auto k = (int)(radius/spacing);
     for (auto j = -k; j <= k; j++)
@@ -109,8 +116,10 @@ ArrayView<const point> movement_range::reachable_lattice_points(world& w, Grid::
     return points;
 }
 
-Vector2i movement_range::compute_dijkstra_map(world& w, Pass::Pool& pool, point from, int n, int max_dist)
+Vector2i movement_range::compute_dijkstra_map(world& w, Grid::Object::Pool& objects, point from,
+                                              std::array<object_id, 2> excluded_blocker_ids, int n, int max_dist)
 {
+    auto& pool = objects.pass_pool();
     const auto div = (int)pool.params().div_size(), dc = (int)pool.params().div_count;
     const auto R = max_dist;
     const auto side = 2*n + 1;
@@ -125,7 +134,12 @@ Vector2i movement_range::compute_dijkstra_map(world& w, Pass::Pool& pool, point 
     arrayResize(dist, NoInit, count);
     arrayResize(passable, NoInit, count);
 
+    // TODO: much later, factions may decide which critters block, and a player standing in a doorway may be
+    // pushed away.
+    const auto pred = Search::blocks_all_but(excluded_blocker_ids[0], excluded_blocker_ids[1]);
     Optional<Pass::Grid> gridʹ;
+    // grid_ch's object grid while one of its objects blocks, with entry_blocked filled for it.
+    Optional<Grid::Object::Grid> object_gridʹ;
     chunk_coords_ grid_ch;
     bool looked = false;
     for (auto y = 0; y < side; y++)
@@ -139,8 +153,15 @@ Vector2i movement_range::compute_dijkstra_map(world& w, Pass::Pool& pool, point 
                 looked = true;
                 grid_ch = cc;
                 gridʹ = {};
+                object_gridʹ = {};
                 if (auto* p = w.at(cc))
+                {
                     gridʹ.emplace(pool[*p]).build_if_stale();
+                    auto object_grid = objects[*p];
+                    object_grid.build_if_stale();
+                    if (object_grid.blocked_objects(pred, entry_blocked))
+                        object_gridʹ = object_grid;
+                }
             }
             const auto local = Vector2ui(cell - ch*dc);
             const auto i = (u32)(y*side + x);
@@ -148,7 +169,14 @@ Vector2i movement_range::compute_dijkstra_map(world& w, Pass::Pool& pool, point 
             if (gridʹ)
             {
                 const auto& grid = *gridʹ;
-                passable[i] = grid.bit(Pass::Grid::get_bitmask_index(local.x(), local.y(), (u32)dc));
+                const auto k = Pass::Grid::get_bitmask_index(local.x(), local.y(), (u32)dc);
+                passable[i] = grid.bit(k);
+                if (passable[i] && object_gridʹ)
+                {
+                    const auto& object_grid = *object_gridʹ;
+                    passable[i] = object_grid.uses_u32() ? !object_grid.is_blocked<u32>(k, entry_blocked)
+                                                         : !object_grid.is_blocked<u16>(k, entry_blocked);
+                }
             }
             dist[i] = (u16)-1;
         }

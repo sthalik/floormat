@@ -1454,6 +1454,38 @@ void test_cover_script_hidden_checks(point hidden)
 
 using hold_phase = Cover::Script::options::hold_phase;
 
+// A closed door1 at tile, with bbox_size and bbox_offset in place of door1's bbox when bbox_size is given.
+bptr<scenery> add_closed_door(world& w, local_coords tile, Optional<Vector2ub> bbox_size = {},
+                              Vector2b bbox_offset = {})
+{
+    auto proto = loader.scenery("door1");
+    proto.pass = pass_mode::blocked;
+    proto.frame = (u16)(proto.atlas->info().nframes - 1);
+    if (bbox_size)
+    {
+        proto.bbox_size = *bbox_size;
+        proto.bbox_offset = bbox_offset;
+    }
+    auto door = w.make_scenery(w.make_id(), {ch, tile}, move(proto));
+    fm_assert(door->scenery_type() == scenery_type::door && door->is_dynamic());
+    return door;
+}
+
+// Opens a door that add_closed_door made. That moves no pass_gen().
+void open_door(world& w, const bptr<scenery>& doorʹ)
+{
+    auto& door = static_cast<door_scenery&>(*doorʹ);
+    auto i = door.index();
+    const auto pass_gen = w[ch].pass_gen();
+    fm_assert(door.activate(i));
+    for (auto n = 0u; door.active; n++)
+    {
+        fm_assert(n < 100);
+        door.update(doorʹ, i, Second);
+    }
+    fm_assert(door.pass == pass_mode::pass && w[ch].pass_gen() == pass_gen);
+}
+
 // The npc of cover_scene steps through hold's values, staying put 4 s in each held phase. It steps
 // out when hold becomes exposed, peeks for its whole 2 s out once hold is none, and, held hidden
 // again, still walks to new cover when the threat moves to where it sees hidden.
@@ -1935,28 +1967,11 @@ void test_cover_script_no_path_door_opens()
 {
     const point west{ch, {2, 8}, {}};
     cover_scene s{west}, still{west};
-    const auto add_door = [](world& w) {
-        auto proto = loader.scenery("door1");
-        proto.pass = pass_mode::blocked;
-        proto.frame = (u16)(proto.atlas->info().nframes - 1);
-        auto door = w.make_scenery(w.make_id(), {ch, {1, 14}}, move(proto));
-        fm_assert(door->scenery_type() == scenery_type::door && door->is_dynamic());
-        return door;
-    };
-    const auto doorʹ = add_door(s.w);
-    (void)add_door(still.w);
+    const auto door = add_closed_door(s.w, {1, 14});
+    (void)add_closed_door(still.w, {1, 14});
     (void)start_no_path_search(s);
     (void)start_no_path_search(still);
-    auto& door = static_cast<door_scenery&>(*doorʹ);
-    auto i = door.index();
-    const auto pass_gen = s.w[ch].pass_gen();
-    fm_assert(door.activate(i));
-    for (auto n = 0u; door.active; n++)
-    {
-        fm_assert(n < 100);
-        door.update(doorʹ, i, Second);
-    }
-    fm_assert(door.pass == pass_mode::pass && s.w[ch].pass_gen() == pass_gen);
+    open_door(s.w, door);
     s.finish_search();
     still.finish_search();
     const auto t = s.status(), t_still = still.status();
@@ -2016,8 +2031,8 @@ void test_cover_script_no_path_critter_leaves()
     fm_assert(walled_in(c3.pos));
 }
 
-// movement_range::border keeps its points while a critter moves, and computes them again after a blocker appears
-// in a neighbour chunk. Computing them rebuilds a pass grid marked stale, so the grid shows which happened.
+// movement_range::border computes its points again after a critter moves or a blocker appears in a neighbour
+// chunk, and keeps them for a farther blocker. A pass grid marked stale shows whether it computed them.
 void test_movement_range_cache()
 {
     auto w = world();
@@ -2028,7 +2043,7 @@ void test_movement_range_cache()
     Cover::movement_range range;
     const point threat{ch, {8, 8}, {}};
     constexpr u32 side = 24, reach = 128;
-    const auto n = range.border(w, pools, threat, side, reach).size();
+    const auto n = range.border(w, pools, threat, {}, side, reach).size();
     fm_assert(n > 1);
     auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, side, pass_mode::pass});
     auto g = pool[w[ch]];
@@ -2038,16 +2053,17 @@ void test_movement_range_cache()
     auto i = npc->index();
     npc->teleport_to(i, point{ch, {5, 4}, {}}, rotation_COUNT);
     g.mark_stale();
-    fm_assert_equal(n, range.border(w, pools, threat, side, reach).size());
-    fm_assert(g.is_marked_stale());
+    fm_assert_equal(n, range.border(w, pools, threat, {}, side, reach).size());
+    fm_assert(!g.is_marked_stale());
 
+    g.mark_stale();
     const auto radius = (i16)((reach + 2*astar::default_div_size)/chunk_size_xy + 2);
     (void)add_blocker(w, global_coords{chunk_coords_{(i16)(radius + 1), 0, 0}, {0, 8}}, {16, 16});
-    fm_assert_equal(n, range.border(w, pools, threat, side, reach).size());
+    fm_assert_equal(n, range.border(w, pools, threat, {}, side, reach).size());
     fm_assert(g.is_marked_stale());
 
     (void)add_blocker(w, global_coords{chunk_coords_{1, 0, 0}, {0, 8}}, {16, 16});
-    fm_assert_equal(n, range.border(w, pools, threat, side, reach).size());
+    fm_assert_equal(n, range.border(w, pools, threat, {}, side, reach).size());
     fm_assert(!g.is_marked_stale());
 }
 
@@ -2063,7 +2079,7 @@ void test_reachable_lattice_points()
     Cover::movement_range range;
     const point threat{ch, {8, 8}, {12, 0}};
     constexpr u32 side = 24, radius = 48, spacing = 32;
-    const auto open = range.reachable_lattice_points(w, pools, threat, side, radius, spacing);
+    const auto open = range.reachable_lattice_points(w, pools, threat, {}, side, radius, spacing);
     fm_assert_equal(9u, (u32)open.size());
     fm_assert(open[0] == threat);
     auto k = 1u;
@@ -2072,16 +2088,88 @@ void test_reachable_lattice_points()
             if (i || j)
                 fm_assert(open[k++] == threat + Vector2i{i, j}*(int)spacing);
 
-    const auto near = range.reachable_lattice_points(w, pools, threat, side, radius, spacing, 32);
+    const auto near = range.reachable_lattice_points(w, pools, threat, {}, side, radius, spacing, 32);
     fm_assert_equal(5u, (u32)near.size());
     for (const auto& p : near)
         fm_assert((p - threat).product() == 0);
 
     (void)add_blocker(w, {8, 8}, {6, 192}, {28, 0});
-    const auto walled = range.reachable_lattice_points(w, pools, threat, side, radius, spacing);
+    const auto walled = range.reachable_lattice_points(w, pools, threat, {}, side, radius, spacing);
     fm_assert_equal(6u, (u32)walled.size());
     for (const auto& p : walled)
         fm_assert(Vector3i(p).x() <= Vector3i(threat).x());
+}
+
+// A closed door where test_reachable_lattice_points puts its wall cuts off the same 3 positions, and all 9 come
+// back once the door opens.
+void test_reachable_lattice_points_closed_door()
+{
+    auto w = world();
+    for (i16 y = -1; y <= 1; y++)
+        for (i16 x = -1; x <= 1; x++)
+            add_ground(w, {x, y, 0});
+    Grid::GridRegistry pools;
+    Cover::movement_range range;
+    const point threat{ch, {8, 8}, {12, 0}};
+    constexpr u32 side = 24, radius = 48, spacing = 32;
+    const auto door = add_closed_door(w, {8, 8}, Vector2ub{6, 192}, Vector2b{28, 0});
+    const auto closed = range.reachable_lattice_points(w, pools, threat, {}, side, radius, spacing);
+    fm_assert_equal(6u, (u32)closed.size());
+    for (const auto& p : closed)
+        fm_assert(Vector3i(p).x() <= Vector3i(threat).x());
+    open_door(w, door);
+    fm_assert_equal(9u, (u32)range.reachable_lattice_points(w, pools, threat, {}, side, radius, spacing).size());
+}
+
+// A critter in the gap between two walls cuts off the lattice and border points east of it, unless its id is in
+// excluded_blocker_ids. The threat stands beside the gap, so without its id its own body blocks the gap too.
+void test_movement_range_critter_in_gap()
+{
+    auto w = world();
+    for (i16 y = -1; y <= 1; y++)
+        for (i16 x = -1; x <= 1; x++)
+            add_ground(w, {x, y, 0});
+    (void)add_blocker(w, {8, 8}, {6, 160}, {28, -104});
+    (void)add_blocker(w, {8, 8}, {6, 160}, {28, 104});
+    Grid::GridRegistry pools;
+    Cover::movement_range range;
+    const point threat{ch, {8, 8}, {12, 0}}, gap{ch, {8, 8}, {28, 0}}, away{ch, {2, 4}, {}};
+    constexpr u32 side = 24, radius = 48, spacing = 32, reach = 128;
+    const auto threat_critter = add_critter(w, threat);
+    const auto npc = add_critter(w, point{ch, {2, 2}, {}}, {6, 24});
+    const auto third_critter = add_critter(w, away, {6, 24});
+    const auto move_critter_to = [](const bptr<critter>& c, point pos) {
+        auto i = c->index();
+        c->teleport_to(i, pos, rotation_COUNT);
+    };
+    const auto lattice_points = [&](std::array<object_id, 2> excluded_blocker_ids) {
+        return range.reachable_lattice_points(w, pools, threat, excluded_blocker_ids, side, radius, spacing);
+    };
+    const auto border_points = [&](std::array<object_id, 2> excluded_blocker_ids) {
+        return range.border(w, pools, threat, excluded_blocker_ids, side, reach);
+    };
+    const auto num_points_east_of_gap = [&](ArrayView<const point> points) {
+        auto n = 0u;
+        for (const auto& p : points)
+            n += Vector3i(p).x() > Vector3i(gap).x();
+        return n;
+    };
+    const std::array<object_id, 2> ids{threat_critter->id, npc->id};
+    fm_assert_equal(9u, (u32)lattice_points(ids).size());
+    fm_assert(num_points_east_of_gap(border_points(ids)) > 0);
+    fm_assert_equal(0u, num_points_east_of_gap(lattice_points({})));
+    fm_assert_equal(0u, num_points_east_of_gap(border_points({})));
+
+    move_critter_to(third_critter, gap);
+    fm_assert_equal(6u, (u32)lattice_points(ids).size());
+    fm_assert_equal(0u, num_points_east_of_gap(lattice_points(ids)));
+    fm_assert_equal(0u, num_points_east_of_gap(border_points(ids)));
+
+    move_critter_to(third_critter, away);
+    move_critter_to(npc, gap);
+    fm_assert_equal(9u, (u32)lattice_points(ids).size());
+    fm_assert_equal(6u, (u32)lattice_points({threat_critter->id, 0}).size());
+    fm_assert_equal(0u, num_points_east_of_gap(lattice_points({threat_critter->id, 0})));
 }
 
 // The npc of cover_scene walks to cover, without searching while the threat walks east 1 px per frame. When the
@@ -3692,6 +3780,8 @@ void Test::test_cover_point()
     test_cover_script_no_path_critter_leaves();
     test_movement_range_cache();
     test_reachable_lattice_points();
+    test_reachable_lattice_points_closed_door();
+    test_movement_range_critter_in_gap();
     test_cover_script_walk_checks(hidden);
     test_cover_script_peek_walk_checks(hidden, c0.peek);
     test_cover_script_peek_again_flanked(hidden, c0.peek);

@@ -417,6 +417,18 @@ u64 world::max_pass_gen(chunk_coords_ ch, u32 radius) const noexcept
     return gen;
 }
 
+u64 world::max_collider_gen(chunk_coords_ ch, u32 radius) const noexcept
+{
+    const auto n = (int)radius;
+    u64 gen = 0;
+    for (auto y = -n; y <= n; y++)
+        for (auto x = -n; x <= n; x++)
+            if (const auto* c = at(ch + Vector2i{x, y}))
+                gen = Math::max(Math::max(gen, c->pass_gen()),
+                                Math::max(c->neighbor_pass_gen(), c->objects_gen()));
+    return gen;
+}
+
 bptr<critter> world::ensure_player_character(object_id& id_, critter_proto p)
 {
     if (id_)

@@ -34,4 +34,12 @@ inline auto blocks_all_but(object_id self)
     };
 }
 
+// Every collider but a and b blocks. A pred made from the returned lambda must not outlive it.
+inline auto blocks_all_but(object_id a, object_id b)
+{
+    return [a, b](const chunk&, collision_data x) {
+        return x.id == a || x.id == b ? path_search_continue::pass : path_search_continue::blocked;
+    };
+}
+
 } // namespace floormat::Search
