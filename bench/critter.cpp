@@ -745,7 +745,7 @@ void Critter_cover_chase(benchmark::State& st)
                 if (Math::abs((float)bearing_error) > max_bearing_error)
                     continue;
                 const auto pt = c.pos + Vector2i{x, y};
-                if (is_passable_for_threat(pt) && !finder.hidden_at(w, pt, {c.canonical, c.axis}, body))
+                if (is_passable_for_threat(pt) && !finder.is_hidden_at(w, pt, {c.canonical, c.axis}, body))
                     arrayAppend(destinations, pt);
             }
         std::sort(destinations.begin(), destinations.end(), [&](point p, point q) {
@@ -859,7 +859,7 @@ void Critter_cover_chase(benchmark::State& st)
             if (has_npc_reacted)
                 stop_threat();
             else if (s->st == state::hidden && is_new_cover &&
-                     finder.hidden_at(w, threat->position(), {s->cover->canonical, s->cover->axis}, body))
+                     finder.is_hidden_at(w, threat->position(), {s->cover->canonical, s->cover->axis}, body))
             {
                 cover_at_chase_start = {};
                 first_hidden_time = now;

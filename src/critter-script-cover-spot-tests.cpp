@@ -35,10 +35,10 @@ bool spot_tests::sees(critter& c, const Cover::Script::options& o, point from, p
     return Cover::Script::line_of_sight(c.world(), _astar.pool_registry(), o.div_size, from, to, c.id).success;
 }
 
-bool spot_tests::hidden_at(critter& c, point threat, point pos, Vector2i axis)
+bool spot_tests::is_hidden_at(critter& c, point threat, point pos, Vector2i axis)
 {
     counters.num_body_checks++;
-    return _finder.hidden_at(c.world(), threat, {pos, axis}, Vector2ui(c.bbox_size));
+    return _finder.is_hidden_at(c.world(), threat, {pos, axis}, Vector2ui(c.bbox_size));
 }
 
 ArrayView<const point> spot_tests::reach_positions(critter& c, const Cover::Script::options& o, point threat)
@@ -49,11 +49,11 @@ ArrayView<const point> spot_tests::reach_positions(critter& c, const Cover::Scri
     return _threat_range.border(c.world(), _astar.pool_registry(), threat, bbox_side, o.threat_reach);
 }
 
-bool spot_tests::hidden_from_reach(critter& c, const Cover::Script::options& o, point threat, point pos,
+bool spot_tests::is_hidden_from_reach(critter& c, const Cover::Script::options& o, point threat, point pos,
                                    Vector2i axis)
 {
     for (const auto& t : reach_positions(c, o, threat))
-        if (!hidden_at(c, t, pos, axis))
+        if (!is_hidden_at(c, t, pos, axis))
             return false;
     return true;
 }
@@ -119,7 +119,7 @@ bool spot_tests::has_hidden_position_nearby(critter& c, const Cover::Script::opt
         for (const auto& t : threat_positions)
         {
             counters.num_path_body_checks++;
-            if (!_finder.hidden_at(w, t, {q, Cover::Point::axis_toward(t - q)}, body))
+            if (!_finder.is_hidden_at(w, t, {q, Cover::Point::axis_toward(t - q)}, body))
             {
                 found = false;
                 break;
@@ -141,7 +141,7 @@ bool spot_tests::is_seen_on_path(critter& c, const Cover::Script::options& o, po
         for (const auto& t : threat_positions)
         {
             counters.num_path_body_checks++;
-            if (!_finder.hidden_at(w, t, {pos, Cover::Point::axis_toward(t - pos)}, body))
+            if (!_finder.is_hidden_at(w, t, {pos, Cover::Point::axis_toward(t - pos)}, body))
             {
                 seen_past_start |= !hidden_before && walked > max_seen_from_path_start;
                 return hidden_before;

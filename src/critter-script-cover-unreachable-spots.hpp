@@ -8,7 +8,7 @@ namespace floormat { class world; }
 
 namespace floormat::Cover {
 
-// A critter or a closed door that blocks a path moves no pass_gen(), so stale() can't see it leave.
+// A critter or a closed door that blocks a path moves no pass_gen(), so is_stale() can't see it leave.
 constexpr inline Ns unreachable_spot_retry_time = Minute;
 
 class unreachable_spots
@@ -37,7 +37,7 @@ public:
     void origin_moved(u32 dist);
     // True when a chunk holding a listed spot or one a failed Dijkstra search could cross, or a neighbour of one,
     // has a pass_gen() newer than the last failure, or once unreachable_spot_retry_time passed since the first.
-    bool stale(const world& w, point search_origin) const;
+    bool is_stale(const world& w, point search_origin) const;
 };
 
 } // namespace floormat::Cover

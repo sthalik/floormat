@@ -92,7 +92,7 @@ struct finder
                 const query& q, const Search::pred& pred, bool list_spots = false);
     /// True when threat sees no pixel of a body of body_size centered on s.pos, tested as find
     /// tests its spots.
-    bool hidden_at(world& w, point threat, const spot& s, Vector2ui body_size);
+    bool is_hidden_at(world& w, point threat, const spot& s, Vector2ui body_size);
     /// q.pos, flush against a blocker along axis, moved along its face as find moves its spots for q.
     /// The result is hidden from each point of also_from too, or is q.pos.
     point move_to_cover_end(world& w, const query& q, Vector2i axis, const Search::pred& pred,

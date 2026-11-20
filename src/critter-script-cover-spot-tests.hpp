@@ -37,13 +37,13 @@ public:
     // Every ray the script casts goes through here, so counters.num_rays counts them all.
     bool sees(critter& c, const Cover::Script::options& o, point from, point to);
     // True when threat sees no pixel of c's body centered on pos, flush against a blocker along axis.
-    bool hidden_at(critter& c, point threat, point pos, Vector2i axis);
+    bool is_hidden_at(critter& c, point threat, point pos, Vector2i axis);
     // threat, then the centers of the cells of its walking pass grid that a Dijkstra fill from its cell reaches
     // within o.threat_reach px and that border a cell the fill doesn't reach.
     ArrayView<const point> reach_positions(critter& c, const Cover::Script::options& o, point threat);
     // True when no point of reach_positions() for threat sees a pixel of c's body
     // centered on pos, flush along axis.
-    bool hidden_from_reach(critter& c, const Cover::Script::options& o, point threat, point pos, Vector2i axis);
+    bool is_hidden_from_reach(critter& c, const Cover::Script::options& o, point threat, point pos, Vector2i axis);
     // s moved along its face as far as no point of reach_positions() for threat sees a pixel of c there.
     point cover_end(critter& c, const Cover::Script::options& o, const Cover::Point::spot& s, point threat);
     Optional<Cover::Script::peek> peek_spot(critter& c, const Cover::Script::options& o, point from, Vector2i axis,

@@ -26,7 +26,7 @@ namespace {
 constexpr u32 retreat_radius = 5*(u32)tile_size_xy;
 constexpr int min_retreat_gain = 3*tile_size_xy;
 constexpr u32 max_retreat_dijkstra_calls_per_update = 4;
-// is_seen_on_path's hidden_at calls that count as one Dijkstra search toward that cap, after an update's first.
+// is_seen_on_path's is_hidden_at calls that count as one Dijkstra search toward that cap, after an update's first.
 // A search that found a path took up to 0.71 ms among dense scenery, a call 0.33 to 0.82 microseconds.
 constexpr u32 hidden_at_calls_per_dijkstra_call = 710;
 // sees() calls, each one ray from the threat to a spot's center.

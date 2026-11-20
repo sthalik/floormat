@@ -478,7 +478,7 @@ bool cover_ai_test::player_sees(app& a, const critter& c, const Cover::Point::sp
     const auto player = find_player(a, c);
     if (!player)
         return false;
-    return !finder.hidden_at(w, player->position(), s, Vector2ui(c.bbox_size));
+    return !finder.is_hidden_at(w, player->position(), s, Vector2ui(c.bbox_size));
 }
 
 // The script moves its hold to the phase of an order, and options follows, so that apply_options
