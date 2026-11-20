@@ -115,7 +115,7 @@ struct Atlas
     u32 texture_layer_capacity = 0; // layers in texture's storage, committed or not
     u32 uploaded_layer_count = 0; // sprites added before the last flush()
     u32 texture_gen = 0;
-    layer_copy_mode layer_copy = layer_copy_mode::blit;
+    layer_copy_mode layer_copy = layer_copy_mode::sparse_texture;
 
     struct Limits
     {
