@@ -5,6 +5,7 @@
 #include <array>
 #include <bit>
 #include <cr/Array.h>
+#include <cr/Optional.h>
 #include <mg/TextureArray.h>
 
 namespace floormat::SpriteAtlas {
@@ -111,6 +112,7 @@ struct Atlas
     GL::Texture2DArray texture{NoCreate};
     u32 layer_width = 0, layer_height = 0;
     u32 texture_layer_count = 0; // allocated layers
+    u32 texture_layer_capacity = 0; // layers in texture's storage, committed or not
     u32 used_layers = 0; // layers with actual valid pixels uploaded (sprites added before the last flush()).
     u32 texture_gen = 0;
     layer_copy_mode layer_copy = layer_copy_mode::blit;
@@ -118,11 +120,16 @@ struct Atlas
     struct Limits
     {
         u32 size = 0, layers = 0;
+        u32 sparse_texture_size = 0, sparse_array_texture_layer_count = 0; // 0 without ARB_sparse_texture
         void ensure_filled();
     } limits;
 };
 
 Atlas::Limits get_texture_limits();
+// Needs ARB_sparse_texture and ARB_internalformat_query.
+Optional<Int> find_virtual_page_size_index(const Atlas& atlas);
+// Returns whether sparse storage for the atlas can hold layer_count layers. Needs filled limits.
+bool can_make_sparse_texture(const Atlas& atlas, u32 layer_count);
 u32 get_next_layer_count(u32 layer_count, const Atlas& A);
 void grow_texture(Atlas& atlas, u32 new_layer_count);
 void ensure_texture(Atlas& atlas);
