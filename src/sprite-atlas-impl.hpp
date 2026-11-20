@@ -121,6 +121,9 @@ struct Atlas
     {
         u32 size = 0, layer_count = 0;
         u32 sparse_texture_size = 0, sparse_array_texture_layer_count = 0; // 0 without ARB_sparse_texture
+        // NVIDIA 617.42 crashed or lost pixels when one call uploaded a buffer of exactly 4 GiB.
+        usize max_pixel_buffer_bytes = usize{1} << 30;
+        bool buffer_storage_supported = false;
         void ensure_filled();
     } limits;
 };
