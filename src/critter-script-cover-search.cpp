@@ -1,4 +1,5 @@
 #include "critter-script-cover-search.hpp"
+#include "critter-script-cover-peek-spot.hpp"
 #include "critter-script-cover-point.hpp"
 #include "critter-script-cover-spot-tests.hpp"
 #include "critter.hpp"
@@ -57,11 +58,20 @@ const Array<Vector2i>& search_tiles()
 
 u32 max_search_path_length(point from, point to) { return point::distance(from, to)*2 + path_slack; }
 
+// at lies anywhere in its chunk, so the cover grids span one chunk more.
+u32 search_chunk_radius(point at, point threat, u32 radius, const Cover::Script::options& o)
+{
+    const auto dist = point::distance(at, threat) + 2*radius + o.threat_reach + o.max_cover_end_dist +
+                      (u32)max_peek_spot_dist + (u32)tile_size_xy;
+    return dist/chunk_size_xy + 3;
+}
+
 void cover_search::begin(point from, point threat)
 {
     _fallback_spots = {};
     _exposed_cover = {};
     _num_failed_dijkstra_calls = 0;
+    _pass_gen_at_last_tick = 0;
     const auto n = (u32)search_tiles().size();
     _tiles_left = n + n/2;
     restart(from, threat);
@@ -96,10 +106,20 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     // only for the pass grids it ran in.
     const auto k = Cover::Point::nearest_octant(Vector2(threat - _from));
     const auto& tiles = search_tiles();
+    // A scan that ended holds only spots and a path that take_last_resort and take_exposed_cover test again.
+    const auto changed = _pass_gen_at_last_tick && _tile != tiles.size() &&
+        w.max_pass_gen(_from.chunk3(), search_chunk_radius(_from, threat, radius + tile_size_xy, o)) >
+            _pass_gen_at_last_tick;
+    _pass_gen_at_last_tick = w.pass_gen();
     if (_unreachable.is_stale(w, _from))
     {
         _unreachable.clear();
         _num_failed_dijkstra_calls = 0;
+        arrayClear(_tile_skipped);
+        restart(from, threat);
+    }
+    else if (changed)
+    {
         arrayClear(_tile_skipped);
         restart(from, threat);
     }
