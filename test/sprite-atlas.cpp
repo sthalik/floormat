@@ -708,14 +708,15 @@ void switching_layer_copy_between_growths_preserves_pixels()
         u32 sprite_count, gen, layer_count, fallback_gen, fallback_layer_count;
     };
     constexpr growth_step steps[] = {
-        { layer_copy_mode::sparse_texture, 1, 1, 1, 1, 1 },
-        { layer_copy_mode::blit,           2, 2, 2, 2, 2 },
-        { layer_copy_mode::sparse_texture, 3, 3, 3, 3, 4 },
-        { layer_copy_mode::readback,       5, 4, 6, 4, 8 },
-        { layer_copy_mode::sparse_texture, 7, 5, 7, 4, 8 },
-        { layer_copy_mode::sparse_texture, 8, 5, 8, 4, 8 },
+        { layer_copy_mode::sparse_texture,        1, 1,  1, 1,  1 },
+        { layer_copy_mode::blit,                  2, 2,  2, 2,  2 },
+        { layer_copy_mode::sparse_texture,        3, 3,  3, 3,  4 },
+        { layer_copy_mode::readback,              5, 4,  6, 4,  8 },
+        { layer_copy_mode::sparse_texture,        7, 5,  7, 4,  8 },
+        { layer_copy_mode::sparse_texture,        8, 5,  8, 4,  8 },
+        { layer_copy_mode::pixel_buffer_readback, 9, 6, 16, 5, 16 },
     };
-    constexpr u32 max_sprites = 8;
+    constexpr u32 max_sprites = 9;
     Array<Color4ub> pixels[max_sprites];
     const Sprite* sprites[max_sprites];
     u32 num_added = 0;
@@ -743,6 +744,52 @@ void switching_layer_copy_between_growths_preserves_pixels()
             assert_layer_contents(atlas, i, {{sprite{sprites[i]}, pixels[i]}});
         for (u32 i = num_added; i < A.texture_layer_count; i++)
             assert_layer_contents(atlas, i, {});
+    }
+}
+
+void pixel_buffer_readback_without_buffer_storage_preserves_pixels()
+{
+    constexpr u32 w = 40, h = 40;
+    sprite_atlas atlas{64, 64};
+    atlas.set_layer_copy(layer_copy_mode::pixel_buffer_readback);
+    auto& A = *atlas.raw();
+    A.limits.ensure_filled();
+    A.limits.buffer_storage_supported = false;
+    const Array<Color4ub> pixels[] = { make_pixels(w, h, 1), make_pixels(w, h, 2) };
+    const auto s0 = atlas.add(view_of(pixels[0], w, h), false);
+    (void)atlas.texture();
+    const auto s1 = atlas.add(view_of(pixels[1], w, h), false);
+    (void)atlas.texture();
+    fm_assert(A.layer_copy == layer_copy_mode::pixel_buffer_readback);
+    fm_assert_equal(2u, atlas.texture_gen());
+    fm_assert_equal(2u, A.texture_layer_count);
+    assert_layer_contents(atlas, 0, {{s0, pixels[0]}});
+    assert_layer_contents(atlas, 1, {{s1, pixels[1]}});
+}
+
+void pixel_buffer_readback_across_several_buffers_preserves_pixels()
+{
+    constexpr u32 w = 40, h = 40, sprite_count = 5;
+    sprite_atlas atlas{64, 64};
+    atlas.set_layer_copy(layer_copy_mode::pixel_buffer_readback);
+    auto& A = *atlas.raw();
+    A.limits.ensure_filled();
+    A.limits.max_pixel_buffer_bytes = 3 * (usize)A.layer_width * A.layer_height * 4;
+    Array<Color4ub> pixels[sprite_count];
+    Array<sprite> sprites;
+    arrayReserve(sprites, sprite_count);
+    for (u32 i = 0; i < sprite_count; i++)
+    {
+        pixels[i] = make_pixels(w, h, (u8)(i + 1));
+        arrayAppend(sprites, atlas.add(view_of(pixels[i], w, h), false));
+        (void)atlas.texture();
+    }
+    fm_assert(A.layer_copy == layer_copy_mode::pixel_buffer_readback);
+    fm_assert_equal(8u, A.texture_layer_count);
+    for (u32 i = 0; i < sprite_count; i++)
+    {
+        fm_assert_equal(i, sprites[i].layer());
+        assert_layer_contents(atlas, i, {{sprites[i], pixels[i]}});
     }
 }
 
@@ -889,7 +936,8 @@ void test_sprite_atlas()
     sprites_of_differing_sizes_create_distinct_height_classes();
     next_layer_count_doubles_then_grows_by_a_quarter();
     upload_and_readback_is_lossless();
-    for (const auto mode : { layer_copy_mode::blit, layer_copy_mode::readback, layer_copy_mode::sparse_texture })
+    for (const auto mode : { layer_copy_mode::blit, layer_copy_mode::readback, layer_copy_mode::sparse_texture,
+                             layer_copy_mode::pixel_buffer_readback })
     {
         realloc_preserves_uploaded_pixels(mode);
         grow_keeps_bound_framebuffer(mode);
@@ -902,6 +950,8 @@ void test_sprite_atlas()
     sparse_texture_without_free_layers_is_replaced();
     sparse_storage_error_falls_back_to_regular_texture();
     switching_layer_copy_between_growths_preserves_pixels();
+    pixel_buffer_readback_without_buffer_storage_preserves_pixels();
+    pixel_buffer_readback_across_several_buffers_preserves_pixels();
     copy_rect_keeps_pixels_and_bound_framebuffer();
     texcoords_show_expected_source_corners();
     reset_discards_pending_sprites();
