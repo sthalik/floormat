@@ -111,6 +111,8 @@ public:
     /// @return The largest chunk::pass_gen() or neighbor_pass_gen() within @p radius chunks of @p ch on each axis.
     /// Ignores objects_gen().
     u64 max_pass_gen(chunk_coords_ ch, u32 radius) const noexcept;
+    /// @return As max_pass_gen(), counting chunk::objects_gen() too: each change to what blocks a shot or a path.
+    u64 max_collider_gen(chunk_coords_ ch, u32 radius) const noexcept;
 
     template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c, Xs&&... xs) {

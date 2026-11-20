@@ -90,7 +90,7 @@ public:
     /// @return The world::next_pass_gen() stamp of the last mark_objects_modified(), or 0 before the first.
     u64 objects_gen() const noexcept;
     /// @return The stamp of the last mark_modified_by_neighbor() or world::collect() deleting a chunk within 2,
-    /// or 0. Only world::max_pass_gen() reads it.
+    /// or 0. Only world::max_pass_gen() and max_collider_gen() read it.
     u64 neighbor_pass_gen() const noexcept;
     RTree* rtree() noexcept;
     const RTree* rtree() const noexcept;

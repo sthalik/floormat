@@ -93,9 +93,9 @@ ArrayView<const point> spot_tests::threat_lattice(critter& c, const Cover::Scrip
     Optional<u32> bbox_side;
     if (const auto obj = w.find_object(_threat_id))
         bbox_side = Math::max((u32)obj->bbox_size.x(), (u32)obj->bbox_size.y());
-    return _threat_lattice.reachable_lattice_points(w, _astar.pool_registry(), threat, bbox_side,
-                                                    Math::min(threat_lattice_radius, o.threat_reach),
-                                                    threat_lattice_spacing);
+    return _threat_lattice.reachable_lattice_points_without_critters(
+        w, _astar.pool_registry(), threat, bbox_side, Math::min(threat_lattice_radius, o.threat_reach),
+        threat_lattice_spacing);
 }
 
 bool spot_tests::has_hidden_position_nearby(critter& c, const Cover::Script::options& o, point threat)
@@ -108,7 +108,7 @@ bool spot_tests::has_hidden_position_nearby(critter& c, const Cover::Script::opt
     const auto body = Vector2ui(c.bbox_size);
     const auto threat_positions = threat_lattice(c, o, threat);
     const auto side = Math::max(body.x(), body.y());
-    const auto spots = _npc_lattice.reachable_lattice_points(w, _astar.pool_registry(), from, side,
+    const auto spots = _npc_lattice.reachable_lattice_points(w, _astar.pool_registry(), from, {c.id, 0}, side,
                                                              max_walk_to_hidden_position, path_body_check_spacing,
                                                              max_walk_to_hidden_position);
     bool found = false;
