@@ -146,8 +146,9 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     {
         const auto n = t.counters.num_dijkstra_calls;
         auto r = take_last_resort(c, t, o, threat);
-        // take_exposed_cover may call path_to too, so it waits for the next update after a path_to call here.
-        if (!r && _exposed_cover && t.counters.num_dijkstra_calls != n)
+        // Trying a kept in_reach spot or take_exposed_cover may call path_to too, so after a path_to call here
+        // both wait for the next update.
+        if (!r && (_fallback_spots.has_cover_spot() || _exposed_cover) && t.counters.num_dijkstra_calls != n)
             return {};
         else if (!r)
             return {take_exposed_cover(c, t, o, threat), true};
@@ -308,8 +309,8 @@ auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Sc
     }
 }
 
-// peekless if the threat and where it can walk still see none of the npc there, else in_reach if the threat
-// alone doesn't, with its cover_end() and a path there. Clears both. At most one path_to call, as in tick().
+// peekless if the threat and where it can walk still see none of the npc there, else in_reach if the threat alone
+// doesn't, with its cover_end() and a path there. If no path reaches peekless, the next update tries in_reach.
 auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,
                                     point threat) -> Optional<reachable_cover>
 {
@@ -336,11 +337,19 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
         return {};
     const auto s = *spot;
     const auto end = t.cover_end(c, o, s, threat);
-    if (const auto here = c.position(); s.pos == here || end == here)
+    const auto here = c.position();
+    if (s.pos == here || end == here)
         return reachable_cover{s, end, {}, {}, is_hidden_from_reach};
-    if (auto path = t.path_to(c, end); path.is_found())
+    else if (auto path = t.path_to(c, end); path.is_found())
         return reachable_cover{s, end, move(path), {}, is_hidden_from_reach};
-    return {};
+    else
+    {
+        _unreachable.add_failed(c.world(), s.pos,
+                                max_search_path_length(here, end) + point::distance(here, _from));
+        if (is_hidden_from_reach)
+            _fallback_spots.in_reach = in_reach;
+        return {};
+    }
 }
 
 void cover_search::end() { _tiles_left = 0; }
