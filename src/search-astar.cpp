@@ -793,10 +793,13 @@ struct astar::seed_search
     astar& a;
     chunk_bitmaps& bm;
     Array<u32>& state;
+    Array<Range2Di>& dirty_ranges;
     endpoint source;
     Search::octile oct{bm.div_size};
     int step = (int)bm.div_size;
     bucket_queue Q = make_bucket_queue(a.seed_buckets, a.seed_bucket_sizes, std::bit_ceil(oct.diag + 1));
+    // add_path() appended the nodes from this index to a.node_count.
+    u32 first_path_node = (u32)-1;
 
     static u32 index(Vector2i d) { return (u32)((d.y() + R)*W + d.x() + R); }
     static Vector2i delta(u32 i) { return Vector2i{(int)(i % W), (int)(i / W)} - Vector2i{R}; }
@@ -913,14 +916,21 @@ struct astar::seed_search
         constexpr auto size = (u32)W*W;
         fm_assert((u64)size * oct.diag < 1u << (32 - g_shift));
         if (state.size() < size)
-            state = Array<u32>{NoInit, size};
-        fill(state.prefix(size), free);
+            state = Array<u32>{DirectInit, size, free};
+        else
+            for (const auto& r : dirty_ranges)
+                for (auto y = r.min().y(); y < r.max().y(); y++)
+                    fill(state.slice(index({r.min().x(), y}), index({r.max().x(), y})), free);
+        arrayClear(dirty_ranges);
         // rect_intersects is strict: the box at d overlaps r when
         // r.min - own_hi < source.center + d < r.max + own_lo on both axes
         for (const auto& r : rects)
         {
             const auto lo = Math::max(Vector2i(Math::floor(r.min() - source.own_hi - source.center)) + Vector2i{1}, Vector2i{-R});
             const auto hi = Math::min(Vector2i(Math::ceil(r.max() + source.own_lo - source.center)) - Vector2i{1}, Vector2i{R});
+            if (lo.x() > hi.x() || lo.y() > hi.y())
+                continue;
+            arrayAppend(dirty_ranges, Range2Di{lo, hi + Vector2i{1}});
             for (auto y = lo.y(); y <= hi.y(); y++)
             {
                 auto* const row = state.data() + index({0, y});
@@ -932,6 +942,7 @@ struct astar::seed_search
         // the source's own box was checked against the same colliders before seeding
         fm_debug_assert(is_free({}));
         state.data()[index({})] = free | reached;
+        auto reached_lo = Vector2i{}, reached_hi = Vector2i{};
         fm_debug_assert(Q.empty());
         Q.push(index({}), 0, 0);
 
@@ -962,9 +973,13 @@ struct astar::seed_search
                 if (!is_free(e) || (diagonal && (!is_free(d + Vector2i{u.x(), 0}) || !is_free(d + Vector2i{0, u.y()}))))
                     continue;
                 s = free | reached | (k << dir_shift) | (g2 << g_shift);
+                reached_lo = Math::min(reached_lo, e);
+                reached_hi = Math::max(reached_hi, e);
                 Q.push(index(e), g2, g2);
             }
         }
+        // The reached positions' bounding box, since recording each one would cost an append in the loop above.
+        arrayAppend(dirty_ranges, Range2Di{reached_lo, reached_hi + Vector2i{1}});
     }
 
     // Leaves the seeds it added or lowered in temp_nodes, as lattice points, and returns how many.
@@ -975,8 +990,7 @@ struct astar::seed_search
         auto& seed_from = a.temp_nodes;
         auto& node_index = a.seed_node_index;
         if (node_index.size() < (u32)W*W)
-            node_index = Array<u32>{NoInit, (u32)W*W};
-        fill(node_index.prefix((u32)W*W), (u32)-1);
+            node_index = Array<u32>{DirectInit, (u32)W*W, (u32)-1};
         arrayClear(seed_from);
         flood([&](point pt, u32 g) {
             const auto s = node_at_or_below(pt, bm.div_size, bm.node_offset);
@@ -996,6 +1010,7 @@ struct astar::seed_search
             arrayAppend(seed_from, pt);
         });
 
+        first_path_node = a.node_count;
         // A seed lowered twice was appended twice. Its dist is the later position's.
         u32 count = 0;
         for (auto i = 0u; i < seed_from.size(); i++)
@@ -1010,6 +1025,15 @@ struct astar::seed_search
             seed_from[count++] = s;
         }
         return count;
+    }
+
+    // Sets the seed_node_index entries add_path() wrote back to -1, as the next run() expects.
+    void reset_node_index()
+    {
+        fm_debug_assert(first_path_node != (u32)-1);
+        auto* const node_index = a.seed_node_index.data();
+        for (auto n = first_path_node; n < a.node_count; n++)
+            node_index[index(a.nodes[n].pt - source.pt)] = (u32)-1;
     }
 
     // seed_index has a slot for each lattice point s up to R + step - 1 px per axis from
@@ -1060,6 +1084,8 @@ astar::astar() :
 {
     static_assert(sizeof(visited) == Search::cache::node_size);
     arrayReserve(temp_nodes, 256);
+    arrayReserve(seed_search_dirty_ranges, 16);
+    arrayReserve(goal_seed_search_dirty_ranges, 16);
 }
 
 astar::~astar() noexcept = default;
@@ -1171,7 +1197,8 @@ bool astar::seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start,
 auto astar::run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist,
                             closest best) -> closest
 {
-    auto search = seed_search{ .a = *this, .bm = bm, .state = seed_search_state, .source = start, };
+    auto search = seed_search{ .a = *this, .bm = bm, .state = seed_search_state,
+                               .dirty_ranges = seed_search_dirty_ranges, .source = start, };
     const auto oct = search.oct;
     const auto count = search.run();
     if (const auto g = search.g_at(to); g != (u32)-1 && (g >> oct.shift) < best.to_node.dist)
@@ -1179,6 +1206,7 @@ auto astar::run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& 
         best.to_node = { .dist = g >> oct.shift, .prev = search.add_path(to), .pt = to, };
         best.goal_seed_idx = (u32)-1;
     }
+    search.reset_node_index();
     if (count > 0)
     {
         auto f_lo = (u32)-1, f_hi = 0u;
@@ -1215,7 +1243,8 @@ auto astar::run_goal_seed_search(chunk_bitmaps& bm, const endpoint& start, const
     if (goal_seed_index.size() < goal_seed_n*goal_seed_n)
         goal_seed_index = Array<u32>{NoInit, goal_seed_n*goal_seed_n};
 
-    auto search = seed_search{ .a = *this, .bm = bm, .state = goal_seed_search_state, .source = goal, };
+    auto search = seed_search{ .a = *this, .bm = bm, .state = goal_seed_search_state,
+                               .dirty_ranges = goal_seed_search_dirty_ranges, .source = goal, };
     search.run_goal();
     if (const auto g = search.g_at(start.pt); g != (u32)-1 && (g >> search.oct.shift) < best.to_node.dist)
     {

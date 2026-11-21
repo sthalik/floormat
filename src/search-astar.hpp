@@ -107,6 +107,8 @@ private:
     Array<usize> masked_bits;
     std::array<Array<bool>, 4> entry_blocked;
     Array<u32> seed_search_state, goal_seed_search_state;
+    // The ranges the last flood fill on each state array may have written. Other entries hold seed_search::free.
+    Array<Range2Di> seed_search_dirty_ranges, goal_seed_search_dirty_ranges;
     // Per position of the start's seed search window, the node add_path() put there, or -1.
     Array<u32> seed_node_index;
     Array<Array<frontier>> seed_buckets;
