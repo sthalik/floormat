@@ -85,7 +85,8 @@ private:
 
     Optional<reachable_cover> _exposed_cover;
     reach_test_progress _reach_test_progress;
-    // test_spot_against_reach() fills it and swaps it with _reach_test_progress.hidden_from.
+    // As in the double buffer pattern, test_spot_against_reach() writes the next _reach_test_progress.hidden_from
+    // here while reading the current one, then swaps the two unless the spot is exposed.
     Array<point> _next_hidden_from;
     u32 _exposed_updates_left = 0;
     // Spots that no path reaches with other critters let through, or from which the npc can move straight to one.
