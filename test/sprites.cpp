@@ -41,12 +41,10 @@ using visited_set = gtl::flat_hash_set<file_id, file_id_hash, file_id_eq>;
 
 constexpr u32 max_depth = 64;
 
-// Returns false if we couldn't obtain an identifier (permission denied,
-// broken symlink, missing path, etc.). On failure the walker falls back
-// to the depth limit as its sole loop guard.
+// Returns path's identifier when available. Otherwise traversal relies on its depth limit.
 #ifdef _WIN32
 
-bool get_file_id(const String& path, file_id& out)
+Optional<file_id> get_file_id(const String& path)
 {
     // Access mask = 0 is sufficient: we don't read/write contents, only
     // query the ID. FILE_FLAG_BACKUP_SEMANTICS is required to open a
@@ -59,29 +57,26 @@ bool get_file_id(const String& path, file_id& out)
                            FILE_FLAG_BACKUP_SEMANTICS,
                            nullptr);
     if (h == INVALID_HANDLE_VALUE)
-        return false;
+        return {};
     // NTFS: 64-bit file index fits. ReFS: file IDs are 128-bit and this
     // call truncates — for a ReFS-hosted corpus we'd need
     // GetFileInformationByHandleEx(FileIdInfo). Not relevant here.
     BY_HANDLE_FILE_INFORMATION info;
     BOOL ok = GetFileInformationByHandle(h, &info);
     CloseHandle(h);
-    if (!ok) return false;
-    out.dev = (u64)info.dwVolumeSerialNumber;
-    out.ino = ((u64)info.nFileIndexHigh << 32) | (u64)info.nFileIndexLow;
-    return true;
+    if (!ok)
+        return {};
+    return file_id{(u64)info.dwVolumeSerialNumber, ((u64)info.nFileIndexHigh << 32) | (u64)info.nFileIndexLow};
 }
 
 #else
 
-bool get_file_id(const String& path, file_id& out)
+Optional<file_id> get_file_id(const String& path)
 {
     struct stat st;
     if (::stat(path.data(), &st) != 0)
-        return false;
-    out.dev = (u64)st.st_dev;
-    out.ino = (u64)st.st_ino;
-    return true;
+        return {};
+    return file_id{(u64)st.st_dev, (u64)st.st_ino};
 }
 
 #endif
@@ -96,9 +91,9 @@ void walk_impl(const String& dir, Array<String>& results,
     // (0,0) case: some filesystems / error paths return zeros for both
     // fields, and inserting on that key would false-match unrelated
     // zero-keyed entries.
-    file_id id;
-    if (get_file_id(dir, id))
+    if (const auto idʹ = get_file_id(dir))
     {
+        const auto& id = *idʹ;
         if (id.dev != 0 || id.ino != 0)
             if (!visited.insert(id).second)
                 return;
