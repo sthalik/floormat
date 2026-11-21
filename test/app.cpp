@@ -168,6 +168,10 @@ App::App(const Arguments& arguments, options&& opts):
 App::~App()
 {
     loader.destroy();
+#if !defined __APPLE__ && !defined _WIN32 && !defined MAGNUM_TARGET_EGL
+    if (glXGetCurrentContext())
+        glXMakeContextCurrent(glXGetCurrentDisplay(), 0, 0, nullptr);
+#endif
 }
 
 namespace {
