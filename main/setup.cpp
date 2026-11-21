@@ -122,6 +122,9 @@ auto main_impl::probe_gl_conf() -> GLConfiguration
         GL::Version::GL420, GL::Version::GL410, GL::Version::GL400, GL::Version::GL330,
     };
 
+#if defined MAGNUM_TARGET_EGL && defined SDL_HINT_VIDEO_X11_FORCE_EGL
+    SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
+#endif
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         fm_warn_once("SDL_Init: %s", SDL_GetError());
