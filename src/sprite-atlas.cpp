@@ -340,126 +340,166 @@ u32 get_next_layer_count(u32 layer_count, const Atlas& A)
     }
 }
 
-void grow_texture(Atlas& atlas, u32 new_layer_count)
+namespace {
+
+struct AtlasTexture
 {
-    fm_assert(atlas.layer_width > 0 && atlas.layer_height > 0);
-    fm_assert(new_layer_count > atlas.texture_layer_capacity && new_layer_count >= atlas.layers.size());
+    GL::Texture2DArray texture{NoCreate};
+    u32 layer_capacity;
+    u32 virtual_page_height;
+};
 
-    const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
-    const auto layer_bytes = (usize)atlas.layer_width * atlas.layer_height * 4;
-    atlas.limits.ensure_filled();
+struct LayerCopySource
+{
+    GL::Texture2DArray texture{NoCreate};
+    Array<GL::Buffer> uploaded_layer_pixel_buffers;
+    Array<char> uploaded_layer_pixels;
+    u32 layers_per_pixel_buffer = 0;
+};
 
+AtlasTexture make_atlas_texture(Atlas& atlas, u32 new_layer_count)
+{
     if (atlas.layer_copy == layer_copy_mode::sparse_texture && !can_make_sparse_texture(atlas, new_layer_count))
         atlas.layer_copy = layer_copy_mode::fallback;
 
-    // Texture storage is immutable, so growing the atlas requires a new texture.
-    GL::Texture2DArray new_texture{NoCreate};
-    auto new_capacity = new_layer_count;
-    u32 new_virtual_page_height = 0;
-    // Sparse storage is made before the old layers are read, so a failure switches their copy to fallback.
+    AtlasTexture new_texture{GL::Texture2DArray{NoCreate}, new_layer_count, 0};
     if (atlas.layer_copy == layer_copy_mode::sparse_texture)
     {
         const with_gl_errors scope{gl_error_policy::error};
+        const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
         const auto sparse_texture_layer_count =
             Math::min(atlas.limits.layer_count, atlas.limits.sparse_array_texture_layer_count);
         const auto page_size_index = *find_virtual_page_size_index(atlas);
-        new_texture = make_sparse_texture(layer_size, sparse_texture_layer_count, page_size_index);
-        if (new_texture.id())
+        new_texture.texture = make_sparse_texture(layer_size, sparse_texture_layer_count, page_size_index);
+        if (new_texture.texture.id())
         {
-            new_capacity = sparse_texture_layer_count;
-            new_virtual_page_height = get_virtual_page_height(page_size_index);
+            new_texture.layer_capacity = sparse_texture_layer_count;
+            new_texture.virtual_page_height = get_virtual_page_height(page_size_index);
         }
         else
             atlas.layer_copy = layer_copy_mode::fallback;
     }
-    if (!new_texture.id())
-        new_texture = GL::Texture2DArray{};
+    if (!new_texture.texture.id())
+        new_texture.texture = GL::Texture2DArray{};
+    return new_texture;
+}
 
-    const auto layers_per_pixel_buffer =
-        (u32)Math::max(usize{1}, atlas.limits.max_pixel_buffer_bytes / layer_bytes);
-    Array<GL::Buffer> uploaded_layer_pixel_buffers;
+LayerCopySource make_layer_copy_source(Atlas& atlas)
+{
+    const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
+    const auto layer_bytes = (usize)atlas.layer_width * atlas.layer_height * 4;
+    LayerCopySource source;
+    source.layers_per_pixel_buffer = (u32)Math::max(usize{1}, atlas.limits.max_pixel_buffer_bytes / layer_bytes);
+
     if (atlas.layer_copy == layer_copy_mode::pixel_buffer_readback && atlas.uploaded_layer_count > 0)
     {
-        uploaded_layer_pixel_buffers =
+        source.uploaded_layer_pixel_buffers =
             read_layers_into_pixel_buffers(atlas.texture, layer_size, atlas.uploaded_layer_count,
-                                           layers_per_pixel_buffer, atlas.limits.buffer_storage_supported);
-        if (!uploaded_layer_pixel_buffers.isEmpty())
+                                           source.layers_per_pixel_buffer, atlas.limits.buffer_storage_supported);
+        if (!source.uploaded_layer_pixel_buffers.isEmpty())
             atlas.texture = GL::Texture2DArray{NoCreate};
         else
             atlas.layer_copy = layer_copy_mode::readback;
     }
 
-    Array<char> uploaded_layer_pixels;
     if (atlas.layer_copy == layer_copy_mode::readback && atlas.uploaded_layer_count > 0)
     {
-        uploaded_layer_pixels = Array<char>{NoInit, layer_bytes * atlas.uploaded_layer_count};
+        source.uploaded_layer_pixels = Array<char>{NoInit, layer_bytes * atlas.uploaded_layer_count};
         for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
             read_layer_pixels(atlas.texture, (Int)i, {{}, layer_size},
                               MutableImageView2D{PixelFormat::RGBA8Unorm, layer_size,
-                                                 uploaded_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
+                                                 source.uploaded_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
         atlas.texture = GL::Texture2DArray{NoCreate};
     }
 
+    source.texture = move(atlas.texture);
+    return source;
+}
+
+void alloc_texture_layers(const Atlas& atlas, AtlasTexture& new_texture, u32 new_layer_count)
+{
+    const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
+    if (atlas.layer_copy == layer_copy_mode::sparse_texture)
+        for (u32 i = 0; i < (u32)atlas.layers.size(); i++)
+            commit_sparse_texture_rows(new_texture.texture, atlas.layer_width, i, 0,
+                                       round_up(atlas.layers[i].next_y, new_texture.virtual_page_height));
+    else
+        fm_assert(fm_check_glcall(new_texture.texture.setStorage(1, GL::TextureFormat::RGBA8,
+                                                                 {layer_size, (Int)new_layer_count})).second());
+    new_texture.texture.setMagnificationFilter(GL::SamplerFilter::Nearest)
+                       .setMinificationFilter(GL::SamplerFilter::Linear)
+                       .setWrapping(GL::SamplerWrapping::ClampToEdge);
+
+    clear_layers_to_magenta(new_texture.texture, layer_size, atlas.uploaded_layer_count, new_layer_count);
+}
+
+void copy_uploaded_layers(const Atlas& atlas, LayerCopySource& source, GL::Texture2DArray& texture)
+{
+    const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
+    const auto layer_bytes = (usize)atlas.layer_width * atlas.layer_height * 4;
+    if (!source.uploaded_layer_pixel_buffers.isEmpty())
     {
-        const with_gl_errors scope{gl_error_policy::error};
-        if (atlas.layer_copy == layer_copy_mode::sparse_texture)
-            for (u32 i = 0; i < (u32)atlas.layers.size(); i++)
-                commit_sparse_texture_rows(new_texture, atlas.layer_width, i, 0,
-                                           round_up(atlas.layers[i].next_y, new_virtual_page_height));
-        else
-            fm_assert(fm_check_glcall(new_texture.setStorage(1, GL::TextureFormat::RGBA8,
-                                                             {layer_size, (Int)new_layer_count})).second());
-        new_texture.setMagnificationFilter(GL::SamplerFilter::Nearest)
-                   .setMinificationFilter(GL::SamplerFilter::Linear)
-                   .setWrapping(GL::SamplerWrapping::ClampToEdge);
-
-        clear_layers_to_magenta(new_texture, layer_size, atlas.uploaded_layer_count, new_layer_count);
-
-        if (!uploaded_layer_pixel_buffers.isEmpty())
+        for (u32 j = 0; j < (u32)source.uploaded_layer_pixel_buffers.size(); j++)
         {
-            for (u32 j = 0; j < (u32)uploaded_layer_pixel_buffers.size(); j++)
-            {
-                const u32 first = j * layers_per_pixel_buffer;
-                const u32 num_layers = Math::min(layers_per_pixel_buffer, atlas.uploaded_layer_count - first);
-                GL::BufferImage3D image{PixelFormat::RGBA8Unorm, {layer_size, (Int)num_layers},
-                                        move(uploaded_layer_pixel_buffers[j]), layer_bytes * num_layers};
-                new_texture.setSubImage(0, {0, 0, (Int)first}, image);
-            }
+            const u32 first = j * source.layers_per_pixel_buffer;
+            const u32 num_layers = Math::min(source.layers_per_pixel_buffer, atlas.uploaded_layer_count - first);
+            GL::BufferImage3D image{PixelFormat::RGBA8Unorm, {layer_size, (Int)num_layers},
+                                    move(source.uploaded_layer_pixel_buffers[j]), layer_bytes * num_layers};
+            texture.setSubImage(0, {0, 0, (Int)first}, image);
         }
-        else if (!uploaded_layer_pixels.isEmpty())
+    }
+    else if (!source.uploaded_layer_pixels.isEmpty())
+    {
+        for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
+            texture.setSubImage(0, {0, 0, (Int)i},
+                                ImageView3D{PixelFormat::RGBA8Unorm, {layer_size, 1},
+                                            source.uploaded_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
+    }
+    else if (atlas.uploaded_layer_count > 0)
+    {
+        const framebuffer_saver saver;
+        const auto rect = Range2Di{{}, layer_size};
+        constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
+        GL::Framebuffer src_fb{rect}, dst_fb{rect};
+        for (Int i = 0; i < (Int)atlas.uploaded_layer_count; i++)
         {
-            for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
-                new_texture.setSubImage(0, {0, 0, (Int)i},
-                                        ImageView3D{PixelFormat::RGBA8Unorm, {layer_size, 1},
-                                                    uploaded_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
+            src_fb.attachTextureLayer(attachment, source.texture, 0, i);
+            dst_fb.attachTextureLayer(attachment, texture, 0, i);
+            GL::Framebuffer::blit(src_fb, dst_fb, rect, GL::FramebufferBlit::Color);
         }
-        else if (atlas.uploaded_layer_count > 0)
-        {
-            const framebuffer_saver saver;
-            const auto rect = Range2Di{{}, layer_size};
-            constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
-            GL::Framebuffer src_fb{rect}, dst_fb{rect};
-            for (Int i = 0; i < (Int)atlas.uploaded_layer_count; i++)
-            {
-                src_fb.attachTextureLayer(attachment, atlas.texture, 0, i);
-                dst_fb.attachTextureLayer(attachment, new_texture, 0, i);
-                GL::Framebuffer::blit(src_fb, dst_fb, rect, GL::FramebufferBlit::Color);
-            }
-        }
-
-        // The copy read undefined data from rows the old texture hadn't committed.
-        if (atlas.virtual_page_height)
-            for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
-                if (const auto y = atlas.layers[i].committed_height; y < atlas.layer_height)
-                    clear_rows_to_magenta(new_texture, atlas.layer_width, i, y, atlas.layer_height);
     }
 
-    if (new_virtual_page_height)
+    // The copy read undefined data from rows the old texture hadn't committed.
+    if (atlas.virtual_page_height)
+        for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
+            if (const auto y = atlas.layers[i].committed_height; y < atlas.layer_height)
+                clear_rows_to_magenta(texture, atlas.layer_width, i, y, atlas.layer_height);
+}
+
+} // namespace
+
+void grow_texture(Atlas& atlas, u32 new_layer_count)
+{
+    fm_assert(atlas.layer_width > 0 && atlas.layer_height > 0);
+    fm_assert(new_layer_count > atlas.texture_layer_capacity && new_layer_count >= atlas.layers.size());
+    atlas.limits.ensure_filled();
+
+    // Texture storage is immutable, so growing the atlas requires a new texture.
+    // Sparse storage is made before the old layers are read, so a failure switches their copy to fallback.
+    auto new_texture = make_atlas_texture(atlas, new_layer_count);
+    auto source = make_layer_copy_source(atlas);
+    {
+        const with_gl_errors scope{gl_error_policy::error};
+        alloc_texture_layers(atlas, new_texture, new_layer_count);
+        copy_uploaded_layers(atlas, source, new_texture.texture);
+    }
+
+    if (new_texture.virtual_page_height)
         for (auto& L : atlas.layers)
-            L.committed_height = round_up(L.next_y, new_virtual_page_height);
-    atlas.virtual_page_height = new_virtual_page_height;
-    atlas.texture = move(new_texture);
-    atlas.texture_layer_capacity = new_capacity;
+            L.committed_height = round_up(L.next_y, new_texture.virtual_page_height);
+    atlas.virtual_page_height = new_texture.virtual_page_height;
+    atlas.texture = move(new_texture.texture);
+    atlas.texture_layer_capacity = new_texture.layer_capacity;
     atlas.texture_gen++;
 }
 
