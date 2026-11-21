@@ -1835,7 +1835,7 @@ task app::scene_cover()
              (u32)Time::to_milliseconds(dt));
 
     // tests_post_update() runs in every editor mode, so a cover_test left alive keeps calling
-    // fill_next_unfilled() every frame of the next scene.
+    // fill_next_unfilled_octant() every frame of the next scene.
     tests().switch_to(floormat::tests::Test::none);
     do_key(key_mode_none);
     co_yield {};

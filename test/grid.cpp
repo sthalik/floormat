@@ -615,9 +615,9 @@ void test_grids_dropped_by_world_move_assign()
         tick(b, pool);
         pool[c].build_if_stale();
     }
-    fm_assert(pool.pooled_count() == 0);
+    fm_assert(pool.free_grid_count() == 0);
     b = move(a);
-    fm_assert(pool.pooled_count() == 1);
+    fm_assert(pool.free_grid_count() == 1);
     tick(b, pool);
 }
 
@@ -911,14 +911,14 @@ void test_pool_reuse_after_collect(u32 div_size)
     tick(w, pool);
     { Pass::Grid g = pool[c]; g.build_if_stale(); }
 
-    const auto before = pool.pooled_count();
+    const auto before = pool.free_grid_count();
 
     c[{0, 0}].wall_north() = wall_image_proto{};
     c.mark_passability_modified();
     w.collect(true, true);
     fm_assert(w.at(C11) == nullptr);
 
-    fm_assert(pool.pooled_count() == before + 1);
+    fm_assert(pool.free_grid_count() == before + 1);
 }
 
 void test_pool_reuse_neighbors_collected(u32 div_size)
@@ -933,7 +933,7 @@ void test_pool_reuse_neighbors_collected(u32 div_size)
     tick(w, pool);
     { (void)pool[*w.at(A)]; (void)pool[*w.at(B)]; }
 
-    const auto before = pool.pooled_count();
+    const auto before = pool.free_grid_count();
 
     { auto& ca = *w.at(A);
       ca[{0, 0}].wall_north() = wall_image_proto{};
@@ -945,7 +945,7 @@ void test_pool_reuse_neighbors_collected(u32 div_size)
     fm_assert(w.at(A) == nullptr);
     fm_assert(w.at(B) == nullptr);
 
-    fm_assert(pool.pooled_count() == before + 2);
+    fm_assert(pool.free_grid_count() == before + 2);
 }
 
 void test_neighbor_lifecycle(u32 div_size)
@@ -966,21 +966,21 @@ void test_neighbor_lifecycle(u32 div_size)
     fm_assert(count_passable_built(pool, *w.at(A)) > 0);
     fm_assert(count_passable_built(pool, *w.at(B)) > 0);
 
-    const auto pooled0 = pool.pooled_count();
+    const auto free_count0 = pool.free_grid_count();
     clear_ground_all(*w.at(B));
     w.collect(true, true);
     fm_assert(w.at(B) == nullptr);
     far.check("collecting");
     tick(w, pool);
-    fm_assert(pool.pooled_count() == pooled0 + 1);
+    fm_assert(pool.free_grid_count() == free_count0 + 1);
     fm_assert(count_passable_built(pool, *w.at(A)) > 0);
 
-    const auto pooled1 = pool.pooled_count();
+    const auto free_count1 = pool.free_grid_count();
     { auto& cb = w[B]; add_ground_all(cb); rebuild_passability(cb); }
     far.check("recreating");
     tick(w, pool);
     fm_assert(count_passable_built(pool, *w.at(B)) > 0);
-    fm_assert(pool.pooled_count() == pooled1 - 1);
+    fm_assert(pool.free_grid_count() == free_count1 - 1);
     fm_assert(count_passable_built(pool, *w.at(A)) > 0);
 }
 
@@ -998,7 +998,7 @@ void test_self_collect_with_neighbor(u32 div_size)
     (void)count_passable_built(pool, *w.at(B));
     const far_grid far{w, pool, A, 2};
 
-    const auto pooled0 = pool.pooled_count();
+    const auto free_count0 = pool.free_grid_count();
     clear_ground_all(*w.at(A));
     w.collect(true, true);
     fm_assert(w.at(A) == nullptr);
@@ -1006,7 +1006,7 @@ void test_self_collect_with_neighbor(u32 div_size)
     far.check("collecting");
 
     tick(w, pool);
-    fm_assert(pool.pooled_count() == pooled0 + 1);
+    fm_assert(pool.free_grid_count() == free_count0 + 1);
     fm_assert(count_passable_built(pool, *w.at(B)) > 0);
 }
 
@@ -1024,13 +1024,13 @@ void test_pool_reuse_across_different_coord(u32 div_size)
     clear_ground_all(*w.at(X));
     w.collect(true, true);
     tick(w, pool);
-    const auto pooled_after_collect = pool.pooled_count();
-    fm_assert(pooled_after_collect >= 1);
+    const auto free_count_after_collect = pool.free_grid_count();
+    fm_assert(free_count_after_collect >= 1);
 
     { auto& c = w[Y]; add_ground_all(c); rebuild_passability(c); }
     tick(w, pool);
     (void)count_passable_built(pool, *w.at(Y));
-    fm_assert(pool.pooled_count() == pooled_after_collect - 1);
+    fm_assert(pool.free_grid_count() == free_count_after_collect - 1);
 }
 
 void test_mark_and_ensure_preserve_frame_no(u32 div_size)
@@ -1058,7 +1058,7 @@ void test_mark_and_ensure_preserve_frame_no(u32 div_size)
     fm_assert(w.frame_no() == frame);
 }
 
-void test_multiple_pooled_items(u32 div_size)
+void test_multiple_free_grids(u32 div_size)
 {
     auto w = world();
     Pass::Pool pool{Pass::Params{div_size, pass_mode::pass}};
@@ -1066,37 +1066,37 @@ void test_multiple_pooled_items(u32 div_size)
     {
         auto& c = w[COORD];
         tick(w, pool);
-        fm_assert(pool.pooled_count() == 0);
+        fm_assert(pool.free_grid_count() == 0);
         (void)pool[c];
-        fm_assert(pool.pooled_count() == 0);
+        fm_assert(pool.free_grid_count() == 0);
     }
     w.collect(true, true); // invalidates c
     tick(w, pool);
-    fm_assert(pool.pooled_count() == 1);
+    fm_assert(pool.free_grid_count() == 1);
     {
         auto& c = w[COORD];
         (void)pool[c];
         auto& cʹ = w[COORD_E];
         (void)pool[cʹ];
-        fm_assert(pool.pooled_count() == 0);
+        fm_assert(pool.free_grid_count() == 0);
     }
     w.collect(true, true); // invalidates c, cʹ
     tick(w, pool);
-    fm_assert(pool.pooled_count() == 2);
+    fm_assert(pool.free_grid_count() == 2);
     {
         auto& c = w[COORD];
         (void)pool[c];
-        fm_assert(pool.pooled_count() == 1);
+        fm_assert(pool.free_grid_count() == 1);
         auto& cʹ = w[COORD_E];
         (void)pool[cʹ];
-        fm_assert(pool.pooled_count() == 0);
+        fm_assert(pool.free_grid_count() == 0);
         auto& cʹʹ = w[COORD_Eʹ];
         (void)pool[cʹʹ];
-        fm_assert(pool.pooled_count() == 0);
+        fm_assert(pool.free_grid_count() == 0);
     }
     w.collect(true, true); // invalidates c, cʹ, cʹʹ
     tick(w, pool);
-    fm_assert(pool.pooled_count() == 3);
+    fm_assert(pool.free_grid_count() == 3);
 }
 
 bool pass_bit(const usize* words, u32 n)
@@ -1167,7 +1167,7 @@ void test_partial_collect_then_collect_survivors(u32 div_size)
     fm_assert(w.at(COORD_Eʹ) != nullptr);
 
     tick(w, pool);
-    fm_assert(pool.pooled_count() == 1);
+    fm_assert(pool.free_grid_count() == 1);
 
     {
         auto& b = w[COORD_E];
@@ -1176,7 +1176,7 @@ void test_partial_collect_then_collect_survivors(u32 div_size)
         tick(w, pool);
         (void)pool[b];
     }
-    fm_assert(pool.pooled_count() == 0);
+    fm_assert(pool.free_grid_count() == 0);
 
     {
         clear_ground_all(*w.at(COORD));
@@ -1188,7 +1188,7 @@ void test_partial_collect_then_collect_survivors(u32 div_size)
     fm_assert(w.at(COORD_Eʹ) == nullptr);
 
     tick(w, pool);
-    fm_assert(pool.pooled_count() == 2);
+    fm_assert(pool.free_grid_count() == 2);
 }
 
 // intra_coord adds half_tile and pack_bit_index_from_coord() floors, so cell i holds exactly the
@@ -2441,11 +2441,11 @@ void test_is_stale_lifecycle()
     w.collect(true, true);
     fm_assert(!w.at(COORD));
     auto& c = w[COORD];
-    const auto pass_pooled = pass_pool.pooled_count(), cover_pooled = cover_pool.pooled_count();
+    const auto pass_free_count = pass_pool.free_grid_count(), cover_free_count = cover_pool.free_grid_count();
     pg = pass_pool[c];
     cg = cover_pool[c];
-    fm_assert(pass_pool.pooled_count() == pass_pooled - 1);
-    fm_assert(cover_pool.pooled_count() == cover_pooled - 1);
+    fm_assert(pass_pool.free_grid_count() == pass_free_count - 1);
+    fm_assert(cover_pool.free_grid_count() == cover_free_count - 1);
     each([&](auto& g) {
         fm_assert(g.is_marked_stale());
         fm_assert(g.is_stale());
@@ -3496,12 +3496,12 @@ void test_object_grid_rebuild()
         g.build_if_stale();
         check_same_cells("after a critter moved and one went", g, w[COORD], params, ids);
     }
-    fm_assert(pool.pooled_count() == 1);
+    fm_assert(pool.free_grid_count() == 1);
     auto w = world();
     arrayAppend(ids, add_critter_at(w, {500, 200}, 32, pass_mode::blocked)->id);
     arrayAppend(ids, add_critter_at(w, {520, 230}, 24, pass_mode::blocked)->id);
     Grid::Object::Grid g = pool[w[COORD]];
-    fm_assert(pool.pooled_count() == 0);
+    fm_assert(pool.free_grid_count() == 0);
     g.build_if_stale();
     check_same_cells("in a grid reused for another chunk", g, w[COORD], params, ids);
 }
@@ -3548,7 +3548,7 @@ void test_grid()
         test_self_collect_with_neighbor(ds);
         test_pool_reuse_across_different_coord(ds);
         test_mark_and_ensure_preserve_frame_no(ds);
-        test_multiple_pooled_items(ds);
+        test_multiple_free_grids(ds);
         test_bitview_read_matches_bit(ds);
         test_partial_collect_then_collect_survivors(ds);
     }

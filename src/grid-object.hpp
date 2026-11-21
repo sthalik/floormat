@@ -105,7 +105,7 @@ public:
 
     const Params& params() const;
     Pass::Pool& pass_pool() const;
-    u32 pooled_count() const;
+    u32 free_grid_count() const;
 };
 
 template<typename T>

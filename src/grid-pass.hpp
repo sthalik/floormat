@@ -129,7 +129,7 @@ public:
     void build_if_stale_all();
 
     const Params& params() const;
-    u32 pooled_count() const;
+    u32 free_grid_count() const;
 };
 
 } // namespace floormat::Grid::Pass

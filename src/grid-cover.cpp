@@ -263,7 +263,7 @@ struct CoverGrid : GridBase
     template<typename T> void fill_octilinear_octant(u32 k, chunk& self, const usize* bits, Vector2 dir,
                                                      i32 sx, i32 sy, float step_px);
     template<typename T> void fill_non_octilinear_octant(u32 k, chunk& self, const usize* bits);
-    bool fill_next_unfilled(chunk& self);
+    bool fill_next_unfilled_octant(chunk& self);
 };
 
 struct CoverPool : Pool<CoverGrid>
@@ -731,7 +731,7 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
     return true;
 }
 
-bool CoverGrid::fill_next_unfilled(chunk& self)
+bool CoverGrid::fill_next_unfilled_octant(chunk& self)
 {
     for (auto k : octant_order)
         if (!(built_octants & (1u << k)))
@@ -846,10 +846,10 @@ bool Grid::ensure_octant(u32 k)
     return grid->fill_octant(k, *grid->c);
 }
 
-bool Grid::fill_next_unfilled()
+bool Grid::fill_next_unfilled_octant()
 {
     grid->build_if_stale();
-    return grid->fill_next_unfilled(*grid->c);
+    return grid->fill_next_unfilled_octant(*grid->c);
 }
 
 u32 Grid::built_octants() const
@@ -872,7 +872,7 @@ void Pool::build_if_stale_all()
 Pool::Pool(Params params, Pass::Pool& pass_pool): pool{new detail::CoverPool{params, pass_pool}} { }
 Pool::~Pool() noexcept { delete pool; }
 Params Pool::params() const { return pool->params; }
-u32 Pool::pooled_count() const { return pool->freelist.size(); }
+u32 Pool::free_grid_count() const { return pool->freelist.size(); }
 u32 Pool::octant_fills() const { return pool->fills; }
 Ns Pool::octant_fill_time() const { return pool->fill_time; }
 
