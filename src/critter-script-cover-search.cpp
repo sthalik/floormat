@@ -12,6 +12,8 @@
 #include "compat/container-traits.inl"
 #include "compat/erase-if.hpp"
 #include "compat/function-view.hpp"
+#include <algorithm>
+#include <utility>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <mg/Range.h>
@@ -32,12 +34,9 @@ constexpr u32 max_search_tiles_per_update = 32;
 constexpr u32 max_search_octant_fills_per_update = 1;
 // path_to calls, each one Dijkstra search. One that found a path took up to 0.71 ms among dense scenery.
 constexpr u32 max_search_dijkstra_calls_per_update = 1;
-// Listed cover spots that is_hidden_from_reach doesn't reject. Each gets cover_end, up to 0.1 ms among dense
+// Listed cover spots that no reach position sees. Each gets cover_end, up to 0.1 ms among dense
 // scenery, and with needs_peek a search for its peek spot, which casts rays and took up to 42 microseconds.
 constexpr u32 max_peek_spot_searches_per_update = 1;
-// is_hidden_at calls made by is_hidden_from_reach, each up to 6 microseconds among dense scenery. Rejecting a spot
-// may take a single call, so a spot that is_hidden_from_reach rejects counts against this cap only.
-constexpr u32 max_search_body_checks_per_update = 64;
 // Updates the search goes on for after keeping a path that is_seen_on_path rejected, before it takes that path.
 constexpr u32 updates_before_exposed_cover = 4;
 
@@ -71,6 +70,7 @@ void cover_search::begin(point from, point threat)
     _fallback_spots = {};
     _exposed_cover = {};
     _dijkstra_search_to_rerun = {};
+    arrayClear(_reach_test_progress.hidden_from);
     _num_failed_dijkstra_calls = 0;
     _num_failed_dijkstra_calls_for_fallback = 0;
     _pass_gen_at_last_tick = 0;
@@ -112,11 +112,18 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     // only for the pass grids it ran in.
     const auto k = Cover::Point::nearest_octant(Vector2(threat - _from));
     const auto& tiles = search_tiles();
-    // A scan that ended holds only spots and a path that take_last_resort and take_exposed_cover test again.
-    const auto changed = _pass_gen_at_last_tick && _tile != tiles.size() &&
+    const auto static_geometry_changed = _pass_gen_at_last_tick &&
         w.max_pass_gen(_from.chunk3(), search_chunk_radius(_from, threat, radius + tile_size_xy, o)) >
             _pass_gen_at_last_tick;
+    // A scan that ended holds only spots and a path that take_last_resort and take_exposed_cover test again.
+    const auto changed = static_geometry_changed && _tile != tiles.size();
     _pass_gen_at_last_tick = w.pass_gen();
+    const auto num_body_checks_at_start = t.counters.num_body_checks;
+    const auto body_checks_left = [&] {
+        return max_search_body_checks_per_update - (t.counters.num_body_checks - num_body_checks_at_start);
+    };
+    if (static_geometry_changed)
+        arrayClear(_reach_test_progress.hidden_from);
     if (_unreachable.is_stale(w, _from))
     {
         _unreachable.clear();
@@ -166,20 +173,21 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
         // With a spot kept for last_resort, a path kept or a rerun waiting, the search ends in a later update than
         // its last spot, since that spot may have used the update's one Dijkstra call.
         const auto n = t.counters.num_dijkstra_calls;
-        auto r = take_last_resort(c, t, o, threat);
-        // A kept in_reach spot, take_exposed_cover and the rerun of a failed path_to call each need a Dijkstra
-        // search, so after a path_to call here they wait for the next update.
-        if (!r && (_fallback_spots.has_cover_spot() || _exposed_cover || _dijkstra_search_to_rerun) &&
-            t.counters.num_dijkstra_calls != n)
-            return {};
-        else if (!r)
-            return {take_exposed_cover(c, t, o, threat), true};
-        else
+        if (auto r = take_last_resort(c, t, o, threat, body_checks_left()))
             return {move(r), true};
+        // Spots take_last_resort kept and a rerun wait for the next update, and so does take_exposed_cover after
+        // a Dijkstra search here.
+        else if (_fallback_spots.has_cover_spot() || _dijkstra_search_to_rerun ||
+                 _exposed_cover && t.counters.num_dijkstra_calls != n)
+            return {};
+        else if (auto e = take_exposed_cover(c, t, o, threat, body_checks_left()); e || !_exposed_cover)
+            return {move(e), true};
+        else
+            return {};
     }
     if (_exposed_cover && !_exposed_updates_left)
     {
-        if (auto r = take_exposed_cover(c, t, o, threat))
+        if (auto r = take_exposed_cover(c, t, o, threat, body_checks_left()))
             return {move(r), true};
         else
             return {};
@@ -190,7 +198,6 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     const auto base = point{_from.coord(), {}} - _from;
     auto fills = max_search_octant_fills_per_update, dijkstra_left = max_search_dijkstra_calls_per_update;
     auto peek_spot_searches_left = max_peek_spot_searches_per_update;
-    u32 num_checks = 0;
     for (auto n = 0u; n < max_search_tiles_per_update; n++)
     {
         if (!_tile_threat)
@@ -233,15 +240,14 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                 _unreachable_until_rescan.add(s.pos);
                 continue;
             }
-            if (!peek_spot_searches_left || num_checks >= max_search_body_checks_per_update ||
-                !at_spot && !dijkstra_left)
+            if (!peek_spot_searches_left || !body_checks_left() || !at_spot && !dijkstra_left)
                 return {};
             if (o.threat_reach)
             {
-                const auto n = t.counters.num_body_checks;
-                const auto hidden = t.is_hidden_from_reach(c, o, threat, s.pos, s.axis);
-                num_checks += t.counters.num_body_checks - n;
-                if (!hidden)
+                const auto v = test_spot_against_reach(c, t, o, threat, s, body_checks_left());
+                if (v == visibility_from_reach::unknown)
+                    return {};
+                else if (v == visibility_from_reach::exposed)
                 {
                     if (o.last_resort >= fallback::in_reach && !_fallback_spots.in_reach)
                         _fallback_spots.in_reach = s;
@@ -314,76 +320,128 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     return {};
 }
 
-// The kept spot if the threat and where it can walk still see none of the npc there, with cover_end() and a path
-// there. At most one path_to call, made when the npc or cover_end() moved.
-auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Script::options& o, point threat)
-    -> Optional<reachable_cover>
+auto cover_search::test_spot_against_reach(critter& c, spot_tests& t, const Cover::Script::options& o,
+                                           point threat, const Cover::Point::spot& s, u32 max_body_checks)
+    -> visibility_from_reach
+{
+    auto& r = _reach_test_progress;
+    if (r.spot.pos != s.pos || r.spot.axis != s.axis || r.body_size != c.bbox_size)
+    {
+        r.spot = s;
+        r.body_size = c.bbox_size;
+        arrayClear(r.hidden_from);
+    }
+    const auto positions = t.reach_positions(c, o, threat);
+    const ArrayView<const point> known = r.hidden_from;
+    if (arrayCapacity(_next_hidden_from) < positions.size())
+        arrayReserve(_next_hidden_from, positions.size() + positions.size()/2);
+    arrayClear(_next_hidden_from);
+    auto is_unknown = false;
+    for (const auto& pt : positions)
+    {
+        if (std::binary_search(known.begin(), known.end(), pt))
+            arrayAppend(_next_hidden_from, pt);
+        else if (!max_body_checks)
+            is_unknown = true;
+        else
+        {
+            max_body_checks--;
+            if (!t.is_hidden_at(c, pt, s.pos, s.axis))
+                return visibility_from_reach::exposed;
+            else
+                arrayAppend(_next_hidden_from, pt);
+        }
+    }
+    std::swap(r.hidden_from, _next_hidden_from);
+    std::sort(r.hidden_from.begin(), r.hidden_from.end());
+    if (is_unknown)
+        return visibility_from_reach::unknown;
+    else
+        return visibility_from_reach::hidden;
+}
+
+// The kept spot with cover_end() and a path there, if no reach position sees the npc there. It stays kept when
+// testing that takes over max_body_checks body checks. At most one path_to call.
+auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Script::options& o, point threat,
+                                      u32 max_body_checks) -> Optional<reachable_cover>
 {
     if (!_exposed_cover)
         return {};
-    auto r = move(*_exposed_cover);
-    _exposed_cover = {};
-    const auto s = r.spot;
-    if (!t.is_hidden_from_reach(c, o, threat, s.pos, s.axis))
+    else if (const auto v = test_spot_against_reach(c, t, o, threat, _exposed_cover->spot, max_body_checks);
+             v == visibility_from_reach::unknown)
         return {};
     else
     {
-        const auto end = t.cover_end(c, o, s, threat);
-        const auto here = c.position();
-        if (s.pos == here || end == here)
-            return reachable_cover{s, end, {}, {}};
-        else if (const auto raw = r.path.path(); end == r.end && !raw.isEmpty() && raw.front() == here)
-            return r;
-        else if (auto path = t.path_to(c, end); path.is_found())
-            return reachable_cover{s, end, move(path), {}};
-        else
+        auto r = move(*_exposed_cover);
+        _exposed_cover = {};
+        if (v == visibility_from_reach::exposed)
             return {};
+        else
+        {
+            const auto s = r.spot;
+            const auto end = t.cover_end(c, o, s, threat);
+            const auto here = c.position();
+            if (s.pos == here || end == here)
+                return reachable_cover{s, end, {}, {}};
+            else if (const auto raw = r.path.path(); end == r.end && !raw.isEmpty() && raw.front() == here)
+                return r;
+            else if (auto path = t.path_to(c, end); path.is_found())
+                return reachable_cover{s, end, move(path), {}};
+            else
+                return {};
+        }
     }
 }
 
-// peekless if the threat and where it can walk still see none of the npc there, else in_reach if the threat alone
-// doesn't, with its cover_end() and a path there. If no path reaches peekless, the next update tries in_reach.
-auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                    point threat) -> Optional<reachable_cover>
+// peekless if no reach position sees the npc there, else in_reach if the threat alone doesn't, with cover_end()
+// and a path there. A spot max_body_checks can't test stays kept, and in_reach does when peekless has no path.
+auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o, point threat,
+                                    u32 max_body_checks) -> Optional<reachable_cover>
 {
     const auto [peekless, in_reach] = _fallback_spots;
-    _fallback_spots = {};
-    Optional<Cover::Point::spot> spot;
-    auto is_hidden_from_reach = true;
-    if (peekless)
-    {
-        const auto& s = *peekless;
-        if (t.is_hidden_from_reach(c, o, threat, s.pos, s.axis))
-            spot = s;
-    }
-    if (!spot && in_reach)
-    {
-        const auto& s = *in_reach;
-        if (t.is_hidden_at(c, threat, s.pos, s.axis))
-        {
-            spot = s;
-            is_hidden_from_reach = false;
-        }
-    }
-    if (!spot)
+    const auto num_body_checks_at_start = t.counters.num_body_checks;
+    const auto v = peekless ? test_spot_against_reach(c, t, o, threat, *peekless, max_body_checks)
+                            : visibility_from_reach::exposed;
+    const auto is_out_of_body_checks = t.counters.num_body_checks - num_body_checks_at_start == max_body_checks;
+    if (v == visibility_from_reach::unknown)
         return {};
-    const auto s = *spot;
-    const auto end = t.cover_end(c, o, s, threat);
-    const auto here = c.position();
-    if (s.pos == here || end == here)
-        return reachable_cover{s, end, {}, {}, is_hidden_from_reach};
-    else if (auto path = t.path_to(c, end); path.is_found())
-        return reachable_cover{s, end, move(path), {}, is_hidden_from_reach};
+    else if (v == visibility_from_reach::exposed && in_reach && is_out_of_body_checks)
+    {
+        _fallback_spots.peekless = {};
+        return {};
+    }
     else
     {
+        _fallback_spots = {};
+        const auto is_hidden_from_reach = v == visibility_from_reach::hidden;
+        Optional<Cover::Point::spot> spot;
         if (is_hidden_from_reach)
-            _fallback_spots.in_reach = in_reach;
-        if (++_num_failed_dijkstra_calls_for_fallback < max_failed_dijkstra_calls)
+            spot = peekless;
+        else if (in_reach && t.is_hidden_at(c, threat, in_reach->pos, in_reach->axis))
+            spot = in_reach;
+        if (!spot)
+            return {};
+        else
         {
-            fm_debug_assert(!_dijkstra_search_to_rerun);
-            _dijkstra_search_to_rerun = failed_dijkstra_search{s.pos, end, true};
+            const auto s = *spot;
+            const auto end = t.cover_end(c, o, s, threat);
+            const auto here = c.position();
+            if (s.pos == here || end == here)
+                return reachable_cover{s, end, {}, {}, is_hidden_from_reach};
+            else if (auto path = t.path_to(c, end); path.is_found())
+                return reachable_cover{s, end, move(path), {}, is_hidden_from_reach};
+            else
+            {
+                if (is_hidden_from_reach)
+                    _fallback_spots.in_reach = in_reach;
+                if (++_num_failed_dijkstra_calls_for_fallback < max_failed_dijkstra_calls)
+                {
+                    fm_debug_assert(!_dijkstra_search_to_rerun);
+                    _dijkstra_search_to_rerun = failed_dijkstra_search{s.pos, end, true};
+                }
+                return {};
+            }
         }
-        return {};
     }
 }
 

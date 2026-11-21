@@ -3469,15 +3469,17 @@ void tick_until_path_checked(cover_scene& s, Cover::spot_tests& t, Cover::cover_
     }
 }
 
-// Calls search.tick() in the 4 updates after the one that kept a path, each of which must reject another path.
+// Calls search.tick() in the 4 updates after the one that kept a path. Each must reject another path or run out
+// of body checks.
 void tick_rejecting_paths(cover_scene& s, Cover::spot_tests& t, Cover::cover_search& search,
                           const Cover::Script::options& o, point from, point threat)
 {
     for (auto i = 0u; i < 4; i++)
     {
-        const auto checks = t.counters.num_path_body_checks;
+        const auto checks = t.counters.num_path_body_checks, body_checks = t.counters.num_body_checks;
         fm_assert(!search.tick(*s.npc, t, o, from, threat).done);
-        fm_assert(t.counters.num_path_body_checks != checks);
+        fm_assert(t.counters.num_path_body_checks != checks ||
+                  t.counters.num_body_checks - body_checks == Cover::max_search_body_checks_per_update);
     }
 }
 
@@ -3498,7 +3500,7 @@ void test_search_takes_exposed_cover()
     tick_rejecting_paths(s, t, search, o, from, threat);
     const auto r = search.tick(*s.npc, t, o, from, threat);
     fm_assert(r.done && r.cover && r.cover->end == exposed_cover_end);
-    fm_assert_equal(5u, t.counters.num_dijkstra_calls);
+    fm_assert_equal(4u, t.counters.num_dijkstra_calls);
     fm_assert(t.is_seen_on_path(*s.npc, o, threat, r.cover->path));
 }
 
@@ -3670,6 +3672,46 @@ void add_long_wall(cover_scene& s)
     add_blocker(s.w, {5, 8}, {16, 240}, {0, -104});
     add_blocker(s.w, {5, 8}, {16, 240}, {0, 104});
     rebuild(s.w);
+}
+
+// Behind add_long_wall's wall with threat_reach 4 tiles, testing a spot against reach_positions() takes more body
+// checks than an update allows. The search stays within the cap and returns a spot no reach position sees.
+void test_search_caps_body_checks_per_update(bool is_threat_walking)
+{
+    cover_scene s;
+    add_long_wall(s);
+    Cover::spot_tests t{s.A, s.threat->id, 0};
+    Cover::cover_search search;
+    const Cover::Script::options o{.threat_reach = 4*(u32)tile_size_xy, .needs_peek = false};
+    const auto from = s.npc->position(), threat0 = s.threat->position();
+    fm_assert(t.reach_positions(*s.npc, o, threat0).size() > Cover::max_search_body_checks_per_update);
+    search.begin(from, threat0);
+    auto threat = threat0;
+    auto is_cap_reached = false;
+    for (auto i = 0u; ; i++)
+    {
+        fm_assert(i < 100);
+        // 8 px per update, east for 16 updates and then west, so the threat stays in the chunk.
+        if (const auto k = (int)(i % 32); is_threat_walking)
+        {
+            threat = threat0 + Vector2i{8*(k < 16 ? k : 32 - k), 0};
+            s.move_threat(threat);
+        }
+        const auto n = t.counters.num_body_checks;
+        const auto r = search.tick(*s.npc, t, o, from, threat);
+        const auto num_body_checks = t.counters.num_body_checks - n;
+        fm_assert(num_body_checks <= Cover::max_search_body_checks_per_update);
+        is_cap_reached |= num_body_checks == Cover::max_search_body_checks_per_update;
+        if (r.done)
+        {
+            fm_assert(r.cover && r.cover->is_hidden_from_reach);
+            const auto& spot = r.cover->spot;
+            for (const auto& pt : t.reach_positions(*s.npc, o, threat))
+                fm_assert(t.is_hidden_at(*s.npc, pt, spot.pos, spot.axis));
+            break;
+        }
+    }
+    fm_assert(is_cap_reached);
 }
 
 // With needs_peek, the npc skips the spots near add_long_wall's middle, which have no peek spot, and hides nearer
@@ -4135,6 +4177,8 @@ void Test::test_cover_point()
     test_unreachable_spots_outside_disc_removed();
     test_search_takes_reachable_fallback_spot();
     test_search_retries_unreachable_spot();
+    test_search_caps_body_checks_per_update(false);
+    test_search_caps_body_checks_per_update(true);
     test_cover_script_rehides(0);
     test_cover_script_rehides(Cover::Script::options{}.threat_reach);
     test_cover_script_needs_peek(false);

@@ -44,9 +44,6 @@ public:
     // Returns the threat's reach, which is threat and points along the edge of the area it can walk to within
     // o.threat_reach px.
     ArrayView<const point> reach_positions(critter& c, const Cover::Script::options& o, point threat);
-    // True when no point of reach_positions() for threat sees a pixel of c's body
-    // centered on pos, flush along axis.
-    bool is_hidden_from_reach(critter& c, const Cover::Script::options& o, point threat, point pos, Vector2i axis);
     // s moved along its face as far as no point of reach_positions() for threat sees a pixel of c there.
     point cover_end(critter& c, const Cover::Script::options& o, const Cover::Point::spot& s, point threat);
     Optional<Cover::Script::peek> peek_spot(critter& c, const Cover::Script::options& o, point from, Vector2i axis,
