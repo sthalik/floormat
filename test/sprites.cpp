@@ -168,7 +168,7 @@ void test_sprites()
     DBG << "sprites: walked" << files.size()
         << "pngs" << png_count
         << "allocated" << alloc_count
-        << "layers" << atlas.texture_layer_count;
+        << "layers" << atlas.layers.size();
 
     if (!atlas.layers.isEmpty())
         DBG << cat("sprites: last layer:", atlas.layers.size()-1) << cat("next_y:", atlas.layers.back().next_y);

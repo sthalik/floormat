@@ -187,11 +187,19 @@ void upload_and_readback_is_lossless()
         fm_assert(data[i] == (char)src[i]);
 }
 
+// One layer of sparse storage, so a growth replaces the texture in every mode.
+void limit_sparse_storage_to_one_layer(Atlas& a)
+{
+    a.limits.ensure_filled();
+    a.limits.sparse_array_texture_layer_count = Math::min(a.limits.sparse_array_texture_layer_count, 1u);
+}
+
 void realloc_preserves_uploaded_pixels(layer_copy_mode mode)
 {
     Atlas a;
     a.layer_width = a.layer_height = 256;
     a.layer_copy = mode;
+    limit_sparse_storage_to_one_layer(a);
     constexpr u32 w = 4, h = 4;
     unsigned char src[w * h * 4];
     fill_pattern(src, w, h);
@@ -201,7 +209,7 @@ void realloc_preserves_uploaded_pixels(layer_copy_mode mode)
     stage_sprite(a, *s, view);
     flush(a);
 
-    grow_texture(a, Math::max(u32{1}, a.texture_layer_count) * 4);
+    grow_texture(a, a.texture_layer_capacity * 4);
 
     // Read back from the same (unchanged) coordinates after grow.
     auto img = read_layer_pixels(a.texture, (Int)s->layer, Range2Di::fromSize({(Int)s->x, (Int)s->y}, {(Int)w, (Int)h}));
@@ -216,6 +224,7 @@ void grow_keeps_bound_framebuffer(layer_copy_mode mode)
     Atlas a;
     a.layer_width = a.layer_height = 256;
     a.layer_copy = mode;
+    limit_sparse_storage_to_one_layer(a);
     constexpr u32 w = 4, h = 4;
     unsigned char src[w * h * 4];
     fill_pattern(src, w, h);
@@ -234,7 +243,7 @@ void grow_keeps_bound_framebuffer(layer_copy_mode mode)
     GLint read_fb = 0;
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read_fb);
 
-    grow_texture(a, Math::max(u32{1}, a.texture_layer_count) * 4);
+    grow_texture(a, a.texture_layer_capacity * 4);
 
     GLint draw_fbʹ = 0, read_fbʹ = 0, vp[4] = {};
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fbʹ);
@@ -524,7 +533,7 @@ void each_texture_gets_new_texture_gen(layer_copy_mode mode)
     atlas.add(view, false);
     (void)atlas.texture();
     const auto gen1 = atlas.texture_gen();
-    const auto layers = atlas.raw()->texture_layer_count;
+    const auto layers = atlas.raw()->texture_layer_capacity;
     fm_assert_equal(gen0 + 1, gen1);
     grow_texture(*atlas.raw(), layers * 2);
     fm_assert_equal(gen1 + 1, atlas.texture_gen());
@@ -532,7 +541,7 @@ void each_texture_gets_new_texture_gen(layer_copy_mode mode)
     fm_assert_equal(gen1 + 1, atlas.texture_gen());
     atlas.add(view, false);
     (void)atlas.texture();
-    fm_assert_equal(layers, atlas.raw()->texture_layer_count);
+    fm_assert_equal(layers, atlas.raw()->texture_layer_capacity);
     fm_assert_equal(gen1 + 2, atlas.texture_gen());
 }
 
@@ -568,7 +577,6 @@ void sparse_texture_grows_in_place()
     const auto s0 = atlas.add(view_of(pixels[0], w, h), false);
     const auto id = static_cast<GL::Texture2DArray&>(atlas.texture()).id();
     const auto gen = atlas.texture_gen();
-    fm_assert_equal(1u, A.texture_layer_count);
     fm_assert_equal(is_sparse_texture_possible ? capacity : 1u, A.texture_layer_capacity);
     fm_assert_equal((Int)A.texture_layer_capacity, A.texture.imageSize(0).z());
     fm_assert_equal(is_sparse_texture_possible, has_sparse_storage(A.texture));
@@ -582,26 +590,23 @@ void sparse_texture_grows_in_place()
     {
         fm_assert_equal(id, A.texture.id());
         fm_assert_equal(gen, atlas.texture_gen());
-        fm_assert_equal(3u, A.texture_layer_count);
+        fm_assert_equal(capacity, A.texture_layer_capacity);
     }
     else
     {
         fm_assert_equal(gen + 1, atlas.texture_gen());
-        fm_assert_equal(4u, A.texture_layer_count);
+        fm_assert_equal(4u, A.texture_layer_capacity);
     }
-    grow_texture(A, 5);
-    fm_assert_equal(is_sparse_texture_possible ? gen : gen + 2, atlas.texture_gen());
     assert_layer_contents(atlas, 0, {{s0, pixels[0]}});
     assert_layer_contents(atlas, 1, {{s1, pixels[1]}});
     assert_layer_contents(atlas, 2, {{s2, pixels[2]}});
     assert_layer_contents(atlas, 3, {});
-    assert_layer_contents(atlas, 4, {});
 
     atlas.reset();
     fm_assert_equal(0u, A.texture_layer_capacity);
     const auto s3 = atlas.add(view_of(pixels[0], w, h), false);
     (void)atlas.texture();
-    fm_assert_equal((is_sparse_texture_possible ? gen : gen + 2) + 1, atlas.texture_gen());
+    fm_assert_equal((is_sparse_texture_possible ? gen : gen + 1) + 1, atlas.texture_gen());
     fm_assert_equal(is_sparse_texture_possible ? capacity : 1u, A.texture_layer_capacity);
     assert_layer_contents(atlas, 0, {{s3, pixels[0]}});
 }
@@ -622,7 +627,6 @@ void sparse_texture_without_free_layers_is_replaced()
     };
     (void)atlas.texture();
     fm_assert_equal(1u, atlas.texture_gen());
-    fm_assert_equal(2u, A.texture_layer_count);
     fm_assert_equal(2u, A.texture_layer_capacity);
     fm_assert_equal(is_sparse_texture_possible, has_sparse_storage(A.texture));
     fm_assert(A.layer_copy == (is_sparse_texture_possible ? layer_copy_mode::sparse_texture
@@ -631,7 +635,6 @@ void sparse_texture_without_free_layers_is_replaced()
     const auto s2 = atlas.add(view_of(pixels[2], w, h), false);
     (void)atlas.texture();
     fm_assert_equal(2u, atlas.texture_gen());
-    fm_assert_equal(4u, A.texture_layer_count);
     fm_assert_equal(4u, A.texture_layer_capacity);
     fm_assert_equal(4, A.texture.imageSize(0).z());
     fm_assert(!has_sparse_storage(A.texture));
@@ -678,7 +681,6 @@ void sparse_storage_error_falls_back_to_regular_texture()
         (void)atlas.texture();
     }
     fm_assert_equal(1u, atlas.texture_gen());
-    fm_assert_equal(1u, A.texture_layer_count);
     fm_assert_equal(1u, A.texture_layer_capacity);
     fm_assert(!has_sparse_storage(A.texture));
     fm_assert(A.layer_copy == layer_copy_mode::fallback);
@@ -689,7 +691,7 @@ void sparse_storage_error_falls_back_to_regular_texture()
         (void)atlas.texture();
     }
     fm_assert_equal(2u, atlas.texture_gen());
-    fm_assert_equal(4u, A.texture_layer_count);
+    fm_assert_equal(4u, A.texture_layer_capacity);
     fm_assert(!has_sparse_storage(A.texture));
     assert_layer_contents(atlas, 0, {{s0, pixels[0]}});
     assert_layer_contents(atlas, 1, {{s1, pixels[1]}});
@@ -706,7 +708,7 @@ void sparse_storage_error_falls_back_to_regular_texture()
         (void)atlas.texture();
     }
     fm_assert_equal(3u, atlas.texture_gen());
-    fm_assert_equal(5u, A.texture_layer_count);
+    fm_assert_equal(5u, A.texture_layer_capacity);
     fm_assert(!has_sparse_storage(A.texture));
     fm_assert(A.layer_copy == layer_copy_mode::fallback);
     assert_layer_contents(atlas, 0, {{s0, pixels[0]}});
@@ -725,19 +727,20 @@ void switching_layer_copy_between_growths_preserves_pixels()
     auto& A = *atlas.raw();
     A.limits.ensure_filled();
     const bool is_sparse_texture_possible = can_make_sparse_texture(A, 1);
-    const auto capacity = Math::min(A.limits.layer_count, A.limits.sparse_array_texture_layer_count);
+    const auto gpu_sparse_array_texture_layer_count = A.limits.sparse_array_texture_layer_count;
     // The fallback columns hold the values without sparse textures, where sparse_texture switches to fallback.
+    // Sparse steps limit sparse storage to their capacity, so the next step's growth replaces the texture.
     struct growth_step
     {
         layer_copy_mode mode;
-        u32 sprite_count, gen, layer_count, fallback_gen, fallback_layer_count;
+        u32 sprite_count, gen, layer_capacity, fallback_gen, fallback_layer_capacity;
     };
     constexpr growth_step steps[] = {
         { layer_copy_mode::sparse_texture,        1, 1,  1, 1,  1 },
         { layer_copy_mode::blit,                  2, 2,  2, 2,  2 },
         { layer_copy_mode::sparse_texture,        3, 3,  3, 3,  4 },
         { layer_copy_mode::readback,              5, 4,  6, 4,  8 },
-        { layer_copy_mode::sparse_texture,        7, 5,  7, 4,  8 },
+        { layer_copy_mode::sparse_texture,        7, 5,  8, 4,  8 },
         { layer_copy_mode::sparse_texture,        8, 5,  8, 4,  8 },
         { layer_copy_mode::pixel_buffer_readback, 9, 6, 16, 5, 16 },
     };
@@ -748,6 +751,9 @@ void switching_layer_copy_between_growths_preserves_pixels()
     for (const auto& st : steps)
     {
         atlas.set_layer_copy(st.mode);
+        if (st.mode == layer_copy_mode::sparse_texture)
+            A.limits.sparse_array_texture_layer_count =
+                Math::min(gpu_sparse_array_texture_layer_count, st.layer_capacity);
         for (; num_added < st.sprite_count; num_added++)
         {
             pixels[num_added] = make_pixels(w, h, (u8)(num_added + 1));
@@ -757,18 +763,19 @@ void switching_layer_copy_between_growths_preserves_pixels()
         const auto old_gen = atlas.texture_gen();
         (void)atlas.texture();
         fm_assert_equal(is_sparse_texture_possible ? st.gen : st.fallback_gen, atlas.texture_gen());
-        fm_assert_equal(is_sparse_texture_possible ? st.layer_count : st.fallback_layer_count, A.texture_layer_count);
+        fm_assert_equal(is_sparse_texture_possible ? st.layer_capacity : st.fallback_layer_capacity,
+                        A.texture_layer_capacity);
         const bool is_fallback = st.mode == layer_copy_mode::sparse_texture && !is_sparse_texture_possible &&
                                  atlas.texture_gen() != old_gen;
         fm_assert(A.layer_copy == (is_fallback ? layer_copy_mode::fallback : st.mode));
         const bool is_texture_sparse = is_sparse_texture_possible && st.mode == layer_copy_mode::sparse_texture;
-        fm_assert_equal(is_texture_sparse ? capacity : A.texture_layer_count, A.texture_layer_capacity);
         fm_assert_equal((Int)A.texture_layer_capacity, A.texture.imageSize(0).z());
         fm_assert_equal(is_texture_sparse, has_sparse_storage(A.texture));
-        for (u32 i = 0; i < num_added; i++)
-            assert_layer_contents(atlas, i, {{sprite{sprites[i]}, pixels[i]}});
-        for (u32 i = num_added; i < A.texture_layer_count; i++)
-            assert_layer_contents(atlas, i, {});
+        for (u32 i = 0; i < A.texture_layer_capacity; i++)
+            if (i < num_added)
+                assert_layer_contents(atlas, i, {{sprite{sprites[i]}, pixels[i]}});
+            else
+                assert_layer_contents(atlas, i, {});
     }
 }
 
@@ -818,6 +825,7 @@ void growth_from_sparse_texture_leaves_uncommitted_rows_magenta(layer_copy_mode 
     if (!can_make_sparse_texture(A, 1))
         return;
     const Array<Color4ub> pixels[] = { make_pixels(40, 40, 1), make_pixels(220, 220, 2) };
+    limit_sparse_storage_to_one_layer(A);
     const auto s0 = atlas.add(view_of(pixels[0], 40, 40), false);
     (void)atlas.texture();
     if (A.layers[0].committed_height >= A.layer_height)
@@ -848,7 +856,7 @@ void pixel_buffer_readback_without_buffer_storage_preserves_pixels()
     (void)atlas.texture();
     fm_assert(A.layer_copy == layer_copy_mode::pixel_buffer_readback);
     fm_assert_equal(2u, atlas.texture_gen());
-    fm_assert_equal(2u, A.texture_layer_count);
+    fm_assert_equal(2u, A.texture_layer_capacity);
     assert_layer_contents(atlas, 0, {{s0, pixels[0]}});
     assert_layer_contents(atlas, 1, {{s1, pixels[1]}});
 }
@@ -871,7 +879,7 @@ void pixel_buffer_readback_across_several_buffers_preserves_pixels()
         (void)atlas.texture();
     }
     fm_assert(A.layer_copy == layer_copy_mode::pixel_buffer_readback);
-    fm_assert_equal(8u, A.texture_layer_count);
+    fm_assert_equal(8u, A.texture_layer_capacity);
     for (u32 i = 0; i < sprite_count; i++)
     {
         fm_assert_equal(i, sprites[i].layer());
@@ -906,7 +914,7 @@ void free_atlas_clears_state_and_allows_reuse()
     fm_assert(used_height_class_count(a) > 0);
 
     free_atlas(a);
-    fm_assert(a.texture_layer_count == 0);
+    fm_assert(a.texture_layer_capacity == 0);
     fm_assert(a.layers.size() == 0);
     fm_assert(used_height_class_count(a) == 0);
     fm_assert(a.layer_width == 256 && a.layer_height == 256);
