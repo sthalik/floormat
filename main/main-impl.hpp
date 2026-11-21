@@ -157,7 +157,7 @@ private:
     static Configuration make_conf(const fm_settings& s);
     static GLConfiguration make_gl_conf(const fm_settings& s);
     static WindowFlags make_window_flags(const fm_settings& s);
-    static GL::Version probe_max_gl_version();
+    static GLConfiguration probe_gl_conf();
 };
 
 } // namespace floormat

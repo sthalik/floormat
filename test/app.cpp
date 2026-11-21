@@ -3,6 +3,7 @@
 #include "src/log.hpp"
 #include "compat/any-of.hpp"
 #include "compat/array-size.hpp"
+#include "compat/broken-gl-extensions.hpp"
 #include "compat/container-traits.inl"
 #include "compat/debug.hpp"
 #include "compat/erase-if.hpp"
@@ -140,6 +141,23 @@ struct options
 
 bool has_gl_context() { return gl_context; }
 
+namespace {
+
+FM_APPLICATION::Configuration make_gl_conf()
+{
+    disable_zink_descriptor_buffers();
+    FM_APPLICATION::Configuration conf;
+    Platform::WindowlessGLContext context{conf};
+    if (context.isCreated() && context.makeCurrent())
+    {
+        conf.addDisabledExtensions(get_broken_gl_extensions());
+        context.release();
+    }
+    return conf;
+}
+
+} // namespace
+
 struct App final : private FM_APPLICATION
 {
     using Application = FM_APPLICATION;
@@ -160,7 +178,15 @@ App::App(const Arguments& arguments, options&& opts):
 {
     if (!opts.no_gl)
     {
-        createContext();
+#if !defined __APPLE__ && !defined _WIN32 && !defined MAGNUM_TARGET_EGL
+        // Xvfb resets when its last client disconnects, and XOpenDisplay fails during the reset.
+        Display* const display = XOpenDisplay(nullptr);
+#endif
+        createContext(make_gl_conf());
+#if !defined __APPLE__ && !defined _WIN32 && !defined MAGNUM_TARGET_EGL
+        if (display)
+            XCloseDisplay(display);
+#endif
         gl_context = true;
     }
 }
