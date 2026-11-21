@@ -93,6 +93,10 @@ struct finder
     /// True when threat sees no pixel of a body of body_size centered on s.pos, tested as find
     /// tests its spots.
     bool is_hidden_at(world& w, point threat, const spot& s, Vector2ui body_size);
+    /// True when threat, at its distance from s.pos in each of the octants/2 octants on either side of its own,
+    /// sees no pixel of a body of body_size centered on s.pos, tested as find tests its spots.
+    bool is_hidden_from_threat_in_neighbor_octants(world& w, point threat, const spot& s, Vector2ui body_size,
+                                                   u8 octants);
     /// q.pos, flush against a blocker along axis, moved along its face as find moves its spots for q.
     /// The result is hidden from each point of also_from too, or is q.pos.
     point move_to_cover_end(world& w, const query& q, Vector2i axis, const Search::pred& pred,

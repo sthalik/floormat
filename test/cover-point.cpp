@@ -3689,6 +3689,49 @@ void test_search_drops_exposed_cover_now_seen()
     fm_assert(!search.tick(*s.npc, t, o, from, moved).done);
 }
 
+// Behind the pillar at (668, 512) the npc is hidden from the threat, so every path to the wall's west face is
+// exposed. After the threat moves within its octant, the threat in a neighbor octant sees the kept spot.
+void test_search_drops_exposed_cover_seen_by_threat_in_neighbor_octant()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {8, 8}, {16, 96});
+    add_blocker(w, {10, 8}, {32, 32}, {28, 0});
+    rebuild(w);
+    const auto threat_critter = add_critter(w, point{ch, {14, 8}, {}});
+    const auto npc = add_critter(w, point{ch, {10, 8}, {}});
+    astar A;
+    Cover::spot_tests t{A, threat_critter->id, 0};
+    Cover::cover_search search;
+    const Cover::Script::options o{.threat_reach = 0, .last_resort = fallback::none};
+    const auto from = npc->position(), threat = threat_critter->position(), moved = threat + Vector2i{40, -24};
+    const Cover::Point::spot kept{point{ch, {8, 7}, {-20, 30}}, {1, 0}};
+    fm_assert(Cover::Point::nearest_octant(Vector2(moved - from)) ==
+              Cover::Point::nearest_octant(Vector2(threat - from)));
+    fm_assert(t.is_hidden_at(*npc, moved, kept.pos, kept.axis));
+    fm_assert(!t.is_hidden_from_threat_in_neighbor_octants(*npc, o, moved, kept));
+    search.begin(from, threat);
+    for (auto i = 0u; !t.counters.num_path_body_checks; i++)
+    {
+        fm_assert(i < 20);
+        fm_assert(!search.tick(*npc, t, o, from, threat).done);
+    }
+    {
+        auto i = threat_critter->index();
+        threat_critter->teleport_to(i, moved, rotation_COUNT);
+    }
+    for (auto i = 0u; ; i++)
+    {
+        fm_assert(i < 400);
+        if (const auto r = search.tick(*npc, t, o, from, moved); r.done)
+        {
+            fm_assert(!r.cover || t.is_hidden_at(*npc, moved, r.cover->spot.pos, r.cover->spot.axis) &&
+                                  t.is_hidden_from_threat_in_neighbor_octants(*npc, o, moved, r.cover->spot));
+            break;
+        }
+    }
+}
+
 // In rehides_round_6_scene the search holds the in_reach spot (148, 524) when it rejects the path to (468, 507).
 // Without block {3,8} the threat sees (148, 524), so the search returns the rejected path.
 void test_search_takes_exposed_cover_over_seen_fallback()
@@ -4349,6 +4392,7 @@ void Test::test_cover_point()
     test_seen_on_path();
     test_search_takes_exposed_cover();
     test_search_drops_exposed_cover_now_seen();
+    test_search_drops_exposed_cover_seen_by_threat_in_neighbor_octant();
     test_search_takes_exposed_cover_over_seen_fallback();
     test_fallback_after_exposed_cover_ends_search();
     test_unreachable_spots_outside_disc_removed();

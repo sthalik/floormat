@@ -753,6 +753,16 @@ bool finder::is_hidden_at(world& w, point threat, const spot& s, Vector2ui body_
     return X.is_hidden_from(X.T, X.P, s.axis, I.rects);
 }
 
+bool finder::is_hidden_from_threat_in_neighbor_octants(world& w, point threat, const spot& s, Vector2ui body_size,
+                                                       u8 octants)
+{
+    fm_assert(s.pos.chunk3().z == threat.chunk3().z);
+    auto& I = *impl;
+    visibility_tests X{w, {s.pos, body_size, threat, 0, octants}, Search::never_continue, I.runs,
+                       I.neighbor_octant_rects, I.end_rects};
+    return X.is_hidden_from_threat_in_neighbor_octants(X.P, s.axis);
+}
+
 point finder::move_to_cover_end(world& w, const query& q, Vector2i axis, const Search::pred& pred,
                                ArrayView<const point> also_from)
 {

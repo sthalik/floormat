@@ -41,6 +41,10 @@ public:
     bool has_line_of_sight(critter& c, const Cover::Script::options& o, point from, point to);
     // True when threat sees no pixel of c's body centered on pos, flush against a blocker along axis.
     bool is_hidden_at(critter& c, point threat, point pos, Vector2i axis);
+    // True when the threat, at its distance from s.pos in each of the o.octants/2 octants on either side of its
+    // own, sees no pixel of c's body there. Counts 2*(o.octants/2) body checks, the most it makes.
+    bool is_hidden_from_threat_in_neighbor_octants(critter& c, const Cover::Script::options& o, point threat,
+                                                   const Cover::Point::spot& s);
     // Returns the threat's reach, which is threat and points along the edge of the area it can walk to within
     // o.threat_reach px.
     ArrayView<const point> reach_positions(critter& c, const Cover::Script::options& o, point threat);
