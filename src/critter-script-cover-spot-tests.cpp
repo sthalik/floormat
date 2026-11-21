@@ -42,6 +42,14 @@ bool spot_tests::is_hidden_at(critter& c, point threat, point pos, Vector2i axis
     return _finder.is_hidden_at(c.world(), threat, {pos, axis}, Vector2ui(c.bbox_size));
 }
 
+bool spot_tests::is_hidden_from_threat_in_neighbor_octants(critter& c, const Cover::Script::options& o,
+                                                           point threat, const Cover::Point::spot& s)
+{
+    counters.num_body_checks += 2*(o.octants/2u);
+    return _finder.is_hidden_from_threat_in_neighbor_octants(c.world(), threat, s, Vector2ui(c.bbox_size),
+                                                             o.octants);
+}
+
 ArrayView<const point> spot_tests::reach_positions(critter& c, const Cover::Script::options& o, point threat)
 {
     Optional<u32> bbox_side;

@@ -360,15 +360,23 @@ auto cover_search::test_spot_against_reach(critter& c, spot_tests& t, const Cove
         return visibility_from_reach::hidden;
 }
 
-// The kept spot with cover_end() and a path there, if no reach position sees the npc there. It stays kept when
-// testing that takes over max_body_checks body checks. At most one path_to call.
+// The kept spot with cover_end() and a path there, if hidden from reach and from the threat in neighbor octants.
+// It stays kept when testing that takes over max_body_checks body checks. At most one path_to call.
 auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Script::options& o, point threat,
                                       u32 max_body_checks) -> Optional<reachable_cover>
 {
     if (!_exposed_cover)
         return {};
-    else if (const auto v = test_spot_against_reach(c, t, o, threat, _exposed_cover->spot, max_body_checks);
-             v == visibility_from_reach::unknown)
+    const auto num_body_checks_at_start = t.counters.num_body_checks;
+    auto v = test_spot_against_reach(c, t, o, threat, _exposed_cover->spot, max_body_checks);
+    if (v == visibility_from_reach::hidden)
+    {
+        if (t.counters.num_body_checks - num_body_checks_at_start + 2*(o.octants/2u) > max_body_checks)
+            return {};
+        else if (!t.is_hidden_from_threat_in_neighbor_octants(c, o, threat, _exposed_cover->spot))
+            v = visibility_from_reach::exposed;
+    }
+    if (v == visibility_from_reach::unknown)
         return {};
     else
     {
@@ -393,19 +401,30 @@ auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Sc
     }
 }
 
-// peekless if no reach position sees the npc there, else in_reach if the threat alone doesn't, with cover_end()
-// and a path there. A spot max_body_checks can't test stays kept, and in_reach does when peekless has no path.
+// peekless if hidden from reach, else in_reach if hidden from the threat. Both must be hidden from the threat in
+// neighbor octants too. A spot max_body_checks can't test stays kept, and in_reach does when peekless has no path.
 auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o, point threat,
                                     u32 max_body_checks) -> Optional<reachable_cover>
 {
     const auto [peekless, in_reach] = _fallback_spots;
     const auto num_body_checks_at_start = t.counters.num_body_checks;
-    const auto v = peekless ? test_spot_against_reach(c, t, o, threat, *peekless, max_body_checks)
-                            : visibility_from_reach::exposed;
-    const auto is_out_of_body_checks = t.counters.num_body_checks - num_body_checks_at_start == max_body_checks;
+    const auto body_checks_left = [&] {
+        return max_body_checks - (t.counters.num_body_checks - num_body_checks_at_start);
+    };
+    const auto num_neighbor_octant_body_checks = 2*(o.octants/2u);
+    auto v = peekless ? test_spot_against_reach(c, t, o, threat, *peekless, max_body_checks)
+                      : visibility_from_reach::exposed;
+    if (v == visibility_from_reach::hidden)
+    {
+        if (body_checks_left() < num_neighbor_octant_body_checks)
+            return {};
+        else if (!t.is_hidden_from_threat_in_neighbor_octants(c, o, threat, *peekless))
+            v = visibility_from_reach::exposed;
+    }
     if (v == visibility_from_reach::unknown)
         return {};
-    else if (v == visibility_from_reach::exposed && in_reach && is_out_of_body_checks)
+    else if (v == visibility_from_reach::exposed && in_reach &&
+             body_checks_left() < 1 + num_neighbor_octant_body_checks)
     {
         _fallback_spots.peekless = {};
         return {};
@@ -417,7 +436,8 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
         Optional<Cover::Point::spot> spot;
         if (is_hidden_from_reach)
             spot = peekless;
-        else if (in_reach && t.is_hidden_at(c, threat, in_reach->pos, in_reach->axis))
+        else if (in_reach && t.is_hidden_at(c, threat, in_reach->pos, in_reach->axis) &&
+                 t.is_hidden_from_threat_in_neighbor_octants(c, o, threat, *in_reach))
             spot = in_reach;
         if (!spot)
             return {};
