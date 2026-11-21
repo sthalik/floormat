@@ -114,7 +114,7 @@ constexpr Params::Params(u32 div_size, u32 bbox_size, pass_mode min_pass):
     div_count = chunk_size_xy / detail::calc_div_size(div_size, this->bbox_size);
 }
 
-// Its grids leave out critters and dynamic scenery, which Grid::Object::Pool holds.
+// Its grids leave out critters, which Grid::Object::Pool holds.
 class Pool final
 {
     detail::PassPool* pool;

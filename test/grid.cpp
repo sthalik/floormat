@@ -2836,16 +2836,16 @@ Range2Di cells_near(chunk& c, const object& o, int d, u32 bbox_size, int dc)
     return {lo, hi};
 }
 
-// Every cell of c within reach of dynamic_object is passable under p at each of its positions exactly when s holds
+// Every cell of c within reach of changed_object is passable under p at each of its positions exactly when s holds
 // it and o doesn't block it. Elsewhere o blocks nothing.
 void check_cells(const char* what, chunk& c, const Pass::Params& params, const Pass::Grid& s,
                  Grid::Object::Grid& o, const char* pred_name, const Search::pred& p, Array<bool>& entry_blocked,
-                 const object* dynamic_object)
+                 const object* changed_object)
 {
     (void)o.blocked_objects(p, entry_blocked);
     fm_assert(!o.uses_u32());
     const auto d = (int)params.div_size(), dc = (int)s.div_count();
-    const auto window = dynamic_object ? cells_near(c, *dynamic_object, d, params.bbox_size, dc) : Range2Di{};
+    const auto window = changed_object ? cells_near(c, *changed_object, d, params.bbox_size, dc) : Range2Di{};
     const auto nbs = c.world().neighbors(c.coord());
     for (int j = 0; j < dc; j++)
         for (int i = 0; i < dc; i++)
@@ -2895,7 +2895,7 @@ void test_registry_grids_after_door_changes()
         Pass::Pool{pass_params[1]},
     };
     Array<bool> entry_blocked;
-    const object* dynamic_object = nullptr;
+    const object* changed_object = nullptr;
     const auto check_pass = [&](const char* what) {
         Grid::GridRegistry fresh;
         for (auto j = 0u; const auto& p : pass_params)
@@ -2920,9 +2920,9 @@ void test_registry_grids_after_door_changes()
                         fm_abort("a pass grid differs from a fresh one");
                     }
                 check_cells(what, c, p, ga, go, "without_critters", Search::without_critters, entry_blocked,
-                            dynamic_object);
+                            changed_object);
                 check_cells(what, c, p, ga, go, "never_continue", Search::never_continue, entry_blocked,
-                            dynamic_object);
+                            changed_object);
             });
         }
     };
@@ -2951,7 +2951,24 @@ void test_registry_grids_after_door_changes()
             }
         });
     };
-    // A door's changes stamp only objects_gen(), so pass and cover grids stay current.
+    // A door's changes stamp pass_gen(), so every grid within one chunk of a stamped one goes stale, and every cover
+    // grid within two.
+    const auto door_changed = [&](std::initializer_list<chunk_coords_> stamped) {
+        for_chunks([&](chunk& c, i16 x, i16 y) {
+            auto dist = (int)limits<i16>::max;
+            for (auto s : stamped)
+                dist = Math::min(dist, Math::max(Math::abs(x - s.x), Math::abs(y - s.y)));
+            fm_assert_equal(dist == 0, c.is_passability_modified());
+            for (auto j = 0u; const auto& p : pass_params)
+            {
+                fm_assert_equal(dist <= 1, reg.pass_pool(p)[c].is_stale());
+                fm_assert_equal(dist <= 1, reg.object_pool(p)[c].is_stale());
+                fm_assert_equal(dist <= 1, unregistered[j++][c].is_stale());
+            }
+            fm_assert_equal(dist <= 2, reg.cover_pool(cover_params)[c].is_stale());
+        });
+    };
+    // A critter's changes stamp only objects_gen(), so pass and cover grids stay current.
     // Object grids go stale within one chunk of a stamped one.
     const auto changed = [&](std::initializer_list<chunk_coords_> stamped) {
         for_chunks([&](chunk& c, i16 x, i16 y) {
@@ -2968,43 +2985,6 @@ void test_registry_grids_after_door_changes()
             fm_assert(!reg.cover_pool(cover_params)[c].is_stale());
         });
     };
-    // set_bbox() moves the door's RTree entry, whose id holds the pass mode, and a rebuilt tree must agree.
-    const auto check_tree = [&](const char* what) {
-        u32 n = 0;
-        for (const auto& p : pass_params)
-            for_chunks([&](chunk&, i16, i16) { n += p.div_count * p.div_count; });
-        auto bits = Array<bool>{ValueInit, n};
-        for (auto rebuilt : { false, true })
-        {
-            if (rebuilt)
-                for_chunks([](chunk& c, i16, i16) { c.mark_passability_modified(); });
-            auto k = 0u;
-            for (const auto& p : pass_params)
-            {
-                const auto d = (int)p.div_size(), dc = (int)p.div_count;
-                for_chunks([&](chunk& c, i16 x, i16 y) {
-                    const auto window = cells_near(c, *dynamic_object, d, p.bbox_size, dc);
-                    const auto nbs = w.neighbors(c.coord());
-                    for (int j = 0; j < dc; j++)
-                        for (int i = 0; i < dc; i++, k++)
-                        {
-                            if (!window.contains({i, j}))
-                                continue;
-                            const bool v = cell_is_passable(c, nbs, i, j, d, p.bbox_size, Search::without_critters,
-                                                            p.min_pass);
-                            if (!rebuilt)
-                                bits[k] = v;
-                            else if (bits[k] != v)
-                            {
-                                ERR << "!!! fatal:" << what << "min_pass" << (int)p.min_pass << "chunk" << x << y
-                                    << "cell" << i << j << "passable" << bits[k] << "but rebuilt" << v;
-                                fm_abort("a door's moved RTree entry differs from a rebuilt tree");
-                            }
-                        }
-                });
-            }
-        }
-    };
     check("before the door");
 
     auto proto = loader.scenery("door1");
@@ -3013,20 +2993,20 @@ void test_registry_grids_after_door_changes()
     const auto doorʹ = w.make_scenery(w.make_id(), {COORD, local_coords{15, 8}}, move(proto));
     fm_assert(doorʹ->scenery_type() == scenery_type::door && doorʹ->is_dynamic());
     auto& door = static_cast<door_scenery&>(*doorʹ);
-    dynamic_object = &door;
-    changed({COORD});
+    changed_object = &door;
+    door_changed({COORD});
     check("placed");
 
     auto i = door.index();
     door.teleport_to(i, {COORD, local_coords{12, 8}}, door.offset, door.r);
-    changed({COORD});
+    door_changed({COORD});
     check("moved within the chunk");
     door.teleport_to(i, {COORD_E, local_coords{2, 8}}, door.offset, door.r);
     fm_assert(&door.chunk() == &w[COORD_E]);
-    changed({COORD, COORD_E});
+    door_changed({COORD, COORD_E});
     check("moved into the east chunk");
     door.rotate(i, rotation::W);
-    changed({COORD_E});
+    door_changed({COORD_E});
     check("turned");
 
     const auto toggle = [&] {
@@ -3039,18 +3019,16 @@ void test_registry_grids_after_door_changes()
     };
     toggle();
     fm_assert(door.pass == pass_mode::pass);
-    changed({COORD_E});
-    check_tree("opened");
+    door_changed({COORD_E});
     check("opened");
     toggle();
     fm_assert(door.pass == pass_mode::blocked);
-    changed({COORD_E});
-    check_tree("closed");
+    door_changed({COORD_E});
     check("closed");
 
     door.chunk().remove_object(door, door.index());
-    dynamic_object = nullptr;
-    changed({COORD_E});
+    changed_object = nullptr;
+    door_changed({COORD_E});
     check("removed");
 
     const auto pass_gen = w[COORD].pass_gen(), pass_gen_e = w[COORD_E].pass_gen();
@@ -3058,7 +3036,7 @@ void test_registry_grids_after_door_changes()
     critter_proto cp;
     cp.name = "npc"_s;
     const auto npc = w.make_object<critter>(w.make_id(), {COORD, local_coords{15, 8}}, move(cp));
-    dynamic_object = &*npc;
+    changed_object = &*npc;
     changed({COORD});
     check_pass("critter placed");
     for (const auto& p : pass_params)
@@ -3092,7 +3070,7 @@ void test_grids_after_critter_changes()
     Pass::Pool critter_cover_pass{Pass::Params{16, pass_mode::shoot_through}};
     Grid::Cover::Pool critter_cover{Grid::Cover::Params{16}, critter_cover_pass};
     Array<bool> entry_blocked;
-    const object* dynamic_object = nullptr;
+    const object* changed_object = nullptr;
     const auto build = [&] {
         for (auto* pool : { &static_pool, &critter_pool })
             for_chunks([&](chunk& c, i16, i16) { (*pool)[c].build_if_stale(); });
@@ -3126,7 +3104,7 @@ void test_grids_after_critter_changes()
                     fm_abort("a pass grid differs from the static one");
                 }
             check_cells(what, c, params, s, o, "never_continue", Search::never_continue, entry_blocked,
-                        dynamic_object);
+                        changed_object);
         });
     };
     build();
@@ -3135,7 +3113,7 @@ void test_grids_after_critter_changes()
     cp.name = "npc"_s;
     cp.bbox_size = {24, 12};
     const auto npc = w.make_object<critter>(w.make_id(), {COORD, local_coords{15, 8}}, move(cp));
-    dynamic_object = &*npc;
+    changed_object = &*npc;
     changed("placed", {COORD});
     auto i = npc->index();
     npc->teleport_to(i, {COORD, local_coords{12, 8}}, {}, npc->r);
@@ -3149,7 +3127,7 @@ void test_grids_after_critter_changes()
     npc->rotate(i, rotation::W);
     changed("turned", {COORD_E});
     npc->chunk().remove_object(*npc, npc->index());
-    dynamic_object = nullptr;
+    changed_object = nullptr;
     changed("removed", {COORD_E});
 }
 

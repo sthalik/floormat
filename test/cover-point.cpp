@@ -1494,7 +1494,7 @@ bptr<scenery> add_closed_door(world& w, local_coords tile, Optional<Vector2ub> b
     return door;
 }
 
-// Opens a door that add_closed_door made. That moves no pass_gen().
+// Opens a door that add_closed_door made. That moves pass_gen().
 void open_door(world& w, const bptr<scenery>& doorʹ)
 {
     auto& door = static_cast<door_scenery&>(*doorʹ);
@@ -1506,7 +1506,7 @@ void open_door(world& w, const bptr<scenery>& doorʹ)
         fm_assert(n < 100);
         door.update(doorʹ, i, Second);
     }
-    fm_assert(door.pass == pass_mode::pass && w[ch].pass_gen() == pass_gen);
+    fm_assert(door.pass == pass_mode::pass && w[ch].pass_gen() > pass_gen);
 }
 
 // cover_scene's npc, held hidden or exposed, stays without a body check while nothing changes. Its wall then goes
@@ -2107,7 +2107,7 @@ void test_cover_script_no_path_far_change()
 }
 
 // Two scenes of start_no_path_search with a closed door far from the npc's paths, which then opens in one.
-// That moves objects_gen() alone, so the search goes on without trying the walled-in spot again.
+// That moves pass_gen(), so that search tries the walled-in spot once more and ends at the same cover.
 void test_cover_script_no_path_door_opens()
 {
     const point west{ch, {2, 8}, {}};
@@ -2121,7 +2121,7 @@ void test_cover_script_no_path_door_opens()
     still.finish_search();
     const auto t = s.status(), t_still = still.status();
     fm_assert(t.st == state::to_cover && t_still.st == state::to_cover);
-    fm_assert_equal(t_still.counters.num_dijkstra_calls, t.counters.num_dijkstra_calls);
+    fm_assert_equal(t_still.counters.num_dijkstra_calls + 1, t.counters.num_dijkstra_calls);
     const auto& c = *t.cover;
     const auto& c_still = *t_still.cover;
     fm_assert_equal(Vector3i(c_still.pos), Vector3i(c.pos));

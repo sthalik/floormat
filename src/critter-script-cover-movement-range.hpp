@@ -25,7 +25,7 @@ class movement_range
     };
 
     // Returns the first of the (2n + 1)² cells around the cell of from that dist and passable then hold. passable
-    // leaves out cells blocked by closed doors, other dynamic scenery and critters not in excluded_blocker_ids.
+    // leaves out cells blocked by any collider but the critters in excluded_blocker_ids.
     Vector2i compute_dijkstra_map(world& w, Grid::Object::Pool& objects, point from,
                                   std::array<object_id, 2> excluded_blocker_ids, int n, int max_dist);
 
