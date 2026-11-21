@@ -214,6 +214,42 @@ void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, loc
     fm_assert(cant_be_shot(w, threat, r.pos, size));
 }
 
+// From radius 32768 the loop reaches tile {513, 513}, whose squared distance of 2151680000 passes INT32_MAX.
+void test_nearest_tiles_large_radius()
+{
+    constexpr u32 radius = 32768;
+    Array<Vector2i> tiles;
+    Cover::Point::nearest_tiles(radius, tiles);
+    fm_assert_equal(825641u, (u32)tiles.size());
+    for (const auto& t : tiles)
+    {
+        const auto gap = Math::max(Math::abs(t*tile_size_xy) - Vector2i{half_tile<int>}, Vector2i{});
+        fm_assert((i64)gap.x()*gap.x() + (i64)gap.y()*gap.y() <= (i64)radius*radius);
+    }
+}
+
+// R*R overflows int from radius 46341. The area keeps the candidates near the npc.
+void test_find_large_radius()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {7, 8}, {16, 96});
+    rebuild(w);
+    const auto npc = point{ch, {4, 8}, {}}, threat = point{ch, {12, 8}, {}};
+    const auto area = Range2Di{Vector2i{-2, -2}*tile_size_xy, Vector2i{6, 2}*tile_size_xy};
+    Cover::Point::finder finder;
+    Grid::GridRegistry pools;
+    const auto find_within = [&](u32 radius) {
+        return finder.find(w, pools, Grid::Cover::Params{16}, {npc, body, threat, radius, 0, 0, area},
+                           Search::without_critters);
+    };
+    const auto near = find_within(5*tile_size_xy);
+    fm_assert(near.found);
+    const auto far = find_within(46341);
+    fm_assert(far.found);
+    fm_assert(far.pos == near.pos && far.axis == near.axis);
+}
+
 void test_open_ground_has_no_cover()
 {
     auto w = world();
@@ -4253,6 +4289,8 @@ void Test::test_cover_point()
     test_hides_behind_wall({10, 8}, {2, 8}, {7, 8}, {16, 96}, {-1, 0}, 3*tile_size_xy, {23, 25});
     test_hides_behind_wall({8, 12}, {8, 4}, {8, 9}, {96, 16}, {0, -1}, 3*tile_size_xy, {23, 25});
     test_open_ground_has_no_cover();
+    test_nearest_tiles_large_radius();
+    test_find_large_radius();
     test_narrow_pillar_rejected();
     test_gap_between_pillars_rejected();
     test_side_wall_corner_seen();
