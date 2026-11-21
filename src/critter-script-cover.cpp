@@ -284,12 +284,17 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
                     check_exposed(*C, pos);
                 go_on(C, i, dt);
             }
-            // C peeking tests reach_positions() only once it hides again, so it shoots before it switches cover.
-            else if (const auto st0 = st; st == state::hidden && !options.search_every_move)
+            else
             {
-                check_reach(*C);
-                if (st != st0)
-                    go_on(C, i, dt);
+                // Critter steps made while C stands don't start a LOS check once it walks.
+                pass_gen_at_last_check = C->world().pass_gen();
+                // C peeking tests reach_positions() only once it hides again, so it shoots before switching cover.
+                if (const auto st0 = st; st == state::hidden && !options.search_every_move)
+                {
+                    check_reach(*C);
+                    if (st != st0)
+                        go_on(C, i, dt);
+                }
             }
         }
         return;
@@ -650,15 +655,21 @@ void cover_script::follow_threat(critter& C)
     begin_search(C, st == state::hidden ? search_then::relocate : search_then::follow);
 }
 
-// True when `threat` isn't at threat_pos, or what stops a shot changed within search_chunk_radius() of `at` since
+// True when `threat` isn't at threat_pos, or a collider C's checks read changed near `at` since
 // pass_gen_at_last_check. The LOS check is is_hidden_at() on C's body there, and a ray to C's gun or destination.
 bool cover_script::needs_LOS_check(critter& C, point threat, point at) const
 {
     if (threat != threat_pos)
         return true;
     else
-        return C.world().max_collider_gen(at.chunk3(), Cover::search_chunk_radius(at, threat, 0, options)) >
-               pass_gen_at_last_check;
+    {
+        const auto& w = C.world();
+        const auto radius = Cover::search_chunk_radius(at, threat, 0, options);
+        // is_hidden_at() and the rays ignore critters. A walking C's path test after them doesn't.
+        const auto gen = st == state::hidden || st == state::exposed ? w.max_pass_gen(at.chunk3(), radius)
+                                                                     : w.max_collider_gen(at.chunk3(), radius);
+        return gen > pass_gen_at_last_check;
+    }
 }
 
 // C flees when `threat`, for which needs_LOS_check() is true, sees a pixel of C at canonical. If it sees one only

@@ -842,6 +842,7 @@ struct cover_scene
     bptr<scenery> wall;
     u32 fps = 0;
     Ns frame;
+    bptr<critter> moving_critter;
 
     explicit cover_scene(point threat_pos = point{ch, {12, 8}, {}}, Optional<int> gun_offset = 0,
                          const Optional<point>& other_pos = {}, Vector2ui npc_size = body);
@@ -880,7 +881,16 @@ cover_scene::cover_scene(point threat_pos, Optional<int> gun_offset, const Optio
 
 cover_scene::~cover_scene() noexcept { w.finish_scripts(); }
 
-void cover_scene::step() { step_critter(w, npc, frame); }
+void cover_scene::step()
+{
+    if (moving_critter)
+    {
+        auto i = moving_critter->index();
+        const auto dx = w.frame_no() % 2 ? -1 : 1;
+        moving_critter->teleport_to(i, moving_critter->position() + Vector2i{dx, 0}, rotation_COUNT);
+    }
+    step_critter(w, npc, frame);
+}
 
 bool cover_scene::seen_from(point threat_pos, point pos)
 {
@@ -1587,9 +1597,9 @@ void test_cover_script_critter_blocks_path()
     fm_assert(point::distance(s.npc->position(), pos) > tile_size_xy);
 }
 
-// cover_scene's npc stands in st at its first cover. The threat moves where the wall hides the npc's spot, but a
-// point 96 px west of it sees the spot. Once hidden, the npc searches and moves to other cover.
-void test_cover_script_reach_position_sees_cover_spot(state st)
+// cover_scene's npc stands in st at its first cover, and with critter_moves another critter moves every update.
+// The threat moves where the wall hides the spot but a point 96 px west sees it, so the npc moves to other cover.
+void test_cover_script_reach_position_sees_cover_spot(state st, bool critter_moves)
 {
     cover_scene s;
     if (st == state::hidden)
@@ -1599,6 +1609,8 @@ void test_cover_script_reach_position_sees_cover_spot(state st)
     fm_assert(t0.cover);
     const auto& c0 = *t0.cover;
     s.step_until(st);
+    if (critter_moves)
+        s.moving_critter = add_critter(s.w, point{ch, {14, 1}, {}});
     const point threat_pos{ch, {8, 9}, {8, 24}};
     fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, c0.pos, body, s.npc->id));
     fm_assert(!cant_be_shot_at(s.w, threat_pos - Vector2i{96, 0}, s.threat->id, c0.pos, body, s.npc->id));
@@ -1624,10 +1636,13 @@ void test_cover_script_reach_position_sees_cover_spot(state st)
     fm_assert(c.canonical != c0.canonical);
     fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, c.pos, body, s.npc->id));
     s.step_until(state::hidden);
-    for (auto k = 0u; k < 2*s.fps; k++)
+    (void)s.step_until_unchanged(&counters::num_body_checks);
+    const auto t1 = s.status();
+    for (auto k = 0u; k < s.fps/2; k++)
     {
         s.step();
         fm_assert_equal(t.counters.num_searches, s.status().counters.num_searches);
+        fm_assert_equal(t1.counters.num_body_checks, s.status().counters.num_body_checks);
     }
 }
 
@@ -4016,8 +4031,11 @@ void Test::test_cover_point()
     test_cover_script_walk_cover_removed(state::to_cover);
     test_cover_script_walk_cover_removed(state::to_peek);
     test_cover_script_critter_blocks_path();
-    test_cover_script_reach_position_sees_cover_spot(state::hidden);
-    test_cover_script_reach_position_sees_cover_spot(state::exposed);
+    for (const auto critter_moves : { false, true })
+    {
+        test_cover_script_reach_position_sees_cover_spot(state::hidden, critter_moves);
+        test_cover_script_reach_position_sees_cover_spot(state::exposed, critter_moves);
+    }
     test_cover_script_flanked(hidden, c0.peek);
     test_cover_script_holds_hidden(hidden, c0.peek);
     test_cover_script_holds_exposed(hidden, c0.peek);
