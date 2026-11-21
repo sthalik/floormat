@@ -26,7 +26,7 @@ struct options
     // The spots a search keeps of those it skips. With each value, it also keeps what the values before keep.
     enum class fallback : u8 {
         none,
-        // The first spot whose cover has no peek spot.
+        // Spots whose cover has no peek spot, tried in the order the search found them.
         no_peek,
         // The first spot the threat would see after walking threat_reach px. The critter hides there only when no
         // no_peek spot still hides it.

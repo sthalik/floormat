@@ -3891,8 +3891,9 @@ void test_search_takes_reachable_fallback_spot()
     Cover::cover_search search;
     const Cover::Script::options o{};
     const auto from = s.npc->position(), threat = s.threat->position();
-    // The first search finds no path to (300, 508), even with critters let through, so the second skips it.
-    for (const auto num_dijkstra_calls : { 3u, 1u })
+    // The first search finds no path to (300, 508), (300, 436) or (300, 580), even with critters let through, so
+    // the second skips them.
+    for (const auto num_dijkstra_calls : { 7u, 1u })
     {
         const auto n = t.counters.num_dijkstra_calls;
         search.begin(from, threat);
@@ -3943,6 +3944,71 @@ void test_search_retries_unreachable_spot()
     fm_assert(search_cover() != unreachable);
     s.w.advance_game_time(Cover::unreachable_spot_retry_time);
     fm_assert(search_cover() == unreachable);
+}
+
+// The threat and the npc each stand 64 px east of one of two walls 584 px long. The first spot listed,
+// (300, 508), has no peek spot or path, and the search must still find cover hidden from reach.
+void test_search_takes_reachable_peekless_spot()
+{
+    auto w = world();
+    add_ground(w);
+    for (const auto x : { (u8)5, (u8)9 })
+        for (const auto y : { (u8)5, (u8)8, (u8)11 })
+            add_blocker(w, {x, y}, {16, 200});
+    rebuild(w);
+    const auto threat = add_critter(w, point{ch, {10, 8}, {}});
+    const auto npc = add_critter(w, point{ch, {6, 8}, {}});
+    auto A = astar{};
+    Cover::spot_tests t{A, threat->id, 0};
+    fm_assert(!t.path_to(*npc, point{ch, {5, 8}, {-20, -4}}).is_found());
+    Cover::cover_search search;
+    const Cover::Script::options o{};
+    const auto from = npc->position(), threat_pos = threat->position();
+    search.begin(from, threat_pos);
+    for (auto i = 0u; ; i++)
+    {
+        fm_assert(i < 400);
+        if (const auto r = tick_in_next_frame(search, *npc, t, o, from, threat_pos); r.done)
+        {
+            fm_assert(r.cover && r.cover->path.is_found() && r.cover->is_hidden_from_reach);
+            fm_assert(cant_be_shot_at(w, threat_pos, threat->id, r.cover->end, body, npc->id));
+            break;
+        }
+    }
+}
+
+// As test_search_takes_reachable_peekless_spot, with the west wall 968 px long. The 5 spots tried first behind it
+// have no path, even without critters, and the search must still take (556, 508) behind the east wall.
+void test_search_takes_peekless_spot_after_5_unreachable()
+{
+    auto w = world();
+    add_ground(w);
+    for (const auto y : { (u8)2, (u8)5, (u8)8, (u8)11, (u8)14 })
+        add_blocker(w, {5, y}, {16, 200});
+    for (const auto y : { (u8)5, (u8)8, (u8)11 })
+        add_blocker(w, {9, y}, {16, 200});
+    rebuild(w);
+    const auto threat = add_critter(w, point{ch, {10, 8}, {}});
+    const auto npc = add_critter(w, point{ch, {6, 8}, {}});
+    auto A = astar{};
+    Cover::spot_tests t{A, threat->id, 0};
+    Cover::cover_search search;
+    const Cover::Script::options o{};
+    const auto from = npc->position(), threat_pos = threat->position();
+    search.begin(from, threat_pos);
+    for (auto i = 0u; ; i++)
+    {
+        fm_assert(i < 400);
+        if (const auto r = tick_in_next_frame(search, *npc, t, o, from, threat_pos); r.done)
+        {
+            fm_assert(r.cover && r.cover->path.is_found() && r.cover->is_hidden_from_reach);
+            fm_assert(r.cover->spot.pos == point{ch, {9, 8}, {-20, -4}});
+            fm_assert(cant_be_shot_at(w, threat_pos, threat->id, r.cover->end, body, npc->id));
+            break;
+        }
+    }
+    // A failed path_to and its rerun for each of the 5 spots, and the path found.
+    fm_assert_equal(11u, t.counters.num_dijkstra_calls);
 }
 
 // True when a point within r px of the threat, on an 8 px grid, can shoot the npc at pos.
@@ -4485,6 +4551,8 @@ void Test::test_cover_point()
     test_unreachable_spots_outside_disc_removed();
     test_search_takes_reachable_fallback_spot();
     test_search_retries_unreachable_spot();
+    test_search_takes_reachable_peekless_spot();
+    test_search_takes_peekless_spot_after_5_unreachable();
     test_search_caps_body_checks_per_update(false);
     test_search_caps_body_checks_per_update(true);
     test_cover_script_rehides(0);
