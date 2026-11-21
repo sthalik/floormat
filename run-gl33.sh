@@ -79,9 +79,10 @@ all=
 editor_only=
 
 usage() {
-    echo "usage: ${self} [--zink|--llvmpipe|--softpipe] [--only=none|GL_X[+GL_Y...]|--all] [--editor] [build-dir]" \
-        "[-- editor-args...]" >&2
-    echo "       runs Mesa zink on the GPU's Vulkan driver by default, or llvmpipe or softpipe on the CPU" >&2
+    echo "usage: ${self} [--zink|--llvmpipe|--softpipe|--d3d12] [--only=none|GL_X[+GL_Y...]|--all] [--editor]" \
+        "[build-dir] [-- editor-args...]" >&2
+    echo "       runs Mesa zink on the GPU's Vulkan driver by default, or llvmpipe or softpipe on the CPU," >&2
+    echo "       or d3d12 on the GPU's Direct3D 12 driver" >&2
     echo "       build-dir defaults to build/clang-asan and must be installed already" >&2
     echo "       --only=none, the default, runs with every extension outside core 3.3 disabled," >&2
     echo "       --only=GL_X+GL_Y with all but those" >&2
@@ -98,6 +99,7 @@ while test $# -gt 0; do
         --zink) driver=zink ;;
         --llvmpipe) driver=llvmpipe ;;
         --softpipe) driver=softpipe ;;
+        --d3d12) driver=d3d12 ;;
         --only=?*) only="${1#--only=}" ;;
         --all) all=1 ;;
         --editor) editor_only=1 ;;
@@ -127,7 +129,8 @@ if command -v nojit >/dev/null 2>&1; then
 fi
 
 download_mesa() {
-    if test -f "$mesa_dir/x64/opengl32.dll" && test -f "$mesa_dir/x64/libgallium_wgl.dll"; then
+    if test -f "$mesa_dir/x64/opengl32.dll" && test -f "$mesa_dir/x64/libgallium_wgl.dll" &&
+       test -f "$mesa_dir/x64/dxil.dll"; then
         return 0
     fi
     mkdir -p -- "$mesa_dir"
@@ -140,7 +143,8 @@ download_mesa() {
         echo "fatal: $mesa_dir/$mesa_archive doesn't match its SHA-256" >&2
         exit 1
     fi
-    7z x -y -bso0 -bsp0 -o"$mesa_dir" -- "$mesa_dir/$mesa_archive" x64/opengl32.dll x64/libgallium_wgl.dll
+    7z x -y -bso0 -bsp0 -o"$mesa_dir" -- "$mesa_dir/$mesa_archive" x64/opengl32.dll x64/libgallium_wgl.dll \
+        x64/dxil.dll
 }
 
 download_mesa
@@ -218,7 +222,7 @@ append_enum_names() {
 
 info="$(magnum_gl_info --extension-strings)" || true
 renderer="$(printf '%s\n' "$info" | sed -n 's/^Renderer: //p')"
-if test "${renderer%% *}" != "$driver"; then
+if test "$(printf '%s' "${renderer%% *}" | tr '[:upper:]' '[:lower:]')" != "$driver"; then
     echo "fatal: GALLIUM_DRIVER=$driver gave renderer '$renderer'" >&2
     exit 1
 fi
@@ -251,7 +255,7 @@ echo "$magnum_disable" > "$run_dir/magnum-disabled.txt"
 # core 3.3 from wglGetProcAddress and reports the enums outside core 3.3 that core functions get.
 cp -f -- contrib/gl33-proxy/opengl32.dll "$run_dir/dlls/"
 cp -f -- "$mesa_dir/x64/opengl32.dll" "$run_dir/dlls/opengl32-mesa.dll"
-ln -f -- "$mesa_dir/x64/libgallium_wgl.dll" "$run_dir/dlls/"
+ln -f -- "$mesa_dir/x64/libgallium_wgl.dll" "$mesa_dir/x64/dxil.dll" "$run_dir/dlls/"
 gl_functions_required_by $core_versions > "$run_dir/allowed/core.txt"
 gl_enums_required_by $core_versions > "$run_dir/allowed/core-enums.txt"
 
