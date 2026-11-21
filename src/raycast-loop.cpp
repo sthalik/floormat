@@ -656,7 +656,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     chunk* last_c = nullptr;
     Pass::Grid last_g{nullptr, nullptr};
     Grid::Object::Grid last_og{nullptr};
-    bool last_g_built = false, last_has_objects = false;
+    bool last_pass_grid_built = false, last_has_objects = false;
     bool last_chunk_empty = true;
 
     float min_tmin = FLT_MAX;
@@ -728,7 +728,15 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         last_nb[j*3 + i] = w.at(co);
                     }
                 last_c = last_nb[4];
-                last_g_built = false;
+                last_pass_grid_built = false;
+                if (!last_c)
+                {
+                    // colliders overhang from loaded neighbors into a missing chunk.
+                    // skip it only when the whole 3x3 area is unloaded.
+                    last_chunk_empty = true;
+                    for (auto* nb : last_nb)
+                        last_chunk_empty &= !nb;
+                }
 
                 if constexpr(EnableDiagnostics)
                 {
@@ -746,11 +754,11 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
             bool bit = true;
             if (last_c)
             {
-                if (!last_g_built)
+                if (!last_pass_grid_built)
                 {
                     last_g = pass_pool[*last_c];
                     last_g.build_if_stale();
-                    last_g_built = true;
+                    last_pass_grid_built = true;
                     if constexpr (HasObjectPool)
                     {
                         last_og = objects[*last_c];
@@ -796,18 +804,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                 }
             }
             else
-            {
-                if (!last_g_built)
-                {
-                    // colliders overhang from loaded neighbors into a missing chunk.
-                    // skip it only when the whole 3x3 area is unloaded.
-                    last_chunk_empty = true;
-                    for (auto* nb : last_nb)
-                        last_chunk_empty &= !nb;
-                    last_g_built = true;
-                }
                 bit = last_chunk_empty;
-            }
 
             if (!bit)
             {
