@@ -334,7 +334,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     };
 
     // Cells count from the line's chunk, so a cell's chunk and its cell within it are computed with a shift and
-    // a mask. global_cell moves to the cell the line exits into, or after an empty chunk to that of point_at(k).
+    // a mask. global_cell moves to the cell the line exits into, or to that of point_at(k) when region is true.
     Vector2i global_cell = cell_of(line.point_at(first_step));
     auto k = first_step;
     bool run_pending = false;
