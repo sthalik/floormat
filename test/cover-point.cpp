@@ -3550,6 +3550,42 @@ void test_fallback_after_exposed_cover_ends_search()
     fm_assert(r.done && r.cover && r.cover->end == point{ch, {3, 2}, {4, 20}});
 }
 
+// With the npc east of add_longer_wall's wall, the search keeps (300, 508) behind it, with no peek spot or path,
+// and (468, 508) behind cover_scene's wall, with a path. The search must end in cover.
+void test_search_takes_reachable_fallback_spot()
+{
+    cover_scene s{point{ch, {6, 8}, {}}};
+    for (const auto y : { (u8)5, (u8)8, (u8)11 })
+        add_blocker(s.w, {5, y}, {16, 200});
+    rebuild(s.w);
+    move_npc(s, point{ch, {6, 8}, {-32, 0}});
+    Cover::spot_tests t{s.A, s.threat->id, 0};
+    fm_assert(!t.path_to(*s.npc, point{ch, {5, 8}, {-20, -4}}).is_found());
+    fm_assert(t.path_to(*s.npc, point{ch, {7, 8}, {20, -4}}).is_found());
+    Cover::cover_search search;
+    const Cover::Script::options o{};
+    const auto from = s.npc->position(), threat = s.threat->position();
+    // The second search skips (300, 508), which the first found no path to.
+    for (const auto num_dijkstra_calls : { 2u, 1u })
+    {
+        const auto n = t.counters.num_dijkstra_calls;
+        search.begin(from, threat);
+        for (auto i = 0u; ; i++)
+        {
+            fm_assert(i < 400);
+            if (const auto r = search.tick(*s.npc, t, o, from, threat); r.done)
+            {
+                fm_assert(r.cover && r.cover->path.is_found());
+                move_npc(s, r.cover->end);
+                fm_assert(cant_be_shot_at(s.w, threat, s.threat->id, r.cover->end, body, s.npc->id));
+                move_npc(s, from);
+                break;
+            }
+        }
+        fm_assert(t.counters.num_dijkstra_calls - n == num_dijkstra_calls);
+    }
+}
+
 // True when a point within r px of the threat, on an 8 px grid, can shoot the npc at pos.
 bool seen_within(cover_scene& s, point pos, int r)
 {
@@ -4028,6 +4064,7 @@ void Test::test_cover_point()
     test_search_drops_exposed_cover_now_seen();
     test_search_takes_exposed_cover_over_seen_fallback();
     test_fallback_after_exposed_cover_ends_search();
+    test_search_takes_reachable_fallback_spot();
     test_cover_script_rehides(0);
     test_cover_script_rehides(Cover::Script::options{}.threat_reach);
     test_cover_script_needs_peek(false);
