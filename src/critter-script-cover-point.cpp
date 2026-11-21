@@ -374,6 +374,7 @@ u32 nearest_octant(Vector2 v)
 
 void nearest_tiles(u32 radius, Array<Vector2i>& out)
 {
+    fm_assert(radius <= 1u << 20);
     arrayClear(out);
     const auto n = (int)radius/tile_size_xy + 1;
     reserve_scratch(out, (usize)((2*n + 1)*(2*n + 1)));
@@ -381,7 +382,7 @@ void nearest_tiles(u32 radius, Array<Vector2i>& out)
         for (auto x = -n; x <= n; x++)
         {
             const auto gap = Math::max(Math::abs(Vector2i{x, y}*tile_size_xy) - Vector2i{half_tile<int>}, Vector2i{});
-            if (gap.dot() <= (int)(radius*radius))
+            if (point::distance_squared(gap) <= (u64)radius*radius)
                 arrayAppend(out, Vector2i{x, y});
         }
     std::sort(out.begin(), out.end(), [](Vector2i a, Vector2i b) {
@@ -435,6 +436,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
 
     const auto ds = (int)cover_pool.params().div_size;
     const auto dc = chunk_size_xy / (u32)ds;
+    fm_assert(q.radius <= 1u << 20);
     const auto R = (int)q.radius;
     visibility_tests X{w, q, pred, runs, neighbor_octant_rects, end_rects};
     const auto &P = X.P, &T = X.T, &body_lo = X.body_lo, &body_hi = X.body_hi;
@@ -464,7 +466,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
     };
 
     const auto lo = cell_of(cand_lo - body_hi), span = cell_of(cand_hi + body_hi) - lo + Vector2i{1};
-    const auto count = (usize)(span.x()*span.y());
+    const auto count = (usize)span.x()*(usize)span.y();
     arrayClear(known);
     reserve_scratch(known, count);
     arrayResize(known, ValueInit, count);
@@ -501,7 +503,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
     };
 
     const auto look = [&](Vector2i n) -> cell_info {
-        const auto i = (usize)((n.y() - lo.y())*span.x() + n.x() - lo.x());
+        const auto i = (usize)(n.y() - lo.y())*(usize)span.x() + (usize)(n.x() - lo.x());
         if (known[i])
             return cells[i];
         known[i] = true;
@@ -595,7 +597,7 @@ result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params par
         {
             const auto center = center_of({x, y});
             const auto off = center - P;
-            if (off.dot() > R*R || !in_area(center))
+            if (point::distance_squared(off) > (u64)R*(u64)R || !in_area(center))
                 continue;
             // With q.octants, look() still reads the center's two bracketing octants, for blocker_px.
             // Its hidden is then also implied by hidden_in_octants(), unless the center is blocked.
