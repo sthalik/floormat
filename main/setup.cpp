@@ -1,5 +1,6 @@
 #include "main-impl.hpp"
 #include "floormat/app.hpp"
+#include "compat/broken-gl-extensions.hpp"
 #include <cr/StringView.h>
 #include <mg/Color.h>
 #include <mg/Renderer.h>
@@ -106,12 +107,15 @@ auto main_impl::make_conf(const fm_settings& s) -> Configuration
 
 // Must run before the Sdl2Application base ctor: main_impl's shader members are in
 // the init list and need a live context, so a tryCreate() retry loop can't work.
-GL::Version main_impl::probe_max_gl_version()
+auto main_impl::probe_gl_conf() -> GLConfiguration
 {
+    disable_zink_descriptor_buffers();
+    GLConfiguration conf;
 #ifdef __APPLE__
     // Cocoa returns the driver max (4.1) for any core request and only checks the
     // requested version afterwards, so each rejected probe costs a whole window.
-    return GL::Version::GL330;
+    conf.setVersion(GL::Version::GL330);
+    return conf;
 #else
     static constexpr GL::Version versions[] = {
         GL::Version::GL460, GL::Version::GL450, GL::Version::GL440, GL::Version::GL430,
@@ -121,10 +125,8 @@ GL::Version main_impl::probe_max_gl_version()
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         fm_warn_once("SDL_Init: %s", SDL_GetError());
-        return GL::Version::None;
+        return conf;
     }
-
-    auto ret = GL::Version::None;
 
     for (auto version : versions)
     {
@@ -143,16 +145,16 @@ GL::Version main_impl::probe_max_gl_version()
             continue;
         if (auto* context = SDL_GL_CreateContext(window))
         {
+            conf.setVersion(version).addDisabledExtensions(get_broken_gl_extensions());
             SDL_GL_DeleteContext(context);
-            ret = version;
         }
         SDL_DestroyWindow(window);
-        if (ret != GL::Version::None)
+        if (conf.version() != GL::Version::None)
             break;
     }
 
     SDL_GL_ResetAttributes();
-    return ret;
+    return conf;
 #endif
 }
 
@@ -160,12 +162,11 @@ auto main_impl::make_gl_conf(const fm_settings&) -> GLConfiguration
 {
     GLConfiguration::Flags flags{};
     flags |= GLConfiguration::Flag::ForwardCompatible;
-    auto version = probe_max_gl_version();
-    if (version == GL::Version::None)
-        version = GL::Version::GL330;
-    return GLConfiguration{}
+    auto conf = probe_gl_conf();
+    if (conf.version() == GL::Version::None)
+        conf.setVersion(GL::Version::GL330);
+    return conf
         .setFlags(flags)
-        .setVersion(version)
         .setDepthBufferSize(0)
         .setColorBufferSize({8, 8, 8, 0})
         .setStencilBufferSize(0);
