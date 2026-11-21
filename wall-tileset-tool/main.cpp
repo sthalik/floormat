@@ -165,7 +165,7 @@ bool save_json(state st)
     return true;
 }
 
-bool do_group(state st, usize i, usize j, Group& new_group)
+Optional<Group> do_group(state st, usize i, usize j)
 {
     const auto group_name = Direction::groups[j].name;
     const wall_atlas_def& old_atlas = st.old_atlas;
@@ -191,7 +191,7 @@ bool do_group(state st, usize i, usize j, Group& new_group)
     }();
 
     u32 count = 0, start = st.n_frames;
-    new_group = old_group;
+    auto new_group = old_group;
     new_group.is_defined = true;
     new_group.pixel_size = Vector2ui(expected_size);
 
@@ -203,7 +203,7 @@ bool do_group(state st, usize i, usize j, Group& new_group)
         if (Path::isDirectory(filename)) [[unlikely]]
         {
             ERR << "fatal: path" << quoted(filename) << "is a directory!";
-            return false;
+            return {};
         }
 
         count++;
@@ -224,13 +224,13 @@ bool do_group(state st, usize i, usize j, Group& new_group)
                 << resolution{expected_size} << nospace(",")
                 << "actual" << resolution{size}
                 << "-- file" << filename;
-            return false;
+            return {};
         }
 
         if (mat.channels() == 4) [[unlikely]]
         {
             ERR << "fatal: image has an alpha channel, walls must be RGB -- file" << quoted(filename);
-            return false;
+            return {};
         }
 
         auto bufʹ = convert_to_bgra32(mat);
@@ -241,7 +241,7 @@ bool do_group(state st, usize i, usize j, Group& new_group)
                 << "depth" << cv::depthToString(mat.depth()) << nospace(",")
                 << "type" << cv::typeToString(mat.type()) << nospace(",")
                 << "for" << quoted(filename);
-            return false;
+            return {};
         }
 
         auto& buf = *bufʹ;
@@ -254,7 +254,7 @@ bool do_group(state st, usize i, usize j, Group& new_group)
     if (count == 0)
     {
         ERR << "fatal: no files found for" << quoted2(dir_name) << "/" << quoted2(group_name);
-        return false;
+        return {};
     }
 
     DBG << cat("      ", count) << (count == 1 ? "frame" : "frames");
@@ -263,7 +263,7 @@ bool do_group(state st, usize i, usize j, Group& new_group)
     new_group.count = count;
     new_group.index = start;
 
-    return true;
+    return new_group;
 }
 
 bool do_direction(state& st, usize i)
@@ -289,7 +289,9 @@ bool do_direction(state& st, usize i)
         const auto& old_group = old_dir.*ptr;
         if (!old_group.is_defined)
             continue;
-        if (!do_group(st, i, (usize)tag, dir.*ptr))
+        if (const auto new_group = do_group(st, i, (usize)tag))
+            dir.*ptr = *new_group;
+        else
             return false;
     }
 
