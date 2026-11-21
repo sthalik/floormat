@@ -63,6 +63,7 @@
 #include <cstdio>
 #include <numeric>
 #include <imgui_internal.h>
+#include <SDL_video.h>
 #include <cr/GrowableArray.h>
 #include <cr/StructuredBindings.h>
 
@@ -690,7 +691,9 @@ task app::scene_popup_target()
     fm_assert(!_pending_popup);
     co_yield {};
     fm_assert(!cursor.in_imgui);
-    fm_assert(M->application().cursor() == Platform::Sdl2Application::Cursor::Hand);
+    // SDL's offscreen driver creates no system cursors, so cursor() reports Arrow there.
+    if (StringView{SDL_GetCurrentVideoDriver()} != "offscreen"_s)
+        fm_assert(M->application().cursor() == Platform::Sdl2Application::Cursor::Hand);
 
     // Covers every inspect_object_subtype() branch, and fills max_inspectors exactly
     constexpr chunk_coords_ ch{0, 0, 0};
