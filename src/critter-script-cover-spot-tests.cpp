@@ -87,6 +87,14 @@ path_search_result spot_tests::path_to(critter& c, point to)
     return path;
 }
 
+bool spot_tests::is_reachable_without_critters(critter& c, point to)
+{
+    const auto from = c.position();
+    counters.num_dijkstra_calls++;
+    return _astar.Dijkstra<0, false>(c.world(), from, to, Cover::max_search_path_length(from, to),
+                                     Vector2ui(c.bbox_size), Search::without_critters).is_found();
+}
+
 ArrayView<const point> spot_tests::threat_lattice(critter& c, const Cover::Script::options& o, point threat)
 {
     auto& w = c.world();

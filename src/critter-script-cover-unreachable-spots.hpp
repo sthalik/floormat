@@ -8,14 +8,13 @@ namespace floormat { class world; }
 
 namespace floormat::Cover {
 
-// A critter that blocks a path moves no pass_gen(), so is_stale() can't see it leave.
+// A spot that no path within max_search_path_length() reached may have one from where the npc stands later, and no
+// pass_gen() shows that.
 constexpr inline Ns unreachable_spot_retry_time = Minute;
 
-// is_stale() ignores chunk::objects_gen(), since every critter step in range would then clear the list, restart
-// the search and rerun the Dijkstra searches that failed.
 class unreachable_spots
 {
-    // Spots that path_to found no path to, or that can_move_straight_to_listed_spot() ties to one.
+    // Spots that a Dijkstra search found no path to, or that can_move_straight_to_listed_spot() ties to one.
     Array<point> _spots;
     // No lattice point that a failed Dijkstra search could visit lies farther from search_origin. _pass_gen is
     // world::pass_gen() at the last failure.
@@ -32,7 +31,7 @@ public:
     bool can_move_straight_to_listed_spot(world& w, point to, Vector2i body, const Search::pred& pred) const;
     // Appends pos unless the list holds it already, as a tile listed again lists its unreachable spots again.
     void add(point pos);
-    // Adds pos, which path_to found no path to. No lattice point its Dijkstra search could visit lies farther
+    // Adds pos, which a Dijkstra search found no path to. No lattice point that search could visit lies farther
     // than max_lattice_point_dist from search_origin.
     void add_failed(const world& w, point pos, u32 max_lattice_point_dist);
     // Adds dist, how far search_origin moved, to _max_lattice_point_dist, so the bound holds from the new origin.
