@@ -113,7 +113,7 @@ struct Atlas
     GL::Texture2DArray texture{NoCreate};
     u32 layer_width = 0, layer_height = 0;
     u32 texture_layer_capacity = 0; // layers in texture's storage, committed or not
-    u32 used_layers = 0; // layers with actual valid pixels uploaded (sprites added before the last flush()).
+    u32 uploaded_layer_count = 0; // sprites added before the last flush()
     u32 texture_gen = 0;
     u32 virtual_page_height = 0; // 0 unless the texture is sparse
     layer_copy_mode layer_copy = layer_copy_mode::sparse_texture;

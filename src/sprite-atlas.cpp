@@ -352,8 +352,8 @@ struct AtlasTexture
 struct LayerCopySource
 {
     GL::Texture2DArray texture{NoCreate};
-    Array<GL::Buffer> used_layer_pixel_buffers;
-    Array<char> used_layer_pixels;
+    Array<GL::Buffer> uploaded_layer_pixel_buffers;
+    Array<char> uploaded_layer_pixels;
     u32 layers_per_pixel_buffer = 0;
 };
 
@@ -391,24 +391,24 @@ LayerCopySource make_layer_copy_source(Atlas& atlas)
     LayerCopySource source;
     source.layers_per_pixel_buffer = (u32)Math::max(usize{1}, atlas.limits.max_pixel_buffer_bytes / layer_bytes);
 
-    if (atlas.layer_copy == layer_copy_mode::pixel_buffer_readback && atlas.used_layers > 0)
+    if (atlas.layer_copy == layer_copy_mode::pixel_buffer_readback && atlas.uploaded_layer_count > 0)
     {
-        source.used_layer_pixel_buffers = read_layers_into_pixel_buffers(atlas.texture, layer_size, atlas.used_layers,
-                                                                         source.layers_per_pixel_buffer,
-                                                                         atlas.limits.buffer_storage_supported);
-        if (!source.used_layer_pixel_buffers.isEmpty())
+        source.uploaded_layer_pixel_buffers =
+            read_layers_into_pixel_buffers(atlas.texture, layer_size, atlas.uploaded_layer_count,
+                                           source.layers_per_pixel_buffer, atlas.limits.buffer_storage_supported);
+        if (!source.uploaded_layer_pixel_buffers.isEmpty())
             atlas.texture = GL::Texture2DArray{NoCreate};
         else
             atlas.layer_copy = layer_copy_mode::readback;
     }
 
-    if (atlas.layer_copy == layer_copy_mode::readback && atlas.used_layers > 0)
+    if (atlas.layer_copy == layer_copy_mode::readback && atlas.uploaded_layer_count > 0)
     {
-        source.used_layer_pixels = Array<char>{NoInit, layer_bytes * atlas.used_layers};
-        for (u32 i = 0; i < atlas.used_layers; i++)
+        source.uploaded_layer_pixels = Array<char>{NoInit, layer_bytes * atlas.uploaded_layer_count};
+        for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
             read_layer_pixels(atlas.texture, (Int)i, {{}, layer_size},
                               MutableImageView2D{PixelFormat::RGBA8Unorm, layer_size,
-                                                 source.used_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
+                                                 source.uploaded_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
         atlas.texture = GL::Texture2DArray{NoCreate};
     }
 
@@ -430,38 +430,38 @@ void alloc_texture_layers(const Atlas& atlas, AtlasTexture& new_texture, u32 new
                        .setMinificationFilter(GL::SamplerFilter::Linear)
                        .setWrapping(GL::SamplerWrapping::ClampToEdge);
 
-    clear_layers_to_magenta(new_texture.texture, layer_size, atlas.used_layers, new_layer_count);
+    clear_layers_to_magenta(new_texture.texture, layer_size, atlas.uploaded_layer_count, new_layer_count);
 }
 
-void copy_used_layers(const Atlas& atlas, LayerCopySource& source, GL::Texture2DArray& texture)
+void copy_uploaded_layers(const Atlas& atlas, LayerCopySource& source, GL::Texture2DArray& texture)
 {
     const auto layer_size = Vector2i{(Int)atlas.layer_width, (Int)atlas.layer_height};
     const auto layer_bytes = (usize)atlas.layer_width * atlas.layer_height * 4;
-    if (!source.used_layer_pixel_buffers.isEmpty())
+    if (!source.uploaded_layer_pixel_buffers.isEmpty())
     {
-        for (u32 j = 0; j < (u32)source.used_layer_pixel_buffers.size(); j++)
+        for (u32 j = 0; j < (u32)source.uploaded_layer_pixel_buffers.size(); j++)
         {
             const u32 first = j * source.layers_per_pixel_buffer;
-            const u32 num_layers = Math::min(source.layers_per_pixel_buffer, atlas.used_layers - first);
+            const u32 num_layers = Math::min(source.layers_per_pixel_buffer, atlas.uploaded_layer_count - first);
             GL::BufferImage3D image{PixelFormat::RGBA8Unorm, {layer_size, (Int)num_layers},
-                                    move(source.used_layer_pixel_buffers[j]), layer_bytes * num_layers};
+                                    move(source.uploaded_layer_pixel_buffers[j]), layer_bytes * num_layers};
             texture.setSubImage(0, {0, 0, (Int)first}, image);
         }
     }
-    else if (!source.used_layer_pixels.isEmpty())
+    else if (!source.uploaded_layer_pixels.isEmpty())
     {
-        for (u32 i = 0; i < atlas.used_layers; i++)
+        for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
             texture.setSubImage(0, {0, 0, (Int)i},
                                 ImageView3D{PixelFormat::RGBA8Unorm, {layer_size, 1},
-                                            source.used_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
+                                            source.uploaded_layer_pixels.sliceSize(i * layer_bytes, layer_bytes)});
     }
-    else if (atlas.used_layers > 0)
+    else if (atlas.uploaded_layer_count > 0)
     {
         const framebuffer_saver saver;
         const auto rect = Range2Di{{}, layer_size};
         constexpr auto attachment = GL::Framebuffer::ColorAttachment{0};
         GL::Framebuffer src_fb{rect}, dst_fb{rect};
-        for (Int i = 0; i < (Int)atlas.used_layers; i++)
+        for (Int i = 0; i < (Int)atlas.uploaded_layer_count; i++)
         {
             src_fb.attachTextureLayer(attachment, source.texture, 0, i);
             dst_fb.attachTextureLayer(attachment, texture, 0, i);
@@ -471,7 +471,7 @@ void copy_used_layers(const Atlas& atlas, LayerCopySource& source, GL::Texture2D
 
     // The copy read undefined data from rows the old texture hadn't committed.
     if (atlas.virtual_page_height)
-        for (u32 i = 0; i < atlas.used_layers; i++)
+        for (u32 i = 0; i < atlas.uploaded_layer_count; i++)
             if (const auto y = atlas.layers[i].committed_height; y < atlas.layer_height)
                 clear_rows_to_magenta(texture, atlas.layer_width, i, y, atlas.layer_height);
 }
@@ -491,7 +491,7 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
     {
         const with_gl_errors scope{gl_error_policy::error};
         alloc_texture_layers(atlas, new_texture, new_layer_count);
-        copy_used_layers(atlas, source, new_texture.texture);
+        copy_uploaded_layers(atlas, source, new_texture.texture);
     }
 
     if (new_texture.virtual_page_height)
@@ -542,7 +542,7 @@ void free_atlas(Atlas& atlas)
     atlas.pending = {};
     atlas.staging = {};
     atlas.texture_layer_capacity = 0;
-    atlas.used_layers = 0;
+    atlas.uploaded_layer_count = 0;
     atlas.virtual_page_height = 0;
 }
 
@@ -668,7 +668,7 @@ void flush(Atlas& atlas)
     // Keeps the capacity stage_sprite() reserved, so the next add() doesn't allocate it again.
     arrayClear(atlas.pending);
     arrayClear(atlas.staging);
-    atlas.used_layers = (u32)atlas.layers.size();
+    atlas.uploaded_layer_count = (u32)atlas.layers.size();
 }
 
 std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& sprite,
@@ -813,7 +813,7 @@ void dump_atlas(Atlas& atlas, StringView out_filename)
     const auto wʹ = (i64)atlas.layer_width, hʹ = (i64)atlas.layer_height;
     fm_assert(wʹ * hʹ <= pixels_per_chunk);
     const auto w = (Int)wʹ, h = (Int)hʹ;
-    const auto n = (Int)atlas.used_layers;
+    const auto n = (Int)atlas.uploaded_layer_count;
     const auto layers_per_chunk = pixels_per_chunk / (w * h);
 
     PluginManager::Manager<Trade::AbstractImageConverter> mgr;
