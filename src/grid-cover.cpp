@@ -839,17 +839,23 @@ void Grid::build_if_stale()
     grid->build_if_stale();
 }
 
-bool Grid::ensure_octant(u32 k)
+u32 Grid::ensure_octant(u32 k)
 {
     fm_debug_assert(k < octant_count);
+    const auto& P = *static_cast<const detail::CoverPool*>(grid->pool);
+    const auto fills_at_start = P.fills;
     grid->build_if_stale();
-    return grid->fill_octant(k, *grid->c);
+    (void)grid->fill_octant(k, *grid->c);
+    return P.fills - fills_at_start;
 }
 
-bool Grid::fill_next_unfilled_octant()
+u32 Grid::fill_next_unfilled_octant()
 {
+    const auto& P = *static_cast<const detail::CoverPool*>(grid->pool);
+    const auto fills_at_start = P.fills;
     grid->build_if_stale();
-    return grid->fill_next_unfilled_octant(*grid->c);
+    (void)grid->fill_next_unfilled_octant(*grid->c);
+    return P.fills - fills_at_start;
 }
 
 u32 Grid::built_octants() const

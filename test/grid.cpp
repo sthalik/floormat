@@ -2346,6 +2346,40 @@ void test_is_stale_on_chunk_create_and_collect()
     check({0, 0, 1}, expect::current, expect::current, false);
 }
 
+// A grid marked stale is rebuilt first, which fills octant 0, so ensure_octant(k) fills one octant or two.
+void test_cover_octant_fills_include_rebuild()
+{
+    auto w = world();
+    add_ground_all(w[COORD]);
+    rebuild_passability(w[COORD]);
+    Pass::Pool cover_pass_pool{Pass::Params{16, pass_mode::shoot_through}};
+    Grid::Cover::Pool cover_pool{Grid::Cover::Params{16}, cover_pass_pool};
+    auto g = cover_pool[w[COORD]];
+    const auto num_filled = [&](auto&& fill_octants) {
+        const auto fills_at_start = cover_pool.octant_fills();
+        const u32 n = fill_octants();
+        fm_assert_equal(cover_pool.octant_fills() - fills_at_start, n);
+        return n;
+    };
+    const auto ensure = [&](u32 k) { return num_filled([&] { return g.ensure_octant(k); }); };
+    const auto fill_next = [&] { return num_filled([&] { return g.fill_next_unfilled_octant(); }); };
+
+    fm_assert(g.is_marked_stale());
+    fm_assert_equal(1u, ensure(0));
+    fm_assert_equal(0u, ensure(0));
+    fm_assert_equal(1u, ensure(5));
+    g.mark_stale();
+    fm_assert_equal(2u, ensure(5));
+    g.mark_stale();
+    fm_assert_equal(1u, ensure(0));
+    g.mark_stale();
+    fm_assert_equal(2u, fill_next());
+    for (auto i = 2u; i < Grid::Cover::octant_count; i++)
+        fm_assert_equal(1u, fill_next());
+    fm_assert_equal(0u, fill_next());
+    fm_assert_equal((u32)-1, g.built_octants());
+}
+
 void test_is_stale_lifecycle()
 {
     constexpr chunk_coords_ N{1, -1, 0}, R{-2, 1, 0}, F{5, 5, 0};
@@ -3603,6 +3637,7 @@ void test_grid()
     test_cover_grids_after_static_changes();
     test_is_stale_on_chunk_create_and_collect();
     test_is_stale_lifecycle();
+    test_cover_octant_fills_include_rebuild();
     test_registry_grids_after_door_changes();
     test_grids_after_critter_changes();
     test_object_grid_matches_positions(8, 32);

@@ -70,8 +70,9 @@ public:
     /// @copydoc floormat::Grid::Pass::Grid::is_stale(u64)
     bool is_stale(u64 pass_gen) const;
 
-    bool ensure_octant(u32 k);
-    bool fill_next_unfilled_octant();
+    // Both return how many octants they filled, 2 at most. Rebuilding a grid marked stale fills octant 0 first.
+    u32 ensure_octant(u32 k);
+    u32 fill_next_unfilled_octant();
     u32 built_octants() const;
 };
 

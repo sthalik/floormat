@@ -135,8 +135,8 @@ chunk* cover_test::chunk_at(world& w, i32 dx, i32 dy) const
 void cover_test::draw_chunk(app& a, chunk& c, u32 sk)
 {
     Grid::Cover::Grid cg = (*pool)[c];
-    cg.build_if_stale();
-    if (!(cg.built_octants() & (1u << sk)))
+    // update_post rebuilds stale grids, one per frame.
+    if (cg.is_marked_stale() || !(cg.built_octants() & (1u << sk)))
         return;
 
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
@@ -197,7 +197,6 @@ void cover_test::draw_overlay(app& a)
                 draw_chunk(a, *ch, sk);
 
     Grid::Cover::Grid cg = (*pool)[*c];
-    cg.build_if_stale();
 
     ImDrawList& draw = *ImGui::GetBackgroundDrawList();
     const auto pos = a.point_to_pixel(result.from);
@@ -205,7 +204,7 @@ void cover_test::draw_overlay(app& a)
     const auto ds = (int)pool->params().div_size;
     constexpr auto line_color = 0x00ff0099_imcol;
 
-    const auto built = cg.built_octants();
+    const auto built = cg.is_marked_stale() ? 0u : cg.built_octants();
     for (u32 k = 0; k < Grid::Cover::octant_count; k++)
     {
         if (k == sk || !(built & 1u << k) || cg.distance(result.cell_idx, k) == Grid::Cover::blocked)
