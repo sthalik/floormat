@@ -693,7 +693,7 @@ void Critter_cover_chase(benchmark::State& st)
     constexpr auto body = Vector2ui{24, 24};
     constexpr auto time_before_chase = 5*Second, max_phase_time = 60*Second;
     constexpr auto hidden_time = 2*Second; // the script's hidden_time
-    const bool is_teleport = st.range(0);
+    const bool is_teleport = st.range(0), has_moving_critter = st.range(1);
 
     auto w = world();
     make_cover_chase_world(w);
@@ -709,6 +709,8 @@ void Critter_cover_chase(benchmark::State& st)
     const auto npc_start = point{chunk_coords_{}, {7, 8}, {}}, threat_start = point{chunk_coords_{}, {14, 5}, {}};
     auto npc = add_critter(npc_start);
     auto threat = add_critter(threat_start);
+    const auto moving_critter_start = point{chunk_coords_{}, {1, 1}, {}};
+    auto moving_critter = has_moving_critter ? add_critter(moving_critter_start) : bptr<critter>{};
     const auto blocks_all_but_threat = Search::blocks_all_but(threat->id);
     const auto is_passable_for_threat = [&](point pos) {
         const auto min = Vector2(pos.intra().center_shifted() - Vector2i(body/2u));
@@ -782,6 +784,11 @@ void Critter_cover_chase(benchmark::State& st)
         auto j = threat->index();
         threat->teleport_to(j, threat_start, N);
         threat->delta = 0;
+        if (moving_critter)
+        {
+            auto k = moving_critter->index();
+            moving_critter->teleport_to(k, moving_critter_start, N);
+        }
         A.emplace();
         npc->script.do_reassign(critter_script::make_cover_script(*A, threat->id, div_size), npc);
     };
@@ -797,6 +804,12 @@ void Critter_cover_chase(benchmark::State& st)
         {
             w.increment_frame_no();
             w.advance_game_time(frame);
+            if (moving_critter)
+            {
+                auto k = moving_critter->index();
+                const auto dx = num_updates % 2 ? -1 : 1;
+                moving_critter->teleport_to(k, moving_critter->position() + Vector2i{dx, 0}, rotation_COUNT);
+            }
             auto j = threat->index();
             threat->update(threat, j, frame);
             auto i = npc->index();
@@ -931,7 +944,9 @@ void Critter_cover_chase(benchmark::State& st)
     w.finish_scripts();
 }
 
-BENCHMARK(Critter_cover_chase)->ArgName("teleport")->Arg(0)->Arg(1)->Unit(benchmark::kMillisecond);
+BENCHMARK(Critter_cover_chase)
+    ->ArgNames({"teleport", "moving_critter"})->Args({0, 0})->Args({1, 0})->Args({0, 1})->Args({1, 1})
+    ->Unit(benchmark::kMillisecond);
 
 } // namespace
 
