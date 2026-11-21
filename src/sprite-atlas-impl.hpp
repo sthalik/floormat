@@ -112,7 +112,6 @@ struct Atlas
     Array<char> staging {};
     GL::Texture2DArray texture{NoCreate};
     u32 layer_width = 0, layer_height = 0;
-    u32 texture_layer_count = 0; // allocated layers
     u32 texture_layer_capacity = 0; // layers in texture's storage, committed or not
     u32 uploaded_layer_count = 0; // sprites added before the last flush()
     u32 texture_gen = 0;
