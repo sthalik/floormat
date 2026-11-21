@@ -88,10 +88,10 @@ private:
     // test_spot_against_reach() fills it and swaps it with _reach_test_progress.hidden_from.
     Array<point> _next_hidden_from;
     u32 _exposed_updates_left = 0;
-    // Spots that no path reaches with every critter let through, or tied to one.
+    // Spots that no path reaches with other critters let through, or from which the npc can move straight to one.
     unreachable_spots _unreachable;
-    // Spots path_to found no path to, or tied to one, which a critter may cut off. Skipped until the scan
-    // starts again from tile 0.
+    // Spots that path_to found no path to with other critters blocking, or from which the npc can move straight
+    // to one. Skipped until the scan starts again from tile 0.
     unreachable_spots _unreachable_until_rescan;
     // Runs in the next tick() with critters let through, and adds the spot to _unreachable when no path is found.
     // The search doesn't end while it waits.
