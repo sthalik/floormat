@@ -372,7 +372,6 @@ void grow_texture(Atlas& atlas, u32 new_layer_count)
         else
             atlas.layer_copy = layer_copy_mode::fallback;
     }
-    // texture_unit_cache takes a reused name as still bound, so this runs before the old texture is deleted.
     if (!new_texture.id())
         new_texture = GL::Texture2DArray{};
 
