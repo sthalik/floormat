@@ -50,9 +50,9 @@ constexpr float pick_radius = 6;
 // blockers. pgo-driver-cover-ai.cpp's overlay_spots takes the same radius. The slider doubles it
 // from 1 tile up to 1 << max_spots_radius_log2 tiles.
 constexpr int default_spots_radius_tiles = 16, max_spots_radius_log2 = 6;
-// The overlay's search per frame, as the script's search per update in critter-script-cover.cpp. A
-// tile whose listing needs another octant filled waits for the next frame.
-constexpr u32 spots_tiles_per_frame = 32, spots_fills_per_frame = 1;
+// The overlay's search per frame, as the script's search per update in critter-script-cover-search.cpp. A
+// tile whose listing needs another octant filled waits for a frame with an octant fill left.
+constexpr u32 spots_tiles_per_frame = 32;
 // Rotations of the player's reach about a spot, in octants, that octant rings test, and each ring's color. A
 // positive rotation turns clockwise on screen. The two of 1 octant come first, as bits 0 and 1.
 constexpr int neighbor_octant_offsets[] = { -1, 1, -2, 2, };
@@ -562,7 +562,7 @@ void cover_ai_test::search_spots(app& a, critter& c, bool limited)
         return;
     auto t = Time::now();
     const auto first_tile = next_tile;
-    auto fills_left = limited ? spots_fills_per_frame : (u32)-1;
+    auto fills_left = limited ? Grid::Cover::max_octant_fills_per_frame : (u32)-1;
     for (auto n = 0u; has_search && next_tile < tiles.size() && (!limited || n < spots_tiles_per_frame); n++)
     {
         const auto f = search_tile(a, c, player->position(), fills_left);
@@ -1208,7 +1208,7 @@ void cover_ai_test::draw_ui(app& a, float)
         snformat(buf, "{} tiles, {} px", radius_tiles, radius_tiles*tile_size_xy);
         if (ImGui::SliderInt("Spots radius", &e, 0, max_spots_radius_log2, buf, slider_flags))
             radius_tiles = 1 << e;
-        ImGui::TextWrapped("Spots hidden from the player, searched a few tiles per frame with at most one octant fill, "
+        ImGui::TextWrapped("Spots hidden from the player, searched a few tiles per frame with up to two octant fills, "
                            "starting over when the player's bearing from the npc's tile enters another of the "
                            "cover grid's 32 octants, or a wall changes. Other player moves drop the spots the "
                            "player then sees. Click a blue dot to send "

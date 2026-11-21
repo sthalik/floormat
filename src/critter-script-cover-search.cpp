@@ -24,14 +24,9 @@ namespace {
 
 constexpr u32 path_slack = 5*(u32)tile_size_xy;
 // The work the search may do in one update. Counts, not time, so that the npc behaves the same on every machine.
-// TODO: each critter has its own limits, so n critters searching in different chunks can fill n
-// octants in one frame.
 
 // Tiles of search_tiles(), each listed by one Cover::Point::finder::find call over the tile's area.
 constexpr u32 max_search_tiles_per_update = 32;
-// Filling an octant computes how far a shot travels from each cell of a chunk's cover grid along one of 32
-// directions. A stale grid's rebuild counts as one. A rebuild and filling one octant took 0.66 ms at div 8.
-constexpr u32 max_search_octant_fills_per_update = 1;
 // path_to calls, each one Dijkstra search. One that found a path took up to 0.71 ms among dense scenery.
 constexpr u32 max_search_dijkstra_calls_per_update = 1;
 // Listed cover spots that no reach position sees. Each gets cover_end, up to 0.1 ms among dense
@@ -101,7 +96,7 @@ void cover_search::restart(point from, point threat)
 }
 
 auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options& o, point from,
-                        point threat) -> result
+                        point threat, u32 max_octant_fills) -> result
 {
     using fallback = Cover::Script::options::fallback;
     auto& w = c.world();
@@ -196,7 +191,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
         _exposed_updates_left--;
     // the offset of _from's tile's center, so that each area is a tile of the world
     const auto base = point{_from.coord(), {}} - _from;
-    auto fills = max_search_octant_fills_per_update, dijkstra_left = max_search_dijkstra_calls_per_update;
+    auto fills = max_octant_fills, dijkstra_left = max_search_dijkstra_calls_per_update;
     auto peek_spot_searches_left = max_peek_spot_searches_per_update;
     for (auto n = 0u; n < max_search_tiles_per_update; n++)
     {

@@ -92,6 +92,7 @@ private:
     void restart_search(critter& C);
     void resume_search(critter& C);
     void search_step(critter& C);
+    Cover::cover_search::result tick_search(critter& C, point from);
     void end_search(critter& C, Optional<Cover::cover_search::reachable_cover> r, bool is_search_not_done);
     void walk_to_peek_spot_or_cover(critter& C, path_search_result path);
     void walk_to_found_cover(critter& C);
@@ -123,6 +124,10 @@ private:
     Optional<Cover::Point::query> query;
     Cover::cover_search search;
     Cover::retreat_finder retreat;
+    // Octants the search filled in world frame last_octant_fill_frame_no. TODO: move both into a central AI
+    // manager, so cover scripts share max_octant_fills_per_frame and the npc updated first can't take them all.
+    u32 octant_fills_in_frame = 0;
+    u64 last_octant_fill_frame_no = 0;
     search_then then = search_then::seek;
     // A retreat started since start_search, so a kept last_resort spot starts no other.
     bool search_retreated = false;
@@ -489,12 +494,28 @@ void cover_script::search_step(critter& C)
         return;
     }
     const auto n = tests.counters.num_dijkstra_calls;
-    auto r = search.tick(C, tests, options, search_origin(C), threat_pos);
+    auto r = tick_search(C, search_origin(C));
     if (r.done)
         end_search(C, move(r.cover), tests.counters.num_dijkstra_calls == n);
     else if (st == state::retreat && is_retreat_exposed && search.has_last_resort() &&
              search.progress().tile >= tiles_searched_before_give_up)
         search.give_up();
+}
+
+Cover::cover_search::result cover_script::tick_search(critter& C, point from)
+{
+    if (const auto frame_no = C.world().frame_no(); frame_no != last_octant_fill_frame_no)
+    {
+        last_octant_fill_frame_no = frame_no;
+        octant_fills_in_frame = 0;
+    }
+    constexpr auto max_fills = Grid::Cover::max_octant_fills_per_frame;
+    const auto& pool = tests.pool_registry().cover_pool(Grid::Cover::Params{options.div_size});
+    const auto fills = pool.octant_fills();
+    auto r = search.tick(C, tests, options, from, threat_pos,
+                         max_fills - Math::min(max_fills, octant_fills_in_frame));
+    octant_fills_in_frame += pool.octant_fills() - fills;
+    return r;
 }
 
 // Takes r's cover, or continues the retreat, retreats or waits as `then` says when r is empty.

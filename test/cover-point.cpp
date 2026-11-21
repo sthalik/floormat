@@ -2137,6 +2137,7 @@ point canonical_after_threat_moves(bool moves, bool reset_options)
     for (auto frames = 0u; status().counters.num_searches == 0; frames++)
     {
         fm_assert(frames < 600*fps);
+        w.increment_frame_no();
         auto i = npc->index();
         npc->update(npc, i, Second / fps);
         if (const auto t = status(); !moved && t.st == state::search && t.counters.num_rays > 0)
@@ -3165,10 +3166,10 @@ void test_cover_script_retreat_end_seen(point hidden, bool search_ended)
 }
 
 // A wall at tile (12, 8) whose west face, over 7 tiles from the npc, is the only cover from the
-// threat at (15, 8). The npc stands while its search reaches there, filling at most one octant
-// and running at most one Dijkstra search per update, then walks there and hides. With threat_changes_octant
-// set, the threat moves 1 px north in each of the first 2 updates, which keeps its octant and the search's
-// progress, then moves to the north-east, another octant, which starts the search over.
+// threat at (15, 8). The npc stands while its search reaches there, filling at most max_octant_fills_per_frame
+// octants and running at most one Dijkstra search per update, then walks there and hides. With
+// threat_changes_octant set, the threat moves 1 px north in each of the first 2 updates, which keeps its octant
+// and the search's progress, then moves to the north-east, another octant, which starts the search over.
 void test_cover_script_far_cover(bool threat_changes_octant)
 {
     auto w = world();
@@ -3201,7 +3202,7 @@ void test_cover_script_far_cover(bool threat_changes_octant)
             move_threat(updates == 2 ? point{ch, {12, 1}, {}} : threat->position() - Vector2i{0, 1});
         step();
         const auto t = status();
-        fm_assert(pool.octant_fills() - fills <= 1);
+        fm_assert(pool.octant_fills() - fills <= Grid::Cover::max_octant_fills_per_frame);
         fm_assert(t.counters.num_dijkstra_calls - num_dijkstra_calls <= 1);
         if (t.st != state::search)
             break;
@@ -3320,6 +3321,45 @@ void test_cover_script_div_change()
     fm_assert(t.st == state::to_cover && t.cover);
     const auto& c = *t.cover;
     fm_assert(point::distance(npc_pos, c.pos) > 7*(u32)tile_size_xy);
+    w.finish_scripts();
+}
+
+// Two npcs whose threats lie in different octants start searching in one world frame. Each script counts its own
+// octant fills, so in some frame the two fill more than max_octant_fills_per_frame, and neither alone does.
+void test_cover_scripts_count_own_octant_fills()
+{
+    auto w = world();
+    add_ground(w);
+    add_blocker(w, {12, 8}, {16, 96});
+    add_blocker(w, {8, 11}, {96, 16});
+    rebuild(w);
+    const auto threat1 = add_critter(w, point{ch, {15, 8}, {}}), threat2 = add_critter(w, point{ch, {8, 14}, {}});
+    const bptr<critter> npcs[] = {add_critter(w, point{ch, {4, 8}, {}}), add_critter(w, point{ch, {8, 4}, {}})};
+    w.init_scripts();
+    auto A = astar{};
+    npcs[0]->script.do_reassign(critter_script::make_cover_script(A, threat1->id, 8), npcs[0]);
+    npcs[1]->script.do_reassign(critter_script::make_cover_script(A, threat2->id, 8), npcs[1]);
+    const auto& pool = A.pool_registry().cover_pool(Grid::Cover::Params{8});
+    const auto frame = Second / npcs[0]->atlas->info().fps;
+    const auto num_searches = [&](u32 i) { return Cover::Script::get_status(*npcs[i])->counters.num_searches; };
+    u32 most_octant_fills_in_one_frame = 0;
+    for (auto frames = 0u; !num_searches(0) || !num_searches(1); frames++)
+    {
+        fm_assert(frames < 2000);
+        w.increment_frame_no();
+        w.advance_game_time(frame);
+        const auto fills_at_frame_start = pool.octant_fills();
+        for (const auto& npc : npcs)
+        {
+            const auto fills = pool.octant_fills();
+            auto i = npc->index();
+            npc->update(npc, i, frame);
+            fm_assert(pool.octant_fills() - fills <= Grid::Cover::max_octant_fills_per_frame);
+        }
+        most_octant_fills_in_one_frame = Math::max(most_octant_fills_in_one_frame,
+                                                   pool.octant_fills() - fills_at_frame_start);
+    }
+    fm_assert(most_octant_fills_in_one_frame > Grid::Cover::max_octant_fills_per_frame);
     w.finish_scripts();
 }
 
@@ -3658,6 +3698,14 @@ void test_seen_on_path()
     fm_assert_equal(65u + 29u, t.counters.num_path_body_checks);
 }
 
+// Returns search.tick()'s result for an update in a new world frame, which has all of the frame's octant fills.
+auto tick_in_next_frame(Cover::cover_search& search, critter& npc, Cover::spot_tests& t,
+                        const Cover::Script::options& o, point from, point threat)
+{
+    npc.world().increment_frame_no();
+    return search.tick(npc, t, o, from, threat, Grid::Cover::max_octant_fills_per_frame);
+}
+
 // Calls search.tick() until an update tests a path with is_seen_on_path, which must not end the search.
 void tick_until_path_checked(cover_scene& s, Cover::spot_tests& t, Cover::cover_search& search,
                              const Cover::Script::options& o, point from, point threat)
@@ -3666,7 +3714,7 @@ void tick_until_path_checked(cover_scene& s, Cover::spot_tests& t, Cover::cover_
     {
         fm_assert(i < 100);
         const auto checks = t.counters.num_path_body_checks;
-        fm_assert(!search.tick(*s.npc, t, o, from, threat).done);
+        fm_assert(!tick_in_next_frame(search, *s.npc, t, o, from, threat).done);
         if (t.counters.num_path_body_checks != checks)
             return;
     }
@@ -3680,7 +3728,7 @@ void tick_rejecting_paths(cover_scene& s, Cover::spot_tests& t, Cover::cover_sea
     for (auto i = 0u; i < 4; i++)
     {
         const auto checks = t.counters.num_path_body_checks, body_checks = t.counters.num_body_checks;
-        fm_assert(!search.tick(*s.npc, t, o, from, threat).done);
+        fm_assert(!tick_in_next_frame(search, *s.npc, t, o, from, threat).done);
         fm_assert(t.counters.num_path_body_checks != checks ||
                   t.counters.num_body_checks - body_checks == Cover::max_search_body_checks_per_update);
     }
@@ -3701,7 +3749,7 @@ void test_search_takes_exposed_cover()
     search.begin(from, threat);
     tick_until_path_checked(s, t, search, o, from, threat);
     tick_rejecting_paths(s, t, search, o, from, threat);
-    const auto r = search.tick(*s.npc, t, o, from, threat);
+    const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat);
     fm_assert(r.done && r.cover && r.cover->end == exposed_cover_end);
     fm_assert_equal(4u, t.counters.num_dijkstra_calls);
     fm_assert(t.is_seen_on_path(*s.npc, o, threat, r.cover->path));
@@ -3722,7 +3770,7 @@ void test_search_drops_exposed_cover_now_seen()
     tick_rejecting_paths(s, t, search, o, from, threat);
     const point moved{ch, {7, 4}, {0, 5}};
     s.move_threat(moved);
-    fm_assert(!search.tick(*s.npc, t, o, from, moved).done);
+    fm_assert(!tick_in_next_frame(search, *s.npc, t, o, from, moved).done);
 }
 
 // Behind the pillar at (668, 512) the npc is hidden from the threat, so every path to the wall's west face is
@@ -3750,7 +3798,7 @@ void test_search_drops_exposed_cover_seen_by_threat_in_neighbor_octant()
     for (auto i = 0u; !t.counters.num_path_body_checks; i++)
     {
         fm_assert(i < 20);
-        fm_assert(!search.tick(*npc, t, o, from, threat).done);
+        fm_assert(!tick_in_next_frame(search, *npc, t, o, from, threat).done);
     }
     {
         auto i = threat_critter->index();
@@ -3759,7 +3807,7 @@ void test_search_drops_exposed_cover_seen_by_threat_in_neighbor_octant()
     for (auto i = 0u; ; i++)
     {
         fm_assert(i < 400);
-        if (const auto r = search.tick(*npc, t, o, from, moved); r.done)
+        if (const auto r = tick_in_next_frame(search, *npc, t, o, from, moved); r.done)
         {
             fm_assert(!r.cover || t.is_hidden_at(*npc, moved, r.cover->spot.pos, r.cover->spot.axis) &&
                                   t.is_hidden_from_threat_in_neighbor_octants(*npc, o, moved, r.cover->spot));
@@ -3783,7 +3831,7 @@ void test_search_takes_exposed_cover_over_seen_fallback()
     fm_assert(search.has_last_resort());
     s.w[ch].remove_object(*block, block->index());
     rebuild(s.w);
-    const auto r = search.tick(*s.npc, t, o, from, threat);
+    const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat);
     fm_assert(r.done && r.cover && r.cover->end == exposed_cover_end);
 }
 
@@ -3802,9 +3850,9 @@ void test_fallback_after_exposed_cover_ends_search()
     search.begin(from, threat);
     tick_until_path_checked(s, t, search, o, from, threat);
     fm_assert(!search.has_last_resort());
-    fm_assert(!search.tick(*s.npc, t, o, from, threat).done);
+    fm_assert(!tick_in_next_frame(search, *s.npc, t, o, from, threat).done);
     fm_assert(search.has_last_resort());
-    const auto r = search.tick(*s.npc, t, o, from, threat);
+    const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat);
     fm_assert(r.done && r.cover && r.cover->end == point{ch, {3, 2}, {4, 20}});
 }
 
@@ -3851,7 +3899,7 @@ void test_search_takes_reachable_fallback_spot()
         for (auto i = 0u; ; i++)
         {
             fm_assert(i < 400);
-            if (const auto r = search.tick(*s.npc, t, o, from, threat); r.done)
+            if (const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat); r.done)
             {
                 fm_assert(r.cover && r.cover->path.is_found());
                 fm_assert(cant_be_shot_at(s.w, threat, s.threat->id, r.cover->end, body, s.npc->id));
@@ -3882,7 +3930,7 @@ void test_search_retries_unreachable_spot()
         for (auto i = 0u; ; i++)
         {
             fm_assert(i < 400);
-            if (const auto r = search.tick(*s.npc, t, o, from, threat); r.done)
+            if (const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat); r.done)
             {
                 fm_assert(r.cover);
                 return r.cover->spot.pos;
@@ -3942,7 +3990,7 @@ void test_search_caps_body_checks_per_update(bool is_threat_walking)
             s.move_threat(threat);
         }
         const auto n = t.counters.num_body_checks;
-        const auto r = search.tick(*s.npc, t, o, from, threat);
+        const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat);
         const auto num_body_checks = t.counters.num_body_checks - n;
         fm_assert(num_body_checks <= Cover::max_search_body_checks_per_update);
         is_cap_reached |= num_body_checks == Cover::max_search_body_checks_per_update;
@@ -4404,6 +4452,7 @@ void Test::test_cover_point()
     test_cover_script_far_cover(true);
     test_cover_script_search_threat_back_and_forth();
     test_cover_script_div_change();
+    test_cover_scripts_count_own_octant_fills();
     test_cover_script_late_options();
     test_cover_script_orders(hidden);
     test_cover_script_threat_off_floor();
