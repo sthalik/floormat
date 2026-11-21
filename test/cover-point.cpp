@@ -85,7 +85,7 @@ void rebuild(world& w)
     c.ensure_passability();
 }
 
-bool passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Search::without_critters)
+bool is_passable(world& w, point pt, Vector2ui size, const Search::pred& pred = Search::without_critters)
 {
     const auto min = Vector2(pt.intra().center_shifted() - Vector2i(size/2u));
     return Search::is_passable(w, pt.chunk3(), Range2D::fromSize(min, Vector2(size)), pred);
@@ -190,8 +190,8 @@ void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, loc
     const auto r = find(w, npc, threat, radius, 8, size);
     fm_assert(r.found);
     fm_assert(r.axis == axis);
-    fm_assert(passable(w, r.pos, size));
-    fm_assert(!passable(w, r.pos + r.axis, size));
+    fm_assert(is_passable(w, r.pos, size));
+    fm_assert(!is_passable(w, r.pos + r.axis, size));
 
     const auto wall_min = Vector2i(wall_tile)*tile_size_xy - Vector2i(wall_size/2), wall_max = wall_min + Vector2i(wall_size);
     const auto px = Vector3i(r.pos).xy();
@@ -372,7 +372,7 @@ void test_spot_taken()
     const auto other = add_critter(w, spot.pos);
     const auto r = find(w, npc, threat, 3*tile_size_xy, 8, body, Search::never_continue);
     fm_assert(r.found);
-    fm_assert(passable(w, r.pos, body, Search::never_continue));
+    fm_assert(is_passable(w, r.pos, body, Search::never_continue));
     w[ch].remove_object(*other, other->index());
     fm_assert(cant_be_shot(w, threat, r.pos));
 }
@@ -393,9 +393,9 @@ Cover::Point::result find_listed(world& w, point npc, point threat, u32 radius)
         fm_assert(a.pos != b.pos);
     for (const auto [pos, axis] : r.spots)
     {
-        fm_assert(passable(w, pos, body));
+        fm_assert(is_passable(w, pos, body));
         // flush against its blocker
-        fm_assert(!passable(w, pos + axis, body));
+        fm_assert(!is_passable(w, pos + axis, body));
         // Removed after the shot, so it can't stop the rays aimed at the next spot.
         const auto c = add_critter(w, pos);
         fm_assert(cant_be_shot_at(w, threat, 0, pos, body, c->id));
@@ -568,7 +568,7 @@ Vector2i threat_in_neighbor_octant(Vector2i threat, Vector2i pos, int j)
 
 // True when no ray from threat hits a critter of size body centered on pos, put there for the
 // shots. It is removed afterwards, so it can't stop the rays aimed at the next spot.
-bool hidden_from(world& w, Vector2i threat, point pos)
+bool is_hidden_from(world& w, Vector2i threat, point pos)
 {
     const auto c = add_critter(w, pos);
     const auto ret = cant_be_shot_at(w, at_px(threat), 0, pos, body, c->id);
@@ -610,9 +610,9 @@ void test_octants_wall_middle()
     for (const auto p : spots0)
     {
         const auto v = Vector3i(p).xy();
-        fm_assert(hidden_from(w, T, p));
-        const auto hidden = hidden_from(w, threat_in_neighbor_octant(T, v, -1), p) &&
-                            hidden_from(w, threat_in_neighbor_octant(T, v, 1), p);
+        fm_assert(is_hidden_from(w, T, p));
+        const auto hidden = is_hidden_from(w, threat_in_neighbor_octant(T, v, -1), p) &&
+                            is_hidden_from(w, threat_in_neighbor_octant(T, v, 1), p);
         const auto listed = contains(spots3, p);
         fm_assert(listed == hidden);
         kept += hidden;
@@ -643,8 +643,8 @@ void test_octants_threat_in_neighbor_octant_sees()
     fm_assert_equal(r3.candidates, r3.rejected);
     for (const auto p : spots0)
     {
-        fm_assert(hidden_from(w, T, p));
-        fm_assert(!hidden_from(w, threat_in_neighbor_octant(T, Vector3i(p).xy(), -1), p));
+        fm_assert(is_hidden_from(w, T, p));
+        fm_assert(!is_hidden_from(w, threat_in_neighbor_octant(T, Vector3i(p).xy(), -1), p));
     }
 }
 
@@ -653,11 +653,11 @@ void test_octants_threat_in_neighbor_octant_sees()
 bool is_hidden_from_threat_in_own_and_neighbor_octants(world& w, Vector2i threat, point pos, u8 octants)
 {
     const auto v = Vector3i(pos).xy();
-    if (!hidden_from(w, threat, pos))
+    if (!is_hidden_from(w, threat, pos))
         return false;
     for (auto j = 1; j <= octants/2; j++)
-        if (!hidden_from(w, threat_in_neighbor_octant(threat, v, -j), pos) ||
-            !hidden_from(w, threat_in_neighbor_octant(threat, v, j), pos))
+        if (!is_hidden_from(w, threat_in_neighbor_octant(threat, v, -j), pos) ||
+            !is_hidden_from(w, threat_in_neighbor_octant(threat, v, j), pos))
             return false;
     return true;
 }
@@ -685,7 +685,7 @@ void test_moves_to_cover_end(u8 octants, bool north_leg)
     fm_assert(p.x() == p0.x());
     fm_assert(north_leg ? p.y() > p0.y() : p.y() < p0.y());
     fm_assert(Math::abs(p.y() - p0.y()) <= (int)max_cover_end_dist);
-    fm_assert(passable(w, r.pos, body) && !passable(w, r.pos + r.axis, body));
+    fm_assert(is_passable(w, r.pos, body) && !is_passable(w, r.pos + r.axis, body));
     const auto farther = r.pos + Vector2i{0, north_leg ? 1 : -1};
     fm_assert(is_hidden_from_threat_in_own_and_neighbor_octants(w, T, r.pos, octants));
     fm_assert(!is_hidden_from_threat_in_own_and_neighbor_octants(w, T, farther, octants));
@@ -726,12 +726,12 @@ void test_cover_script_at_wall_end(point hidden)
     add_blocker(w, {7, 8}, {16, 96});
     rebuild(w);
     const auto T = Vector3i(point{ch, {12, 8}, {}}).xy();
-    fm_assert(hidden_from(w, T, hidden));
+    fm_assert(is_hidden_from(w, T, hidden));
     constexpr auto n = (2*tile_size_xy + 16)/8;
     const auto seen = [&](point pos) {
         for (auto j = -n; j <= n; j++)
             for (auto i = -n; i <= n; i++)
-                if (i*i + j*j <= n*n && !hidden_from(w, T + Vector2i{i, j}*8, pos))
+                if (i*i + j*j <= n*n && !is_hidden_from(w, T + Vector2i{i, j}*8, pos))
                     return true;
         return false;
     };
@@ -3268,7 +3268,7 @@ path_search_result flank_route(cover_scene& s)
         const auto px = Vector3i(p).xy();
         if (p.chunk3() != ch || (px < Vector2i{lo}).any() || (px > Vector2i{hi}).any())
             return {};
-        if (!passable(s.w, p, body) || !is_flanked_from(s, p))
+        if (!is_passable(s.w, p, body) || !is_flanked_from(s, p))
             return {};
         const auto toward = s.A.Dijkstra<0, false>(s.w, from, p, chunk_size_xy, size,
                                                     Search::blocks_all_but(s.threat->id));

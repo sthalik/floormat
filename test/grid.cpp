@@ -1645,7 +1645,7 @@ Array<u16> cover_non_octilinear_reference(chunk& c, const Pass::Grid& pg, u32 di
     const int dc = (int)pg.div_count();
     const auto at = [dc](int x, int y) { return (u32)(y*dc + x); };
     const auto inside = [dc](int x, int y) { return x >= 0 && x < dc && y >= 0 && y < dc; };
-    const auto passable = [&](int x, int y) {
+    const auto is_passable = [&](int x, int y) {
         return pg.bit(Pass::Grid::get_bitmask_index((u32)x, (u32)y, (u32)dc));
     };
 
@@ -1657,7 +1657,7 @@ Array<u16> cover_non_octilinear_reference(chunk& c, const Pass::Grid& pg, u32 di
         for (int x = 0; x < dc; x++)
         {
             const auto i = at(x, y);
-            if (!passable(x, y))
+            if (!is_passable(x, y))
             {
                 px[i] = 0;
                 ret[i] = Grid::Cover::blocked;
@@ -1673,7 +1673,7 @@ Array<u16> cover_non_octilinear_reference(chunk& c, const Pass::Grid& pg, u32 di
             {
                 int nearest = major + 1;
                 for (auto off : crossed)
-                    if (!passable(x + off.x(), y + off.y()))
+                    if (!is_passable(x + off.x(), y + off.y()))
                         nearest = Math::min(nearest, aq > ap ? Math::abs(off.x()) : Math::abs(off.y()));
                 v = nearest <= major ? stop(nearest)
                                      : Math::min(px[at(x + q, y + p)] + R(n) - R(n - ap), (u32)UINT16_MAX);
