@@ -63,7 +63,7 @@ u32 allocated_word_count(u32 div_count)
 #ifdef FLOORMAT_GRID_PASS_DEBUG
 unsigned grid_total_count = 0;
 unsigned grid_alive_count = 0;
-unsigned grid_pooled_count = 0;
+unsigned grid_free_count = 0;
 unsigned pool_total_count = 0;
 unsigned pool_alive_count = 0;
 #endif
@@ -224,7 +224,7 @@ PassGrid::PassGrid(chunk& c, Params params):
     ++grid_total_count;
     ++grid_alive_count;
     DBG << cat("PassGrid ctor: total=", grid_total_count) << cat("alive=", grid_alive_count)
-        << cat("pooled=", grid_pooled_count);
+        << cat("free=", grid_free_count);
 #endif
 }
 
@@ -232,7 +232,7 @@ PassGrid::~PassGrid() noexcept
 {
 #ifdef FLOORMAT_GRID_PASS_DEBUG
     --grid_alive_count;
-    DBG << cat("PassGrid dtor: alive=", grid_alive_count) << cat("pooled=", grid_pooled_count);
+    DBG << cat("PassGrid dtor: alive=", grid_alive_count) << cat("free=", grid_free_count);
 #endif
 }
 
@@ -403,6 +403,6 @@ void Pool::build_if_stale_all()
 Pool::Pool(Params params): pool{new detail::PassPool{params}} { }
 Pool::~Pool() noexcept { delete pool; }
 const Params& Pool::params() const { return pool->params; }
-u32 Pool::pooled_count() const { return pool->freelist.size(); }
+u32 Pool::free_grid_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Pass

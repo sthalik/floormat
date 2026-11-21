@@ -71,7 +71,7 @@ public:
     bool is_stale(u64 pass_gen) const;
 
     bool ensure_octant(u32 k);
-    bool fill_next_unfilled();
+    bool fill_next_unfilled_octant();
     u32 built_octants() const;
 };
 
@@ -90,7 +90,7 @@ public:
     void build_if_stale_all();
 
     Params params() const;
-    u32 pooled_count() const;
+    u32 free_grid_count() const;
     // These return the number of octants filled since the pool was made, and the time spent filling them,
     // pass-grid rebuilds included.
     u32 octant_fills() const;

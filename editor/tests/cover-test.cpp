@@ -258,7 +258,7 @@ void cover_test::update_post(app& a, const Ns&)
             if (auto* ch = chunk_at(w, dx, dy); ch && ch != c)
                 if ((*pool)[*ch].ensure_octant(sk))
                     return;
-    (*pool)[*c].fill_next_unfilled();
+    (*pool)[*c].fill_next_unfilled_octant();
 }
 
 base_test::Value cover_test::advance(app& a, Value)

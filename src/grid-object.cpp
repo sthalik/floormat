@@ -435,6 +435,6 @@ void Pool::build_if_stale_all()
 
 const Params& Pool::params() const { return pool->params; }
 Pass::Pool& Pool::pass_pool() const { return pool->pass_pool; }
-u32 Pool::pooled_count() const { return pool->freelist.size(); }
+u32 Pool::free_grid_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Object
