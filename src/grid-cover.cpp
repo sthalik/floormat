@@ -792,6 +792,7 @@ Vector2 octant_direction(u32 k)
     fm_debug_assert(k < octant_count);
     return detail::direction_for_octant(k);
 }
+
 Grid::~Grid() noexcept = default;
 Grid::Grid(const Grid&) noexcept = default;
 Grid& Grid::operator=(const Grid&) & noexcept = default;

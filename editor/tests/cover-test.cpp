@@ -285,10 +285,7 @@ void cover_test::extract(app& a, point pt)
     if (!c)
         return;
 
-    Grid::Cover::Grid g = (*pool)[*c];
-    g.build_if_stale();
-
-    const auto idx = g.get_cell_index_from_coord(intra_coord{pt});
+    const auto idx = (*pool)[*c].get_cell_index_from_coord(intra_coord{pt});
 
     has_result = false;
     result = {

@@ -49,7 +49,8 @@ public:
     void restart(point from, point threat);
     // One update's work of the search for c, with from as restart() takes it. Stale unreachable spots, or walls,
     // holes or static scenery changing nearby, restart the search. A new threat octant resumes its scan.
-    result tick(critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat);
+    result tick(critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat,
+                u32 max_octant_fills);
     void end();
     void give_up();
 

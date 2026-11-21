@@ -21,6 +21,9 @@ namespace floormat::Grid::Cover {
 inline constexpr u32 octant_count = 32;
 inline constexpr u16 blocked = (u16)-1;
 constexpr inline u32 max_div_size = 64;
+// Octants that each cover script and editor overlay may fill in one world frame. A stale grid's rebuild counts as
+// one. A rebuild and filling one octant took 0.66 ms at div 8.
+constexpr inline u32 max_octant_fills_per_frame = 2;
 
 // Returns a direction within 0.7° of k*11.25°, along which octant k measures distances.
 Vector2 octant_direction(u32 k);

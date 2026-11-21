@@ -578,7 +578,7 @@ task app::scene_cover_ai()
     const auto cover2 = Vector3i(stops[1].pos).xy(), peek2 = Vector3i(stops[0].pos).xy();
 
     // A new div starts the box's search over, in grids no search has filled. It lists up to 32 tiles,
-    // cover_ai_test's spots_tiles_per_frame, with at most one octant fill per frame.
+    // cover_ai_test's spots_tiles_per_frame, with at most max_octant_fills_per_frame octant fills per frame.
     u32 div_frames = 0, div_fills = 0;
     {
         base_test::Value v;
@@ -596,7 +596,7 @@ task app::scene_cover_ai()
             const auto p = press(9);
             fm_assert(p.type == base_test::ValueType::au32 && p.au32[3]);
             fm_assert(p.au32[0] >= tiles && p.au32[0] - tiles <= 32);
-            fm_assert(p.au32[2] >= div_fills && p.au32[2] - div_fills <= 1);
+            fm_assert(p.au32[2] >= div_fills && p.au32[2] - div_fills <= Grid::Cover::max_octant_fills_per_frame);
             fm_assert(div_frames > 1 || p.au32[0] < p.au32[1]);
             tiles = p.au32[0];
             div_fills = p.au32[2];
