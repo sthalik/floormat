@@ -85,6 +85,9 @@ void cover_search::restart(point from, point threat)
     {
         _unreachable.origin_moved(point::distance(_from, from));
         _from = from;
+        // At the default max_cover_end_dist and a div_size up to 32, no listed spot lies within a tile of an entry
+        // over 3 chunks from _from.
+        _unreachable.remove_spots_outside_disc(_from, 3*chunk_size_xy);
         _tile = 0;
         _tiles_left--;
         arrayClear(_tile_skipped);

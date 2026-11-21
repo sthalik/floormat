@@ -59,6 +59,18 @@ void unreachable_spots::origin_moved(u32 dist)
         _max_lattice_point_dist += dist;
 }
 
+void unreachable_spots::remove_spots_outside_disc(point center, u32 radius)
+{
+    auto n = 0u;
+    for (auto i = 0u; i < _spots.size(); i++)
+        if (point::distance(center, _spots[i]) <= radius)
+            _spots[n++] = _spots[i];
+    if (!n)
+        clear();
+    else
+        arrayRemoveSuffix(_spots, _spots.size() - n);
+}
+
 bool unreachable_spots::is_stale(const world& w, point search_origin) const
 {
     if (_spots.isEmpty())

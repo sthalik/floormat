@@ -37,6 +37,8 @@ public:
     void add_failed(const world& w, point pos, u32 max_lattice_point_dist);
     // Adds dist, how far search_origin moved, to _max_lattice_point_dist, so the bound holds from the new origin.
     void origin_moved(u32 dist);
+    // Removes the spots farther than radius px from center.
+    void remove_spots_outside_disc(point center, u32 radius);
     // True when a chunk holding a listed spot or one a failed Dijkstra search could cross, or a neighbour of one,
     // has a pass_gen() newer than the last failure, or once unreachable_spot_retry_time passed since the first.
     bool is_stale(const world& w, point search_origin) const;

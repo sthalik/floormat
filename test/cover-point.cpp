@@ -3550,6 +3550,26 @@ void test_fallback_after_exposed_cover_ends_search()
     fm_assert(r.done && r.cover && r.cover->end == point{ch, {3, 2}, {4, 20}});
 }
 
+// At a radius of 3 chunks, remove_spots_outside_disc keeps a spot 3008 px from center and removes one at 3136 px.
+void test_unreachable_spots_outside_disc_removed()
+{
+    auto w = world();
+    for (const auto x : { (i16)2, (i16)3 })
+        w[chunk_coords_{x, 0, 0}];
+    const auto center = point{chunk_coords_{0, 0, 0}, {0, 0}, {}};
+    const auto inside = point{chunk_coords_{2, 0, 0}, {15, 0}, {}};
+    const auto outside = point{chunk_coords_{3, 0, 0}, {1, 0}, {}};
+    Cover::unreachable_spots u;
+    u.add_failed(w, inside, 0);
+    u.add_failed(w, outside, 0);
+    fm_assert(u.can_move_straight_to_listed_spot(w, outside, Vector2i(body), Search::never_continue));
+    u.remove_spots_outside_disc(center, 3*chunk_size_xy);
+    fm_assert(u.can_move_straight_to_listed_spot(w, inside, Vector2i(body), Search::never_continue));
+    fm_assert(!u.can_move_straight_to_listed_spot(w, outside, Vector2i(body), Search::never_continue));
+    u.remove_spots_outside_disc(center, 0);
+    fm_assert(!u.can_move_straight_to_listed_spot(w, inside, Vector2i(body), Search::never_continue));
+}
+
 // With the npc east of add_longer_wall's wall, the search keeps (300, 508) behind it, with no peek spot or path,
 // and (468, 508) behind cover_scene's wall, with a path. The search must end in cover.
 void test_search_takes_reachable_fallback_spot()
@@ -4064,6 +4084,7 @@ void Test::test_cover_point()
     test_search_drops_exposed_cover_now_seen();
     test_search_takes_exposed_cover_over_seen_fallback();
     test_fallback_after_exposed_cover_ends_search();
+    test_unreachable_spots_outside_disc_removed();
     test_search_takes_reachable_fallback_spot();
     test_cover_script_rehides(0);
     test_cover_script_rehides(Cover::Script::options{}.threat_reach);
