@@ -60,9 +60,11 @@ u32 search_chunk_radius(point at, point threat, u32 radius, const Cover::Script:
     return dist/chunk_size_xy + 3;
 }
 
+cover_search::cover_search() { arrayReserve(_fallback_spots.peekless_spots, 16); }
+
 void cover_search::begin(point from, point threat)
 {
-    _fallback_spots = {};
+    _fallback_spots.clear();
     _exposed_cover = {};
     _dijkstra_search_to_rerun = {};
     arrayClear(_reach_test_progress.hidden_from);
@@ -262,8 +264,8 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                                            : Optional<Cover::Script::peek>{};
             if (o.needs_peek && !peek)
             {
-                if (o.last_resort >= fallback::no_peek && !_fallback_spots.peekless)
-                    _fallback_spots.peekless = s;
+                if (o.last_resort >= fallback::no_peek)
+                    arrayAppend(_fallback_spots.peekless_spots, s);
                 arrayAppend(_tile_skipped, skipped_spot{s, _octant});
                 if (_exposed_cover && _fallback_spots.has_cover_spot())
                 {
@@ -396,44 +398,55 @@ auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Sc
     }
 }
 
-// peekless if hidden from reach, else in_reach if hidden from the threat. Both must be hidden from the threat in
-// neighbor octants too. A spot max_body_checks can't test stays kept, and in_reach does when peekless has no path.
+// The first of peekless_spots hidden from reach, else in_reach if hidden from the threat. Each must be hidden from
+// the threat in neighbor octants. Spots max_body_checks can't test, and those after one with no path, stay kept.
 auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o, point threat,
                                     u32 max_body_checks) -> Optional<reachable_cover>
 {
-    const auto [peekless, in_reach] = _fallback_spots;
+    auto& w = c.world();
+    auto& peekless_spots = _fallback_spots.peekless_spots;
+    const auto in_reach = _fallback_spots.in_reach;
+    const auto body = Vector2i(c.bbox_size);
+    const auto pred = Search::blocks_all_but(c.id);
     const auto num_body_checks_at_start = t.counters.num_body_checks;
     const auto body_checks_left = [&] {
         return max_body_checks - (t.counters.num_body_checks - num_body_checks_at_start);
     };
     const auto num_neighbor_octant_body_checks = 2*(o.octants/2u);
-    auto v = peekless ? test_spot_against_reach(c, t, o, threat, *peekless, max_body_checks)
-                      : visibility_from_reach::exposed;
-    if (v == visibility_from_reach::hidden)
+    auto is_hidden_from_reach = false;
+    while (!is_hidden_from_reach && !peekless_spots.isEmpty())
     {
-        if (body_checks_left() < num_neighbor_octant_body_checks)
+        const auto s = peekless_spots[0];
+        if (_unreachable.can_move_straight_to_listed_spot(w, s.pos, body, pred) ||
+            _unreachable_until_rescan.can_move_straight_to_listed_spot(w, s.pos, body, pred))
+            arrayRemove(peekless_spots, 0);
+        else if (const auto v = test_spot_against_reach(c, t, o, threat, s, body_checks_left());
+                 v == visibility_from_reach::unknown ||
+                 v == visibility_from_reach::hidden && body_checks_left() < num_neighbor_octant_body_checks)
             return {};
-        else if (!t.is_hidden_from_threat_in_neighbor_octants(c, o, threat, *peekless))
-            v = visibility_from_reach::exposed;
+        else if (v == visibility_from_reach::hidden &&
+                 t.is_hidden_from_threat_in_neighbor_octants(c, o, threat, s))
+            is_hidden_from_reach = true;
+        else
+            arrayRemove(peekless_spots, 0);
     }
-    if (v == visibility_from_reach::unknown)
+    if (!is_hidden_from_reach && in_reach && body_checks_left() < 1 + num_neighbor_octant_body_checks)
         return {};
-    else if (v == visibility_from_reach::exposed && in_reach &&
-             body_checks_left() < 1 + num_neighbor_octant_body_checks)
-    {
-        _fallback_spots.peekless = {};
-        return {};
-    }
     else
     {
-        _fallback_spots = {};
-        const auto is_hidden_from_reach = v == visibility_from_reach::hidden;
         Optional<Cover::Point::spot> spot;
         if (is_hidden_from_reach)
-            spot = peekless;
-        else if (in_reach && t.is_hidden_at(c, threat, in_reach->pos, in_reach->axis) &&
-                 t.is_hidden_from_threat_in_neighbor_octants(c, o, threat, *in_reach))
-            spot = in_reach;
+        {
+            spot = peekless_spots[0];
+            arrayRemove(peekless_spots, 0);
+        }
+        else
+        {
+            _fallback_spots.in_reach = {};
+            if (in_reach && t.is_hidden_at(c, threat, in_reach->pos, in_reach->axis) &&
+                t.is_hidden_from_threat_in_neighbor_octants(c, o, threat, *in_reach))
+                spot = in_reach;
+        }
         if (!spot)
             return {};
         else
@@ -442,18 +455,25 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
             const auto end = t.cover_end(c, o, s, threat);
             const auto here = c.position();
             if (s.pos == here || end == here)
+            {
+                _fallback_spots.clear();
                 return reachable_cover{s, end, {}, {}, is_hidden_from_reach};
+            }
             else if (auto path = t.path_to(c, end); path.is_found())
+            {
+                _fallback_spots.clear();
                 return reachable_cover{s, end, move(path), {}, is_hidden_from_reach};
+            }
             else
             {
-                if (is_hidden_from_reach)
-                    _fallback_spots.in_reach = in_reach;
+                _unreachable_until_rescan.add(s.pos);
                 if (++_num_failed_dijkstra_calls_for_fallback < max_failed_dijkstra_calls)
                 {
                     fm_debug_assert(!_dijkstra_search_to_rerun);
                     _dijkstra_search_to_rerun = failed_dijkstra_search{s.pos, end, true};
                 }
+                else
+                    arrayClear(peekless_spots);
                 return {};
             }
         }
@@ -473,6 +493,12 @@ Cover::Script::search_progress cover_search::progress() const
 
 bool cover_search::has_last_resort() const { return _fallback_spots.has_cover_spot(); }
 
-bool cover_search::fallback_spots::has_cover_spot() const { return peekless || in_reach; }
+bool cover_search::fallback_spots::has_cover_spot() const { return !peekless_spots.isEmpty() || in_reach; }
+
+void cover_search::fallback_spots::clear()
+{
+    arrayClear(peekless_spots);
+    in_reach = {};
+}
 
 } // namespace floormat::Cover

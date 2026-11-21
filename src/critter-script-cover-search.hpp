@@ -43,6 +43,7 @@ public:
 
     static constexpr u32 radius = 2*chunk_size_xy;
 
+    cover_search();
     void begin(point from, point threat);
     // Keeps the counts of failed Dijkstra calls and the spots no path reaches with critters let through, so those
     // stay skipped as the npc walks. A restart from tile 0 tries again the spots only critters may have blocked.
@@ -67,12 +68,14 @@ private:
     // The spot test_spot_against_reach() tested last, and the reach positions that see none of the npc's body
     // there, sorted. They stay valid while the body keeps its size and no static collider nearby changes.
     struct reach_test_progress { Cover::Point::spot spot; Vector2ub body_size; Array<point> hidden_from; };
-    // The first spots skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
+    // Spots skipped for having no peek spot, and the first skipped for threat_reach, as options.last_resort keeps.
     struct fallback_spots
     {
-        Optional<Cover::Point::spot> peekless, in_reach;
+        Array<Cover::Point::spot> peekless_spots;
+        Optional<Cover::Point::spot> in_reach;
 
         bool has_cover_spot() const;
+        void clear();
     };
 
     // Whether the reach_positions() for threat see c's body at s, after at most max_body_checks body checks of
