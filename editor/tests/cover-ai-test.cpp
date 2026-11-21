@@ -431,8 +431,8 @@ void cover_ai_test::clear_spots()
     has_search = false;
 }
 
-// As in the script, only a player move to another octant starts the search over. drop_seen_spots handles the moves
-// within one, and critters and doors move no chunk's pass_gen().
+// Returns true when the overlay must list spots again from tile 0. On a player move to another octant, the script
+// resumes where it stopped in that octant while the npc stays put. drop_seen_spots handles moves within one.
 bool cover_ai_test::spots_stale(app& a) const
 {
     if (!has_search)
