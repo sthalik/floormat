@@ -140,6 +140,25 @@ void test_tuc_stale_binding()
     fm_assert_equal(2uz, tuc.stats().cache_miss);
 }
 
+void test_tuc_rebinds_reused_texture_name()
+{
+    texture_unit_cache tuc;
+    auto tex = GL::Texture2D{};
+    tex.setStorage(1, GL::TextureFormat::RGBA8, Vector2i{1, 1});
+    const auto unit = tuc.bind(tex);
+    tex = GL::Texture2D{NoCreate};
+    tex = GL::Texture2D{};
+    tex.setStorage(1, GL::TextureFormat::RGBA8, Vector2i{1, 1});
+    fm_assert_equal(unit, tuc.bind(tex));
+
+    GLint active = 0, bound = 0;
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &active);
+    glActiveTexture(GL_TEXTURE0 + (GLenum)unit);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+    glActiveTexture((GLenum)active);
+    fm_assert_equal(tex.id(), (GLuint)bound);
+}
+
 void test_shader_lightmap_binding()
 {
     texture_unit_cache tuc;
@@ -262,6 +281,7 @@ void test_shader()
     test_shader_program();
     test_shader_lightmap_binding();
     test_tuc_stale_binding();
+    test_tuc_rebinds_reused_texture_name();
     test_tuc_eviction();
     test_lightmap_object_shadows();
 }

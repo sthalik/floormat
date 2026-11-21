@@ -36,16 +36,15 @@ i32 texture_unit_cache::bind(GL::AbstractTexture* tex)
         else if (ptr == tex)
         {
             if (unit.id == tex->id()) [[likely]]
-            {
-                unit.lru_val = ++lru_counter;
                 ++cache_hit_count;
-                //Debug{Debug::Flag::NoSpace} << "already bound '" << tex->label() << "' to " << i;
-                return (i32)i;
+            else
+            {
+                // grow_texture() move-assigns a new GL name into the same wrapper
+                unit.id = tex->id();
+                ++cache_miss_count;
             }
-            // grow_texture() move-assigns a new GL name into the same wrapper
-            units[i] = {tex, tex->id(), ++lru_counter};
+            unit.lru_val = ++lru_counter;
             tex->bind((Int)i);
-            ++cache_miss_count;
             return (i32)i;
         }
     }
