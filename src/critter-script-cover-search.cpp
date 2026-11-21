@@ -70,7 +70,9 @@ void cover_search::begin(point from, point threat)
 {
     _fallback_spots = {};
     _exposed_cover = {};
+    _dijkstra_search_to_rerun = {};
     _num_failed_dijkstra_calls = 0;
+    _num_failed_dijkstra_calls_for_fallback = 0;
     _pass_gen_at_last_tick = 0;
     const auto n = (u32)search_tiles().size();
     _tiles_left = n + n/2;
@@ -88,6 +90,7 @@ void cover_search::restart(point from, point threat)
         // At the default max_cover_end_dist and a div_size up to 32, no listed spot lies within a tile of an entry
         // over 3 chunks from _from.
         _unreachable.remove_spots_outside_disc(_from, 3*chunk_size_xy);
+        _unreachable_until_rescan.clear();
         _tile = 0;
         _tiles_left--;
         arrayClear(_tile_skipped);
@@ -118,6 +121,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     {
         _unreachable.clear();
         _num_failed_dijkstra_calls = 0;
+        _num_failed_dijkstra_calls_for_fallback = 0;
         arrayClear(_tile_skipped);
         restart(from, threat);
     }
@@ -143,15 +147,30 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     else if (_tile_threat != threat)
         _tile_threat = {};
 
-    // With a spot kept for last_resort or a path kept, the search ends in the update after its last spot, since
-    // that spot may have used the update's one Dijkstra call.
-    if (_tile == tiles.size() || _num_failed_dijkstra_calls == max_failed_dijkstra_calls)
+    // path_to lets no other critter through, so its failure doesn't say whether a critter cut the spot off.
+    if (const auto failed_search = _dijkstra_search_to_rerun)
     {
+        const auto end = failed_search->end;
+        _dijkstra_search_to_rerun = {};
+        if (!t.is_reachable_without_critters(c, end))
+        {
+            _unreachable.add_failed(w, failed_search->spot_pos,
+                                    max_search_path_length(here, end) + point::distance(here, _from));
+            if (!failed_search->is_fallback_spot)
+                _num_failed_dijkstra_calls++;
+        }
+        return {};
+    }
+    else if (_tile == tiles.size() || _num_failed_dijkstra_calls >= max_failed_dijkstra_calls)
+    {
+        // With a spot kept for last_resort, a path kept or a rerun waiting, the search ends in a later update than
+        // its last spot, since that spot may have used the update's one Dijkstra call.
         const auto n = t.counters.num_dijkstra_calls;
         auto r = take_last_resort(c, t, o, threat);
-        // Trying a kept in_reach spot or take_exposed_cover may call path_to too, so after a path_to call here
-        // both wait for the next update.
-        if (!r && (_fallback_spots.has_cover_spot() || _exposed_cover) && t.counters.num_dijkstra_calls != n)
+        // A kept in_reach spot, take_exposed_cover and the rerun of a failed path_to call each need a Dijkstra
+        // search, so after a path_to call here they wait for the next update.
+        if (!r && (_fallback_spots.has_cover_spot() || _exposed_cover || _dijkstra_search_to_rerun) &&
+            t.counters.num_dijkstra_calls != n)
             return {};
         else if (!r)
             return {take_exposed_cover(c, t, o, threat), true};
@@ -206,6 +225,12 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             if (!at_spot && _unreachable.can_move_straight_to_listed_spot(w, s.pos, Vector2i(body), pred))
             {
                 _unreachable.add(s.pos);
+                continue;
+            }
+            if (!at_spot &&
+                _unreachable_until_rescan.can_move_straight_to_listed_spot(w, s.pos, Vector2i(body), pred))
+            {
+                _unreachable_until_rescan.add(s.pos);
                 continue;
             }
             if (!peek_spot_searches_left || num_checks >= max_search_body_checks_per_update ||
@@ -269,10 +294,14 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                 continue;
             }
             // The npc can walk straight from s.pos to end, so s.pos has no path either.
-            const auto max_lattice_point_dist = max_search_path_length(here, end) + point::distance(here, _from);
-            _unreachable.add_failed(w, s.pos, max_lattice_point_dist);
-            if (++_num_failed_dijkstra_calls == max_failed_dijkstra_calls)
-                return {{}, !_fallback_spots.has_cover_spot() && !_exposed_cover};
+            _unreachable_until_rescan.add(s.pos);
+            if (++_num_failed_dijkstra_calls >= max_failed_dijkstra_calls)
+                return {};
+            else
+            {
+                fm_debug_assert(!_dijkstra_search_to_rerun);
+                _dijkstra_search_to_rerun = failed_dijkstra_search{s.pos, end};
+            }
         }
         _tile_threat = {};
         erase_if(_tile_skipped, [&](const skipped_spot& x) { return x.octant == _octant; });
@@ -280,7 +309,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
         fm_debug_assert(_tiles_left);
         _tiles_left--;
         if (_tile == tiles.size())
-            return {{}, !_fallback_spots.has_cover_spot() && !_exposed_cover};
+            return {{}, !_fallback_spots.has_cover_spot() && !_exposed_cover && !_dijkstra_search_to_rerun};
     }
     return {};
 }
@@ -347,10 +376,13 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
         return reachable_cover{s, end, move(path), {}, is_hidden_from_reach};
     else
     {
-        _unreachable.add_failed(c.world(), s.pos,
-                                max_search_path_length(here, end) + point::distance(here, _from));
         if (is_hidden_from_reach)
             _fallback_spots.in_reach = in_reach;
+        if (++_num_failed_dijkstra_calls_for_fallback < max_failed_dijkstra_calls)
+        {
+            fm_debug_assert(!_dijkstra_search_to_rerun);
+            _dijkstra_search_to_rerun = failed_dijkstra_search{s.pos, end, true};
+        }
         return {};
     }
 }

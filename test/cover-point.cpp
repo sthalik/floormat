@@ -1942,7 +1942,8 @@ void test_cover_script_seek_no_path()
     const auto t1 = s.status();
     fm_assert_equal(t0.counters.num_searches + 1, t1.counters.num_searches);
     fm_assert(t1.st == state::to_cover);
-    fm_assert_equal(t0.counters.num_dijkstra_calls + 3, t1.counters.num_dijkstra_calls);
+    // Each walled-in spot's failed Dijkstra search and its rerun with critters let through, then the cover's.
+    fm_assert_equal(t0.counters.num_dijkstra_calls + 5, t1.counters.num_dijkstra_calls);
     const auto& c1 = *t1.cover;
     fm_assert(Vector3i(c1.pos).x() - (int)body.x()/2 >= 510);
     s.step_until(c1.pos);
@@ -1968,7 +1969,7 @@ void test_cover_script_no_path_ties()
     s.finish_search();
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
-    fm_assert_equal(t0.counters.num_dijkstra_calls + 2, t1.counters.num_dijkstra_calls);
+    fm_assert_equal(t0.counters.num_dijkstra_calls + 3, t1.counters.num_dijkstra_calls);
     const auto& c1 = *t1.cover;
     fm_assert(Vector3i(c1.pos).x() - (int)body.x()/2 >= 510);
 }
@@ -1980,7 +1981,7 @@ struct no_path_search
 };
 
 // test_cover_script_seek_no_path's scene and options, for a cover_scene built with the threat there, up to the
-// update that finds no path to the nearest walled-in spot. Returns the status from before the first update.
+// update that reruns the failed Dijkstra search to the nearest walled-in spot. Returns the status from before.
 no_path_search start_no_path_search(cover_scene& s)
 {
     Cover::Script::set_options(*s.npc, walled_in_options());
@@ -1993,6 +1994,9 @@ no_path_search start_no_path_search(cover_scene& s)
         fm_assert(s.status().st == state::search);
     }
     fm_assert_equal(before.counters.num_dijkstra_calls + 1, s.status().counters.num_dijkstra_calls);
+    s.step();
+    fm_assert(s.status().st == state::search);
+    fm_assert_equal(before.counters.num_dijkstra_calls + 2, s.status().counters.num_dijkstra_calls);
     return { before, move(south) };
 }
 
@@ -2019,8 +2023,8 @@ void test_cover_script_no_path_threat_moves(point to, bool same_octant)
     s.finish_search();
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
-    // Each walled-in spot gets one Dijkstra search.
-    fm_assert_equal(t0.counters.num_dijkstra_calls + 3, t1.counters.num_dijkstra_calls);
+    // Each walled-in spot gets one failed Dijkstra search and its rerun.
+    fm_assert_equal(t0.counters.num_dijkstra_calls + 5, t1.counters.num_dijkstra_calls);
     const auto& c1 = *t1.cover;
     fm_assert(Vector3i(c1.pos).x() - (int)body.x()/2 >= 510);
     fm_assert(!s.seen_from(to, c1.pos));
@@ -2116,7 +2120,7 @@ void test_cover_script_no_path_far_change()
     s.finish_search();
     const auto t1 = s.status();
     fm_assert(t1.st == state::to_cover);
-    fm_assert_equal(t0.counters.num_dijkstra_calls + 3, t1.counters.num_dijkstra_calls);
+    fm_assert_equal(t0.counters.num_dijkstra_calls + 5, t1.counters.num_dijkstra_calls);
     const auto& c1 = *t1.cover;
     fm_assert(Vector3i(c1.pos).x() - (int)body.x()/2 >= 510);
 }
@@ -2136,14 +2140,14 @@ void test_cover_script_no_path_door_opens()
     still.finish_search();
     const auto t = s.status(), t_still = still.status();
     fm_assert(t.st == state::to_cover && t_still.st == state::to_cover);
-    fm_assert_equal(t_still.counters.num_dijkstra_calls + 1, t.counters.num_dijkstra_calls);
+    fm_assert_equal(t_still.counters.num_dijkstra_calls + 2, t.counters.num_dijkstra_calls);
     const auto& c = *t.cover;
     const auto& c_still = *t_still.cover;
     fm_assert_equal(Vector3i(c_still.pos), Vector3i(c.pos));
 }
 
-// As in test_cover_script_seek_no_path, with a critter in place of the south blocker, which then goes away. Later
-// searches from the npc's start skip the walled-in spots until unreachable_spot_retry_time passed.
+// As in test_cover_script_seek_no_path, with a critter in place of the south blocker, which then goes away. The
+// next search from the npc's start tries the walled-in spots again and ends there.
 void test_cover_script_no_path_critter_leaves()
 {
     const point west{ch, {2, 8}, {}};
@@ -2165,30 +2169,20 @@ void test_cover_script_no_path_critter_leaves()
     fm_assert(t1.st == state::to_cover && t1.cover);
     const auto& c1 = *t1.cover;
     fm_assert(!walled_in(c1.pos));
-    fm_assert_equal(t0.counters.num_dijkstra_calls + 3, t1.counters.num_dijkstra_calls);
+    // Both reruns of the walled-in spots' failed Dijkstra searches find a path.
+    fm_assert_equal(t0.counters.num_dijkstra_calls + 5, t1.counters.num_dijkstra_calls);
     s.step_until(state::hidden);
     const auto gen = s.w[ch].pass_gen();
     s.w[ch].kill_object(*blocker, blocker->index());
     fm_assert(s.w[ch].pass_gen() == gen);
-    const auto search_from_start = [&] {
-        auto i = s.npc->index();
-        s.npc->teleport_to(i, start, rotation_COUNT);
-        s.move_threat(s.threat->position() + Vector2i{1, 0});
-        s.step();
-        s.finish_search();
-        const auto t = s.status();
-        fm_assert(t.st == state::to_cover);
-        s.step_until(state::hidden);
-        return t;
-    };
-    const auto t2 = search_from_start();
-    const auto& c2 = *t2.cover;
-    fm_assert(!walled_in(c2.pos));
-    fm_assert_equal(t1.counters.num_dijkstra_calls + 1, t2.counters.num_dijkstra_calls);
-    s.w.advance_game_time(Cover::unreachable_spot_retry_time);
-    const auto t3 = search_from_start();
-    const auto& c3 = *t3.cover;
-    fm_assert(walled_in(c3.pos));
+    auto i = s.npc->index();
+    s.npc->teleport_to(i, start, rotation_COUNT);
+    s.move_threat(s.threat->position() + Vector2i{1, 0});
+    s.step();
+    s.finish_search();
+    const auto t2 = s.status();
+    fm_assert(t2.st == state::to_cover && t2.cover);
+    fm_assert(walled_in(t2.cover->pos));
 }
 
 // movement_range::border computes its points again after a critter moves or a blocker appears in a neighbour
@@ -3589,8 +3583,8 @@ void test_search_takes_reachable_fallback_spot()
     Cover::cover_search search;
     const Cover::Script::options o{};
     const auto from = s.npc->position(), threat = s.threat->position();
-    // The second search skips (300, 508), which the first found no path to.
-    for (const auto num_dijkstra_calls : { 2u, 1u })
+    // The first search finds no path to (300, 508), even with critters let through, so the second skips it.
+    for (const auto num_dijkstra_calls : { 3u, 1u })
     {
         const auto n = t.counters.num_dijkstra_calls;
         search.begin(from, threat);
@@ -3606,6 +3600,41 @@ void test_search_takes_reachable_fallback_spot()
         }
         fm_assert(t.counters.num_dijkstra_calls - n == num_dijkstra_calls);
     }
+}
+
+// In test_search_takes_reachable_fallback_spot's scene, a search lists (300, 508) as unreachable. From (256, 512),
+// where a path reaches it, a search skips it until unreachable_spot_retry_time passed, and then takes it.
+void test_search_retries_unreachable_spot()
+{
+    cover_scene s{point{ch, {6, 8}, {}}};
+    for (const auto y : { (u8)5, (u8)8, (u8)11 })
+        add_blocker(s.w, {5, y}, {16, 200});
+    rebuild(s.w);
+    move_npc(s, point{ch, {6, 8}, {-32, 0}});
+    Cover::spot_tests t{s.A, s.threat->id, 0};
+    Cover::cover_search search;
+    const Cover::Script::options o{};
+    const auto threat = s.threat->position();
+    const point unreachable{ch, {5, 8}, {-20, -4}};
+    const auto search_cover = [&] {
+        const auto from = s.npc->position();
+        search.begin(from, threat);
+        for (auto i = 0u; ; i++)
+        {
+            fm_assert(i < 400);
+            if (const auto r = search.tick(*s.npc, t, o, from, threat); r.done)
+            {
+                fm_assert(r.cover);
+                return r.cover->spot.pos;
+            }
+        }
+    };
+    fm_assert(search_cover() != unreachable);
+    move_npc(s, point{ch, {4, 8}, {}});
+    fm_assert(t.path_to(*s.npc, unreachable).is_found());
+    fm_assert(search_cover() != unreachable);
+    s.w.advance_game_time(Cover::unreachable_spot_retry_time);
+    fm_assert(search_cover() == unreachable);
 }
 
 // True when a point within r px of the threat, on an 8 px grid, can shoot the npc at pos.
@@ -4091,6 +4120,7 @@ void Test::test_cover_point()
     test_fallback_after_exposed_cover_ends_search();
     test_unreachable_spots_outside_disc_removed();
     test_search_takes_reachable_fallback_spot();
+    test_search_retries_unreachable_spot();
     test_cover_script_rehides(0);
     test_cover_script_rehides(Cover::Script::options{}.threat_reach);
     test_cover_script_needs_peek(false);

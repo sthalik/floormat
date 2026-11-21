@@ -40,8 +40,8 @@ public:
     static constexpr u32 radius = 2*chunk_size_xy;
 
     void begin(point from, point threat);
-    // Keeps the unreachable spots and their failed Dijkstra calls, so a spot with no path from where the npc stood
-    // stays skipped as it walks.
+    // Keeps the counts of failed Dijkstra calls and the spots no path reaches with critters let through, so those
+    // stay skipped as the npc walks. A restart from tile 0 tries again the spots only critters may have blocked.
     void restart(point from, point threat);
     // One update's work of the search for c, with from as restart() takes it. Stale unreachable spots, or walls,
     // holes or static scenery changing nearby, restart the search. A new threat octant resumes its scan.
@@ -56,6 +56,8 @@ public:
 
 private:
     struct skipped_spot { Cover::Point::spot spot; u32 octant; };
+    // A spot and its cover_end(), which path_to found no path to.
+    struct failed_dijkstra_search { point spot_pos, end; bool is_fallback_spot = false; };
     // The first spots skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
     struct fallback_spots
     {
@@ -71,7 +73,14 @@ private:
 
     Optional<reachable_cover> _exposed_cover;
     u32 _exposed_updates_left = 0;
+    // Spots that no path reaches with every critter let through, or tied to one.
     unreachable_spots _unreachable;
+    // Spots path_to found no path to, or tied to one, which a critter may cut off. Skipped until the scan
+    // starts again from tile 0.
+    unreachable_spots _unreachable_until_rescan;
+    // Runs in the next tick() with critters let through, and adds the spot to _unreachable when no path is found.
+    // The search doesn't end while it waits.
+    Optional<failed_dijkstra_search> _dijkstra_search_to_rerun;
     // The spots of tile _tile while _tile_threat is set, of which _tile_spot is next. They were listed with the
     // threat at _tile_threat.
     Array<Cover::Point::spot> _tile_spots;
@@ -85,6 +94,8 @@ private:
     // while the rest of the scan fits, so a moving threat can't keep the search near the npc.
     u32 _tiles_left = 0;
     u32 _num_failed_dijkstra_calls = 0;
+    // Unlike _num_failed_dijkstra_calls, it doesn't count reruns.
+    u32 _num_failed_dijkstra_calls_for_fallback = 0;
     // world::pass_gen() at the last tick(), or 0 before the first after begin().
     u64 _pass_gen_at_last_tick = 0;
     std::array<u16, Grid::Cover::octant_count> _octant_tiles{};

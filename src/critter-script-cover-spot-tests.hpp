@@ -13,8 +13,8 @@ namespace floormat::Grid { class GridRegistry; }
 
 namespace floormat::Cover {
 
-// A path_to call that finds no path costs a Dijkstra search over every node within max_dist, so a search for
-// cover or a retreat stops after this many of them.
+// A Dijkstra search that finds no path visits every node within max_dist. A cover search's scan, its last resort
+// and each retreat pass stop after this many. Only the scan counts reruns without critters.
 constexpr inline u32 max_failed_dijkstra_calls = 8;
 
 class spot_tests
@@ -54,6 +54,9 @@ public:
     // A Dijkstra path from c to `to`, smoothed when string_pull can. Not found when no path within
     // max_search_path_length() leads there.
     path_search_result path_to(critter& c, point to);
+    // True when a Dijkstra search from c that lets every critter through finds a path to `to` within
+    // max_search_path_length().
+    bool is_reachable_without_critters(critter& c, point to);
     // True when the threat, or a point near it that it can walk to, sees c's body on path after a stretch where it
     // doesn't, or past path's first 32 px when c could walk 48 px to a position none of those points see.
     bool is_seen_on_path(critter& c, const Cover::Script::options& o, point threat, const path_search_result& path);
