@@ -334,9 +334,8 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
     };
 
     // Cells count from the line's chunk, so a cell's chunk and its cell within it are computed with a shift and
-    // a mask. The bool below is true when step k's cell was found from where the line left the previous cell.
-    Vector2i global_cell;
-    bool stepped = false;
+    // a mask. global_cell moves to the cell the line exits into, or to that of point_at(k) when region is true.
+    Vector2i global_cell = cell_of(line.point_at(first_step));
     auto k = first_step;
     bool run_pending = false;
     u32 run_first = 0, run_last = 0;
@@ -352,8 +351,6 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         constexpr bool is_u32 = std::is_same_v<T, u32>;
         for (;;)
         {
-            if (!stepped)
-                global_cell = cell_of(line.point_at(k));
             const auto chunk_off = chunk_of(global_cell);
             const auto local_cell = Vector2i{global_cell.x() & count_mask, global_cell.y() & count_mask};
             if (chunk_off != loaded)
@@ -470,14 +467,12 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                     }
                 }
                 global_cell = next;
-                stepped = true;
                 k = last + 1;
                 continue;
             }
 
             // A diagonal step through the corner of four cells puts its orthogonal points in two cells neither
             // endpoint of the step is in. They are visited without a bit lookup, since such steps are rare.
-            stepped = false;
             if (const auto o = line.orthogonal_at(last); o.diagonal)
             {
                 const auto c0 = cell_of(line.point_at(last)), c1 = cell_of(line.point_at(last + 1));
@@ -495,6 +490,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                 }
             }
             k = last + 1;
+            global_cell = cell_of(line.point_at(k));
         }
     };
     if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
