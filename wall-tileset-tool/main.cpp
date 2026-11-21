@@ -13,6 +13,7 @@
 #include <utility>
 #include <tuple>
 #include <cr/GrowableArray.h>
+#include <cr/Optional.h>
 #include <cr/StringView.h>
 #include <cr/String.h>
 #include <cr/StringIterable.h>
@@ -68,21 +69,23 @@ template<usize N> constexpr bool any_bit_of(const std::array<bool, N>& array)
     return false;
 }
 
-bool convert_to_bgra32(const cv::Mat& src, cv::Mat4b& dest)
+Optional<cv::Mat> convert_to_bgra32(const cv::Mat& src)
 {
-    fm_assert(dest.empty() || dest.size == src.size);
+    cv::Mat dest;
 
     switch (src.type())
     {
     default:
-        return false;
+        return {};
     case CV_8U:
         cv::cvtColor(src, dest, cv::COLOR_GRAY2BGRA);
-        return true;
+        break;
     case CV_8UC3:
         cv::cvtColor(src, dest, cv::COLOR_BGR2BGRA);
-        return true;
+        break;
     }
+    fm_assert(dest.size == src.size);
+    return {InPlaceInit, move(dest)};
 }
 
 bool save_image(state st)
@@ -230,8 +233,8 @@ bool do_group(state st, usize i, usize j, Group& new_group)
             return false;
         }
 
-        cv::Mat4b buf;
-        if (!convert_to_bgra32(mat, buf)) [[unlikely]]
+        auto bufʹ = convert_to_bgra32(mat);
+        if (!bufʹ) [[unlikely]]
         {
             ERR << "fatal: unknown image pixel format:"
                 << "channels" << mat.channels() << nospace(",")
@@ -241,6 +244,7 @@ bool do_group(state st, usize i, usize j, Group& new_group)
             return false;
         }
 
+        auto& buf = *bufʹ;
         frames.push_back({
             .mat = move(buf),
             .size = {(unsigned)mat.cols, (unsigned)mat.rows},
