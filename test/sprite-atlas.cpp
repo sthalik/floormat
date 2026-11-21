@@ -367,9 +367,10 @@ struct sprite_pixels { sprite s; ArrayView<const Color4ub> pixels; };
 void assert_layer_contents(sprite_atlas& atlas, u32 layer, std::initializer_list<sprite_pixels> sprites)
 {
     constexpr auto magenta = Color4ub{255, 0, 255, 255};
-    auto& tex = static_cast<GL::Texture2DArray&>(atlas.texture());
+    (void)atlas.texture();
     const auto w = atlas.layer_width(), h = atlas.layer_height();
-    auto img = read_layer_pixels(tex, (Int)layer, {{}, {(Int)w, (Int)h}});
+    Image2D img{Magnum::PixelFormat::RGBA8Unorm, {(Int)w, (Int)h}, Array<char>{NoInit, (usize)w * h * 4}};
+    read_layer_pixels(*atlas.raw(), layer, img);
     const auto texels = img.pixels<Color4ub>();
     for (const auto& [s, pixels] : sprites)
         fm_assert(!s.is_rotated() && pixels.size() == s.width() * s.height());
@@ -771,6 +772,67 @@ void switching_layer_copy_between_growths_preserves_pixels()
     }
 }
 
+void sparse_texture_commits_rows_up_to_next_y()
+{
+    sprite_atlas atlas{sparse_texture_test_layer_size, sparse_texture_test_layer_size};
+    atlas.set_layer_copy(layer_copy_mode::sparse_texture);
+    auto& A = *atlas.raw();
+    A.limits.ensure_filled();
+    if (!can_make_sparse_texture(A, 1))
+        return;
+    const auto next_y_rounded_up_to_page = [&](u32 layer) {
+        const auto page_height = A.virtual_page_height;
+        return (A.layers[layer].next_y + page_height - 1) / page_height * page_height;
+    };
+    const Array<Color4ub> pixels[] = { make_pixels(40, 40, 1), make_pixels(220, 220, 2), make_pixels(100, 100, 3) };
+
+    const auto s0 = atlas.add(view_of(pixels[0], 40, 40), false);
+    (void)atlas.texture();
+    fm_assert(A.virtual_page_height > 0);
+    const auto first_committed_height = A.layers[0].committed_height;
+    if (first_committed_height >= A.layer_height)
+        return;
+    fm_assert_equal(next_y_rounded_up_to_page(0), first_committed_height);
+    assert_layer_contents(atlas, 0, {{s0, pixels[0]}});
+    const auto id = A.texture.id();
+    const auto gen = atlas.texture_gen();
+
+    const auto s1 = atlas.add(view_of(pixels[1], 220, 220), false), s2 = atlas.add(view_of(pixels[2], 100, 100), false);
+    fm_assert(s1.layer() == 1 && s2.layer() == 0);
+    (void)atlas.texture();
+    fm_assert_equal(id, A.texture.id());
+    fm_assert_equal(gen, atlas.texture_gen());
+    fm_assert(A.layers[0].committed_height > first_committed_height);
+    for (u32 i = 0; i < 2; i++)
+        fm_assert_equal(next_y_rounded_up_to_page(i), A.layers[i].committed_height);
+    assert_layer_contents(atlas, 0, {{s0, pixels[0]}, {s2, pixels[2]}});
+    assert_layer_contents(atlas, 1, {{s1, pixels[1]}});
+}
+
+void growth_from_sparse_texture_leaves_uncommitted_rows_magenta(layer_copy_mode mode)
+{
+    sprite_atlas atlas{sparse_texture_test_layer_size, sparse_texture_test_layer_size};
+    atlas.set_layer_copy(layer_copy_mode::sparse_texture);
+    auto& A = *atlas.raw();
+    A.limits.ensure_filled();
+    if (!can_make_sparse_texture(A, 1))
+        return;
+    const Array<Color4ub> pixels[] = { make_pixels(40, 40, 1), make_pixels(220, 220, 2) };
+    const auto s0 = atlas.add(view_of(pixels[0], 40, 40), false);
+    (void)atlas.texture();
+    if (A.layers[0].committed_height >= A.layer_height)
+        return;
+
+    atlas.set_layer_copy(mode);
+    const auto s1 = atlas.add(view_of(pixels[1], 220, 220), false);
+    fm_assert(s1.layer() == 1);
+    (void)atlas.texture();
+    fm_assert(!has_sparse_storage(A.texture));
+    fm_assert(A.layer_copy == mode);
+    assert_layer_contents(atlas, 0, {{s0, pixels[0]}});
+    assert_layer_contents(atlas, 1, {{s1, pixels[1]}});
+}
+
 void pixel_buffer_readback_without_buffer_storage_preserves_pixels()
 {
     constexpr u32 w = 40, h = 40;
@@ -974,6 +1036,9 @@ void test_sprite_atlas()
     sparse_texture_without_free_layers_is_replaced();
     sparse_storage_error_falls_back_to_regular_texture();
     switching_layer_copy_between_growths_preserves_pixels();
+    sparse_texture_commits_rows_up_to_next_y();
+    for (const auto mode : { layer_copy_mode::blit, layer_copy_mode::readback, layer_copy_mode::pixel_buffer_readback })
+        growth_from_sparse_texture_leaves_uncommitted_rows_magenta(mode);
     pixel_buffer_readback_without_buffer_storage_preserves_pixels();
     pixel_buffer_readback_across_several_buffers_preserves_pixels();
     copy_rect_keeps_pixels_and_bound_framebuffer();

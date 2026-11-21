@@ -28,6 +28,7 @@ struct Layer
 {
     Array<Pointer<Shelf>> shelves {};
     u32 next_y = 0;
+    u32 committed_height = 0; // rows committed from y = 0 while the texture is sparse
 };
 
 struct HeightClass
@@ -115,6 +116,7 @@ struct Atlas
     u32 texture_layer_capacity = 0; // layers in texture's storage, committed or not
     u32 used_layers = 0; // layers with actual valid pixels uploaded (sprites added before the last flush()).
     u32 texture_gen = 0;
+    u32 virtual_page_height = 0; // 0 unless the texture is sparse
     layer_copy_mode layer_copy = layer_copy_mode::sparse_texture;
 
     struct Limits
@@ -147,6 +149,8 @@ std::array<Vector3, 4> texcoords_for_subrect(const Atlas& atlas, const Sprite& s
                                              bool mirror);
 Image2D read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect);
 void read_layer_pixels(GL::Texture2DArray& texture, Int layer, Range2Di rect, const MutableImageView2D& out);
+// Reads the whole layer. Rows a sparse texture hasn't committed come out magenta in place of undefined data.
+void read_layer_pixels(Atlas& atlas, u32 layer, const MutableImageView2D& out);
 GL::Texture2D copy_rect(Atlas& atlas, const Sprite& sprite);
 void dump_atlas(Atlas& atlas, StringView out_filename);
 void dump_sprite(Atlas& atlas, const Sprite& sprite, StringView out_filename);
