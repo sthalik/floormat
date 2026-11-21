@@ -248,7 +248,7 @@ struct CoverGrid : GridBase
     void apply_params();
     // Returns true when no chunk at Chebyshev distance 2 changed after the build. Rays read RTrees that far.
     // check_current() doesn't call this, so the accessors' Debug check skips those chunks.
-    bool ring2_is_current() const;
+    bool is_ring2_current() const;
     /// @copydoc floormat::Grid::Cover::Grid::is_stale()
     bool is_stale() const;
     /// @copydoc floormat::Grid::Cover::Grid::is_stale(u64)
@@ -664,7 +664,7 @@ void CoverGrid::build_impl(chunk* self)
     fill_octant(0, *self);
 }
 
-bool CoverGrid::ring2_is_current() const
+bool CoverGrid::is_ring2_current() const
 {
     const auto& w = c->world();
     for (auto off : ring2_offsets)
@@ -675,12 +675,12 @@ bool CoverGrid::ring2_is_current() const
 
 bool CoverGrid::is_stale() const
 {
-    return is_marked_stale() || !is_current() || !ring2_is_current();
+    return is_marked_stale() || !is_current() || !is_ring2_current();
 }
 
 bool CoverGrid::is_stale(u64 pass_gen) const
 {
-    return pass_gen != built_pass_gen || !is_current() || !ring2_is_current();
+    return pass_gen != built_pass_gen || !is_current() || !is_ring2_current();
 }
 
 bool CoverGrid::fill_octant(u32 k, chunk& self)

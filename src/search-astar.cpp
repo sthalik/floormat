@@ -299,13 +299,13 @@ struct neighbourhood
 {
     u32 window;
     u32 chunk_idx, tile_idx;
-    Vector2i pix;
+    Vector2i pos_in_chunk;
 };
 
 point node_at_or_below(point pt, u32 div_size, u32 node_offset)
 {
-    const auto pix = Vector2i(intra_coord{pt});
-    return pt - ((pix - Vector2i{(int)node_offset}) & Vector2i{(int)div_size - 1});
+    const auto pos_in_chunk = Vector2i(intra_coord{pt});
+    return pt - ((pos_in_chunk - Vector2i{(int)node_offset}) & Vector2i{(int)div_size - 1});
 }
 
 } // namespace
@@ -324,10 +324,10 @@ struct astar::chunk_bitmaps
     Array<bool>& entry_blocked;
     u32 div_size, div_shift, div_count, bitmask_word_count, node_offset;
 
-    CORRADE_ALWAYS_INLINE bool test_bit(const usize* b, Vector2ui pix) const
+    CORRADE_ALWAYS_INLINE bool test_bit(const usize* b, Vector2ui pos_in_chunk) const
     {
-        fm_debug3_assert(pix.x() < chunk_size_xy && pix.y() < chunk_size_xy);
-        const auto pos = pix >> div_shift;
+        fm_debug3_assert(pos_in_chunk.x() < chunk_size_xy && pos_in_chunk.y() < chunk_size_xy);
+        const auto pos = pos_in_chunk >> div_shift;
         const auto i = pos.y() * div_count + pos.x();
         return b[i / (sizeof(usize)*8)] >> i % (sizeof(usize)*8) & 1;
     }
@@ -374,7 +374,7 @@ struct astar::chunk_bitmaps
 
     // Returns pt's 3x3 window, or 0 while a chunk it covers is unresolved or missing. Resolving one could build
     // a grid no move reads, and a missing chunk's cells are tested with cache.is_passable_for_bbox().
-    CORRADE_NEVER_INLINE u32 window_edge(point pt, Vector2i pix)
+    CORRADE_NEVER_INLINE u32 window_edge(point pt, Vector2i pos_in_chunk)
     {
         constexpr int cs = (int)chunk_size_xy;
         const auto step = (int)div_size;
@@ -383,7 +383,7 @@ struct astar::chunk_bitmaps
         Vector2ui pos[3];
         for (int k = 0; k < 3; k++)
         {
-            const auto q = pix + Vector2i{(k - 1)*step};
+            const auto q = pos_in_chunk + Vector2i{(k - 1)*step};
             const auto off = Vector2i{floor_div(q.x(), cs), floor_div(q.y(), cs)};
             chunk[k] = ch + off;
             pos[k] = Vector2ui(q - off*cs);
@@ -405,9 +405,10 @@ struct astar::chunk_bitmaps
     {
         constexpr int cs = (int)chunk_size_xy;
         const auto step = (int)div_size;
-        const auto pix = Vector2i(intra_coord{pt});
-        if ((u32)(pix.x() - step) >= (u32)(cs - 2*step) || (u32)(pix.y() - step) >= (u32)(cs - 2*step)) [[unlikely]]
-            return { window_edge(pt, pix), (u32)-1, 0, pix };
+        const auto pos_in_chunk = Vector2i(intra_coord{pt});
+        if ((u32)(pos_in_chunk.x() - step) >= (u32)(cs - 2*step) ||
+            (u32)(pos_in_chunk.y() - step) >= (u32)(cs - 2*step)) [[unlikely]]
+            return { window_edge(pt, pos_in_chunk), (u32)-1, 0, pos_in_chunk };
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
         const auto tile_idx = cache.get_tile_index(intra_coord{pt});
         const auto* b = bits[chunk_idx];
@@ -416,20 +417,20 @@ struct astar::chunk_bitmaps
             if (!b)
                 b = resolve(pt, chunk_idx);
             if ((uptr)b <= 1)
-                return { 0, chunk_idx, tile_idx, pix };
+                return { 0, chunk_idx, tile_idx, pos_in_chunk };
         }
         u32 win = 0;
         // A row is one word.
         if (constexpr u32 row_cells = sizeof(usize)*8; div_count == row_cells) [[likely]]
         {
-            const auto cell = Vector2ui(pix) / (u32)(cs/row_cells);
+            const auto cell = Vector2ui(pos_in_chunk) / (u32)(cs/row_cells);
             fm_debug3_assert(cell.x() - 1 < div_count - 2 && cell.y() - 1 < div_count - 2);
             for (u32 r = 0; r < 3; r++)
                 win |= (u32)((b[cell.y() - 1 + r] >> (cell.x() - 1)) & 7) << r*3;
         }
         else
         {
-            const auto cell = Vector2ui(pix) >> div_shift;
+            const auto cell = Vector2ui(pos_in_chunk) >> div_shift;
             for (u32 r = 0; r < 3; r++)
             {
                 const u32 i = (cell.y() - 1 + r)*div_count + cell.x() - 1;
@@ -439,7 +440,7 @@ struct astar::chunk_bitmaps
                 win |= (u32)(w & 7) << r*3;
             }
         }
-        return { win, chunk_idx, tile_idx, pix };
+        return { win, chunk_idx, tile_idx, pos_in_chunk };
     }
 
     CORRADE_ALWAYS_INLINE bool is_passable(point pt, usize chunk_idx)
@@ -572,8 +573,8 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     }
     else
     {
-        const auto [off, pix] = floor_divmod<chunk_size<int>>(cells.pix + vec);
-        new_pt = point{cur_pt.chunk3() + off, intra_coord{pix}};
+        const auto [off, pos_in_chunk] = floor_divmod<chunk_size<int>>(cells.pos_in_chunk + vec);
+        new_pt = point{cur_pt.chunk3() + off, intra_coord{pos_in_chunk}};
         chunk_idx = cache.get_chunk_index(Vector2i(new_pt.chunk()));
         tile_idx = cache.get_tile_index(intra_coord{new_pt});
         // Resolving clears the chunk's cells, so it comes before the lookup.
@@ -589,7 +590,7 @@ void do_dir(chunk_bitmaps& bm, Search::cache& cache,
     auto new_idx = slot.index;
 
     if (same_chunk) [[likely]]
-        new_pt = point{cur_pt.chunk3(), intra_coord{cells.pix + vec}};
+        new_pt = point{cur_pt.chunk3(), intra_coord{cells.pos_in_chunk + vec}};
 
     // A window of 0 can also mean nine blocked cells, which the per-cell tests find too.
     if (!window)
