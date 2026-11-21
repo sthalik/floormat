@@ -25,7 +25,7 @@ bool movement_range::cache_key::operator==(const cache_key&) const = default;
 
 movement_range::movement_range()
 {
-    arrayReserve(points, 16);
+    arrayReserve(cached_points, 16);
     arrayReserve(heap, 16);
 }
 
@@ -40,12 +40,12 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
         w.max_collider_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
     const cache_key key{from, excluded_blocker_ids, bbox_side, 0, 0, max_dist, collider_gen};
     if (_key == key)
-        return points;
+        return cached_points;
     _key = key;
-    arrayClear(points);
-    arrayAppend(points, from);
+    arrayClear(cached_points);
+    arrayAppend(cached_points, from);
     if (!R || !bbox_side)
-        return points;
+        return cached_points;
     fm_assert(R < (u16)-1);
 
     auto& objects = pools.object_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
@@ -70,9 +70,10 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
                 for (auto dx = -1; dx <= 1; dx++)
                     border |= !reached(x + dx, y + dy);
             if (border)
-                arrayAppend(points, from + ((origin + Vector2i{x, y})*div + Vector2i{div/2 - half_tile<int>} - g));
+                arrayAppend(cached_points,
+                            from + ((origin + Vector2i{x, y})*div + Vector2i{div/2 - half_tile<int>} - g));
         }
-    return points;
+    return cached_points;
 }
 
 ArrayView<const point> movement_range::reachable_lattice_points(world& w, Grid::GridRegistry& pools, point from,
@@ -85,12 +86,12 @@ ArrayView<const point> movement_range::reachable_lattice_points(world& w, Grid::
         w.max_collider_gen(from.chunk3(), (radius + 2*astar::default_div_size)/chunk_size_xy + 2);
     const cache_key key{from, excluded_blocker_ids, bbox_side, radius, spacing, max_walk_dist, collider_gen};
     if (_key == key)
-        return points;
+        return cached_points;
     _key = key;
-    arrayClear(points);
-    arrayAppend(points, from);
+    arrayClear(cached_points);
+    arrayAppend(cached_points, from);
     if (!radius || !bbox_side)
-        return points;
+        return cached_points;
 
     auto& objects = pools.object_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
     const auto div = (int)objects.params().div_size();
@@ -111,9 +112,9 @@ ArrayView<const point> movement_range::reachable_lattice_points(world& w, Grid::
             const auto cell = Vector2i{cell_of(pos.x(), div), cell_of(pos.y(), div)} - origin;
             fm_debug_assert(cell.x() >= 0 && cell.y() >= 0 && cell.x() < side && cell.y() < side);
             if (dist[cell.y()*side + cell.x()] != (u16)-1)
-                arrayAppend(points, from + d);
+                arrayAppend(cached_points, from + d);
         }
-    return points;
+    return cached_points;
 }
 
 Vector2i movement_range::compute_dijkstra_map(world& w, Grid::Object::Pool& objects, point from,

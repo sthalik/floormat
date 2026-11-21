@@ -266,8 +266,8 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                 continue;
             }
             // The npc can walk straight from s.pos to end, so s.pos has no path either.
-            const auto reach = max_search_path_length(here, end) + point::distance(here, _from);
-            _unreachable.add_failed(w, s.pos, reach);
+            const auto max_lattice_point_dist = max_search_path_length(here, end) + point::distance(here, _from);
+            _unreachable.add_failed(w, s.pos, max_lattice_point_dist);
             if (++_num_failed_dijkstra_calls == max_failed_dijkstra_calls)
                 return {{}, !_fallback_spots.has_cover_spot() && !_exposed_cover};
         }

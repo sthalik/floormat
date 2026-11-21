@@ -31,7 +31,7 @@ class movement_range
 
     // border() or reachable_lattice_points() for _key's arguments, while world::max_collider_gen() over the chunks
     // it read returns _key->collider_gen. The others are the search's scratch arrays.
-    Array<point> points;
+    Array<point> cached_points;
     Array<u16> dist;
     Array<u8> passable;
     Array<u64> heap;
