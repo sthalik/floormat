@@ -50,15 +50,6 @@ ArrayView<const point> spot_tests::reach_positions(critter& c, const Cover::Scri
                                 o.threat_reach);
 }
 
-bool spot_tests::is_hidden_from_reach(critter& c, const Cover::Script::options& o, point threat, point pos,
-                                   Vector2i axis)
-{
-    for (const auto& t : reach_positions(c, o, threat))
-        if (!is_hidden_at(c, t, pos, axis))
-            return false;
-    return true;
-}
-
 point spot_tests::cover_end(critter& c, const Cover::Script::options& o, const Cover::Point::spot& s, point threat)
 {
     const Cover::Point::query q{s.pos, Vector2ui(c.bbox_size), threat, 0, 0, o.max_cover_end_dist};

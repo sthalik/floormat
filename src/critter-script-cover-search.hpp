@@ -20,6 +20,10 @@ u32 max_search_path_length(point from, point to);
 // from threat, threat in a neighbor octant, or threat walked up to threat_reach px. Cover grids read 2 more.
 u32 search_chunk_radius(point at, point threat, u32 radius, const Cover::Script::options& o);
 
+// is_hidden_at calls that test spots against reach_positions(), each up to 6 microseconds among dense scenery.
+// A spot whose test runs out of them is tested further in the next update.
+constexpr inline u32 max_search_body_checks_per_update = 64;
+
 class cover_search
 {
 public:
@@ -58,6 +62,10 @@ private:
     struct skipped_spot { Cover::Point::spot spot; u32 octant; };
     // A spot and its cover_end(), which path_to found no path to.
     struct failed_dijkstra_search { point spot_pos, end; bool is_fallback_spot = false; };
+    enum class visibility_from_reach : u8 { hidden, exposed, unknown, };
+    // The spot test_spot_against_reach() tested last, and the reach positions that see none of the npc's body
+    // there, sorted. They stay valid while the body keeps its size and no static collider nearby changes.
+    struct reach_test_progress { Cover::Point::spot spot; Vector2ub body_size; Array<point> hidden_from; };
     // The first spots skipped for having no peek spot and for threat_reach, as options.last_resort keeps.
     struct fallback_spots
     {
@@ -66,12 +74,19 @@ private:
         bool has_cover_spot() const;
     };
 
+    // Whether the reach_positions() for threat see c's body at s, after at most max_body_checks body checks of
+    // the positions the last call for s didn't find hidden from. unknown when the checks run out first.
+    visibility_from_reach test_spot_against_reach(critter& c, spot_tests& t, const Cover::Script::options& o,
+                                                  point threat, const Cover::Point::spot& s, u32 max_body_checks);
     Optional<reachable_cover> take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                               point threat);
+                                               point threat, u32 max_body_checks);
     Optional<reachable_cover> take_exposed_cover(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                                 point threat);
+                                                 point threat, u32 max_body_checks);
 
     Optional<reachable_cover> _exposed_cover;
+    reach_test_progress _reach_test_progress;
+    // test_spot_against_reach() fills it and swaps it with _reach_test_progress.hidden_from.
+    Array<point> _next_hidden_from;
     u32 _exposed_updates_left = 0;
     // Spots that no path reaches with every critter let through, or tied to one.
     unreachable_spots _unreachable;
