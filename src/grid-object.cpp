@@ -8,6 +8,7 @@
 #include "object-storage.inl"
 #include "compat/function-view.hpp"
 #include <cstring>
+#include <cr/Algorithms.h>
 #include <cr/GrowableArray.h>
 
 namespace floormat::Grid::detail {
@@ -53,8 +54,6 @@ struct ObjectGrid : GridBase
     template<typename T> void clear_cells(Array<T>& cells, u32 range_count);
     template<typename T> bool is_blocked(const Array<T>& cells, const Array<T>& runs, u32 index,
                                          ArrayView<const bool> entry_blocked) const;
-    template<typename T> void mask_pass_bits(const Array<T>& cells, const Array<T>& runs, const usize* pass_bits,
-                                             usize* out, ArrayView<const bool> entry_blocked) const;
     template<typename T> Grid::Object::cell_object_view<T> objects_at_cell(const Array<T>& cells,
                                                                            const Array<T>& runs, u32 index) const;
     bool is_entry_blocked(u32 k, const Search::pred& p) const;
@@ -135,20 +134,6 @@ bool ObjectGrid::is_blocked(const Array<T>& cells, const Array<T>& runs, u32 ind
         if (entry_blocked[r[k]])
             return true;
     return false;
-}
-
-template<typename T>
-void ObjectGrid::mask_pass_bits(const Array<T>& cells, const Array<T>& runs, const usize* pass_bits, usize* out,
-                                ArrayView<const bool> entry_blocked) const
-{
-    const auto n = bitmask_size(params.div_count) / (u32)(sizeof(usize)*8);
-    for (auto k = 0u; k < n; k++)
-    {
-        usize mask = 0;
-        for (auto t = 0u; t < sizeof(usize)*8; t++)
-            mask |= (usize)!is_blocked(cells, runs, k*(u32)(sizeof(usize)*8) + t, entry_blocked) << t;
-        out[k] = pass_bits[k] & mask;
-    }
 }
 
 template<typename T>
@@ -409,10 +394,18 @@ void Grid::mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out
     const auto n = detail::bitmask_size(grid->params.div_count) / (sizeof(usize)*8);
     fm_debug_assert(pass_bits.size() == n && out.size() == n);
     const auto& g = *grid;
-    if (g.uses_u32)
-        g.mask_pass_bits(g.cells32, g.runs32, pass_bits.data(), out.data(), entry_blocked);
-    else
-        g.mask_pass_bits(g.cells, g.runs, pass_bits.data(), out.data(), entry_blocked);
+    const auto dc = g.params.div_count;
+    Utility::copy(pass_bits, out);
+    auto* const bits = out.data();
+    for (auto k = 0u; k < (u32)g.entry_ranges.size(); k++)
+    {
+        if (!entry_blocked[k])
+            continue;
+        const auto& r = g.entry_ranges[k];
+        for (auto j = (u32)r.j_lo; j <= (u32)r.j_hi; j++)
+            for (auto i = (u32)r.i_lo; i <= (u32)r.i_hi; i++)
+                bits[(j*dc + i) / (sizeof(usize)*8)] &= ~(usize{1} << (j*dc + i) % (sizeof(usize)*8));
+    }
 }
 
 u32 Grid::div_count() const { return grid->params.div_count; }
