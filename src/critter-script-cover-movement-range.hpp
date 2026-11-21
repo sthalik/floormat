@@ -1,7 +1,6 @@
 #pragma once
 #include "object-id.hpp"
 #include "point.hpp"
-#include "search-pred.hpp"
 #include <array>
 #include <cr/Array.h>
 #include <cr/ArrayView.h>
@@ -9,6 +8,7 @@
 
 namespace floormat { class world; }
 namespace floormat::Grid { class GridRegistry; }
+namespace floormat::Grid::Pass { class Pool; }
 namespace floormat::Grid::Object { class Pool; }
 
 namespace floormat::Cover {
@@ -26,17 +26,17 @@ class movement_range
     };
 
     // Returns the first of the (2n + 1)² cells around the cell of from that dist and passable then hold. passable
-    // leaves out cells blocked by the closed doors, other dynamic scenery and critters that pred blocks.
-    Vector2i compute_dijkstra_map(world& w, Grid::Object::Pool& objects, point from, const Search::pred& pred,
-                                  int n, int max_dist);
+    // leaves out cells blocked by static colliders, and with objects by critters not in excluded_blocker_ids.
+    Vector2i compute_dijkstra_map(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects, point from,
+                                  std::array<object_id, 2> excluded_blocker_ids, int n, int max_dist);
     // Critters don't count as blockers when excluded_blocker_ids is empty.
     ArrayView<const point> reachable_lattice_points_impl(world& w, Grid::GridRegistry& pools, point from,
                                                          Optional<std::array<object_id, 2>> excluded_blocker_ids,
                                                          Optional<u32> bbox_side, u32 radius, u32 spacing,
                                                          u32 max_walk_dist);
 
-    // The points the last call returned, for _key's arguments, while world::max_collider_gen() over the chunks it
-    // read returns _key->collider_gen. The others are the search's scratch arrays.
+    // The points the last call returned, for _key's arguments, while world::max_pass_gen(), or max_collider_gen()
+    // when critters block, over the chunks it read returns _key->collider_gen. The others are scratch arrays.
     Array<point> cached_points;
     Array<u16> dist;
     Array<u8> passable;

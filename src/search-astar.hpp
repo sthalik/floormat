@@ -39,7 +39,7 @@ public:
     Grid::GridRegistry& pool_registry();
     u32 last_node_count() const { return node_count; }
 
-    // To route around critters and doors, p must block them, as Search::blocks_all_but(self) does.
+    // To route around critters, p must block them, as Search::blocks_all_but(self) does.
     // todo add simple bresenham short-circuit
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, point from, point to,

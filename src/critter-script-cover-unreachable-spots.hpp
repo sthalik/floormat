@@ -8,7 +8,7 @@ namespace floormat { class world; }
 
 namespace floormat::Cover {
 
-// A critter or a closed door that blocks a path moves no pass_gen(), so is_stale() can't see it leave.
+// A critter that blocks a path moves no pass_gen(), so is_stale() can't see it leave.
 constexpr inline Ns unreachable_spot_retry_time = Minute;
 
 // is_stale() ignores chunk::objects_gen(), since every critter step in range would then clear the list, restart

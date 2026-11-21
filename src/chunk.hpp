@@ -64,8 +64,8 @@ public:
     void mark_walls_modified() noexcept;
     void mark_scenery_modified() noexcept;
     void mark_passability_modified() noexcept;
-    /// @brief Call after a critter or a dynamic scenery object, such as a door, is added, removed, moved, turned
-    /// or changes pass mode. Static scenery calls mark_passability_modified() instead.
+    /// @brief Call after a critter is added, removed, moved, turned or changes pass mode. Scenery, doors included,
+    /// calls mark_passability_modified() instead.
     void mark_objects_modified() noexcept;
     /// Call on each neighbour of a chunk whose hole changed. It marks no grid, so that chunk also needs
     /// mark_walls_modified().

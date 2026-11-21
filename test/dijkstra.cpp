@@ -996,8 +996,8 @@ void check_pull_around_critter(u32 cell)
     walk_to(w, S, move(r), goal, "pull around a critter", cell);
 }
 
-// A closed door fills the gap in a wall, so the path and its smoothing go around the wall. The static grid alone
-// lets the path through the door, and so does the door once it opens.
+// A closed door fills the gap in a wall, so the path and its smoothing go around the wall, with the static grid alone
+// too. Once the door opens, the path goes through it.
 void check_door_in_wall_gap()
 {
     constexpr u32 max_dist = 1024, size = 32;
@@ -1047,10 +1047,13 @@ void check_door_in_wall_gap()
     };
     const auto params = Grid::Pass::Params{astar::default_div_size, size, pass_mode::pass};
     auto& pool = A.pool_registry().pass_pool(params);
-    const auto through = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, own, pred);
-    fm_assert(through.is_found());
+    const auto static_only_cost = [&] {
+        const auto r = A.Dijkstra<0, false>(w, pool, from, goal, max_dist, own, pred);
+        fm_assert(r.is_found());
+        return r.cost();
+    };
     const auto shut = search();
-    fm_assert(shut > through.cost());
+    fm_assert(static_only_cost() == shut);
 
     {
         const auto g = A.pool_registry().object_pool(params)[c];
@@ -1061,7 +1064,8 @@ void check_door_in_wall_gap()
     }
 
     open(doorʹ);
-    fm_assert(search() == through.cost());
+    const auto through = search();
+    fm_assert(through < shut && static_only_cost() == through);
 }
 
 // Holes cut a wall as on tile 14:10 of chunk (0, -1) in doc/saves/quicksave.dat. A 28-px box fits through

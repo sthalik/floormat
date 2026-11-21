@@ -641,9 +641,11 @@ void test_object_pool()
 
     for (float radius : { 0.f, 1.f })
     {
-        fm_assert(ray(door_from, door_to, nullptr, Search::without_critters, radius).success);
-        const auto shut = ray(door_from, door_to, &object_pool, Search::without_critters, radius);
-        fm_assert(!shut.success && shut.collider.id == door.id);
+        for (auto* objects : { (Grid::Object::Pool*)nullptr, &object_pool })
+        {
+            const auto shut = ray(door_from, door_to, objects, Search::without_critters, radius);
+            fm_assert(!shut.success && shut.collider.id == door.id);
+        }
         fm_assert(ray(door_from, door_to, &object_pool, Search::never_continue, radius).collider.id == C2->id);
 
         fm_assert(ray(crit_from, crit_to, nullptr, Search::never_continue, radius).success);
@@ -656,7 +658,7 @@ void test_object_pool()
         fm_assert(ray(row_east, row_west, &object_pool, Search::never_continue, radius).collider.id == C3->id);
         fm_assert(ray(row_east, row_west, &object_pool, Search::without_critters, radius).collider.id == S3->id);
     }
-    fm_assert(!sweep(door_from, door_to, false, Search::without_critters).has_collider);
+    fm_assert(sweep(door_from, door_to, false, Search::without_critters).collider.id == door.id);
     fm_assert(sweep(door_from, door_to, true, Search::without_critters).collider.id == door.id);
     fm_assert(sweep(door_from, door_to, true, Search::never_continue).collider.id == C2->id);
     fm_assert(!sweep(crit_from, crit_to, false, Search::never_continue).has_collider);
@@ -675,6 +677,7 @@ void test_object_pool()
 
     open(doorʹ);
     fm_assert(door.pass == pass_mode::pass);
+    fm_assert(ray(door_from, door_to, nullptr, Search::without_critters).success);
     fm_assert(ray(door_from, door_to, &object_pool, Search::without_critters).success);
 }
 

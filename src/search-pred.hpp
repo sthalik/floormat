@@ -23,6 +23,7 @@ constexpr path_search_continue never_continue(const chunk&, collision_data) { re
 path_search_continue without_critters(const chunk& self, collision_data data);
 path_search_continue without_dynamic_objects(const chunk& self, collision_data data);
 
+// True for a critter. Scenery is a static collider even when object::is_dynamic(), as a door is.
 bool is_dynamic_object(const object& o);
 bool is_dynamic_object(const chunk& c, collision_data x);
 

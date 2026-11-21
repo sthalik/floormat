@@ -204,8 +204,6 @@ void ObjectGrid::build_impl(chunk* self)
         };
         const auto& objects = ch->objects();
         add(objects.list<critter>());
-        add(objects.list<door_scenery>());
-        add(objects.list<generic_scenery>());
     }
 
     uses_u32 = build_u32_next;

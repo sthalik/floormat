@@ -141,18 +141,7 @@ path_search_continue without_dynamic_objects(const chunk& self, collision_data d
 
 bool is_dynamic_object(const object& o)
 {
-    switch (o.type())
-    {
-    case object_type::critter:
-    case object_type::scenery:
-        return o.is_dynamic();
-    case object_type::hole:
-    case object_type::light:
-    case object_type::none:
-    case object_type::COUNT:
-        break;
-    }
-    return false;
+    return o.type() == object_type::critter;
 }
 
 bool is_dynamic_object(const chunk& c, collision_data x)

@@ -35,9 +35,9 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
     const auto R = (int)max_dist;
     // The Dijkstra search reads cells within R + 2 div px of from, div being at most default_div_size, and each
     // cell's grid reads one chunk more.
-    const auto collider_gen =
-        w.max_collider_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
-    const cache_key key{from, {}, bbox_side, 0, 0, max_dist, collider_gen};
+    const auto max_pass_gen =
+        w.max_pass_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
+    const cache_key key{from, {}, bbox_side, 0, 0, max_dist, max_pass_gen};
     if (_key == key)
         return cached_points;
     _key = key;
@@ -47,12 +47,12 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
         return cached_points;
     fm_assert(R < (u16)-1);
 
-    auto& objects = pools.object_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
-    const auto div = (int)objects.params().div_size();
+    auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
+    const auto div = (int)pool.params().div_size();
     // A cell farther than n from the cell of from lies over R px away.
     const auto n = R/div + 1, side = 2*n + 1;
     const auto g = Vector3i(from).xy();
-    const auto origin = compute_dijkstra_map(w, objects, from, Search::without_critters, n, R);
+    const auto origin = compute_dijkstra_map(w, pool, nullptr, from, {}, n, R);
 
     // A ray from inside the reached cells to a body outside them leaves through a border cell, which sees the
     // body as well, to within a cell.
@@ -96,8 +96,9 @@ ArrayView<const point> movement_range::reachable_lattice_points_impl(
     Optional<u32> bbox_side, u32 radius, u32 spacing, u32 max_walk_dist)
 {
     fm_assert(spacing);
-    const auto collider_gen =
-        w.max_collider_gen(from.chunk3(), (radius + 2*astar::default_div_size)/chunk_size_xy + 2);
+    const auto chunk_radius = (radius + 2*astar::default_div_size)/chunk_size_xy + 2;
+    const auto collider_gen = excluded_blocker_ids ? w.max_collider_gen(from.chunk3(), chunk_radius)
+                                                   : w.max_pass_gen(from.chunk3(), chunk_radius);
     const cache_key key{from, excluded_blocker_ids, bbox_side, radius, spacing, max_walk_dist, collider_gen};
     if (_key == key)
         return cached_points;
@@ -112,14 +113,11 @@ ArrayView<const point> movement_range::reachable_lattice_points_impl(
     const auto n = ((int)radius + div - 1)/div, side = 2*n + 1;
     // No path inside the window is longer than one diagonal step per cell, so the Dijkstra search isn't cut short.
     fm_assert(side*side*2*div < (u16)-1);
-    // TODO: much later, factions may decide which critters block, and a player standing in a doorway may be
-    // pushed away.
-    const auto ids = excluded_blocker_ids ? *excluded_blocker_ids : std::array<object_id, 2>{};
-    const auto blocks_all_but_ids = Search::blocks_all_but(ids[0], ids[1]);
-    const auto pred = excluded_blocker_ids ? Search::pred{blocks_all_but_ids}
-                                           : Search::pred{Search::without_critters};
-    const auto origin = compute_dijkstra_map(w, objects, from, pred, n,
-                                             (int)Math::min(max_walk_dist, (u32)(u16)-2));
+    const auto max_dist = (int)Math::min(max_walk_dist, (u32)(u16)-2);
+    const auto origin =
+        excluded_blocker_ids
+            ? compute_dijkstra_map(w, objects.pass_pool(), &objects, from, *excluded_blocker_ids, n, max_dist)
+            : compute_dijkstra_map(w, objects.pass_pool(), nullptr, from, {}, n, max_dist);
     const auto g = Vector3i(from).xy();
     const auto k = (int)(radius/spacing);
     for (auto j = -k; j <= k; j++)
@@ -137,10 +135,10 @@ ArrayView<const point> movement_range::reachable_lattice_points_impl(
     return cached_points;
 }
 
-Vector2i movement_range::compute_dijkstra_map(world& w, Grid::Object::Pool& objects, point from,
-                                              const Search::pred& pred, int n, int max_dist)
+Vector2i movement_range::compute_dijkstra_map(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
+                                              point from, std::array<object_id, 2> excluded_blocker_ids, int n,
+                                              int max_dist)
 {
-    auto& pool = objects.pass_pool();
     const auto div = (int)pool.params().div_size(), dc = (int)pool.params().div_count;
     const auto R = max_dist;
     const auto side = 2*n + 1;
@@ -155,6 +153,9 @@ Vector2i movement_range::compute_dijkstra_map(world& w, Grid::Object::Pool& obje
     arrayResize(dist, NoInit, count);
     arrayResize(passable, NoInit, count);
 
+    // TODO: much later, factions may decide which critters block, and a player standing in a doorway may be
+    // pushed away.
+    const auto pred = Search::blocks_all_but(excluded_blocker_ids[0], excluded_blocker_ids[1]);
     Optional<Pass::Grid> gridʹ;
     // grid_ch's object grid while one of its objects blocks, with entry_blocked filled for it.
     Optional<Grid::Object::Grid> object_gridʹ;
@@ -175,10 +176,13 @@ Vector2i movement_range::compute_dijkstra_map(world& w, Grid::Object::Pool& obje
                 if (auto* p = w.at(cc))
                 {
                     gridʹ.emplace(pool[*p]).build_if_stale();
-                    auto object_grid = objects[*p];
-                    object_grid.build_if_stale();
-                    if (object_grid.blocked_objects(pred, entry_blocked))
-                        object_gridʹ = object_grid;
+                    if (objects)
+                    {
+                        auto object_grid = (*objects)[*p];
+                        object_grid.build_if_stale();
+                        if (object_grid.blocked_objects(pred, entry_blocked))
+                            object_gridʹ = object_grid;
+                    }
                 }
             }
             const auto local = Vector2ui(cell - ch*dc);

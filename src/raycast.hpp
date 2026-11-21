@@ -39,8 +39,7 @@ constexpr u32 min_pool_bbox_size(float radius)
     return n + ((float)n < size);
 }
 
-// With only a pass pool, a ray misses critters and dynamic scenery, such as doors, in cells
-// that no static collider blocks.
+// With only a pass pool, a ray misses critters in cells that no static collider blocks.
 [[nodiscard]] raycast_result_s raycast(world& w, point from, point to, object_id self,
                                        Grid::Pass::Pool& pass_grid_pool, Search::pred const& pred, float radius = 0);
 [[nodiscard]] raycast_result_s raycast(world& w, point from, point to, object_id self,
