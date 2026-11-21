@@ -186,7 +186,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             arrayClear(_tile_spots);
             arrayAppend(_tile_spots, r.spots);
             if (arrayCapacity(_tile_skipped) < _tile_skipped.size() + count)
-                arrayReserve(_tile_skipped, _tile_skipped.size() + count);
+                arrayReserve(_tile_skipped, (_tile_skipped.size() + count)*3/2);
             _tile_spot = 0;
             _tile_threat = threat;
         }
