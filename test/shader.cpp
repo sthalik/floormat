@@ -12,9 +12,12 @@
 #include <cr/StridedArrayView.h>
 #include <mg/Color.h>
 #include <mg/DefaultFramebuffer.h>
+#include <mg/Framebuffer.h>
 #include <mg/Image.h>
 #include <mg/Mesh.h>
 #include <mg/PixelFormat.h>
+#include <mg/Renderbuffer.h>
+#include <mg/RenderbufferFormat.h>
 #include <mg/Renderer.h>
 #include <mg/Shader.h>
 #include <mg/Texture.h>
@@ -169,6 +172,11 @@ void test_shader_lightmap_binding()
     lightmap.setStorage(1, GL::TextureFormat::RGBA8, Vector2i{1});
     GL::Mesh mesh;
     mesh.setCount(3);
+    // A surfaceless EGL context has no default framebuffer to draw into.
+    GL::Renderbuffer color;
+    color.setStorage(GL::RenderbufferFormat::RGBA8, Vector2i{1});
+    GL::Framebuffer framebuffer{{{}, Vector2i{1}}};
+    framebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, color).bind();
 
     const auto draw = [&](const GL::Texture2D* expected = nullptr) {
         GL::Texture2D::unbind(0);
@@ -199,6 +207,7 @@ void test_shader_lightmap_binding()
     draw();
     tuc.invalidate();
     draw();
+    GL::defaultFramebuffer.bind();
 }
 
 Pair<Color4ub, Color4ub> lit_behind_object(lightmap_shader& L, pass_mode pass)
