@@ -140,9 +140,15 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
             _next++;
             continue;
         }
-        if (!passable_left)
+        // The limits come first, so no is_passable result is thrown away when one runs out.
+        if (!passable_left || !dijkstra_left || !_all && !rays_left)
+            return on_limit_reached();
+        if (dijkstra_left < max_retreat_dijkstra_calls_per_update &&
+            t.counters.num_path_body_checks - path_body_checks_before_step >
+                (dijkstra_left - 1)*hidden_at_calls_per_dijkstra_call)
             return on_limit_reached();
         passable_left--;
+        t.counters.num_retreat_is_passable_calls++;
         const auto lo = Vector2(to.intra().center_shifted() - body/2);
         if (!Search::is_passable(w, to.chunk3(), Range2D::fromSize(lo, Vector2(body)), pred))
         {
@@ -150,16 +156,8 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
             _next++;
             continue;
         }
-        if (!dijkstra_left)
-            return on_limit_reached();
-        if (dijkstra_left < max_retreat_dijkstra_calls_per_update &&
-            t.counters.num_path_body_checks - path_body_checks_before_step >
-                (dijkstra_left - 1)*hidden_at_calls_per_dijkstra_call)
-            return on_limit_reached();
         if (!_all)
         {
-            if (!rays_left)
-                return on_limit_reached();
             rays_left--;
             _rays--;
             if (t.has_line_of_sight(c, o, threat, to))

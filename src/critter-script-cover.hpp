@@ -96,6 +96,8 @@ struct counters
     // The times find_retreat went back to its first spot because the threat moved to another octant of the cover
     // grid, seen from the critter, or a retreat walk was blocked or flanked.
     u32 num_retreat_restarts = 0;
+    // Search::is_passable calls of the retreat, each for the npc's body at one spot.
+    u32 num_retreat_is_passable_calls = 0;
 };
 
 // The tiles a search may still pass, 0 when none runs, and the number it tried out of num_tiles.
