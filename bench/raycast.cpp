@@ -1,3 +1,4 @@
+#include "raycast-dense-world.hpp"
 #include "src/raycast-diag.hpp"
 #include "src/raycast.hpp"
 #include "src/raycast-loop.hpp"
@@ -132,6 +133,8 @@ void Raycast(benchmark::State& state)
 
 BENCHMARK(Raycast)->Unit(benchmark::kMicrosecond);
 
+} // namespace
+
 world make_dense_world()
 {
     constexpr auto var = (variant_t)-1;
@@ -172,6 +175,8 @@ world make_dense_world()
 
     return w;
 }
+
+namespace {
 
 point project_to(point from, point to, int extra_tiles)
 {
