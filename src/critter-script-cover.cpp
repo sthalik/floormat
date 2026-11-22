@@ -452,12 +452,7 @@ void cover_script::flee(critter& C)
 
 point cover_script::search_origin(critter& C) const
 {
-    if (st != state::retreat)
-        return C.position();
-    else if (is_retreat_exposed)
-        return search.from();
-    else
-        return walk.dest();
+    return st == state::retreat ? search.from() : C.position();
 }
 
 void cover_script::restart_search(critter& C)
@@ -643,8 +638,9 @@ void cover_script::retreat_step(critter& C)
         walk = critter_walk{move(r.path)};
         st = state::retreat;
         is_retreat_exposed = r.is_exposed;
-        // The search goes on measured from the walk's end, or from C when the threat sees C on the walk.
-        if (search.is_running() && (!r.is_exposed || search.from() != C.position()))
+        // The search goes on measured from C when the threat sees C on the path, else from the end of a path
+        // starting at its origin. Other paths keep the origin and the search's progress.
+        if (search.is_running() && (r.is_exposed ? search.from() != C.position() : search.from() == C.position()))
             search.restart(r.is_exposed ? C.position() : walk.dest(), threat_pos);
     }
     else if (r.done)

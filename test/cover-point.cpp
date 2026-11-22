@@ -3126,6 +3126,7 @@ void test_cover_script_retreat_end_seen(point hidden, bool search_ended)
         const auto t = s.status();
         fm_assert_equal(t0.counters.num_retreat_restarts + 1, t.counters.num_retreat_restarts);
         fm_assert(t.counters.num_dijkstra_calls - t1.counters.num_dijkstra_calls <= 4);
+        fm_assert(search_ended || t.st == state::retreat && t1.search.tile > 0 && t.search.tile >= t1.search.tile);
         return from;
     };
     point spot;
