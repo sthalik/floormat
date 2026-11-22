@@ -3,7 +3,6 @@
 #include <cr/StringView.h>
 #include <cr/ArrayView.h>
 #include <initializer_list>
-#include <iterator>
 
 // A braced delimiter list outlives the call only under P2718R0, which extends every temporary
 // in a range-initializer to the end of the loop. GCC 15, Clang 19, MSVC 19.51.
@@ -50,10 +49,6 @@ class split_string_view::iterator
     void scan() noexcept;
 
 public:
-    // operator*() yields a prvalue. C++20 forward iterators allow that, the C++17 ones
-    // require value_type&, so the two tags have to disagree. Same split as std::ranges::iota_view.
-    using iterator_concept = std::forward_iterator_tag;
-    using iterator_category = std::input_iterator_tag;
     using value_type = StringView;
     using difference_type = isize;
 

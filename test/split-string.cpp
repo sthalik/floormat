@@ -14,6 +14,8 @@ namespace floormat {
 namespace {
 
 static_assert(std::forward_iterator<split_string_view::iterator>);
+static_assert(!std::bidirectional_iterator<split_string_view::iterator>);
+static_assert(std::is_same_v<std::iterator_traits<split_string_view::iterator>::iterator_category, std::input_iterator_tag>);
 static_assert(std::ranges::forward_range<split_string_view>);
 static_assert(std::ranges::contiguous_range<split_array>);
 static_assert(std::ranges::sized_range<split_array>);
