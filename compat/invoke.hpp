@@ -36,11 +36,11 @@ namespace floormat::detail {
 
 struct invoke_fn
 {
-    template<typename F, typename... Args>
+    template<typename F, typename... Args> requires std::is_invocable_v<F, Args...>
     static constexpr CORRADE_ALWAYS_INLINE decltype(auto) operator()(F&& f, Args&&... args) noexcept(std::is_nothrow_invocable_v<F, Args...>);
 };
 
-template<typename F, typename... Args>
+template<typename F, typename... Args> requires std::is_invocable_v<F, Args...>
 constexpr decltype(auto) invoke_fn::operator()(F&& f, Args&&... args) noexcept(std::is_nothrow_invocable_v<F, Args...>)
 {
     if constexpr (std::is_member_pointer_v<std::remove_cvref_t<F>>)

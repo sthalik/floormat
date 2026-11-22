@@ -1,6 +1,7 @@
 #pragma once
 #include "range-access.hpp"
 #include "container-traits.hpp"
+#include "invoke.hpp"
 
 namespace floormat {
 
@@ -12,14 +13,14 @@ constexpr usize erase_if(C& c, Pred&& pred)
     auto first = floormat::begin(c);
     const auto last = floormat::end(c);
     for (; first != last; ++first)
-        if (pred(*first))
+        if (invoke(pred, *first))
             break;
     auto out = first;
     if (first != last)
     {
         while (++first != last)
         {
-            if (!pred(*first))
+            if (!invoke(pred, *first))
             {
                 *out = move(*first);
                 ++out;

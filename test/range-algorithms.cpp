@@ -147,6 +147,26 @@ constexpr bool test_find_if()
 }
 static_assert(test_find_if());
 
+struct item
+{
+    int value;
+    bool is_kept;
+    constexpr bool is_value_odd() const noexcept { return value % 2 != 0; }
+};
+
+constexpr bool test_member_predicates()
+{
+    const item items[] = { { 13, true }, { 14, false }, { 15, false }, { 16, true }, { 17, false } };
+    const item* const pointers[] = { &items[0], &items[1], &items[2], &items[3], &items[4] };
+    return any_of(items, &item::is_kept) && !all_of(items, &item::is_kept) &&
+           any_of(items, &item::is_value_odd) && !all_of(items, &item::is_value_odd) &&
+           count_if(items, &item::is_kept) == 2 && count_if(items, &item::is_value_odd) == 3 &&
+           any_of(pointers, &item::is_kept) && !all_of(pointers, &item::is_value_odd) &&
+           count_if(pointers, &item::is_kept) == 2 && count_if(pointers, &item::is_value_odd) == 3 &&
+           !any_of(ArrayView<const item>{}, &item::is_kept) && all_of(ArrayView<const item>{}, &item::is_kept);
+}
+static_assert(test_member_predicates());
+
 void test_stops_early()
 {
     const int xs[] = { 107, 109, 113, 127 };

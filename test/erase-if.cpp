@@ -55,6 +55,28 @@ constexpr bool test_cases()
 
 static_assert(test_cases());
 
+struct item
+{
+    int value;
+    bool is_removed;
+    constexpr bool is_value_odd() const noexcept { return value % 2 != 0; }
+};
+
+constexpr bool test_member_pointers()
+{
+    inplace_array<item, 16> a;
+    for (int i = 0; i < 7; i++)
+        a.push_back(item{13 + i, i % 3 == 0});
+    if (erase_if(a, &item::is_removed) != 3 || a.size() != 4)
+        return false;
+    if (a[0].value != 14 || a[1].value != 15 || a[2].value != 17 || a[3].value != 18)
+        return false;
+    if (erase_if(a, &item::is_value_odd) != 2 || a.size() != 2)
+        return false;
+    return a[0].value == 14 && a[1].value == 18;
+}
+static_assert(test_member_pointers());
+
 constexpr bool removes(u64 x) { return x % 11 == 0 || x % 7 == 3; }
 constexpr u64 key(u32 x) { return x; }
 constexpr u64 key(const triple& t) { return t.a; }

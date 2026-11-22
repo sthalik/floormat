@@ -164,6 +164,28 @@ constexpr bool test_zip_tuple()
     return true;
 }
 
+struct item
+{
+    int value;
+    bool is_kept;
+    constexpr bool is_value_odd() const noexcept { return value % 2 != 0; }
+};
+
+constexpr bool test_member_pointers()
+{
+    constexpr item items[] = { { 13, true }, { 14, false }, { 15, false } };
+    const auto values = map(&item::value, items);
+    static_assert(std::is_same_v<decltype(values), const std::array<int, 3>>);
+    fm_assert(values == std::array{13, 14, 15});
+    const auto odd = map(&item::is_value_odd, std::array{items[0], items[1], items[2]});
+    static_assert(std::is_same_v<decltype(odd), const std::array<bool, 3>>);
+    fm_assert(odd == std::array{true, false, true});
+    const auto kept = map(&item::is_kept, std::tuple{items[0], items[1]});
+    static_assert(std::is_same_v<decltype(kept), const std::tuple<bool, bool>>);
+    fm_assert(kept == std::tuple{true, false});
+    return true;
+}
+
 static_assert(test1());
 static_assert(test2());
 static_assert(test3());
@@ -175,6 +197,7 @@ static_assert(test_empty_tuple());
 static_assert(test_tuple_references());
 static_assert(test_pair());
 static_assert(test_zip_tuple());
+static_assert(test_member_pointers());
 
 } // namespace
 
