@@ -36,6 +36,7 @@ void test_coords();
 void test_intra_coord();
 void test_corridor();
 void test_cover_point();
+void test_cpu_topology();
 void test_crc64();
 void test_critter();
 void test_critter_walk();
