@@ -4,6 +4,7 @@
 #include "compat/contains.hpp"
 #include "compat/count-if.hpp"
 #include "compat/equal.hpp"
+#include "compat/find-if.hpp"
 #include <cr/Array.h>
 #include <cr/StridedArrayView.h>
 #include <cr/StringView.h>
@@ -127,6 +128,25 @@ constexpr bool test_equal()
 }
 static_assert(test_equal());
 
+struct prime { int value; bool is_twin; };
+
+constexpr bool test_find_if()
+{
+    constexpr int xs[] = { 151, 157, 163, 167 };
+    constexpr prime ps[] = { {173, false}, {179, true}, {181, true} };
+    constexpr auto above_160 = [](int x) { return x > 160; };
+    constexpr auto is_v = [](char c) { return c == 'v'; };
+    const char* s = "uvw";
+    const auto first = floormat::begin(primes), last = floormat::end(primes);
+    return find_if(xs, xs + 4, above_160) == xs + 2 && find_if(xs + 3, xs + 4, above_160) == xs + 3 &&
+           find_if(xs, xs + 4, [](int x) { return x > 167; }) == xs + 4 && find_if(xs, xs, above_160) == xs &&
+           find_if(s, nul_sentinel{}, is_v) == s + 1 && *find_if(s + 2, nul_sentinel{}, is_v) == '\0' &&
+           *find_if(first, last, [](int x) { return x > 13; }) == 17 &&
+           find_if(first, last, [](int x) { return x > 19; }) == last &&
+           find_if(ps, ps + 3, &prime::is_twin) == ps + 1;
+}
+static_assert(test_find_if());
+
 void test_stops_early()
 {
     const int xs[] = { 107, 109, 113, 127 };
@@ -139,6 +159,9 @@ void test_stops_early()
     calls = 0;
     fm_assert(count_if(xs, [&](int x) { calls++; return x > 110; }) == 2);
     fm_assert(calls == 4);
+    calls = 0;
+    fm_assert(find_if(xs, xs + 4, [&](int x) { calls++; return x > 110; }) == xs + 2);
+    fm_assert(calls == 3);
 }
 
 void test_containers()
@@ -151,6 +174,9 @@ void test_containers()
     fm_assert(equal(arrayView(arr).exceptSuffix(1), ArrayView<const int>{sa.data(), 2}));
     fm_assert(count_if(stridedArrayView(arr).every(2), [](int x) { return x > 135; }) == 1);
     fm_assert(all_of(stridedArrayView(arr).flipped<0>(), [](int x) { return x > 130; }));
+    fm_assert(floormat::find_if(v.begin(), v.end(), [](int x) { return x > 135; }) == v.begin() + 1);
+    auto sv = stridedArrayView(arr).every(2);
+    fm_assert(*floormat::find_if(sv.begin(), sv.end(), [](int x) { return x > 135; }) == 139);
 
     const char* args[] = { "--foo", "--magnum-log=quiet" };
     fm_assert(contains(args, "--magnum-log=quiet"_s) && !contains(args, "--bar"_s));

@@ -78,6 +78,7 @@ constexpr inline detail::range::size_fn size{};
 
 template<typename R> using iterator_t = decltype(floormat::begin(detail::range::declval<R&>()));
 template<typename R> using sentinel_t = decltype(floormat::end(detail::range::declval<R&>()));
+template<typename I> using iterator_reference_t = decltype(*detail::range::declval<I&>());
 
 template<typename R>
 concept range = requires(R& r) { floormat::begin(r); floormat::end(r); };
