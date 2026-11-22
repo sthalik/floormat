@@ -27,24 +27,27 @@ target_link_libraries(${self} ${self}_o floormat-shader-res floormat-serialize f
 fm_win32_app_manifest(${self})
 fm_install_executable(${self})
 
-add_executable(${self}-atomic EXCLUDE_FROM_ALL
-    atomic/main.cpp atomic.cpp atomic-wait.cpp chase-lev-deque.cpp event-count.cpp
-    slab-allocator-threads.cpp slab-allocator-common.cpp
-    ../compat/atomic.cpp ../compat/atomic-wait.cpp ../compat/atomic-wrapper.cpp ../compat/atomic-flag-wrapper.cpp
-    ../compat/valgrind.cpp ../compat/abort-behavior.cpp
-    ../compat/slab-allocator.cpp ../compat/slab-arena.cpp ../compat/guard-page-memory-resource.cpp
-    ../compat/virtual-memory.cpp ../compat/spinlock.cpp ../compat/superpage.cpp ../compat/strerror.cpp
-    ../compat/format.cpp ../random/random.cpp
-)
-target_include_directories(${self}-atomic SYSTEM PRIVATE
-    $<TARGET_PROPERTY:Corrade::Utility,INTERFACE_INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:Magnum::Magnum,INTERFACE_INCLUDE_DIRECTORIES>
-)
-target_link_libraries(${self}-atomic Threads::Threads Corrade::Utility fmt::fmt)
-set_target_properties(${self}-atomic PROPERTIES BUILD_WITH_INSTALL_RPATH OFF)
-if(WIN32)
-    target_link_libraries(${self}-atomic synchronization)
-endif()
+foreach(target ${self}-atomic ${self}-atomic-delays)
+    add_executable(${target} EXCLUDE_FROM_ALL
+        atomic/main.cpp atomic.cpp atomic-wait.cpp chase-lev-deque.cpp event-count.cpp
+        slab-allocator-threads.cpp slab-allocator-common.cpp
+        ../compat/atomic.cpp ../compat/atomic-wait.cpp ../compat/atomic-wrapper.cpp ../compat/atomic-flag-wrapper.cpp
+        ../compat/valgrind.cpp ../compat/abort-behavior.cpp
+        ../compat/slab-allocator.cpp ../compat/slab-arena.cpp ../compat/guard-page-memory-resource.cpp
+        ../compat/virtual-memory.cpp ../compat/spinlock.cpp ../compat/superpage.cpp ../compat/strerror.cpp
+        ../compat/format.cpp ../random/random.cpp
+    )
+    target_include_directories(${target} SYSTEM PRIVATE
+        $<TARGET_PROPERTY:Corrade::Utility,INTERFACE_INCLUDE_DIRECTORIES>
+        $<TARGET_PROPERTY:Magnum::Magnum,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+    target_link_libraries(${target} Threads::Threads Corrade::Utility fmt::fmt)
+    set_target_properties(${target} PROPERTIES BUILD_WITH_INSTALL_RPATH OFF)
+    if(WIN32)
+        target_link_libraries(${target} synchronization)
+    endif()
+endforeach()
+target_compile_definitions(${self}-atomic-delays PRIVATE FM_ATOMIC_RANDOM_DELAYS)
 
 file(GLOB files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/save/*.dat")
 foreach(file ${files})

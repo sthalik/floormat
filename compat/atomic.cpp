@@ -1,6 +1,10 @@
 #include "atomic.hpp"
 #include "defs.hpp"
 #include <type_traits>
+#ifdef FM_ATOMIC_RANDOM_DELAYS
+#include "stl/chrono.hpp"
+#include "stl/thread.hpp"
+#endif
 
 #if defined _MSC_VER && !defined __clang__
 #define FM_ATOMIC_MSVC 1
@@ -161,10 +165,36 @@ template<typename T> I<T> to_int(T x) noexcept { return (I<T>)x; }
 
 #endif
 
+#ifdef FM_ATOMIC_RANDOM_DELAYS
+void random_delay() noexcept
+{
+    constexpr u32 num_atomic_ops_per_delay = 64, max_cpu_relax_calls_per_delay = 64;
+    thread_local u32 xorshift_state =
+        ((u32)std::chrono::steady_clock::now().time_since_epoch().count() ^ (u32)(uptr)&xorshift_state) | 1;
+    u32 x = xorshift_state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    xorshift_state = x;
+    if (x % num_atomic_ops_per_delay == 0)
+    {
+        x /= num_atomic_ops_per_delay;
+        if (x % 2 == 0)
+            std::this_thread::yield();
+        else
+            for (u32 i = x / 2 % max_cpu_relax_calls_per_delay + 1; i != 0; --i)
+                cpu_relax();
+    }
+}
+#else
+[[fm_always_inline]] inline void random_delay() noexcept {}
+#endif
+
 } // namespace
 
 template<atomic_type T> [[fm_always_inline]] T atomic_load(const volatile T* p, memory_order o) noexcept
 {
+    random_delay();
 #if !FM_ATOMIC_MSVC
     return __atomic_load_n(al(p), (int)o);
 #else
@@ -182,6 +212,7 @@ template<atomic_type T> [[fm_always_inline]] T atomic_load(const volatile T* p, 
 
 template<atomic_type T> [[fm_always_inline]] void atomic_store(volatile T* p, std::type_identity_t<T> x, memory_order o) noexcept
 {
+    random_delay();
 #if !FM_ATOMIC_MSVC
     __atomic_store_n(al(p), x, (int)o);
 #else
@@ -202,6 +233,7 @@ template<atomic_type T> [[fm_always_inline]] void atomic_store(volatile T* p, st
 
 template<atomic_type T> [[fm_always_inline]] T atomic_exchange(volatile T* p, std::type_identity_t<T> x, memory_order o) noexcept
 {
+    random_delay();
 #if !FM_ATOMIC_MSVC
     return __atomic_exchange_n(al(p), x, (int)o);
 #else
@@ -212,6 +244,7 @@ template<atomic_type T> [[fm_always_inline]] T atomic_exchange(volatile T* p, st
 
 template<atomic_type T> [[fm_always_inline]] bool atomic_compare_exchange(volatile T* p, T& expected, std::type_identity_t<T> desired, memory_order o, bool weak) noexcept
 {
+    random_delay();
 #if !FM_ATOMIC_MSVC
     A<T> e = expected;
     bool ret = __atomic_compare_exchange_n(al(p), &e, desired, weak, (int)o, failure_order(o));
@@ -238,6 +271,7 @@ template<atomic_type T> [[fm_always_inline]] bool atomic_compare_exchange_weak(v
     template<atomic_type T> [[fm_always_inline]]                                                    \
     T atomic_fetch_##name(volatile T* p, std::type_identity_t<T> x, memory_order o) noexcept        \
     {                                                                                               \
+        random_delay();                                                                             \
         return __atomic_fetch_##name(al(p), x, (int)o);                                             \
     }
 #else
@@ -245,6 +279,7 @@ template<atomic_type T> [[fm_always_inline]] bool atomic_compare_exchange_weak(v
     template<atomic_type T> [[fm_always_inline]]                                                    \
     T atomic_fetch_##name(volatile T* p, std::type_identity_t<T> x, memory_order o) noexcept        \
     {                                                                                               \
+        random_delay();                                                                             \
         (void)o;                                                                                    \
         return (T)Ops<T>::msvc_op(ptr(p), msvc_arg);                                                \
     }
@@ -260,6 +295,7 @@ FM_ATOMIC_FETCH_OP(xor, xor_, to_int(x))
 
 [[fm_always_inline]] void atomic_thread_fence(memory_order o) noexcept
 {
+    random_delay();
 #if !FM_ATOMIC_MSVC
     __atomic_thread_fence((int)o);
 #else
