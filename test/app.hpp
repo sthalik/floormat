@@ -77,6 +77,7 @@ void test_random();
 void test_range_algorithms();
 void test_raycast();
 void test_raycast_line();
+void test_reverse_iterator();
 void test_rtree();
 void test_rtree_pool();
 void test_rtree_upstream();

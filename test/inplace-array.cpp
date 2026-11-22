@@ -381,37 +381,28 @@ constexpr bool test_zero_capacity()
     return true;
 }
 
-constexpr bool test_reverse_iterator()
+constexpr bool test_rbegin_rend()
 {
     using array = inplace_array<int, 5>;
     array a{2, 3, 5, 7, 11};
     const array& ca = a;
-    array::reverse_iterator r = a.rbegin();
-    fm_assert(*r == 11 && r[1] == 7 && *(r + 2) == 5 && *(2 + r) == 5 && r.base() == a.end());
-    fm_assert(a.rend() - a.rbegin() == 5 && a.rbegin() - a.rend() == -5);
-    fm_assert(*(a.rend() - 1) == 2 && (a.rend() - 1).base() == a.begin() + 1);
-    r += 3;
-    fm_assert(*r == 3);
-    r -= 2;
-    fm_assert(*r == 7);
-    fm_assert(*r++ == 7 && *r == 5 && *r-- == 5 && *r == 7);
-    fm_assert(*++r == 5 && *--r == 7);
-    *r = 13;
-    fm_assert(a[3] == 13);
-    const array::const_reverse_iterator c = r;
-    fm_assert(c == r && r == c && c < ca.rend() && ca.rbegin() < c && c > ca.crbegin() && c <= r && c >= r);
-    fm_assert(std::is_eq(c <=> r) && std::is_lt(ca.rbegin() <=> c) && ca.crend() - c == 4);
-    fm_assert(array::reverse_iterator{} == array::reverse_iterator{});
+    fm_assert(a.rbegin().base() == a.end() && a.rend().base() == a.begin());
+    fm_assert(ca.rbegin().base() == ca.end() && ca.rend().base() == ca.begin());
+    fm_assert(ca.crbegin() == a.rbegin() && ca.crend() == a.rend() && a.rend() - a.rbegin() == 5);
+    fm_assert(*a.rbegin() == 11 && *(a.rend() - 1) == 2);
+    *a.rbegin() = 13;
+    fm_assert(a.back() == 13);
     const inplace_array<triple, 2> t{triple{2}, triple{3}};
     fm_assert(t.rbegin()->c == 15 && (t.rbegin() + 1)->b == 6);
     return true;
 }
 
-static_assert(std::is_convertible_v<inplace_array<int, 5>::reverse_iterator, inplace_array<int, 5>::const_reverse_iterator>);
-static_assert(!std::is_convertible_v<inplace_array<int, 5>::const_reverse_iterator, inplace_array<int, 5>::reverse_iterator>);
-static_assert(std::is_trivially_copyable_v<inplace_array<int, 5>::reverse_iterator>);
+static_assert(std::is_same_v<inplace_array<int, 5>::reverse_iterator, reverse_iterator<int*>>);
+static_assert(std::is_same_v<inplace_array<int, 5>::const_reverse_iterator, reverse_iterator<const int*>>);
+static_assert(std::is_same_v<inplace_array<int, 0>::reverse_iterator, reverse_iterator<int*>>);
+static_assert(std::is_same_v<inplace_array<int, 0>::const_reverse_iterator, reverse_iterator<const int*>>);
 
-static_assert(test_reverse_iterator());
+static_assert(test_rbegin_rend());
 static_assert(test_members<int>());
 static_assert(test_members<with_default_member>());
 static_assert(test_members<triple>());
@@ -511,7 +502,7 @@ void test_move_only()
 
 void Test::test_inplace_array()
 {
-    fm_assert(test_reverse_iterator());
+    fm_assert(test_rbegin_rend());
     fm_assert(test_members<int>());
     fm_assert(test_members<with_default_member>());
     fm_assert(test_members<triple>());

@@ -1,6 +1,7 @@
 #pragma once
 #include "inplace-array.hpp"
 #include "erase-if.hpp"
+#include "reverse-iterator.hpp"
 
 namespace floormat::detail::inplace_array_impl {
 
@@ -29,91 +30,6 @@ constexpr void rotate(T* first, T* middle, T* last)
         reverse(middle, last);
         reverse(first, last);
     }
-}
-
-template<typename T> constexpr reverse_iterator<T>::reverse_iterator(T* current) noexcept : _current{current} {}
-
-template<typename T>
-template<typename U> requires std::is_convertible_v<U*, T*>
-constexpr reverse_iterator<T>::reverse_iterator(const reverse_iterator<U>& other) noexcept : _current{other.base()} {}
-
-template<typename T> constexpr T* reverse_iterator<T>::base() const noexcept { return _current; }
-template<typename T> constexpr T& reverse_iterator<T>::operator*() const noexcept { return *(_current - 1); }
-template<typename T> constexpr T* reverse_iterator<T>::operator->() const noexcept { return _current - 1; }
-template<typename T> constexpr T& reverse_iterator<T>::operator[](isize n) const noexcept { return *(_current - n - 1); }
-
-template<typename T>
-constexpr reverse_iterator<T>& reverse_iterator<T>::operator++() noexcept
-{
-    --_current;
-    return *this;
-}
-
-template<typename T>
-constexpr reverse_iterator<T> reverse_iterator<T>::operator++(int) noexcept
-{
-    reverse_iterator previous = *this;
-    --_current;
-    return previous;
-}
-
-template<typename T>
-constexpr reverse_iterator<T>& reverse_iterator<T>::operator--() noexcept
-{
-    ++_current;
-    return *this;
-}
-
-template<typename T>
-constexpr reverse_iterator<T> reverse_iterator<T>::operator--(int) noexcept
-{
-    reverse_iterator previous = *this;
-    ++_current;
-    return previous;
-}
-
-template<typename T>
-constexpr reverse_iterator<T>& reverse_iterator<T>::operator+=(isize n) noexcept
-{
-    _current -= n;
-    return *this;
-}
-
-template<typename T>
-constexpr reverse_iterator<T>& reverse_iterator<T>::operator-=(isize n) noexcept
-{
-    _current += n;
-    return *this;
-}
-
-template<typename T> constexpr reverse_iterator<T> reverse_iterator<T>::operator+(isize n) const noexcept { return reverse_iterator{_current - n}; }
-template<typename T> constexpr reverse_iterator<T> reverse_iterator<T>::operator-(isize n) const noexcept { return reverse_iterator{_current + n}; }
-
-template<typename T>
-template<typename U>
-constexpr isize reverse_iterator<T>::operator-(const reverse_iterator<U>& other) const noexcept
-{
-    return other.base() - _current;
-}
-
-template<typename T>
-template<typename U>
-constexpr bool reverse_iterator<T>::operator==(const reverse_iterator<U>& other) const noexcept
-{
-    return _current == other.base();
-}
-
-template<typename T>
-template<typename U>
-constexpr std::strong_ordering reverse_iterator<T>::operator<=>(const reverse_iterator<U>& other) const noexcept
-{
-    return other.base() <=> _current;
-}
-
-template<typename T>
-constexpr reverse_iterator<T> operator+(isize n, const reverse_iterator<T>& it) noexcept
-{
-    return it + n;
 }
 
 } // namespace floormat::detail::inplace_array_impl

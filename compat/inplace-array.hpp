@@ -51,44 +51,11 @@ union storage
     constexpr ~storage();
 };
 
-template<typename T>
-class reverse_iterator
-{
-    T* _current = nullptr;
-
-public:
-    using value_type = std::remove_cv_t<T>;
-    using difference_type = isize;
-    using pointer = T*;
-    using reference = T&;
-
-    reverse_iterator() noexcept = default;
-    constexpr explicit reverse_iterator(T* current) noexcept;
-    template<typename U> requires std::is_convertible_v<U*, T*>
-    constexpr reverse_iterator(const reverse_iterator<U>& other) noexcept;
-
-    constexpr T* base() const noexcept;
-    constexpr T& operator*() const noexcept;
-    constexpr T* operator->() const noexcept;
-    constexpr T& operator[](isize n) const noexcept;
-    constexpr reverse_iterator& operator++() noexcept;
-    constexpr reverse_iterator operator++(int) noexcept;
-    constexpr reverse_iterator& operator--() noexcept;
-    constexpr reverse_iterator operator--(int) noexcept;
-    constexpr reverse_iterator& operator+=(isize n) noexcept;
-    constexpr reverse_iterator& operator-=(isize n) noexcept;
-    constexpr reverse_iterator operator+(isize n) const noexcept;
-    constexpr reverse_iterator operator-(isize n) const noexcept;
-    template<typename U> constexpr isize operator-(const reverse_iterator<U>& other) const noexcept;
-    template<typename U> constexpr bool operator==(const reverse_iterator<U>& other) const noexcept;
-    template<typename U> constexpr std::strong_ordering operator<=>(const reverse_iterator<U>& other) const noexcept;
-};
-
-template<typename T> constexpr reverse_iterator<T> operator+(isize n, const reverse_iterator<T>& it) noexcept;
-
 } // namespace floormat::detail::inplace_array_impl
 
 namespace floormat {
+
+template<typename I> class reverse_iterator;
 
 template<typename T, usize N>
 class inplace_array
@@ -114,8 +81,8 @@ public:
     using const_pointer = const T*;
     using iterator = T*;
     using const_iterator = const T*;
-    using reverse_iterator = detail::inplace_array_impl::reverse_iterator<T>;
-    using const_reverse_iterator = detail::inplace_array_impl::reverse_iterator<const T>;
+    using reverse_iterator = floormat::reverse_iterator<T*>;
+    using const_reverse_iterator = floormat::reverse_iterator<const T*>;
 
     inplace_array() noexcept = default;
     constexpr explicit inplace_array(u32 count);
@@ -228,8 +195,8 @@ public:
     using const_pointer = const T*;
     using iterator = T*;
     using const_iterator = const T*;
-    using reverse_iterator = detail::inplace_array_impl::reverse_iterator<T>;
-    using const_reverse_iterator = detail::inplace_array_impl::reverse_iterator<const T>;
+    using reverse_iterator = floormat::reverse_iterator<T*>;
+    using const_reverse_iterator = floormat::reverse_iterator<const T*>;
 
     inplace_array() noexcept = default;
     constexpr explicit inplace_array(u32 count);
