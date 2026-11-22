@@ -1,6 +1,7 @@
 #pragma once
 #include "function-view-fwd.hpp"
 #include "common-function.hpp"
+#include "invoke.hpp"
 #include "assert.hpp"
 #include "defs.hpp"
 #include "move.hpp"
@@ -24,9 +25,9 @@ struct invoker
     {
         T& f = *static_cast<T*>(const_cast<void*>(e.obj));
         if constexpr (std::is_void_v<R>)
-            return static_cast<void>(common_function_impl::invoke_target(f, forward<Args>(args)...));
+            return static_cast<void>(invoke(f, forward<Args>(args)...));
         else
-            return common_function_impl::invoke_target(f, forward<Args>(args)...);
+            return invoke(f, forward<Args>(args)...);
     }
 
     static constexpr R invoke_function(entity e, Args... args) noexcept(Noexcept) { return e.fn(forward<Args>(args)...); }
