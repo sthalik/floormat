@@ -30,7 +30,7 @@ fm_install_executable(${self})
 add_executable(${self}-atomic EXCLUDE_FROM_ALL
     atomic/main.cpp atomic.cpp atomic-wait.cpp chase-lev-deque.cpp event-count.cpp
     ../compat/atomic.cpp ../compat/atomic-wait.cpp ../compat/atomic-wrapper.cpp ../compat/atomic-flag-wrapper.cpp
-    ../compat/valgrind.cpp
+    ../compat/valgrind.cpp ../compat/abort-behavior.cpp
 )
 target_include_directories(${self}-atomic SYSTEM PRIVATE
     $<TARGET_PROPERTY:Corrade::Utility,INTERFACE_INCLUDE_DIRECTORIES>
