@@ -48,6 +48,7 @@ void test_enumerate();
 void test_entity();
 void test_erase_if();
 void test_event_count();
+void test_thread_pool();
 void test_filter();
 void test_format();
 void test_fps();

@@ -63,4 +63,5 @@ int main()
     run("chase_lev_deque", floormat::Test::test_chase_lev_deque);
     run("event_count", floormat::Test::test_event_count);
     run("slab_allocator_threads", floormat::Test::test_slab_allocator_threads);
+    run("thread_pool", floormat::Test::test_thread_pool);
 }
