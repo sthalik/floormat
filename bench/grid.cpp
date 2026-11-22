@@ -241,7 +241,7 @@ void Cover_Horizontal(benchmark::State& state)
 BENCHMARK(Cover_Horizontal)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
 
 // The 24 non-octilinear octants.
-void Cover_Stepped(benchmark::State& state)
+void Cover_Non_Aligned(benchmark::State& state)
 {
     auto w = world();
     make_cover_world(w);
@@ -262,7 +262,7 @@ void Cover_Stepped(benchmark::State& state)
     }
 }
 
-BENCHMARK(Cover_Stepped)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
+BENCHMARK(Cover_Non_Aligned)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
 
 constexpr auto cover_body = Vector2ui{24, 24};
 
