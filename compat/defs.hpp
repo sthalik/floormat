@@ -66,8 +66,12 @@
 #define fm_no_unique_address no_unique_address
 #endif
 
-#if __has_cpp_attribute(clang::lifetimebound)
+#if __has_cpp_attribute(lifetimebound)
+#define fm_lifetimebound lifetimebound
+#elif __has_cpp_attribute(clang::lifetimebound)
 #define fm_lifetimebound clang::lifetimebound
+#elif __has_cpp_attribute(msvc::lifetimebound)
+#define fm_lifetimebound msvc::lifetimebound
 #else
 #define fm_lifetimebound
 #endif
