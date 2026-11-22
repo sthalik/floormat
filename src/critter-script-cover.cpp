@@ -155,6 +155,9 @@ private:
     bool needs_canonical_reach_test = false;
     // True while search runs for C in state::hidden, started by search_while_hidden().
     bool is_searching_while_hidden = false;
+    // False from a search while hidden that found no cover until a search finds some. Searches take no fallback
+    // meanwhile, so C doesn't walk back to the in_reach cover it left.
+    bool is_fallback_cover_allowed = true;
     // Px the threat moved between C's LOS checks in state::hidden since C took its cover or last searched there.
     u32 threat_dist_moved_while_hidden = 0;
 };
@@ -381,7 +384,7 @@ void cover_script::set_options(critter& C, const Cover::Script::options& o)
                               o.needs_peek == old.needs_peek && o.last_resort == old.last_resort;
     if (!same_results && search.is_running() &&
         (st == state::search || st == state::find_retreat || st == state::retreat))
-        search.begin(search_origin(C), threat_pos);
+        search.begin(search_origin(C), threat_pos, is_fallback_cover_allowed);
     if (o.hold == old.hold)
         return;
     const auto hiding = st == state::hidden || st == state::to_cover;
@@ -451,7 +454,7 @@ bool cover_script::start_search(critter& C, search_then next)
     search_retreated = false;
     is_searching_while_hidden = false;
     path_to_found_cover = {};
-    search.begin(C.position(), threat_pos);
+    search.begin(C.position(), threat_pos, is_fallback_cover_allowed);
     return true;
 }
 
@@ -564,6 +567,7 @@ void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachabl
     cover = Cover::Script::cover{.pos = reachable.end, .canonical = reachable.spot.pos,
                                  .axis = reachable.spot.axis, .peek = {}};
     is_canonical_hidden_from_reach = reachable.is_hidden_from_reach;
+    is_fallback_cover_allowed = true;
     needs_canonical_reach_test = false;
     threat_dist_moved_while_hidden = 0;
     auto& c = *cover;
@@ -918,7 +922,7 @@ void cover_script::check_reach(critter& C)
 }
 
 // At a cover that a reach_positions() point saw when the search found it, C searches again each time the threat
-// moved threat_reach px, and moves only to cover hidden from every such point.
+// moved threat_reach px. C moves to cover hidden from every such point, or retreats when there is none.
 void cover_script::search_while_hidden(critter& C)
 {
     if (!is_searching_while_hidden && !options.search_every_move && options.threat_reach &&
@@ -944,6 +948,8 @@ void cover_script::search_while_hidden(critter& C)
             {
                 search.end();
                 tests.counters.num_searches++;
+                is_fallback_cover_allowed = false;
+                begin_retreat(C);
             }
         }
     }
