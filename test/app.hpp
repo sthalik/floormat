@@ -71,7 +71,6 @@ void test_math();
 void test_multi_level_table();
 void test_pairwise();
 void test_passability_bbox();
-void test_path();
 void test_pool_registry();
 void test_random();
 void test_range_algorithms();

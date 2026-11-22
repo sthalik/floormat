@@ -1,7 +1,8 @@
 #include "impl.hpp"
 #include "compat/assert.hpp"
 #include "compat/debug.hpp"
-#include "compat/path.hpp"
+#include <cr/Optional.h>
+#include <cr/Path.h>
 #include <cr/String.h>
 #ifdef _WIN32
 #include <cr/Array.h>
@@ -20,17 +21,10 @@ namespace Unicode = Corrade::Utility::Unicode;
 bool loader_impl::chdir(StringView pathname)
 {
     fm_assert(pathname.flags() & StringViewFlag::NullTerminated);
-    int ret;
 #ifdef _WIN32
-    const auto wide = Unicode::widen(pathname);
-    // MAX_PATH is 260 with the null terminator, which widen()'s size leaves out. _wchdir accepts
-    // '/' after the "//?/" prefix and stores the cwd with '\'.
-    if (wide.size() < 260)
-        ret = ::_wchdir(wide.data());
-    else
-        ret = ::_wchdir(Unicode::widen(extended_length_path(pathname)).data());
+    const int ret = ::_wchdir(Unicode::widen(pathname).data());
 #else
-    ret = ::chdir(pathname.data());
+    const int ret = ::chdir(pathname.data());
 #endif
     if (ret)
     {
@@ -52,19 +46,16 @@ void loader_impl::set_application_working_directory()
     if (once)
         return;
     once = true;
-    if (auto loc = current_directory(); !loc.isEmpty())
-        original_working_directory = move(loc);
+    if (auto loc = Path::currentDirectory())
+        original_working_directory = move(*loc);
     else
     {
         ERR << "can't get original working directory";
         original_working_directory = "."_s;
     }
-    if (const auto loc = executable_location(); !loc.isEmpty())
+    if (const auto loc = Path::executableLocation())
     {
-        StringView p = loc;
-        p = split_pathname(p).first();
-        p = split_pathname(p).first();
-        const String path = p;
+        const String path = Path::path(Path::path(*loc));
         chdir(path) &&
         chdir("share/floormat"_s);
     }

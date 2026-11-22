@@ -2,7 +2,6 @@
 #include "compat/assert.hpp"
 #include "compat/sysexits.hpp"
 #include "compat/fix-argv0.hpp"
-#include "compat/path.hpp"
 #include "compat/format.hpp"
 #include "compat/debug.hpp"
 #include "compat/enumerate.hpp"
@@ -327,16 +326,6 @@ bool do_input_file(state& st)
     return true;
 }
 
-inline String fixsep(String str)
-{
-#ifdef _WIN32
-    for (char& c : str)
-        if (c == '\\')
-            c = '/';
-#endif
-    return str;
-}
-
 struct argument_tuple
 {
     options opts{};
@@ -352,10 +341,10 @@ argument_tuple parse_cmdline(int argc, const char* const* argv) noexcept
     args.parse(argc, argv);
     options opts;
 
-    opts.input_file = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("input.json")));
-    opts.input_dir = split_pathname(opts.input_file).first();
+    opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input.json"));
+    opts.input_dir = Path::path(opts.input_file);
     if (auto val = args.value<StringView>("output"); val != "\0"_s)
-        opts.output_dir = Path::join(loader.startup_directory(), fixsep(args.value<StringView>("output")));
+        opts.output_dir = Path::join(loader.startup_directory(), val);
     else
         opts.output_dir = opts.input_dir;
 
