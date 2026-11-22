@@ -27,7 +27,7 @@ struct base_fields
     constexpr void set_qux(int value) noexcept { _qux = value; }
 };
 
-struct WidenedAccessors : base_fields
+struct MemberPointerAccessors : base_fields
 {
     int _bar = 0;
     const int _fixed = 5;
@@ -208,7 +208,7 @@ void test_predicate()
 
 constexpr bool test_member_pointer_kinds()
 {
-    using W = WidenedAccessors;
+    using W = MemberPointerAccessors;
     using entity = Entity<W>;
     static_assert(FieldReader<decltype(&W::bar_ref), W, int>);
     static_assert(FieldReader<int base_fields::*, W, int>);
