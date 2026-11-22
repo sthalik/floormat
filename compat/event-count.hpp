@@ -1,4 +1,5 @@
 #pragma once
+#include "assert.hpp"
 #include "atomic.hpp"
 #include "defs.hpp"
 
@@ -34,21 +35,30 @@ public:
     [[nodiscard]] u32 prepare_wait() noexcept
     {
         atomic_fetch_add(&_waiters, 1u, memory_order::relaxed);
+        // Pairs with the fence in notify().
         atomic_thread_fence(memory_order::seq_cst);
+        // The load is acquire because a waiter that reads the epoch a notify() call stored must also see
+        // the change made before that call. With a relaxed load, GenMC finds a lost wake-up under RC11.
         return atomic_load(&_epoch, memory_order::acquire);
     }
 
     void cancel_wait() noexcept
     {
-        atomic_fetch_sub(&_waiters, 1u, memory_order::relaxed);
+        u32 old_waiter_count = atomic_fetch_sub(&_waiters, 1u, memory_order::relaxed);
+        (void)old_waiter_count;
+        fm_debug3_assert(old_waiter_count != 0);
     }
 
     void commit_wait(u32 key) noexcept
     {
         atomic_wait(&_epoch, key, memory_order::acquire);
-        atomic_fetch_sub(&_waiters, 1u, memory_order::relaxed);
+        u32 old_waiter_count = atomic_fetch_sub(&_waiters, 1u, memory_order::relaxed);
+        (void)old_waiter_count;
+        fm_debug3_assert(old_waiter_count != 0);
     }
 
+    // Every waiter must wait for the same condition. Otherwise the one woken may find its own condition
+    // false and sleep again, while the waiter whose condition became true stays asleep.
     void notify_one() noexcept { notify(false); }
     void notify_all() noexcept { notify(true); }
 };
