@@ -8,7 +8,7 @@ string(CONCAT _release
        " -fipa-pta -fipa-icf -fipa-ra -fdevirtualize-speculatively -fno-semantic-interposition"
        " -funroll-loops -fvariable-expansion-in-unroller -favoid-store-forwarding -ftracer"
        " -floop-nest-optimize -fprefetch-loop-arrays -fira-loop-pressure"
-       " -ffunction-sections -fdata-sections")
+       " -ffunction-sections")
 sets(STRING
      CMAKE_C_FLAGS ""
      CMAKE_C_FLAGS_DEBUG "-Og -ggdb -fstack-protector-all" # fstack-reuse=none
