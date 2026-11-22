@@ -213,21 +213,22 @@ constexpr auto passable_row_bits = [] {
     return ret;
 }();
 
-// Returns how many cells of a row are passable from bit first_bit of pass_bits, the way sx points, up to the
-// first blocked one, and at most max_cells.
-u32 passable_run_length(const usize* pass_bits, u32 first_bit, i32 sx, u32 max_cells)
+// Returns how many cells of a row are passable from bit first_bit of pass_bits, the way cell_offset.x() points,
+// up to the first blocked one, and at most max_cells.
+u32 passable_run_length(const usize* pass_bits, u32 first_bit, Vector2i cell_offset, u32 max_cells)
 {
     constexpr u32 word_bits = sizeof(usize)*8;
     u32 n = 0;
     while (n < max_cells)
     {
-        const u32 bit = sx > 0 ? first_bit + n : first_bit - n, shift = bit % word_bits;
+        const u32 bit = cell_offset.x() > 0 ? first_bit + n : first_bit - n, shift = bit % word_bits;
         const usize word = pass_bits[bit / word_bits];
         // the zeros shifted in become ones, which end the count at the word's edge
-        const u32 run_length = sx > 0 ? (u32)std::countr_zero((usize)~(word >> shift))
-                                      : (u32)std::countl_zero((usize)~(word << (word_bits - 1 - shift)));
+        const u32 run_length = cell_offset.x() > 0
+                               ? (u32)std::countr_zero((usize)~(word >> shift))
+                               : (u32)std::countl_zero((usize)~(word << (word_bits - 1 - shift)));
         n += run_length;
-        if (run_length < (sx > 0 ? word_bits - shift : shift + 1))
+        if (run_length < (cell_offset.x() > 0 ? word_bits - shift : shift + 1))
             break;
     }
     return Math::min(n, max_cells);
@@ -284,7 +285,7 @@ struct CoverGrid : GridBase
     // pass_bits[iy*2 + ix] is the chunk at (ix, iy) times the signs of the octant's cell offset.
     template<typename T> void fill_octilinear_octant(u32 k, const std::array<chunk_pass_bits, 4>& pass_bits,
                                                      u32 num_neighbor_columns, u32 num_neighbor_rows,
-                                                     i32 sx, i32 sy, float step_px);
+                                                     Vector2i cell_offset, float step_px);
     template<typename T> void fill_non_octilinear_octant(u32 k, const std::array<chunk_pass_bits, 4>& pass_bits,
                                                          u32 num_neighbor_columns, u32 num_neighbor_rows);
     bool fill_next_unfilled_octant(chunk& self);
@@ -358,7 +359,7 @@ void store_rounded_distances(T* out, V px, M passable, u32 div_size)
 // unless T is void, their rounded distances into out. A nonzero DivSize makes them a chunk's own row.
 template<u32 DivSize, typename T>
 void compute_row_vectorized(u16* __restrict row, T* __restrict out, const usize* __restrict pass_bits,
-                            u32 first_bit, isize first_cell, u32 cell_count, i32 sx, u32 step,
+                            u32 first_bit, isize first_cell, u32 cell_count, Vector2i cell_offset, u32 step,
                             [[maybe_unused]] u32 runtime_div_size)
 {
     namespace hn = hwy::HWY_NAMESPACE;
@@ -381,12 +382,12 @@ void compute_row_vectorized(u16* __restrict row, T* __restrict out, const usize*
     }
 
     const auto vstep = hn::Set(d, (u16)step);
-    const auto dx = sx < 0 ? 0u - N : N;
-    // Going the way sx points reads row[x + sx] before this row overwrites it.
-    for (u32 b = 0, x = sx < 0 ? cell_count - N : 0; b < cell_count; b += N, x += dx)
+    const auto dx = cell_offset.x() < 0 ? 0u - N : N;
+    // Going the way cell_offset points reads row[x + cell_offset.x()] before this row overwrites it.
+    for (u32 b = 0, x = cell_offset.x() < 0 ? cell_count - N : 0; b < cell_count; b += N, x += dx)
     {
         u16* const cells = row + (first_cell + (isize)x);
-        const auto next = hn::SaturatedAdd(hn::LoadU(d, cells + sx), vstep);
+        const auto next = hn::SaturatedAdd(hn::LoadU(d, cells + cell_offset.x()), vstep);
         const auto passable = pass_mask(d, pass_bits, first_bit + x);
         const auto px = hn::IfThenElseZero(passable, next);
         hn::StoreU(px, d, cells);
@@ -397,35 +398,37 @@ void compute_row_vectorized(u16* __restrict row, T* __restrict out, const usize*
 
 // Computes the chunk's own row of an octilinear octant in place, and its rounded distances into out.
 template<typename T>
-void compute_row(u16* row, T* out, const usize* pass_bits, u32 first_bit, i32 sx, u32 step, u32 div_size)
+void compute_row(u16* row, T* out, const usize* pass_bits, u32 first_bit, Vector2i cell_offset, u32 step,
+                 u32 div_size)
 {
     static_assert(chunk_size_xy / 4 >= UINT8_MAX && chunk_size_xy / 8 < UINT8_MAX,
                   "u8 grids start at div_size 8");
     const u32 dc = chunk_size_xy / div_size;
+    const auto s = cell_offset;
     if constexpr (sizeof(T) == 2)
         switch (div_size)
         {
-        case 1:  return compute_row_vectorized<1, T>(row, out, pass_bits, first_bit, 0, dc, sx, step, div_size);
-        case 2:  return compute_row_vectorized<2, T>(row, out, pass_bits, first_bit, 0, dc, sx, step, div_size);
-        case 4:  return compute_row_vectorized<4, T>(row, out, pass_bits, first_bit, 0, dc, sx, step, div_size);
-        default: return compute_row_vectorized<0, T>(row, out, pass_bits, first_bit, 0, dc, sx, step, div_size);
+        case 1:  return compute_row_vectorized<1, T>(row, out, pass_bits, first_bit, 0, dc, s, step, div_size);
+        case 2:  return compute_row_vectorized<2, T>(row, out, pass_bits, first_bit, 0, dc, s, step, div_size);
+        case 4:  return compute_row_vectorized<4, T>(row, out, pass_bits, first_bit, 0, dc, s, step, div_size);
+        default: return compute_row_vectorized<0, T>(row, out, pass_bits, first_bit, 0, dc, s, step, div_size);
         }
     else
         switch (div_size)
         {
-        case 8:  return compute_row_vectorized<8, T>(row, out, pass_bits, first_bit, 0, dc, sx, step, div_size);
-        case 16: return compute_row_vectorized<16, T>(row, out, pass_bits, first_bit, 0, dc, sx, step, div_size);
-        case 32: return compute_row_vectorized<32, T>(row, out, pass_bits, first_bit, 0, dc, sx, step, div_size);
-        case 64: return compute_row_vectorized<64, T>(row, out, pass_bits, first_bit, 0, dc, sx, step, div_size);
-        default: return compute_row_vectorized<0, T>(row, out, pass_bits, first_bit, 0, dc, sx, step, div_size);
+        case 8:  return compute_row_vectorized<8, T>(row, out, pass_bits, first_bit, 0, dc, s, step, div_size);
+        case 16: return compute_row_vectorized<16, T>(row, out, pass_bits, first_bit, 0, dc, s, step, div_size);
+        case 32: return compute_row_vectorized<32, T>(row, out, pass_bits, first_bit, 0, dc, s, step, div_size);
+        case 64: return compute_row_vectorized<64, T>(row, out, pass_bits, first_bit, 0, dc, s, step, div_size);
+        default: return compute_row_vectorized<0, T>(row, out, pass_bits, first_bit, 0, dc, s, step, div_size);
         }
 }
 
-// Stores how many cells lie from each cell of a row to the first blocked cell the way sx points, at most dc.
-// num_passable_cells_along_sx counts from the cell that follows the row to the first blocked one.
+// Stores how many cells lie from each cell of a row to the first blocked cell the way cell_offset points, at
+// most dc. num_cells_between_border_and_blocked_cell counts cells of the chunk cell_offset points at.
 template<typename T>
 void compute_horizontal_octant_row(T* __restrict out, const usize* __restrict pass_bits, u32 first_bit, u32 dc,
-                                   i32 sx, u32 num_passable_cells_along_sx)
+                                   Vector2i cell_offset, u32 num_cells_between_border_and_blocked_cell)
 {
     namespace hn = hwy::HWY_NAMESPACE;
     constexpr DU16 d;
@@ -433,23 +436,25 @@ void compute_horizontal_octant_row(T* __restrict out, const usize* __restrict pa
     const auto N = (u32)hn::Lanes(d);
     fm_debug3_assert(dc % N == 0);
 
-    // A position counts cells against sx. The cell that follows a vector's cells the way sx points is at dc, so
-    // every position that matters is above 0, which stands for no blocked cell.
+    // A position counts cells against cell_offset. The cell that follows a vector's cells the way cell_offset
+    // points is at dc, so every position that matters is above 0, which stands for no blocked cell.
     const auto lane = hn::Iota(d, 0);
-    const auto lane_positions = hn::Add(sx > 0 ? hn::Sub(hn::Set(d, (u16)(N - 1)), lane) : lane,
+    const auto lane_positions = hn::Add(cell_offset.x() > 0 ? hn::Sub(hn::Set(d, (u16)(N - 1)), lane) : lane,
                                         hn::Set(d, (u16)(dc + 1)));
-    const auto dx = sx > 0 ? 0u - N : N;
-    for (u32 b = 0, x = sx > 0 ? dc - N : 0; b < dc; b += N, x += dx)
+    const auto dx = cell_offset.x() > 0 ? 0u - N : N;
+    u32 num_cells_between_vector_and_blocked_cell = num_cells_between_border_and_blocked_cell;
+    for (u32 b = 0, x = cell_offset.x() > 0 ? dc - N : 0; b < dc; b += N, x += dx)
     {
         const auto passable = pass_mask(d, pass_bits, first_bit + x);
         auto nearest_blocked_position = hn::IfThenZeroElse(passable, lane_positions);
-        // Each lane takes the maximum over the lanes following it the way sx points, twice as many per pass.
+        // Each lane takes the maximum over the lanes past it along cell_offset, twice as many per pass.
         for (u32 n = 1; n < N; n *= 2)
-            nearest_blocked_position = hn::Max(nearest_blocked_position,
-                                               sx > 0 ? hn::SlideDownLanes(d, nearest_blocked_position, n)
-                                                      : hn::SlideUpLanes(d, nearest_blocked_position, n));
-        nearest_blocked_position = hn::Max(nearest_blocked_position,
-                                           hn::Set(d, (u16)(dc - Math::min(num_passable_cells_along_sx, dc - 1))));
+            nearest_blocked_position = hn::Max(
+                nearest_blocked_position, cell_offset.x() > 0 ? hn::SlideDownLanes(d, nearest_blocked_position, n)
+                                                              : hn::SlideUpLanes(d, nearest_blocked_position, n));
+        nearest_blocked_position =
+            hn::Max(nearest_blocked_position,
+                    hn::Set(d, (u16)(dc - Math::min(num_cells_between_vector_and_blocked_cell, dc - 1))));
         const auto cells = hn::Min(hn::Sub(lane_positions, nearest_blocked_position), hn::Set(d, (u16)dc));
         const auto units = hn::IfThenElse(passable, cells, hn::Set(d, (u16)(T)-1));
         if constexpr (sizeof(T) == 1)
@@ -457,8 +462,10 @@ void compute_horizontal_octant_row(T* __restrict out, const usize* __restrict pa
         else
             hn::StoreU(units, d, out + x);
 
-        const auto run_length = passable_run_length(pass_bits, first_bit + (sx > 0 ? x : x + N - 1), sx, N);
-        num_passable_cells_along_sx = run_length < N ? run_length : num_passable_cells_along_sx + N;
+        const auto run_length =
+            passable_run_length(pass_bits, first_bit + (cell_offset.x() > 0 ? x : x + N - 1), cell_offset, N);
+        num_cells_between_vector_and_blocked_cell =
+            run_length < N ? run_length : num_cells_between_vector_and_blocked_cell + N;
     }
 }
 
@@ -506,28 +513,29 @@ void compute_non_octilinear_row(const u16* __restrict next, u16* __restrict cur,
 // UINT16_MAX, which rounds to dc.
 template<typename T>
 void fill_octilinear_octant(CoverGrid& g, u32 k, const std::array<chunk_pass_bits, 4>& pass_bits,
-                            u32 num_neighbor_columns, u32 num_neighbor_rows, i32 sx, i32 sy, float step_px)
+                            u32 num_neighbor_columns, u32 num_neighbor_rows, Vector2i cell_offset, float step_px)
 {
     const u32 div_size = g.params.div_size, dc = chunk_size_xy / div_size;
     T* const plane = g.octant_plane<T>(k);
 
-    if (sy == 0)
+    if (cell_offset.y() == 0)
     {
         const usize* const own_bits = pass_bits[0].data;
         const auto& neighbor_bits = pass_bits[1];
         // The offset is exactly one cell, so the plane holds cell counts, and rows are independent.
         for (u32 y = 0; y < dc; y++)
         {
-            u32 num_passable_cells_along_sx = dc;
+            u32 num_cells_between_border_and_blocked_cell = dc;
             if (num_neighbor_columns)
             {
-                const auto first_bit = y*neighbor_bits.row_stride + (sx > 0 ? 0 : dc - 1);
+                const auto first_bit = y*neighbor_bits.row_stride + (cell_offset.x() > 0 ? 0 : dc - 1);
                 const auto run_length =
-                    passable_run_length(neighbor_bits.data, first_bit, sx, num_neighbor_columns);
+                    passable_run_length(neighbor_bits.data, first_bit, cell_offset, num_neighbor_columns);
                 if (run_length < num_neighbor_columns)
-                    num_passable_cells_along_sx = run_length;
+                    num_cells_between_border_and_blocked_cell = run_length;
             }
-            compute_horizontal_octant_row(plane + y*dc, own_bits, y*dc, dc, sx, num_passable_cells_along_sx);
+            compute_horizontal_octant_row(plane + y*dc, own_bits, y*dc, dc, cell_offset,
+                                          num_cells_between_border_and_blocked_cell);
         }
     }
     else
@@ -538,26 +546,26 @@ void fill_octilinear_octant(CoverGrid& g, u32 k, const std::array<chunk_pass_bit
 
         u16* const slot = g.row.data();
         std::memset(slot, 0xff, row_size(dc) * sizeof *slot);
-        u16* const row = slot + line_cells + (sx < 0 ? round_up(dc, line_cells) : 0);
-        const auto neighbor_first_cell = sx > 0 ? (isize)dc : -(isize)num_neighbor_columns;
-        const u32 neighbor_first_x = sx > 0 ? 0 : dc - num_neighbor_columns;
+        u16* const row = slot + line_cells + (cell_offset.x() < 0 ? round_up(dc, line_cells) : 0);
+        const auto neighbor_first_cell = cell_offset.x() > 0 ? (isize)dc : -(isize)num_neighbor_columns;
+        const u32 neighbor_first_x = cell_offset.x() > 0 ? 0 : dc - num_neighbor_columns;
 
         for (i32 n = -(i32)num_neighbor_rows; n < (i32)dc; n++)
         {
             const u32 iy = n < 0;
-            const auto y = (u32)((sy > 0 ? (i32)dc - 1 - n : n) + (i32)dc) % dc;
+            const auto y = (u32)((cell_offset.y() > 0 ? (i32)dc - 1 - n : n) + (i32)dc) % dc;
             const auto step = (u32)(S(n) - S(n - 1));
             const chunk_pass_bits &bits = pass_bits[iy*2], &neighbor_bits = pass_bits[iy*2 + 1];
             // The own columns' last vector reads a neighbor's cell from the row before, so they go first.
             if (n >= 0)
-                compute_row(row, plane + y*dc, bits.data, y*bits.row_stride, sx, step, div_size);
+                compute_row(row, plane + y*dc, bits.data, y*bits.row_stride, cell_offset, step, div_size);
             else
-                compute_row_vectorized<0, void>(row, nullptr, bits.data, y*bits.row_stride, 0, dc, sx, step,
-                                                div_size);
+                compute_row_vectorized<0, void>(row, nullptr, bits.data, y*bits.row_stride, 0, dc, cell_offset,
+                                                step, div_size);
             if (num_neighbor_columns)
                 compute_row_vectorized<0, void>(row, nullptr, neighbor_bits.data,
                                                 y*neighbor_bits.row_stride + neighbor_first_x, neighbor_first_cell,
-                                                num_neighbor_columns, sx, step, div_size);
+                                                num_neighbor_columns, cell_offset, step, div_size);
         }
     }
 }
@@ -659,10 +667,10 @@ CoverPool::CoverPool(Params p, Pass::Pool& pass_pool):
 template<typename T>
 void CoverGrid::fill_octilinear_octant(u32 k, const std::array<chunk_pass_bits, 4>& pass_bits,
                                        u32 num_neighbor_columns, u32 num_neighbor_rows,
-                                       i32 sx, i32 sy, float step_px)
+                                       Vector2i cell_offset, float step_px)
 {
     HWY_EXPORT_AND_DYNAMIC_DISPATCH_T(fill_octilinear_octant<T>)(*this, k, pass_bits, num_neighbor_columns,
-                                                                 num_neighbor_rows, sx, sy, step_px);
+                                                                 num_neighbor_rows, cell_offset, step_px);
 }
 
 template<typename T>
@@ -727,14 +735,13 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
     fm_debug_assert(get_cell_index(1, 1, dc) == dc + 1);
 
     const auto s = octant_steps[k];
-    const i32 sx = s.x() > 0 ? 1 : s.x() < 0 ? -1 : 0;
-    const i32 sy = s.y() > 0 ? 1 : s.y() < 0 ? -1 : 0;
+    const Vector2i cell_offset_sign = Math::sign(Vector2i{s});
     auto& w = self.world();
     const std::array<chunk*, 4> chunks = {
         &self,
-        sx ? w.at(coord + Vector2i{sx, 0}) : nullptr,
-        sy ? w.at(coord + Vector2i{0, sy}) : nullptr,
-        sx && sy ? w.at(coord + Vector2i{sx, sy}) : nullptr,
+        s.x() ? w.at(coord + Vector2i{cell_offset_sign.x(), 0}) : nullptr,
+        s.y() ? w.at(coord + Vector2i{0, cell_offset_sign.y()}) : nullptr,
+        s.x() && s.y() ? w.at(coord + cell_offset_sign) : nullptr,
     };
     for (auto* ch : chunks)
         if (ch)
@@ -767,11 +774,13 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
     if (is_octilinear(s))
     {
         const auto dir = direction_for_octant(k);
-        const auto step_px = (float)div_size / (sx ? Math::abs(dir.x()) : Math::abs(dir.y()));
+        const auto step_px = (float)div_size / (s.x() ? Math::abs(dir.x()) : Math::abs(dir.y()));
         if (narrow)
-            fill_octilinear_octant<u8>(k, pass_bits, num_neighbor_columns, num_neighbor_rows, sx, sy, step_px);
+            fill_octilinear_octant<u8>(k, pass_bits, num_neighbor_columns, num_neighbor_rows,
+                                       Vector2i{s}, step_px);
         else
-            fill_octilinear_octant<u16>(k, pass_bits, num_neighbor_columns, num_neighbor_rows, sx, sy, step_px);
+            fill_octilinear_octant<u16>(k, pass_bits, num_neighbor_columns, num_neighbor_rows,
+                                        Vector2i{s}, step_px);
     }
     else if (narrow)
         fill_non_octilinear_octant<u8>(k, pass_bits, num_neighbor_columns, num_neighbor_rows);
