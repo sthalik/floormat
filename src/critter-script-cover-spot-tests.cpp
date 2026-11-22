@@ -145,10 +145,22 @@ bool spot_tests::has_hidden_position_nearby(critter& c, const Cover::Script::opt
 bool spot_tests::is_seen_on_path(critter& c, const Cover::Script::options& o, point threat,
                                  const path_search_result& path)
 {
+    return is_seen_on_path_impl(c, o, threat, path, false);
+}
+
+bool spot_tests::is_seen_anywhere_on_path(critter& c, const Cover::Script::options& o, point threat,
+                                          const path_search_result& path)
+{
+    return is_seen_on_path_impl(c, o, threat, path, true);
+}
+
+bool spot_tests::is_seen_on_path_impl(critter& c, const Cover::Script::options& o, point threat,
+                                      const path_search_result& path, bool is_seen_at_start_counted)
+{
     auto& w = c.world();
     const auto threat_positions = threat_lattice(c, o, threat);
     const auto body = Vector2ui(c.bbox_size);
-    bool hidden_before = false, seen_past_start = false;
+    bool hidden_before = is_seen_at_start_counted, seen_past_start = false;
     const auto is_seen_after_hidden = [&](point pos, float walked) {
         for (const auto& t : threat_positions)
         {

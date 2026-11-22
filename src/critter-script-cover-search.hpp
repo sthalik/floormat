@@ -70,7 +70,9 @@ public:
     static constexpr u32 radius = 2*chunk_size_xy;
 
     cover_search();
-    void begin(point from, point threat);
+    // Without is_fallback_allowed, the search ends with cover hidden from reach that the threat sees nowhere on
+    // its path, or with none.
+    void begin(point from, point threat, bool is_fallback_allowed = true);
     // Keeps the counts of failed Dijkstra calls and the spots no path reaches with critters let through, so those
     // stay skipped as the npc walks. A restart from tile 0 tries again the spots only critters may have blocked.
     void restart(point from, point threat);
@@ -139,6 +141,7 @@ private:
     u32 _num_failed_dijkstra_calls = 0;
     // Unlike _num_failed_dijkstra_calls, it doesn't count reruns.
     u32 _num_failed_dijkstra_calls_for_fallback = 0;
+    bool _is_fallback_allowed = true;
     // world::pass_gen() at the last tick(), or 0 before the first after begin().
     u64 _pass_gen_at_last_tick = 0;
     std::array<u16, Grid::Cover::octant_count> _octant_tiles{};

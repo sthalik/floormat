@@ -110,6 +110,7 @@ private:
     bool check_retreat(critter& C);
     bool is_remaining_path_unblocked_without_critters(critter& C);
     void check_reach(critter& C);
+    void search_while_hidden(critter& C);
     void handle_blocked_walk(critter& C);
     void peek_again(critter& C);
     void step_out(const bptr<critter>& C);
@@ -152,6 +153,10 @@ private:
     bool is_canonical_hidden_from_reach = false;
     // True when a reach_positions() point saw C where it hides, and check_reach hasn't finished testing canonical.
     bool needs_canonical_reach_test = false;
+    // True while search runs for C in state::hidden, started by search_while_hidden().
+    bool is_searching_while_hidden = false;
+    // Px the threat moved between C's LOS checks in state::hidden since C took its cover or last searched there.
+    u32 threat_dist_moved_while_hidden = 0;
 };
 
 StringView cover_script::name() const { return "cover"_s; }
@@ -308,6 +313,17 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
                 }
             }
         }
+        if (is_searching_while_hidden && st != state::hidden)
+        {
+            search.end();
+            is_searching_while_hidden = false;
+        }
+        else if (st == state::hidden)
+        {
+            search_while_hidden(*C);
+            if (st != state::hidden)
+                go_on(C, i, dt);
+        }
         return;
     }
     fm_assert(false);
@@ -433,6 +449,7 @@ bool cover_script::start_search(critter& C, search_then next)
     st = state::search;
     then = next;
     search_retreated = false;
+    is_searching_while_hidden = false;
     path_to_found_cover = {};
     search.begin(C.position(), threat_pos);
     return true;
@@ -548,6 +565,7 @@ void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachabl
                                  .axis = reachable.spot.axis, .peek = {}};
     is_canonical_hidden_from_reach = reachable.is_hidden_from_reach;
     needs_canonical_reach_test = false;
+    threat_dist_moved_while_hidden = 0;
     auto& c = *cover;
     switch (then)
     {
@@ -718,6 +736,7 @@ bool cover_script::needs_LOS_check(critter& C, point threat, point at) const
 // at cover, C walks to a new cover_end().
 void cover_script::check_hidden(critter& C, point threat)
 {
+    threat_dist_moved_while_hidden += point::distance(threat_pos, threat);
     threat_pos = threat;
     pass_gen_at_last_check = C.world().pass_gen();
     const auto& c = *cover;
@@ -893,6 +912,38 @@ void cover_script::check_reach(critter& C)
                     follow_threat(C);
                 else
                     walk_to_cover(C, {});
+            }
+        }
+    }
+}
+
+// At a cover that a reach_positions() point saw when the search found it, C searches again each time the threat
+// moved threat_reach px, and moves only to cover hidden from every such point.
+void cover_script::search_while_hidden(critter& C)
+{
+    if (!is_searching_while_hidden && !options.search_every_move && options.threat_reach &&
+        !is_canonical_hidden_from_reach && threat_dist_moved_while_hidden >= options.threat_reach)
+    {
+        is_searching_while_hidden = true;
+        threat_dist_moved_while_hidden = 0;
+        search.begin(C.position(), threat_pos, false);
+    }
+    if (is_searching_while_hidden)
+    {
+        const auto n = tests.counters.num_dijkstra_calls;
+        if (auto r = tick_search(C, C.position()); r.done)
+        {
+            is_searching_while_hidden = false;
+            if (r.cover)
+            {
+                fm_debug_assert(r.cover->is_hidden_from_reach);
+                then = search_then::relocate;
+                end_search(C, move(r.cover), tests.counters.num_dijkstra_calls == n);
+            }
+            else
+            {
+                search.end();
+                tests.counters.num_searches++;
             }
         }
     }
