@@ -12,6 +12,7 @@
 #include "loader/loader.hpp"
 #include "loader/policy.hpp"
 #include "compat/assert.hpp"
+#include "compat/cmp.hpp"
 #include "compat/debug.hpp"
 #include <algorithm>
 #include <array>
@@ -48,6 +49,9 @@ constexpr u32 query_count = 4096;
 constexpr u32 random_rect_entry_counts[] = { 8, 16, 32, 64, 96, 128, 160, 256, 512 };
 constexpr u32 critter_count = 8;
 constexpr u64 first_critter_id = ~u64{} - critter_count;
+
+static_assert(cmp::less<>{}(1, 2) && !cmp::less<>{}(2, 2) && cmp::less<>{}(1, 1.5f) && cmp::less<int>{}(1, 2));
+static_assert(cmp::less_equal<>{}(2, 2) && !cmp::less_equal<>{}(3, 2) && cmp::less_equal<int>{}(2, 2));
 
 template<u32 M> using Chunk_RTree_Fanout = ::RTree<object_id, float, 2, float, (int)M, (int)M/2>;
 static_assert(std::is_same_v<Chunk_RTree_Fanout<8>, Chunk_RTree>);
@@ -399,19 +403,34 @@ broadcast_rect make_broadcast_rect(const Math::Range2D<i16>& r)
     return ret;
 }
 
-// Returns q clamped to ±32766. A query reaching the empty rect's values would match unused branches.
-Math::Range2D<i16> SearchRect(const Range2Di& q)
+template<typename Compare>
+constexpr bool is_strict_comparison()
 {
-    constexpr i32 bound = 32766;
-    const auto clamp = [](i32 x) { return (i16)Math::clamp(x, -bound, bound); };
-    return {{clamp(q.min().x()), clamp(q.min().y())}, {clamp(q.max().x()), clamp(q.max().y())}};
+    static_assert(std::is_same_v<Compare, cmp::less_equal<>> || std::is_same_v<Compare, cmp::less<>>);
+    return std::is_same_v<Compare, cmp::less<>>;
 }
 
+// Returns the int16 rect whose closed test selects the integral rects that Compare selects with q.
+template<typename Compare>
+Math::Range2D<i16> SearchRect(const Range2Di& q)
+{
+    constexpr i32 bound = 32766, inward = is_strict_comparison<Compare>();
+    const auto clamp = [](i32 x) { return Math::clamp(x, -bound, bound); };
+    return {{(i16)(clamp(q.min().x()) + inward), (i16)(clamp(q.min().y()) + inward)},
+            {(i16)(clamp(q.max().x()) - inward), (i16)(clamp(q.max().y()) - inward)}};
+}
+
+template<typename Compare>
 Math::Range2D<i16> SearchRect(const float a_min[2], const float a_max[2])
 {
     constexpr float bound = 32766;
-    const auto round_min = [](float x) { return (i16)Math::clamp(Math::ceil(x), -bound, bound); };
-    const auto round_max = [](float x) { return (i16)Math::clamp(Math::floor(x), -bound, bound); };
+    constexpr bool is_strict = is_strict_comparison<Compare>();
+    const auto round_min = [](float x) {
+        return (i16)(Math::clamp(is_strict ? Math::floor(x) : Math::ceil(x), -bound, bound) + (float)is_strict);
+    };
+    const auto round_max = [](float x) {
+        return (i16)(Math::clamp(is_strict ? Math::ceil(x) : Math::floor(x), -bound, bound) - (float)is_strict);
+    };
     return {{round_min(a_min[0]), round_min(a_min[1])}, {round_max(a_max[0]), round_max(a_max[1])}};
 }
 
@@ -474,10 +493,10 @@ bool search_node(const Node<M>& node, int level, const broadcast_rect& rect, F& 
     return true;
 }
 
-template<u32 M, typename F>
+template<typename Compare = cmp::less_equal<>, u32 M, typename F>
 int search_tree(const Node<M>& root, const Range2Di& query, F&& callback)
 {
-    const auto rect = make_broadcast_rect(SearchRect(query));
+    const auto rect = make_broadcast_rect(SearchRect<Compare>(query));
     int num_found = 0;
     const auto count_and_call = [&](u64 data, const Math::Range2D<i16>& r) HWY_ATTR {
         num_found++;
@@ -487,10 +506,10 @@ int search_tree(const Node<M>& root, const Range2Di& query, F&& callback)
     return num_found;
 }
 
-template<u32 M, typename F>
+template<typename Compare = cmp::less_equal<>, u32 M, typename F>
 int search_tree_with_float_query(const Node<M>& root, const float a_min[2], const float a_max[2], F&& callback)
 {
-    const auto rect = make_broadcast_rect(SearchRect(a_min, a_max));
+    const auto rect = make_broadcast_rect(SearchRect<Compare>(a_min, a_max));
     int num_found = 0;
     const auto count_and_call = [&](u64 data, const Math::Range2D<i16>& r) HWY_ATTR {
         num_found++;
@@ -501,12 +520,12 @@ int search_tree_with_float_query(const Node<M>& root, const float a_min[2], cons
 }
 
 // Reports in the order search_tree() does.
-template<u32 M, typename F>
+template<typename Compare = cmp::less_equal<>, u32 M, typename F>
 int search_tree_with_stack(const Node<M>& root, const Range2Di& query, F&& callback)
 {
     struct node_bits { const Node<M>* node; u32 bits; };
     constexpr u32 max_height = 16;
-    const auto rect = make_broadcast_rect(SearchRect(query));
+    const auto rect = make_broadcast_rect(SearchRect<Compare>(query));
     const auto leaf_depth = (u32)root.m_level;
     fm_debug3_assert(leaf_depth < max_height);
     node_bits stack[max_height];
@@ -541,10 +560,10 @@ int search_tree_with_stack(const Node<M>& root, const Range2Di& query, F&& callb
     }
 }
 
-template<typename F>
+template<typename Compare = cmp::less_equal<>, typename F>
 int search_arrays(const entry_arrays& a, const Range2Di& query, F&& callback)
 {
-    const auto rect = SearchRect(query);
+    const auto rect = SearchRect<Compare>(query);
     const auto n = a.count;
     const i16 *const min_x = a.min_x, *const min_y = a.min_y, *const max_x = a.max_x, *const max_y = a.max_y;
     const u64* const data = a.data;
@@ -582,10 +601,10 @@ int search_arrays(const entry_arrays& a, const Range2Di& query, F&& callback)
     return num_found;
 }
 
-template<typename F>
+template<typename Compare = cmp::less_equal<>, typename F>
 int search_blocks(ArrayView<const entry_block> blocks, const Range2Di& query, F&& callback)
 {
-    const auto rect = SearchRect(query);
+    const auto rect = SearchRect<Compare>(query);
     int num_found = 0;
 #if HWY_MAX_BYTES <= 64
     constexpr hn::CappedTag<i16, max_lanes> d;
@@ -798,6 +817,32 @@ void check_hits_in_order(ArrayView<const entry> expected, const Search& search)
     fm_assert(count == (int)expected.size() && i == expected.size());
 }
 
+template<typename Search>
+void check_hits_in_any_order(ArrayView<const entry> expected, const Search& search)
+{
+    u64 sum = 0;
+    u32 i = 0;
+    const int count = search([&](u64 data, const Math::Range2D<i16>& r) {
+        sum += entry_hash({r, data});
+        i++;
+        return true;
+    });
+    fm_assert(count == (int)expected.size() && i == expected.size() && sum == hash_sum(expected));
+}
+
+template<typename T>
+Array<entry> strict_hits(ArrayView<const entry> entries, const T min[2], const T max[2])
+{
+    constexpr cmp::less<> lt;
+    Array<entry> ret;
+    arrayReserve(ret, Math::max(entries.size(), usize{16}));
+    for (const auto& e : entries)
+        if (lt(e.rect.min().x(), max[0]) && lt(e.rect.min().y(), max[1]) &&
+            lt(min[0], e.rect.max().x()) && lt(min[1], e.rect.max().y()))
+            arrayAppend(ret, e);
+    return ret;
+}
+
 // Returns the number of entries the old tree reports for q, whose float and integer bounds must be equal.
 u32 check_query(const chunk_structures& c, const query& q)
 {
@@ -819,6 +864,17 @@ u32 check_query(const chunk_structures& c, const query& q)
     check_hits_in_order(hits_8, [&](auto&& f) { return search_arrays(c.arrays, r, f); });
     check_hits_in_order(hits_8, [&](auto&& f) { return search_blocks(c.blocks, r, f); });
     check_hits_in_order(hits_8, [&](auto&& f) { return search_tree_with_float_query(root, q.min, q.max, f); });
+
+    using lt = cmp::less<>;
+    const i32 min[2] = {r.min().x(), r.min().y()}, max[2] = {r.max().x(), r.max().y()};
+    const auto strict = strict_hits(c.entries, min, max);
+    check_hits_in_order(strict, [&](auto&& f) { return search_tree<lt>(root, r, f); });
+    check_hits_in_any_order(strict, [&](auto&& f) { return search_tree<lt>(c.nodes_16.front(), r, f); });
+    check_hits_in_any_order(strict, [&](auto&& f) { return search_tree<lt>(c.nodes_32.front(), r, f); });
+    check_hits_in_order(strict, [&](auto&& f) { return search_tree_with_stack<lt>(root, r, f); });
+    check_hits_in_order(strict, [&](auto&& f) { return search_arrays<lt>(c.arrays, r, f); });
+    check_hits_in_order(strict, [&](auto&& f) { return search_blocks<lt>(c.blocks, r, f); });
+    check_hits_in_order(strict, [&](auto&& f) { return search_tree_with_float_query<lt>(root, q.min, q.max, f); });
     return (u32)hits_8.size();
 }
 
@@ -827,6 +883,8 @@ void check_float_query(const chunk_structures& c, const float min[2], const floa
     const auto& root = c.nodes_8.front();
     const auto hits = old_tree_hits(c.old_tree_8, min, max, c.entries.size());
     check_hits_in_order(hits, [&](auto&& f) { return search_tree_with_float_query(root, min, max, f); });
+    const auto strict = strict_hits(c.entries, min, max);
+    check_hits_in_order(strict, [&](auto&& f) { return search_tree_with_float_query<cmp::less<>>(root, min, max, f); });
 }
 
 query make_query(u32 chunk_index, Vector2i min, Vector2i max)
