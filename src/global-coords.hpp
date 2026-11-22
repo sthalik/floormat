@@ -1,6 +1,6 @@
 #pragma once
 #include "local-coords.hpp"
-#include <new>
+#include "compat/construct-at.hpp"
 #include <mg/Vector3.h>
 
 namespace floormat {
@@ -99,7 +99,7 @@ struct chunk_coords_ final {
 constexpr chunk_coords_& chunk_coords_::operator=(const chunk_coords_& other) noexcept
 {
     if (this != &other)
-        ::new (static_cast<void*>(this)) auto{other};
+        construct_at(this, other);
     return *this;
 }
 
@@ -165,7 +165,7 @@ private:
 constexpr global_coords& global_coords::operator=(const global_coords& other) noexcept
 {
     if (this != &other)
-        ::new (static_cast<void*>(this)) auto{other};
+        construct_at(this, other);
     return *this;
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fwd/construct_at.hpp"
+#include "construct-at.hpp"
 #include "inplace-function-fwd.hpp"
 #include "assert.hpp"
 #include "common-function.hpp"
@@ -111,8 +111,8 @@ struct vtable
 template<typename F> void move_target(storage_ptr to, storage_ptr from) noexcept
 {
     F& source = target<F>(from);
-    std::construct_at(static_cast<F*>(to.buf), std::move(source));
-    std::destroy_at(std::addressof(source));
+    construct_at(static_cast<F*>(to.buf), std::move(source));
+    destroy_at(__builtin_addressof(source));
 }
 
 template<typename F> constexpr void destroy_target(storage_ptr s) noexcept
@@ -123,7 +123,7 @@ template<typename F> constexpr void destroy_target(storage_ptr s) noexcept
     }
     else
     {
-        std::destroy_at(std::addressof(target<F>(s)));
+        destroy_at(__builtin_addressof(target<F>(s)));
     }
 }
 
@@ -135,7 +135,7 @@ template<typename F> constexpr holder_base* copy_target(storage_ptr to, storage_
     }
     else
     {
-        std::construct_at(static_cast<F*>(to.buf), std::as_const(target<F>(from)));
+        construct_at(static_cast<F*>(to.buf), std::as_const(target<F>(from)));
         return nullptr;
     }
 }
@@ -232,7 +232,7 @@ class function_base
         }
         else
         {
-            std::construct_at(static_cast<D*>(static_cast<void*>(_buf)), std::forward<F>(f));
+            construct_at(static_cast<D*>(static_cast<void*>(_buf)), std::forward<F>(f));
         }
     }
 

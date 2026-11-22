@@ -1,3 +1,4 @@
+#include "compat/construct-at.hpp"
 #include "compat/function-view.hpp"
 #include "compat/inplace-function.hpp"
 #include <utility>
@@ -54,16 +55,16 @@ void Function_MoveConstruct(benchmark::State& state)
 {
     union slot { Fn f; slot() {} ~slot() {} };
     slot a, b;
-    Fn* from = std::construct_at(&a.f, make_target(opaque(3)));
+    Fn* from = construct_at(&a.f, make_target(opaque(3)));
     Fn* to = &b.f;
     for (auto _ : state)
     {
-        std::construct_at(to, std::move(*from));
-        std::destroy_at(from);
+        construct_at(to, std::move(*from));
+        destroy_at(from);
         benchmark::DoNotOptimize(*to);
         std::swap(from, to);
     }
-    std::destroy_at(from);
+    destroy_at(from);
 }
 BENCHMARK_TEMPLATE(Function_MoveConstruct, inplace_fn);
 

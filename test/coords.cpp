@@ -190,7 +190,7 @@ constexpr bool test_global_coords_assign()
     return true;
 }
 
-#if __cpp_constexpr >= 202406L
+#if __cpp_constexpr >= 202406L || defined _MSVC_CONSTEXPR_ATTRIBUTE
 static_assert(test_chunk_coords_assign());
 static_assert(test_global_coords_assign());
 #endif

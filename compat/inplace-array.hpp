@@ -1,9 +1,9 @@
 #pragma once
 #include "assert.hpp"
+#include "construct-at.hpp"
 #include "container-traits.hpp"
 #include "move.hpp"
 #include "range-access.hpp"
-#include "fwd/construct_at.hpp"
 #include <cr/ArrayView.h>
 #include <cr/Macros.h>
 #include <compare>
@@ -327,10 +327,10 @@ constexpr void inplace_array<T, N>::start_storage_lifetime()
     {
         if constexpr (std::is_default_constructible_v<T>)
         {
-            std::construct_at(&_storage.array, ValueInit);
+            construct_at(&_storage.array, ValueInit);
             if constexpr (!std::is_trivially_destructible_v<T>)
                 for (u32 i = 0; i < N; i++)
-                    std::destroy_at(_storage.array.data + i);
+                    destroy_at(_storage.array.data + i);
         }
     }
 }
@@ -340,10 +340,10 @@ constexpr void inplace_array<T, N>::start_storage_lifetime(const T& value)
 {
     if consteval
     {
-        std::construct_at(&_storage.array, DirectInit, value);
+        construct_at(&_storage.array, DirectInit, value);
         if constexpr (!std::is_trivially_destructible_v<T>)
             for (u32 i = 0; i < N; i++)
-                std::destroy_at(_storage.array.data + i);
+                destroy_at(_storage.array.data + i);
     }
 }
 
@@ -546,16 +546,16 @@ constexpr T& inplace_array<T, N>::unchecked_emplace_back(Args&&... args)
         {
             T value(forward<Args>(args)...);
             start_storage_lifetime(value);
-            std::construct_at(data(), move(value));
+            construct_at(data(), move(value));
         }
         else
-            std::construct_at(data() + size(), forward<Args>(args)...);
+            construct_at(data() + size(), forward<Args>(args)...);
     }
     else
     {
         if (std::is_constant_evaluated() && empty())
             start_storage_lifetime();
-        std::construct_at(data() + size(), forward<Args>(args)...);
+        construct_at(data() + size(), forward<Args>(args)...);
     }
     return data()[_size++];
 }
@@ -578,7 +578,7 @@ constexpr void inplace_array<T, N>::pop_back() noexcept
     fm_debug_assert(!empty());
     --_size;
     if constexpr (!std::is_trivially_destructible_v<T>)
-        std::destroy_at(data() + size());
+        destroy_at(data() + size());
 }
 
 template<typename T, usize N>
@@ -598,7 +598,7 @@ constexpr T* inplace_array<T, N>::erase(const T* first, const T* last)
         *out = move(*p);
     if constexpr (!std::is_trivially_destructible_v<T>)
         for (T* p = out; p != end(); ++p)
-            std::destroy_at(p);
+            destroy_at(p);
     _size = (stored_size_type)(out - begin());
     return from;
 }
@@ -608,7 +608,7 @@ constexpr void inplace_array<T, N>::clear() noexcept
 {
     if constexpr (!std::is_trivially_destructible_v<T>)
         for (T* p = begin(); p != end(); ++p)
-            std::destroy_at(p);
+            destroy_at(p);
     _size = 0;
 }
 
@@ -748,7 +748,7 @@ template<typename... Args>
 constexpr T& inplace_array<T, 0>::unchecked_emplace_back(Args&&... args)
 {
     fm_debug3_assert(size() < capacity());
-    return *std::construct_at(data(), forward<Args>(args)...);
+    return *construct_at(data(), forward<Args>(args)...);
 }
 
 template<typename T>
