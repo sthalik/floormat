@@ -12,12 +12,15 @@ class spot_tests;
 
 class retreat_finder
 {
-    struct spot { Vector2i offset; u32 seen_octants = 0; bool done = false; };
+    struct spot { Vector2i offset; u32 seen_octants = 0; bool done = false, needs_recheck = false; };
 
     Array<spot> _spots;
+    // Indices of the _spots that a critter stood on or may have cut off before _next last went back to 0.
+    // They're checked again after every other spot.
+    Array<u32> _spot_indices_to_recheck;
     Vector2i _spot_spacing;
-    // The next of _spots, this pass's path_to calls that found no path, and whether the pass tries every spot
-    // left or only those a ray from the threat doesn't reach.
+    // The next spot, counting _spot_indices_to_recheck after _spots, this pass's path_to calls with no path,
+    // and whether the pass tries every spot left or only those a ray from the threat doesn't reach.
     u32 _next = 0, _num_failed_dijkstra_calls = 0;
     bool _all = false;
     // The threat's octant seen from the npc.
@@ -41,7 +44,7 @@ public:
 
     void begin(Vector2i body, u32 threat_octant);
     // One update's work of the retreat, within the max_retreat_*_per_update limits. Each of its two passes ends
-    // after max_failed_dijkstra_calls spots with no path, the first also when _rays runs out.
+    // after max_failed_dijkstra_calls path_to calls found no path, the first also when _rays runs out.
     result tick(critter& c, spot_tests& t, const Cover::Script::options& o, point threat);
     // True when `to`, the end of tick()'s last found path, is still over min_retreat_gain px farther from threat
     // than that path's start, and the second pass found it or a ray from threat doesn't reach it.

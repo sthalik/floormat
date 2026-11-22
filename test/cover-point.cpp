@@ -16,6 +16,7 @@
 #include "src/critter-script-cover-movement-range.hpp"
 #include "src/critter-script-cover.hpp"
 #include "src/critter-script-cover-point.hpp"
+#include "src/critter-script-cover-retreat-finder.hpp"
 #include "src/critter-script-cover-search.hpp"
 #include "src/critter-script-cover-spot-tests.hpp"
 #include "src/critter-script-cover-unreachable-spots.hpp"
@@ -2739,8 +2740,8 @@ void test_cover_script_retreat_closed_in(point hidden)
     fm_assert_equal(t0.counters.num_searches + 1, s.status().counters.num_searches);
 }
 
-// test_cover_script_retreat_closed_in's scene, up to the flank's update, in which 4 of the 6 enclosed spots
-// had no path. Returns the status after it.
+// test_cover_script_retreat_closed_in's scene, up to the flank's update, in which 2 of the 6 enclosed spots
+// had no path, with or without critters. Returns the status after it.
 Cover::Script::status flank_closed_in(cover_scene& s, point hidden, point threat_pos)
 {
     s.step_until(state::hidden);
@@ -2750,7 +2751,7 @@ Cover::Script::status flank_closed_in(cover_scene& s, point hidden, point threat
     s.step();
     const auto t = s.status();
     fm_assert(t.st == state::find_retreat);
-    fm_assert_equal(4u, t.retreat.num_failed_dijkstra_calls);
+    fm_assert_equal(2u, t.retreat.num_failed_dijkstra_calls);
     return t;
 }
 
@@ -2765,10 +2766,20 @@ void test_cover_script_retreat_restart(point hidden)
         s.move_threat(threat_pos + Vector2i{1, 0});
         s.step();
         const auto t1 = s.status();
-        // The 2 enclosed spots left, then a spot with a path.
-        fm_assert(t1.st == state::retreat && t1.counters.num_retreat_restarts == t0.counters.num_retreat_restarts);
-        fm_assert_equal(t0.counters.num_dijkstra_calls + 3, t1.counters.num_dijkstra_calls);
-        fm_assert_equal(6u, t1.retreat.num_failed_dijkstra_calls);
+        // 2 more enclosed spots, and the last 2 in the next update.
+        fm_assert(t1.st == state::find_retreat);
+        fm_assert_equal(t0.counters.num_retreat_restarts, t1.counters.num_retreat_restarts);
+        fm_assert_equal(t0.counters.num_dijkstra_calls + 4, t1.counters.num_dijkstra_calls);
+        fm_assert_equal(4u, t1.retreat.num_failed_dijkstra_calls);
+        s.step();
+        s.step();
+        const auto t2 = s.status();
+        // Then a spot with a path, which the wall hides.
+        fm_assert(t2.st == state::retreat && !t2.retreat.all);
+        fm_assert_equal(t1.counters.num_dijkstra_calls + 5, t2.counters.num_dijkstra_calls);
+        fm_assert_equal(6u, t2.retreat.num_failed_dijkstra_calls);
+        s.step_until(state::seek);
+        fm_assert(!s.seen_from(threat_pos + Vector2i{1, 0}, s.npc->position()));
     }
 
     cover_scene s;
@@ -2778,7 +2789,7 @@ void test_cover_script_retreat_restart(point hidden)
     s.step();
     const auto t2 = s.status();
     fm_assert_equal(t1.counters.num_retreat_restarts + 1, t2.counters.num_retreat_restarts);
-    // One Dijkstra search, since the 4 spots without a path stay done.
+    // One Dijkstra search, since the 2 spots without a path stay done.
     fm_assert(t2.st == state::retreat);
     fm_assert_equal(t1.counters.num_dijkstra_calls + 1, t2.counters.num_dijkstra_calls);
     s.step_until(state::seek);
@@ -2869,6 +2880,101 @@ void test_cover_script_retreat_is_passable_once_per_spot(point hidden)
     const auto t = s.status();
     fm_assert(t.st == state::retreat && t.retreat.all);
     fm_assert_equal(t0.counters.num_dijkstra_calls + 1, t.counters.num_dijkstra_calls);
+}
+
+// The wall hides retreat spots from tile (7, 1) and 30 px east. A critter stands on the nearer ones, and a wall
+// shots pass on the rest. Once it leaves and the threat moves east, its spots are checked again after all others.
+void test_retreat_finder_rechecks_spot_blocked_by_critter(point hidden)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    const auto blocker = add_critter(s.w, hidden + Vector2i{6, 231}, {24, 70});
+    const auto south_wall_center = hidden + Vector2i{6, 300};
+    add_blocker(s.w, south_wall_center.local(), {60, 40}, south_wall_center.offset(), pass_mode::shoot_through);
+    rebuild(s.w);
+    const point threat_pos{ch, {7, 1}, {}};
+    const auto moved = threat_pos + Vector2i{30, 0};
+    s.move_threat(threat_pos);
+    auto& c = *s.npc;
+    Cover::spot_tests t{s.A, s.threat->id, 0};
+    const Cover::Script::options o{};
+    Cover::retreat_finder retreat;
+    retreat.begin(Vector2i(c.bbox_size), Cover::Point::nearest_octant(Vector2(threat_pos - hidden)));
+    const auto r0 = retreat.tick(c, t, o, threat_pos);
+    fm_assert(!r0.path.is_found() && !r0.done);
+    fm_assert_equal(0u, t.counters.num_dijkstra_calls);
+    const auto num_spots = retreat.progress().num_spots;
+
+    auto i = blocker->index();
+    blocker->teleport_to(i, point{ch, {14, 1}, {}}, rotation_COUNT);
+    s.move_threat(moved);
+    fm_assert(Cover::Point::nearest_octant(Vector2(moved - hidden)) !=
+              Cover::Point::nearest_octant(Vector2(threat_pos - hidden)));
+    for (auto k = 0u; ; k++)
+    {
+        fm_assert(k < 8);
+        const auto r = retreat.tick(c, t, o, moved);
+        const auto p = retreat.progress();
+        fm_assert(!r.done && !p.all);
+        if (!r.path.is_found())
+            continue;
+        fm_assert(!r.is_exposed);
+        fm_assert(p.num_spots > num_spots && p.spot > num_spots);
+        const auto to = r.path.path().back();
+        fm_assert(!s.seen_from(moved, to));
+        const auto off = to - hidden;
+        fm_assert(off.x() >= -12 && off.x() <= 24 && off.y() >= 192 && off.y() <= 264);
+        break;
+    }
+}
+
+// The npc stands in a box of walls that shots pass, with a 40 px gap south that a critter or a wall fills.
+// Spots the critter cuts off are checked again in the second pass, and spots the wall cuts off are not.
+void test_retreat_finder_rechecks_only_spots_critters_cut_off(point hidden)
+{
+    for (const bool is_gap_critter : {false, true})
+    {
+        cover_scene s;
+        s.step_until(state::hidden);
+        fm_assert(s.npc->position() == hidden);
+        const auto add_wall = [&](Vector2i center, Vector2ub size) {
+            const auto pt = hidden + center;
+            add_blocker(s.w, pt.local(), size, pt.offset(), pass_mode::shoot_through);
+        };
+        add_wall({0, -38}, {92, 16});
+        add_wall({-38, 0}, {16, 60});
+        add_wall({38, 0}, {16, 60});
+        add_wall({-33, 38}, {26, 16});
+        add_wall({33, 38}, {26, 16});
+        if (is_gap_critter)
+            add_critter(s.w, hidden + Vector2i{0, 38}, {40, 16});
+        else
+            add_wall({0, 38}, {40, 16});
+        rebuild(s.w);
+        const point threat_pos{ch, {7, 1}, {}};
+        s.move_threat(threat_pos);
+        auto& c = *s.npc;
+        Cover::spot_tests t{s.A, s.threat->id, 0};
+        const Cover::Script::options o{};
+        Cover::retreat_finder retreat;
+        retreat.begin(Vector2i(c.bbox_size), Cover::Point::nearest_octant(Vector2(threat_pos - hidden)));
+        const auto num_spots = retreat.progress().num_spots;
+        for (auto k = 0u; !retreat.progress().all; k++)
+        {
+            fm_assert(k < 20);
+            const auto r = retreat.tick(c, t, o, threat_pos);
+            fm_assert(!r.path.is_found() && !r.done);
+        }
+        fm_assert(t.counters.num_dijkstra_calls > 0);
+        if (is_gap_critter)
+            fm_assert(retreat.progress().num_spots > num_spots);
+        else
+        {
+            fm_assert_equal(num_spots, retreat.progress().num_spots);
+            fm_assert(t.counters.num_dijkstra_calls % 2 == 0);
+        }
+    }
 }
 
 // As test_cover_script_retreat_circling_threat, from the npc's search for cover at hidden. The search restarts
@@ -4520,6 +4626,8 @@ void Test::test_cover_point()
     test_cover_script_retreat_circling_threat(hidden);
     test_cover_script_retreat_threat_back_and_forth(hidden);
     test_cover_script_retreat_is_passable_once_per_spot(hidden);
+    test_retreat_finder_rechecks_spot_blocked_by_critter(hidden);
+    test_retreat_finder_rechecks_only_spots_critters_cut_off(hidden);
     test_cover_script_search_circling_threat(hidden, false);
     test_cover_script_search_circling_threat(hidden, true);
     test_cover_script_retreat_finds_cover(hidden, false);

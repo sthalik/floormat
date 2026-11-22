@@ -64,10 +64,12 @@ void retreat_finder::begin(Vector2i body, u32 threat_octant)
     _rays = 0;
     for (auto& s : _spots)
     {
-        s.done = false;
+        s.done = s.needs_recheck = false;
         s.seen_octants = 0;
         _rays += s.offset.dot() > min_retreat_gain*min_retreat_gain;
     }
+    arrayReserve(_spot_indices_to_recheck, 16);
+    arrayClear(_spot_indices_to_recheck);
     _next = 0;
     _num_failed_dijkstra_calls = 0;
     _all = false;
@@ -81,13 +83,19 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
     auto& w = c.world();
     const auto from = c.position();
     const auto body = Vector2i(c.bbox_size);
-    const auto pred = Search::blocks_all_but(c.id);
+    const auto restart_from_first_spot = [&] {
+        _next = 0;
+        arrayClear(_spot_indices_to_recheck);
+        for (auto i = 0u; i < _spots.size(); i++)
+            if (_spots[i].needs_recheck)
+                arrayAppend(_spot_indices_to_recheck, i);
+    };
     if (const auto k = Cover::Point::nearest_octant(Vector2(threat - from)); k != _octant)
     {
-        // Spots the threat saw from its old octant may be hidden now. The pass and its failed Dijkstra calls stay,
-        // so a moving threat can't cause more than 2*max_failed_dijkstra_calls of them.
+        // Spots the threat saw from its old octant may be hidden now. The pass and its count of path_to failures
+        // stay, so a moving threat can't cause more than 2*max_failed_dijkstra_calls of them.
         _octant = k;
-        _next = 0;
+        restart_from_first_spot();
         t.counters.num_retreat_restarts++;
     }
     const auto octant_bit = 1u << _octant;
@@ -110,20 +118,23 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
     };
     for (;;)
     {
-        if (_next == _spots.size() || _num_failed_dijkstra_calls == max_failed_dijkstra_calls || !_all && !_rays)
+        const auto num_spots = (u32)_spots.size();
+        if (_next == num_spots + _spot_indices_to_recheck.size() ||
+            _num_failed_dijkstra_calls >= max_failed_dijkstra_calls || !_all && !_rays)
         {
             if (_all && _exposed_path.is_found())
                 return take_exposed_path();
             if (_all)
                 return {{}, true};
             _all = true;
-            _next = 0;
+            restart_from_first_spot();
             _num_failed_dijkstra_calls = 0;
             continue;
         }
-        auto& s = _spots[_next];
+        const auto is_recheck = _next >= num_spots;
+        auto& s = _spots[is_recheck ? _spot_indices_to_recheck[_next - num_spots] : _next];
         const auto to = from + s.offset;
-        if (s.done || !_all && (s.seen_octants & octant_bit))
+        if (s.done && !is_recheck || !_all && (s.seen_octants & octant_bit))
         {
             _next++;
             continue;
@@ -140,19 +151,39 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
             _next++;
             continue;
         }
-        // The limits come first, so no is_passable result is thrown away when one runs out.
-        if (!passable_left || !dijkstra_left || !_all && !rays_left)
+        // The limits come first, so no is_passable result is thrown away when one runs out. A spot takes up to
+        // 2 Dijkstra searches, the second when path_to finds no path.
+        if (!passable_left || dijkstra_left < 2 || !_all && !rays_left)
             return on_limit_reached();
         if (dijkstra_left < max_retreat_dijkstra_calls_per_update &&
             t.counters.num_path_body_checks - path_body_checks_before_step >
-                (dijkstra_left - 1)*hidden_at_calls_per_dijkstra_call)
+                (dijkstra_left - 2)*hidden_at_calls_per_dijkstra_call)
             return on_limit_reached();
         passable_left--;
         t.counters.num_retreat_is_passable_calls++;
+        s.done = s.needs_recheck = false;
+        bool is_blocked_by_critter = false;
+        const auto pred = [&](const chunk& ch, collision_data x) {
+            if (x.id == c.id)
+                return path_search_continue::pass;
+            else if (Search::is_dynamic_object(ch, x))
+            {
+                is_blocked_by_critter = true;
+                return path_search_continue::pass;
+            }
+            else
+                return path_search_continue::blocked;
+        };
         const auto lo = Vector2(to.intra().center_shifted() - body/2);
         if (!Search::is_passable(w, to.chunk3(), Range2D::fromSize(lo, Vector2(body)), pred))
         {
             s.done = true;
+            _next++;
+            continue;
+        }
+        if (is_blocked_by_critter)
+        {
+            s.done = s.needs_recheck = true;
             _next++;
             continue;
         }
@@ -188,7 +219,10 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
             }
             continue;
         }
+        // path_to lets no other critter through, so its failure doesn't say whether a critter cut the spot off.
         _num_failed_dijkstra_calls++;
+        dijkstra_left--;
+        s.needs_recheck = t.is_reachable_without_critters(c, to);
     }
 }
 
@@ -203,7 +237,8 @@ bool retreat_finder::is_still_retreat_spot(critter& c, spot_tests& t, const Cove
 Cover::Script::retreat_progress retreat_finder::progress() const
 {
     return {
-        .spot = _next, .num_spots = (u32)_spots.size(), .num_failed_dijkstra_calls = _num_failed_dijkstra_calls,
+        .spot = _next, .num_spots = (u32)(_spots.size() + _spot_indices_to_recheck.size()),
+        .num_failed_dijkstra_calls = _num_failed_dijkstra_calls,
         .all = _all,
     };
 }
