@@ -63,6 +63,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_virtual_memory),
     FM_TEST(test_guard_page_memory_resource),
     FM_TEST(test_slab_allocator),
+    FM_TEST(test_order_list),
     FM_TEST(test_rtree_pool),
     FM_TEST(test_rtree_upstream),
     FM_TEST(test_astar_pool),
