@@ -17,6 +17,8 @@
 #include <mg/Renderbuffer.h>
 #include <mg/Texture.h>
 
+namespace floormat::Grid { class GridRegistry; }
+
 namespace floormat {
 
 struct floormat_app;
@@ -143,6 +145,7 @@ private:
     u32 _mouse_cursor = (u32)-1;
     SpriteBatch _sprite_batch;
     Framebuffer framebuffer;
+    safe_ptr<Grid::GridRegistry> _grid_registry;
     safe_ptr<class astar> _astar;
     Vector2 _dpi_scale = Vector2{1};
 

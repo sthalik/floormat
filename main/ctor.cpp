@@ -3,6 +3,7 @@
 #include "compat/strerror.hpp"
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
+#include "src/grid-registry.hpp"
 #include "src/chunk.hpp"
 #include "src/object-storage.inl"
 #include <cerrno>
@@ -14,7 +15,7 @@ namespace floormat {
 main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv) noexcept :
     Platform::Sdl2Application{Arguments{argc, argv},
                               make_conf(se), make_gl_conf(se)},
-    s{move(se)}, app{app}, _shader{_tuc}
+    s{move(se)}, app{app}, _shader{_tuc}, _astar{InPlaceInit, *_grid_registry}
 {
     if (s.vsync)
     {
@@ -51,7 +52,9 @@ class world& main_impl::reset_world(class world&& w) noexcept
             fm_assert_equal(u32{2}, eʹ.use_count());
 
     _world = move(w);
-    _astar = safe_ptr<class astar>{InPlaceInit};
+    auto new_grid_registry = safe_ptr<Grid::GridRegistry>{InPlaceInit};
+    _astar = safe_ptr<class astar>{InPlaceInit, *new_grid_registry};
+    _grid_registry = move(new_grid_registry);
     _world.chunk_table_prepare_frame();
     _first_frame = true;
     return _world;

@@ -1080,8 +1080,14 @@ Pass::Params default_pool_params(Vector2ui own_size)
 } // namespace
 
 astar::astar() :
+    astar{*new Grid::GridRegistry}
+{
+    _owned_pool_registry.reset(_pool_registry);
+}
+
+astar::astar(Grid::GridRegistry& reg) :
     _cache{InPlaceInit},
-    _pool_registry{InPlaceInit}
+    _pool_registry{&reg}
 {
     static_assert(sizeof(visited) == Search::cache::node_size);
     arrayReserve(temp_nodes, 256);

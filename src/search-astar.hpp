@@ -4,6 +4,7 @@
 #include "tile-defs.hpp"
 #include <array>
 #include <cr/Array.h>
+#include <cr/Pointer.h>
 #include <mg/Vector2.h>
 
 namespace floormat::Search { struct cache; }
@@ -33,6 +34,8 @@ public:
     static constexpr u32 default_div_size = (u32)tile_size_xy/4;
 
     astar();
+    // reg must outlive this astar
+    explicit astar(Grid::GridRegistry& reg);
     ~astar() noexcept;
 
     struct Search::cache* cache();
@@ -96,7 +99,9 @@ private:
     path_search_result make_result(const closest& best, point from, point to, u32 max_dist, float time);
 
     safe_ptr<struct Search::cache> _cache;
-    safe_ptr<Grid::GridRegistry> _pool_registry;
+    // Null when the constructor was given a registry.
+    Pointer<Grid::GridRegistry> _owned_pool_registry;
+    Grid::GridRegistry* _pool_registry;
     // In _cache's memory, valid from its allocate() to the next.
     ArrayView<visited> nodes;
     u32 node_count = 0;

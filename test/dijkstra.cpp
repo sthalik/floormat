@@ -776,6 +776,43 @@ void check_wall_gap_critters(u32 bbox)
         fm_abort("wall gap bbox %u: a critter in it leaves it open", bbox);
 }
 
+// Two astars on one registry find the same path, and the second search builds no grid.
+void test_astars_share_grid_registry()
+{
+    constexpr u32 max_dist = 640, bbox = 32;
+    constexpr int lo = bbox/2, gap = gap_start;
+    const auto params = Grid::Pass::Params{astar::default_div_size, bbox, pass_mode::pass};
+    const auto from = at_px({gap + lo - 128, gap_wall - gap_dist});
+    const auto to = at_px({gap + lo + 96, gap_wall + gap_wall_depth + gap_dist});
+    const Search::pred all{Search::never_continue};
+    auto w = world();
+    add_floors(w, from, max_dist, astar::default_div_size);
+    add_wall_gap(w, gap, (int)bbox, false);
+
+    Grid::GridRegistry reg;
+    astar A{reg}, B{reg};
+    fm_assert(&A.pool_registry() == &reg && &B.pool_registry() == &reg);
+    auto& c = w[flush_ch];
+    fm_assert(reg.pass_pool(params)[c].build_no() == 0);
+
+    const auto seq0 = Grid::detail::GridBase::next_build_no();
+    const auto r1 = A.Dijkstra<0, false>(w, from, to, max_dist, Vector2ui{bbox}, all);
+    const auto seq1 = Grid::detail::GridBase::next_build_no();
+    const auto build_no = reg.pass_pool(params)[c].build_no();
+    const auto r2 = B.Dijkstra<0, false>(w, from, to, max_dist, Vector2ui{bbox}, all);
+    const auto seq2 = Grid::detail::GridBase::next_build_no();
+
+    fm_assert(r1.is_found() && r2.is_found());
+    fm_assert(seq1 > seq0 + 1 && build_no != 0);
+    fm_assert_equal(seq1 + 1, seq2);
+    fm_assert_equal(build_no, reg.pass_pool(params)[c].build_no());
+    fm_assert_equal(r1.cost(), r2.cost());
+    fm_assert_equal(r1.path().size(), r2.path().size());
+    fm_assert(r1.path().size() > 2);
+    for (auto i = 0u; i < r1.path().size(); i++)
+        fm_assert(r1.path()[i] == r2.path()[i]);
+}
+
 // A corridor 34 px wide on node row 512, closed to the east, opens west through a jog whose free rows 513..515
 // hold no node row. Only the seed search from the point in the corridor finds the way out.
 void check_jogged_corridor(bool goal_inside)
@@ -1257,6 +1294,7 @@ void Test::test_dijkstra()
         check_wall_gap(bbox, true);
         check_wall_gap_critters(bbox);
     }
+    test_astars_share_grid_registry();
     for (auto cell : { 8u, 16u })
     {
         check_critter_corridor(cell);
