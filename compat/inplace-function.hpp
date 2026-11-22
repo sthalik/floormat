@@ -4,6 +4,7 @@
 #include "inplace-function-fwd.hpp"
 #include "assert.hpp"
 #include "common-function.hpp"
+#include "invoke.hpp"
 #include "function-view-fwd.hpp"
 #include <new>
 #include <type_traits>
@@ -29,7 +30,6 @@ template<bool Const, bool Volatile, typename T>
 using add_cv = std::conditional_t<Const, std::conditional_t<Volatile, const volatile T, const T>,
                                          std::conditional_t<Volatile, volatile T, T>>;
 
-using common_function_impl::invoke_target;
 using common_function_impl::reference_converts_from_temporary;
 using common_function_impl::pointers_equal;
 using common_function_impl::is_empty_callable;
@@ -166,9 +166,9 @@ struct invoker
     template<typename F> static constexpr R invoke(storage_ptr s, param<Args>... args) noexcept(Noexcept)
     {
         if constexpr (std::is_void_v<R>)
-            return static_cast<void>(invoke_target(static_cast<callable<F>>(target<F>(s)), std::forward<Args>(args)...));
+            return static_cast<void>(floormat::invoke(static_cast<callable<F>>(target<F>(s)), std::forward<Args>(args)...));
         else
-            return invoke_target(static_cast<callable<F>>(target<F>(s)), std::forward<Args>(args)...);
+            return floormat::invoke(static_cast<callable<F>>(target<F>(s)), std::forward<Args>(args)...);
     }
 
     [[noreturn]] static R invoke_empty(storage_ptr, param<Args>...) noexcept { fm_abort("called an empty inplace_function"); }
