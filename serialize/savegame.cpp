@@ -308,6 +308,7 @@ struct visitor_ : visitor_base<IsNewest>
         flag_interactive = 1 << 2,
     };
 
+    // MSVC 19.53 can't range-for over a reference template argument in constant evaluation.
     template<auto fields, typename S, typename F>
     void visit_flags(S& s, F&& f)
     {
