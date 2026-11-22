@@ -2606,6 +2606,7 @@ void test_cover_script_search_every_move(point hidden)
         const auto spot = s.npc->position();
         fm_assert(every || spot == hidden);
         const auto t0 = s.status();
+        auto prev = t0;
         for (auto k = 1u; k <= 15; k++)
         {
             s.move_threat(s.threat->position() + Vector2i{1, 0});
@@ -2614,8 +2615,13 @@ void test_cover_script_search_every_move(point hidden)
             fm_assert(s.npc->position() == spot && t.st == state::hidden);
             fm_assert_equal(t0.counters.num_searches + (every ? k : 0), t.counters.num_searches);
             fm_assert_equal(t0.counters.num_rays, t.counters.num_rays);
-            fm_assert_equal(t0.counters.num_body_checks + (every ? 0 : 2*k), t.counters.num_body_checks);
+            // Without search_every_move, the first 2 moves also test the cover spot against the threat's reach.
+            if (every || k > 2)
+                fm_assert_equal(prev.counters.num_body_checks + (every ? 0u : 2u), t.counters.num_body_checks);
+            else
+                fm_assert(t.counters.num_body_checks > prev.counters.num_body_checks + 2);
             fm_assert(t.last_update <= t.max_update && t.max_update <= t.total_update);
+            prev = t;
         }
         fm_assert(s.status().total_update > t0.total_update);
     }

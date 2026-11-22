@@ -24,6 +24,28 @@ u32 search_chunk_radius(point at, point threat, u32 radius, const Cover::Script:
 // A spot whose test runs out of them is tested further in the next update.
 constexpr inline u32 max_search_body_checks_per_update = 64;
 
+enum class visibility_from_reach : u8 { hidden, exposed, unknown, };
+
+// The reach positions that see none of the npc's body at spot, sorted. test_spot_against_reach() empties them
+// for another spot or body size, or once a static collider near the spot changed.
+struct reach_positions_hidden_from
+{
+    Cover::Point::spot spot;
+    Vector2ub body_size;
+    // world::pass_gen() at the last test_spot_against_reach().
+    u64 pass_gen = 0;
+    Array<point> positions;
+    // As in the double buffer pattern, test_spot_against_reach() writes the next positions here while reading
+    // positions, then swaps the two unless the spot is exposed.
+    Array<point> next_positions;
+
+    // Whether a point of reach sees c's body at s. Tests at most max_body_checks points not in positions,
+    // and returns unknown when they run out. max_pass_gen is world::max_pass_gen() around s.
+    visibility_from_reach test_spot_against_reach(critter& c, spot_tests& t, ArrayView<const point> reach,
+                                                  const Cover::Point::spot& s, u64 max_pass_gen,
+                                                  u32 max_body_checks);
+};
+
 class cover_search
 {
 public:
@@ -64,10 +86,6 @@ private:
     struct skipped_spot { Cover::Point::spot spot; u32 octant; };
     // A spot and its cover_end(), which path_to found no path to.
     struct failed_dijkstra_search { point spot_pos, end; bool is_fallback_spot = false; };
-    enum class visibility_from_reach : u8 { hidden, exposed, unknown, };
-    // The spot test_spot_against_reach() tested last, and the reach positions that see none of the npc's body
-    // there, sorted. They stay valid while the body keeps its size and no static collider nearby changes.
-    struct reach_test_progress { Cover::Point::spot spot; Vector2ub body_size; Array<point> hidden_from; };
     // Spots skipped for having no peek spot, and the first skipped for threat_reach, as options.last_resort keeps.
     struct fallback_spots
     {
@@ -78,20 +96,18 @@ private:
         void clear();
     };
 
-    // Whether the reach_positions() for threat see c's body at s, after at most max_body_checks body checks of
-    // the positions the last call for s didn't find hidden from. unknown when the checks run out first.
+    // _reach_positions_not_seeing_spot's test of s against reach_positions() for threat. max_pass_gen is
+    // world::max_pass_gen() over the chunks the search reads.
     visibility_from_reach test_spot_against_reach(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                                  point threat, const Cover::Point::spot& s, u32 max_body_checks);
+                                                  point threat, const Cover::Point::spot& s, u64 max_pass_gen,
+                                                  u32 max_body_checks);
     Optional<reachable_cover> take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                               point threat, u32 max_body_checks);
+                                               point threat, u64 max_pass_gen, u32 max_body_checks);
     Optional<reachable_cover> take_exposed_cover(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                                 point threat, u32 max_body_checks);
+                                                 point threat, u64 max_pass_gen, u32 max_body_checks);
 
     Optional<reachable_cover> _exposed_cover;
-    reach_test_progress _reach_test_progress;
-    // As in the double buffer pattern, test_spot_against_reach() writes the next _reach_test_progress.hidden_from
-    // here while reading the current one, then swaps the two unless the spot is exposed.
-    Array<point> _next_hidden_from;
+    reach_positions_hidden_from _reach_positions_not_seeing_spot;
     u32 _exposed_updates_left = 0;
     // Spots that no path reaches with other critters let through, or from which the npc can move straight to one.
     unreachable_spots _unreachable;
