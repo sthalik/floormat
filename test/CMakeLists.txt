@@ -29,14 +29,19 @@ fm_install_executable(${self})
 
 add_executable(${self}-atomic EXCLUDE_FROM_ALL
     atomic/main.cpp atomic.cpp atomic-wait.cpp chase-lev-deque.cpp event-count.cpp
+    slab-allocator-threads.cpp slab-allocator-common.cpp
     ../compat/atomic.cpp ../compat/atomic-wait.cpp ../compat/atomic-wrapper.cpp ../compat/atomic-flag-wrapper.cpp
     ../compat/valgrind.cpp ../compat/abort-behavior.cpp
+    ../compat/slab-allocator.cpp ../compat/slab-arena.cpp ../compat/guard-page-memory-resource.cpp
+    ../compat/virtual-memory.cpp ../compat/spinlock.cpp ../compat/superpage.cpp ../compat/strerror.cpp
+    ../compat/format.cpp ../random/random.cpp
 )
 target_include_directories(${self}-atomic SYSTEM PRIVATE
     $<TARGET_PROPERTY:Corrade::Utility,INTERFACE_INCLUDE_DIRECTORIES>
     $<TARGET_PROPERTY:Magnum::Magnum,INTERFACE_INCLUDE_DIRECTORIES>
 )
-target_link_libraries(${self}-atomic Threads::Threads)
+target_link_libraries(${self}-atomic Threads::Threads Corrade::Utility fmt::fmt)
+set_target_properties(${self}-atomic PROPERTIES BUILD_WITH_INSTALL_RPATH OFF)
 if(WIN32)
     target_link_libraries(${self}-atomic synchronization)
 endif()

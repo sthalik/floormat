@@ -14,6 +14,11 @@
 #include <cerrno>
 #include <unistd.h>
 #include <sys/mman.h>
+#  ifdef __linux__
+#    include <cstdlib>
+#    include <cstring>
+#    include <fcntl.h>
+#  endif
 #  ifdef __FreeBSD__
 #    include <fcntl.h>
 #  endif
@@ -48,37 +53,6 @@ inline usize round_up(usize bytes, usize page) noexcept
 {
     fm_warn_once("superpage alloc failed, using small pages (%s): %s", what, why.data());
 }
-
-#ifdef _WIN32
-struct large_pages { usize page; DWORD err; };
-
-// err is 0 when the OS reports no large-page support.
-large_pages windows_enable_large_pages() noexcept
-{
-    static const large_pages result = []() -> large_pages {
-        usize page = GetLargePageMinimum();
-        if (page == 0)
-            return {};
-        HANDLE tok = nullptr;
-        if (!OpenProcessToken(GetCurrentProcess(),
-                              TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tok))
-            return { 0, GetLastError() };
-        TOKEN_PRIVILEGES tp = {};
-        tp.PrivilegeCount = 1;
-        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-        BOOL ok = LookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege",
-                                        &tp.Privileges[0].Luid);
-        if (ok)
-            ok = AdjustTokenPrivileges(tok, FALSE, &tp, sizeof(tp), nullptr, nullptr);
-        DWORD err = GetLastError();
-        CloseHandle(tok);
-        if (!ok || err == ERROR_NOT_ALL_ASSIGNED)
-            return { 0, err };
-        return { page, 0 };
-    }();
-    return result;
-}
-#endif
 
 #if defined __FreeBSD__ && defined SHM_LARGEPAGE_ALLOC_DEFAULT
 int freebsd_psind_2m() noexcept
@@ -242,6 +216,81 @@ raw_alloc alloc_impl(usize bytes) noexcept
 }
 
 } // namespace
+
+#ifdef _WIN32
+large_pages windows_enable_large_pages() noexcept
+{
+    static const large_pages result = []() -> large_pages {
+        usize page = GetLargePageMinimum();
+        if (page == 0)
+            return {};
+        HANDLE tok = nullptr;
+        if (!OpenProcessToken(GetCurrentProcess(),
+                              TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tok))
+            return { 0, (u32)GetLastError() };
+        TOKEN_PRIVILEGES tp = {};
+        tp.PrivilegeCount = 1;
+        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+        BOOL ok = LookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege",
+                                        &tp.Privileges[0].Luid);
+        if (ok)
+            ok = AdjustTokenPrivileges(tok, FALSE, &tp, sizeof(tp), nullptr, nullptr);
+        DWORD err = GetLastError();
+        CloseHandle(tok);
+        if (!ok || err == ERROR_NOT_ALL_ASSIGNED)
+            return { 0, (u32)err };
+        return { page, 0 };
+    }();
+    return result;
+}
+#endif
+
+#ifdef __linux__
+namespace {
+
+bool read_text_file(const char* path, char (&buf)[64])
+{
+    buf[0] = '\0';
+    const int fd = open(path, O_RDONLY | O_CLOEXEC);
+    if (fd < 0)
+        return false;
+    else
+    {
+        const auto n = read(fd, buf, sizeof buf - 1);
+        close(fd);
+        buf[n > 0 ? n : 0] = '\0';
+        return n > 0;
+    }
+}
+
+} // namespace
+
+superpage_mode linux_superpage_mode() noexcept
+{
+    static const superpage_mode result = [] {
+        char buf[64];
+        if (!read_text_file("/sys/kernel/mm/transparent_hugepage/hpage_pmd_size", buf) ||
+            std::strtoull(buf, nullptr, 10) != 2u << 20)
+            return superpage_mode::not_supported;
+        else
+        {
+            // The per-size file overrides the top-level one unless it reads inherit. Older kernels lack it.
+            if (!read_text_file("/sys/kernel/mm/transparent_hugepage/hugepages-2048kB/enabled", buf) ||
+                std::strstr(buf, "[inherit]"))
+                (void)read_text_file("/sys/kernel/mm/transparent_hugepage/enabled", buf);
+            if (std::strstr(buf, "[always]"))
+                return superpage_mode::always;
+            else if (std::strstr(buf, "[madvise]"))
+                return superpage_mode::madvise;
+            else if (std::strstr(buf, "[never]"))
+                return superpage_mode::never;
+            else
+                return superpage_mode::not_supported;
+        }
+    }();
+    return result;
+}
+#endif
 
 superpage_alloc_t superpage_alloc(usize bytes) noexcept
 {

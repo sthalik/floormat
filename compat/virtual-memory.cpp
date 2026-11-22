@@ -55,7 +55,7 @@ usize virtual_memory::page_size()
     return ret;
 }
 
-virtual_memory::virtual_memory() noexcept = default;
+virtual_memory::virtual_memory(char* data, usize bytes) noexcept: _data{data}, _size{bytes} {}
 
 virtual_memory::~virtual_memory() noexcept { release(); }
 
@@ -140,6 +140,66 @@ void virtual_memory::decommit(usize offset, usize bytes)
     if (mmap(_data + offset, bytes, PROT_NONE, flags, -1, 0) == MAP_FAILED)
         abort_with_os_error("decommit", bytes);
 #endif
+}
+
+char* virtual_memory::map_pages(usize bytes, usize alignment)
+{
+    fm_assert(bytes > 0 && (alignment & (alignment - 1)) == 0);
+    const auto size = round_up(bytes, page_size());
+#ifdef _WIN32
+    static const usize granularity = [] {
+        SYSTEM_INFO si;
+        GetSystemInfo(&si);
+        return (usize)si.dwAllocationGranularity;
+    }();
+    if (alignment <= granularity)
+    {
+        auto* p = (char*)VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        if (!p)
+            abort_with_os_error("map", size);
+        return p;
+    }
+    else
+    {
+        // Another thread may take the range between VirtualFree and VirtualAlloc.
+        for (u32 i = 0; i < 64; i++)
+        {
+            auto* const q = (char*)VirtualAlloc(nullptr, size + alignment, MEM_RESERVE, PAGE_NOACCESS);
+            if (!q)
+                abort_with_os_error("reserve", size + alignment);
+            if (!VirtualFree(q, 0, MEM_RELEASE))
+                abort_with_os_error("release", size + alignment);
+            auto* const aligned = q + (alignment - (uptr)q % alignment) % alignment;
+            if (auto* p = (char*)VirtualAlloc(aligned, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE))
+                return p;
+        }
+        abort_with_os_error("map", size);
+    }
+#else
+    const auto page = page_size();
+    const auto extra = alignment > page ? alignment - page : 0;
+    auto* const q = (char*)mmap(nullptr, size + extra, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (q == MAP_FAILED)
+        abort_with_os_error("map", size + extra);
+    auto* const p = q + (alignment - (uptr)q % alignment) % alignment;
+    if (p != q && munmap(q, (usize)(p - q)) != 0)
+        abort_with_os_error("unmap", (usize)(p - q));
+    if (q + extra != p && munmap(p + size, (usize)(q + extra - p)) != 0)
+        abort_with_os_error("unmap", (usize)(q + extra - p));
+    return p;
+#endif
+}
+
+void virtual_memory::unmap_pages(char* p, usize bytes)
+{
+    const auto size = round_up(bytes, page_size());
+#ifdef _WIN32
+    const bool ok = VirtualFree(p, 0, MEM_RELEASE);
+#else
+    const bool ok = munmap(p, size) == 0;
+#endif
+    if (!ok)
+        abort_with_os_error("unmap", size);
 }
 
 } // namespace floormat

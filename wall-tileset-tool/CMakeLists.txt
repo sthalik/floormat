@@ -14,7 +14,7 @@ if(OpenCV_FOUND)
     file(GLOB sources CONFIGURE_DEPENDS "*.cpp")
 
     add_executable(${self} "${sources}")
-    target_link_libraries(${self} PRIVATE floormat-serialize floormat floormat-hash)
+    target_link_libraries(${self} PRIVATE floormat-serialize floormat floormat-hash floormat-random)
 
     fm_win32_app_manifest(${self})
     fm_install_executable(${self})

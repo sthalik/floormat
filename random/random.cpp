@@ -1,4 +1,5 @@
 #include "random.hpp"
+#include "compat/atomic.hpp"
 #include <bit>
 
 namespace floormat::Random {
@@ -47,6 +48,12 @@ u64 mix(u64 x)
 u64 next(splitmix64& state)
 {
     return mix13(state.x += 0x9e3779b97f4a7c15);
+}
+
+u64 next_atomic(volatile splitmix64& state)
+{
+    constexpr u64 gamma = 0x9e3779b97f4a7c15;
+    return mix13(atomic_fetch_add(&state.x, gamma, memory_order::relaxed) + gamma);
 }
 
 u64 next(xoshiro256starstar& state)

@@ -7,6 +7,17 @@
 
 namespace floormat::debug::detail {
 
+void emit_debug(const char* prefix, const char* fmt, ...)
+{
+    std::va_list ap;
+    va_start(ap, fmt);
+    std::fputs(prefix, stderr);
+    std::vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    std::fputc('\n', stderr);
+    std::fflush(stderr);
+}
+
 void emit_assert_fail(const char* expr, const char* file, int line, const char* function)
 {
     std::fprintf(stderr, "assertion failed: %s at %s:%d in %s\n", expr, file, line, function);
@@ -51,4 +62,5 @@ int main()
     run("atomic_wait", floormat::Test::test_atomic_wait);
     run("chase_lev_deque", floormat::Test::test_chase_lev_deque);
     run("event_count", floormat::Test::test_event_count);
+    run("slab_allocator_threads", floormat::Test::test_slab_allocator_threads);
 }

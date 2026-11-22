@@ -2,12 +2,16 @@
 #include "compat/enumerate.hpp"
 #include "compat/limits.hpp"
 #include "compat/zip.hpp"
+#include "compat/stl/thread.hpp"
 #include "random/os-seed.hpp"
 #include "random/random.hpp"
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstring>
+#include <latch>
 #include <random>
+#include <cr/Array.h>
 
 namespace floormat::Test {
 
@@ -114,6 +118,45 @@ void test_default_states()
     fm_assert(c.i == d.i && c.c == d.c && c.n == d.n);
     for (u32 i = 0; i < 12; i++)
         fm_assert(c.x[i] == d.x[i]);
+}
+
+void test_next_atomic()
+{
+    constexpr u64 seeds[] = { 0, 0x5eed, 0x9e3779b97f4a7c15, 0xfffffffffffffff1 };
+    for (u64 seed : seeds)
+    {
+        Random::splitmix64 a;
+        Random::seed(a, seed);
+        alignas(8) volatile Random::splitmix64 b;
+        b.x = a.x;
+        for (u32 i = 0; i < 1000; i++)
+            fm_assert(Random::next_atomic(b) == Random::next(a));
+        fm_assert(b.x == a.x);
+    }
+
+    constexpr u32 num_threads = 4, calls_per_thread = 1 << 16, count = num_threads * calls_per_thread;
+    Random::splitmix64 a;
+    Random::seed(a, 0x5eed);
+    alignas(8) volatile Random::splitmix64 shared;
+    shared.x = a.x;
+    Array<u64> outputs{NoInit, count}, expected{NoInit, count};
+    std::latch start_gun{num_threads};
+    std::thread threads[num_threads];
+    for (auto& [i, t] : enumerate(threads))
+        t = std::thread([&, i] {
+            start_gun.arrive_and_wait();
+            for (u32 k = 0; k < calls_per_thread; k++)
+                outputs[i * calls_per_thread + k] = Random::next_atomic(shared);
+        });
+    for (auto& t : threads)
+        t.join();
+    for (u64& x : expected)
+        x = Random::next(a);
+    fm_assert(shared.x == a.x);
+    std::sort(outputs.begin(), outputs.end());
+    std::sort(expected.begin(), expected.end());
+    for (u32 i = 0; i < count; i++)
+        fm_assert(outputs[i] == expected[i]);
 }
 
 void test_mix()
@@ -322,6 +365,7 @@ void test_random()
 {
     test_zero_state();
     test_default_states();
+    test_next_atomic();
     test_mix();
     test_ranlux48();
     test_gaussian<double>(0x7fcb08b40c66e350);

@@ -6,7 +6,7 @@ if(OpenCV_FOUND AND TARGET floormat-jxl-encoder)
     add_executable(${self} main.cpp)
     target_include_directories(${self} SYSTEM PRIVATE "${OpenCV_INCLUDE_DIRS}")
     target_link_libraries(${self} PRIVATE
-        floormat-jxl-encoder floormat-serialize floormat floormat-hash
+        floormat-jxl-encoder floormat-serialize floormat floormat-hash floormat-random
         opencv_imgproc opencv_core Jxl::Jxl Magnum::Magnum Corrade::Utility)
     fm_install_executable(${self})
 endif()

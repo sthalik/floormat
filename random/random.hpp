@@ -35,6 +35,8 @@ void init_entropy(xoshiro256starstar& state);
 void init_entropy(ranlux48& state);
 
 u64 next(splitmix64& state);
+// Returns what next() would. Threads may call it on one state at once. state must be 8-byte aligned.
+u64 next_atomic(volatile splitmix64& state);
 u64 next(xoshiro256starstar& state);
 // 48-bit outputs.
 u64 next(ranlux48& state);
