@@ -2807,6 +2807,35 @@ void test_cover_script_retreat_restart(point hidden)
     fm_assert(dist(spot) - dist(hidden) > 3*tile_size_xy);
 }
 
+// path_to finds no path into a closed box of 240x496 px after adding at least
+// min_failed_dijkstra_added_node_count nodes, and none into close_in_retreat's walls after adding fewer.
+void test_failed_dijkstra_search_node_counts()
+{
+    auto w = world();
+    add_ground(w);
+    for (auto i = (u8)4; i <= 12; i++)
+    {
+        add_blocker(w, {0, i}, {16, 64});
+        add_blocker(w, {4, i}, {16, 64});
+    }
+    for (auto i = (u8)0; i <= 4; i++)
+    {
+        add_blocker(w, {i, 4}, {64, 16});
+        add_blocker(w, {i, 12}, {64, 16});
+    }
+    const point hidden{ch, {10, 3}, {}};
+    close_in_retreat(w, hidden);
+    rebuild(w);
+    const auto threat = add_critter(w, point{ch, {14, 14}, {}});
+    const auto npc = add_critter(w, point{ch, {12, 8}, {}});
+    auto A = astar{};
+    Cover::spot_tests t{A, threat->id, 0};
+    fm_assert(!t.path_to(*npc, point{ch, {2, 8}, {}}).is_found());
+    fm_assert(t.last_dijkstra_node_count() >= Cover::min_failed_dijkstra_added_node_count);
+    fm_assert(!t.path_to(*npc, hidden + Vector2i{18, 216}).is_found());
+    fm_assert(t.last_dijkstra_node_count() < Cover::min_failed_dijkstra_added_node_count);
+}
+
 // As test_cover_script_retreat without the wall, the threat circling 64 px around the npc an octant per update.
 // Each move restarts the retreat, and the npc walks off when the first pass's rays run out.
 void test_cover_script_retreat_circling_threat(point hidden)
@@ -4629,6 +4658,7 @@ void Test::test_cover_point()
     test_cover_script_retreat_cover_removed(hidden, true);
     test_cover_script_retreat_closed_in(hidden);
     test_cover_script_retreat_restart(hidden);
+    test_failed_dijkstra_search_node_counts();
     test_cover_script_retreat_circling_threat(hidden);
     test_cover_script_retreat_threat_back_and_forth(hidden);
     test_cover_script_retreat_is_passable_once_per_spot(hidden);

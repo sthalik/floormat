@@ -13,9 +13,11 @@ namespace floormat::Grid { class GridRegistry; }
 
 namespace floormat::Cover {
 
-// A Dijkstra search that finds no path visits every node within max_dist. A cover search's scan, its last resort
-// and each retreat pass stop after this many. Only the scan counts reruns without critters.
+// A Dijkstra search that finds no path may visit every node within max_dist. A cover search's scan, its last
+// resort and each retreat pass stop after this many. Only the scan counts reruns without critters.
 constexpr inline u32 max_failed_dijkstra_calls = 8;
+// A failed Dijkstra search counts toward max_failed_dijkstra_calls only when it added this many nodes or more.
+constexpr inline u32 min_failed_dijkstra_added_node_count = 1024;
 
 class spot_tests
 {
@@ -60,6 +62,8 @@ public:
     // True when a Dijkstra search from c that lets every critter through finds a path to `to` within
     // max_search_path_length().
     bool is_reachable_without_critters(critter& c, point to);
+    // The nodes that the last path_to or is_reachable_without_critters call added.
+    u32 last_dijkstra_node_count() const;
     // True when the threat, or a point near it that it can walk to, sees c's body on path after a stretch where it
     // doesn't, or past path's first 32 px when c could walk 48 px to a position none of those points see.
     bool is_seen_on_path(critter& c, const Cover::Script::options& o, point threat, const path_search_result& path);

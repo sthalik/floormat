@@ -160,7 +160,8 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
         {
             _unreachable.add_failed(w, failed_search->spot_pos,
                                     max_search_path_length(here, end) + point::distance(here, _from));
-            if (!failed_search->is_fallback_spot)
+            if (!failed_search->is_fallback_spot &&
+                t.last_dijkstra_node_count() >= min_failed_dijkstra_added_node_count)
                 _num_failed_dijkstra_calls++;
         }
         return {};
@@ -312,7 +313,9 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             }
             // The npc can walk straight from s.pos to end, so s.pos has no path either.
             _unreachable_until_rescan.add(s.pos);
-            if (++_num_failed_dijkstra_calls >= max_failed_dijkstra_calls)
+            if (t.last_dijkstra_node_count() >= min_failed_dijkstra_added_node_count)
+                _num_failed_dijkstra_calls++;
+            if (_num_failed_dijkstra_calls >= max_failed_dijkstra_calls)
                 return {};
             else
             {
@@ -515,7 +518,9 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
             else
             {
                 _unreachable_until_rescan.add(s.pos);
-                if (++_num_failed_dijkstra_calls_for_fallback < max_failed_dijkstra_calls)
+                if (t.last_dijkstra_node_count() >= min_failed_dijkstra_added_node_count)
+                    _num_failed_dijkstra_calls_for_fallback++;
+                if (_num_failed_dijkstra_calls_for_fallback < max_failed_dijkstra_calls)
                 {
                     fm_debug_assert(!_dijkstra_search_to_rerun);
                     _dijkstra_search_to_rerun = failed_dijkstra_search{s.pos, end, true};
