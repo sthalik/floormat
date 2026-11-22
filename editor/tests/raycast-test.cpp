@@ -5,6 +5,8 @@
 #include "floormat/main.hpp"
 #include "compat/array-size.hpp"
 #include "compat/function-view.hpp"
+#include "compat/nanosecond.hpp"
+#include "compat/timer.hpp"
 #include "src/critter.hpp"
 #include "src/world.hpp"
 #include "src/raycast-diag.hpp"
@@ -64,6 +66,7 @@ Pass::Params pool_params(float radius)
 struct raycast_test final : base_test
 {
     raycast_result_s result;
+    float raycast_time = 0;
     std::array<pending_s, max_pending_rays> pending;
     u32 num_pending = 0;
     pending_s last_ray;
@@ -245,7 +248,7 @@ struct raycast_test final : base_test
             text(buf);
 
             do_column("time");
-            std::snprintf(buf, array_size(buf), "%.3f ms", (double)(1000 * result.time));
+            std::snprintf(buf, array_size(buf), "%.3f ms", (double)(1000 * raycast_time));
             text(buf);
         }
     }
@@ -265,7 +268,9 @@ struct raycast_test final : base_test
                 fm_warn("raycast: wrong Z value");
                 continue;
             }
+            const auto t0 = Time::now();
             result = raycast_with_diag(diag, w, p.from, p.to, p.self, *objects, Search::never_continue, radius);
+            raycast_time = Time::to_seconds(Time::now() - t0);
             last_ray = p;
             has_last_ray = true;
         }

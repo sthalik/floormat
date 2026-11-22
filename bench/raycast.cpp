@@ -19,8 +19,6 @@
 #include "src/old-rtree-search.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function-view.hpp"
-#include "compat/nanosecond.hpp"
-#include "compat/timer.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>
 #include <cfloat>
@@ -558,10 +556,7 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
 
 raycast_result_s raycast_old(world& w, point from, point to, object_id self)
 {
-    auto t = Time::now();
-    auto ret = do_raycasting_old(w, from, to, self);
-    ret.time = Time::to_seconds(t.update());
-    return ret;
+    return do_raycasting_old(w, from, to, self);
 }
 
 } // namespace old_Raycast

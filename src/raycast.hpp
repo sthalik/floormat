@@ -25,7 +25,6 @@ struct raycast_result_s
     // collider's point nearest the projectile's center at contact, from + dir * tmin.
     point collision;
     collision_data collider;
-    float time = 0;
     bool has_result : 1 = false,
          success    : 1 = false;
 };
