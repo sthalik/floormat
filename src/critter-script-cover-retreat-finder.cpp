@@ -93,7 +93,7 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
     if (const auto k = Cover::Point::nearest_octant(Vector2(threat - from)); k != _octant)
     {
         // Spots the threat saw from its old octant may be hidden now. The pass and its count of path_to failures
-        // stay, so a moving threat can't cause more than 2*max_failed_dijkstra_calls of them.
+        // stay, so a moving threat can't cause more than 2*max_failed_dijkstra_calls counted ones.
         _octant = k;
         restart_from_first_spot();
         t.counters.num_retreat_restarts++;
@@ -219,9 +219,12 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
             }
             continue;
         }
-        // path_to lets no other critter through, so its failure doesn't say whether a critter cut the spot off.
-        _num_failed_dijkstra_calls++;
+        // A path_to that another critter blocks often fails before expanding enough nodes to count, so a pass
+        // where critters block every path can try every spot, two per update.
+        if (t.last_dijkstra_node_count() >= min_failed_dijkstra_expanded_node_count)
+            _num_failed_dijkstra_calls++;
         dijkstra_left--;
+        // path_to lets no other critter through, so its failure doesn't say whether a critter cut the spot off.
         s.needs_recheck = t.is_reachable_without_critters(c, to);
     }
 }

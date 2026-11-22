@@ -99,6 +99,8 @@ bool spot_tests::is_reachable_without_critters(critter& c, point to)
                                      Search::without_critters).is_found();
 }
 
+u32 spot_tests::last_dijkstra_node_count() const { return _astar.last_node_count(); }
+
 ArrayView<const point> spot_tests::threat_lattice(critter& c, const Cover::Script::options& o, point threat)
 {
     auto& w = c.world();
