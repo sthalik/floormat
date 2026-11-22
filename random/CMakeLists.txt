@@ -7,7 +7,7 @@ fm_no_fast_math(PRECISE SOURCE gaussian.cpp)
 
 set(self floormat-random-period)
 
-add_executable(${self} period-test.cpp ../compat/assert.cpp)
+add_executable(${self} period-test.cpp ../compat/assert.cpp ../compat/abort-behavior.cpp)
 target_link_libraries(${self} PRIVATE floormat-random floormat-common Magnum::Magnum)
 
 fm_win32_app_manifest(${self})
@@ -15,7 +15,7 @@ fm_install_executable(${self})
 
 set(self floormat-random-stream)
 
-add_executable(${self} stream.cpp ../compat/assert.cpp)
+add_executable(${self} stream.cpp ../compat/assert.cpp ../compat/abort-behavior.cpp)
 target_link_libraries(${self} PRIVATE floormat-random floormat-common Magnum::Magnum)
 
 fm_win32_app_manifest(${self})
