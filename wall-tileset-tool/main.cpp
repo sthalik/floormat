@@ -348,9 +348,6 @@ argument_tuple parse_cmdline(int argc, const char* const* argv) noexcept
     else
         opts.output_dir = opts.input_dir;
 
-    if (opts.output_dir.isEmpty())
-        opts.output_dir = opts.input_dir;
-
     //DBG << "input-dir" << opts.input_dir;
     //DBG << "output-dir" << opts.output_dir;
 
