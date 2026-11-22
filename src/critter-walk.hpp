@@ -1,6 +1,9 @@
 #pragma once
 #include "critter.hpp"
 #include "search-result.hpp"
+#include "search-pred.hpp"
+
+namespace floormat::Grid::Pass { class Pool; }
 
 namespace floormat {
 
@@ -22,6 +25,9 @@ public:
     // True when c can move its box along the rest of a smoothed path as move_toward() would, with no collider but
     // c in the way. Other walks return true untested, as their move_toward() slides past blocked diagonal steps.
     bool is_remaining_path_unblocked(critter& c) const;
+    // As above, with only the colliders p blocks in the way. With pool, whose grid holds no critters, p must let
+    // every critter through.
+    bool is_remaining_path_unblocked(critter& c, const Search::pred& p, Grid::Pass::Pool* pool) const;
 
 private:
     enum class walk_mode : u8 { none, line, path, smoothed, };

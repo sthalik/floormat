@@ -574,6 +574,15 @@ void cover_script::walk_to_found_cover(critter& C)
         if (const auto pos = threat->position(); needs_LOS_check(C, pos, c.canonical))
             find_peek_pos(C, pos);
         walk_to_peek_spot_or_cover(C, move(path));
+        if (!c.peek && st == state::to_cover)
+        {
+            const auto size = Math::max(C.bbox_size.x(), C.bbox_size.y());
+            auto& pool = tests.pool_registry().pass_pool(
+                Grid::Pass::Params{astar::default_div_size, size, pass_mode::pass});
+            // Critters stop C only when it bumps into one.
+            if (!walk.is_remaining_path_unblocked(C, Search::without_critters, &pool))
+                handle_blocked_walk(C);
+        }
     }
 }
 

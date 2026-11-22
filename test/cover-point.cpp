@@ -1087,6 +1087,53 @@ void test_cover_script_follow_path_calls(point peek)
     fm_assert(peeked);
 }
 
+// As test_cover_script_follow_path_calls, up to the update whose search stores path_to_found_cover. Walls closing
+// the npc in stop it before its first step along that path, and critters in their place once it bumps into one.
+void test_cover_script_path_to_found_cover_blocked(point peek, bool critter_walls)
+{
+    using state = Cover::Script::status::state;
+    cover_scene s;
+    Cover::Script::set_options(*s.npc, {.search_every_move = true});
+    s.step_until(state::exposed);
+    fm_assert(s.npc->position() == peek);
+    s.move_threat(point{ch, {2, 8}, {}});
+    for (auto n = 0u; ; n++)
+    {
+        fm_assert(n < 10*s.fps);
+        const auto t0 = s.status();
+        s.step();
+        const auto t = s.status();
+        if (t.st == state::search && t.counters.num_searches != t0.counters.num_searches)
+            break;
+    }
+    const auto pos = s.npc->position();
+    const Vector2i walls[][2] = {
+        {{92, 16}, {0, -38}}, {{92, 16}, {0, 38}}, {{16, 92}, {-38, 0}}, {{16, 92}, {38, 0}},
+    };
+    for (const auto& [size, off] : walls)
+    {
+        const auto p = pos + off;
+        if (critter_walls)
+            add_critter(s.w, p, Vector2ui(size));
+        else
+            add_blocker(s.w, p.local(), Vector2ub(size), p.offset());
+    }
+    rebuild(s.w);
+    s.step();
+    if (!critter_walls)
+        fm_assert(s.npc->position() == pos);
+    else
+    {
+        for (auto frames = 0u; s.status().st == state::to_cover; frames++)
+        {
+            fm_assert(frames < s.fps);
+            s.step();
+        }
+        fm_assert(s.npc->position() != pos);
+    }
+    fm_assert(s.status().st == state::seek);
+}
+
 // Half a second after the npc is back at cover from its first peek, the threat moves north-east of
 // the wall, from where it can shoot the npc at the cover spot. The npc walks past the wall's south
 // end to a spot the wall hides from there, stays there for the rest of its 2 s hidden, which the
@@ -4143,6 +4190,8 @@ void Test::test_cover_point()
     test_cover_script_threat_off_floor();
     test_cover_script_keeps_peeking(hidden, c0.peek);
     test_cover_script_follow_path_calls(c0.peek);
+    test_cover_script_path_to_found_cover_blocked(c0.peek, false);
+    test_cover_script_path_to_found_cover_blocked(c0.peek, true);
     test_cover_script_leave_peek_enclosed();
     test_cover_script_walking_threat(hidden);
     test_cover_script_follows_while_hidden();

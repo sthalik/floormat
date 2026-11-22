@@ -37,13 +37,15 @@ bool critter_walk::is_line() const { return mode == walk_mode::line; }
 
 bool critter_walk::is_remaining_path_unblocked(critter& c) const
 {
+    const auto pred = Search::blocks_all_but(c.id);
+    return is_remaining_path_unblocked(c, pred, nullptr);
+}
+
+bool critter_walk::is_remaining_path_unblocked(critter& c, const Search::pred& p, Grid::Pass::Pool* pool) const
+{
     if (mode != walk_mode::smoothed)
         return true;
     const auto sp = path.smoothings();
-    const auto self_id = c.id;
-    const auto pred = [self_id](const class chunk&, collision_data x) {
-        return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
-    };
     const auto pos = c.position();
     auto r = c.r;
     for (auto j = path_index; j < sp.size(); j++)
@@ -66,16 +68,16 @@ bool critter_walk::is_remaining_path_unblocked(critter& c) const
         {
             if (j == path_index)
             {
-                if (!c.can_rotate(new_r))
+                if (!c.can_rotate(c.coord, new_r, c.r, c.offset, c.bbox_offset, c.bbox_size, p))
                     return false;
             }
             else if (!c.can_rotate(from.coord(), new_r, r, from.offset(), rotate_point(c.bbox_offset, c.r, r),
-                                   rotate_size(c.bbox_size, c.r, r)))
+                                   rotate_size(c.bbox_size, c.r, r), p))
                 return false;
         }
         const auto [bb_off, size] = rotate_bbox(c.bbox_offset, c.bbox_size, c.r, new_r);
         const auto box_line = Raycast::bresenham_line{from - origin + Vector2i(bb_off), to - origin + Vector2i(bb_off)};
-        if (find_swept_collider(c.world(), ch, box_line, k, line.steps(), Vector2ui(size), pred).has_collider)
+        if (find_swept_collider(c.world(), ch, box_line, k, line.steps(), Vector2ui(size), p, pool).has_collider)
             return false;
         r = new_r;
     }
