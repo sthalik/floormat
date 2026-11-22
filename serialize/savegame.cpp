@@ -179,7 +179,7 @@ template<bool IsNewest> struct visitor_base;
 template<> struct visitor_base<true> { [[maybe_unused]] static constexpr proto_t PROTO = proto_version; };
 template<> struct visitor_base<false> { proto_t PROTO = (proto_t)-1; };
 
-template<typename Derived, bool IsWriter, bool IsNewest>
+template<bool IsWriter, bool IsNewest>
 struct visitor_ : visitor_base<IsNewest>
 {
     using visitor_base<IsNewest>::PROTO;
@@ -203,25 +203,21 @@ struct visitor_ : visitor_base<IsNewest>
     template<Number T, typename F> requires (!IsWriter) static CORRADE_ALWAYS_INLINE void visit(T& x, F&& f) { f(x); }
     template<Number T, typename F> requires (IsWriter) static CORRADE_ALWAYS_INLINE void visit(T x, F&& f) { f(x); }
 
-    CORRADE_ALWAYS_INLINE Derived& derived() { return static_cast<Derived&>(*this); }
-
-    template<Enum E, typename F> requires (!IsWriter) CORRADE_ALWAYS_INLINE void visit(E& x, F&& f)
+    template<Enum E, typename F> requires (!IsWriter) static CORRADE_ALWAYS_INLINE void visit(E& x, F&& f)
     { using U = std::underlying_type_t<std::remove_cvref_t<E>>; auto xʹ = U(0); f(xʹ); x = E(xʹ); }
-    template<Enum E, typename F> requires (IsWriter) CORRADE_ALWAYS_INLINE void visit(E x, F&& f)
+    template<Enum E, typename F> requires (IsWriter) static CORRADE_ALWAYS_INLINE void visit(E x, F&& f)
     { using U = std::underlying_type_t<E>; f(static_cast<U>(x)); }
 
-    template<Vector T, typename F> void visit(T&& x, F&& f)
+    template<Vector T, typename F> static void visit(T&& x, F&& f)
     {
         constexpr auto N = std::remove_cvref_t<T>::Size;
         for (u32 i = 0; i < N; i++)
             visit(forward<T>(x).data()[i], f);
     }
 
-    template<typename F>
-    void visit_object_header(o_object& obj, const object_header_s& s, F&& f)
+    template<typename Self, typename F>
+    void visit_object_header(this Self& self, o_object& obj, const object_header_s& s, F&& f)
     {
-        auto& self = derived();
-
         visit(s.id, f);
         fm_soft_assert(s.id != 0);
 
@@ -310,7 +306,7 @@ struct visitor_ : visitor_base<IsNewest>
 
     // MSVC 19.53 can't range-for over a reference template argument in constant evaluation.
     template<auto fields, typename S, typename F>
-    void visit_flags(S& s, F&& f)
+    static void visit_flags(S& s, F&& f)
     {
         u8 flags = 0;
         if constexpr(IsWriter)
@@ -372,10 +368,9 @@ struct visitor_ : visitor_base<IsNewest>
         visit_flags<fields>(s, f);
     }
 
-    template<typename F> void visit_object_proto(o_critter& obj, critter_header_s&& s, F&& f)
+    template<typename Self, typename F>
+    void visit_object_proto(this Self& self, o_critter& obj, critter_header_s&& s, F&& f)
     {
-        auto& self = derived();
-
         self.visit(obj.name, f);
 
         if (self.PROTO >= 22) [[likely]]
@@ -471,9 +466,9 @@ struct visitor_ : visitor_base<IsNewest>
 
 constexpr usize vector_initial_size = 128, hash_initial_size = vector_initial_size*2;
 
-struct writer final : visitor_<writer, true, true>
+struct writer final : visitor_<true, true>
 {
-    using visitor_<writer, true, true>::visit;
+    using visitor_<true, true>::visit;
 
     struct serialized_atlas
     {
@@ -802,8 +797,6 @@ ok:     void();
     }
 };
 
-template struct visitor_<writer, true, true>;
-
 void my_fwrite(FILE_raii& f, const buffer& buf, char(&errbuf)[128])
 {
     if (buf.size > 0) [[likely]]
@@ -893,13 +886,13 @@ template<> struct atlas_from_type<atlas_type::anim> { using Type = anim_atlas; }
 template<> struct atlas_from_type<atlas_type::vobj> { using Type = anim_atlas; };
 
 template<bool IsNewest>
-struct reader final : visitor_<reader<IsNewest>, false, IsNewest>
+struct reader final : visitor_<false, IsNewest>
 {
-    using visitor_<reader<IsNewest>, false, IsNewest>::visit;
-    using visitor_<reader<IsNewest>, false, IsNewest>::visit_object_proto;
-    using visitor_<reader<IsNewest>, false, IsNewest>::visit_object_header;
-    using visitor_<reader<IsNewest>, false, IsNewest>::visit_scenery_proto;
-    using visitor_<reader<IsNewest>, false, IsNewest>::PROTO;
+    using visitor_<false, IsNewest>::visit;
+    using visitor_<false, IsNewest>::visit_object_proto;
+    using visitor_<false, IsNewest>::visit_object_header;
+    using visitor_<false, IsNewest>::visit_scenery_proto;
+    using visitor_<false, IsNewest>::PROTO;
 
     struct atlas_pair
     {
@@ -1323,9 +1316,6 @@ ok:
         s.assert_end();
     }
 };
-
-template struct visitor_<reader<true>, false, true>;
-template struct visitor_<reader<false>, false, false>;
 
 } // namespace
 
