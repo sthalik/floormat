@@ -76,6 +76,12 @@
 #define fm_lifetimebound
 #endif
 
+#ifdef _MSVC_CONSTEXPR_ATTRIBUTE
+#define fm_msvc_cx_placement_new msvc::constexpr
+#else
+#define fm_msvc_cx_placement_new
+#endif
+
 #ifdef _MSC_VER
 #define fm_UNROLL_disable
 #define fm_UNROLL _Pragma("loop(ivdep)")

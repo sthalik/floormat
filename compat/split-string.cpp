@@ -1,5 +1,6 @@
 #include "split-string.hpp"
 #include "assert.hpp"
+#include "inplace-array.hpp"
 #include <cr/ArrayView.h>
 
 namespace floormat {
@@ -126,16 +127,17 @@ ArrayView<StringView> split_string_into(ArrayView<StringView> out, split_string_
     return out.prefix(i);
 }
 
-// _parts is default-initialized first by declaration order, then written through here.
-split_array::split_array(split_string_view range):
-    _size{(u32)split_string_into({_parts, max_size}, range).size()}
-{}
+split_array::split_array(split_string_view range)
+{
+    for (StringView token : range)
+        _parts.push_back(token);
+}
 
-u32 split_array::size() const noexcept { return _size; }
-bool split_array::isEmpty() const noexcept { return _size == 0; }
-const StringView* split_array::data() const noexcept { return _parts; }
-const StringView* split_array::begin() const noexcept { return _parts; }
-const StringView* split_array::end() const noexcept { return _parts + _size; }
-split_array::operator ArrayView<const StringView>() const noexcept { return {_parts, _size}; }
+u32 split_array::size() const noexcept { return _parts.size(); }
+bool split_array::isEmpty() const noexcept { return _parts.empty(); }
+const StringView* split_array::data() const noexcept { return _parts.data(); }
+const StringView* split_array::begin() const noexcept { return _parts.begin(); }
+const StringView* split_array::end() const noexcept { return _parts.end(); }
+split_array::operator ArrayView<const StringView>() const noexcept { return _parts; }
 
 } // namespace floormat

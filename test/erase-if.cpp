@@ -3,31 +3,12 @@
 #include "compat/container-traits.inl"
 #include "compat/equal.hpp"
 #include "compat/erase-if.hpp"
+#include "compat/inplace-array.hpp"
 #include <cr/GrowableArray.h>
 #include <cr/String.h>
 #include <initializer_list>
 
 namespace floormat {
-
-namespace {
-
-struct inplace_vector
-{
-    int xs[16] = {};
-    usize n = 0;
-
-    constexpr int* begin() { return xs; }
-    constexpr int* end() { return xs + n; }
-    constexpr usize size() const { return n; }
-};
-
-} // namespace
-
-template<>
-struct container_traits<inplace_vector>
-{
-    static constexpr void remove_suffix(inplace_vector& c, usize count) { c.n -= count; }
-};
 
 namespace {
 
@@ -50,9 +31,9 @@ struct counted : bptr_base
 template<typename Pred>
 constexpr bool erases_to(std::initializer_list<int> in, Pred pred, std::initializer_list<int> expected)
 {
-    inplace_vector v;
+    inplace_array<int, 16> v;
     for (int x : in)
-        v.xs[v.n++] = x;
+        v.push_back(x);
     const usize removed = erase_if(v, pred);
     return removed == in.size() - expected.size() && equal(v, expected);
 }

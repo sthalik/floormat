@@ -1,4 +1,5 @@
 #pragma once
+#include "inplace-array.h"
 #include <cr/StringView.h>
 #include <cr/ArrayView.h>
 #include <initializer_list>
@@ -88,8 +89,7 @@ public:
     static constexpr u32 max_size = 16;
 
 private:
-    StringView _parts[max_size];
-    u32 _size = 0;
+    inplace_array<StringView, max_size> _parts;
 
 public:
     split_array() noexcept = default;
