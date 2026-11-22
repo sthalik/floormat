@@ -105,9 +105,31 @@ struct maker<counted<D>>
 };
 
 template<typename T, usize N>
+constexpr bool is_contiguous_container_asan_correct([[maybe_unused]] const inplace_array<T, N>& a)
+{
+#if fm_ASAN
+    if constexpr (N > 0)
+    {
+        if consteval
+        {
+            return true;
+        }
+        else
+        {
+            return __sanitizer_verify_contiguous_container(a.data(), a.data() + a.size(), a.data() + N) != 0;
+        }
+    }
+    else
+        return true;
+#else
+    return true;
+#endif
+}
+
+template<typename T, usize N>
 constexpr bool has_values(const inplace_array<T, N>& a, std::initializer_list<int> expected)
 {
-    if (a.size() != expected.size())
+    if (a.size() != expected.size() || !is_contiguous_container_asan_correct(a))
         return false;
     else
     {
@@ -125,12 +147,12 @@ static_assert(sizeof(inplace_array<u16, 3>) == 8);
 static_assert(sizeof(inplace_array<u32, 3>) == 16);
 static_assert(sizeof(inplace_array<StringView, 16>) == 16 * sizeof(StringView) + alignof(StringView));
 
-static_assert(std::is_trivially_copyable_v<inplace_array<int, 4>>);
-static_assert(std::is_trivially_copyable_v<inplace_array<with_default_member, 4>>);
-static_assert(std::is_trivially_copyable_v<inplace_array<triple, 4>>);
+static_assert(std::is_trivially_copyable_v<inplace_array<int, 4>> == !fm_ASAN);
+static_assert(std::is_trivially_copyable_v<inplace_array<with_default_member, 4>> == !fm_ASAN);
+static_assert(std::is_trivially_copyable_v<inplace_array<triple, 4>> == !fm_ASAN);
 static_assert(!std::is_trivially_copyable_v<inplace_array<counted<true>, 4>>);
 static_assert(!std::is_trivially_copyable_v<inplace_array<String, 4>>);
-static_assert(std::is_trivially_destructible_v<inplace_array<triple, 4>>);
+static_assert(std::is_trivially_destructible_v<inplace_array<triple, 4>> == !fm_ASAN);
 static_assert(!std::is_trivially_destructible_v<inplace_array<counted<false>, 4>>);
 static_assert(!std::is_trivially_destructible_v<inplace_array<String, 4>>);
 static_assert(std::is_empty_v<inplace_array<String, 0>> && std::is_trivially_copyable_v<inplace_array<String, 0>>);
@@ -149,6 +171,14 @@ static_assert(!std::totally_ordered<inplace_array<equality_comparable_only, 4>>)
 
 static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 2>&>().try_push_back(2)), Optional<int&>>);
 static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 0>&>().try_emplace_back(2)), Optional<int&>>);
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 2>&>().push_back(NoInit)), int&>);
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 2>&>().unchecked_push_back(NoInit)), int&>);
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 2>&>().try_push_back(NoInit)), Optional<int&>>);
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 2>&>().insert(nullptr, NoInit)), int*>);
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 2>&>().insert(nullptr, NoInit, 2)), int*>);
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 0>&>().push_back(NoInit)), int&>);
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 0>&>().try_push_back(NoInit)), Optional<int&>>);
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 0>&>().insert(nullptr, NoInit, 0)), int*>);
 
 constexpr inplace_array<non_constexpr_default_ctor, 4> constant_empty_array;
 static_assert(constant_empty_array.empty() && constant_empty_array.begin() == constant_empty_array.end());
@@ -160,6 +190,11 @@ template<typename T>
 constexpr bool test_members()
 {
     maker<T> make;
+    const auto construct_value_at = [&](T& slot, int v) -> T& {
+        return make.call_with_ctor_args(v, [&](auto&&... args) -> T& {
+            return *construct_at(__builtin_addressof(slot), args...);
+        });
+    };
     {
         inplace_array<T, 6> a;
         fm_assert(a.empty() && a.size() == 0 && a.capacity() == 6 && a.max_size() == 6);
@@ -267,6 +302,74 @@ constexpr bool test_members()
             const inplace_array<T, 4> b(2);
             fm_assert(b.size() == 2 && value_of(b[1]) == value_of(T{}));
         }
+    }
+    fm_assert(make.has_live_count(0));
+    {
+        inplace_array<T, 8> b;
+        b.push_back(make(2));
+        T& slot3 = b.push_back(NoInit);
+        fm_assert(&slot3 == b.end() - 1 && b.size() == 2 && make.has_live_count(1));
+        construct_value_at(slot3, 3);
+        T& slot5 = b.unchecked_push_back(NoInit);
+        fm_assert(&slot5 == b.end() - 1 && b.size() == 3 && make.has_live_count(2));
+        construct_value_at(slot5, 5);
+        const Optional<T&> slot7 = b.try_push_back(NoInit);
+        fm_assert(slot7 && &*slot7 == b.end() - 1 && b.size() == 4 && make.has_live_count(3));
+        construct_value_at(*slot7, 7);
+        fm_assert(has_values(b, {2, 3, 5, 7}) && make.has_live_count(4));
+
+        b.resize(NoInit, 7);
+        fm_assert(b.size() == 7 && make.has_live_count(4));
+        for (u32 i = 4; i < 7; i++)
+            construct_value_at(b[i], int(i) * 10);
+        construct_value_at(b.push_back(NoInit), 70);
+        fm_assert(!b.try_push_back(NoInit) && has_values(b, {2, 3, 5, 7, 40, 50, 60, 70}) && make.has_live_count(8));
+        b.resize(NoInit, 3);
+        fm_assert(has_values(b, {2, 3, 5}) && make.has_live_count(3));
+
+        T* q = b.insert(b.begin() + 1, NoInit);
+        fm_assert(q == b.begin() + 1 && b.size() == 4 && make.has_live_count(3));
+        construct_value_at(*q, 11);
+        fm_assert(has_values(b, {2, 11, 3, 5}) && make.has_live_count(4));
+        q = b.insert(b.begin() + 3, NoInit, 3);
+        fm_assert(q == b.begin() + 3 && b.size() == 7 && make.has_live_count(4));
+        for (u32 i = 0; i < 3; i++)
+            construct_value_at(q[i], 13 + int(i));
+        fm_assert(has_values(b, {2, 11, 3, 13, 14, 15, 5}) && make.has_live_count(7));
+        b.erase(b.begin() + 3, b.end());
+        q = b.insert(b.end(), NoInit, 1);
+        fm_assert(q == b.end() - 1 && b.size() == 4 && make.has_live_count(3));
+        construct_value_at(*q, 17);
+        q = b.insert(b.begin() + 2, NoInit, 2);
+        fm_assert(q == b.begin() + 2 && b.size() == 6 && make.has_live_count(4));
+        construct_value_at(q[0], 19);
+        construct_value_at(q[1], 23);
+        fm_assert(has_values(b, {2, 11, 19, 23, 3, 17}) && make.has_live_count(6));
+        fm_assert(b.insert(b.begin() + 1, NoInit, 0) == b.begin() + 1 && has_values(b, {2, 11, 19, 23, 3, 17}));
+    }
+    fm_assert(make.has_live_count(0));
+    {
+        inplace_array<T, 8> c{make(2), make(3), make(5), make(7)};
+        T* q = c.insert(c.begin(), c[2]);
+        fm_assert(q == c.begin() && has_values(c, {5, 2, 3, 5, 7}) && make.has_live_count(5));
+        c.erase(c.begin());
+        q = c.insert(c.begin() + 1, 2, c[3]);
+        fm_assert(q == c.begin() + 1 && has_values(c, {2, 7, 7, 3, 5, 7}) && make.has_live_count(6));
+        c.erase(c.begin() + 1, c.begin() + 3);
+        q = c.insert(c.begin(), move(c[2]));
+        fm_assert(q == c.begin() && has_values(c, {5, 2, 3, 5, 7}) && make.has_live_count(5));
+        c.erase(c.begin());
+        q = c.emplace(c.begin(), c[1]);
+        fm_assert(q == c.begin() && has_values(c, {3, 2, 3, 5, 7}) && make.has_live_count(5));
+    }
+    fm_assert(make.has_live_count(0));
+    if (std::is_default_constructible_v<T> || !std::is_constant_evaluated())
+    {
+        inplace_array<T, 4> d(NoInit, 2);
+        fm_assert(d.size() == 2 && make.has_live_count(0));
+        construct_value_at(d[0], 2);
+        construct_value_at(d[1], 3);
+        fm_assert(has_values(d, {2, 3}) && make.has_live_count(2));
     }
     fm_assert(make.has_live_count(0));
     return true;
@@ -385,8 +488,11 @@ constexpr bool test_zero_capacity()
     fm_assert(erase(a, triple{7}) == 0 && erase_if(a, [](const triple&) { return true; }) == 0);
     const ArrayView<const triple> view = a;
     fm_assert(view.isEmpty() && a.empty());
-    const inplace_array<triple, 0> c(0), d(0, src[0]), f(src, src), g{};
-    fm_assert(c == d && f == g);
+    const inplace_array<triple, 0> c(0), d(0, src[0]), f(src, src), g{}, h(NoInit, 0);
+    fm_assert(c == d && f == g && h == g);
+    fm_assert(!a.try_push_back(NoInit));
+    a.resize(NoInit, 0);
+    fm_assert(a.insert(a.begin(), NoInit, 0) == a.end());
     return true;
 }
 
@@ -446,7 +552,7 @@ String long_string(u32 i)
 
 bool has_strings(const inplace_array<String, 5>& a, std::initializer_list<u32> expected)
 {
-    if (a.size() != expected.size())
+    if (a.size() != expected.size() || !is_contiguous_container_asan_correct(a))
         return false;
     else
     {
@@ -479,6 +585,13 @@ void test_strings()
     a.clear();
     a.resize(1, long_string(9));
     fm_assert(has_strings(a, {9}));
+    a.push_back(long_string(1));
+    String* p = a.insert(a.begin(), NoInit, 2);
+    construct_at(p, long_string(2));
+    construct_at(p + 1, long_string(3));
+    fm_assert(has_strings(a, {2, 3, 9, 1}));
+    a.insert(a.begin(), a[2]);
+    fm_assert(has_strings(a, {9, 2, 3, 9, 1}));
 }
 
 void test_non_constexpr_default_ctor()
@@ -505,6 +618,10 @@ void test_move_only()
     fm_assert(a.size() == 3 && b.size() == 1 && *a[2] == 3 && *b[0] == 11);
     a = move(b);
     fm_assert(a.size() == 1 && *a[0] == 11);
+    construct_at(a.insert(a.begin(), NoInit), InPlaceInit, 13);
+    fm_assert(a.size() == 2 && *a[0] == 13 && *a[1] == 11 && is_contiguous_container_asan_correct(a));
+    a.pop_back();
+    fm_assert(a.size() == 1 && *a[0] == 13 && is_contiguous_container_asan_correct(a));
 }
 
 } // namespace

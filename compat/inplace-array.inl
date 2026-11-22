@@ -33,6 +33,22 @@ constexpr void rotate(T* first, T* middle, T* last)
     }
 }
 
+template<typename T>
+constexpr bool is_pointer_in_range(const T* first, const T* last, const T* p)
+{
+    if consteval
+    {
+        for (; first != last; ++first)
+            if (p == first)
+                return true;
+        return false;
+    }
+    else
+    {
+        return (uptr)p - (uptr)first < (uptr)last - (uptr)first;
+    }
+}
+
 } // namespace floormat::detail::inplace_array_impl
 
 namespace floormat {
@@ -121,39 +137,95 @@ constexpr Optional<T&> inplace_array<T, N>::try_push_back(T&& value)
 }
 
 template<typename T, usize N>
+constexpr Optional<T&> inplace_array<T, N>::try_push_back(NoInitT)
+{
+    if (size() < capacity())
+        return unchecked_push_back(NoInit);
+    else
+        return {};
+}
+
+template<typename T, usize N>
 template<typename... Args>
 constexpr T* inplace_array<T, N>::emplace(const T* pos, Args&&... args)
 {
-    const auto i = (u32)(pos - cbegin());
-    fm_debug_assert(i <= size());
-    emplace_back(forward<Args>(args)...);
-    detail::inplace_array_impl::rotate(begin() + i, end() - 1, end());
-    return begin() + i;
+    if constexpr (sizeof...(Args) == 1 && (... && std::is_same_v<std::remove_cvref_t<Args>, T>))
+        return insert(pos, forward<Args>(args)...);
+    else if (pos == cend())
+        return __builtin_addressof(emplace_back(forward<Args>(args)...));
+    else
+        return construct_at(insert(pos, NoInit), forward<Args>(args)...);
 }
 
 template<typename T, usize N>
 constexpr T* inplace_array<T, N>::insert(const T* pos, const T& value)
 {
-    return emplace(pos, value);
+    return insert(pos, 1u, value);
 }
 
 template<typename T, usize N>
 constexpr T* inplace_array<T, N>::insert(const T* pos, T&& value)
 {
-    return emplace(pos, move(value));
+    if (pos == cend())
+        return __builtin_addressof(emplace_back(move(value)));
+    else
+    {
+        T* src = __builtin_addressof(value);
+        if (detail::inplace_array_impl::is_pointer_in_range(pos, cend(), src)) [[unlikely]]
+            src += 1;
+        return construct_at(insert(pos, NoInit), move(*src));
+    }
+}
+
+template<typename T, usize N>
+constexpr T* inplace_array<T, N>::insert(const T* pos, NoInitT)
+{
+    return insert(pos, NoInit, 1);
 }
 
 template<typename T, usize N>
 constexpr T* inplace_array<T, N>::insert(const T* pos, u32 count, const T& value)
 {
-    const auto i = (u32)(pos - cbegin());
-    fm_debug_assert(i <= size());
     fm_assert(count <= capacity() - size());
+    if (pos == cend())
+    {
+        const u32 old_size = size();
+        while (size() < old_size + count)
+            unchecked_emplace_back(value);
+        return begin() + old_size;
+    }
+    else
+    {
+        const T* src = __builtin_addressof(value);
+        if (detail::inplace_array_impl::is_pointer_in_range(pos, cend(), src)) [[unlikely]]
+            src += count;
+        T* const first = insert(pos, NoInit, count);
+        for (u32 i = 0; i < count; i++)
+            construct_at(first + i, *src);
+        return first;
+    }
+}
+
+template<typename T, usize N>
+constexpr T* inplace_array<T, N>::insert(const T* pos, NoInitT, u32 count)
+{
+    const auto i = (u32)(pos - cbegin());
     const u32 old_size = size();
-    while (size() < old_size + count)
-        unchecked_emplace_back(value);
-    detail::inplace_array_impl::rotate(begin() + i, begin() + old_size, end());
-    return begin() + i;
+    fm_debug_assert(i <= old_size);
+    fm_assert(count <= capacity() - old_size);
+    resize(NoInit, old_size + count);
+    T* const first = begin() + i;
+    T* const old_last = begin() + old_size;
+    T* src = old_last;
+    T* dst = end();
+    while (src != first && dst != old_last)
+        construct_at(--dst, move(*--src));
+    while (src != first)
+        *--dst = move(*--src);
+    if constexpr (!std::is_trivially_destructible_v<T>)
+        for (T* p = first; p != old_last && p != first + count; ++p)
+            destroy_at(p);
+    return first;
 }
 
 template<typename T, usize N>
@@ -172,7 +244,22 @@ constexpr T* inplace_array<T, N>::insert(const T* pos, I first, S last)
 template<typename T, usize N>
 constexpr T* inplace_array<T, N>::insert(const T* pos, std::initializer_list<T> list)
 {
-    return insert(pos, list.begin(), list.end());
+    fm_assert(list.size() <= capacity() - size());
+    if (pos == cend())
+    {
+        const u32 old_size = size();
+        for (const T& x : list)
+            unchecked_emplace_back(x);
+        return begin() + old_size;
+    }
+    else
+    {
+        T* const first = insert(pos, NoInit, (u32)list.size());
+        T* dst = first;
+        for (const T& x : list)
+            construct_at(dst++, x);
+        return first;
+    }
 }
 
 template<typename T, usize N>
@@ -262,6 +349,7 @@ constexpr Optional<T&> inplace_array<T, 0>::try_emplace_back(Args&&...)
 
 template<typename T> constexpr Optional<T&> inplace_array<T, 0>::try_push_back(const T&) { return {}; }
 template<typename T> constexpr Optional<T&> inplace_array<T, 0>::try_push_back(T&&) { return {}; }
+template<typename T> constexpr Optional<T&> inplace_array<T, 0>::try_push_back(NoInitT) { return {}; }
 
 template<typename T>
 template<typename... Args>
@@ -285,7 +373,23 @@ constexpr T* inplace_array<T, 0>::insert(const T* pos, T&& value)
 }
 
 template<typename T>
+constexpr T* inplace_array<T, 0>::insert(const T* pos, NoInitT)
+{
+    fm_debug_assert(pos == cbegin());
+    push_back(NoInit);
+    return data();
+}
+
+template<typename T>
 constexpr T* inplace_array<T, 0>::insert(const T* pos, u32 count, const T&)
+{
+    fm_debug_assert(pos == cbegin());
+    fm_assert(count == 0);
+    return data();
+}
+
+template<typename T>
+constexpr T* inplace_array<T, 0>::insert(const T* pos, NoInitT, u32 count)
 {
     fm_debug_assert(pos == cbegin());
     fm_assert(count == 0);

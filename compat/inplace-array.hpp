@@ -2,6 +2,7 @@
 #include "assert.hpp"
 #include "construct-at.hpp"
 #include "container-traits.hpp"
+#include "defs.hpp"
 #include "move.hpp"
 #include "range-access.hpp"
 #include <cr/ArrayView.h>
@@ -11,6 +12,9 @@
 #include <initializer_list>
 #include <type_traits>
 #include <utility>
+#if fm_ASAN
+#include <sanitizer/asan_interface.h>
+#endif
 
 namespace floormat::detail::inplace_array_impl {
 
@@ -70,6 +74,7 @@ class inplace_array
 
     constexpr void start_storage_lifetime();
     constexpr void start_storage_lifetime(const T& value);
+    constexpr void annotate_contiguous_container(u32 old_size, u32 new_size) noexcept;
 
 public:
     using value_type = T;
@@ -84,35 +89,36 @@ public:
     using reverse_iterator = floormat::reverse_iterator<T*>;
     using const_reverse_iterator = floormat::reverse_iterator<const T*>;
 
-    inplace_array() noexcept = default;
+    constexpr inplace_array() noexcept;
     constexpr explicit inplace_array(u32 count);
+    constexpr inplace_array(NoInitT, u32 count);
     constexpr inplace_array(u32 count, const T& value);
     template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
     constexpr inplace_array(I first, S last);
     constexpr inplace_array(std::initializer_list<T> list);
 
-    inplace_array(const inplace_array&) requires std::is_trivially_copy_constructible_v<T> = default;
+    inplace_array(const inplace_array&) requires (!fm_ASAN && std::is_trivially_copy_constructible_v<T>) = default;
     constexpr inplace_array(const inplace_array& other)
-        requires (!std::is_trivially_copy_constructible_v<T> && std::is_copy_constructible_v<T>);
-    inplace_array(inplace_array&&) requires std::is_trivially_move_constructible_v<T> = default;
+        requires ((!!fm_ASAN || !std::is_trivially_copy_constructible_v<T>) && std::is_copy_constructible_v<T>);
+    inplace_array(inplace_array&&) requires (!fm_ASAN && std::is_trivially_move_constructible_v<T>) = default;
     constexpr inplace_array(inplace_array&& other) noexcept(std::is_nothrow_move_constructible_v<T>)
-        requires (!std::is_trivially_move_constructible_v<T> && std::is_move_constructible_v<T>);
+        requires ((!!fm_ASAN || !std::is_trivially_move_constructible_v<T>) && std::is_move_constructible_v<T>);
 
     inplace_array& operator=(const inplace_array&)
-        requires (std::is_trivially_copy_constructible_v<T> && std::is_trivially_copy_assignable_v<T> &&
+        requires (!fm_ASAN && std::is_trivially_copy_constructible_v<T> && std::is_trivially_copy_assignable_v<T> &&
                   std::is_trivially_destructible_v<T>) = default;
     constexpr inplace_array& operator=(const inplace_array& other)
-        requires (!(std::is_trivially_copy_constructible_v<T> && std::is_trivially_copy_assignable_v<T> &&
-                    std::is_trivially_destructible_v<T>) && std::is_copy_constructible_v<T>);
+        requires ((!!fm_ASAN || !(std::is_trivially_copy_constructible_v<T> && std::is_trivially_copy_assignable_v<T> &&
+                              std::is_trivially_destructible_v<T>)) && std::is_copy_constructible_v<T>);
     inplace_array& operator=(inplace_array&&)
-        requires (std::is_trivially_move_constructible_v<T> && std::is_trivially_move_assignable_v<T> &&
+        requires (!fm_ASAN && std::is_trivially_move_constructible_v<T> && std::is_trivially_move_assignable_v<T> &&
                   std::is_trivially_destructible_v<T>) = default;
     constexpr inplace_array& operator=(inplace_array&& other) noexcept(std::is_nothrow_move_constructible_v<T>)
-        requires (!(std::is_trivially_move_constructible_v<T> && std::is_trivially_move_assignable_v<T> &&
-                    std::is_trivially_destructible_v<T>) && std::is_move_constructible_v<T>);
+        requires ((!!fm_ASAN || !(std::is_trivially_move_constructible_v<T> && std::is_trivially_move_assignable_v<T> &&
+                              std::is_trivially_destructible_v<T>)) && std::is_move_constructible_v<T>);
     constexpr inplace_array& operator=(std::initializer_list<T> list);
 
-    ~inplace_array() requires std::is_trivially_destructible_v<T> = default;
+    ~inplace_array() requires (!fm_ASAN && std::is_trivially_destructible_v<T>) = default;
     constexpr ~inplace_array();
 
     constexpr void assign(u32 count, const T& value);
@@ -150,24 +156,30 @@ public:
     static constexpr CORRADE_ALWAYS_INLINE u32 max_size() noexcept;
     static constexpr CORRADE_ALWAYS_INLINE u32 capacity() noexcept;
     constexpr void resize(u32 count);
+    constexpr void resize(NoInitT, u32 count);
     constexpr void resize(u32 count, const T& value);
 
     template<typename... Args> constexpr T& emplace_back(Args&&... args);
     constexpr T& push_back(const T& value);
     constexpr T& push_back(T&& value);
+    constexpr T& push_back(NoInitT);
     template<typename... Args> constexpr Optional<T&> try_emplace_back(Args&&... args);
     constexpr Optional<T&> try_push_back(const T& value);
     constexpr Optional<T&> try_push_back(T&& value);
+    constexpr Optional<T&> try_push_back(NoInitT);
     template<typename... Args> constexpr T& unchecked_emplace_back(Args&&... args);
     constexpr T& unchecked_push_back(const T& value);
     constexpr T& unchecked_push_back(T&& value);
+    constexpr T& unchecked_push_back(NoInitT);
     constexpr void pop_back() noexcept;
     template<typename R> requires range<R> constexpr void append_range(R&& r);
 
     template<typename... Args> constexpr T* emplace(const T* pos, Args&&... args);
     constexpr T* insert(const T* pos, const T& value);
     constexpr T* insert(const T* pos, T&& value);
+    constexpr T* insert(const T* pos, NoInitT);
     constexpr T* insert(const T* pos, u32 count, const T& value);
+    constexpr T* insert(const T* pos, NoInitT, u32 count);
     template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
     constexpr T* insert(const T* pos, I first, S last);
     constexpr T* insert(const T* pos, std::initializer_list<T> list);
@@ -200,6 +212,7 @@ public:
 
     inplace_array() noexcept = default;
     constexpr explicit inplace_array(u32 count);
+    constexpr inplace_array(NoInitT, u32 count);
     constexpr inplace_array(u32 count, const T& value);
     template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
     constexpr inplace_array(I first, S last);
@@ -241,24 +254,30 @@ public:
     static constexpr CORRADE_ALWAYS_INLINE u32 max_size() noexcept;
     static constexpr CORRADE_ALWAYS_INLINE u32 capacity() noexcept;
     constexpr void resize(u32 count);
+    constexpr void resize(NoInitT, u32 count);
     constexpr void resize(u32 count, const T& value);
 
     template<typename... Args> constexpr T& emplace_back(Args&&... args);
     constexpr T& push_back(const T& value);
     constexpr T& push_back(T&& value);
+    constexpr T& push_back(NoInitT);
     template<typename... Args> constexpr Optional<T&> try_emplace_back(Args&&... args);
     constexpr Optional<T&> try_push_back(const T& value);
     constexpr Optional<T&> try_push_back(T&& value);
+    constexpr Optional<T&> try_push_back(NoInitT);
     template<typename... Args> constexpr T& unchecked_emplace_back(Args&&... args);
     constexpr T& unchecked_push_back(const T& value);
     constexpr T& unchecked_push_back(T&& value);
+    constexpr T& unchecked_push_back(NoInitT);
     constexpr void pop_back() noexcept;
     template<typename R> requires range<R> constexpr void append_range(R&& r);
 
     template<typename... Args> constexpr T* emplace(const T* pos, Args&&... args);
     constexpr T* insert(const T* pos, const T& value);
     constexpr T* insert(const T* pos, T&& value);
+    constexpr T* insert(const T* pos, NoInitT);
     constexpr T* insert(const T* pos, u32 count, const T& value);
+    constexpr T* insert(const T* pos, NoInitT, u32 count);
     template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
     constexpr T* insert(const T* pos, I first, S last);
     constexpr T* insert(const T* pos, std::initializer_list<T> list);
@@ -348,9 +367,33 @@ constexpr void inplace_array<T, N>::start_storage_lifetime(const T& value)
 }
 
 template<typename T, usize N>
+constexpr void inplace_array<T, N>::annotate_contiguous_container([[maybe_unused]] u32 old_size,
+                                                                  [[maybe_unused]] u32 new_size) noexcept
+{
+#if fm_ASAN
+    if !consteval
+    {
+        __sanitizer_annotate_contiguous_container(data(), data() + N, data() + old_size, data() + new_size);
+    }
+#endif
+}
+
+template<typename T, usize N>
+constexpr inplace_array<T, N>::inplace_array() noexcept
+{
+    annotate_contiguous_container(capacity(), 0);
+}
+
+template<typename T, usize N>
 constexpr inplace_array<T, N>::inplace_array(u32 count): inplace_array{}
 {
     resize(count);
+}
+
+template<typename T, usize N>
+constexpr inplace_array<T, N>::inplace_array(NoInitT, u32 count): inplace_array{}
+{
+    resize(NoInit, count);
 }
 
 template<typename T, usize N>
@@ -377,7 +420,7 @@ constexpr inplace_array<T, N>::inplace_array(std::initializer_list<T> list): inp
 
 template<typename T, usize N>
 constexpr inplace_array<T, N>::inplace_array(const inplace_array& other)
-    requires (!std::is_trivially_copy_constructible_v<T> && std::is_copy_constructible_v<T>):
+    requires ((!!fm_ASAN || !std::is_trivially_copy_constructible_v<T>) && std::is_copy_constructible_v<T>):
     inplace_array{}
 {
     for (const T& x : other)
@@ -386,7 +429,7 @@ constexpr inplace_array<T, N>::inplace_array(const inplace_array& other)
 
 template<typename T, usize N>
 constexpr inplace_array<T, N>::inplace_array(inplace_array&& other) noexcept(std::is_nothrow_move_constructible_v<T>)
-    requires (!std::is_trivially_move_constructible_v<T> && std::is_move_constructible_v<T>):
+    requires ((!!fm_ASAN || !std::is_trivially_move_constructible_v<T>) && std::is_move_constructible_v<T>):
     inplace_array{}
 {
     for (T& x : other)
@@ -395,8 +438,8 @@ constexpr inplace_array<T, N>::inplace_array(inplace_array&& other) noexcept(std
 
 template<typename T, usize N>
 constexpr inplace_array<T, N>& inplace_array<T, N>::operator=(const inplace_array& other)
-    requires (!(std::is_trivially_copy_constructible_v<T> && std::is_trivially_copy_assignable_v<T> &&
-                std::is_trivially_destructible_v<T>) && std::is_copy_constructible_v<T>)
+    requires ((!!fm_ASAN || !(std::is_trivially_copy_constructible_v<T> && std::is_trivially_copy_assignable_v<T> &&
+                          std::is_trivially_destructible_v<T>)) && std::is_copy_constructible_v<T>)
 {
     if (this != &other)
     {
@@ -410,8 +453,8 @@ constexpr inplace_array<T, N>& inplace_array<T, N>::operator=(const inplace_arra
 template<typename T, usize N>
 constexpr inplace_array<T, N>& inplace_array<T, N>::operator=(inplace_array&& other)
     noexcept(std::is_nothrow_move_constructible_v<T>)
-    requires (!(std::is_trivially_move_constructible_v<T> && std::is_trivially_move_assignable_v<T> &&
-                std::is_trivially_destructible_v<T>) && std::is_move_constructible_v<T>)
+    requires ((!!fm_ASAN || !(std::is_trivially_move_constructible_v<T> && std::is_trivially_move_assignable_v<T> &&
+                          std::is_trivially_destructible_v<T>)) && std::is_move_constructible_v<T>)
 {
     if (this != &other)
     {
@@ -436,6 +479,7 @@ template<typename T, usize N>
 constexpr inplace_array<T, N>::~inplace_array()
 {
     clear();
+    annotate_contiguous_container(0, capacity());
 }
 
 template<typename T, usize N>
@@ -496,12 +540,25 @@ template<typename T, usize N> constexpr u32 inplace_array<T, N>::capacity() noex
 template<typename T, usize N>
 constexpr void inplace_array<T, N>::resize(u32 count)
 {
+    const u32 old_size = size();
+    resize(NoInit, count);
+    for (u32 i = old_size; i < count; i++)
+        construct_at(data() + i);
+}
+
+template<typename T, usize N>
+constexpr void inplace_array<T, N>::resize(NoInitT, u32 count)
+{
     fm_assert(count <= N);
     if (count < size())
         erase(begin() + count, end());
-    else
-        while (size() < count)
-            unchecked_emplace_back();
+    else if (count > size())
+    {
+        if (std::is_constant_evaluated() && empty())
+            start_storage_lifetime();
+        annotate_contiguous_container(size(), count);
+        _size = (stored_size_type)count;
+    }
 }
 
 template<typename T, usize N>
@@ -536,28 +593,29 @@ constexpr T& inplace_array<T, N>::push_back(T&& value)
 }
 
 template<typename T, usize N>
+constexpr T& inplace_array<T, N>::push_back(NoInitT)
+{
+    fm_assert(size() < capacity());
+    return unchecked_push_back(NoInit);
+}
+
+template<typename T, usize N>
 template<typename... Args>
 constexpr T& inplace_array<T, N>::unchecked_emplace_back(Args&&... args)
 {
-    fm_debug3_assert(size() < capacity());
     if constexpr (!std::is_default_constructible_v<T> && std::is_copy_constructible_v<T>)
     {
         if (std::is_constant_evaluated() && empty())
         {
             T value(forward<Args>(args)...);
             start_storage_lifetime(value);
-            construct_at(data(), move(value));
+            return *construct_at(__builtin_addressof(unchecked_push_back(NoInit)), move(value));
         }
         else
-            construct_at(data() + size(), forward<Args>(args)...);
+            return *construct_at(__builtin_addressof(unchecked_push_back(NoInit)), forward<Args>(args)...);
     }
     else
-    {
-        if (std::is_constant_evaluated() && empty())
-            start_storage_lifetime();
-        construct_at(data() + size(), forward<Args>(args)...);
-    }
-    return data()[_size++];
+        return *construct_at(__builtin_addressof(unchecked_push_back(NoInit)), forward<Args>(args)...);
 }
 
 template<typename T, usize N>
@@ -573,12 +631,23 @@ constexpr T& inplace_array<T, N>::unchecked_push_back(T&& value)
 }
 
 template<typename T, usize N>
+constexpr T& inplace_array<T, N>::unchecked_push_back(NoInitT)
+{
+    fm_debug3_assert(size() < capacity());
+    if (std::is_constant_evaluated() && empty())
+        start_storage_lifetime();
+    annotate_contiguous_container(size(), size() + 1);
+    return data()[_size++];
+}
+
+template<typename T, usize N>
 constexpr void inplace_array<T, N>::pop_back() noexcept
 {
     fm_debug_assert(!empty());
     --_size;
     if constexpr (!std::is_trivially_destructible_v<T>)
         destroy_at(data() + size());
+    annotate_contiguous_container(size() + 1, size());
 }
 
 template<typename T, usize N>
@@ -592,6 +661,7 @@ template<typename T, usize N>
 constexpr T* inplace_array<T, N>::erase(const T* first, const T* last)
 {
     fm_debug_assert(cbegin() <= first && first <= last && last <= cend());
+    const u32 old_size = size();
     T* const from = begin() + (first - cbegin());
     T* out = from;
     for (T* p = begin() + (last - cbegin()); p != end(); ++p, ++out)
@@ -600,6 +670,7 @@ constexpr T* inplace_array<T, N>::erase(const T* first, const T* last)
         for (T* p = out; p != end(); ++p)
             destroy_at(p);
     _size = (stored_size_type)(out - begin());
+    annotate_contiguous_container(old_size, size());
     return from;
 }
 
@@ -609,6 +680,7 @@ constexpr void inplace_array<T, N>::clear() noexcept
     if constexpr (!std::is_trivially_destructible_v<T>)
         for (T* p = begin(); p != end(); ++p)
             destroy_at(p);
+    annotate_contiguous_container(size(), 0);
     _size = 0;
 }
 
@@ -626,6 +698,12 @@ constexpr inplace_array<T, N>::operator ArrayView<const T>() const noexcept
 
 template<typename T>
 constexpr inplace_array<T, 0>::inplace_array(u32 count)
+{
+    fm_assert(count == 0);
+}
+
+template<typename T>
+constexpr inplace_array<T, 0>::inplace_array(NoInitT, u32 count)
 {
     fm_assert(count == 0);
 }
@@ -718,6 +796,12 @@ constexpr void inplace_array<T, 0>::resize(u32 count)
 }
 
 template<typename T>
+constexpr void inplace_array<T, 0>::resize(NoInitT, u32 count)
+{
+    fm_assert(count == 0);
+}
+
+template<typename T>
 constexpr void inplace_array<T, 0>::resize(u32 count, const T&)
 {
     fm_assert(count == 0);
@@ -744,6 +828,13 @@ constexpr T& inplace_array<T, 0>::push_back(T&& value)
 }
 
 template<typename T>
+constexpr T& inplace_array<T, 0>::push_back(NoInitT)
+{
+    fm_assert(size() < capacity());
+    return unchecked_push_back(NoInit);
+}
+
+template<typename T>
 template<typename... Args>
 constexpr T& inplace_array<T, 0>::unchecked_emplace_back(Args&&... args)
 {
@@ -761,6 +852,13 @@ template<typename T>
 constexpr T& inplace_array<T, 0>::unchecked_push_back(T&& value)
 {
     return unchecked_emplace_back(move(value));
+}
+
+template<typename T>
+constexpr T& inplace_array<T, 0>::unchecked_push_back(NoInitT)
+{
+    fm_debug3_assert(size() < capacity());
+    return *data();
 }
 
 template<typename T>
