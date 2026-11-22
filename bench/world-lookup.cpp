@@ -61,6 +61,26 @@ void World_At(benchmark::State& state)
 }
 BENCHMARK(World_At)->Unit(benchmark::kNanosecond);
 
+void World_Neighbors(benchmark::State& state)
+{
+    // Chunk x 255 and 256 lie on a chunk_table page edge, where neighbors() looks up each neighbor apart.
+    const i16 x0 = state.range(0) ? 256 : 0;
+    auto w = world();
+    for (i16 y = -2; y <= 2; y++)
+        for (i16 x = -3; x <= 2; x++)
+            w[chunk_coords_{i16(x0 + x), y, 0}];
+
+    u32 i = 0;
+    for (auto _ : state)
+    {
+        const auto x = i16(x0 - i16(i & 1)), y = i16(i16(i >> 1) - 1);
+        auto nbs = w.neighbors(chunk_coords_{x, y, 0});
+        benchmark::DoNotOptimize(nbs);
+        i = i == 5 ? 0 : i + 1;
+    }
+}
+BENCHMARK(World_Neighbors)->ArgName("page_edge")->Arg(0)->Arg(1)->Unit(benchmark::kNanosecond);
+
 void World_FindObject(benchmark::State& state)
 {
     const auto num_z = (i32)state.range(0);
