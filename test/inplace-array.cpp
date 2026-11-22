@@ -147,6 +147,9 @@ static_assert(std::equality_comparable<inplace_array<equality_comparable_only, 4
 static_assert(!std::three_way_comparable<inplace_array<equality_comparable_only, 4>>);
 static_assert(!std::totally_ordered<inplace_array<equality_comparable_only, 4>>);
 
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 2>&>().try_push_back(2)), Optional<int&>>);
+static_assert(std::is_same_v<decltype(std::declval<inplace_array<int, 0>&>().try_emplace_back(2)), Optional<int&>>);
+
 constexpr inplace_array<non_constexpr_default_ctor, 4> constant_empty_array;
 static_assert(constant_empty_array.empty() && constant_empty_array.begin() == constant_empty_array.end());
 
@@ -172,10 +175,16 @@ constexpr bool test_members()
         })) == 11);
         fm_assert(has_values(a, {2, 3, 5, 7, 11}) && make.has_live_count(6));
 
+#ifdef _MSC_VER
+        // MSVC 19.53 destroys make(13)'s temporary at the end of the block in constant evaluation.
+        // Declaring p and then assigning to it avoids that too.
         {
-            T* p = a.try_push_back(make(13));
-            fm_assert(p == a.end() - 1 && value_of(*p) == 13 && a.size() == 6);
+#endif
+        const Optional<T&> p = a.try_push_back(make(13));
+        fm_assert(p && &*p == a.end() - 1 && value_of(*p) == 13 && a.size() == 6);
+#ifdef _MSC_VER
         }
+#endif
         fm_assert(!a.try_push_back(make(17)) && !a.try_push_back(two));
         fm_assert(!make.call_with_ctor_args(19, [&](auto&&... args) { return a.try_emplace_back(args...); }));
         fm_assert(has_values(a, {2, 3, 5, 7, 11, 13}) && make.has_live_count(7));

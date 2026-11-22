@@ -2,6 +2,7 @@
 #include "inplace-array.hpp"
 #include "erase-if.hpp"
 #include "reverse-iterator.hpp"
+#include <cr/Optional.h>
 
 namespace floormat::detail::inplace_array_impl {
 
@@ -95,6 +96,28 @@ constexpr void inplace_array<T, N>::append_range(R&& r)
     const auto last = floormat::end(r);
     for (auto it = floormat::begin(r); it != last; ++it)
         emplace_back(*it);
+}
+
+template<typename T, usize N>
+template<typename... Args>
+constexpr Optional<T&> inplace_array<T, N>::try_emplace_back(Args&&... args)
+{
+    if (size() < capacity())
+        return unchecked_emplace_back(forward<Args>(args)...);
+    else
+        return {};
+}
+
+template<typename T, usize N>
+constexpr Optional<T&> inplace_array<T, N>::try_push_back(const T& value)
+{
+    return try_emplace_back(value);
+}
+
+template<typename T, usize N>
+constexpr Optional<T&> inplace_array<T, N>::try_push_back(T&& value)
+{
+    return try_emplace_back(move(value));
 }
 
 template<typename T, usize N>
@@ -229,6 +252,16 @@ constexpr void inplace_array<T, 0>::append_range(R&& r)
 {
     fm_assert(!(floormat::begin(r) != floormat::end(r)));
 }
+
+template<typename T>
+template<typename... Args>
+constexpr Optional<T&> inplace_array<T, 0>::try_emplace_back(Args&&...)
+{
+    return {};
+}
+
+template<typename T> constexpr Optional<T&> inplace_array<T, 0>::try_push_back(const T&) { return {}; }
+template<typename T> constexpr Optional<T&> inplace_array<T, 0>::try_push_back(T&&) { return {}; }
 
 template<typename T>
 template<typename... Args>

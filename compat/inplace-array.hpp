@@ -155,9 +155,9 @@ public:
     template<typename... Args> constexpr T& emplace_back(Args&&... args);
     constexpr T& push_back(const T& value);
     constexpr T& push_back(T&& value);
-    template<typename... Args> constexpr T* try_emplace_back(Args&&... args);
-    constexpr T* try_push_back(const T& value);
-    constexpr T* try_push_back(T&& value);
+    template<typename... Args> constexpr Optional<T&> try_emplace_back(Args&&... args);
+    constexpr Optional<T&> try_push_back(const T& value);
+    constexpr Optional<T&> try_push_back(T&& value);
     template<typename... Args> constexpr T& unchecked_emplace_back(Args&&... args);
     constexpr T& unchecked_push_back(const T& value);
     constexpr T& unchecked_push_back(T&& value);
@@ -246,9 +246,9 @@ public:
     template<typename... Args> constexpr T& emplace_back(Args&&... args);
     constexpr T& push_back(const T& value);
     constexpr T& push_back(T&& value);
-    template<typename... Args> constexpr T* try_emplace_back(Args&&... args);
-    constexpr T* try_push_back(const T& value);
-    constexpr T* try_push_back(T&& value);
+    template<typename... Args> constexpr Optional<T&> try_emplace_back(Args&&... args);
+    constexpr Optional<T&> try_push_back(const T& value);
+    constexpr Optional<T&> try_push_back(T&& value);
     template<typename... Args> constexpr T& unchecked_emplace_back(Args&&... args);
     constexpr T& unchecked_push_back(const T& value);
     constexpr T& unchecked_push_back(T&& value);
@@ -537,31 +537,6 @@ constexpr T& inplace_array<T, N>::push_back(T&& value)
 
 template<typename T, usize N>
 template<typename... Args>
-constexpr T* inplace_array<T, N>::try_emplace_back(Args&&... args)
-{
-    if (size() < capacity())
-    {
-        unchecked_emplace_back(forward<Args>(args)...);
-        return end() - 1;
-    }
-    else
-        return nullptr;
-}
-
-template<typename T, usize N>
-constexpr T* inplace_array<T, N>::try_push_back(const T& value)
-{
-    return try_emplace_back(value);
-}
-
-template<typename T, usize N>
-constexpr T* inplace_array<T, N>::try_push_back(T&& value)
-{
-    return try_emplace_back(move(value));
-}
-
-template<typename T, usize N>
-template<typename... Args>
 constexpr T& inplace_array<T, N>::unchecked_emplace_back(Args&&... args)
 {
     fm_debug3_assert(size() < capacity());
@@ -767,16 +742,6 @@ constexpr T& inplace_array<T, 0>::push_back(T&& value)
 {
     return emplace_back(move(value));
 }
-
-template<typename T>
-template<typename... Args>
-constexpr T* inplace_array<T, 0>::try_emplace_back(Args&&...)
-{
-    return nullptr;
-}
-
-template<typename T> constexpr T* inplace_array<T, 0>::try_push_back(const T&) { return nullptr; }
-template<typename T> constexpr T* inplace_array<T, 0>::try_push_back(T&&) { return nullptr; }
 
 template<typename T>
 template<typename... Args>
