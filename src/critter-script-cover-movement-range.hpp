@@ -30,18 +30,20 @@ class movement_range
                                   std::array<object_id, 2> excluded_blocker_ids, int n, int max_dist);
 
     // border() or reachable_lattice_points() for _key's arguments, while world::max_collider_gen() over the chunks
-    // it read returns _key->collider_gen. The others are the search's scratch arrays.
+    // it read returns _key->collider_gen. The others are scratch arrays.
     Array<point> cached_points;
     Array<u16> dist;
     Array<u8> passable;
     Array<u64> heap;
     Array<bool> entry_blocked;
+    Array<Vector2i> border_cell_offsets;
     Optional<cache_key> _key;
 
 public:
     movement_range();
 
-    // Returns `from` and points along the edge of the area walkable from it within max_dist px.
+    // Returns `from`, then for r = max_dist, 3/4 and 1/2 of it, the points on the edge of the area walkable within
+    // r px nearest the corners of a regular octagon of radius r around `from` and points spaced along its sides.
     ArrayView<const point> border(world& w, Grid::GridRegistry& pools, point from,
                                   std::array<object_id, 2> excluded_blocker_ids, Optional<u32> bbox_side,
                                   u32 max_dist);

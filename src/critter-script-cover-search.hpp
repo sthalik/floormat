@@ -22,7 +22,7 @@ u32 search_chunk_radius(point at, point threat, u32 radius, const Cover::Script:
 
 // is_hidden_at calls that test spots against reach_positions(), each up to 6 microseconds among dense scenery.
 // A spot whose test runs out of them is tested further in the next update.
-constexpr inline u32 max_search_body_checks_per_update = 64;
+constexpr inline u32 max_search_body_checks_per_update = 80;
 
 enum class visibility_from_reach : u8 { hidden, exposed, unknown, };
 

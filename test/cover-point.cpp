@@ -2603,8 +2603,8 @@ void test_cover_script_search_every_move(point hidden)
             fm_assert(s.npc->position() == spot && t.st == state::hidden);
             fm_assert_equal(t0.counters.num_searches + (every ? k : 0), t.counters.num_searches);
             fm_assert_equal(t0.counters.num_rays, t.counters.num_rays);
-            // Without search_every_move, the first 2 moves also test the cover spot against the threat's reach.
-            if (every || k > 2)
+            // Without search_every_move, the first 3 moves also test the cover spot against the threat's reach.
+            if (every || k > 3)
                 fm_assert_equal(prev.counters.num_body_checks + (every ? 0u : 2u), t.counters.num_body_checks);
             else
                 fm_assert(t.counters.num_body_checks > prev.counters.num_body_checks + 2);

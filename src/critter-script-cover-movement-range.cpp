@@ -19,6 +19,9 @@ namespace {
 
 int cell_of(int px, int div) { return floor_div(px + half_tile<int>, div); }
 
+// border() puts r/32 - 1 points between the corners on each side of its octagon of radius r, about 24 px apart.
+constexpr inline int octagon_radius_per_side_point = 32;
+
 } // namespace
 
 bool movement_range::cache_key::operator==(const cache_key&) const = default;
@@ -27,6 +30,7 @@ movement_range::movement_range()
 {
     arrayReserve(cached_points, 16);
     arrayReserve(heap, 16);
+    arrayReserve(border_cell_offsets, 16);
 }
 
 ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pools, point from,
@@ -55,24 +59,47 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
     const auto g = Vector3i(from).xy();
     const auto origin = compute_dijkstra_map(w, objects, from, excluded_blocker_ids, n, R);
 
-    // A ray from inside the reached cells to a body outside them leaves through a border cell, which sees the
-    // body as well, to within a cell.
-    const auto reached = [&](int x, int y) {
-        return x >= 0 && y >= 0 && x < side && y < side && dist[y*side + x] <= R;
-    };
-    for (auto y = 0; y < side; y++)
-        for (auto x = 0; x < side; x++)
-        {
-            if (!reached(x, y))
-                continue;
-            bool border = false;
-            for (auto dy = -1; dy <= 1; dy++)
-                for (auto dx = -1; dx <= 1; dx++)
-                    border |= !reached(x + dx, y + dy);
-            if (border)
-                arrayAppend(cached_points,
-                            from + ((origin + Vector2i{x, y})*div + Vector2i{div/2 - half_tile<int>} - g));
-        }
+    for (const auto r : { R, R*3/4, R/2 })
+    {
+        const auto is_reached = [&](int x, int y) {
+            return x >= 0 && y >= 0 && x < side && y < side && dist[y*side + x] <= r;
+        };
+        arrayClear(border_cell_offsets);
+        for (auto y = 0; y < side; y++)
+            for (auto x = 0; x < side; x++)
+            {
+                if (!is_reached(x, y))
+                    continue;
+                bool border = false;
+                for (auto dy = -1; dy <= 1; dy++)
+                    for (auto dx = -1; dx <= 1; dx++)
+                        border |= !is_reached(x + dx, y + dy);
+                if (border)
+                    arrayAppend(border_cell_offsets,
+                                (origin + Vector2i{x, y})*div + Vector2i{div/2 - half_tile<int>} - g);
+            }
+        if (border_cell_offsets.isEmpty())
+            continue;
+        // Centered on from's cell, so the points stay the same while `from` moves within that cell.
+        const auto center = (origin + Vector2i{n})*div + Vector2i{div/2 - half_tile<int>} - g;
+        const auto d = (int)(r*Math::sqrt(.5));
+        const Vector2i corners[] = { {r, 0}, {d, d}, {0, r}, {-d, d}, {-r, 0}, {-d, -d}, {0, -r}, {d, -d} };
+        const auto num_points_between_corners = Math::max(r/octagon_radius_per_side_point - 1, 0);
+        for (auto j = 0u; j < 8; j++)
+            for (auto k = 0; k <= num_points_between_corners; k++)
+            {
+                const auto a = corners[j], b = corners[(j + 1) % 8];
+                const auto p = center + a + (b - a)*k/(num_points_between_corners + 1);
+                // Among blockers an octagon point may lie outside the area, so it takes the nearest edge point.
+                auto nearest = border_cell_offsets[0];
+                for (const auto& off : border_cell_offsets.exceptPrefix(1))
+                    if ((off - p).dot() < (nearest - p).dot())
+                        nearest = off;
+                const auto pt = from + nearest;
+                if (std::find(cached_points.begin(), cached_points.end(), pt) == cached_points.end())
+                    arrayAppend(cached_points, pt);
+            }
+    }
     return cached_points;
 }
 

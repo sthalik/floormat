@@ -49,8 +49,8 @@ public:
     // own, sees no pixel of c's body there. Counts 2*(o.octants/2) body checks, the most it makes.
     bool is_hidden_from_threat_in_neighbor_octants(critter& c, const Cover::Script::options& o, point threat,
                                                    const Cover::Point::spot& s);
-    // Returns the threat's reach, which is threat and points along the edge of the area it can walk to within
-    // o.threat_reach px.
+    // Returns the threat's reach, which is threat and points along the edges of the areas it can walk to within
+    // o.threat_reach px and within 3/4 and 1/2 of it.
     ArrayView<const point> reach_positions(critter& c, const Cover::Script::options& o, point threat);
     // s moved along its face as far as no point of reach_positions() for threat sees a pixel of c there.
     point cover_end(critter& c, const Cover::Script::options& o, const Cover::Point::spot& s, point threat);
