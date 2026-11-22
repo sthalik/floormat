@@ -9,6 +9,7 @@
 #include "object-id.hpp"
 #include "point.hpp"
 #include "script-enums.hpp"
+#include "search-pred.hpp"
 
 namespace floormat {
 
@@ -81,7 +82,11 @@ public:
     virtual void update(const bptr<object>& self, usize& i, const Ns& dt) = 0;
     void rotate(usize i, rotation r);
     bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
+    bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size,
+                    const Search::pred& p);
     bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
+    bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size,
+                     const Search::pred& p);
     void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 
     object_type type_of() const noexcept;

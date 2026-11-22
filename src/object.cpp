@@ -63,11 +63,18 @@ usize object::index() const
 bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
                         Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size)
 {
+    const auto pred = Search::blocks_all_but(id);
+    return can_rotate(coord, new_r, old_r, offset, bbox_offset, bbox_size, pred);
+}
+
+bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
+                        Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, const Search::pred& p)
+{
     // rotate() only rotates the sub-tile offset for non-dynamic objects; mirror that
     const auto [offset_, bbox_offset_] = !is_dynamic() ? rotate_offset(offset, bbox_offset, old_r, new_r)
                                                        : Pair<Vector2b, Vector2b>{offset, rotate_point(bbox_offset, old_r, new_r)};
     const auto bbox_size_ = rotate_size(bbox_size, old_r, new_r);
-    return can_move_to({}, coord, offset_, bbox_offset_, bbox_size_);
+    return can_move_to({}, coord, offset_, bbox_offset_, bbox_size_, p);
 }
 
 bool object::can_rotate(rotation new_r)
@@ -94,6 +101,13 @@ void object::rotate(usize, rotation new_r)
 bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
                          Vector2b bbox_offset, Vector2ub bbox_size)
 {
+    const auto pred = Search::blocks_all_but(id);
+    return can_move_to(delta, coord2, offset, bbox_offset, bbox_size, pred);
+}
+
+bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
+                         Vector2b bbox_offset, Vector2ub bbox_size, const Search::pred& p)
+{
     const auto pt = point::normalize_coords(coord2, offset, delta);
     const auto coord_ = pt.coord();
 
@@ -109,11 +123,7 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
                min = center - Vector2(bbox_size/2), max = min + Vector2(bbox_size);
     if (min == max)
         return true;
-    const auto self_id = id;
-    auto pred = [self_id](const class chunk&, collision_data x) {
-        return x.id == self_id ? path_search_continue::pass : path_search_continue::blocked;
-    };
-    return Search::is_passable_(&cʹ, w.neighbors(coord_.chunk3()), min, max, pred);
+    return Search::is_passable_(&cʹ, w.neighbors(coord_.chunk3()), min, max, p);
 }
 
 bool object::can_move_to(Vector2i delta)
