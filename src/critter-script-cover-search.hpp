@@ -92,17 +92,22 @@ private:
     struct skipped_spot { Cover::Point::spot spot; u32 octant; };
     // A spot and its cover_end(), which path_to found no path to.
     struct failed_dijkstra_search { point spot_pos, end; bool is_fallback_spot = false; };
-    // Spots skipped for having no peek spot, and of those skipped for threat_reach the one the fewest reach
+    // Spots skipped for having no peek spot, and of those skipped for threat_reach the ones the fewest reach
     // positions see, as options.last_resort keeps.
     struct fallback_spots
     {
+        // A spot skipped for threat_reach, and how many reach positions saw the npc's body there.
+        struct in_reach_spot { Cover::Point::spot spot; u32 num_reach_positions_seeing; };
+
         Array<Cover::Point::spot> peekless_spots;
-        Optional<Cover::Point::spot> in_reach;
-        // The reach positions that saw the npc's body at in_reach when the search kept it.
-        u32 num_reach_positions_seeing_in_reach = 0;
+        // Sorted by num_reach_positions_seeing, fewest first.
+        Array<in_reach_spot> in_reach_spots;
 
         bool has_cover_spot() const;
         void clear();
+        // Inserts s after the spots no more reach positions see, and drops the last spot of a full list. More
+        // reach positions must see that spot than s.
+        void add_in_reach_spot(const Cover::Point::spot& s, u32 num_reach_positions_seeing);
     };
 
     // _reach_positions_not_seeing_spot's test of s against reach_positions() for threat. max_pass_gen is

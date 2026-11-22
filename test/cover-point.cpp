@@ -3957,8 +3957,8 @@ void test_search_drops_exposed_cover_seen_by_threat_in_neighbor_octant()
     }
 }
 
-// In rehides_round_6_scene the search holds the in_reach spot (148, 524) when it rejects the path to (468, 507).
-// Without block {3,8} the threat sees (148, 524), so the search returns the rejected path.
+// In rehides_round_6_scene the search keeps in_reach spots beside block {3,8} when it rejects the path to
+// (468, 507). Without the block the threat sees them all, so the search returns the rejected path.
 void test_search_takes_exposed_cover_over_seen_fallback()
 {
     cover_scene s{point{ch, {10, 8}, {}}};
@@ -3972,8 +3972,15 @@ void test_search_takes_exposed_cover_over_seen_fallback()
     fm_assert(search.has_last_resort());
     s.w[ch].remove_object(*block, block->index());
     rebuild(s.w);
-    const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat);
-    fm_assert(r.done && r.cover && r.cover->end == exposed_cover_end);
+    for (auto i = 0u; ; i++)
+    {
+        fm_assert(i < 4);
+        if (const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat); r.done)
+        {
+            fm_assert(r.cover && r.cover->end == exposed_cover_end);
+            break;
+        }
+    }
 }
 
 // In rehides_round_6_scene with the npc at (192, 64) and the threat at (256, 384), the search rejects a path, then
@@ -4150,6 +4157,49 @@ void test_search_takes_peekless_spot_after_5_unreachable()
     }
     // A failed path_to and its rerun for each of the 5 spots, and the path found.
     fm_assert_equal(11u, t.counters.num_dijkstra_calls);
+}
+
+// A pen of shoot_through fences encloses the wall 64 px west of the threat. The in_reach spots behind it, which
+// the fewest reach positions see, have no path, and the search must take (660, 508) behind the wall 128 px east.
+void test_search_takes_reachable_in_reach_spot()
+{
+    auto w = world();
+    add_ground(w);
+    const point wall_center{ch, {7, 8}, {}};
+    add_blocker(w, wall_center.local(), {16, 64}, wall_center.offset());
+    const Vector2i pen[][2] = {
+        {{120, 16}, {-28, -80}}, {{120, 16}, {-28, 80}}, {{16, 144}, {-80, 0}}, {{16, 144}, {24, 0}},
+    };
+    for (const auto& [size, off] : pen)
+    {
+        const auto p = wall_center + off;
+        add_blocker(w, p.local(), Vector2ub(size), p.offset(), pass_mode::shoot_through);
+    }
+    add_blocker(w, {10, 8}, {16, 48});
+    rebuild(w);
+    const auto threat = add_critter(w, point{ch, {8, 8}, {}});
+    const auto npc = add_critter(w, point{ch, {12, 8}, {}});
+    auto A = astar{};
+    Cover::spot_tests t{A, threat->id, 0};
+    fm_assert(!t.path_to(*npc, point{ch, {7, 8}, {-20, -4}}).is_found());
+    const auto num_dijkstra_calls = t.counters.num_dijkstra_calls;
+    Cover::cover_search search;
+    const Cover::Script::options o{};
+    const auto from = npc->position(), threat_pos = threat->position();
+    search.begin(from, threat_pos);
+    for (auto i = 0u; ; i++)
+    {
+        fm_assert(i < 400);
+        if (const auto r = tick_in_next_frame(search, *npc, t, o, from, threat_pos); r.done)
+        {
+            fm_assert(r.cover && r.cover->path.is_found() && !r.cover->is_hidden_from_reach);
+            fm_assert(r.cover->spot.pos == point{ch, {10, 8}, {20, -4}});
+            fm_assert(cant_be_shot_at(w, threat_pos, threat->id, r.cover->end, body, npc->id));
+            break;
+        }
+    }
+    // A failed path_to and its rerun for (428, 508), and the path found.
+    fm_assert_equal(3u, t.counters.num_dijkstra_calls - num_dijkstra_calls);
 }
 
 // True when a point on an 8 px grid within r px of the threat can shoot the npc at pos. Distances are measured as
@@ -4721,6 +4771,7 @@ void Test::test_cover_point()
     test_search_retries_unreachable_spot();
     test_search_takes_reachable_peekless_spot();
     test_search_takes_peekless_spot_after_5_unreachable();
+    test_search_takes_reachable_in_reach_spot();
     test_search_caps_body_checks_per_update(false);
     test_search_caps_body_checks_per_update(true);
     test_cover_script_rehides(0);
