@@ -1,5 +1,6 @@
 #pragma once
 #include "range-access.hpp"
+#include "invoke.hpp"
 
 namespace floormat {
 
@@ -8,7 +9,7 @@ constexpr u32 count_if(R&& r, Pred&& pred)
 {
     u32 n = 0;
     for (auto&& x : r)
-        if (pred(x))
+        if (invoke(pred, x))
             n++;
     return n;
 }

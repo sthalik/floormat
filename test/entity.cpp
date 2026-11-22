@@ -20,6 +20,23 @@ struct TestAccessors {
     int _baz;
 };
 
+struct base_fields
+{
+    int _qux = 0;
+    constexpr int qux() const noexcept { return _qux; }
+    constexpr void set_qux(int value) noexcept { _qux = value; }
+};
+
+struct MemberPointerAccessors : base_fields
+{
+    int _bar = 0;
+    const int _fixed = 5;
+    constexpr const int& bar_ref() const noexcept { return _bar; }
+    constexpr void set_bar_ref(const int& value) { _bar = value; }
+};
+
+struct unrelated {};
+
 } // namespace
 
 namespace floormat::entities {
@@ -187,6 +204,42 @@ void test_predicate()
     constexpr auto foo3 = entity::type<int>::field{"foo"_s, &TestAccessors::foo, &TestAccessors::foo};
     static_assert(foo3.is_enabled(x) == field_status::enabled);
     fm_assert(foo3.erased().is_enabled(&x) == field_status::enabled);
+}
+
+constexpr bool test_member_pointer_kinds()
+{
+    using W = MemberPointerAccessors;
+    using entity = Entity<W>;
+    static_assert(FieldReader<decltype(&W::bar_ref), W, int>);
+    static_assert(FieldReader<int base_fields::*, W, int>);
+    static_assert(FieldReader<decltype(&base_fields::qux), W, int>);
+    static_assert(FieldReader<const int W::*, W, int>);
+    static_assert(!FieldReader<int (W::*)(), W, int>);
+    static_assert(!FieldReader<void (W::*)(int), W, int>);
+    static_assert(!FieldReader<decltype(&W::bar_ref), W, unrelated>);
+    static_assert(FieldWriter<decltype(&W::set_bar_ref), W, int>);
+    static_assert(FieldWriter<int base_fields::*, W, int>);
+    static_assert(FieldWriter<decltype(&base_fields::set_qux), W, int>);
+    static_assert(FieldWriter<std::nullptr_t, W, int>);
+    static_assert(!FieldWriter<const int W::*, W, int>);
+    static_assert(!FieldWriter<decltype(&W::bar_ref), W, int>);
+    static_assert(!FieldWriter<int (*)(W&, int), W, int>);
+    static_assert(!FieldWriter<int W::*, W, unrelated>);
+
+    constexpr auto m_ref = entity::type<int>::field{"ref"_s, &W::bar_ref, &W::set_bar_ref};
+    constexpr auto m_ptr = entity::type<int>::field{"qux"_s, &base_fields::_qux, &base_fields::_qux};
+    constexpr auto m_fn = entity::type<int>::field{"qux"_s, &base_fields::qux, &base_fields::set_qux};
+    constexpr auto m_fixed = entity::type<int>::field{"fixed"_s, &W::_fixed, nullptr};
+    W x;
+    x._bar = 101;
+    x._qux = 103;
+    fm_assert(m_ref.read(x) == 101 && m_ptr.read(x) == 103 && m_fn.read(x) == 103 && m_fixed.read(x) == 5);
+    m_ref.write(x, 107);
+    m_ptr.write(x, 109);
+    fm_assert(x._bar == 107 && x._qux == 109);
+    m_fn.write(x, 113);
+    fm_assert(x._qux == 113 && m_ptr.read(x) == 113);
+    return true;
 }
 
 constexpr bool test_names()
@@ -360,6 +413,7 @@ void Test::test_entity()
     static_assert(test_visitor());
     test_null_writer();
     static_assert(test_names());
+    static_assert(test_member_pointer_kinds());
     test_predicate();
     test_fun2();
     test_erasure();

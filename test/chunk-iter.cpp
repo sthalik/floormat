@@ -34,6 +34,8 @@ static_assert(!const_object_visitor<decltype(takes_critter), critter>);
 static_assert(object_visitor<decltype(reads_light), light>);
 static_assert(!object_visitor<decltype(mutates), light>);
 static_assert(object_list_visitor<decltype(takes_list), object>);
+static_assert(object_visitor<decltype(&object::mark_modified_with_neighbors), hole>);
+static_assert(object_list_visitor<decltype(&object_list_base::size), object>);
 
 template<typename T>
 void check_list(chunk& c, object_list<T>& l)
@@ -193,6 +195,20 @@ void test_lists()
     check_invariants(c);
 }
 
+void test_member_pointer_visitors()
+{
+    world w;
+    const auto ch = chunk_coords_{0, 0, 0}, ch2 = chunk_coords_{1, 0, 0};
+    chunk& c = Test::make_test_chunk(w, ch);
+    chunk& c2 = w[ch2];
+    w.make_object<hole>(w.make_id(), {ch, {1, 1}}, hole_proto{});
+    const auto gen = c2.neighbor_pass_gen();
+    c.objects().visit<hole>(&object::mark_modified_with_neighbors);
+    fm_assert(c2.neighbor_pass_gen() != gen);
+    c.objects().visit_lists(&object_list_base::size);
+    check_invariants(c);
+}
+
 } // namespace
 
 void Test::test_chunk_iter()
@@ -200,6 +216,7 @@ void Test::test_chunk_iter()
     test_empty();
     test_populated();
     test_lists();
+    test_member_pointer_visitors();
 }
 
 } // namespace floormat

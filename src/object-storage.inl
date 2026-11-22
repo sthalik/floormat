@@ -1,6 +1,7 @@
 #pragma once
 #include "object-storage.hpp"
 #include "compat/assert.hpp"
+#include "compat/invoke.hpp"
 #include "compat/non-const.hpp"
 #include <utility>
 
@@ -89,15 +90,15 @@ void object_storage::for_each_list(this Self& self, F&& fn)
     static_assert(types_are_distinct<T, Ts...>, "class named twice");
     static_assert(object_class_count == 5, "add the new class to each list of classes in object-storage.hpp and .inl");
     if constexpr (object_class_selected<generic_scenery, T, Ts...>)
-        fn(self._generic);
+        invoke(fn, self._generic);
     if constexpr (object_class_selected<door_scenery, T, Ts...>)
-        fn(self._door);
+        invoke(fn, self._door);
     if constexpr (object_class_selected<critter, T, Ts...>)
-        fn(self._critter);
+        invoke(fn, self._critter);
     if constexpr (object_class_selected<light, T, Ts...>)
-        fn(self._light);
+        invoke(fn, self._light);
     if constexpr (object_class_selected<hole, T, Ts...>)
-        fn(self._hole);
+        invoke(fn, self._hole);
 }
 
 template<typename C>
@@ -135,7 +136,7 @@ void object_storage::visit(const F& fn)
         const auto size = l.size();
         for (auto i = 0u; i < size; i++)
         {
-            fn(l[i]);
+            invoke(fn, l[i]);
             fm_debug_assert(l._items.data() == data && l.size() == size);
         }
     });
@@ -152,7 +153,7 @@ void object_storage::visit(const F& fn) const
         const auto size = l.size();
         for (auto i = 0u; i < size; i++)
         {
-            fn(l[i]);
+            invoke(fn, l[i]);
             fm_debug_assert(l._items.data() == data && l.size() == size);
         }
     });

@@ -1,6 +1,7 @@
 #pragma once
 #include "array-size.hpp"
 #include "unroll.hpp"
+#include "invoke.hpp"
 #include <concepts>
 #include <tuple>
 #include <utility>
@@ -42,7 +43,7 @@ CORRADE_ALWAYS_INLINE
 constexpr auto map0(const F& fun, const A& array, std::index_sequence<Indexes...>)
 {
     using out_element = std::remove_cvref_t<decltype( array_traits<Out>::get(std::declval<const Out&>(), 0) )>;
-    return array_traits<Out>::make(static_cast<out_element>(fun(array_traits<A>::get(array, Indexes)))...);
+    return array_traits<Out>::make(static_cast<out_element>(invoke(fun, array_traits<A>::get(array, Indexes)))...);
 }
 
 template<typename Out, typename F, typename A>
@@ -61,7 +62,7 @@ constexpr Out transform(const F& fun, const A& array)
 {
     Out ret;
     for (usize i = 0; i < array_traits<A>::size; i++)
-        ret[i] = static_cast<Out::value_type>(fun(array_traits<A>::get(array, i)));
+        ret[i] = static_cast<Out::value_type>(invoke(fun, array_traits<A>::get(array, i)));
     return ret;
 }
 
@@ -76,22 +77,22 @@ constexpr auto map(const F& fun, const T& tuple)
 {
     return [&]<usize... I>(std::index_sequence<I...>) {
         using out = std::conditional_t<std::is_void_v<Out>,
-            std::tuple<std::decay_t<decltype(fun(detail::map::get_tuple_element<I>(tuple)))>...>, Out>;
+            std::tuple<std::decay_t<decltype(invoke(fun, detail::map::get_tuple_element<I>(tuple)))>...>, Out>;
         static_assert(std::tuple_size_v<out> == sizeof...(I), "output container has the wrong size");
-        return out{fun(detail::map::get_tuple_element<I>(tuple))...};
+        return out{invoke(fun, detail::map::get_tuple_element<I>(tuple))...};
     }(std::make_index_sequence<std::tuple_size_v<T>>{});
 }
 
 template<typename Out = void, typename F, typename A>
 requires requires (const F& fun, const A& array) {
     detail::array_size_<std::remove_cvref_t<A>>::value;
-    fun(array_traits<std::remove_cvref_t<A>>::get(array, 0));
+    invoke(fun, array_traits<std::remove_cvref_t<A>>::get(array, 0));
 }
 CORRADE_ALWAYS_INLINE
 constexpr auto map(const F& fun, const A& array)
 {
     using traits = array_traits<std::remove_cvref_t<A>>;
-    using result = std::decay_t<decltype( fun(traits::get(array, 0)) )>;
+    using result = std::decay_t<decltype( invoke(fun, traits::get(array, 0)) )>;
     using out = std::conditional_t<std::is_void_v<Out>, typename traits::template rebind<result>, Out>;
     static_assert(!std::is_same_v<result, void>);
     static_assert(sizeof(result));
