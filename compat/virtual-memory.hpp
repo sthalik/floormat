@@ -21,6 +21,9 @@ public:
     void reserve(usize bytes);
     // Rounds out to whole pages. Pages already committed keep their contents.
     void commit(usize offset, usize bytes);
+    // offset and bytes must be multiples of page_size().
+    // The pages stay inaccessible until the next commit(), which returns them zeroed.
+    void decommit(usize offset, usize bytes);
 
     char* data() const { return _data; }
     usize size() const { return _size; }

@@ -125,4 +125,21 @@ void virtual_memory::commit(usize offset, usize bytes)
 #endif
 }
 
+void virtual_memory::decommit(usize offset, usize bytes)
+{
+    const auto page = page_size();
+    fm_assert(offset % page == 0 && bytes % page == 0);
+    fm_assert(offset <= _size && bytes <= _size - offset);
+    if (bytes == 0)
+        return;
+#ifdef _WIN32
+    if (!VirtualFree(_data + offset, bytes, MEM_DECOMMIT))
+        abort_with_os_error("decommit", bytes);
+#else
+    constexpr int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_FIXED;
+    if (mmap(_data + offset, bytes, PROT_NONE, flags, -1, 0) == MAP_FAILED)
+        abort_with_os_error("decommit", bytes);
+#endif
+}
+
 } // namespace floormat
