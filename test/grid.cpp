@@ -1426,11 +1426,24 @@ void test_cover_east_distance(u32 div_size)
     fm_assert_equal(u16{1}, east(x));
 }
 
-// Walls and scenery in the chunk and past its edges, so pass bits vary along every direction and
-// the edge cells' rays end at different distances. The north neighbor stays open ground.
+bptr<scenery> add_blocker(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bbox_size)
+{
+    scenery_proto p;
+    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
+    p.subtype     = generic_scenery_proto{};
+    p.bbox_offset = bbox_offset;
+    p.bbox_size   = bbox_size;
+    p.pass        = pass_mode::blocked;
+    return w.make_scenery(w.make_id(), pos, move(p));
+}
+
+// Walls and scenery in the chunk and in six neighbors, so pass bits vary along every octant on both sides of each
+// border. The north-east and south-west neighbors stay missing.
 void make_cover_scene(world& w)
 {
-    for (auto ch : { COORD, chunk_coords_{1, 0, 0}, chunk_coords_{-1, 0, 0}, chunk_coords_{0, 1, 0}, chunk_coords_{0, -1, 0} })
+    const auto chunks = { COORD, chunk_coords_{1, 0, 0}, chunk_coords_{-1, 0, 0}, chunk_coords_{0, 1, 0},
+                          chunk_coords_{0, -1, 0}, chunk_coords_{1, 1, 0}, chunk_coords_{-1, -1, 0} };
+    for (auto ch : chunks)
         add_ground_all(w[ch]);
 
     const auto blocker = [&](chunk_coords_ ch, u8 i, u8 j) {
@@ -1445,6 +1458,8 @@ void make_cover_scene(world& w)
     auto& c = w[COORD];
     auto& e = w[chunk_coords_{1, 0, 0}];
     auto& s = w[chunk_coords_{0, 1, 0}];
+    auto& se = w[chunk_coords_{1, 1, 0}];
+    auto& nw = w[chunk_coords_{-1, -1, 0}];
     for (u8 j = 0; j < TILE_MAX_DIM; j++)
         for (u8 i = 0; i < TILE_MAX_DIM; i++)
         {
@@ -1460,9 +1475,29 @@ void make_cover_scene(world& w)
                 s[{i, j}].wall_north() = wall_proto();
             if (i == 12 && j % 2 == 0)
                 blocker(chunk_coords_{-1, 0, 0}, i, j);
+            if ((i*5 + j*3) % 7 == 0)
+                blocker(chunk_coords_{1, 1, 0}, i, j);
+            if (i == 3 && j % 4 != 2)
+                se[{i, j}].wall_west() = wall_proto();
+            if (j == 13 && i % 3 != 0)
+                nw[{i, j}].wall_north() = wall_proto();
         }
 
-    for (auto ch : { COORD, chunk_coords_{1, 0, 0}, chunk_coords_{-1, 0, 0}, chunk_coords_{0, 1, 0}, chunk_coords_{0, -1, 0} })
+    // Small blockers 709 to 1020 px past the north and west borders. The octants pointing there reach the cap
+    // 724 to 1024 px past the border.
+    for (u8 j = 0; j < 5; j++)
+        for (u8 i = 0; i < TILE_MAX_DIM; i++)
+            if ((i + j) % 2 == 0)
+            {
+                const auto offset_along_border = (i8)((i*37 + j*11) % 48 - 24);
+                const auto offset_across_border = (i8)((i*13 + j*29) % 48 - 24);
+                add_blocker(w, {chunk_coords_{0, -1, 0}, local_coords{i, j}},
+                            {offset_along_border, offset_across_border}, {8, 8});
+                add_blocker(w, {chunk_coords_{-1, 0, 0}, local_coords{j, i}},
+                            {offset_across_border, offset_along_border}, {8, 8});
+            }
+
+    for (auto ch : chunks)
         rebuild_passability(w[ch]);
 }
 
@@ -1482,8 +1517,8 @@ Vector2 cover_direction(u32 k)
     return Vector2{cover_step(k)}.normalized();
 }
 
-// What src/grid-cover.cpp casts its rays along: fill_octilinear_octant() along the direction,
-// fill_non_octilinear_octant() along whole steps.
+// Returns the vector a ray along octant k covers up to the cap. A non-octilinear octant's ray takes whole steps,
+// so it passes through the centers of the cells on its line.
 Vector2i cover_ray_delta(u32 k)
 {
     if (k % 4 == 0)
@@ -1492,7 +1527,7 @@ Vector2i cover_ray_delta(u32 k)
     return s * (i32)Math::ceil(chunk_size_xy / Math::sqrt((double)s.dot()));
 }
 
-// raycast_one() in src/grid-cover.cpp: pixels from the cell's center to the first hit
+// Returns the pixels from the cell's center to the first collider along delta, at most chunk_size_xy.
 float cover_ray_px(chunk& c, u32 x, u32 y, u32 div_size, Vector2i delta, Pass::Pool& pass_pool)
 {
     const auto half = (i32)(div_size / 2);
@@ -1522,84 +1557,6 @@ u32 cover_units(float px, u32 div_size)
     return cover_units_fixed(cover_fixed(px), div_size);
 }
 
-// What an octilinear octant holds, worked out cell by cell: walk from the cell along the octant
-// until a blocked cell, adding one step per passable cell on the way, or until the edge of the
-// grid, adding the ray from the last cell. A cell m cells from that edge is S(m) - S(m-1) px
-// further than its next one, S(m) being m steps rounded. Pixels are in 1/cover_fixed_one px.
-Array<u16> cover_octilinear_reference(chunk& c, const Pass::Grid& pg, u32 div_size, u32 k,
-                                           Pass::Pool& pass_pool)
-{
-    const auto dir = cover_direction(k);
-    const float ax = Math::abs(dir.x()), ay = Math::abs(dir.y());
-    const int sx = ax < 1e-6f ? 0 : dir.x() > 0 ? 1 : -1;
-    const int sy = ay < 1e-6f ? 0 : dir.y() > 0 ? 1 : -1;
-    const float step_px = (float)div_size / (sx ? ax : ay);
-    const auto S = [step = (double)step_px * cover_fixed_one](int m) { return (u32)(m*step + .5); };
-
-    const int dc = (int)pg.div_count();
-    const auto at = [dc](Vector2i p) { return (u32)(p.y()*dc + p.x()); };
-    const auto inside = [dc](Vector2i p) { return p.x() >= 0 && p.x() < dc && p.y() >= 0 && p.y() < dc; };
-    const auto from_edge = [=](Vector2i p) {
-        return sy ? (sy > 0 ? dc - 1 - p.y() : p.y()) : (sx > 0 ? dc - 1 - p.x() : p.x());
-    };
-    const auto step = [&](int m) { return S(m) - S(m - 1); };
-
-    Array<u32> px{NoInit, (usize)(dc*dc)};
-    Array<bool> done{ValueInit, (usize)(dc*dc)};
-    Array<Vector2i> chain{NoInit, (usize)dc};
-
-    for (int y = 0; y < dc; y++)
-        for (int x = 0; x < dc; x++)
-        {
-            if (done[at({x, y})])
-                continue;
-            u32 n = 0, v = 0;
-            for (Vector2i p{x, y};;)
-            {
-                if (done[at(p)])
-                {
-                    v = px[at(p)] + step(from_edge(p) + 1);
-                    break;
-                }
-                if (!pg.bit(Pass::Grid::get_bitmask_index((u32)p.x(), (u32)p.y(), (u32)dc)))
-                {
-                    px[at(p)] = 0;
-                    done[at(p)] = true;
-                    v = step(from_edge(p) + 1);
-                    break;
-                }
-                chain[n++] = p;
-                const Vector2i q = p + Vector2i{sx, sy};
-                if (!inside(q))
-                {
-                    v = cover_fixed(cover_ray_px(c, (u32)p.x(), (u32)p.y(), div_size, cover_ray_delta(k),
-                                                 pass_pool));
-                    break;
-                }
-                p = q;
-            }
-            // v is the value of the last passable cell on the walk; each one before it is a step further
-            for (auto i = n; i-- > 0; )
-            {
-                px[at(chain[i])] = v;
-                done[at(chain[i])] = true;
-                if (i > 0)
-                    v += step(from_edge(chain[i - 1]));
-            }
-        }
-
-    Array<u16> ret{NoInit, (usize)(dc*dc)};
-    for (int y = 0; y < dc; y++)
-        for (int x = 0; x < dc; x++)
-        {
-            const auto i = at({x, y});
-            ret[i] = pg.bit(Pass::Grid::get_bitmask_index((u32)x, (u32)y, (u32)dc))
-                     ? cover_units_fixed(px[i], div_size)
-                     : Grid::Cover::blocked;
-        }
-    return ret;
-}
-
 // Cells the segment from a cell's center to the center of the cell a step away passes through, ends
 // left out, worked out by hand for octants 1, 2 and 3. Both cells at a corner on the segment count:
 // (5, 1)'s segment passes through the corner of (2, 0), (3, 0), (2, 1) and (3, 1). Octants 7, 6 and
@@ -1625,87 +1582,121 @@ Array<Vector2i> cover_crossed_cells(u32 k)
     return ret;
 }
 
-// Returns what non-octilinear octant k holds, cell by cell in row order. On row n a cell holds the cell
-// (q, p) away plus R(n) - R(n - |p|), saturating, R(n) being n/|p| steps rounded to 1/cover_fixed_one px.
-Array<u16> cover_non_octilinear_reference(chunk& c, const Pass::Grid& pg, u32 div_size, u32 k,
-                                               Pass::Pool& pass_pool)
+// Returns the pass bit of each cell of ch and its eight neighbors, 3*dc cells to a row. A missing chunk's cells
+// are passable.
+Array<bool> pass_bits_of_chunk_and_neighbors(world& w, Pass::Pool& pass_pool, chunk_coords_ ch, u32 dc)
 {
-    const auto s = cover_step(k);
-    const auto crossed = cover_crossed_cells(k);
-    const int q = s.x(), p = s.y();
+    const auto width = 3*dc;
+    Array<bool> passable{DirectInit, (usize)width*width, true};
+    for (auto j = 0u; j < 3; j++)
+        for (auto i = 0u; i < 3; i++)
+        {
+            auto* const c = w.at(ch + Vector2i{(int)i - 1, (int)j - 1});
+            if (!c)
+                continue;
+            Pass::Grid pg = pass_pool[*c];
+            pg.build_if_stale();
+            fm_assert(pg.div_count() == dc);
+            for (auto y = 0u; y < dc; y++)
+                for (auto x = 0u; x < dc; x++)
+                    passable[(j*dc + y)*width + i*dc + x] = pg.bit(Pass::Grid::get_bitmask_index(x, y, dc));
+        }
+    return passable;
+}
+
+// Returns the distances octant k holds in the middle chunk of `passable`, the cells
+// pass_bits_of_chunk_and_neighbors() returned for a grid of div_size.
+Array<u16> cover_reference_distances(ArrayView<const bool> passable, u32 div_size, u32 k)
+{
+    const auto step = cover_step(k);
+    const int q = step.x(), p = step.y();
     const int aq = Math::abs(q), ap = Math::abs(p), major = Math::max(aq, ap);
     const double len = Math::sqrt((double)(q*q + p*p));
-    const double row_fixed = div_size * len * cover_fixed_one / ap;
-    const auto R = [row_fixed](int n) { return (u32)(n*row_fixed + .5); };
-    const auto stop = [&](int m) {
-        const double major_px = (u32)m * div_size * len / major;
+    const int dc = (int)(chunk_size_xy / div_size);
+    fm_assert(passable.size() == (usize)(9*dc*dc));
+
+    const auto is_in_chunks = [dc](int x, int y) { return x >= -dc && x < 2*dc && y >= -dc && y < 2*dc; };
+    const auto is_in_middle_chunk = [dc](int x, int y) { return x >= 0 && x < dc && y >= 0 && y < dc; };
+    const auto is_passable = [&](int x, int y) {
+        return !is_in_chunks(x, y) || passable[(usize)((y + dc)*3*dc + x + dc)];
+    };
+    // Rows are counted from the edge the octant points at and go negative past it. Octants 0 and 16 count columns.
+    const auto row_from_edge = [=](int x, int y) {
+        return p ? (p > 0 ? dc - 1 - y : y) : (q > 0 ? dc - 1 - x : x);
+    };
+
+    const auto dir = cover_direction(k);
+    // src/grid-cover.cpp holds an octilinear octant's step as a float, and R() rounds multiples of it.
+    const float step_px = (float)div_size / Math::abs(q ? dir.x() : dir.y());
+    const double fixed_per_row = k % 4 == 0 ? (double)step_px * cover_fixed_one
+                                            : div_size * len * cover_fixed_one / ap;
+    // Returns n rows in 1/cover_fixed_one px, rounded.
+    const auto R = [=](int n) { return (i64)Math::floor(n*fixed_per_row + .5); };
+
+    const auto crossed = k % 4 == 0 ? Array<Vector2i>{} : cover_crossed_cells(k);
+    const auto crossed_cell_distance = [&](int major_offset) {
+        const double major_px = (u32)major_offset * div_size * len / major;
         return Math::min((u32)(major_px*cover_fixed_one + .5), (u32)UINT16_MAX);
     };
 
-    const int dc = (int)pg.div_count();
-    const auto at = [dc](int x, int y) { return (u32)(y*dc + x); };
-    const auto inside = [dc](int x, int y) { return x >= 0 && x < dc && y >= 0 && y < dc; };
-    const auto is_passable = [&](int x, int y) {
-        return pg.bit(Pass::Grid::get_bitmask_index((u32)x, (u32)y, (u32)dc));
-    };
-
-    Array<u32> px{NoInit, (usize)(dc*dc)};
+    // The cell at which the model stops following a line, as its row_from_edge() and its distance in
+    // 1/cover_fixed_one px.
+    struct last_cell { u32 fixed; int n; };
+    Array<last_cell> last_cells{NoInit, (usize)(dc*dc)};
     Array<u16> ret{NoInit, (usize)(dc*dc)};
     for (int n = 0; n < dc; n++)
-    {
-        const int y = p > 0 ? dc - 1 - n : n;
-        for (int x = 0; x < dc; x++)
+        for (int m = 0; m < dc; m++)
         {
-            const auto i = at(x, y);
+            // Rows nearer the edge come first, so a line's next cell in this chunk already has its last cell.
+            const int x = p ? m : q > 0 ? dc - 1 - n : n;
+            const int y = !p ? m : p > 0 ? dc - 1 - n : n;
+            const auto i = (u32)(y*dc + x);
             if (!is_passable(x, y))
             {
-                px[i] = 0;
                 ret[i] = Grid::Cover::blocked;
                 continue;
             }
-            u32 v;
-            if (!inside(x + q, y + p))
-            {
-                const auto ray = cover_ray_px(c, (u32)x, (u32)y, div_size, cover_ray_delta(k), pass_pool);
-                v = Math::min(cover_fixed(ray), (u32)UINT16_MAX);
-            }
-            else
+            auto& last = last_cells[i];
+            for (int cx = x, cy = y;; cx += q, cy += p)
             {
                 int nearest = major + 1;
                 for (auto off : crossed)
-                    if (!is_passable(x + off.x(), y + off.y()))
+                    if (!is_passable(cx + off.x(), cy + off.y()))
                         nearest = Math::min(nearest, aq > ap ? Math::abs(off.x()) : Math::abs(off.y()));
-                v = nearest <= major ? stop(nearest)
-                                     : Math::min(px[at(x + q, y + p)] + R(n) - R(n - ap), (u32)UINT16_MAX);
+                const int next_x = cx + q, next_y = cy + p;
+                if (nearest <= major)
+                    last = { crossed_cell_distance(nearest), row_from_edge(cx, cy) };
+                else if (!is_in_chunks(next_x, next_y))
+                    last = { UINT16_MAX, row_from_edge(cx, cy) };
+                else if (!is_passable(next_x, next_y))
+                    last = { 0, row_from_edge(next_x, next_y) };
+                else if (is_in_middle_chunk(next_x, next_y))
+                    last = last_cells[(u32)(next_y*dc + next_x)];
+                else
+                    continue;
+                break;
             }
-            px[i] = v;
-            ret[i] = cover_units_fixed(v, div_size);
+            const auto fixed = Math::min(last.fixed + R(n) - R(last.n), i64{UINT16_MAX});
+            ret[i] = cover_units_fixed((u32)fixed, div_size);
         }
-    }
     return ret;
 }
 
 void check_cover_octants(world& w, Grid::Cover::Grid& g, u32 div_size, ArrayView<const u32> octants)
 {
-    auto& c = w[COORD];
     // the params CoverPool gives its own pass pool
     Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
-    tick(w, pass_pool);
-    Pass::Grid pg = pass_pool[c];
-    pg.build_if_stale();
-
     const auto dc = g.div_count();
-    fm_assert(pg.div_count() == dc);
+    const auto passable = pass_bits_of_chunk_and_neighbors(w, pass_pool, COORD, dc);
 
     for (auto k : octants)
     {
         (void)g.ensure_octant(k);
         fm_assert(g.built_octants() & 1u << k);
-        const auto expected = k % 4 == 0 ? cover_octilinear_reference(c, pg, div_size, k, pass_pool)
-                                         : cover_non_octilinear_reference(c, pg, div_size, k, pass_pool);
+        const auto expected = cover_reference_distances(passable, div_size, k);
         for (auto i = 0u; i < dc*dc; i++)
         {
-            // a passable cell is at least div_size - 1 px from a blocker, which rounds to 1
+            // a passable cell is at least a cell away from the first blocked cell on its line
             fm_assert(g.distance(i, k) != 0);
             if (g.distance(i, k) != expected[i])
             {
@@ -1768,13 +1759,28 @@ void make_cover_chunk(world& w, chunk_coords_ ch)
     rebuild_passability(c);
 }
 
-// A chunk at the world's edge holds the distances the same chunk holds alone at COORD: past the edge
-// counts as open, as a missing chunk does. Each chunk gets its own world.
+// A chunk at the world's limit holds the distances the same chunk holds alone at COORD, although the chunks that
+// its neighbors' coordinates wrap to are full of blockers. Each chunk gets its own world.
 void test_cover_world_edge(u32 div_size)
 {
     const auto built = [div_size](chunk_coords_ ch, auto&& fn) {
         auto w = world();
         make_cover_chunk(w, ch);
+        for (i32 dy = -1; dy <= 1; dy++)
+            for (i32 dx = -1; dx <= 1; dx++)
+            {
+                const i32 x = ch.x + dx, y = ch.y + dy;
+                if (x >= chunk_xy_min && x <= chunk_xy_max && y >= chunk_xy_min && y <= chunk_xy_max)
+                    continue;
+                const chunk_coords_ wrapped{(i16)x, (i16)y, ch.z};
+                auto& c = w[wrapped];
+                add_ground_all(c);
+                // 20 px from the tile's edges, out of reach of the pass grid of ch
+                for (u8 j = 0; j < TILE_MAX_DIM; j++)
+                    for (u8 i = 0; i < TILE_MAX_DIM; i++)
+                        add_blocker(w, {wrapped, local_coords{i, j}}, {}, {24, 24});
+                rebuild_passability(c);
+            }
         Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
         Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
         Grid::Cover::Grid g = pool[w[ch]];
@@ -1808,47 +1814,66 @@ void test_cover_world_edge(u32 div_size)
         });
 }
 
-// A diagonal octant extends the edge cell's ray one step per cell, so a long run of steps must
-// still match a ray cast from the cell itself.
-void test_cover_diagonal_tracks_ray(u32 div_size)
+// A chunk without neighbors holds the distances it holds among eight neighbors of bare ground. Four side neighbors
+// whose only blocked cells are a whole chunk away change nothing either, with the corner chunks missing.
+void test_cover_missing_neighbors_read_as_open_ground(u32 div_size)
 {
-    auto w = world();
-    const auto chunks = { COORD, chunk_coords_{1, 0, 0}, chunk_coords_{0, 1, 0}, chunk_coords_{1, 1, 0} };
-    for (auto ch : chunks)
-        add_ground_all(w[ch]);
-    for (auto ch : { chunk_coords_{0, 1, 0}, chunk_coords_{1, 1, 0} })
-        for (u8 i = 0; i < TILE_MAX_DIM; i++)
-            w[ch][{i, 1}].wall_north() = wall_proto();
-    for (auto ch : chunks)
-        rebuild_passability(w[ch]);
-
-    auto& c = w[COORD];
-    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
-    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
-    Grid::Cover::Grid g = pool[c];
-    g.build_if_stale();
-    constexpr u32 k = 4;
-    (void)g.ensure_octant(k);
-
-    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
-    tick(w, pass_pool);
-    const auto dc = g.div_count();
-    u32 hits = 0;
-    for (const auto off : { 0u, dc / 8 })
-        for (auto y = 0u; y + off < dc; y++)
+    const auto dc = chunk_size_xy / div_size;
+    const auto distances_with = [&](void (*add_neighbors)(world&)) {
+        auto w = world();
+        make_cover_chunk(w, COORD);
+        add_neighbors(w);
+        Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+        Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
+        Grid::Cover::Grid g = pool[w[COORD]];
+        g.build_if_stale();
+        Array<u16> ret{NoInit, (usize)(dc*dc*Grid::Cover::octant_count)};
+        for (auto k = 0u; k < Grid::Cover::octant_count; k++)
         {
-            const auto x = y + off;
-            const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool), div_size);
-            const auto d = (u32)g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
-            if (Math::max(d, ray) - Math::min(d, ray) > 1)
-            {
-                Error{standard_error()} << "!!! fatal: div_size" << div_size << "cell" << x << y
-                                        << "distance" << d << "but the ray" << ray;
-                fm_assert(false);
-            }
-            hits += ray < dc;
+            (void)g.ensure_octant(k);
+            for (auto i = 0u; i < dc*dc; i++)
+                ret[k*dc*dc + i] = g.distance(i, k);
         }
-    fm_assert(hits >= dc / 4);
+        return ret;
+    };
+    const auto expected = distances_with([](world&) {});
+    const auto expect_same_distances = [&](const char* neighbors, const Array<u16>& distances) {
+        for (auto k = 0u; k < Grid::Cover::octant_count; k++)
+            for (auto i = 0u; i < dc*dc; i++)
+                if (distances[k*dc*dc + i] != expected[k*dc*dc + i])
+                {
+                    Error{standard_error()} << "!!! fatal: div_size" << div_size << "with" << neighbors
+                                            << "octant" << k << "cell" << i % dc << i / dc << "distance"
+                                            << distances[k*dc*dc + i] << "but expected" << expected[k*dc*dc + i];
+                    fm_assert(false);
+                }
+    };
+
+    expect_same_distances("ground on all eight neighbors", distances_with([](world& w) {
+        for (i16 y = -1; y <= 1; y++)
+            for (i16 x = -1; x <= 1; x++)
+                if (x != 0 || y != 0)
+                {
+                    auto& c = w[chunk_coords_{x, y, 0}];
+                    add_ground_all(c);
+                    rebuild_passability(c);
+                }
+    }));
+
+    // Each blocker lies just past its chunk's far edge, so it blocks only the chunk's last row or column of cells.
+    expect_same_distances("a far blocker in each side neighbor", distances_with([](world& w) {
+        const struct { chunk_coords_ ch; local_coords tile; Vector2b bbox_offset; } far_blockers[] = {
+            { {1, 0, 0}, {15, 8}, {40, 0} }, { {-1, 0, 0}, {0, 8}, {-40, 0} },
+            { {0, 1, 0}, {8, 15}, {0, 40} }, { {0, -1, 0}, {8, 0}, {0, -40} },
+        };
+        for (const auto& [ch, tile, bbox_offset] : far_blockers)
+        {
+            auto& c = w[ch];
+            add_ground_all(c);
+            add_blocker(w, {ch, tile}, bbox_offset, {16, 16});
+            rebuild_passability(c);
+        }
+    }));
 }
 
 void test_cover_octant_directions()
@@ -1872,10 +1897,9 @@ void test_cover_octant_directions()
 // later pass wrote movzx r8d,[rax+rax], a read at twice the stack address. The later unrolled copies are correct.
 void test_expand_pass_row()
 {
-    for (auto dc = 8u; dc <= chunk_size_xy; dc += 8)
+    // expand_pass_row() takes whole vectors, which have up to 16 lanes.
+    for (auto dc = 16u; dc <= chunk_size_xy; dc += 16)
     {
-        if (!Grid::detail::can_vectorize_non_octilinear_rows(dc))
-            continue;
         for (auto pattern = 0u; pattern < 4; pattern++)
         {
             auto bits = Array<usize>{NoInit, (3*dc + 64 + sizeof(usize)*8 - 1) / (sizeof(usize)*8)};
@@ -1888,7 +1912,7 @@ void test_expand_pass_row()
             for (auto y = 0u; y < 3; y++)
             {
                 auto out = Array<u16>{DirectInit, dc, u16{0x1234}};
-                Grid::detail::expand_pass_row(out.data(), bits.data(), y, dc);
+                Grid::detail::expand_pass_row(out.data(), bits.data(), y*dc, dc);
                 for (auto x = 0u; x < dc; x++)
                 {
                     const auto expected = (u16)(pass_bit(bits.data(), y*dc + x) ? 0xffff : 0);
@@ -1904,10 +1928,9 @@ void test_expand_pass_row()
     }
 }
 
-// A non-octilinear octant carries the rays of cells near the far edges a step at a time, along the line
-// each ray runs on. With nothing blocked in the chunk, a cell must hold its own ray to within one
-// unit.
-void test_cover_non_octilinear_octant_tracks_ray(u32 div_size, ArrayView<const u32> octants)
+// A distance is at most a unit above the ray cast from the cell's center along the octant, since the pass grid
+// blocks every cell a collider touches. Three blockers lie across COORD's borders.
+void test_cover_distance_never_exceeds_ray(u32 div_size, ArrayView<const u32> octants)
 {
     auto w = world();
     for (i16 y = -1; y <= 1; y++)
@@ -1922,8 +1945,13 @@ void test_cover_non_octilinear_octant_tracks_ray(u32 div_size, ArrayView<const u
                     ch[{i, 8}].wall_north() = wall_proto();
                     ch[{8, i}].wall_west() = wall_proto();
                 }
-            rebuild_passability(ch);
         }
+    add_blocker(w, {COORD, local_coords{15, 5}}, {29, 0}, {16, 40});
+    add_blocker(w, {COORD, local_coords{6, 15}}, {0, 27}, {48, 14});
+    add_blocker(w, {chunk_coords_{1, 1, 0}, local_coords{0, 0}}, {-29, -29}, {10, 10});
+    for (i16 y = -1; y <= 1; y++)
+        for (i16 x = -1; x <= 1; x++)
+            rebuild_passability(w[chunk_coords_{x, y, 0}]);
 
     auto& c = w[COORD];
     Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
@@ -1944,9 +1972,11 @@ void test_cover_non_octilinear_octant_tracks_ray(u32 div_size, ArrayView<const u
             {
                 if ((x*7 + y*13) % every != 0)
                     continue;
-                const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool), div_size);
                 const auto d = (u32)g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
-                if (Math::max(d, ray) - Math::min(d, ray) > 1)
+                if (d == Grid::Cover::blocked)
+                    continue;
+                const auto ray = cover_units(cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool), div_size);
+                if (d > ray + 1)
                 {
                     Error{standard_error()} << "!!! fatal: div_size" << div_size << "octant" << k << "cell" << x << y
                                             << "distance" << d << "but the ray" << ray;
@@ -1959,20 +1989,98 @@ void test_cover_non_octilinear_octant_tracks_ray(u32 div_size, ArrayView<const u
     }
 }
 
-bptr<scenery> add_blocker(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bbox_size)
+// The same obstacles at four places, with chunk borders running between them at three. A cell's distances depend
+// on where it lies among the obstacles, except for one unit of rounding once its row is numbered differently.
+void test_cover_ignores_chunk_borders(u32 div_size, ArrayView<const u32> octants)
 {
-    scenery_proto p;
-    p.atlas       = loader.invalid_scenery_atlas().proto->atlas;
-    p.subtype     = generic_scenery_proto{};
-    p.bbox_offset = bbox_offset;
-    p.bbox_size   = bbox_size;
-    p.pass        = pass_mode::blocked;
-    return w.make_scenery(w.make_id(), pos, move(p));
+    // The compared cells are those of tiles 4 to 11 from the obstacles' origin tile, on both axes.
+    constexpr u32 first_tile = 4, num_tiles = 8;
+    const auto dc = chunk_size_xy / div_size, cells_per_tile = tile_size<u32> / div_size;
+    const auto cells_per_side = num_tiles * cells_per_tile;
+
+    const auto distances_at = [&](Vector2i origin) {
+        auto w = world();
+        for (i16 y = -1; y <= 2; y++)
+            for (i16 x = -1; x <= 2; x++)
+                add_ground_all(w[chunk_coords_{x, y, 0}]);
+        const auto tile_at = [&](int x, int y) {
+            return global_coords{COORD, local_coords{}} + origin + Vector2i{x, y};
+        };
+        add_blocker(w, tile_at(9, 5), {}, {64, 64});
+        add_blocker(w, tile_at(3, 9), {5, -7}, {24, 16});
+        add_blocker(w, tile_at(11, 10), {-11, 3}, {16, 40});
+        for (auto i = 4; i <= 7; i++)
+        {
+            const auto pos = tile_at(i, 3);
+            w[pos.chunk3()][pos.local()].wall_north() = wall_proto();
+        }
+        for (auto j = 6; j <= 8; j++)
+        {
+            const auto pos = tile_at(13, j);
+            w[pos.chunk3()][pos.local()].wall_west() = wall_proto();
+        }
+        for (i16 y = -1; y <= 2; y++)
+            for (i16 x = -1; x <= 2; x++)
+                rebuild_passability(w[chunk_coords_{x, y, 0}]);
+
+        Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+        Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
+        Grid::Cover::Grid grids[] = {
+            pool[w[chunk_coords_{0, 0, 0}]], pool[w[chunk_coords_{1, 0, 0}]],
+            pool[w[chunk_coords_{0, 1, 0}]], pool[w[chunk_coords_{1, 1, 0}]],
+        };
+        for (auto& g : grids)
+            g.build_if_stale();
+        const auto first_x = ((u32)origin.x() + first_tile) * cells_per_tile;
+        const auto first_y = ((u32)origin.y() + first_tile) * cells_per_tile;
+        Array<u16> ret{NoInit, (usize)(octants.size()*cells_per_side*cells_per_side)};
+        for (auto o = 0u; o < octants.size(); o++)
+        {
+            for (auto& g : grids)
+                (void)g.ensure_octant(octants[o]);
+            for (auto j = 0u; j < cells_per_side; j++)
+                for (auto i = 0u; i < cells_per_side; i++)
+                {
+                    const auto x = first_x + i, y = first_y + j;
+                    const auto& g = grids[y / dc * 2 + x / dc];
+                    const auto cell = Grid::Cover::Grid::get_cell_index(x % dc, y % dc, dc);
+                    ret[(o*cells_per_side + j)*cells_per_side + i] = g.distance(cell, octants[o]);
+                }
+        }
+        return ret;
+    };
+
+    const auto expected = distances_at({0, 0});
+    u32 hits = 0;
+    for (auto d : expected)
+        hits += d < dc;
+    fm_assert(hits >= expected.size() / 8);
+
+    for (const auto origin : { Vector2i{8, 0}, Vector2i{0, 8}, Vector2i{8, 8} })
+    {
+        const auto distances = distances_at(origin);
+        for (auto o = 0u; o < octants.size(); o++)
+        {
+            // Moving the obstacles along y renumbers the rows, and a row's rounded step depends on its number.
+            const u32 max_difference = origin.y() == 0 || octants[o] % 8 == 0 ? 0 : 1;
+            for (auto i = 0u; i < cells_per_side*cells_per_side; i++)
+            {
+                const u32 d = distances[o*cells_per_side*cells_per_side + i];
+                const u32 e = expected[o*cells_per_side*cells_per_side + i];
+                if (Math::max(d, e) - Math::min(d, e) > max_difference)
+                {
+                    Error{standard_error()} << "!!! fatal: div_size" << div_size << "origin tile" << origin
+                                            << "octant" << octants[o] << "cell" << i % cells_per_side
+                                            << i / cells_per_side << "distance" << d << "but expected" << e;
+                    fm_assert(false);
+                }
+            }
+        }
+    }
 }
 
-// A cardinal ray from an integer center reports the face exactly, so each cell is
-// (face - center)/div_size rounded half up.
-void test_cover_east_rounds(u32 div_size)
+// Octant 0 counts the cells up to the first blocked one, which here lies in the east neighbor.
+void test_cover_east_distance_across_border(u32 div_size)
 {
     auto w = world();
     for (auto ch : { COORD, COORD_E })
@@ -1992,22 +2100,25 @@ void test_cover_east_rounds(u32 div_size)
     g.build_if_stale();
 
     const auto dc = g.div_count();
+    const auto box = (int)Math::max(div_size, Pass::Grid::min_bbox_size);
     const auto center = [div_size](u32 i) { return (int)(i*div_size + div_size/2) - half_tile<int>; };
     for (auto [j, bx] : blockers)
     {
         const auto face = (int)chunk_size_xy + bx - bbox_size.x()/2;
+        // The pass grid blocks the cells holding a position within box/2 - 1 px of the blocker.
+        const auto first_blocked = (u32)(face + half_tile<int> - box/2 + 1) / div_size;
+        fm_assert(first_blocked >= dc);
         const auto y0 = tile_size_xy*j - bbox_size.y()/2, y1 = y0 + bbox_size.y();
         u32 rows = 0;
         for (auto y = 0u; y < dc; y++)
         {
-            // rows through the rect's edge depend on raycast's fuzz
+            // only rows through the blocker's own pixels
             if (center(y) <= y0 || center(y) >= y1)
                 continue;
             rows++;
             for (auto x = 0u; x < dc; x++)
             {
-                const auto px = (u32)(face - center(x));
-                const auto expected = Math::min(dc, (2*px + div_size) / (2*div_size));
+                const auto expected = Math::min(dc, first_blocked - x);
                 const auto d = (u32)g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), 0);
                 if (d != expected)
                 {
@@ -2152,9 +2263,8 @@ void test_cover_rebuilds_on_neighbor_change(u32 div_size)
     fm_assert(build() != n);
 }
 
-// An east ray from the last column runs almost to the east neighbor's far edge, where a blocker
-// of the chunk two east overhangs. Adding that blocker changes the distance, so the grid must
-// rebuild, although the blocker's chunk isn't a neighbor.
+// A blocker of the chunk two east overhangs the east neighbor's far edge, which octant 0 reaches from the last
+// column. Adding it must rebuild the grid, although the blocker's chunk isn't a neighbor.
 void test_cover_rebuilds_on_ring2_change(u32 div_size)
 {
     constexpr auto E2 = chunk_coords_{2, 0, 0};
@@ -2182,8 +2292,9 @@ void test_cover_rebuilds_on_ring2_change(u32 div_size)
     add_blocker(w, {E2, local_coords{0, 8}}, {-64, 0}, {32, 64});
     rebuild_passability(w[E2]);
     far.check("a blocker");
-    const auto face = 2*(int)chunk_size_xy - 80, center = (int)chunk_size_xy - half_tile<int> - (int)div_size/2;
-    const auto expected = (u32)(2*(face - center) + (int)div_size) / (2*div_size);
+    const auto face = 2*(int)chunk_size_xy - 80, box = (int)Math::max(div_size, Pass::Grid::min_bbox_size);
+    // cells from the last column to the first one the east neighbor's pass grid blocks
+    const auto expected = (u32)(face + half_tile<int> - box/2 + 1) / div_size - (dc - 1);
     fm_assert(expected < dc);
     {
         Pass::Pool fresh_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
@@ -2198,13 +2309,54 @@ void test_cover_rebuilds_on_ring2_change(u32 div_size)
     }
 }
 
+// A wall of the chunk two east lies in the east neighbor's area. The grid must rebuild once collect() deletes the
+// wall's chunk.
 void test_cover_rebuilds_on_ring2_collect(u32 div_size)
+{
+    constexpr auto E2 = chunk_coords_{2, 0, 0};
+    auto w = world();
+    for (auto ch : { COORD, COORD_E, E2 })
+        add_ground_all(w[ch]);
+    // "test1" walls are 32 deep, so this one spans x from 2048 - 64 to 2048 - 32 in COORD's frame.
+    w[E2][{0, 8}].wall_west() = wall_image_proto{ loader.wall_atlas("test1"), 0 };
+    for (auto ch : { COORD, COORD_E, E2 })
+        rebuild_passability(w[ch]);
+
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
+    const auto dc = chunk_size_xy / div_size;
+    const auto cell = Grid::Cover::Grid::get_cell_index(dc - 1, (u32)(tile_size_xy*8 + half_tile<int>) / div_size, dc);
+    const auto east = [&] {
+        Grid::Cover::Grid g = pool[w[COORD]];
+        g.build_if_stale();
+        (void)g.ensure_octant(0);
+        return (u32)g.distance(cell, 0);
+    };
+    const auto face = 2*(int)chunk_size_xy - 64, box = (int)Math::max(div_size, Pass::Grid::min_bbox_size);
+    const auto expected = (u32)(face + half_tile<int> - box/2 + 1) / div_size - (dc - 1);
+    fm_assert(expected < dc);
+    fm_assert_equal(expected, east());
+    const far_grid far{w, pool, E2, 3};
+
+    // The tile writes mark nothing, so only collect() can make the grid rebuild.
+    w[E2][{0, 8}].wall_west() = wall_image_proto{};
+    clear_ground_all(w[E2]);
+    w.collect(true, true);
+    fm_assert(!w.at(E2));
+    far.check("collecting");
+    fm_assert_equal(dc, east());
+}
+
+// A blocker of the chunk two east overhangs the east neighbor's area. Octant 0 reaches it only while that neighbor
+// exists, since a missing chunk has no pass grid.
+void test_cover_overhang_into_missing_chunk_reads_open(u32 div_size)
 {
     constexpr auto E2 = chunk_coords_{2, 0, 0};
     auto w = world();
     for (auto ch : { COORD, E2 })
         add_ground_all(w[ch]);
-    const auto blocker = add_blocker(w, {E2, local_coords{0, 8}}, {-64, 0}, {32, 64});
+    // x from 2048 - 80 to 2048 - 48 in COORD's frame
+    add_blocker(w, {E2, local_coords{0, 8}}, {-64, 0}, {32, 64});
     for (auto ch : { COORD, E2 })
         rebuild_passability(w[ch]);
 
@@ -2218,14 +2370,18 @@ void test_cover_rebuilds_on_ring2_collect(u32 div_size)
         (void)g.ensure_octant(0);
         return (u32)g.distance(cell, 0);
     };
-    fm_assert(east() < dc);
-    const far_grid far{w, pool, E2, 3};
+    fm_assert_equal(dc, east());
 
-    w[E2].kill_object(*blocker, blocker->index());
-    clear_ground_all(w[E2]);
+    add_ground_all(w[COORD_E]);
+    rebuild_passability(w[COORD_E]);
+    const auto face = 2*(int)chunk_size_xy - 80, box = (int)Math::max(div_size, Pass::Grid::min_bbox_size);
+    const auto expected = (u32)(face + half_tile<int> - box/2 + 1) / div_size - (dc - 1);
+    fm_assert(expected < dc);
+    fm_assert_equal(expected, east());
+
+    clear_ground_all(w[COORD_E]);
     w.collect(true, true);
-    fm_assert(!w.at(E2));
-    far.check("collecting");
+    fm_assert(!w.at(COORD_E));
     fm_assert_equal(dc, east());
 }
 
@@ -2809,9 +2965,9 @@ void test_cover_grids_after_static_changes()
     check("removing the hole", [&] { w[COORD].remove_object(*h, h->index()); });
 }
 
-// The diagonal carry stays within 1/64 px of a ray cast from the cell itself, so each cell is that
-// ray rounded. Seeds rounded to whole units would be off by up to one more half unit.
-void test_cover_diagonal_matches_ray(u32 div_size)
+// Octant 4 adds one step of div_size*sqrt2 px per row up to the first blocked row, which lies in the south
+// neighbors. Steps rounded to whole units before adding would be off by up to one more half unit.
+void test_cover_diagonal_sums_steps_across_border(u32 div_size)
 {
     auto w = world();
     const auto chunks = { COORD, COORD_E, COORD_Eʹ, chunk_coords_{1, 1, 0} };
@@ -2832,25 +2988,26 @@ void test_cover_diagonal_matches_ray(u32 div_size)
     constexpr u32 k = 4;
     (void)g.ensure_octant(k);
 
-    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
-    tick(w, pass_pool);
-    const auto dc = g.div_count();
+    const auto dc = (int)g.div_count();
+    const auto box = (int)Math::max(div_size, Pass::Grid::min_bbox_size);
+    const auto first_blocked_row = (1083 + half_tile<int> - box/2 + 1) / (int)div_size;
     u32 hits = 0;
-    for (const auto off : { 0u, dc / 8 })
-        for (auto y = 0u; y + off < dc; y++)
+    for (const int off : { 0, dc / 8, -(dc / 8) })
+        for (int y = Math::max(0, -off); y < Math::min(dc, dc - off); y++)
         {
-            const auto x = y + off;
-            const auto ray = cover_ray_px(c, x, y, div_size, cover_ray_delta(k), pass_pool);
-            const auto d = g.distance(Grid::Cover::Grid::get_cell_index(x, y, dc), k);
-            if (Math::abs((float)d - ray / (float)div_size) > .5f + 1.f/16)
+            const int x = y + off;
+            const auto uncapped_units = (float)(first_blocked_row - y) * Math::Constants<float>::sqrt2();
+            const auto expected = Math::min((float)dc, uncapped_units);
+            const auto d = g.distance(Grid::Cover::Grid::get_cell_index((u32)x, (u32)y, (u32)dc), k);
+            if (Math::abs((float)d - expected) > .5f + 1.f/16)
             {
                 Error{standard_error()} << "!!! fatal: div_size" << div_size << "cell" << x << y
-                                        << "distance" << d << "but the ray" << ray << "px";
+                                        << "distance" << d << "but expected" << expected;
                 fm_assert(false);
             }
-            hits += ray < (float)chunk_size_xy;
+            hits += uncapped_units < (float)dc;
         }
-    fm_assert(hits >= dc / 4);
+    fm_assert(hits >= (u32)dc / 4);
 }
 
 bool holds_object(const Grid::Object::Grid& g, object_id id)
@@ -3592,6 +3749,9 @@ void test_grid()
             non_octilinear_octants[n++] = k;
     }
     test_cover_octant_directions();
+    // Below 8, planes are u16. One octant of each step, turned and mirrored, keeps the tests short there.
+    constexpr u32 some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 27u, 28u };
+    constexpr u32 three_octants[] = { 0u, 1u, 4u };
     for (const i64 target : hwy::SupportedAndGeneratedTargets())
     {
         hwy::SetSupportedTargetsForTest(target);
@@ -3600,22 +3760,22 @@ void test_grid()
             test_cover_east_distance(ds);
         for (const auto ds : { 1u, 2u, 4u, 8u, 16u })
         {
-            test_cover_diagonal_tracks_ray(ds);
-            test_cover_east_rounds(ds);
-            test_cover_diagonal_matches_ray(ds);
+            test_cover_east_distance_across_border(ds);
+            test_cover_diagonal_sums_steps_across_border(ds);
+            const auto octants = ds < 4 ? ArrayView<const u32>{three_octants}
+                               : ds < 8 ? ArrayView<const u32>{some_octants} : all_octants;
+            test_cover_distance_never_exceeds_ray(ds, octants);
         }
         // 4 has u16 planes
         constexpr u32 first_steps[] = { 1u, 2u };
         for (const auto ds : { 4u, 8u, 16u })
         {
-            const auto octants = ds < 8 ? ArrayView<const u32>{first_steps} : non_octilinear_octants;
-            test_cover_non_octilinear_octant_tracks_ray(ds, octants);
-            test_cover_non_octilinear_octant_blocked_cells(ds, octants);
+            test_cover_non_octilinear_octant_blocked_cells(ds, ds < 8 ? ArrayView<const u32>{first_steps}
+                                                                      : non_octilinear_octants);
+            test_cover_ignores_chunk_borders(ds, ds < 8 ? ArrayView<const u32>{some_octants} : all_octants);
         }
         for (const auto ds : { 8u, 16u })
             test_cover_blocked_cells(ds);
-        // Below 8, planes are u16, and one octant of each step, turned and mirrored, keeps the rays few.
-        constexpr u32 some_octants[] = { 0u, 1u, 4u, 6u, 8u, 12u, 13u, 16u, 20u, 22u, 24u, 28u };
         // sizes below 16 add ~17 s under ASan
         const auto min_size = fm_ASAN ? 16u : is_valgrind() ? 4u : 1u;
         for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u })
@@ -3625,12 +3785,16 @@ void test_grid()
     hwy::SetSupportedTargetsForTest(0);
     vqsort_refresh_targets();
     for (const auto ds : { 8u, 16u })
+    {
         test_cover_world_edge(ds);
+        test_cover_missing_neighbors_read_as_open_ground(ds);
+    }
     test_cover_rebuilds_on_neighbor_change(16);
     for (const auto ds : { 8u, 16u })
     {
         test_cover_rebuilds_on_ring2_change(ds);
         test_cover_rebuilds_on_ring2_collect(ds);
+        test_cover_overhang_into_missing_chunk_reads_open(ds);
     }
     test_is_stale_on_chunk_change();
     test_hole_change_leaves_far_grids_current();

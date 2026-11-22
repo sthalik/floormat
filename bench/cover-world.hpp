@@ -12,8 +12,8 @@ template<typename F> void for_cover_chunks(F&& fun)
             fun(chunk_coords_{x, y, 0});
 }
 
-// Rays from chunk (0, 0) reach loaded neighbours, as in the game. A ray leaving into a missing
-// chunk hits nothing and runs to the 1024 px cap.
+// Chunk (0, 0)'s cover grid reads its neighbours' pass grids, as in the game. A missing chunk would read as
+// open ground and cost less to fill.
 void make_cover_world(world& w);
 
 } // namespace floormat

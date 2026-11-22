@@ -186,14 +186,14 @@ void Cover_Build(benchmark::State& state)
     {
         g.mark_stale();
         g.build_if_stale();
-        // octant 0 is axis-aligned and mostly copies neighbour cells, octant 1 casts a ray from every cell
+        // The rebuild filled octant 0, which only counts cells. Octant 1 is non-octilinear.
         (void)g.ensure_octant(1);
     }
 }
 
 BENCHMARK(Cover_Build)->Arg(16)->Arg(8)->Unit(benchmark::kMillisecond);
 
-// The eight octants along an axis or a diagonal. Only cells on the far edge cast a ray.
+// The eight octants along an axis or a diagonal.
 void Cover_Aligned(benchmark::State& state)
 {
     auto w = world();
@@ -216,7 +216,7 @@ void Cover_Aligned(benchmark::State& state)
 
 BENCHMARK(Cover_Aligned)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
 
-// Fills octants 0 and 16, which read a pass bit per cell. Only cells on the far edge cast a ray.
+// Fills octants 0 and 16, which read a pass bit per cell.
 void Cover_Horizontal(benchmark::State& state)
 {
     auto w = world();
@@ -240,7 +240,7 @@ void Cover_Horizontal(benchmark::State& state)
 
 BENCHMARK(Cover_Horizontal)->Arg(64)->Arg(16)->Arg(8)->Arg(2)->Unit(benchmark::kMicrosecond);
 
-// The 24 octants that step several cells at a time. Only cells whose step leaves the grid cast a ray.
+// The 24 non-octilinear octants.
 void Cover_Stepped(benchmark::State& state)
 {
     auto w = world();

@@ -10,8 +10,7 @@ struct Ns;
 namespace floormat::Grid::detail {
 struct CoverGrid;
 struct CoverPool;
-bool can_vectorize_non_octilinear_rows(u32 dc);
-void expand_pass_row(u16* out, const usize* pass_bits, u32 y, u32 dc);
+void expand_pass_row(u16* out, const usize* pass_bits, u32 first_bit, u32 cell_count);
 } // namespace
 
 namespace floormat::Grid::Pass { class Pool; }
@@ -51,8 +50,8 @@ public:
     static u32 get_cell_index(u32 x, u32 y, u32 div_count);
     u32 get_cell_index_from_coord(intra_coord pos) const;
 
-    // Returns the rounded distance in div_size units from the cell center to the first obstacle along the octant,
-    // or div_count() if none lies within chunk_size_xy - div_size/2 px. A clear shoot_through bit gives `blocked`.
+    // Returns the rounded distance in div_size units to the first cell along the octant whose shoot_through bit is
+    // clear, at most div_count(). A cell whose own bit is clear gives `blocked`.
     u16 distance(u32 index, u32 octant) const;
 
     u32 div_count() const;
