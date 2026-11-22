@@ -107,6 +107,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_chase_lev_deque),
     FM_TEST(test_event_count),
     FM_TEST(test_inplace_function),
+    FM_TEST(test_inplace_array),
     FM_TEST(test_function_view),
     FM_TEST_GL(test_gl_error),
     FM_TEST_GL(test_gl_call),
