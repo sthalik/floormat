@@ -1,6 +1,8 @@
 #include "app.hpp"
 #include "compat/virtual-memory.hpp"
+#include "compat/start-lifetime-as.hpp"
 #include "compat/assert.hpp"
+#include <cstring>
 #include <utility>
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -73,6 +75,25 @@ void test_decommit()
     fm_assert(p[0] == 0 && p[4*page - 1] == 0 && p[page] == 73);
 }
 
+void test_start_lifetime_as_array()
+{
+    const auto page = virtual_memory::page_size();
+    auto m = virtual_memory{};
+    m.reserve(page);
+    m.commit(0, page);
+    const auto n = page / 8;
+    constexpr u64 first_word = 0x9e3779b97f4a7c15, last_word = 0xc2b2ae3d27d4eb4f;
+    std::memcpy(m.data(), &first_word, sizeof first_word);
+    std::memcpy(m.data() + page - sizeof last_word, &last_word, sizeof last_word);
+    u64* const words = start_lifetime_as_array<u64>(m.data(), n);
+    fm_assert(words[0] == first_word && words[n - 1] == last_word);
+    for (usize i = 1; i < n - 1; i++)
+        fm_assert(words[i] == 0);
+    words[1] = 0x94d049bb133111eb;
+    fm_assert(words[1] == 0x94d049bb133111eb);
+    fm_assert(static_cast<void*>(start_lifetime_as_array<u64>(m.data() + 8, 0)) == m.data() + 8);
+}
+
 } // namespace
 
 void Test::test_virtual_memory()
@@ -110,6 +131,7 @@ void Test::test_virtual_memory()
     fm_assert(m2.data()[page - 1] == 79);
 
     test_decommit();
+    test_start_lifetime_as_array();
 }
 
 } // namespace floormat
