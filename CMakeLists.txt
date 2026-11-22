@@ -300,6 +300,8 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
     add_compile_options(-Wno-logical-op-parentheses)
     add_compile_options(-Wno-c99-compat)
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-ambiguous-reversed-operator>)
+    # Clang puts its pre-C++20 compatibility warning for parenthesized aggregate init in -Wc++20-extensions.
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-c++20-extensions>)
     add_compile_options(-Wno-reserved-macro-identifier)
 elseif(NOT MSVC)
     add_compile_options(-Wno-subobject-linkage -Wno-parentheses -Wno-overloaded-virtual)
