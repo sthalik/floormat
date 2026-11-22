@@ -2633,25 +2633,31 @@ void test_cover_script_retreat(point hidden)
 }
 
 // As test_cover_script_retreat, until the npc walks to a spot in the wall's shadow. The wall then goes away, so
-// the threat, standing still, sees that spot, and the npc looks for a retreat again.
-void test_cover_script_retreat_cover_removed(point hidden)
+// the threat, standing still, sees that spot, and the npc looks for a retreat again once the wait allows.
+void test_cover_script_retreat_cover_removed(point hidden, bool search_ended)
 {
     cover_scene s;
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
     const point threat_pos{ch, {7, 1}, {}};
     s.move_threat(threat_pos);
-    s.step();
-    s.finish_search();
+    s.step_until(state::retreat);
+    if (search_ended)
+        s.finish_search();
     const auto t0 = s.status();
     fm_assert(t0.st == state::retreat);
     s.w[ch].remove_object(*s.wall, s.wall->index());
     rebuild(s.w);
-    for (auto k = 0u; s.status().counters.num_retreat_restarts == t0.counters.num_retreat_restarts; k++)
+    // The path tests in the wait see the change too, and must leave it to the LOS check.
+    const u32 restart_frame = search_ended ? 0 : Cover::Script::max_updates_before_LOS_check;
+    for (auto frames = 0u; frames < restart_frame; frames++)
     {
-        fm_assert(k < 2);
         s.step();
+        const auto t = s.status();
+        fm_assert(t.st == state::retreat && t.search.tiles_left > 0);
+        fm_assert_equal(t0.counters.num_retreat_restarts, t.counters.num_retreat_restarts);
     }
+    s.step();
     const auto t = s.status();
     fm_assert(t.st == state::find_retreat || t.st == state::retreat);
     fm_assert_equal(t0.counters.num_retreat_restarts + 1, t.counters.num_retreat_restarts);
@@ -2887,8 +2893,38 @@ void block_retreat_walk(cover_scene& s)
     rebuild(s.w);
 }
 
-// As test_cover_script_retreat, with a block put in the way of the npc's retreat walk. The npc looks for a
-// retreat once more from where it was stopped. A second block leaves it searching where it stands.
+// Walls shots pass, 1 px past the npc's body on each side, so its next step in any direction is blocked.
+void close_in_npc(cover_scene& s)
+{
+    constexpr auto half = (int)body.x()/2 + 1 + 8, len = 2*(half + 8);
+    const Vector2i walls[][2] = {
+        {{len, 16}, {0, -half}}, {{len, 16}, {0, half}}, {{16, len}, {-half, 0}}, {{16, len}, {half, 0}},
+    };
+    for (const auto& [size, off] : walls)
+    {
+        const auto p = s.npc->position() + off;
+        add_blocker(s.w, p.local(), Vector2ub(size), p.offset(), pass_mode::shoot_through);
+    }
+    rebuild(s.w);
+}
+
+// Steps the npc, at most max_updates times, until its retreat walk's path test or a blocked step finds the block.
+// Returns the status before that update.
+Cover::Script::status step_until_retreat_block(cover_scene& s, u32 max_updates)
+{
+    for (auto frames = 0u; ; frames++)
+    {
+        fm_assert(frames < max_updates);
+        const auto t0 = s.status();
+        s.step();
+        const auto t = s.status();
+        if (t.st != state::retreat || t.counters.num_dijkstra_calls != t0.counters.num_dijkstra_calls)
+            return t0;
+    }
+}
+
+// As test_cover_script_retreat, with blocks in the npc's retreat walks. At the first, the npc walks a new path to
+// its spot, and at the second it looks for a retreat again. Walls closing it in then leave it searching.
 void test_cover_script_retreat_blocked(point hidden)
 {
     cover_scene s;
@@ -2896,32 +2932,80 @@ void test_cover_script_retreat_blocked(point hidden)
     fm_assert(s.npc->position() == hidden);
     s.move_threat(point{ch, {7, 1}, {}});
     s.step_until(state::retreat);
+    // The path test finds the block during the retreat's wait.
     block_retreat_walk(s);
-    const auto t0 = s.status();
-    s.step_until(state::find_retreat);
+    const auto t0 = step_until_retreat_block(s, 1);
     const auto t1 = s.status();
-    fm_assert_equal(t0.counters.num_retreat_restarts + 1, t1.counters.num_retreat_restarts);
-    s.step_until(state::retreat);
-    fm_assert(s.status().counters.num_dijkstra_calls > t1.counters.num_dijkstra_calls);
-
-    // Each retreat walk is longer than min_retreat_gain, so stopping this soon means a block.
-    block_retreat_walk(s);
-    for (auto frames = 0u; s.status().st == state::retreat; frames++)
+    fm_assert(t1.st == state::retreat);
+    fm_assert_equal(t0.counters.num_dijkstra_calls + 1, t1.counters.num_dijkstra_calls);
+    fm_assert_equal(t0.counters.num_retreat_restarts, t1.counters.num_retreat_restarts);
+    const auto from = s.npc->position();
+    for (auto i = 0u; i < Cover::Script::min_updates_before_LOS_check; i++)
     {
-        fm_assert(frames < s.fps/2);
         s.step();
+        fm_assert(s.status().st == state::retreat);
     }
-    fm_assert(s.status().st == state::search);
+    fm_assert(s.npc->position() != from);
+    fm_assert_equal(t1.counters.num_dijkstra_calls, s.status().counters.num_dijkstra_calls);
+
+    block_retreat_walk(s);
+    const auto t2 = step_until_retreat_block(s, 1);
+    const auto t3 = s.status();
+    fm_assert(t3.st == state::find_retreat);
+    fm_assert_equal(t2.counters.num_dijkstra_calls, t3.counters.num_dijkstra_calls);
+    fm_assert_equal(t2.counters.num_retreat_restarts + 1, t3.counters.num_retreat_restarts);
+    s.step_until(state::retreat);
+
+    // The restart resets the count of blocks, so the npc's next block gets a Dijkstra search for a new path. It
+    // finds none and looks for a retreat again.
+    close_in_npc(s);
+    const auto t4 = step_until_retreat_block(s, 1);
+    const auto t5 = s.status();
+    fm_assert(t5.st == state::find_retreat);
+    fm_assert_equal(t4.counters.num_dijkstra_calls + 1, t5.counters.num_dijkstra_calls);
+    fm_assert_equal(t4.counters.num_retreat_restarts + 1, t5.counters.num_retreat_restarts);
+    s.step_until(state::search);
     for (auto frames = 0u; s.status().st != state::seek; frames++)
     {
         fm_assert(frames < 60*s.fps);
         fm_assert(s.status().st == state::search);
         s.step();
     }
-    fm_assert_equal(t1.counters.num_retreat_restarts, s.status().counters.num_retreat_restarts);
+    fm_assert_equal(t5.counters.num_retreat_restarts, s.status().counters.num_retreat_restarts);
 }
 
-// As test_cover_script_retreat_blocked, with the search ended before the blocks. The second block leaves the npc
+// As test_cover_script_retreat_blocked, for a critter gap px ahead of the npc's body, and a static change when
+// static_change. The npc takes a new path once it bumps into the critter, or a path test after the wait finds it.
+void test_cover_script_retreat_blocked_by_critter(point hidden, u32 gap, bool static_change)
+{
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    s.move_threat(point{ch, {7, 1}, {}});
+    s.step_until(state::retreat);
+    const auto from = s.npc->position();
+    s.step();
+    const auto at = s.npc->position();
+    fm_assert(s.status().st == state::retreat && at != from);
+    add_critter(s.w, at + Math::sign(at - from)*((int)gap + (int)body.x()));
+    if (static_change)
+        rebuild(s.w);
+    const auto t0 = s.status();
+    auto frames = 0u;
+    for (; s.status().counters.num_dijkstra_calls == t0.counters.num_dijkstra_calls; frames++)
+    {
+        fm_assert(frames < Cover::Script::max_updates_before_LOS_check);
+        fm_assert(s.status().st == state::retreat);
+        s.step();
+    }
+    fm_assert(frames > 1);
+    const auto t = s.status();
+    fm_assert(t.st == state::retreat);
+    fm_assert_equal(t0.counters.num_dijkstra_calls + 1, t.counters.num_dijkstra_calls);
+    fm_assert_equal(t0.counters.num_retreat_restarts, t.counters.num_retreat_restarts);
+}
+
+// As test_cover_script_retreat_blocked, with the search ended before the blocks. Walls closing the npc in leave it
 // seeking where it stands, for a second before it searches again.
 void test_cover_script_retreat_blocked_search_ended(point hidden)
 {
@@ -2932,16 +3016,11 @@ void test_cover_script_retreat_blocked_search_ended(point hidden)
     s.step();
     s.finish_search();
     fm_assert(s.status().st == state::retreat && !s.status().search.tiles_left);
-    block_retreat_walk(s);
-    s.step_until(state::find_retreat);
-    s.step_until(state::retreat);
-    block_retreat_walk(s);
-    for (auto frames = 0u; s.status().st == state::retreat; frames++)
-    {
-        fm_assert(frames < s.fps/2);
-        s.step();
-    }
-    fm_assert(s.status().st == state::seek);
+    close_in_npc(s);
+    const auto t0 = step_until_retreat_block(s, 1);
+    fm_assert(s.status().st == state::find_retreat);
+    fm_assert_equal(t0.counters.num_retreat_restarts + 1, s.status().counters.num_retreat_restarts);
+    s.step_until(state::seek);
     const auto stop = s.npc->position();
     auto frames = 0u;
     for (; s.status().st == state::seek; frames++)
@@ -2955,8 +3034,8 @@ void test_cover_script_retreat_blocked_search_ended(point hidden)
 }
 
 // As test_cover_script_retreat. The threat moves mid-walk to where it sees the walk's end, still over 3 tiles
-// farther than hidden. The npc looks for a retreat again, and a threat next to the second end starts no third.
-void test_cover_script_retreat_end_seen(point hidden)
+// farther than hidden. The npc looks for a retreat again, and a third time with the threat next to the second end.
+void test_cover_script_retreat_end_seen(point hidden, bool search_ended)
 {
     const point threat_pos{ch, {7, 1}, {}}, moved{ch, {5, 1}, {-20, 0}};
     const auto dist = [&](point p, point from) { return std::sqrt((double)point::distance_squared(p, from)); };
@@ -2968,15 +3047,31 @@ void test_cover_script_retreat_end_seen(point hidden)
         fm_assert(s.npc->position() == hidden);
         s.move_threat(threat_pos);
         s.step_until(state::retreat);
+        if (search_ended)
+        {
+            s.finish_search();
+            fm_assert(s.status().st == state::retreat && !s.status().search.tiles_left);
+        }
         fm_assert(s.seen_from(moved, end));
         fm_assert(dist(end, moved) - dist(hidden, moved) > 3*tile_size_xy);
         const auto t0 = s.status();
-        const auto from = s.npc->position();
         s.move_threat(moved);
+        // The threat stands still from here, so the first check after the retreat's wait must see it moved.
+        const u32 restart_frame = search_ended ? 0 : Cover::Script::max_updates_before_LOS_check;
+        for (auto frames = 0u; frames < restart_frame; frames++)
+        {
+            s.step();
+            const auto t = s.status();
+            fm_assert(t.st == state::retreat && t.search.tiles_left > 0);
+            fm_assert_equal(t0.counters.num_retreat_restarts, t.counters.num_retreat_restarts);
+        }
+        const auto t1 = s.status();
+        const auto from = s.npc->position();
         s.step();
         const auto t = s.status();
         fm_assert_equal(t0.counters.num_retreat_restarts + 1, t.counters.num_retreat_restarts);
-        fm_assert(t.counters.num_dijkstra_calls - t0.counters.num_dijkstra_calls <= 4);
+        fm_assert(t.counters.num_dijkstra_calls - t1.counters.num_dijkstra_calls <= 4);
+        fm_assert(search_ended || t.st == state::retreat && t1.search.tile > 0 && t.search.tile >= t1.search.tile);
         return from;
     };
     point spot;
@@ -2999,6 +3094,10 @@ void test_cover_script_retreat_end_seen(point hidden)
     restart(s);
     s.step_until(state::retreat);
     const auto t1 = s.status();
+    const auto dist0 = dist(s.npc->position(), spot + Vector2i{64, 0});
+    // A running search postpones the LOS check.
+    const u32 restart_frame = search_ended ? Cover::Script::min_updates_before_LOS_check
+                                           : Cover::Script::max_updates_before_LOS_check;
     for (auto frames = 0u; s.status().st == state::retreat; frames++)
     {
         fm_assert(frames < 60*s.fps);
@@ -3006,8 +3105,10 @@ void test_cover_script_retreat_end_seen(point hidden)
         s.step();
         const auto t = s.status();
         fm_assert(t.st != state::find_retreat);
-        fm_assert_equal(t1.counters.num_retreat_restarts, t.counters.num_retreat_restarts);
+        fm_assert_equal(t1.counters.num_retreat_restarts + (frames >= restart_frame), t.counters.num_retreat_restarts);
+        fm_assert(frames >= restart_frame || (t.search.tiles_left > 0) != search_ended);
     }
+    fm_assert(dist(s.npc->position(), s.threat->position()) > dist0 + 2*tile_size_xy);
 }
 
 // A wall at tile (12, 8) whose west face, over 7 tiles from the npc, is the only cover from the
@@ -4183,7 +4284,8 @@ void Test::test_cover_point()
     test_cover_script_peek_again_flanked(hidden, c0.peek);
     test_cover_script_search_every_move(hidden);
     test_cover_script_retreat(hidden);
-    test_cover_script_retreat_cover_removed(hidden);
+    test_cover_script_retreat_cover_removed(hidden, false);
+    test_cover_script_retreat_cover_removed(hidden, true);
     test_cover_script_retreat_closed_in(hidden);
     test_cover_script_retreat_restart(hidden);
     test_cover_script_retreat_circling_threat(hidden);
@@ -4193,8 +4295,14 @@ void Test::test_cover_point()
     test_cover_script_retreat_finds_cover(hidden, false);
     test_cover_script_retreat_finds_cover(hidden, true);
     test_cover_script_retreat_blocked(hidden);
+    test_cover_script_retreat_blocked_by_critter(hidden, 8, false);
+    test_cover_script_retreat_blocked_by_critter(hidden, 8, true);
+    // The npc can't walk 32 px in the wait.
+    test_cover_script_retreat_blocked_by_critter(hidden, 32, false);
+    test_cover_script_retreat_blocked_by_critter(hidden, 32, true);
     test_cover_script_retreat_blocked_search_ended(hidden);
-    test_cover_script_retreat_end_seen(hidden);
+    test_cover_script_retreat_end_seen(hidden, false);
+    test_cover_script_retreat_end_seen(hidden, true);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
     test_cover_script_search_threat_back_and_forth();
