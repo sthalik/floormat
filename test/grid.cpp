@@ -1682,13 +1682,10 @@ Array<u16> cover_reference_distances(ArrayView<const bool> passable, u32 div_siz
     return ret;
 }
 
-void check_cover_octants(world& w, Grid::Cover::Grid& g, u32 div_size, ArrayView<const u32> octants)
+void check_cover_octants(ArrayView<const bool> passable, Grid::Cover::Grid& g, u32 div_size,
+                         ArrayView<const u32> octants)
 {
-    // the params CoverPool gives its own pass pool
-    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
     const auto dc = g.div_count();
-    const auto passable = pass_bits_of_chunk_and_neighbors(w, pass_pool, COORD, dc);
-
     for (auto k : octants)
     {
         (void)g.ensure_octant(k);
@@ -1707,6 +1704,14 @@ void check_cover_octants(world& w, Grid::Cover::Grid& g, u32 div_size, ArrayView
             }
         }
     }
+}
+
+void check_cover_octants(world& w, Grid::Cover::Grid& g, u32 div_size, ArrayView<const u32> octants)
+{
+    // the params CoverPool gives its own pass pool
+    Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+    check_cover_octants(pass_bits_of_chunk_and_neighbors(w, pass_pool, COORD, g.div_count()), g, div_size,
+                        octants);
 }
 
 // Every cell against the model above, then again after a wall goes up and the grid rebuilds.
@@ -1730,6 +1735,60 @@ void test_cover_matches_reference(u32 div_size, ArrayView<const u32> octants)
     g.build_if_stale();
     fm_assert(g.built_octants() == 1u);
     check_cover_octants(w, g, div_size, octants);
+}
+
+// Compares octant k with the model when the only blocker lies in the farthest row past the south edge that can
+// lower a distance in the chunk. k must point between east and south.
+void test_cover_reads_farthest_neighbor_row(u32 div_size, u32 k)
+{
+    const auto s = cover_step(k);
+    const int q = s.x(), p = s.y(), major = Math::max(q, p), dc = (int)(chunk_size_xy / div_size);
+    fm_assert(q > 0 && p > 0 && q != p);
+    const double len = Math::sqrt((double)s.dot());
+    int max_major_offset_with_distance_below_dc = 0;
+    while (cover_units((float)((max_major_offset_with_distance_below_dc + 1) * len * div_size / major),
+                       div_size) < (u32)dc)
+        max_major_offset_with_distance_below_dc++;
+
+    const auto crossed = cover_crossed_cells(k);
+    Vector2i blocked_cell_offset;
+    for (int t = 0; t*major <= max_major_offset_with_distance_below_dc; t++)
+        for (int c = -1; c < (int)crossed.size(); c++)
+        {
+            const auto offset = t*s + (c < 0 ? Vector2i{} : crossed[(u32)c]);
+            const auto major_offset = q > p ? offset.x() : offset.y();
+            if (major_offset <= max_major_offset_with_distance_below_dc && offset.y() > blocked_cell_offset.y())
+                blocked_cell_offset = offset;
+        }
+    const auto blocked_cell = Vector2i{0, dc - 1} + blocked_cell_offset;
+
+    constexpr chunk_coords_ south{0, 1, 0};
+    auto w = world();
+    add_ground_all(w[COORD]);
+    add_ground_all(w[south]);
+    // A 1-px blocker blocks the cell before its own, and no cell nearer the chunk.
+    const auto pixel = (blocked_cell + Vector2i{1, 1 - dc}) * (int)div_size;
+    fm_assert(pixel.x() < (int)chunk_size_xy && pixel.y() < (int)chunk_size_xy);
+    const auto tile = pixel / (int)tile_size_xy;
+    add_blocker(w, {south, local_coords{(u8)tile.x(), (u8)tile.y()}},
+                Vector2b{pixel - tile*(int)tile_size_xy - half_tile<Vector2i>}, {1, 1});
+    rebuild_passability(w[COORD]);
+    rebuild_passability(w[south]);
+
+    Pass::Pool cover_pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
+    const auto passable = pass_bits_of_chunk_and_neighbors(w, cover_pass_pool, COORD, (u32)dc);
+    const auto is_passable = [&](int x, int y) { return passable[(usize)((y + dc)*3*dc + x + dc)]; };
+    fm_assert(!is_passable(blocked_cell.x(), blocked_cell.y()));
+    for (int y = dc; y < blocked_cell.y(); y++)
+        for (int x = 0; x < dc; x++)
+            fm_assert(is_passable(x, y));
+
+    Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, cover_pass_pool};
+    Grid::Cover::Grid g = pool[w[COORD]];
+    g.build_if_stale();
+    const u32 octants[] = { k };
+    check_cover_octants(passable, g, div_size, octants);
+    fm_assert(g.distance(Grid::Cover::Grid::get_cell_index(0, (u32)dc - 1, (u32)dc), k) < dc);
 }
 
 // make_cover_scene's own chunk, without its neighbors, and with walls a tile short of the chunk's edges.
@@ -3784,6 +3843,10 @@ void test_grid()
     }
     hwy::SetSupportedTargetsForTest(0);
     vqsort_refresh_targets();
+    // At div 2 and 16, octant 6's fill reads a row past the farthest one that can lower a distance.
+    // Octants 2 and 7 don't.
+    for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u })
+        test_cover_reads_farthest_neighbor_row(ds, ds == 2 ? 2u : ds == 16 ? 7u : 6u);
     for (const auto ds : { 8u, 16u })
     {
         test_cover_world_edge(ds);

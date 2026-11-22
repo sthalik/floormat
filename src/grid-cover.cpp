@@ -195,6 +195,8 @@ bool pass_bit(const usize* bits, u32 n)
 }
 
 constexpr u32 line_cells = 64 / sizeof(u16);
+// The coarsest grid's div_count(). A fill computes multiples of it per row, which split into whole vectors.
+constexpr u32 min_div_count = chunk_size_xy / Grid::Cover::max_div_size;
 
 u32 round_up(u32 n, u32 multiple)
 {
@@ -318,7 +320,7 @@ namespace floormat::Grid::detail::HWY_NAMESPACE {
 namespace {
 
 using DU16 = hwy::HWY_NAMESPACE::CappedTag<u16, 16>;
-static_assert(hwy::HWY_NAMESPACE::MaxLanes(DU16{}) <= chunk_size_xy / Grid::Cover::max_div_size,
+static_assert(hwy::HWY_NAMESPACE::MaxLanes(DU16{}) <= min_div_count,
               "the coarsest grid's row must split into whole vectors"); // xxx todo assumes power of two chunk size
 
 template<typename D>
@@ -733,9 +735,19 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
         if (i == 0 || !pass_grid.is_all_empty())
             pass_bits[i] = {pass_grid.bits().data, dc};
     }
+    const u32 aq = (u32)Math::abs(s.x()), ap = (u32)Math::abs(s.y()), major = Math::max(aq, ap);
+    // A blocked cell lowers a distance in the chunk below dc only when it lies at most this many cells from the
+    // chunk along the axis the offset is longer on.
+    const auto max_cells_along_major_axis = (u32)(dc*major / Math::sqrt((double)(aq*aq + ap*ap)));
+    // Lines that long, and the cells they cross, leave the chunk by at most this many columns and rows.
+    const auto max_neighbor_columns_and_rows =
+        Math::min(Vector2ui{max_cells_along_major_axis},
+                  ((2*max_cells_along_major_axis + 1)*Vector2ui{aq, ap} + Vector2ui{major}) / (2*major));
     // Cells of chunks with no blocked cell would all hold UINT16_MAX, as cells left out do.
-    const u32 num_neighbor_columns = pass_bits[1].row_stride || pass_bits[3].row_stride ? dc : 0;
-    const u32 num_neighbor_rows = pass_bits[2].row_stride || pass_bits[3].row_stride ? dc : 0;
+    const u32 num_neighbor_columns = pass_bits[1].row_stride || pass_bits[3].row_stride
+                                     ? Math::min(round_up(max_neighbor_columns_and_rows.x(), min_div_count), dc) : 0;
+    const u32 num_neighbor_rows = pass_bits[2].row_stride || pass_bits[3].row_stride
+                                  ? max_neighbor_columns_and_rows.y() : 0;
 
     if (is_octilinear(s))
     {
