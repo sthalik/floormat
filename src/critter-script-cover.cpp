@@ -1108,7 +1108,7 @@ Raycast::raycast_result_s line_of_sight(world& w, Grid::GridRegistry& reg, u32 d
                                         object_id self)
 {
     const auto params = Pass::Params{div_size, pass_mode::shoot_through};
-    return raycast(w, from, to, self, reg.object_pool(params), Search::without_critters);
+    return raycast(w, from, to, self, reg.pass_pool(params), Search::without_critters);
 }
 
 } // namespace floormat::Cover::Script

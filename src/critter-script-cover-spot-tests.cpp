@@ -2,6 +2,7 @@
 #include "critter-script-cover-peek-spot.hpp"
 #include "critter-script-cover-search.hpp"
 #include "critter.hpp"
+#include "grid-registry.hpp"
 #include "point.inl"
 #include "raycast.hpp"
 #include "search-astar.hpp"
@@ -81,9 +82,12 @@ path_search_result spot_tests::path_to(critter& c, point to)
 bool spot_tests::is_reachable_without_critters(critter& c, point to)
 {
     const auto from = c.position();
+    const auto size = Vector2ui(c.bbox_size);
+    auto& pool = _astar.pool_registry().pass_pool(
+        Grid::Pass::Params{astar::default_div_size, Math::max(size.x(), size.y()), pass_mode::pass});
     counters.num_dijkstra_calls++;
-    return _astar.Dijkstra<0, false>(c.world(), from, to, Cover::max_search_path_length(from, to),
-                                     Vector2ui(c.bbox_size), Search::without_critters).is_found();
+    return _astar.Dijkstra<0, false>(c.world(), pool, from, to, Cover::max_search_path_length(from, to), size,
+                                     Search::without_critters).is_found();
 }
 
 ArrayView<const point> spot_tests::threat_lattice(critter& c, const Cover::Script::options& o, point threat)
