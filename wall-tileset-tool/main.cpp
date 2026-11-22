@@ -365,7 +365,7 @@ argument_tuple parse_cmdline(int argc, const char* const* argv) noexcept
         return { .opts = move(opts), .args = move(args), .ok = true };
     }
 
-    return {};
+    return { .args = move(args) };
 }
 
 [[nodiscard]] int usage(const Arguments& args) noexcept
