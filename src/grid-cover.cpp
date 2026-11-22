@@ -280,8 +280,6 @@ struct CoverGrid : GridBase
     u32 get_cell_index_from_coord(intra_coord pos) const;
 
     void build_impl(chunk* self);
-    // Returns the chunk at offset from the grid's own, or null when there is none or offset leaves the world.
-    chunk* neighbor_chunk_at(Vector2i offset) const;
     bool fill_octant(u32 k, chunk& self);
     // pass_bits[iy*2 + ix] is the chunk at (ix, iy) times the signs of the octant's cell offset.
     template<typename T> void fill_octilinear_octant(u32 k, const std::array<chunk_pass_bits, 4>& pass_bits,
@@ -675,15 +673,6 @@ void CoverGrid::fill_non_octilinear_octant(u32 k, const std::array<chunk_pass_bi
                                                                      num_neighbor_rows);
 }
 
-chunk* CoverGrid::neighbor_chunk_at(Vector2i offset) const
-{
-    const auto x = coord.x + offset.x(), y = coord.y + offset.y();
-    if (x < chunk_xy_min || x > chunk_xy_max || y < chunk_xy_min || y > chunk_xy_max)
-        return nullptr;
-    else
-        return c->world().at({(i16)x, (i16)y, coord.z});
-}
-
 u32 CoverGrid::get_cell_index(u32 x, u32 y, u32 div_count)
 {
     return GridBase::pack_bit_index(x, y, div_count);
@@ -740,11 +729,12 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
     const auto s = octant_steps[k];
     const i32 sx = s.x() > 0 ? 1 : s.x() < 0 ? -1 : 0;
     const i32 sy = s.y() > 0 ? 1 : s.y() < 0 ? -1 : 0;
+    auto& w = self.world();
     const std::array<chunk*, 4> chunks = {
         &self,
-        sx ? neighbor_chunk_at({sx, 0}) : nullptr,
-        sy ? neighbor_chunk_at({0, sy}) : nullptr,
-        sx && sy ? neighbor_chunk_at({sx, sy}) : nullptr,
+        sx ? w.at(coord + Vector2i{sx, 0}) : nullptr,
+        sy ? w.at(coord + Vector2i{0, sy}) : nullptr,
+        sx && sy ? w.at(coord + Vector2i{sx, sy}) : nullptr,
     };
     for (auto* ch : chunks)
         if (ch)

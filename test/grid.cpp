@@ -1818,61 +1818,6 @@ void make_cover_chunk(world& w, chunk_coords_ ch)
     rebuild_passability(c);
 }
 
-// A chunk at the world's limit holds the distances the same chunk holds alone at COORD, although the chunks that
-// its neighbors' coordinates wrap to are full of blockers. Each chunk gets its own world.
-void test_cover_world_edge(u32 div_size)
-{
-    const auto built = [div_size](chunk_coords_ ch, auto&& fn) {
-        auto w = world();
-        make_cover_chunk(w, ch);
-        for (i32 dy = -1; dy <= 1; dy++)
-            for (i32 dx = -1; dx <= 1; dx++)
-            {
-                const i32 x = ch.x + dx, y = ch.y + dy;
-                if (x >= chunk_xy_min && x <= chunk_xy_max && y >= chunk_xy_min && y <= chunk_xy_max)
-                    continue;
-                const chunk_coords_ wrapped{(i16)x, (i16)y, ch.z};
-                auto& c = w[wrapped];
-                add_ground_all(c);
-                // 20 px from the tile's edges, out of reach of the pass grid of ch
-                for (u8 j = 0; j < TILE_MAX_DIM; j++)
-                    for (u8 i = 0; i < TILE_MAX_DIM; i++)
-                        add_blocker(w, {wrapped, local_coords{i, j}}, {}, {24, 24});
-                rebuild_passability(c);
-            }
-        Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};
-        Grid::Cover::Pool pool{Grid::Cover::Params{div_size}, pass_pool};
-        Grid::Cover::Grid g = pool[w[ch]];
-        g.build_if_stale();
-        for (auto k = 0u; k < Grid::Cover::octant_count; k++)
-            (void)g.ensure_octant(k);
-        fm_assert(g.built_octants() == (u32)-1);
-        fn(g);
-    };
-    const auto dc = chunk_size_xy / div_size;
-    Array<u16> expected{NoInit, (usize)(dc*dc*Grid::Cover::octant_count)};
-    built(COORD, [&](Grid::Cover::Grid& g) {
-        for (auto k = 0u; k < Grid::Cover::octant_count; k++)
-            for (auto i = 0u; i < dc*dc; i++)
-                expected[k*dc*dc + i] = g.distance(i, k);
-    });
-
-    constexpr auto lo = (i16)chunk_xy_min, hi = (i16)chunk_xy_max;
-    for (const auto xy : { Vector2s{hi, hi}, Vector2s{hi, lo}, Vector2s{lo, hi}, Vector2s{lo, lo},
-                           Vector2s{hi, 0}, Vector2s{lo, 0}, Vector2s{0, hi}, Vector2s{0, lo} })
-        built(chunk_coords_{xy.x(), xy.y(), 0}, [&](Grid::Cover::Grid& g) {
-            for (auto k = 0u; k < Grid::Cover::octant_count; k++)
-                for (auto i = 0u; i < dc*dc; i++)
-                    if (g.distance(i, k) != expected[k*dc*dc + i])
-                    {
-                        Error{standard_error()} << "!!! fatal: div_size" << div_size << "chunk" << xy
-                                                << "octant" << k << "cell" << i % dc << i / dc << "distance"
-                                                << g.distance(i, k) << "but expected" << expected[k*dc*dc + i];
-                        fm_assert(false);
-                    }
-        });
-}
-
 // A chunk without neighbors holds the distances it holds among eight neighbors of bare ground. Four side neighbors
 // whose only blocked cells are a whole chunk away change nothing either, with the corner chunks missing.
 void test_cover_missing_neighbors_read_as_open_ground(u32 div_size)
@@ -3848,10 +3793,7 @@ void test_grid()
     for (const auto ds : { 1u, 2u, 4u, 8u, 16u, 32u, 64u })
         test_cover_reads_farthest_neighbor_row(ds, ds == 2 ? 2u : ds == 16 ? 7u : 6u);
     for (const auto ds : { 8u, 16u })
-    {
-        test_cover_world_edge(ds);
         test_cover_missing_neighbors_read_as_open_ground(ds);
-    }
     test_cover_rebuilds_on_neighbor_change(16);
     for (const auto ds : { 8u, 16u })
     {

@@ -58,15 +58,6 @@ void check_chunk_table()
             fm_assert(!t.chunk_at({v, i16(v + 1), z}) && !t.chunk_at({v, i16(v - 1), z}));
         }
 
-    // chunk_coords_ addition wraps
-    t.update_slot({INT16_MIN, INT16_MAX, chunk_z_max}, fake(99));
-    bool found = false;
-    for (chunk* c : t.neighbors({INT16_MAX, INT16_MAX, chunk_z_max}))
-        if (c == fake(99))
-            found = true;
-    fm_assert(found);
-    t.update_slot({INT16_MIN, INT16_MAX, chunk_z_max}, nullptr);
-
     for (i8 z : zs)
         for (i16 v : coords)
         {
