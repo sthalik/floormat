@@ -6,12 +6,10 @@
 #include "vobj-editor.hpp"
 #include "keys.hpp"
 #include "src/world.hpp"
-#include "src/object-storage.inl"
+#include "src/update-world.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
-#include "src/light.hpp"
-#include "src/hole.hpp"
 #include "src/tile-constants.hpp"
 #include "floormat/events.hpp"
 #include "floormat/main.hpp"
@@ -219,8 +217,6 @@ void app::apply_commands(const key_set& keys)
 void app::update_world(Ns dt)
 {
     auto& world = M->world();
-    const auto frame_no = world.increment_frame_no();
-    world.advance_game_time(dt);
     ArrayView<chunk_coords_> chunks;
     if (_update_all_chunks)
     {
@@ -231,49 +227,7 @@ void app::update_world(Ns dt)
     }
     else
         chunks = M->get_draw_bounds(_chunk_bounds_array, { -chunk_size<Vector2i>, chunk_size<Vector2i>, });
-    for (auto ch : chunks)
-    {
-            auto* const cʹ = world.at(ch);
-            if (!cʹ)
-                continue;
-            auto& c = *cʹ;
-            c.objects().visit_lists([&]<typename T>(object_list<T>& l) {
-                auto size = l.size();
-                for (auto i = 0u; i < size; i++)
-                {
-                    auto index = usize{i};
-                    T& e = l[i];
-                    if (e.last_frame_no == frame_no) [[unlikely]]
-                        continue;
-                    e.last_frame_no = frame_no;
-                    e.update(l.ptr(i), index, dt); // objects can't delete themselves during update()
-                    if (&e.chunk() != cʹ || index > i) [[unlikely]]
-                    {
-                        i--;
-                        size = l.size();
-                    }
-                }
-            });
-    }
-
-#if 0
-#ifndef FM_NO_DEBUG
-    for (auto ch : chunks)
-    {
-        auto* cʹ = world.at(ch);
-        if (!cʹ)
-            continue;
-        auto& c = *cʹ;
-        const auto& es = c.objects();
-        auto size = es.size();
-        for (auto i = 0uz; i < size; i++)
-        {
-            auto& e = *es[i];
-            fm_assert(e.last_frame_no == frame_no);
-        }
-    }
-#endif
-#endif
+    floormat::update_world(world, chunks, dt);
 }
 
 void app::update_character([[maybe_unused]] Ns dt)

@@ -100,6 +100,7 @@ void test_sprite_atlas();
 void test_spritebatch();
 void test_sprites();
 void test_sweep_aabb();
+void test_update_world();
 void test_util();
 void test_virtual_memory();
 void test_vqsort();
