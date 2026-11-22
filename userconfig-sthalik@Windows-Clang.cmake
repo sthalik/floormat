@@ -28,6 +28,9 @@ else()
     add_link_options(-Wl,--gc-sections -Wl,--as-needed -Wl,--icf=all)
     add_compile_options(-Wno-nan-infinity-disabled)
     add_definitions(-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 24)
+        add_compile_options(-msmall-int-abi-compat=clang-23) # Avoid redundant argument extensions.
+    endif()
     add_compile_options(-fpointer-tbaa)
     add_compile_options(
         #-ffast-math
