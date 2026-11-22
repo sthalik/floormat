@@ -649,15 +649,26 @@ ArrayView<const Cover::Point::spot> cover_ai_test::script_spots(app& a, critter&
     {
         const auto f0 = fills(a);
         auto t = Time::now();
-        Cover::Script::list_spots(c, script_list);
+        auto is_list_complete = true;
+        if (s.query)
+        {
+            auto q = *s.query;
+            q.max_fills = Grid::Cover::max_octant_fills_per_frame;
+            is_list_complete = !Cover::Script::list_spots(c, q, script_list).out_of_fills;
+        }
+        else
+            arrayClear(script_list);
         const auto dt = t.update();
         const auto f = fills(a);
-        fm_debug("cover-ai: cover list: %u spots, %.1f us, %u octant fills in %.1f us", (u32)script_list.size(),
-                 us(dt), f.n - f0.n, us(f.time - f0.time));
-        script_list_npc = c.id;
-        script_list_num_searches = s.counters.num_searches;
-        script_list_pass_gen = gen;
-        has_script_list = true;
+        fm_debug("cover-ai: cover list: %u spots%s, %.1f us, %u octant fills in %.1f us", (u32)script_list.size(),
+                 is_list_complete ? "" : " (out of octant fills)", us(dt), f.n - f0.n, us(f.time - f0.time));
+        if (is_list_complete)
+        {
+            script_list_npc = c.id;
+            script_list_num_searches = s.counters.num_searches;
+            script_list_pass_gen = gen;
+            has_script_list = true;
+        }
     }
     return script_list;
 }
