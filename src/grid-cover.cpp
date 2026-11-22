@@ -189,11 +189,6 @@ float raycast_one(chunk& self,
     return Math::min(Vector2(r.collision - from).length(), (float)max_ray_px);
 }
 
-bool pass_bit(const usize* bits, u32 n)
-{
-    return bits[n / (sizeof(usize)*8)] >> n % (sizeof(usize)*8) & 1;
-}
-
 constexpr u32 line_cells = 64 / sizeof(u16);
 // The coarsest grid's div_count(). A fill computes multiples of it per row, which split into whole vectors.
 constexpr u32 min_div_count = chunk_size_xy / Grid::Cover::max_div_size;
@@ -228,10 +223,10 @@ u32 passable_run_length(const usize* pass_bits, u32 first_bit, i32 sx, u32 max_c
         const u32 bit = sx > 0 ? first_bit + n : first_bit - n, shift = bit % word_bits;
         const usize word = pass_bits[bit / word_bits];
         // the zeros shifted in become ones, which end the count at the word's edge
-        const u32 run = sx > 0 ? (u32)std::countr_zero((usize)~(word >> shift))
-                               : (u32)std::countl_zero((usize)~(word << (word_bits - 1 - shift)));
-        n += run;
-        if (run < (sx > 0 ? word_bits - shift : shift + 1))
+        const u32 run_length = sx > 0 ? (u32)std::countr_zero((usize)~(word >> shift))
+                                      : (u32)std::countl_zero((usize)~(word << (word_bits - 1 - shift)));
+        n += run_length;
+        if (run_length < (sx > 0 ? word_bits - shift : shift + 1))
             break;
     }
     return Math::min(n, max_cells);
@@ -427,6 +422,47 @@ void compute_row(u16* row, T* out, const usize* pass_bits, u32 first_bit, i32 sx
         }
 }
 
+// Stores how many cells lie from each cell of a row to the first blocked cell the way sx points, at most dc.
+// num_passable_cells_along_sx counts from the cell that follows the row to the first blocked one.
+template<typename T>
+void compute_horizontal_octant_row(T* __restrict out, const usize* __restrict pass_bits, u32 first_bit, u32 dc,
+                                   i32 sx, u32 num_passable_cells_along_sx)
+{
+    namespace hn = hwy::HWY_NAMESPACE;
+    constexpr DU16 d;
+    constexpr hn::Rebind<u8, decltype(d)> d8;
+    const auto N = (u32)hn::Lanes(d);
+    fm_debug3_assert(dc % N == 0);
+
+    // A position counts cells against sx. The cell that follows a vector's cells the way sx points is at dc, so
+    // every position that matters is above 0, which stands for no blocked cell.
+    const auto lane = hn::Iota(d, 0);
+    const auto lane_positions = hn::Add(sx > 0 ? hn::Sub(hn::Set(d, (u16)(N - 1)), lane) : lane,
+                                        hn::Set(d, (u16)(dc + 1)));
+    const auto dx = sx > 0 ? 0u - N : N;
+    for (u32 b = 0, x = sx > 0 ? dc - N : 0; b < dc; b += N, x += dx)
+    {
+        const auto passable = pass_mask(d, pass_bits, first_bit + x);
+        auto nearest_blocked_position = hn::IfThenZeroElse(passable, lane_positions);
+        // Each lane takes the maximum over the lanes following it the way sx points, twice as many per pass.
+        for (u32 n = 1; n < N; n *= 2)
+            nearest_blocked_position = hn::Max(nearest_blocked_position,
+                                               sx > 0 ? hn::SlideDownLanes(d, nearest_blocked_position, n)
+                                                      : hn::SlideUpLanes(d, nearest_blocked_position, n));
+        nearest_blocked_position = hn::Max(nearest_blocked_position,
+                                           hn::Set(d, (u16)(dc - Math::min(num_passable_cells_along_sx, dc - 1))));
+        const auto cells = hn::Min(hn::Sub(lane_positions, nearest_blocked_position), hn::Set(d, (u16)dc));
+        const auto units = hn::IfThenElse(passable, cells, hn::Set(d, (u16)(T)-1));
+        if constexpr (sizeof(T) == 1)
+            hn::StoreU(hn::DemoteTo(d8, units), d8, out + x);
+        else
+            hn::StoreU(units, d, out + x);
+
+        const auto run_length = passable_run_length(pass_bits, first_bit + (sx > 0 ? x : x + N - 1), sx, N);
+        num_passable_cells_along_sx = run_length < N ? run_length : num_passable_cells_along_sx + N;
+    }
+}
+
 // Writes one u16 per cell, all ones where passable, so a vector can load from any cell. first_bit and
 // cell_count must be multiples of the lane count.
 void expand_pass_row(u16* __restrict out, const usize* __restrict pass_bits, u32 first_bit, u32 cell_count)
@@ -487,29 +523,16 @@ void fill_octilinear_octant(CoverGrid& g, u32 k, const std::array<chunk_pass_bit
         // The offset is exactly one cell, so the plane holds cell counts, and rows are independent.
         for (u32 y = 0; y < dc; y++)
         {
-            u32 cells_to_blocked = dc;
+            u32 num_passable_cells_along_sx = dc;
             if (num_neighbor_columns)
             {
                 const auto first_bit = y*neighbor_bits.row_stride + (sx > 0 ? 0 : dc - 1);
-                const auto run = passable_run_length(neighbor_bits.data, first_bit, sx, num_neighbor_columns);
-                if (run < num_neighbor_columns)
-                    cells_to_blocked = run;
+                const auto run_length =
+                    passable_run_length(neighbor_bits.data, first_bit, sx, num_neighbor_columns);
+                if (run_length < num_neighbor_columns)
+                    num_passable_cells_along_sx = run_length;
             }
-            for (u32 n = 0; n < dc; n++)
-            {
-                const auto x = sx > 0 ? dc - 1 - n : n;
-                const auto i = y*dc + x;
-                if (!pass_bit(own_bits, i))
-                {
-                    cells_to_blocked = 0;
-                    plane[i] = (T)-1;
-                }
-                else
-                {
-                    cells_to_blocked = Math::min(cells_to_blocked + 1, dc);
-                    plane[i] = (T)cells_to_blocked;
-                }
-            }
+            compute_horizontal_octant_row(plane + y*dc, own_bits, y*dc, dc, sx, num_passable_cells_along_sx);
         }
     }
     else
