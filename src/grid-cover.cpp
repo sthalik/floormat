@@ -113,6 +113,7 @@ consteval non_octilinear_octant make_non_octilinear_octant(Vector2b step)
                 continue;
             fm_assert(ret.count < ret.cells.size());
             const int major = aq > ap ? (i < 0 ? -i : i) : (j < 0 ? -j : j);
+            fm_assert(major < (aq > ap ? aq : ap));
             ret.cells[ret.count++] = {(i8)i, (i8)j, (u8)major};
         }
     for (u32 a = 1; a < ret.count; a++)
@@ -475,10 +476,10 @@ void expand_pass_row(u16* __restrict out, const usize* __restrict pass_bits, u32
 }
 
 // Computes cell_count cells of one row of octant o, from cell first_cell, into cur and, unless T is void, out.
-// next holds the pixel distances |p| rows back, and masks[j] the pass masks j rows back.
+// next holds the pixel distances |p| rows back, and crossed_cell_masks[c] the pass masks o.cells[c] away.
 template<typename T>
-void compute_non_octilinear_row(const u16* __restrict next, u16* __restrict cur,
-                                const u16* const* __restrict masks, T* __restrict out,
+void compute_non_octilinear_row(const u16* __restrict next, u16* __restrict cur, const u16* __restrict masks,
+                                const u16* const* __restrict crossed_cell_masks, T* __restrict out,
                                 const non_octilinear_octant& o, u32 step, const u16* __restrict stop_px,
                                 isize first_cell, u32 cell_count, [[maybe_unused]] u32 div_size)
 {
@@ -492,14 +493,10 @@ void compute_non_octilinear_row(const u16* __restrict next, u16* __restrict cur,
     {
         const auto i = first_cell + (isize)x;
         auto px = hn::SaturatedAdd(hn::LoadU(d, next + (i + o.q)), vstep);
-        // o.cells runs farthest first, so px keeps the stop_px of the nearest blocked cell.
+        // No stop_px exceeds step, so the minimum is the nearest blocked crossed cell's stop_px, if any.
         for (u32 c = 0; c < o.count; c++)
-        {
-            const auto& cell = o.cells[c];
-            const auto* m = masks[cell.y < 0 ? -cell.y : cell.y] + (i + cell.x);
-            px = hn::IfThenElse(hn::MaskFromVec(hn::LoadU(d, m)), px, hn::Set(d, stop_px[c]));
-        }
-        const auto passable = hn::MaskFromVec(hn::LoadU(d, masks[0] + i));
+            px = hn::Min(px, hn::Or(hn::LoadU(d, crossed_cell_masks[c] + i), hn::Set(d, stop_px[c])));
+        const auto passable = hn::MaskFromVec(hn::LoadU(d, masks + i));
         px = hn::IfThenElseZero(passable, px);
         hn::StoreU(px, d, cur + i);
         if constexpr (!std::is_void_v<T>)
@@ -602,7 +599,7 @@ void fill_non_octilinear_octant(CoverGrid& g, u32 k, const std::array<chunk_pass
     const auto neighbor_first_cell = q > 0 ? (isize)dc : -(isize)num_neighbor_columns;
     const u32 neighbor_first_x = q > 0 ? 0 : dc - num_neighbor_columns;
 
-    std::array<const u16*, ring_rows> row_masks;
+    std::array<const u16*, std::tuple_size_v<decltype(o.cells)>> crossed_cell_masks;
     for (i32 n = -(i32)num_neighbor_rows; n < (i32)dc; n++)
     {
         const auto r = (u32)(n + (i32)num_neighbor_rows);
@@ -616,20 +613,25 @@ void fill_non_octilinear_octant(CoverGrid& g, u32 k, const std::array<chunk_pass
         if (num_neighbor_columns)
             expand_pass_row(mask + neighbor_first_cell, neighbor_bits.data,
                             y*neighbor_bits.row_stride + neighbor_first_x, num_neighbor_columns);
-        for (u32 j = 0; j <= ap; j++)
-            row_masks[j] = mask_row(r + slots - j);
+        for (u32 c = 0; c < o.count; c++)
+        {
+            const auto& cell = o.cells[c];
+            crossed_cell_masks[c] = mask_row(r + slots - (u32)(cell.y < 0 ? -cell.y : cell.y)) + cell.x;
+        }
         const u16* const next = pixel_distance_row(r + 1);
         u16* const cur = pixel_distance_row(r);
         if (n < 0)
-            compute_non_octilinear_row<void>(next, cur, row_masks.data(), nullptr, o, step, stop_px.data(),
-                                             q > 0 ? 0 : neighbor_first_cell, dc + num_neighbor_columns, div_size);
+            compute_non_octilinear_row<void>(next, cur, mask, crossed_cell_masks.data(), nullptr, o, step,
+                                             stop_px.data(), q > 0 ? 0 : neighbor_first_cell,
+                                             dc + num_neighbor_columns, div_size);
         else
         {
-            compute_non_octilinear_row(next, cur, row_masks.data(), plane + y*dc, o, step, stop_px.data(),
-                                       0, dc, div_size);
+            compute_non_octilinear_row(next, cur, mask, crossed_cell_masks.data(), plane + y*dc, o, step,
+                                       stop_px.data(), 0, dc, div_size);
             if (num_neighbor_columns)
-                compute_non_octilinear_row<void>(next, cur, row_masks.data(), nullptr, o, step, stop_px.data(),
-                                                 neighbor_first_cell, num_neighbor_columns, div_size);
+                compute_non_octilinear_row<void>(next, cur, mask, crossed_cell_masks.data(), nullptr, o, step,
+                                                 stop_px.data(), neighbor_first_cell, num_neighbor_columns,
+                                                 div_size);
         }
     }
 }
