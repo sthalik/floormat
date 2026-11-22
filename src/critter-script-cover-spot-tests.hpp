@@ -23,6 +23,8 @@ class spot_tests
 
     ArrayView<const point> threat_lattice(critter& c, const Cover::Script::options& o, point threat);
     bool has_hidden_position_nearby(critter& c, const Cover::Script::options& o, point threat);
+    bool is_seen_on_path_impl(critter& c, const Cover::Script::options& o, point threat,
+                              const path_search_result& path, bool is_seen_at_start_counted);
 
     astar& _astar;
     Cover::Point::finder _finder;
@@ -61,6 +63,9 @@ public:
     // True when the threat, or a point near it that it can walk to, sees c's body on path after a stretch where it
     // doesn't, or past path's first 32 px when c could walk 48 px to a position none of those points see.
     bool is_seen_on_path(critter& c, const Cover::Script::options& o, point threat, const path_search_result& path);
+    // True when the threat, or a point near it that it can walk to, sees c's body anywhere on path.
+    bool is_seen_anywhere_on_path(critter& c, const Cover::Script::options& o, point threat,
+                                  const path_search_result& path);
 
     Cover::Point::finder& finder();
     Grid::GridRegistry& pool_registry();

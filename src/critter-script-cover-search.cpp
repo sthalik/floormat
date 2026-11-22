@@ -62,8 +62,9 @@ u32 search_chunk_radius(point at, point threat, u32 radius, const Cover::Script:
 
 cover_search::cover_search() { arrayReserve(_fallback_spots.peekless_spots, 16); }
 
-void cover_search::begin(point from, point threat)
+void cover_search::begin(point from, point threat, bool is_fallback_allowed)
 {
+    _is_fallback_allowed = is_fallback_allowed;
     _fallback_spots.clear();
     _exposed_cover = {};
     _dijkstra_search_to_rerun = {};
@@ -195,6 +196,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     const auto base = point{_from.coord(), {}} - _from;
     auto fills = max_octant_fills, dijkstra_left = max_search_dijkstra_calls_per_update;
     auto peek_spot_searches_left = max_peek_spot_searches_per_update;
+    const auto last_resort = _is_fallback_allowed ? o.last_resort : fallback::none;
     for (auto n = 0u; n < max_search_tiles_per_update; n++)
     {
         if (!_tile_threat)
@@ -243,7 +245,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             {
                 const auto reach = t.reach_positions(c, o, threat);
                 auto& fs = _fallback_spots;
-                const auto max_count = o.last_resort < fallback::in_reach ? 0u
+                const auto max_count = last_resort < fallback::in_reach ? 0u
                                      : fs.in_reach ? fs.num_reach_positions_seeing_in_reach - 1
                                      : (u32)reach.size();
                 const auto n = _reach_positions_not_seeing_spot.count_reach_positions_seeing(
@@ -275,7 +277,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                                            : Optional<Cover::Script::peek>{};
             if (o.needs_peek && !peek)
             {
-                if (o.last_resort >= fallback::no_peek)
+                if (last_resort >= fallback::no_peek)
                     arrayAppend(_fallback_spots.peekless_spots, s);
                 arrayAppend(_tile_skipped, skipped_spot{s, _octant});
                 if (_exposed_cover && _fallback_spots.has_cover_spot())
@@ -292,10 +294,11 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             // while the npc retreats and another when it goes to cover from state::retreat.
             if (auto path = t.path_to(c, end); path.is_found())
             {
-                if (!t.is_seen_on_path(c, o, threat, path))
+                if (_is_fallback_allowed ? !t.is_seen_on_path(c, o, threat, path)
+                                         : !t.is_seen_anywhere_on_path(c, o, threat, path))
                     return {reachable_cover{s, end, move(path), peek}, true};
                 arrayAppend(_tile_skipped, skipped_spot{s, _octant});
-                if (_exposed_cover)
+                if (_exposed_cover || !_is_fallback_allowed)
                     continue;
                 _exposed_cover = reachable_cover{s, end, move(path), {}};
                 _exposed_updates_left = updates_before_exposed_cover;
