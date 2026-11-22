@@ -15,10 +15,10 @@ namespace floormat::Cover::Script {
 
 // Updates the critter walks a retreat before check_retreat()'s first LOS check, as a restart reruns the retreat's
 // Dijkstra searches. check_walk()'s LOS checks, on walks to cover or a peek spot, don't wait.
-constexpr inline u8 min_updates_before_LOS_check = 8;
+constexpr inline u8 min_updates_before_LOS_check = 6;
 // While the search for cover runs, the retreat's LOS check waits up to this many updates, as a restart pauses the
 // search. Path tests for static changes don't wait, as a blocked path ends the walk either way.
-constexpr inline u8 max_updates_before_LOS_check = 16;
+constexpr inline u8 max_updates_before_LOS_check = 12;
 
 struct options
 {
