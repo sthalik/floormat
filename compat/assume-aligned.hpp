@@ -1,6 +1,9 @@
 #pragma once
 #include "assert.hpp"
 #include "defs.hpp"
+#if defined _MSC_VER && !defined __clang__
+#include <intrin0.h>
+#endif
 
 namespace floormat {
 
