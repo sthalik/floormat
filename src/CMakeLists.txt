@@ -30,6 +30,16 @@ endif()
 fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE hwy.cpp)
 # 1 / dir is ±inf for an axis-aligned ray, and the slab test relies on it.
 fm_no_fast_math(FINITE_MATH_ONLY SOURCE raycast-loop.cpp)
+# Windows passes the 6-byte chunk_coords_ through memory. In chunk_at() and neighbors(), clang 24's SLP vectorizer
+# reads its x and y with one 4-byte load, which can't be store-forwarded from the caller's two 2-byte stores.
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 24)
+    # LTO doesn't get the flag, so its SLP may still vectorize these functions where they're inlined.
+    if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        set_property(SOURCE chunk-table2.cpp APPEND PROPERTY COMPILE_OPTIONS -clang:-fno-slp-vectorize)
+    else()
+        set_property(SOURCE chunk-table2.cpp APPEND PROPERTY COMPILE_OPTIONS -fno-slp-vectorize)
+    endif()
+endif()
 
 #target_precompile_headers(${self} PUBLIC precomp.hpp)
 
