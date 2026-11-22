@@ -1,5 +1,6 @@
 #pragma once
 #include "chase-lev-deque.hpp"
+#include <cstring>
 
 namespace floormat {
 
@@ -32,7 +33,9 @@ inline auto ChaseLevBufferPool::get(u32 log2_capacity) noexcept -> buffer*
     {
         const auto capacity = i64{1} << log2_capacity;
         void* p = ::operator new(sizeof(buffer) + (usize)capacity * sizeof(uptr), std::align_val_t{alignof(buffer)});
-        return new (p) buffer{capacity - 1, nullptr};
+        b = new (p) buffer{capacity - 1, nullptr};
+        std::memset(b + 1, 0, (usize)capacity * sizeof(uptr));
+        return b;
     }
     if (b->next)
         push(head, b->next);
@@ -168,6 +171,14 @@ T* ChaseLevDeque<T, Hooks>::steal() noexcept
         return nullptr;
     bool won = atomic_compare_exchange(&_top, t, t + 1, memory_order::seq_cst);
     return won ? x : nullptr;
+}
+
+template<typename T, typename Hooks>
+bool ChaseLevDeque<T, Hooks>::empty() const noexcept
+{
+    i64 t = atomic_load(&_top, memory_order::relaxed);
+    i64 b = atomic_load(&_bottom, memory_order::relaxed);
+    return t >= b;
 }
 
 } // namespace floormat

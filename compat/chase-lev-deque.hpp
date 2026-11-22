@@ -72,6 +72,7 @@ public:
     void push(T* x) noexcept;
     T* take() noexcept;
     T* steal() noexcept;
+    bool empty() const noexcept;
 };
 
 } // namespace floormat

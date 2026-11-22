@@ -26,21 +26,37 @@ void test_single_threaded()
 
     ChaseLevBufferPool pool;
     Deque q{pool, 1};
+    fm_assert(q.empty());
     fm_assert(!q.take());
+    fm_assert(q.empty());
     fm_assert(!q.steal());
+    fm_assert(q.empty());
 
     for (int& x : items)
+    {
         q.push(&x);
+        fm_assert(!q.empty());
+    }
     for (int i = count - 1; i >= 0; --i)
+    {
+        fm_assert(!q.empty());
         fm_assert(q.take() == &items[(u32)i]);
+    }
+    fm_assert(q.empty());
     fm_assert(!q.take());
+    fm_assert(q.empty());
 
     for (int& x : items)
         q.push(&x);
     for (int i = 0; i < count; ++i)
+    {
+        fm_assert(!q.empty());
         fm_assert(q.steal() == &items[(u32)i]);
+    }
+    fm_assert(q.empty());
     fm_assert(!q.steal());
     fm_assert(!q.take());
+    fm_assert(q.empty());
 
     for (int round = 0; round < 20; ++round)
     {
