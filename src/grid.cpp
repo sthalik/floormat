@@ -3,6 +3,7 @@
 #include "chunk.hpp"
 #include "world.hpp"
 #include "compat/function-view.hpp"
+#include "compat/map.hpp"
 #include "compat/spinlock.hpp"
 #include <bit>
 #include <cr/GrowableArray.h>
@@ -79,6 +80,26 @@ bool GridBase::is_current() const
         if (auto* nb = w.at(coord + off); nb && newer(*nb))
             return false;
     return true;
+}
+
+chunk* GridBase::neighbor_chunk_at(Vector2i offset) const
+{
+    const auto x = coord.x + offset.x(), y = coord.y + offset.y();
+    if (x < chunk_xy_min || x > chunk_xy_max || y < chunk_xy_min || y > chunk_xy_max)
+        return nullptr;
+    else
+        return c->world().at({(i16)x, (i16)y, coord.z});
+}
+
+std::array<chunk*, 8> GridBase::neighbor_chunks() const
+{
+    const bool is_at_coordinate_limit = coord.x == chunk_xy_min || coord.x == chunk_xy_max ||
+                                        coord.y == chunk_xy_min || coord.y == chunk_xy_max;
+    if (!is_at_coordinate_limit) [[likely]]
+        return c->world().neighbors(coord);
+    else
+        return ::floormat::map([this](Vector2b offset) { return neighbor_chunk_at(Vector2i{offset}); },
+                               world::neighbor_offsets);
 }
 
 u32 GridBase::pack_bit_index(u32 i, u32 j, u32 div_count)

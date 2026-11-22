@@ -1834,10 +1834,10 @@ void test_cover_world_edge(u32 div_size)
                 const chunk_coords_ wrapped{(i16)x, (i16)y, ch.z};
                 auto& c = w[wrapped];
                 add_ground_all(c);
-                // 20 px from the tile's edges, out of reach of the pass grid of ch
+                // The blockers of a border tile reach 16 px across the chunk's border.
                 for (u8 j = 0; j < TILE_MAX_DIM; j++)
                     for (u8 i = 0; i < TILE_MAX_DIM; i++)
-                        add_blocker(w, {wrapped, local_coords{i, j}}, {}, {24, 24});
+                        add_blocker(w, {wrapped, local_coords{i, j}}, {}, {96, 96});
                 rebuild_passability(c);
             }
         Pass::Pool pass_pool{Pass::Params{div_size, pass_mode::shoot_through}};

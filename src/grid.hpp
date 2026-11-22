@@ -52,6 +52,9 @@ struct GridBase
     void mark_stale();
     void reset_base_for_reuse(chunk& ch);
     bool is_current() const;
+    // Both give null for a chunk that is missing or past the coordinate limit, where chunk_coords_ addition wraps.
+    chunk* neighbor_chunk_at(Vector2i offset) const;
+    std::array<chunk*, 8> neighbor_chunks() const;
 
     static u32 pack_bit_index(u32 i, u32 j, u32 div_count);
     static u32 pack_bit_index_from_coord(intra_coord pos, u32 div_count);

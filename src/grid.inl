@@ -37,7 +37,7 @@ void GridBase::build_if_stale(this Self& self, Args&&... args)
     chunk* sc = self.c;
     fm_debug3_assert(sc);
 
-    self.neighbors = sc->world().neighbors(self.coord);
+    self.neighbors = self.neighbor_chunks();
     self.build_impl(sc, forward<Args>(args)...);
     self.built_pass_gen = sc->world().pass_gen();
     self.build_no = GridBase::next_build_no();
