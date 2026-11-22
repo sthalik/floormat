@@ -71,7 +71,7 @@ private:
     // Spots skipped for having no peek spot, and the first skipped for threat_reach, as options.last_resort keeps.
     struct fallback_spots
     {
-        Array<Cover::Point::spot> peekless;
+        Array<Cover::Point::spot> peekless_spots;
         Optional<Cover::Point::spot> in_reach;
 
         bool has_cover_spot() const;

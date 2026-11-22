@@ -60,7 +60,7 @@ u32 search_chunk_radius(point at, point threat, u32 radius, const Cover::Script:
     return dist/chunk_size_xy + 3;
 }
 
-cover_search::cover_search() { arrayReserve(_fallback_spots.peekless, 16); }
+cover_search::cover_search() { arrayReserve(_fallback_spots.peekless_spots, 16); }
 
 void cover_search::begin(point from, point threat)
 {
@@ -265,7 +265,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
             if (o.needs_peek && !peek)
             {
                 if (o.last_resort >= fallback::no_peek)
-                    arrayAppend(_fallback_spots.peekless, s);
+                    arrayAppend(_fallback_spots.peekless_spots, s);
                 arrayAppend(_tile_skipped, skipped_spot{s, _octant});
                 if (_exposed_cover && _fallback_spots.has_cover_spot())
                 {
@@ -398,13 +398,13 @@ auto cover_search::take_exposed_cover(critter& c, spot_tests& t, const Cover::Sc
     }
 }
 
-// The first peekless spot hidden from reach, else in_reach if hidden from the threat. Both must be hidden from the
-// threat in neighbor octants too. Spots max_body_checks can't test, and those after one with no path, stay kept.
+// The first of peekless_spots hidden from reach, else in_reach if hidden from the threat. Each must be hidden from
+// the threat in neighbor octants. Spots max_body_checks can't test, and those after one with no path, stay kept.
 auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o, point threat,
                                     u32 max_body_checks) -> Optional<reachable_cover>
 {
     auto& w = c.world();
-    auto& peekless = _fallback_spots.peekless;
+    auto& peekless_spots = _fallback_spots.peekless_spots;
     const auto in_reach = _fallback_spots.in_reach;
     const auto body = Vector2i(c.bbox_size);
     const auto pred = Search::blocks_all_but(c.id);
@@ -414,12 +414,12 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
     };
     const auto num_neighbor_octant_body_checks = 2*(o.octants/2u);
     auto is_hidden_from_reach = false;
-    while (!is_hidden_from_reach && !peekless.isEmpty())
+    while (!is_hidden_from_reach && !peekless_spots.isEmpty())
     {
-        const auto s = peekless[0];
+        const auto s = peekless_spots[0];
         if (_unreachable.can_move_straight_to_listed_spot(w, s.pos, body, pred) ||
             _unreachable_until_rescan.can_move_straight_to_listed_spot(w, s.pos, body, pred))
-            arrayRemove(peekless, 0);
+            arrayRemove(peekless_spots, 0);
         else if (const auto v = test_spot_against_reach(c, t, o, threat, s, body_checks_left());
                  v == visibility_from_reach::unknown ||
                  v == visibility_from_reach::hidden && body_checks_left() < num_neighbor_octant_body_checks)
@@ -428,7 +428,7 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
                  t.is_hidden_from_threat_in_neighbor_octants(c, o, threat, s))
             is_hidden_from_reach = true;
         else
-            arrayRemove(peekless, 0);
+            arrayRemove(peekless_spots, 0);
     }
     if (!is_hidden_from_reach && in_reach && body_checks_left() < 1 + num_neighbor_octant_body_checks)
         return {};
@@ -437,8 +437,8 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
         Optional<Cover::Point::spot> spot;
         if (is_hidden_from_reach)
         {
-            spot = peekless[0];
-            arrayRemove(peekless, 0);
+            spot = peekless_spots[0];
+            arrayRemove(peekless_spots, 0);
         }
         else
         {
@@ -473,7 +473,7 @@ auto cover_search::take_last_resort(critter& c, spot_tests& t, const Cover::Scri
                     _dijkstra_search_to_rerun = failed_dijkstra_search{s.pos, end, true};
                 }
                 else
-                    arrayClear(peekless);
+                    arrayClear(peekless_spots);
                 return {};
             }
         }
@@ -493,11 +493,11 @@ Cover::Script::search_progress cover_search::progress() const
 
 bool cover_search::has_last_resort() const { return _fallback_spots.has_cover_spot(); }
 
-bool cover_search::fallback_spots::has_cover_spot() const { return !peekless.isEmpty() || in_reach; }
+bool cover_search::fallback_spots::has_cover_spot() const { return !peekless_spots.isEmpty() || in_reach; }
 
 void cover_search::fallback_spots::clear()
 {
-    arrayClear(peekless);
+    arrayClear(peekless_spots);
     in_reach = {};
 }
 
