@@ -17,6 +17,7 @@
 #include "search-result.hpp"
 #include "tile-defs.hpp"
 #include "world.hpp"
+#include "order-list.hpp"
 #include "entity/name-of.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/function-view.hpp"
@@ -56,7 +57,8 @@ struct cover_script final : critter_script
     StringView name() const override;
     const void* id() const override;
     void on_init(const bptr<critter>& C) override;
-    void on_update(const bptr<critter>& C, usize& i, const Ns& dt) override;
+    void on_think(critter& C, const Ns& dt, order_buffer& orders) override;
+    void on_order(const bptr<critter>& C, usize& i, const Ns& dt, const order& o) override;
     void on_destroy(const bptr<critter>& C, script_destroy_reason reason) override;
     void delete_self() noexcept override;
 
@@ -74,8 +76,10 @@ private:
     // What end_search does with cover: hide there for hidden_time, for the wait left with relocate, or peek
     // from it with follow. Without cover, seek waits and the others retreat.
     enum class search_then : u8 { seek, relocate, follow, };
+    enum class script_order_kind : u8 { clear_script, walk_or_face_threat, };
 
-    void update(const bptr<critter>& C, usize& i, const Ns& dt);
+    void update(critter& C, const Ns& dt);
+    void mark_go_on_needed();
     void go_on(const bptr<critter>& C, usize& i, const Ns& dt);
     bool should_switch_state(critter& C) const;
     Ns time_in(state phase) const;
@@ -101,7 +105,7 @@ private:
     bool walk_to(critter& C, point to, state then);
     void walk_to_cover(critter& C, path_search_result path);
     void retry_later(critter& C);
-    void seek(const bptr<critter>& C);
+    void seek(critter& C);
     void follow_threat(critter& C);
     bool needs_LOS_check(critter& C, point threat, point at) const;
     void check_hidden(critter& C, point threat);
@@ -114,7 +118,7 @@ private:
     void search_while_hidden(critter& C);
     void handle_blocked_walk(critter& C);
     void peek_again(critter& C);
-    void step_out(const bptr<critter>& C);
+    void step_out(critter& C);
     void leave_peek(critter& C);
     void take_cover(critter& C);
     void walk_update(const bptr<critter>& C, usize& i, const Ns& dt);
@@ -161,6 +165,11 @@ private:
     bool is_fallback_cover_allowed = true;
     // Px the threat moved between C's LOS checks in state::hidden since C took its cover or last searched there.
     u32 threat_dist_moved_while_hidden = 0;
+    // True when the last walk order found the walk blocked or C off its path, until on_think calls
+    // handle_blocked_walk.
+    bool needs_blocked_walk_handling = false;
+    // True when update() in this on_think reached a state in which go_on() walks or turns C.
+    bool needs_go_on = false;
 };
 
 StringView cover_script::name() const { return "cover"_s; }
@@ -205,34 +214,63 @@ void cover_script::on_init(const bptr<critter>& C)
     prev_game_time = C->world().game_time();
 }
 
-void cover_script::on_update(const bptr<critter>& C, usize& i, const Ns& dt)
+void cover_script::on_think(critter& C, const Ns& dt, order_buffer& orders)
 {
-    if (C->maybe_stop_auto_movement())
+    if (C.needs_to_stop_auto_movement())
+        orders.add({.giver = C.id, .kind = order_kind::script_order,
+                    .script_order_kind = (u8)script_order_kind::clear_script});
+    else
     {
+        auto t = Time::now();
+        if (needs_blocked_walk_handling)
+        {
+            needs_blocked_walk_handling = false;
+            handle_blocked_walk(C);
+        }
+        needs_go_on = false;
+        update(C, dt);
+        if (needs_go_on || st == state::seek)
+            orders.add({.giver = C.id, .kind = order_kind::script_order,
+                        .script_order_kind = (u8)script_order_kind::walk_or_face_threat});
+        last_update = t.update();
+        max_update = Math::max(max_update, last_update);
+        total_update += last_update;
+    }
+}
+
+void cover_script::on_order(const bptr<critter>& C, usize& i, const Ns& dt, const order& o)
+{
+    switch ((script_order_kind)o.script_order_kind)
+    {
+    case script_order_kind::clear_script:
         C->clear_auto_movement();
         C->script.do_clear(C);
         return;
+    case script_order_kind::walk_or_face_threat: {
+        auto t = Time::now();
+        go_on(C, i, dt);
+        // In seek, threat_pos is stale unless a search while hidden found no cover. A retreat ends in seek with C
+        // facing away from a threat that may not have moved.
+        if (st == state::seek)
+        {
+            if (const auto threat = find_threat(*C))
+                face_threat(*C, i, threat->position());
+        }
+        const auto time = t.update();
+        last_update += time;
+        total_update += time;
+        max_update = Math::max(max_update, last_update);
+        return;
     }
-    // do_clear deletes the script, so the clock starts after it.
-    auto t = Time::now();
-    update(C, i, dt);
-    // In seek, threat_pos is stale unless a search while hidden found no cover. A retreat ends in seek with C
-    // facing away from a threat that may not have moved.
-    if (st == state::seek)
-    {
-        if (const auto threat = find_threat(*C))
-            face_threat(*C, i, threat->position());
     }
-    last_update = t.update();
-    max_update = Math::max(max_update, last_update);
-    total_update += last_update;
+    fm_assert(false);
 }
 
-void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
+void cover_script::update(critter& C, const Ns& dt)
 {
     // Game time that passes while C gets no updates, as outside the chunks the editor updates, doesn't count
     // toward a wait, so game_time_to_switch_state moves forward by the game time since C's last update, less dt.
-    const auto now = C->world().game_time();
+    const auto now = C.world().game_time();
     game_time_to_switch_state += Math::max(now - prev_game_time, dt) - dt;
     prev_game_time = now;
     // With path_to_found_cover, C stands exposed at its last peek spot, and is_phase_held() treats it as exposed.
@@ -242,82 +280,82 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
     switch (st)
     {
     case state::seek:
-        if (should_switch_state(*C))
+        if (should_switch_state(C))
             seek(C);
         else if (!is_fallback_cover_allowed)
-            flee_if_body_exposed(*C);
+            flee_if_body_exposed(C);
         return;
     case state::search:
         if (path_to_found_cover)
-            walk_to_found_cover(*C);
+            walk_to_found_cover(C);
         else
         {
-            search_step(*C);
+            search_step(C);
             // This runs after search_step, so cover found in this update needs no retreat.
             if (st == state::search && !path_to_found_cover &&
                 (search.has_last_resort() || !is_fallback_cover_allowed ||
                  search.num_tiles_searched() >= search.progress().num_tiles) && !search_retreated &&
-                !tests.is_hidden_at(*C, threat_pos, C->position(),
-                                 Cover::Point::axis_toward(threat_pos - C->position())))
-                begin_retreat(*C);
+                !tests.is_hidden_at(C, threat_pos, C.position(),
+                                 Cover::Point::axis_toward(threat_pos - C.position())))
+                begin_retreat(C);
         }
-        go_on(C, i, dt);
+        mark_go_on_needed();
         return;
     case state::to_cover:
     case state::to_peek:
         if (!options.search_every_move)
-            check_walk(*C);
-        go_on(C, i, dt);
+            check_walk(C);
+        mark_go_on_needed();
         return;
     case state::find_retreat:
-        retreat_step(*C);
-        go_on(C, i, dt);
+        retreat_step(C);
+        mark_go_on_needed();
         return;
     case state::retreat:
-        if ((options.search_every_move || !check_retreat(*C)) && search.is_running())
-            search_step(*C);
-        go_on(C, i, dt);
+        if ((options.search_every_move || !check_retreat(C)) && search.is_running())
+            search_step(C);
+        mark_go_on_needed();
         return;
     case state::hidden:
     case state::exposed:
-        if (!is_phase_held() && should_switch_state(*C))
+        if (!is_phase_held() && should_switch_state(C))
         {
             if (st == state::hidden)
                 step_out(C);
             else
-                leave_peek(*C);
+                leave_peek(C);
         }
-        else if (const auto threat = find_threat(*C); !threat)
-            retry_later(*C);
+        else if (const auto threat = find_threat(C); !threat)
+            retry_later(C);
         else
         {
             const auto& c = *cover;
-            if (const auto pos = threat->position(); needs_LOS_check(*C, pos, c.canonical))
+            if (const auto pos = threat->position(); needs_LOS_check(C, pos, c.canonical))
             {
                 // This update started with C standing, so its dt was spent on the wait above, and a
                 // walk the checks start moves by the same dt.
                 if (options.search_every_move)
-                    follow_threat(*C);
+                    follow_threat(C);
                 else if (st == state::hidden)
                 {
-                    check_hidden(*C, pos);
+                    check_hidden(C, pos);
                     if (st == state::hidden)
-                        check_reach(*C);
+                        check_reach(C);
                 }
                 else
-                    check_exposed(*C, pos);
-                go_on(C, i, dt);
+                    check_exposed(C, pos);
+                mark_go_on_needed();
             }
             else
             {
                 // Critter steps made while C stands don't start a path test once it walks.
-                pass_gen_at_last_check = C->world().pass_gen();
+                pass_gen_at_last_check = C.world().pass_gen();
                 // C peeking tests reach_positions() only once it hides again, so it shoots before switching cover.
                 if (const auto st0 = st; st == state::hidden && !options.search_every_move)
                 {
-                    check_reach(*C);
+                    check_reach(C);
                     if (st != st0)
-                        go_on(C, i, dt);
+                        mark_go_on_needed();
                 }
             }
         }
@@ -328,13 +366,23 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
         }
         else if (st == state::hidden)
         {
-            search_while_hidden(*C);
+            search_while_hidden(C);
             if (st != state::hidden)
-                go_on(C, i, dt);
+                mark_go_on_needed();
         }
         return;
     }
     fm_assert(false);
+}
+
+// update() reaches a state go_on() acts in at most once, since nothing in it walks C.
+void cover_script::mark_go_on_needed()
+{
+    if (st == state::to_cover || st == state::to_peek || st == state::retreat || st == state::exposed)
+    {
+        fm_assert(!needs_go_on);
+        needs_go_on = true;
+    }
 }
 
 // The rest of an update in which the checks or a search may have changed st: a walk moves by dt,
@@ -721,7 +769,7 @@ void cover_script::retry_later(critter& C)
     game_time_to_switch_state = C.world().game_time() + retry_time;
 }
 
-void cover_script::seek(const bptr<critter>& C) { begin_search(*C, search_then::seek); }
+void cover_script::seek(critter& C) { begin_search(C, search_then::seek); }
 
 // Looks for other cover. A hidden C relocates. An exposed C walks to find_peek_pos's spot for the new cover, or
 // hides at it for hidden_time without one.
@@ -1011,16 +1059,16 @@ void cover_script::peek_again(critter& C)
 
 // With no peek spot, C hides for hidden_time more. Held exposed, a wait of time_in()'s none would
 // call find_peek_pos in every update.
-void cover_script::step_out(const bptr<critter>& C)
+void cover_script::step_out(critter& C)
 {
-    if (const auto p = find_peek_pos(*C, threat_pos))
+    if (const auto p = find_peek_pos(C, threat_pos))
     {
         walk = critter_walk{*p};
         st = state::to_peek;
-        game_time_to_switch_state = C->world().game_time() + time_in(state::exposed);
+        game_time_to_switch_state = C.world().game_time() + time_in(state::exposed);
     }
     else
-        game_time_to_switch_state = C->world().game_time() + hidden_time;
+        game_time_to_switch_state = C.world().game_time() + hidden_time;
 }
 
 // Ends C's time out with a walk back to cover. A cover that refresh_cover moved may lie off the line that
@@ -1076,7 +1124,7 @@ void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
         }
     }
     else
-        handle_blocked_walk(*C);
+        needs_blocked_walk_handling = true;
 }
 
 // Turns C to the one of the 8 rotations nearest the direction from its center to threat, unless
@@ -1146,6 +1194,7 @@ bool cover_script::send_to(critter& C, const Cover::Point::spot& s, bool peek)
     is_canonical_hidden_from_reach = false;
     needs_canonical_reach_test = false;
     num_blocked_walks = 0;
+    needs_blocked_walk_handling = false;
     path_to_found_cover = {};
     threat_pos = threat->position();
     pass_gen_at_last_check = C.world().pass_gen();

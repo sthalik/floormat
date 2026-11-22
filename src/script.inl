@@ -5,15 +5,22 @@
 #include <cr/StringView.h>
 #include <cr/Pointer.h>
 
+namespace floormat {
+class order_buffer;
+struct order;
+} // namespace floormat
+
 namespace floormat::detail::Script {
 
 template<typename S, typename Obj>
 concept BaseScript =
-requires (S& script, const ::floormat::bptr<Obj>& obj, usize& i, const Ns& ns)
+requires (S& script, const ::floormat::bptr<Obj>& obj, Obj& obj_ref, usize& i, const Ns& ns, order_buffer& orders,
+          const order& o)
 {
     requires std::is_base_of_v<base_script, S>;
     script.on_init(obj);
-    script.on_update(obj, i, ns);
+    script.on_think(obj_ref, ns, orders);
+    script.on_order(obj, i, ns, o);
     script.on_destroy(obj, script_destroy_reason::COUNT);
     script.delete_self();
     script.~S();

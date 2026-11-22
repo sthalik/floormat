@@ -7,6 +7,7 @@
 #include "global-coords.hpp"
 #include "object-type.hpp"
 #include "scenery-type.hpp"
+#include "order-list.hpp"
 #include "compat/nanosecond.hpp"
 #include "loader/policy.hpp"
 #include <array>
@@ -36,6 +37,8 @@ class world final
     u64 _current_frame = 1; // zero is special for struct object
     Ns _game_time{};
     u64 _pass_gen = 0;
+    order_buffer _frame_order_buffer;
+    order_list _frame_order_list;
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
     bool _script_finalized : 1 = false;
@@ -107,6 +110,9 @@ public:
     u64 increment_frame_no();
     Ns game_time() const;
     void advance_game_time(Ns dt);
+    // Both are empty between frames. update_world() and critter::update() fill and clear them.
+    order_buffer& frame_order_buffer();
+    order_list& frame_order_list();
     u64 pass_gen() const noexcept;
     /// @return The largest chunk::pass_gen() or neighbor_pass_gen() within @p radius chunks of @p ch on each axis.
     /// Ignores objects_gen().

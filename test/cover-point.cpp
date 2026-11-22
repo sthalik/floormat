@@ -1161,7 +1161,10 @@ void test_cover_script_path_to_found_cover_blocked(point peek, bool critter_wall
     rebuild(s.w);
     s.step();
     if (!critter_walls)
+    {
         fm_assert(s.npc->position() == pos);
+        fm_assert(s.status().st == state::seek);
+    }
     else
     {
         for (auto frames = 0u; s.status().st == state::to_cover; frames++)
@@ -1170,8 +1173,9 @@ void test_cover_script_path_to_found_cover_blocked(point peek, bool critter_wall
             s.step();
         }
         fm_assert(s.npc->position() != pos);
+        // The update after the blocked walk handles it: C seeks, and with no wait searches in that update.
+        fm_assert(s.status().st == state::search);
     }
-    fm_assert(s.status().st == state::seek);
 }
 
 // Half a second after the npc is back at cover from its first peek, the threat moves north-east of

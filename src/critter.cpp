@@ -8,6 +8,7 @@
 #include "sweep-aabb.hpp"
 #include "search.hpp"
 #include "raycast-line.hpp"
+#include "order-list.inl"
 #include "loader/loader.hpp"
 #include "compat/map.hpp"
 #include "compat/iota.hpp"
@@ -478,6 +479,7 @@ bool critter::maybe_stop_auto_movement()
     bool b2 = moves.AUTO &= b1;
     return !b2;
 }
+bool critter::needs_to_stop_auto_movement() const { return moves_ != m_auto_mask.val; }
 
 Vector2ui critter::circumscribed_bbox_size() const
 {
@@ -493,15 +495,45 @@ i32 critter::depth_offset() const
 void critter::update(const bptr<object>& ptrʹ, usize& i, const Ns& dt)
 {
     fm_debug_assert(&*ptrʹ == this);
+    auto& w = world();
+    auto& buffer = w.frame_order_buffer();
+    auto& list = w.frame_order_list();
+    fm_assert(buffer.empty() && list.size() == 0);
 
+    buffer.begin_object(0);
+    think(dt, buffer);
+    buffer.end_object();
+    list.append_buffers({&buffer, 1});
+    const auto ptr = static_pointer_cast<critter>(ptrʹ);
+    list.run_all([&](const order& o, u32) {
+        fm_assert(o.giver == id);
+        run_order(ptr, i, dt, o);
+    });
+    list.clear();
+    buffer.clear();
+}
+
+void critter::think(const Ns& dt, order_buffer& orders)
+{
     check_script_update_1(script.state());
-    script->on_update(static_pointer_cast<critter>(ptrʹ), i, dt);
-#if 0 // for now, objects can't delete themselves
-    if (check_script_update_2(script.state())) [[unlikely]]
-        return;
-#endif
+    script->on_think(*this, dt, orders);
     if (playable) [[unlikely]]
+        orders.add({.giver = id, .kind = order_kind::move_by_keys});
+}
+
+void critter::run_order(const bptr<critter>& ptr, usize& i, const Ns& dt, const order& o)
+{
+    fm_debug_assert(&*ptr == this);
+    switch (o.kind)
     {
+    case order_kind::script_order:
+        script->on_order(ptr, i, dt, o);
+#if 0 // for now, objects can't delete themselves
+        if (check_script_update_2(script.state())) [[unlikely]]
+            return;
+#endif
+        return;
+    case order_kind::move_by_keys:
         if (!moves.AUTO)
         {
             const auto new_r = arrows_to_dir(moves.L, moves.R, moves.U, moves.D);
@@ -510,7 +542,13 @@ void critter::update(const bptr<object>& ptrʹ, usize& i, const Ns& dt)
             else
                 update_movement(i, dt, new_r);
         }
+        return;
+    case order_kind::none:
+    case order_kind::update_object:
+    case order_kind::COUNT:
+        break;
     }
+    fm_assert(false);
 }
 
 void critter::update_movement(usize& i, const Ns& dt, rotation new_r)

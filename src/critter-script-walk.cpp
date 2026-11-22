@@ -8,6 +8,7 @@
 #include "raycast-line.hpp"
 #include "rotation.inl"
 #include "sweep-aabb.hpp"
+#include "order-list.hpp"
 #include "compat/function-view.hpp"
 #include "entity/name-of.hpp"
 #include <utility>
@@ -162,7 +163,8 @@ struct walk_script final : critter_script
     StringView name() const override;
     const void* id() const override;
     void on_init(const bptr<critter>& c) override;
-    void on_update(const bptr<critter>& c, usize& i, const Ns& dt) override;
+    void on_think(critter& c, const Ns& dt, order_buffer& orders) override;
+    void on_order(const bptr<critter>& c, usize& i, const Ns& dt, const order& o) override;
     void on_destroy(const bptr<critter>& c, script_destroy_reason reason) override;
     void delete_self() noexcept override;
 
@@ -185,7 +187,12 @@ void walk_script::on_init(const bptr<critter>& c)
     c->last_walk = walk_result::none;
 }
 
-void walk_script::on_update(const bptr<critter>& c, usize& i, const Ns& dt)
+void walk_script::on_think(critter& c, const Ns&, order_buffer& orders)
+{
+    orders.add({.giver = c.id, .kind = order_kind::script_order});
+}
+
+void walk_script::on_order(const bptr<critter>& c, usize& i, const Ns& dt, const order&)
 {
     auto ret = walk_result::none;
     if (c->maybe_stop_auto_movement())

@@ -10,6 +10,8 @@ namespace floormat {
 class anim_atlas;
 class world;
 struct critter_script;
+class order_buffer;
+struct order;
 
 constexpr u32 anim_speed_unit = 1u << 16;
 
@@ -34,7 +36,12 @@ struct critter final : object
     object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
+    // Thinks and runs the orders at once, through the world's frame_order_buffer() and frame_order_list(), which
+    // must be empty.
     void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
+    // The caller has opened this critter in orders with begin_object().
+    void think(const Ns& dt, order_buffer& orders);
+    void run_order(const bptr<critter>& ptr, usize& i, const Ns& dt, const order& o);
     void update_movement(usize& i, const Ns& dt, rotation r);
 
     struct move_result
@@ -67,6 +74,8 @@ struct critter final : object
 
     void clear_auto_movement();
     bool maybe_stop_auto_movement();
+    // True when maybe_stop_auto_movement() would return true.
+    bool needs_to_stop_auto_movement() const;
     void set_keys(bool L, bool R, bool U, bool D);
     void set_keys_auto();
 
