@@ -141,9 +141,7 @@ private:
     u64 pass_gen_at_last_check = 0;
     Ns game_time_to_switch_state{}, prev_game_time{}, last_update{}, max_update{}, total_update{};
     state st = state::seek;
-    // The reach_positions() points after the threat that check_reach tested since the last LOS check or new cover,
-    // or -1u when none are left.
-    u32 num_reach_positions_tested = -1u;
+    struct { Cover::reach_positions_hidden_from cover_spot, canonical; } reach_positions_not_seeing;
     u8 num_blocked_walks = 0;
     // The retreat walk's updates since begin_retreat(), counted up to max_updates_before_LOS_check.
     u8 num_updates_since_retreat_start = 0;
@@ -152,6 +150,8 @@ private:
     bool needs_retreat_LOS_check = false;
     // The search found canonical hidden from every reach_positions() point, so check_reach tests C there.
     bool is_canonical_hidden_from_reach = false;
+    // True when a reach_positions() point saw C where it hides, and check_reach hasn't finished testing canonical.
+    bool needs_canonical_reach_test = false;
 };
 
 StringView cover_script::name() const { return "cover"_s; }
@@ -286,7 +286,11 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
                 if (options.search_every_move)
                     follow_threat(*C);
                 else if (st == state::hidden)
+                {
                     check_hidden(*C, pos);
+                    if (st == state::hidden)
+                        check_reach(*C);
+                }
                 else
                     check_exposed(*C, pos);
                 go_on(C, i, dt);
@@ -543,7 +547,7 @@ void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachabl
     cover = Cover::Script::cover{.pos = reachable.end, .canonical = reachable.spot.pos,
                                  .axis = reachable.spot.axis, .peek = {}};
     is_canonical_hidden_from_reach = reachable.is_hidden_from_reach;
-    num_reach_positions_tested = options.threat_reach ? 0 : -1u;
+    needs_canonical_reach_test = false;
     auto& c = *cover;
     switch (then)
     {
@@ -716,7 +720,6 @@ void cover_script::check_hidden(critter& C, point threat)
 {
     threat_pos = threat;
     pass_gen_at_last_check = C.world().pass_gen();
-    num_reach_positions_tested = options.threat_reach ? 0 : -1u;
     const auto& c = *cover;
     // TODO: once critters have a facing, a threat that faces away from C may not see it.
     if (!tests.is_hidden_at(C, threat, c.canonical, c.axis))
@@ -731,7 +734,6 @@ void cover_script::check_exposed(critter& C, point threat)
 {
     threat_pos = threat;
     pass_gen_at_last_check = C.world().pass_gen();
-    num_reach_positions_tested = options.threat_reach ? 0 : -1u;
     const auto& c = *cover;
     if (!tests.is_hidden_at(C, threat, c.canonical, c.axis))
     {
@@ -753,7 +755,6 @@ void cover_script::check_walk(critter& C)
         const auto pos = threat->position();
         threat_pos = pos;
         pass_gen_at_last_check = w.pass_gen();
-        num_reach_positions_tested = options.threat_reach ? 0 : -1u;
         if (!tests.is_hidden_at(C, pos, c.canonical, c.axis))
             flee(C);
         else
@@ -849,30 +850,51 @@ bool cover_script::is_remaining_path_unblocked_without_critters(critter& C)
     return walk.is_remaining_path_unblocked(C, Search::without_critters, &pool);
 }
 
-// Tests cover's pos against reach_positions(), at most max_reach_body_checks_per_update calls per update, and
-// looks for other cover when a point sees C there.
+// Tests where C hides, and canonical once a reach_positions() point sees C there. C then searches if one sees
+// canonical, and otherwise walks to a new cover_end(). Makes at most max_reach_body_checks_per_update body checks.
 void cover_script::check_reach(critter& C)
 {
-    const auto& c = *cover;
-    if (num_reach_positions_tested == -1u || c.pos == c.canonical && !is_canonical_hidden_from_reach)
+    using Cover::visibility_from_reach;
+    auto& c = *cover;
+    if (!options.threat_reach || c.pos == c.canonical && !is_canonical_hidden_from_reach)
         return;
-    const auto positions = tests.reach_positions(C, options, threat_pos);
-    for (auto n = 0u; n < max_reach_body_checks_per_update; n++)
+    const auto radius = Cover::search_chunk_radius(c.canonical, threat_pos, 0, options);
+    const auto max_pass_gen = C.world().max_pass_gen(c.canonical.chunk3(), radius);
+    const auto positions = tests.reach_positions(C, options, threat_pos).exceptPrefix(1);
+    auto body_checks_left = max_reach_body_checks_per_update;
+    if (!needs_canonical_reach_test)
     {
-        const auto i = num_reach_positions_tested + 1;
-        if (i >= positions.size())
-        {
-            num_reach_positions_tested = -1u;
-            return;
-        }
-        else if (!tests.is_hidden_at(C, positions[i], c.pos, c.axis))
-        {
-            num_reach_positions_tested = -1u;
+        const auto num_body_checks_before = tests.counters.num_body_checks;
+        const auto v = reach_positions_not_seeing.cover_spot.test_spot_against_reach(
+            C, tests, positions, {c.pos, c.axis}, max_pass_gen, body_checks_left);
+        if (v == visibility_from_reach::exposed && c.pos == c.canonical)
             follow_threat(C);
-            return;
+        else if (v == visibility_from_reach::exposed)
+        {
+            needs_canonical_reach_test = true;
+            body_checks_left -= tests.counters.num_body_checks - num_body_checks_before;
         }
-        else
-            num_reach_positions_tested++;
+    }
+    if (needs_canonical_reach_test)
+    {
+        const Cover::Point::spot s{c.canonical, c.axis};
+        const auto v = reach_positions_not_seeing.canonical.test_spot_against_reach(C, tests, positions, s,
+                                                                                    max_pass_gen, body_checks_left);
+        needs_canonical_reach_test = v == visibility_from_reach::unknown;
+        if (v == visibility_from_reach::exposed)
+            follow_threat(C);
+        else if (v == visibility_from_reach::hidden)
+        {
+            if (const auto end = tests.cover_end(C, options, s, threat_pos); end != c.pos)
+            {
+                c.pos = end;
+                // A search with needs_peek skips a cover without a peek spot too.
+                if (!find_peek_pos(C, threat_pos) && options.needs_peek)
+                    follow_threat(C);
+                else
+                    walk_to_cover(C, {});
+            }
+        }
     }
 }
 
@@ -1044,7 +1066,7 @@ bool cover_script::send_to(critter& C, const Cover::Point::spot& s, bool peek)
         return false;
     cover = Cover::Script::cover{.pos = end, .canonical = s.pos, .axis = s.axis, .peek = {}};
     is_canonical_hidden_from_reach = false;
-    num_reach_positions_tested = options.threat_reach ? 0 : -1u;
+    needs_canonical_reach_test = false;
     num_blocked_walks = 0;
     path_to_found_cover = {};
     threat_pos = threat->position();
