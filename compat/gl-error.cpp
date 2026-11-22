@@ -47,7 +47,7 @@ ScopeGuard disable_debug_output(std::initializer_list<Pair<Source, Type>> source
         return ScopeGuard{NoCreate};
     else
     {
-        constexpr auto debug_group_name = "disable_debug_output"_s;
+        constexpr auto debug_group_name = "disable-debug-output"_s;
         glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0,
                          Math::min((Int)debug_group_name.size(), GL::DebugOutput::maxMessageLength() - 1),
                          debug_group_name.data());
