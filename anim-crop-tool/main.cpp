@@ -229,11 +229,12 @@ arg_tuple parse_cmdline(int argc, const char* const* argv) noexcept
     else if (!args.value<StringView>("scale").isEmpty())
         opts.scale = anim_scale::ratio{args.value<float>("scale")};
 
-    opts.output_dir = Path::join(loader.startup_directory(), args.value<StringView>("output"));
     opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input.json"));
     opts.input_dir = Path::path(opts.input_file);
 
-    if (opts.output_dir.isEmpty())
+    if (const auto output_dir = args.value<StringView>("output"); !output_dir.isEmpty())
+        opts.output_dir = Path::join(loader.startup_directory(), output_dir);
+    else
         opts.output_dir = opts.input_dir;
 
     return { move(opts), move(args), true };
