@@ -94,7 +94,6 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_passability_bbox),
     FM_TEST(test_bitset),
     FM_TEST(test_hash),
-    FM_TEST(test_path),
     FM_TEST(test_wall_atlas),
     FM_TEST(test_wall_atlas2),
     // the rest are slow

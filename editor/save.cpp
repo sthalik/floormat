@@ -94,13 +94,11 @@ void app::load_world_file(StringView path)
 
 String app::resolve_load_game_path(StringView name)
 {
-    // Path::join treats the filename as absolute only with forward slashes.
-    const auto file = Path::fromNativeSeparators(name);
-    auto path = Path::join(Path::join(loader.TEMP_PATH, StringView{save_dir}), file);
+    auto path = Path::join(Path::join(loader.TEMP_PATH, StringView{save_dir}), name);
     if (!Path::exists(path) || Path::isDirectory(path))
     {
-        // Path::join returns an absolute `file` unchanged regardless of base: a no-op here.
-        auto fallback = Path::join(loader.startup_directory(), file);
+        // Path::join returns an absolute `name` unchanged regardless of base: a no-op here.
+        auto fallback = Path::join(loader.startup_directory(), name);
         if (Path::exists(fallback) && !Path::isDirectory(fallback))
             path = move(fallback);
     }
