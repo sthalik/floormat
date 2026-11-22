@@ -68,6 +68,7 @@ void cover_search::begin(point from, point threat)
     _exposed_cover = {};
     _dijkstra_search_to_rerun = {};
     arrayClear(_reach_positions_not_seeing_spot.positions);
+    arrayClear(_reach_positions_not_seeing_spot.seeing_positions);
     _num_failed_dijkstra_calls = 0;
     _num_failed_dijkstra_calls_for_fallback = 0;
     _pass_gen_at_last_tick = 0;
@@ -240,13 +241,24 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
                 return {};
             if (o.threat_reach)
             {
-                const auto v = test_spot_against_reach(c, t, o, threat, s, max_pass_gen, body_checks_left());
-                if (v == visibility_from_reach::unknown)
+                const auto reach = t.reach_positions(c, o, threat);
+                auto& fs = _fallback_spots;
+                const auto max_count = o.last_resort < fallback::in_reach ? 0u
+                                     : fs.in_reach ? fs.num_reach_positions_seeing_in_reach - 1
+                                     : (u32)reach.size();
+                const auto n = _reach_positions_not_seeing_spot.count_reach_positions_seeing(
+                    c, t, reach, s, max_pass_gen, body_checks_left(), max_count);
+                if (!n)
                     return {};
-                else if (v == visibility_from_reach::exposed)
+                else if (*n)
                 {
-                    if (o.last_resort >= fallback::in_reach && !_fallback_spots.in_reach)
-                        _fallback_spots.in_reach = s;
+                    // TODO: weighing this count against the spot's distances from the npc and the threat may
+                    // keep a better spot.
+                    if (*n <= max_count)
+                    {
+                        fs.in_reach = s;
+                        fs.num_reach_positions_seeing_in_reach = *n;
+                    }
                     arrayAppend(_tile_skipped, skipped_spot{s, _octant});
                     if (_exposed_cover && _fallback_spots.has_cover_spot())
                     {
@@ -316,41 +328,68 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     return {};
 }
 
-auto reach_positions_hidden_from::test_spot_against_reach(critter& c, spot_tests& t, ArrayView<const point> reach,
-                                                          const Cover::Point::spot& s, u64 max_pass_gen,
-                                                          u32 max_body_checks) -> visibility_from_reach
+Optional<u32> reach_positions_hidden_from::count_reach_positions_seeing(critter& c, spot_tests& t,
+                                                                       ArrayView<const point> reach,
+                                                                       const Cover::Point::spot& s,
+                                                                       u64 max_pass_gen, u32 max_body_checks,
+                                                                       u32 max_count)
 {
     if (spot.pos != s.pos || spot.axis != s.axis || body_size != c.bbox_size || max_pass_gen > pass_gen)
     {
         spot = s;
         body_size = c.bbox_size;
         arrayClear(positions);
+        arrayClear(seeing_positions);
     }
     pass_gen = c.world().pass_gen();
-    const ArrayView<const point> known = positions;
+    const ArrayView<const point> hidden = positions, seeing = seeing_positions;
     if (arrayCapacity(next_positions) < reach.size())
         arrayReserve(next_positions, reach.size() + reach.size()/2);
+    if (arrayCapacity(next_seeing_positions) < reach.size())
+        arrayReserve(next_seeing_positions, reach.size() + reach.size()/2);
     arrayClear(next_positions);
+    arrayClear(next_seeing_positions);
+    auto count = 0u;
     auto is_unknown = false;
     for (const auto& pt : reach)
     {
-        if (std::binary_search(known.begin(), known.end(), pt))
-            arrayAppend(next_positions, pt);
-        else if (!max_body_checks)
-            is_unknown = true;
-        else
+        auto is_seeing = std::binary_search(seeing.begin(), seeing.end(), pt);
+        if (!is_seeing && !std::binary_search(hidden.begin(), hidden.end(), pt))
         {
+            if (!max_body_checks)
+            {
+                is_unknown = true;
+                continue;
+            }
             max_body_checks--;
-            if (!t.is_hidden_at(c, pt, s.pos, s.axis))
-                return visibility_from_reach::exposed;
-            else
-                arrayAppend(next_positions, pt);
+            is_seeing = !t.is_hidden_at(c, pt, s.pos, s.axis);
         }
+        if (!is_seeing)
+            arrayAppend(next_positions, pt);
+        else if (++count > max_count)
+            return count;
+        else
+            arrayAppend(next_seeing_positions, pt);
     }
     std::swap(positions, next_positions);
+    std::swap(seeing_positions, next_seeing_positions);
     std::sort(positions.begin(), positions.end());
+    std::sort(seeing_positions.begin(), seeing_positions.end());
     if (is_unknown)
+        return {};
+    else
+        return count;
+}
+
+auto reach_positions_hidden_from::test_spot_against_reach(critter& c, spot_tests& t, ArrayView<const point> reach,
+                                                          const Cover::Point::spot& s, u64 max_pass_gen,
+                                                          u32 max_body_checks) -> visibility_from_reach
+{
+    const auto n = count_reach_positions_seeing(c, t, reach, s, max_pass_gen, max_body_checks, 0);
+    if (!n)
         return visibility_from_reach::unknown;
+    else if (*n)
+        return visibility_from_reach::exposed;
     else
         return visibility_from_reach::hidden;
 }
@@ -505,6 +544,7 @@ void cover_search::fallback_spots::clear()
 {
     arrayClear(peekless_spots);
     in_reach = {};
+    num_reach_positions_seeing_in_reach = 0;
 }
 
 } // namespace floormat::Cover

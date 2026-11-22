@@ -26,21 +26,25 @@ constexpr inline u32 max_search_body_checks_per_update = 64;
 
 enum class visibility_from_reach : u8 { hidden, exposed, unknown, };
 
-// The reach positions that see none of the npc's body at spot, sorted. test_spot_against_reach() empties them
-// for another spot or body size, or once a static collider near the spot changed.
+// The reach positions that see none of the npc's body at spot, and those that see some, each sorted. Both are
+// emptied for another spot or body size, or once a static collider near the spot changed.
 struct reach_positions_hidden_from
 {
     Cover::Point::spot spot;
     Vector2ub body_size;
-    // world::pass_gen() at the last test_spot_against_reach().
+    // world::pass_gen() at the last count_reach_positions_seeing().
     u64 pass_gen = 0;
-    Array<point> positions;
-    // As in the double buffer pattern, test_spot_against_reach() writes the next positions here while reading
-    // positions, then swaps the two unless the spot is exposed.
-    Array<point> next_positions;
+    Array<point> positions, seeing_positions;
+    // As in the double buffer pattern, count_reach_positions_seeing() writes the next lists here while reading
+    // positions and seeing_positions, then swaps them unless it stopped counting early.
+    Array<point> next_positions, next_seeing_positions;
 
-    // Whether a point of reach sees c's body at s. Tests at most max_body_checks points not in positions,
-    // and returns unknown when they run out. max_pass_gen is world::max_pass_gen() around s.
+    // Returns how many points of reach see c's body at s, at most max_count + 1, or nothing once the points in
+    // neither list need over max_body_checks. max_pass_gen is world::max_pass_gen() around s.
+    Optional<u32> count_reach_positions_seeing(critter& c, spot_tests& t, ArrayView<const point> reach,
+                                               const Cover::Point::spot& s, u64 max_pass_gen, u32 max_body_checks,
+                                               u32 max_count);
+    // Whether a point of reach sees c's body at s, as count_reach_positions_seeing() with a max_count of 0.
     visibility_from_reach test_spot_against_reach(critter& c, spot_tests& t, ArrayView<const point> reach,
                                                   const Cover::Point::spot& s, u64 max_pass_gen,
                                                   u32 max_body_checks);
@@ -86,11 +90,14 @@ private:
     struct skipped_spot { Cover::Point::spot spot; u32 octant; };
     // A spot and its cover_end(), which path_to found no path to.
     struct failed_dijkstra_search { point spot_pos, end; bool is_fallback_spot = false; };
-    // Spots skipped for having no peek spot, and the first skipped for threat_reach, as options.last_resort keeps.
+    // Spots skipped for having no peek spot, and of those skipped for threat_reach the one the fewest reach
+    // positions see, as options.last_resort keeps.
     struct fallback_spots
     {
         Array<Cover::Point::spot> peekless_spots;
         Optional<Cover::Point::spot> in_reach;
+        // The reach positions that saw the npc's body at in_reach when the search kept it.
+        u32 num_reach_positions_seeing_in_reach = 0;
 
         bool has_cover_spot() const;
         void clear();
