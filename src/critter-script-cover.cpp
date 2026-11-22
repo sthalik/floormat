@@ -107,6 +107,7 @@ private:
     void check_hidden(critter& C, point threat);
     void check_exposed(critter& C, point threat);
     void check_walk(critter& C);
+    void flee_if_body_exposed(critter& C);
     bool check_retreat(critter& C);
     bool is_remaining_path_unblocked_without_critters(critter& C);
     void check_reach(critter& C);
@@ -155,6 +156,9 @@ private:
     bool needs_canonical_reach_test = false;
     // True while search runs for C in state::hidden, started by search_while_hidden().
     bool is_searching_while_hidden = false;
+    // False from a search while hidden that found no cover until a search finds some. Searches take no fallback
+    // meanwhile, so C doesn't walk back to the in_reach cover it left.
+    bool is_fallback_cover_allowed = true;
     // Px the threat moved between C's LOS checks in state::hidden since C took its cover or last searched there.
     u32 threat_dist_moved_while_hidden = 0;
 };
@@ -212,8 +216,8 @@ void cover_script::on_update(const bptr<critter>& C, usize& i, const Ns& dt)
     // do_clear deletes the script, so the clock starts after it.
     auto t = Time::now();
     update(C, i, dt);
-    // threat_pos is where the threat stood at the last check or search, and in seek C checks
-    // nothing. A retreat ends in seek with C facing away from a threat that may not have moved.
+    // In seek, threat_pos is stale unless a search while hidden found no cover. A retreat ends in seek with C
+    // facing away from a threat that may not have moved.
     if (st == state::seek)
     {
         if (const auto threat = find_threat(*C))
@@ -240,6 +244,8 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
     case state::seek:
         if (should_switch_state(*C))
             seek(C);
+        else if (!is_fallback_cover_allowed)
+            flee_if_body_exposed(*C);
         return;
     case state::search:
         if (path_to_found_cover)
@@ -248,7 +254,8 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
         {
             search_step(*C);
             // This runs after search_step, so cover found in this update needs no retreat.
-            if (st == state::search && !path_to_found_cover && search.has_last_resort() && !search_retreated &&
+            if (st == state::search && !path_to_found_cover &&
+                (search.has_last_resort() || !is_fallback_cover_allowed) && !search_retreated &&
                 !tests.is_hidden_at(*C, threat_pos, C->position(),
                                  Cover::Point::axis_toward(threat_pos - C->position())))
                 begin_retreat(*C);
@@ -381,7 +388,7 @@ void cover_script::set_options(critter& C, const Cover::Script::options& o)
                               o.needs_peek == old.needs_peek && o.last_resort == old.last_resort;
     if (!same_results && search.is_running() &&
         (st == state::search || st == state::find_retreat || st == state::retreat))
-        search.begin(search_origin(C), threat_pos);
+        search.begin(search_origin(C), threat_pos, is_fallback_cover_allowed);
     if (o.hold == old.hold)
         return;
     const auto hiding = st == state::hidden || st == state::to_cover;
@@ -451,7 +458,7 @@ bool cover_script::start_search(critter& C, search_then next)
     search_retreated = false;
     is_searching_while_hidden = false;
     path_to_found_cover = {};
-    search.begin(C.position(), threat_pos);
+    search.begin(C.position(), threat_pos, is_fallback_cover_allowed);
     return true;
 }
 
@@ -564,6 +571,7 @@ void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachabl
     cover = Cover::Script::cover{.pos = reachable.end, .canonical = reachable.spot.pos,
                                  .axis = reachable.spot.axis, .peek = {}};
     is_canonical_hidden_from_reach = reachable.is_hidden_from_reach;
+    is_fallback_cover_allowed = true;
     needs_canonical_reach_test = false;
     threat_dist_moved_while_hidden = 0;
     auto& c = *cover;
@@ -798,6 +806,19 @@ void cover_script::check_walk(critter& C)
     }
 }
 
+// C flees when the threat moved or a collider changed since the last check, and the threat sees a pixel of C
+// where it stands.
+void cover_script::flee_if_body_exposed(critter& C)
+{
+    if (const auto threat = find_threat(C); threat && needs_LOS_check(C, threat->position(), C.position()))
+    {
+        threat_pos = threat->position();
+        pass_gen_at_last_check = C.world().pass_gen();
+        if (!tests.is_hidden_at(C, threat_pos, C.position(), Cover::Point::axis_toward(threat_pos - C.position())))
+            flee(C);
+    }
+}
+
 // True when the checks end C's walk or give C a new path to its end. Until the wait for the LOS check is over,
 // path tests run only on static changes and ignore critters.
 bool cover_script::check_retreat(critter& C)
@@ -920,7 +941,7 @@ void cover_script::check_reach(critter& C)
 }
 
 // At a cover that a reach_positions() point saw when the search found it, C searches again each time the threat
-// moved threat_reach px, and moves only to cover hidden from every such point.
+// moved threat_reach px. C moves to cover hidden from every such point, or retreats when there is none.
 void cover_script::search_while_hidden(critter& C)
 {
     if (!is_searching_while_hidden && !options.search_every_move && options.threat_reach &&
@@ -946,6 +967,8 @@ void cover_script::search_while_hidden(critter& C)
             {
                 search.end();
                 tests.counters.num_searches++;
+                is_fallback_cover_allowed = false;
+                begin_retreat(C);
             }
         }
     }

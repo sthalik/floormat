@@ -4643,6 +4643,74 @@ void test_cover_script_last_resort_walking_threat()
     fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
 }
 
+// One update with the threat walking 1 px north or back, 4 px each way.
+void step_threat_back_and_forth(cover_scene& s, u32& frames)
+{
+    fm_assert(frames < 60*s.fps);
+    s.move_threat(s.threat->position() + Vector2i{0, frames++ % 8 < 4 ? -1 : 1});
+    s.step();
+}
+
+// As test_cover_script_last_resort_in_reach, the npc held hidden and the threat moved by
+// step_threat_back_and_forth, until the npc's retreat after a search while hidden ends. Returns its cover spot.
+point retreat_after_search_while_hidden(cover_scene& s, u32& frames)
+{
+    using hold_phase = Cover::Script::options::hold_phase;
+    resize_wall(s, 40);
+    rebuild(s.w);
+    Cover::Script::set_options(*s.npc, {.hold = hold_phase::hidden});
+    s.step_until(state::hidden);
+    const auto cover_pos = s.npc->position();
+    const auto num_searches = s.status().counters.num_searches;
+    while (s.status().counters.num_searches == num_searches)
+    {
+        fm_assert(s.status().st == state::hidden);
+        step_threat_back_and_forth(s, frames);
+    }
+    for (auto st = s.status().st; st != state::seek; st = s.status().st)
+    {
+        fm_assert(st == state::find_retreat || st == state::retreat);
+        step_threat_back_and_forth(s, frames);
+    }
+    return cover_pos;
+}
+
+// Once a search while hidden finds no cover, the npc retreats and doesn't come back.
+void test_cover_script_retreats_after_search_while_hidden()
+{
+    cover_scene s{point{ch, {8, 8}, {}}};
+    auto frames = 0u;
+    const auto cover_pos = retreat_after_search_while_hidden(s, frames);
+    const auto pos = s.npc->position(), threat_pos = s.threat->position();
+    // The retreat ends over min_retreat_gain px farther from the threat than the npc's cover.
+    fm_assert(point::distance(pos, threat_pos) > point::distance(cover_pos, threat_pos) + 3*(u32)tile_size_xy);
+    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, pos, body, s.npc->id));
+    for (const auto n = s.status().counters.num_searches + 2; s.status().counters.num_searches < n;
+         step_threat_back_and_forth(s, frames))
+    {
+        const auto st = s.status().st;
+        fm_assert(st == state::seek || st == state::search);
+    }
+}
+
+// After the retreat of test_cover_script_retreats_after_search_while_hidden, a threat that sees the npc waiting
+// in st makes it flee in the same update.
+void test_cover_script_flees_seen_after_retreat(state st)
+{
+    cover_scene s{point{ch, {8, 8}, {}}};
+    auto frames = 0u;
+    retreat_after_search_while_hidden(s, frames);
+    while (s.status().st != st)
+        step_threat_back_and_forth(s, frames);
+    const auto pos = s.npc->position();
+    const auto to = pos + Vector2i{0, -3*tile_size_xy};
+    fm_assert(is_body_exposed_at(s, to, pos));
+    s.move_threat(to);
+    s.step();
+    const auto st1 = s.status().st;
+    fm_assert(st1 == state::find_retreat || st1 == state::retreat);
+}
+
 // Walls 2 px around the peek spot leave no path back to a cover that a threat move during the peek moved. The npc
 // then starts a straight walk to cover instead of standing in seek where the threat sees it.
 void test_cover_script_leave_peek_enclosed()
@@ -4893,6 +4961,9 @@ void Test::test_cover_point()
         test_cover_script_last_resort_in_reach(fallback::in_reach, threat_reach);
     }
     test_cover_script_last_resort_walking_threat();
+    test_cover_script_retreats_after_search_while_hidden();
+    test_cover_script_flees_seen_after_retreat(state::seek);
+    test_cover_script_flees_seen_after_retreat(state::search);
 }
 
 } // namespace floormat
