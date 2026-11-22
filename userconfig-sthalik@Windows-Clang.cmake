@@ -307,6 +307,12 @@ function(fm-userconfig-src)
         -Wno-lifetime-safety-cross-tu-suggestions
         -Wno-lifetime-safety-intra-tu-suggestions
     )
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 24)
+        add_compile_options(
+            -Wno-lifetime-safety-experimental-field-origin-escape
+            -Wno-lifetime-safety-experimental-invalidation
+        )
+    endif()
     add_compile_options(
         -Werror
         -Wno-error=float-equal          
