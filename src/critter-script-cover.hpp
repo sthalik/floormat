@@ -13,6 +13,13 @@ namespace floormat::Raycast { struct raycast_result_s; }
 
 namespace floormat::Cover::Script {
 
+// Updates the critter walks a retreat before check_retreat()'s first LOS check, as a restart reruns the retreat's
+// Dijkstra searches. check_walk()'s LOS checks, on walks to cover or a peek spot, don't wait.
+constexpr inline u8 min_updates_before_LOS_check = 8;
+// While the search for cover runs, the retreat's LOS check waits up to this many updates, as a restart may start
+// the search over. Path tests for static changes don't wait, as a blocked path ends the walk either way.
+constexpr inline u8 max_updates_before_LOS_check = 16;
+
 struct options
 {
     enum class hold_phase : u8 { none, hidden, exposed, };

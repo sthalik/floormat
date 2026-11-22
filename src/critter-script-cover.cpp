@@ -107,6 +107,7 @@ private:
     void check_exposed(critter& C, point threat);
     void check_walk(critter& C);
     bool check_retreat(critter& C);
+    bool is_remaining_path_unblocked_without_critters(critter& C);
     void check_reach(critter& C);
     void handle_blocked_walk(critter& C);
     void peek_again(critter& C);
@@ -129,8 +130,8 @@ private:
     // The path to cover that end_search keeps while C stands an update in state::search, as the search spent the
     // update's Dijkstra call. walk_to_found_cover then walks C to the peek spot, or along this path without one.
     Optional<path_search_result> path_to_found_cover;
-    // Where the threat stood when C last checked whether the threat sees C at its cover, peek spot or retreat
-    // spot, or searched for one. Collider changes with a later world::pass_gen() stamp are still unchecked.
+    // Where the threat stood when C last checked whether it sees C at its cover, peek spot or retreat spot, or
+    // searched for one. needs_retreat_LOS_check and later world::pass_gen() stamps mark unchecked changes.
     point threat_pos;
     u64 pass_gen_at_last_check = 0;
     Ns game_time_to_switch_state{}, prev_game_time{}, last_update{}, max_update{}, total_update{};
@@ -139,10 +140,11 @@ private:
     // or -1u when none are left.
     u32 num_reach_positions_tested = -1u;
     u8 num_blocked_walks = 0;
-    bool retreat_replanned = false;
+    // The retreat walk's updates since begin_retreat(), counted up to max_updates_before_LOS_check.
+    u8 num_updates_since_retreat_start = 0;
     bool is_retreat_exposed = false;
-    // The last update ran the retreat's LOS check, so this one tests the walk's path for colliders in its place.
-    bool needs_path_test = false;
+    // A threat move or static collider change during the wait still needs check_retreat()'s LOS check.
+    bool needs_retreat_LOS_check = false;
     // The search found canonical hidden from every reach_positions() point, so check_reach tests C there.
     bool is_canonical_hidden_from_reach = false;
 };
@@ -469,8 +471,23 @@ void cover_script::resume_search(critter& C)
 
 void cover_script::search_step(critter& C)
 {
-    if (!find_threat_or_retry(C))
+    if (st != state::retreat || options.search_every_move)
+    {
+        if (!find_threat_or_retry(C))
+            return;
+    }
+    else if (const auto threat = find_threat(C))
+    {
+        // The search checks nothing on the retreat walk, so it leaves pass_gen_at_last_check and the threat's move
+        // to check_retreat(), which search_every_move skips.
+        needs_retreat_LOS_check |= threat->position() != threat_pos;
+        threat_pos = threat->position();
+    }
+    else
+    {
+        retry_later(C);
         return;
+    }
     const auto n = tests.counters.num_dijkstra_calls;
     auto r = search.tick(C, tests, options, search_origin(C), threat_pos);
     if (r.done)
@@ -511,7 +528,6 @@ void cover_script::end_search(critter& C, Optional<Cover::cover_search::reachabl
                                  .axis = reachable.spot.axis, .peek = {}};
     is_canonical_hidden_from_reach = reachable.is_hidden_from_reach;
     num_reach_positions_tested = options.threat_reach ? 0 : -1u;
-    needs_path_test = false;
     auto& c = *cover;
     switch (then)
     {
@@ -574,15 +590,8 @@ void cover_script::walk_to_found_cover(critter& C)
         if (const auto pos = threat->position(); needs_LOS_check(C, pos, c.canonical))
             find_peek_pos(C, pos);
         walk_to_peek_spot_or_cover(C, move(path));
-        if (!c.peek && st == state::to_cover)
-        {
-            const auto size = Math::max(C.bbox_size.x(), C.bbox_size.y());
-            auto& pool = tests.pool_registry().pass_pool(
-                Grid::Pass::Params{astar::default_div_size, size, pass_mode::pass});
-            // Critters stop C only when it bumps into one.
-            if (!walk.is_remaining_path_unblocked(C, Search::without_critters, &pool))
-                handle_blocked_walk(C);
-        }
+        if (!c.peek && st == state::to_cover && !is_remaining_path_unblocked_without_critters(C))
+            handle_blocked_walk(C);
     }
 }
 
@@ -599,8 +608,9 @@ void cover_script::begin_retreat(critter& C, bool restart)
     // A search still running then ends without starting another retreat.
     then = search_then::seek;
     search_retreated = true;
-    retreat_replanned = false;
+    num_updates_since_retreat_start = 0;
     num_blocked_walks = 0;
+    needs_retreat_LOS_check = false;
 }
 
 void cover_script::retreat_step(critter& C)
@@ -749,19 +759,31 @@ void cover_script::check_walk(critter& C)
     }
 }
 
-// True when C stops walking its retreat. After needs_LOS_check() for the walk's end, that is when the end is no
-// longer min_retreat_gain px farther than the walk's start, or is seen when the first pass chose it. C then looks
-// for a retreat again, once per walk, as on a block. Path tests follow that check and other critters' steps.
+// True when the checks end C's walk or give C a new path to its end. Until the wait for the LOS check is over,
+// path tests run only on static changes and ignore critters.
 bool cover_script::check_retreat(critter& C)
 {
+    using Cover::Script::min_updates_before_LOS_check, Cover::Script::max_updates_before_LOS_check;
     const auto& w = C.world();
     const auto to = walk.dest();
-    if (retreat_replanned)
-        return false;
-    else if (needs_path_test)
+    const auto n = num_updates_since_retreat_start;
+    if (n < max_updates_before_LOS_check)
+        num_updates_since_retreat_start++;
+    const auto is_wait_for_LOS_check_over = n >= min_updates_before_LOS_check &&
+                                            (n >= max_updates_before_LOS_check || !search.is_running());
+    if (const auto threat = find_threat(C); threat && is_wait_for_LOS_check_over &&
+        (needs_retreat_LOS_check || needs_LOS_check(C, threat->position(), to)))
     {
-        needs_path_test = false;
-        if (walk.is_remaining_path_unblocked(C))
+        threat_pos = threat->position();
+        pass_gen_at_last_check = w.pass_gen();
+        needs_retreat_LOS_check = false;
+        if (!retreat.is_still_retreat_spot(C, tests, options, to, threat_pos))
+        {
+            begin_retreat(C, true);
+            retreat_step(C);
+            return true;
+        }
+        else if (walk.is_line() || walk.is_remaining_path_unblocked(C))
             return false;
         else
         {
@@ -769,25 +791,24 @@ bool cover_script::check_retreat(critter& C)
             return true;
         }
     }
-    else if (const auto threat = find_threat(C); threat && needs_LOS_check(C, threat->position(), to))
+    else if (const auto radius = Cover::search_chunk_radius(to, threat_pos, 0, options); walk.is_line())
+        return false;
+    else if (!is_wait_for_LOS_check_over)
     {
-        threat_pos = threat->position();
-        pass_gen_at_last_check = w.pass_gen();
-        if (retreat.is_still_retreat_spot(C, tests, options, to, threat_pos))
-        {
-            needs_path_test = !walk.is_line();
+        if (w.max_pass_gen(to.chunk3(), radius) <= pass_gen_at_last_check)
             return false;
-        }
+        // Moving the stamp past a static change would hide it from the LOS check after the wait.
+        needs_retreat_LOS_check = true;
+        pass_gen_at_last_check = w.pass_gen();
+        if (is_remaining_path_unblocked_without_critters(C))
+            return false;
         else
         {
-            begin_retreat(C, true);
-            retreat_replanned = true;
-            retreat_step(C);
+            handle_blocked_walk(C);
             return true;
         }
     }
-    else if (const auto radius = Cover::search_chunk_radius(to, threat_pos, 0, options);
-             !walk.is_line() && w.max_collider_gen(to.chunk3(), radius) > pass_gen_at_last_check)
+    else if (w.max_collider_gen(to.chunk3(), radius) > pass_gen_at_last_check)
     {
         pass_gen_at_last_check = w.pass_gen();
         if (walk.is_remaining_path_unblocked(C))
@@ -800,6 +821,15 @@ bool cover_script::check_retreat(critter& C)
     }
     else
         return false;
+}
+
+// As walk.is_remaining_path_unblocked(C), ignoring critters, so only bumping into one stops C.
+bool cover_script::is_remaining_path_unblocked_without_critters(critter& C)
+{
+    const auto size = Math::max(C.bbox_size.x(), C.bbox_size.y());
+    auto& pool =
+        tests.pool_registry().pass_pool(Grid::Pass::Params{astar::default_div_size, size, pass_mode::pass});
+    return walk.is_remaining_path_unblocked(C, Search::without_critters, &pool);
 }
 
 // Tests cover's pos against reach_positions(), at most max_reach_body_checks_per_update calls per update, and
@@ -829,28 +859,25 @@ void cover_script::check_reach(critter& C)
     }
 }
 
-// C hides when it walked to its peek spot, looks for a retreat again once per retreat, goes back to the search,
-// or seeks, after retry_time from the second block on.
+// C hides when it walked to its peek spot. Walking to cover, it seeks, after retry_time from the second block on.
+// Retreating, C takes a new path to its spot at the first block, and looks for a retreat again at the next.
 void cover_script::handle_blocked_walk(critter& C)
 {
     if (st == state::to_peek)
         take_cover(C);
-    else if (st == state::retreat && !retreat_replanned)
+    else if (st == state::retreat)
     {
-        // Once per retreat, so walks that keep getting blocked can't rerun find_retreat's Dijkstra searches.
-        if (find_threat_or_retry(C))
-        {
+        const auto threat = find_threat(C);
+        auto path = threat && !num_blocked_walks++ ? tests.path_to(C, walk.dest()) : path_search_result{};
+        if (path.is_found() && (is_retreat_exposed || !tests.is_seen_on_path(C, options, threat->position(), path)))
+            walk = critter_walk{move(path)};
+        else if (find_threat_or_retry(C))
             begin_retreat(C, true);
-            retreat_replanned = true;
-        }
     }
-    else if (st == state::retreat && search.is_running())
-        resume_search(C);
     else
     {
         st = state::seek;
-        game_time_to_switch_state =
-            C.world().game_time() + (num_blocked_walks++ || retreat_replanned ? retry_time : Ns{});
+        game_time_to_switch_state = C.world().game_time() + (num_blocked_walks++ ? retry_time : Ns{});
     }
 }
 
@@ -905,13 +932,10 @@ void cover_script::take_cover(critter& C)
 void cover_script::walk_update(const bptr<critter>& C, usize& i, const Ns& dt)
 {
     const auto ret = walk.update(C, i, dt);
-    if (ret != walk_result::none)
-        needs_path_test = false;
     if (ret == walk_result::none)
         void();
     else if (ret == walk_result::arrived)
     {
-        retreat_replanned = false;
         num_blocked_walks = 0;
         if (st == state::to_cover)
         {
@@ -1004,8 +1028,6 @@ bool cover_script::send_to(critter& C, const Cover::Point::spot& s, bool peek)
     cover = Cover::Script::cover{.pos = end, .canonical = s.pos, .axis = s.axis, .peek = {}};
     is_canonical_hidden_from_reach = false;
     num_reach_positions_tested = options.threat_reach ? 0 : -1u;
-    needs_path_test = false;
-    retreat_replanned = false;
     num_blocked_walks = 0;
     path_to_found_cover = {};
     threat_pos = threat->position();
