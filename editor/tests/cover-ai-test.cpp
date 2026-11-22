@@ -89,7 +89,7 @@ struct spot_state
     bool has_peek = false;
 };
 
-// A spot and its octant test, for the cover's pos and canonical.
+// A spot and its octant test, for the cover spot and canonical.
 struct spot_octant_test
 {
     Cover::Point::spot spot;
@@ -825,7 +825,7 @@ void cover_ai_test::update_post(app& a, const Ns&)
         update_octant_tests(a, *c, *s);
 }
 
-// Tests the cover's pos and canonical, then the listed spots not yet tested until max_octant_test_µs_per_frame
+// Tests the cover spot and canonical, then the listed spots not yet tested until max_octant_test_µs_per_frame
 // passed.
 void cover_ai_test::update_octant_tests(app& a, const critter& c, const Cover::Script::status& s)
 {

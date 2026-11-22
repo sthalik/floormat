@@ -1660,7 +1660,7 @@ void test_cover_script_walk_cover_removed(state walk)
     fm_assert(t.st == state::find_retreat || t.st == state::retreat);
 }
 
-// cover_scene's npc walks to cover, and a critter appears on cover's pos. With threat_moves, the threat also
+// cover_scene's npc walks to cover, and a critter appears on the cover spot. With threat_moves, the threat also
 // moves 1 px. In the next update the npc tests its path, finds the critter and stops over a tile short of it.
 void test_cover_script_critter_blocks_path(bool threat_moves)
 {

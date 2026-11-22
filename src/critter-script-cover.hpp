@@ -73,8 +73,8 @@ struct cover
     // Where the critter hides between shots, next to its peek spot. It is canonical moved along the blocker's
     // face as far as no point of the threat's reach sees a pixel of the critter.
     point pos;
-    // The spot the search found, which the tests that make the critter flee use. A pos the threat sees is moved
-    // from it again.
+    // The spot the search found, which the tests that make the critter flee use. A cover spot the threat sees is
+    // moved from it again.
     point canonical;
     // canonical's axis, toward the threat.
     Vector2i axis;
