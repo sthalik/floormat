@@ -7,6 +7,7 @@
 #include <mg/Context.h>
 #include <mg/DebugOutput.h>
 #include <mg/Extensions.h>
+#include <mg/Functions.h>
 #include <mg/Renderer.h>
 
 namespace floormat {
@@ -46,7 +47,10 @@ ScopeGuard disable_debug_output(std::initializer_list<Pair<Source, Type>> source
         return ScopeGuard{NoCreate};
     else
     {
-        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "disable_debug_output");
+        constexpr auto debug_group_name = "disable_debug_output"_s;
+        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0,
+                         Math::min((Int)debug_group_name.size(), GL::DebugOutput::maxMessageLength() - 1),
+                         debug_group_name.data());
         if (sources_and_types.size() == 0)
             GL::DebugOutput::setEnabled(false);
         else
