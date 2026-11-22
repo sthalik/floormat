@@ -42,13 +42,14 @@ class movement_range
     Array<u8> passable;
     Array<u64> heap;
     Array<bool> entry_blocked;
+    Array<u8> cell_labels; // 1 for a reached cell, else 0. trace_borders() sets cells on a border to 2 or 3.
     Optional<cache_key> _key;
 
 public:
     movement_range();
 
-    // Returns `from` and points along the edge of the area walkable from it within max_dist px. Critters don't
-    // count as blockers, since they may move out of the way.
+    // Returns `from`, then for r = max_dist, 3/4 and 1/2 of it, points about 24 px apart along each border of the
+    // area walkable from it within r px. Critters don't count as blockers, since they may move out of the way.
     ArrayView<const point> border(world& w, Grid::GridRegistry& pools, point from, Optional<u32> bbox_side,
                                   u32 max_dist);
     // Returns `from`, then the points `from` + (i, j)*spacing in the square `from` ± radius

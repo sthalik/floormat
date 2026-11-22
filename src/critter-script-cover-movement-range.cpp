@@ -19,6 +19,80 @@ namespace {
 
 int cell_of(int px, int div) { return floor_div(px + half_tile<int>, div); }
 
+// Px along a border between two points border() returns.
+constexpr inline int border_point_average_spacing = 24;
+
+// Clockwise with y pointing down, starting north.
+constexpr inline Vector2i neighbor_offsets[] = {
+    {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1},
+};
+constexpr inline u32 east = 2, west = 6;
+
+// Calls emit(cell) for cells along each border of the cells labelled 1 in the side² labels, starting with each
+// border's first cell. Borders come from Suzuki and Abe's border following, and labels then hold its f.
+template<typename F>
+void trace_borders(ArrayView<u8> labels, int side, int div, int diag, F&& emit)
+{
+    // Without the border hierarchy only f's sign matters, so every border gets the same NBD.
+    constexpr u8 minus_nbd = 2, nbd = 3;
+    const auto label = [&](Vector2i p) -> u8 {
+        return p.x() >= 0 && p.y() >= 0 && p.x() < side && p.y() < side ? labels[p.y()*side + p.x()] : 0;
+    };
+    const auto set_label = [&](Vector2i p, u8 f) { labels[p.y()*side + p.x()] = f; };
+    for (auto y = 0; y < side; y++)
+        for (auto x = 0; x < side; x++)
+        {
+            const auto start = Vector2i{x, y};
+            const auto f = label(start);
+            u32 back;
+            if (f == 1 && !label(start + neighbor_offsets[west]))
+                back = west;
+            else if ((f == 1 || f == nbd) && !label(start + neighbor_offsets[east]))
+                back = east;
+            else
+                continue;
+            emit(start);
+            auto k = 1u;
+            while (k < 8 && !label(start + neighbor_offsets[(back + k) % 8]))
+                k++;
+            if (k == 8)
+            {
+                set_label(start, minus_nbd);
+                continue;
+            }
+            back = (back + k) % 8;
+            const auto second = start + neighbor_offsets[back];
+            auto cur = start;
+            auto len = 0;
+            for (;;)
+            {
+                auto d = (back + 7) % 8;
+                auto is_east_examined = false;
+                while (!label(cur + neighbor_offsets[d]))
+                {
+                    is_east_examined |= d == east;
+                    d = (d + 7) % 8;
+                }
+                const auto next = cur + neighbor_offsets[d];
+                if (is_east_examined)
+                    set_label(cur, minus_nbd);
+                else if (label(cur) == 1)
+                    set_label(cur, nbd);
+                if (next == start && cur == second)
+                    break;
+                // The remainder carries over, so the average holds on any border.
+                len += d % 2 ? diag : div;
+                if (len >= border_point_average_spacing)
+                {
+                    len -= border_point_average_spacing;
+                    emit(next);
+                }
+                cur = next;
+                back = (d + 4) % 8;
+            }
+        }
+}
+
 } // namespace
 
 bool movement_range::cache_key::operator==(const cache_key&) const = default;
@@ -33,10 +107,10 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
                                               Optional<u32> bbox_side, u32 max_dist)
 {
     const auto R = (int)max_dist;
-    // The Dijkstra search reads cells within R + 2 div px of from, div being at most default_div_size, and each
-    // cell's grid reads one chunk more.
+    // The Dijkstra search reads cells within 9/8 R + 2 div px of from, div being at most default_div_size, and
+    // each cell's grid reads one chunk more.
     const auto max_pass_gen =
-        w.max_pass_gen(from.chunk3(), (max_dist + 2*astar::default_div_size)/chunk_size_xy + 2);
+        w.max_pass_gen(from.chunk3(), (max_dist*9/8 + 2*astar::default_div_size)/chunk_size_xy + 2);
     const cache_key key{from, {}, bbox_side, 0, 0, max_dist, max_pass_gen};
     if (_key == key)
         return cached_points;
@@ -45,33 +119,41 @@ ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pool
     arrayAppend(cached_points, from);
     if (!R || !bbox_side)
         return cached_points;
-    fm_assert(R < (u16)-1);
 
     auto& pool = pools.pass_pool(Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass});
     const auto div = (int)pool.params().div_size();
-    // A cell farther than n from the cell of from lies over R px away.
-    const auto n = R/div + 1, side = 2*n + 1;
+    const auto diag = (int)(div*Math::sqrt(2.) + .5);
+    // In open ground a cell's Dijkstra distance is at most max_ratio times its straight-line distance.
+    const auto max_ratio = Math::sqrt(1 + Math::pow((diag - div)/(double)div, 2.));
+    fm_debug_assert(max_ratio < 9./8);
+    const auto max_walk_dist = (int)Math::ceil(R*max_ratio);
+    fm_assert(max_walk_dist < (u16)-1);
+    // A cell farther than n from the cell of from lies over max_walk_dist px away.
+    const auto n = max_walk_dist/div + 1, side = 2*n + 1;
+    const auto count = (u32)(side*side);
     const auto g = Vector3i(from).xy();
-    const auto origin = compute_dijkstra_map(w, pool, nullptr, from, {}, n, R);
+    const auto origin = compute_dijkstra_map(w, pool, nullptr, from, {}, n, max_walk_dist);
+    if (arrayCapacity(cell_labels) < count)
+        arrayReserve(cell_labels, count + count/2);
+    arrayResize(cell_labels, NoInit, count);
 
-    // A ray from inside the reached cells to a body outside them leaves through a border cell, which sees the
-    // body as well, to within a cell.
-    const auto reached = [&](int x, int y) {
-        return x >= 0 && y >= 0 && x < side && y < side && dist[y*side + x] <= R;
-    };
-    for (auto y = 0; y < side; y++)
-        for (auto x = 0; x < side; x++)
-        {
-            if (!reached(x, y))
-                continue;
-            bool border = false;
-            for (auto dy = -1; dy <= 1; dy++)
-                for (auto dx = -1; dx <= 1; dx++)
-                    border |= !reached(x + dx, y + dy);
-            if (border)
-                arrayAppend(cached_points,
-                            from + ((origin + Vector2i{x, y})*div + Vector2i{div/2 - half_tile<int>} - g));
-        }
+    for (const auto r : { R, R*3/4, R/2 })
+    {
+        // Measured from the center of from's cell, so the points stay the same while `from` moves within it.
+        const auto max_walk_dist_r = (int)Math::ceil(r*max_ratio);
+        for (auto y = 0; y < side; y++)
+            for (auto x = 0; x < side; x++)
+            {
+                const auto i = (u32)(y*side + x);
+                const auto dx = (i64)(x - n)*div, dy = (i64)(y - n)*div;
+                cell_labels[i] = dist[i] <= max_walk_dist_r && dx*dx + dy*dy <= (i64)r*r;
+            }
+        trace_borders(cell_labels, side, div, diag, [&](Vector2i cell) {
+            const auto pt = from + ((origin + cell)*div + Vector2i{div/2 - half_tile<int>} - g);
+            if (std::find(cached_points.begin(), cached_points.end(), pt) == cached_points.end())
+                arrayAppend(cached_points, pt);
+        });
+    }
     return cached_points;
 }
 
