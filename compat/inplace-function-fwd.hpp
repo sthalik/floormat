@@ -14,8 +14,8 @@ namespace floormat {
 
 // A hot caller can declare an inplace_function whose sizeof is at most 64 as alignas(64), so all of it sits
 // in one cache line and no access to it splits a line or a page. A local pays with a realigned stack frame.
-template<typename Signature, usize Capacity, usize Alignment = alignof(void*)> class inplace_function;
+template<typename Signature, usize Capacity = sizeof(void*), usize Alignment = alignof(void*)> class inplace_function;
 
-template<typename Signature, usize Capacity, usize Alignment = alignof(void*)> class inplace_copyable_function;
+template<typename Signature, usize Capacity = sizeof(void*), usize Alignment = alignof(void*)> class inplace_copyable_function;
 
 } // namespace floormat

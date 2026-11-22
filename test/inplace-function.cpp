@@ -100,6 +100,13 @@ struct sized
     u64 operator()(u64 x) const noexcept { return x + v[0]; }
 };
 
+template<u32 N>
+struct pointer_captures
+{
+    const void* p[N] = {};
+    u64 operator()(u64 x) const noexcept { return x; }
+};
+
 struct address_probe
 {
     u64 pad[3] = {};
@@ -285,6 +292,10 @@ static_assert(std::is_nothrow_constructible_v<F, sized<40>>);
 static_assert(std::is_assignable_v<F&, sized<40>>);
 static_assert(!std::is_constructible_v<F, sized<48>>);
 static_assert(!std::is_assignable_v<F&, sized<48>>);
+
+static_assert(std::is_same_v<inplace_function<u64(u64)>, inplace_function<u64(u64), sizeof(void*), alignof(void*)>>);
+static_assert(std::is_constructible_v<inplace_function<u64(u64)>, pointer_captures<1>>);
+static_assert(!std::is_constructible_v<inplace_function<u64(u64)>, pointer_captures<2>>);
 
 static_assert(!std::is_constructible_v<F, over_aligned>);
 static_assert(std::is_constructible_v<inplace_function<u64(u64), 40, 16>, over_aligned>);
