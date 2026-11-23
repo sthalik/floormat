@@ -47,13 +47,14 @@ struct path_search_result final
 
 private:
     void allocate_node();
+    void deallocate_node() noexcept;
 
     Pointer<node> _node;
     float _time = 0;
     u32 _cost = 0, _distance = (u32)-1, _div_size = 0;
     bool _found : 1 = false;
 
-    static Pointer<node> _pool; // NOLINT(*-avoid-non-const-global-variables) todo thread safety
+    static Pointer<node> _pool; // NOLINT(*-avoid-non-const-global-variables)
 };
 
 } // namespace floormat

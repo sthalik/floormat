@@ -94,6 +94,7 @@ void test_saturate_cast();
 void test_save();
 void test_saves();
 void test_scenery();
+void test_search_result_threads();
 void test_sequence_traits();
 void test_shader();
 void test_slab_allocator();

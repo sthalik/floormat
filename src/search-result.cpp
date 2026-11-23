@@ -2,9 +2,14 @@
 #include "search-node.hpp"
 #include "point.inl"
 #include "compat/assert.hpp"
+#include "compat/spinlock.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat {
+
+namespace {
+constinit Spinlock g_pool_lock;
+} // namespace
 
 Pointer<path_search_result::node> path_search_result::_pool; // NOLINT
 
@@ -13,12 +18,16 @@ path_search_result::path_search_result() = default;
 path_search_result::~path_search_result() noexcept
 {
     if (_node && arrayCapacity(_node->vec) > 0)
-    {
-        arrayClear(_node->vec);
-        arrayClear(_node->smoothings);
-        _node->_next = move(_pool);
-        _pool = move(_node);
-    }
+        deallocate_node();
+}
+
+void path_search_result::deallocate_node() noexcept
+{
+    arrayClear(_node->vec);
+    arrayClear(_node->smoothings);
+    Locker<Spinlock> guard{g_pool_lock};
+    _node->_next = move(_pool);
+    _pool = move(_node);
 }
 
 path_search_result::path_search_result(path_search_result&& other) noexcept
@@ -29,12 +38,7 @@ path_search_result::path_search_result(path_search_result&& other) noexcept
 path_search_result& path_search_result::operator=(path_search_result&& other) noexcept
 {
     if (_node)
-    {
-        arrayClear(_node->vec);
-        arrayClear(_node->smoothings);
-        _node->_next = move(_pool);
-        _pool = move(_node);
-    }
+        deallocate_node();
     _node = move(other._node);
     _time = other._time;
     _cost = other._cost;
@@ -51,14 +55,19 @@ void path_search_result::allocate_node()
     if (_node)
         return;
 
-    if (_pool)
     {
-        auto ptr = move(_pool);
-        fm_debug_assert(ptr->vec.isEmpty());
-        fm_debug_assert(ptr->smoothings.isEmpty());
-        auto next = move(ptr->_next);
-        _node = move(ptr);
-        _pool = move(next);
+        Locker<Spinlock> guard{g_pool_lock};
+        if (_pool)
+        {
+            _node = move(_pool);
+            _pool = move(_node->_next);
+        }
+    }
+
+    if (_node)
+    {
+        fm_debug_assert(_node->vec.isEmpty());
+        fm_debug_assert(_node->smoothings.isEmpty());
     }
     else
     {
