@@ -52,6 +52,7 @@ world::world(world&& w) noexcept :
     _thread_grid_orders{move(w._thread_grid_orders)},
     _thread_astars{move(w._thread_astars)},
     _thinking_critters{move(w._thinking_critters)},
+    _running_job_kind{w._running_job_kind},
     _teardown{w._teardown},
     _script_initialized{w._script_initialized},
     _script_finalized{w._script_finalized},
@@ -62,6 +63,7 @@ world::world(world&& w) noexcept :
     w._tail = nullptr;
     w._thread_pool = nullptr;
     w._grid_registry = nullptr;
+    w._running_job_kind = job_kind::make_critters_think;
     w._object_counter = 0;
     w._script_initialized = false;
     w._script_finalized = false;
@@ -102,10 +104,12 @@ world& world::operator=(world&& w) noexcept
     _tail = w._tail;
     _thread_pool = w._thread_pool;
     _grid_registry = w._grid_registry;
+    _running_job_kind = w._running_job_kind;
     w._head = nullptr;
     w._tail = nullptr;
     w._thread_pool = nullptr;
     w._grid_registry = nullptr;
+    w._running_job_kind = job_kind::make_critters_think;
     for (auto& c : chunks())
         c._world = this;
 
@@ -506,6 +510,13 @@ void world::set_thread_pool(ThreadPool* pool) noexcept
 
 ThreadPool* world::thread_pool() const noexcept { return _thread_pool; }
 bool world::is_thread_pool_running() const noexcept { return _thread_pool && _thread_pool->is_running(); }
+job_kind world::running_job_kind() const noexcept { return _running_job_kind; }
+
+void world::set_running_job_kind(job_kind kind) noexcept
+{
+    fm_assert(!is_thread_pool_running());
+    _running_job_kind = kind;
+}
 
 void world::set_grid_registry(Grid::GridRegistry* reg) noexcept
 {

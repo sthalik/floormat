@@ -264,14 +264,20 @@ void test_moved_world_keeps_thread_arrays()
     ThreadPool pool{3};
     Grid::GridRegistry reg;
     world w1;
+    fm_assert(w1.running_job_kind() == job_kind::make_critters_think);
     w1.set_thread_pool(&pool);
     w1.set_grid_registry(&reg);
+    w1.set_running_job_kind(job_kind::rebuild_rtrees);
     world w2{move(w1)};
     fm_assert(w2.thread_pool() == &pool && w2.grid_registry() == &reg);
+    fm_assert(w2.running_job_kind() == job_kind::rebuild_rtrees);
+    fm_assert(w1.running_job_kind() == job_kind::make_critters_think);
     check_think_contexts(w2, 3, &reg);
     world w3;
     w3 = move(w2);
     fm_assert(w3.thread_pool() == &pool && w3.grid_registry() == &reg);
+    fm_assert(w3.running_job_kind() == job_kind::rebuild_rtrees);
+    fm_assert(w2.running_job_kind() == job_kind::make_critters_think);
     check_think_contexts(w3, 3, &reg);
 }
 

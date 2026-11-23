@@ -26,6 +26,13 @@ class astar;
 class ThreadPool;
 namespace Grid { class GridRegistry; }
 
+// What the jobs of a running world::thread_pool() may write.
+enum class job_kind : u8
+{
+    make_critters_think, // They write nothing in the world.
+    rebuild_rtrees,      // Each writes its own chunk's two R-trees and _pass_modified.
+};
+
 class world final
 {
     struct unique_id : bptr_base
@@ -52,6 +59,7 @@ class world final
     // astar isn't movable.
     Array<Pointer<astar>> _thread_astars;
     Array<thinking_critter> _thinking_critters;
+    job_kind _running_job_kind = job_kind::make_critters_think;
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
     bool _script_finalized : 1 = false;
@@ -138,8 +146,14 @@ public:
     // Invalidates references taken from frame_order_buffer(), grid_orders() and think_context().
     void set_thread_pool(ThreadPool* pool) noexcept;
     ThreadPool* thread_pool() const noexcept;
-    // True while thread_pool() is running a parallel_for(). No thread may write the world then.
+    // True while thread_pool() is running a parallel_for(). No thread may write the world then, except as
+    // running_job_kind() allows.
     bool is_thread_pool_running() const noexcept;
+    // Returns what the running jobs may write, which matters only while is_thread_pool_running().
+    // It is job_kind::make_critters_think until set_running_job_kind() changes it.
+    job_kind running_job_kind() const noexcept;
+    // Must be called while the pool isn't running.
+    void set_running_job_kind(job_kind kind) noexcept;
 
     // The registry whose pools the world's read-only queries look grids up in, or null.
     // It must outlive the world or be replaced by null first.
