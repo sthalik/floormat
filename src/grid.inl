@@ -3,6 +3,7 @@
 #include "world.hpp"
 #include "compat/assert.hpp"
 #include "compat/atomic.hpp"
+#include <cr/GrowableArray.h>
 
 namespace floormat::Grid::detail {
 
@@ -125,13 +126,23 @@ const T* find_built_grid(const Pool<T>* p, const chunk& c)
     }
 }
 
-template <typename T, typename... Args>
-void rebuild_requested_stale_grids(Pool<T>* p, Args&&... args)
+template <typename T>
+void list_grid_if_stale(T* grid, Array<grid_to_build>& list)
+{
+    if (!grid->is_listed_to_be_built && grid->needs_rebuild())
+    {
+        grid->is_listed_to_be_built = true;
+        arrayAppend(list, grid_to_build{grid, T::build_grid});
+    }
+}
+
+template <typename T>
+void list_requested_stale_grids(Pool<T>* p, Array<grid_to_build>& list)
 {
     for (auto* g : p->grids_in_use)
         if (atomic_load(&g->is_requested_by_reader, memory_order::relaxed))
         {
-            static_cast<T*>(g)->build_if_stale(args...);
+            list_grid_if_stale(static_cast<T*>(g), list);
             atomic_store(&g->is_requested_by_reader, 0, memory_order::relaxed);
         }
 }

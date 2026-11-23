@@ -43,9 +43,11 @@ struct GridBase
     u64 built_pass_gen = 0; // world::pass_gen() after the last build, or 0 while marked stale
     u64 build_no = 0;
     u32 in_use_index = (u32)-1;
-    // True when a read-only lookup found this grid since reuse or GridRegistry::rebuild_requested_stale_grids()
+    // True when a read-only lookup found this grid since reuse or GridRegistry::list_requested_stale_grids()
     // last cleared it. Readers on several threads set it, so only compat/atomic.hpp's relaxed calls touch it.
     mutable u8 is_requested_by_reader = 0;
+    // True while the grid is in GridRegistry's list of grids to build. Only the main thread reads or writes it.
+    bool is_listed_to_be_built = false;
 
     explicit GridBase(chunk& ch);
     fm_DISABLE_MOVE_COPY(GridBase);
@@ -76,6 +78,13 @@ struct GridBase
 
 protected:
     ~GridBase() noexcept = default;
+};
+
+// build_grid builds grid as build_without_build_no() does. Only an object grid uses scratch_runs.
+struct grid_to_build
+{
+    GridBase* grid;
+    void (*build_grid)(GridBase* grid, Array<u32>& scratch_runs);
 };
 
 class free_list

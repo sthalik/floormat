@@ -1,4 +1,6 @@
 #include "grid-registry.hpp"
+#include "world.hpp"
+#include "compat/thread-pool.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat::Grid {
@@ -7,6 +9,7 @@ GridRegistry::GridRegistry()
 {
     arrayReserve(pass_.pools_in_creation_order, 16);
     arrayReserve(object_.pools_in_creation_order, 16);
+    arrayReserve(grids_to_build_, 16);
 }
 
 GridRegistry::~GridRegistry() noexcept = default;
@@ -114,12 +117,70 @@ u32 GridRegistry::pool_count() const
     return n;
 }
 
-void GridRegistry::rebuild_requested_stale_grids()
+void GridRegistry::list_requested_stale_grids()
 {
     for (auto* pool : pass_.pools_in_creation_order)
-        pool->rebuild_requested_stale_grids();
+        pool->list_requested_stale_grids(grids_to_build_);
     for (auto* pool : object_.pools_in_creation_order)
-        pool->rebuild_requested_stale_grids();
+        pool->list_requested_stale_grids(grids_to_build_);
+}
+
+void GridRegistry::list_pass_grid(const Pass::Params& p, chunk& c)
+{
+    pass_pool(p).list_grid(c, grids_to_build_);
+}
+
+void GridRegistry::list_object_grid(const Object::Params& p, chunk& c)
+{
+    auto& pool = object_pool(p);
+    pool.list_grid(c, grids_to_build_);
+    pool.pass_pool().list_grid(c, grids_to_build_);
+}
+
+void GridRegistry::build_listed_grids()
+{
+    if (grids_to_build_.isEmpty())
+        return;
+    auto& w = grids_to_build_[0].grid->c->world();
+    for (const auto& x : grids_to_build_)
+        fm_debug_assert(&x.grid->c->world() == &w);
+
+    auto* pool = w.thread_pool();
+    const auto num_scratch_arrays = pool ? pool->num_threads() : 1u;
+    if (const auto size = (u32)thread_scratch_runs_.size(); size < num_scratch_arrays)
+    {
+        arrayResize(thread_scratch_runs_, num_scratch_arrays);
+        for (auto i = size; i < num_scratch_arrays; i++)
+            arrayReserve(thread_scratch_runs_[i], 16);
+    }
+
+    if (pool)
+    {
+        const auto count = (u32)grids_to_build_.size();
+        w.set_running_job_kind(job_kind::build_grids);
+        pool->parallel_for(count, pool->default_grain_size(count), [this](u32 begin, u32 end, u32 worker_index) {
+            auto& scratch_runs = thread_scratch_runs_[worker_index];
+            for (auto i = begin; i < end; i++)
+                grids_to_build_[i].build_grid(grids_to_build_[i].grid, scratch_runs);
+        });
+        w.set_running_job_kind(job_kind::make_critters_think);
+    }
+    else
+        for (const auto& x : grids_to_build_)
+            x.build_grid(x.grid, thread_scratch_runs_[0]);
+
+    for (const auto& x : grids_to_build_)
+    {
+        x.grid->build_no = detail::GridBase::next_build_no();
+        x.grid->is_listed_to_be_built = false;
+    }
+    arrayClear(grids_to_build_);
+}
+
+void GridRegistry::rebuild_requested_stale_grids()
+{
+    list_requested_stale_grids();
+    build_listed_grids();
 }
 
 } // namespace floormat::Grid

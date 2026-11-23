@@ -151,8 +151,10 @@ public:
     [[nodiscard]] ConstGrid find_built_grid(const chunk& c) const;
 
     void build_if_stale_all();
-    // As GridRegistry::rebuild_requested_stale_grids(), for this pool's grids.
-    void rebuild_requested_stale_grids();
+    // As GridRegistry::list_requested_stale_grids(), for this pool's grids, appending to list.
+    void list_requested_stale_grids(Array<detail::grid_to_build>& list);
+    // Appends c's grid to list when it needs a rebuild and isn't listed, attaching it first if missing.
+    void list_grid(chunk& c, Array<detail::grid_to_build>& list);
 
     const Params& params() const;
     u32 free_grid_count() const;

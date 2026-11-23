@@ -133,7 +133,13 @@ struct PassGrid : GridBase
     bool is_all_empty() const noexcept { return all_empty; }
 
     void build_impl(chunk* self);
+    static void build_grid(GridBase* grid, Array<u32>& scratch_runs);
 };
+
+void PassGrid::build_grid(GridBase* grid, Array<u32>&)
+{
+    static_cast<PassGrid*>(grid)->build_without_build_no();
+}
 
 u32 PassGrid::get_bitmask_index(u32 x, u32 y, u32 div_count)
 {
@@ -428,9 +434,14 @@ void Pool::build_if_stale_all()
         static_cast<detail::PassGrid*>(g)->build_if_stale();
 }
 
-void Pool::rebuild_requested_stale_grids()
+void Pool::list_requested_stale_grids(Array<detail::grid_to_build>& list)
 {
-    detail::rebuild_requested_stale_grids(pool);
+    detail::list_requested_stale_grids(pool, list);
+}
+
+void Pool::list_grid(chunk& c, Array<detail::grid_to_build>& list)
+{
+    detail::list_grid_if_stale(detail::pool_subscript<detail::PassGrid>(pool, c), list);
 }
 
 Pool::Pool(Params params): pool{new detail::PassPool{params}} { }

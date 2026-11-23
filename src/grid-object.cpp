@@ -63,7 +63,13 @@ struct ObjectGrid : GridBase
     bool needs_rebuild() const { return is_marked_stale() || objects_maybe_dirty(); }
     void build_impl(chunk* self, Array<u32>& scratch_runs);
     template<typename T> bool build_impl(Array<T>& cells, Array<T>& runs, Array<u32>& scratch_runs);
+    static void build_grid(GridBase* grid, Array<u32>& scratch_runs);
 };
+
+void ObjectGrid::build_grid(GridBase* grid, Array<u32>& scratch_runs)
+{
+    static_cast<ObjectGrid*>(grid)->build_without_build_no(scratch_runs);
+}
 
 struct ObjectPool final : Pool<ObjectGrid>
 {
@@ -490,9 +496,14 @@ void Pool::build_if_stale_all()
         static_cast<detail::ObjectGrid*>(g)->build_if_stale(pool->scratch_runs);
 }
 
-void Pool::rebuild_requested_stale_grids()
+void Pool::list_requested_stale_grids(Array<detail::grid_to_build>& list)
 {
-    detail::rebuild_requested_stale_grids<detail::ObjectGrid>(pool, pool->scratch_runs);
+    detail::list_requested_stale_grids(pool, list);
+}
+
+void Pool::list_grid(chunk& c, Array<detail::grid_to_build>& list)
+{
+    detail::list_grid_if_stale(detail::pool_subscript<detail::ObjectGrid>(pool, c), list);
 }
 
 const Params& Pool::params() const { return pool->params; }

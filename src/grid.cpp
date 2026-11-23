@@ -168,6 +168,7 @@ void PoolBase::attach(chunk& c, GridBase* g)
 void PoolBase::release(GridBase* g) noexcept
 {
     fm_debug_assert(g->pool == this && g->in_use_index < grids_in_use.size() && grids_in_use[g->in_use_index] == g);
+    fm_debug_assert(!g->is_listed_to_be_built);
     auto* last = grids_in_use.back();
     grids_in_use[g->in_use_index] = last;
     last->in_use_index = g->in_use_index;
@@ -183,6 +184,7 @@ void PoolBase::detach_all() noexcept
     {
         auto& s = g->c->_grid_slots->slots;
         fm_debug_assert(s[slot_index] == g);
+        fm_debug_assert(!g->is_listed_to_be_built);
         s[slot_index] = nullptr;
         g->c = nullptr;
     }

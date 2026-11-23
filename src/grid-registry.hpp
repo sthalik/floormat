@@ -30,8 +30,17 @@ public:
     // The number of pass, object and cover pools made, all three kinds together.
     u32 pool_count() const;
 
-    // Rebuilds every stale pass grid and object grid that has is_requested_by_reader set, then clears the flag on
+    // Lists every stale pass grid and object grid that has is_requested_by_reader set, then clears the flag on
     // every pass and object grid. Cover grids are left to grid orders, which count their rebuild against the cap.
+    void list_requested_stale_grids();
+    // Lists c's grid in p's pool when it needs a rebuild and isn't listed. Makes the pool and the grid if missing.
+    void list_pass_grid(const Pass::Params& p, chunk& c);
+    // As list_pass_grid() for c's object grid, then for its pass grid of the same params.
+    void list_object_grid(const Object::Params& p, chunk& c);
+    // Builds the listed grids, as jobs of their world's thread pool if it has one, numbers them in list order and
+    // empties the list. With a pool, every chunk's R-trees must be current, as after world::ensure_passability().
+    void build_listed_grids();
+    // Builds what list_requested_stale_grids() lists.
     void rebuild_requested_stale_grids();
 
     // object bbox sizes are u8
@@ -71,6 +80,9 @@ private:
         std::array<Pointer<Cover::Pool>, std::bit_width(Cover::max_div_size)> direct;
         Array<Pointer<Cover::Pool>> fallback;
     } cover_;
+    Array<detail::grid_to_build> grids_to_build_;
+    // Indexed by the worker_index of a build_listed_grids() job.
+    Array<Array<u32>> thread_scratch_runs_;
 };
 
 } // namespace floormat::Grid
