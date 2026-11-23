@@ -4103,6 +4103,36 @@ void test_search_takes_exposed_cover_over_seen_in_reach_spot(u32 threat_reach)
     }
 }
 
+// As test_search_takes_exposed_cover_over_seen_in_reach_spot, with the npc on the in_reach spot (172, 532). With
+// 1 octant only is_hidden_at drops that spot once the threat sees it, as the npc needs no path there.
+void test_search_drops_seen_in_reach_spot_under_npc(u32 threat_reach)
+{
+    cover_scene s{point{ch, {10, 8}, {}}};
+    const auto block = add_blocker(s.w, {3, 8}, {64, 16});
+    rebuild(s.w);
+    move_npc(s, point{ch, {3, 8}, {-20, 20}});
+    s.move_threat(point{ch, {4, 7}, {-16, 0}});
+    Cover::spot_tests t{s.A, s.threat->id, 0};
+    Cover::cover_search search;
+    const Cover::Script::options o{.octants = 1, .threat_reach = threat_reach};
+    const auto from = s.npc->position(), threat = s.threat->position();
+    search.begin(from, threat);
+    tick_until_path_checked(s, t, search, o, from, threat);
+    fm_assert(search.has_last_resort());
+    s.w[ch].remove_object(*block, block->index());
+    rebuild(s.w);
+    for (auto i = 0u; ; i++)
+    {
+        fm_assert(i < 4);
+        if (const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat); r.done)
+        {
+            fm_assert(r.cover && r.cover->is_hidden_from_reach);
+            fm_assert(r.cover->spot.pos == point{ch, {7, 8}, {20, 20}});
+            break;
+        }
+    }
+}
+
 // In rehides_round_6_scene with the npc at (896, 256) and the threat at (704, 704), the search rejects a path,
 // keeps the in_reach spot (804, 468) within 4 updates, and returns it in the next update.
 void test_fallback_after_exposed_cover_ends_search(u32 threat_reach)
@@ -4967,6 +4997,7 @@ void Test::test_cover_point()
     for (const auto threat_reach : threat_reaches)
     {
         test_search_takes_exposed_cover_over_seen_in_reach_spot(threat_reach);
+        test_search_drops_seen_in_reach_spot_under_npc(threat_reach);
         test_search_takes_exposed_cover(threat_reach);
         test_search_drops_exposed_cover_now_seen(threat_reach);
         test_search_takes_exposed_cover_over_seen_peekless_spot(threat_reach);
