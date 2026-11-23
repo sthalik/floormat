@@ -70,6 +70,8 @@ void fm_glcall_preserves_values_and_references_on_error()
 
 void test_gl_call()
 {
+    const auto debug_output_guard = silence_gl_debug_output();
+
     fm_glcall_returns_false_only_for_errors_from_its_call();
     fm_glcall_preserves_bool_result_separately_from_gl_success();
     fm_glcall_preserves_values_and_references_on_error();

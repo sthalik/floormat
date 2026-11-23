@@ -313,16 +313,44 @@ void ignore_policy_sends_no_debug_message_to_callback()
         glDisable(GL_DEBUG_OUTPUT);
 }
 
+void APIENTRY discard_debug_message(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void*)
+{
+}
+
+struct debug_output_state
+{
+    void* callback = nullptr;
+    void* user_param = nullptr;
+    bool is_output_enabled = false;
+};
+
 } // namespace
+
+ScopeGuard silence_gl_debug_output()
+{
+    if (!GL::Context::current().isExtensionSupported<GL::Extensions::KHR::debug>())
+        return ScopeGuard{NoCreate};
+    else
+    {
+        auto* const saved_state = new debug_output_state;
+        glGetPointerv(GL_DEBUG_CALLBACK_FUNCTION, &saved_state->callback);
+        glGetPointerv(GL_DEBUG_CALLBACK_USER_PARAM, &saved_state->user_param);
+        saved_state->is_output_enabled = glIsEnabled(GL_DEBUG_OUTPUT);
+        // NVIDIA 617.42 sends debug group messages to the callback even with GL_DEBUG_OUTPUT disabled.
+        glDebugMessageCallback(discard_debug_message, nullptr);
+        GL::Renderer::disable(GL::Renderer::Feature::DebugOutput);
+        return ScopeGuard{saved_state, [](debug_output_state* state) {
+            glDebugMessageCallback(reinterpret_cast<GLDEBUGPROC>(state->callback), state->user_param);
+            if (state->is_output_enabled)
+                GL::Renderer::enable(GL::Renderer::Feature::DebugOutput);
+            delete state;
+        }};
+    }
+}
 
 void test_gl_error()
 {
-    ScopeGuard debug_output_guard{NoCreate};
-    if (GL::Context::current().isExtensionSupported<GL::Extensions::KHR::debug>() && glIsEnabled(GL_DEBUG_OUTPUT))
-    {
-        GL::Renderer::disable(GL::Renderer::Feature::DebugOutput);
-        debug_output_guard = ScopeGuard{[] { GL::Renderer::enable(GL::Renderer::Feature::DebugOutput); }};
-    }
+    const auto debug_output_guard = silence_gl_debug_output();
 
     with_gl_errors_throws_only_for_errors_inside_with_error_policy();
     fm_check_glcall_throws_only_for_errors_from_its_call();
