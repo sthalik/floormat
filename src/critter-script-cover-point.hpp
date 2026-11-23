@@ -7,9 +7,9 @@
 #include <cr/Optional.h>
 #include <mg/Range.h>
 
-namespace floormat { class world; }
+namespace floormat { class world; struct grid_order; }
 namespace floormat::Grid { class GridRegistry; }
-namespace floormat::Grid::Cover { struct Params; }
+namespace floormat::Grid::Cover { struct Params; class Pool; }
 
 namespace floormat::Cover::Point {
 
@@ -61,8 +61,8 @@ struct result
     /// Octants the call filled, rebuilds included.
     u32 fills = 0;
     bool found = false;
-    /// The call stopped at q.max_fills and found nothing. The same query goes on from there, as the
-    /// octants it filled stay in the grids.
+    /// The call stopped at q.max_fills, or a read-only one at an octant it couldn't read, and found nothing.
+    /// The same query goes on from there, as filled octants stay in the grids.
     bool out_of_fills = false;
 };
 
@@ -100,6 +100,17 @@ struct finder
     /// q.pos, flush against a blocker along axis, moved along its face as find moves its spots for q.
     /// The result is hidden from each point of also_from too, or is q.pos.
     point move_to_cover_end(world& w, const query& q, Vector2i axis, const Search::pred& pred,
+                            ArrayView<const point> also_from = {});
+
+    /// As above, writing neither w nor cover_pool. It needs clean R-trees and ignores q.max_fills. A read that
+    /// needs an octant filled or a grid rebuilt appends a cover grid_order and fails as at q.max_fills.
+    result find(const world& w, const Grid::Cover::Pool& cover_pool, const query& q, const Search::pred& pred,
+                Array<grid_order>& orders, bool list_spots = false);
+    /// These three write nothing in w and read no grid. Every chunk they read needs a clean R-tree.
+    bool is_hidden_at(const world& w, point threat, const spot& s, Vector2ui body_size);
+    bool is_hidden_from_threat_in_neighbor_octants(const world& w, point threat, const spot& s, Vector2ui body_size,
+                                                   u8 octants);
+    point move_to_cover_end(const world& w, const query& q, Vector2i axis, const Search::pred& pred,
                             ArrayView<const point> also_from = {});
 
     finder();

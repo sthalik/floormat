@@ -6,6 +6,7 @@
 namespace floormat {
 
 // One grid that a read-only query found unbuilt, for the main thread to build, or one cover grid octant to fill.
+// Running a cover order rebuilds a stale grid first, as Grid::Cover::Grid::ensure_octant() does.
 struct grid_order
 {
     enum class grid_kind : u8 { pass, object, cover };

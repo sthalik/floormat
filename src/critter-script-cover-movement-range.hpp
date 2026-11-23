@@ -6,7 +6,7 @@
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>
 
-namespace floormat { class world; }
+namespace floormat { class world; struct grid_order; }
 namespace floormat::Grid { class GridRegistry; }
 namespace floormat::Grid::Pass { class Pool; }
 namespace floormat::Grid::Object { class Pool; }
@@ -27,13 +27,23 @@ class movement_range
 
     // Returns the first of the (2n + 1)² cells around the cell of from that dist and passable then hold. passable
     // leaves out cells blocked by static colliders, and with objects by critters not in excluded_blocker_ids.
-    Vector2i compute_dijkstra_map(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects, point from,
-                                  std::array<object_id, 2> excluded_blocker_ids, int n, int max_dist);
+    Vector2i compute_dijkstra_map(const world& w, world* writable_world, const Grid::Pass::Pool& pool,
+                                  Grid::Pass::Pool* writable_pool, const Grid::Object::Pool* objects,
+                                  Grid::Object::Pool* writable_objects, point from,
+                                  std::array<object_id, 2> excluded_blocker_ids, int n, int max_dist,
+                                  Array<grid_order>* orders);
+    // The bodies of the public overloads. A writable call passes w again as writable_world, the registry and a
+    // null orders. A read-only call passes null writable_world and pools, and the pool it reads.
+    ArrayView<const point> border(const world& w, world* writable_world, Grid::GridRegistry* pools,
+                                  const Grid::Pass::Pool* pool, point from, Optional<u32> bbox_side,
+                                  u32 max_dist, Array<grid_order>* orders);
     // Critters don't count as blockers when excluded_blocker_ids is empty.
-    ArrayView<const point> reachable_lattice_points_impl(world& w, Grid::GridRegistry& pools, point from,
+    ArrayView<const point> reachable_lattice_points_impl(const world& w, world* writable_world,
+                                                         Grid::GridRegistry* pools, const Grid::Object::Pool* objects,
+                                                         point from,
                                                          Optional<std::array<object_id, 2>> excluded_blocker_ids,
                                                          Optional<u32> bbox_side, u32 radius, u32 spacing,
-                                                         u32 max_walk_dist);
+                                                         u32 max_walk_dist, Array<grid_order>* orders);
 
     // The points the last call returned, for _key's arguments, while world::max_pass_gen(), or max_collider_gen()
     // when critters block, over the chunks it read returns _key->collider_gen. The others are scratch arrays.
@@ -63,6 +73,20 @@ public:
     ArrayView<const point> reachable_lattice_points_without_critters(world& w, Grid::GridRegistry& pools,
                                                                      point from, Optional<u32> bbox_side,
                                                                      u32 radius, u32 spacing,
+                                                                     u32 max_walk_dist = (u32)-1);
+
+    // These write neither w nor a pool, and need clean R-trees. The pool is the one the overloads above look up.
+    // Each chunk read without a built grid gets a grid_order and an R-tree test per cell.
+    ArrayView<const point> border(const world& w, const Grid::Pass::Pool& pool, point from, Optional<u32> bbox_side,
+                                  u32 max_dist, Array<grid_order>& orders);
+    ArrayView<const point> reachable_lattice_points(const world& w, const Grid::Object::Pool& objects, point from,
+                                                    std::array<object_id, 2> excluded_blocker_ids,
+                                                    Optional<u32> bbox_side, u32 radius, u32 spacing,
+                                                    Array<grid_order>& orders, u32 max_walk_dist = (u32)-1);
+    ArrayView<const point> reachable_lattice_points_without_critters(const world& w,
+                                                                     const Grid::Object::Pool& objects, point from,
+                                                                     Optional<u32> bbox_side, u32 radius,
+                                                                     u32 spacing, Array<grid_order>& orders,
                                                                      u32 max_walk_dist = (u32)-1);
 };
 
