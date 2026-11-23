@@ -32,7 +32,7 @@ struct hole final : object
     ~hole() noexcept override;
 
     i32 depth_offset() const;
-    void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
+    void update(const bptr<object>& ptr, usize& i, const Ns& dt);
 
     void set_height(u8 height);
     void set_z_offset(u8 z);
@@ -41,9 +41,10 @@ struct hole final : object
     explicit operator hole_proto() const;
 
     friend class world;
+    friend struct object;
 
 private:
-    void mark_modified_with_neighbors() override;
+    void mark_modified_with_neighbors();
 };
 
 template<> struct object_type_<struct hole> : std::integral_constant<object_type, object_type::hole> {};

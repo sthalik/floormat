@@ -1,6 +1,10 @@
 #include "object.hpp"
 #include "tile-constants.hpp"
 #include "world.hpp"
+#include "scenery.hpp"
+#include "critter.hpp"
+#include "light.hpp"
+#include "hole.hpp"
 #include "rotation.inl"
 #include "anim-atlas.hpp"
 #include "search.hpp"
@@ -393,8 +397,6 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
         c->mark_scenery_modified();
 }
 
-bool object::can_activate(usize) const { return false; }
-bool object::activate(usize) { return false; }
 const class chunk& object::chunk() const { return *c; }
 const class world& object::world() const { return c->world(); }
 class chunk& object::chunk() { return *c; }
@@ -429,11 +431,166 @@ bool object::is_dynamic() const
 }
 
 bool object::updates_walls() const { return _type == object_type::hole; }
-void object::mark_modified_with_neighbors() {}
 
-void object::init_script(const bptr<object>&) {}
-void object::destroy_script_pre(const bptr<object>&, script_destroy_reason) {}
-void object::destroy_script_post() {}
+void object::update(const bptr<object>& self, usize& i, const Ns& dt)
+{
+    switch (_type)
+    {
+    case object_type::critter:
+        static_cast<critter&>(*this).update(self, i, dt);
+        return;
+    case object_type::scenery:
+        switch (_scenery_type)
+        {
+        case scenery_type::generic:
+            static_cast<generic_scenery&>(*this).update(self, i, dt);
+            return;
+        case scenery_type::door:
+            static_cast<door_scenery&>(*this).update(self, i, dt);
+            return;
+        case scenery_type::none:
+        case scenery_type::COUNT:
+            break;
+        }
+        break;
+    case object_type::light:
+        static_cast<light&>(*this).update(self, i, dt);
+        return;
+    case object_type::hole:
+        static_cast<hole&>(*this).update(self, i, dt);
+        return;
+    case object_type::none:
+    case object_type::COUNT:
+        break;
+    }
+    fm_abort("invalid object type %d/%d", (int)_type, (int)_scenery_type);
+}
+
+bool object::can_activate(usize i) const
+{
+    switch (_type)
+    {
+    case object_type::scenery:
+        switch (_scenery_type)
+        {
+        case scenery_type::generic:
+            return static_cast<const generic_scenery&>(*this).can_activate(i);
+        case scenery_type::door:
+            return static_cast<const door_scenery&>(*this).can_activate(i);
+        case scenery_type::none:
+        case scenery_type::COUNT:
+            break;
+        }
+        break;
+    case object_type::critter:
+    case object_type::light:
+    case object_type::hole:
+        return false;
+    case object_type::none:
+    case object_type::COUNT:
+        break;
+    }
+    fm_abort("invalid object type %d/%d", (int)_type, (int)_scenery_type);
+}
+
+bool object::activate(usize i)
+{
+    switch (_type)
+    {
+    case object_type::scenery:
+        switch (_scenery_type)
+        {
+        case scenery_type::generic:
+            return static_cast<generic_scenery&>(*this).activate(i);
+        case scenery_type::door:
+            return static_cast<door_scenery&>(*this).activate(i);
+        case scenery_type::none:
+        case scenery_type::COUNT:
+            break;
+        }
+        break;
+    case object_type::critter:
+    case object_type::light:
+    case object_type::hole:
+        return false;
+    case object_type::none:
+    case object_type::COUNT:
+        break;
+    }
+    fm_abort("invalid object type %d/%d", (int)_type, (int)_scenery_type);
+}
+
+void object::mark_modified_with_neighbors()
+{
+    switch (_type)
+    {
+    case object_type::hole:
+        static_cast<hole&>(*this).mark_modified_with_neighbors();
+        return;
+    case object_type::critter:
+    case object_type::scenery:
+    case object_type::light:
+        return;
+    case object_type::none:
+    case object_type::COUNT:
+        break;
+    }
+    fm_abort("invalid object type %d", (int)_type);
+}
+
+void object::init_script(const bptr<object>& ptr)
+{
+    switch (_type)
+    {
+    case object_type::critter:
+        static_cast<critter&>(*this).init_script(ptr);
+        return;
+    case object_type::scenery:
+    case object_type::light:
+    case object_type::hole:
+        return;
+    case object_type::none:
+    case object_type::COUNT:
+        break;
+    }
+    fm_abort("invalid object type %d", (int)_type);
+}
+
+void object::destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r)
+{
+    switch (_type)
+    {
+    case object_type::critter:
+        static_cast<critter&>(*this).destroy_script_pre(ptr, r);
+        return;
+    case object_type::scenery:
+    case object_type::light:
+    case object_type::hole:
+        return;
+    case object_type::none:
+    case object_type::COUNT:
+        break;
+    }
+    fm_abort("invalid object type %d", (int)_type);
+}
+
+void object::destroy_script_post()
+{
+    switch (_type)
+    {
+    case object_type::critter:
+        static_cast<critter&>(*this).destroy_script_post();
+        return;
+    case object_type::scenery:
+    case object_type::light:
+    case object_type::hole:
+        return;
+    case object_type::none:
+    case object_type::COUNT:
+        break;
+    }
+    fm_abort("invalid object type %d", (int)_type);
+}
 
 void object::check_script_update_1(script_lifecycle state)
 {

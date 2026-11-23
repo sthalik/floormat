@@ -37,7 +37,7 @@ struct critter final : object
 
     // Thinks and runs the orders at once, through the world's frame_order_buffer() and frame_order_list(), which
     // must be empty.
-    void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
+    void update(const bptr<object>& ptr, usize& i, const Ns& dt);
     // Gives this critter's orders for the frame. update_index is its position in the frame's update list.
     void think(const Ns& dt, think_context& ctx, u32 update_index) const;
     void run_order(const bptr<critter>& ptr, usize& i, const Ns& dt, const order& o);
@@ -67,9 +67,9 @@ struct critter final : object
 
     i32 depth_offset() const;
 
-    void init_script(const bptr<object>& ptr) override;
-    void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r) override;
-    void destroy_script_post() override;
+    void init_script(const bptr<object>& ptr);
+    void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r);
+    void destroy_script_post();
 
     void clear_auto_movement();
     bool maybe_stop_auto_movement();

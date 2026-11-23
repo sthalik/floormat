@@ -25,10 +25,10 @@ struct generic_scenery final : scenery
     bool active      : 1 = false;
     bool interactive : 1 = false;
 
-    void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
+    void update(const bptr<object>& ptr, usize& i, const Ns& dt);
     i32 depth_offset() const;
-    bool can_activate(usize i) const override;
-    bool activate(usize i) override;
+    bool can_activate(usize i) const;
+    bool activate(usize i);
 
     explicit operator scenery_proto() const override;
     explicit operator generic_scenery_proto() const;
@@ -44,10 +44,10 @@ struct door_scenery final : scenery
     bool active      : 1 = false;
     bool interactive : 1 = false;
 
-    void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
+    void update(const bptr<object>& ptr, usize& i, const Ns& dt);
     Int depth_offset() const;
-    bool can_activate(usize i) const override;
-    bool activate(usize i) override;
+    bool can_activate(usize i) const;
+    bool activate(usize i);
 
     explicit operator scenery_proto() const override;
     explicit operator door_scenery_proto() const;

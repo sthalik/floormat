@@ -77,9 +77,9 @@ public:
     explicit operator object_proto() const;
 
     object_type type() const noexcept;
-    virtual bool can_activate(usize i) const;
-    virtual bool activate(usize i);
-    virtual void update(const bptr<object>& self, usize& i, const Ns& dt) = 0;
+    bool can_activate(usize i) const;
+    bool activate(usize i);
+    void update(const bptr<object>& self, usize& i, const Ns& dt);
     void rotate(usize i, rotation r);
     bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size,
@@ -103,7 +103,7 @@ public:
     bool is_dynamic() const;
     constexpr bool updates_passability() const;
     bool updates_walls() const;
-    virtual void mark_modified_with_neighbors();
+    void mark_modified_with_neighbors();
 
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
@@ -123,9 +123,9 @@ public:
     /// Saves before proto 31 stored delta as a fraction of a second, (u32)-1 being one second.
     static Ns fraction_to_ns(u32 fraction);
 
-    virtual void init_script(const bptr<object>& ptr);
-    virtual void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r);
-    virtual void destroy_script_post();
+    void init_script(const bptr<object>& ptr);
+    void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r);
+    void destroy_script_post();
 
 protected:
     const object_type _type;
