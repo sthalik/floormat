@@ -149,6 +149,7 @@ PoolBase::~PoolBase() noexcept
 
 void PoolBase::attach(chunk& c, GridBase* g)
 {
+    fm_assert(!c.world().is_thread_pool_running());
     fm_debug_assert(g->c == &c && g->in_use_index == (u32)-1);
     g->pool = this;
     g->in_use_index = (u32)grids_in_use.size();

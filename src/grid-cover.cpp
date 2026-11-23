@@ -726,6 +726,7 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
     fm_debug_assert(k < octant_count);
     if (built_octants & (1u << k))
         return false;
+    fm_assert(!self.world().is_thread_pool_running());
 
     const u32 div_size = params.div_size;
     auto& P = *static_cast<CoverPool*>(pool);

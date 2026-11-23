@@ -119,6 +119,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_slab_allocator_threads),
     FM_TEST(test_event_count),
     FM_TEST(test_thread_pool),
+    FM_TEST(test_world_thread_pool),
     FM_TEST(test_inplace_function),
     FM_TEST(test_inplace_array),
     FM_TEST(test_function_view),

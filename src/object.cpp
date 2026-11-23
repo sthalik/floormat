@@ -88,6 +88,7 @@ bool object::can_rotate(rotation new_r)
 
 void object::rotate(usize, rotation new_r)
 {
+    fm_assert(!world().is_thread_pool_running());
     fm_assert(atlas->check_rotation(new_r));
     const auto [offset_, bbox_offset_] = !is_dynamic() ? rotate_offset(offset, bbox_offset, r, new_r)
                                                        : Pair<Vector2b, Vector2b>{offset, rotate_point(bbox_offset, r, new_r)};
@@ -152,6 +153,7 @@ void object::teleport_to(usize& i, global_coords coord_, Vector2b offset_, rotat
 
     if (coord_ == coord && offset_ == offset && new_r == r)
         return;
+    fm_assert(!world().is_thread_pool_running());
 
     const bool dyn = is_dynamic(), upd_pass = updates_passability(), upd_walls = updates_walls();
 
@@ -289,6 +291,7 @@ void object::set_bbox(Vector2b offset_, Vector2b bb_offset_, Vector2ub bb_size_,
 
     if (offset_ == offset && bb_offset_ == bbox_offset && bb_size_ == bbox_size && !pass_changed)
         return;
+    fm_assert(!world().is_thread_pool_running());
 
     const bool dyn = is_dynamic();
     const bool upd_pass = updates_passability();

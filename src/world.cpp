@@ -13,6 +13,7 @@
 #include "compat/debug.hpp"
 #include "compat/exception.hpp"
 #include "compat/overloaded.hpp"
+#include "compat/thread-pool.hpp"
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <array>
@@ -30,6 +31,7 @@ world::world(world&& w) noexcept :
     _objects{move(w._objects)},
     _head{w._head},
     _tail{w._tail},
+    _thread_pool{w._thread_pool},
     _unique_id{move(w._unique_id)},
     _object_counter{w._object_counter},
     _current_frame{w._current_frame},
@@ -42,8 +44,10 @@ world::world(world&& w) noexcept :
     _script_finalized{w._script_finalized},
     _check_objects_each_frame{w._check_objects_each_frame}
 {
+    fm_assert(!is_thread_pool_running());
     w._head = nullptr;
     w._tail = nullptr;
+    w._thread_pool = nullptr;
     w._object_counter = 0;
     w._script_initialized = false;
     w._script_finalized = false;
@@ -62,6 +66,8 @@ world& world::operator=(world&& w) noexcept
     fm_assert(!w._teardown);
     fm_assert(!_teardown);
     fm_assert(w._unique_id);
+    fm_assert(!is_thread_pool_running());
+    fm_assert(!w.is_thread_pool_running());
 
     for (auto& c : chunks())
         c.on_teardown();
@@ -80,8 +86,10 @@ world& world::operator=(world&& w) noexcept
     _chunk_table = move(w._chunk_table);
     _head = w._head;
     _tail = w._tail;
+    _thread_pool = w._thread_pool;
     w._head = nullptr;
     w._tail = nullptr;
+    w._thread_pool = nullptr;
     for (auto& c : chunks())
         c._world = this;
 
@@ -104,6 +112,7 @@ world::~world() noexcept
     fm_assert(_script_finalized || !_script_initialized);
     if (!_unique_id) // moved from
         return;
+    fm_assert(!is_thread_pool_running());
     for (auto& c : chunks())
         c.on_teardown();
     _teardown = true;
@@ -131,6 +140,7 @@ chunk& world::operator[](chunk_coords_ coord) noexcept
 
 CORRADE_NEVER_INLINE chunk& world::make_chunk_(chunk_coords_ coord)
 {
+    fm_assert(!is_thread_pool_running());
     return *new chunk(*this, coord);
 }
 
@@ -152,6 +162,7 @@ bool world::contains(chunk_coords_ c) const noexcept
 void world::clear()
 {
     fm_assert(!_teardown);
+    fm_assert(!is_thread_pool_running());
     // ~object dereferences its chunk; drop the table's refs before chunks are deleted
     _objects.clear();
     while (_head)
@@ -166,6 +177,7 @@ void world::clear()
 
 void world::collect(bool force, bool quiet)
 {
+    fm_assert(!is_thread_pool_running());
     usize len0 = 0, deleted = 0;
     chunk* c = _head;
     while (c)
@@ -229,6 +241,7 @@ world::chunks_range<const chunk> world::chunks() const noexcept { return {_head}
 
 void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted)
 {
+    fm_assert(!is_thread_pool_running());
     fm_debug_assert(e);
     fm_debug_assert(e->id != 0);
     fm_assert(!(e->id >> object_table::key_bits));
@@ -249,6 +262,7 @@ void world::do_make_object(const bptr<object>& e, global_coords pos, bool sorted
 
 void world::erase_object(object_id id, const object* self)
 {
+    fm_assert(!is_thread_pool_running());
     fm_debug_assert(id != 0);
     const auto* s = _objects.find(id);
     fm_debug_assert(s);
@@ -269,6 +283,7 @@ const bptr<object>* world::find_object_(object_id id) const
 
 void world::set_object_counter(object_id value)
 {
+    fm_assert(!is_thread_pool_running());
     fm_assert(value >= _object_counter);
     _object_counter = value;
 }
@@ -370,10 +385,15 @@ critter_proto world::make_player_proto()
 
 bool world::is_teardown() const { return _teardown; }
 object_id world::object_counter() const { return _object_counter; }
-object_id world::make_id() { return ++_object_counter; }
+object_id world::make_id()
+{
+    fm_assert(!is_thread_pool_running());
+    return ++_object_counter;
+}
 
 void world::init_scripts()
 {
+    fm_assert(!is_thread_pool_running());
     fm_assert(!_script_initialized);
     _script_initialized = true;
     for (auto& c : chunks())
@@ -383,6 +403,7 @@ void world::init_scripts()
 
 void world::finish_scripts()
 {
+    fm_assert(!is_thread_pool_running());
     fm_assert(_script_initialized);
     fm_assert(!_script_finalized);
     _script_finalized = true;
@@ -406,13 +427,41 @@ bptr<critter> world::ensure_player_character(object_id& id)
 }
 
 u64 world::frame_no() const { return _current_frame; }
-u64 world::increment_frame_no() { return _current_frame++; }
+
+u64 world::increment_frame_no()
+{
+    fm_assert(!is_thread_pool_running());
+    return _current_frame++;
+}
+
 Ns world::game_time() const { return _game_time; }
-void world::advance_game_time(Ns dt) { _game_time += dt; }
+
+void world::advance_game_time(Ns dt)
+{
+    fm_assert(!is_thread_pool_running());
+    _game_time += dt;
+}
+
 order_buffer& world::frame_order_buffer() { return _frame_order_buffer; }
 order_list& world::frame_order_list() { return _frame_order_list; }
-u64 world::next_pass_gen() noexcept { return ++_pass_gen; }
+
+u64 world::next_pass_gen() noexcept
+{
+    fm_assert(!is_thread_pool_running());
+    return ++_pass_gen;
+}
+
 u64 world::pass_gen() const noexcept { return _pass_gen; }
+
+void world::set_thread_pool(ThreadPool* pool) noexcept
+{
+    fm_assert(!is_thread_pool_running());
+    fm_assert(!pool || !pool->is_running());
+    _thread_pool = pool;
+}
+
+ThreadPool* world::thread_pool() const noexcept { return _thread_pool; }
+bool world::is_thread_pool_running() const noexcept { return _thread_pool && _thread_pool->is_running(); }
 
 u64 world::max_pass_gen(chunk_coords_ ch, u32 radius) const noexcept
 {

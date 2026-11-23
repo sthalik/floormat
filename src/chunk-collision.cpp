@@ -191,6 +191,7 @@ void chunk::ensure_passability() noexcept
 
     if (!_pass_modified)
         return;
+    fm_assert(!_world->is_thread_pool_running());
     _pass_modified = false;
 
     _rtree->RemoveAll();
@@ -325,6 +326,7 @@ void chunk::_rtree_move(RTree& t, const bbox& x0, const bbox& x1)
 
 void chunk::_remove_bbox_dynamic(const bbox& x)
 {
+    fm_assert(!_world->is_thread_pool_running());
     _rtree_remove(*_rtree, x);
     //Debug{} << "bbox <<< dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
@@ -337,6 +339,7 @@ void chunk::_remove_bbox_static(const bptr<object>& e, [[maybe_unused]] const bb
 
 void chunk::_add_bbox_dynamic(const bbox& x)
 {
+    fm_assert(!_world->is_thread_pool_running());
     _rtree_insert(*_rtree, x);
     //Debug{} << "bbox >>> dynamic" << x.data.pass << x.data.data << x.start << x.end << _rtree->Count();
 }
@@ -365,7 +368,10 @@ void chunk::_replace_bbox_impl(const bptr<object>& e, const bbox& x0, const bbox
         if (x1 == x0)
             return;
         if constexpr(Dynamic)
+        {
+            fm_assert(!_world->is_thread_pool_running());
             _rtree_move(*_rtree, x0, x1);
+        }
         else
         {
             _remove_bbox_static(e, x0);

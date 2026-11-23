@@ -19,6 +19,7 @@ struct critter;
 struct critter_proto;
 struct scenery;
 struct scenery_proto;
+class ThreadPool;
 
 class world final
 {
@@ -31,6 +32,7 @@ class world final
     object_table _objects;
     chunk* _head = nullptr;
     chunk* _tail = nullptr;
+    ThreadPool* _thread_pool = nullptr;
 
     bptr<unique_id> _unique_id;
     object_id _object_counter = object_counter_init;
@@ -119,6 +121,12 @@ public:
     u64 max_pass_gen(chunk_coords_ ch, u32 radius) const noexcept;
     /// @return As max_pass_gen(), counting chunk::objects_gen() too: each change to what blocks a shot or a path.
     u64 max_collider_gen(chunk_coords_ ch, u32 radius) const noexcept;
+
+    // The pool whose jobs read this world, or null. It must outlive the world or be replaced by null first.
+    void set_thread_pool(ThreadPool* pool) noexcept;
+    ThreadPool* thread_pool() const noexcept;
+    // True while thread_pool() is running a parallel_for(). No thread may write the world then.
+    bool is_thread_pool_running() const noexcept;
 
     template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c, Xs&&... xs) {

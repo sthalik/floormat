@@ -36,6 +36,7 @@ void GridBase::build_if_stale(this Self& self, Args&&... args)
 
     chunk* sc = self.c;
     fm_debug3_assert(sc);
+    fm_assert(!sc->world().is_thread_pool_running());
 
     self.neighbors = sc->world().neighbors(self.coord);
     self.build_impl(sc, forward<Args>(args)...);

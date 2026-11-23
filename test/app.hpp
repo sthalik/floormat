@@ -115,6 +115,7 @@ void test_timer();
 void test_type_list();
 void test_wall_atlas();
 void test_wall_atlas2();
+void test_world_thread_pool();
 void test_zip();
 
 } // namespace floormat::Test

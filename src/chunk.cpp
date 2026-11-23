@@ -159,8 +159,11 @@ chunk::~chunk() noexcept
 
 void chunk::sort_objects()
 {
-    if (_objects.sort())
-        mark_scenery_modified();
+    if (_objects._sorted)
+        return;
+    fm_assert(!_world->is_thread_pool_running());
+    (void)_objects.sort();
+    mark_scenery_modified();
 }
 
 void chunk::add_object_pre(const bptr<object>& e)
@@ -208,6 +211,7 @@ bool chunk::is_teardown() const { return _teardown || _world->is_teardown(); }
 
 void chunk::remove_object(const object& e, usize i)
 {
+    fm_assert(!_world->is_thread_pool_running());
     const auto eʹ = _objects.ptr(e, i);
     fm_assert(&e.chunk() == this);
 
