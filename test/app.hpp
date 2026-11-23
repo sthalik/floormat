@@ -89,6 +89,7 @@ void test_read_only_queries();
 void test_reverse_iterator();
 void test_rtree();
 void test_rtree_pool();
+void test_rtree_rebuild_jobs();
 void test_rtree_upstream();
 void test_saturate_cast();
 void test_save();

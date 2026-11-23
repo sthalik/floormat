@@ -33,6 +33,7 @@ world::world() : _unique_id{InPlace}
     arrayAppend(_thread_order_buffers, InPlaceInit);
     arrayReserve(arrayAppend(_thread_grid_orders, InPlaceInit), 16);
     arrayReserve(_thinking_critters, 16);
+    arrayReserve(_pass_modified_chunks, 16);
 }
 
 world::world(world&& w) noexcept :
@@ -52,6 +53,7 @@ world::world(world&& w) noexcept :
     _thread_grid_orders{move(w._thread_grid_orders)},
     _thread_astars{move(w._thread_astars)},
     _thinking_critters{move(w._thinking_critters)},
+    _pass_modified_chunks{move(w._pass_modified_chunks)},
     _running_job_kind{w._running_job_kind},
     _teardown{w._teardown},
     _script_initialized{w._script_initialized},
@@ -127,6 +129,7 @@ world& world::operator=(world&& w) noexcept
     _thread_grid_orders = std::exchange(w._thread_grid_orders, {});
     _thread_astars = std::exchange(w._thread_astars, {});
     _thinking_critters = std::exchange(w._thinking_critters, {});
+    _pass_modified_chunks = std::exchange(w._pass_modified_chunks, {});
     _check_objects_each_frame = w._check_objects_each_frame;
     return *this;
 }
@@ -547,7 +550,28 @@ Array<thinking_critter>& world::thinking_critters() { return _thinking_critters;
 void world::ensure_passability()
 {
     for (auto& c : chunks())
-        c.ensure_passability();
+    {
+        fm_assert(c._objects._sorted);
+        if (c.is_passability_modified())
+            arrayAppend(_pass_modified_chunks, &c);
+    }
+    const auto num_chunks = (u32)_pass_modified_chunks.size();
+    if (!_thread_pool || num_chunks < 2)
+    {
+        for (auto* c : _pass_modified_chunks)
+            c->ensure_passability();
+    }
+    else
+    {
+        set_running_job_kind(job_kind::rebuild_rtrees);
+        const auto grain_size = _thread_pool->default_grain_size(num_chunks);
+        _thread_pool->parallel_for(num_chunks, grain_size, [this](u32 begin, u32 end, u32) {
+            for (auto i = begin; i < end; i++)
+                _pass_modified_chunks[i]->ensure_passability();
+        });
+        set_running_job_kind(job_kind::make_critters_think);
+    }
+    arrayClear(_pass_modified_chunks);
 }
 
 u64 world::max_pass_gen(chunk_coords_ ch, u32 radius) const noexcept

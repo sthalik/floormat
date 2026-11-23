@@ -59,6 +59,8 @@ class world final
     // astar isn't movable.
     Array<Pointer<astar>> _thread_astars;
     Array<thinking_critter> _thinking_critters;
+    // Empty outside ensure_passability().
+    Array<chunk*> _pass_modified_chunks;
     job_kind _running_job_kind = job_kind::make_critters_think;
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
@@ -170,7 +172,8 @@ public:
     ArrayView<const order_buffer> order_buffers() const;
     // Returns the list in which update_world() puts the frame's critters before they think. Empty between frames.
     Array<thinking_critter>& thinking_critters();
-    // Calls chunk::ensure_passability() on every chunk.
+    // Calls chunk::ensure_passability() on every chunk, on thread_pool() when two or more need rebuilding.
+    // Call it only on the thread that made the pool, and never while the pool runs.
     void ensure_passability();
 
     template<typename T, bool sorted = true, typename... Xs>

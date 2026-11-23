@@ -100,6 +100,7 @@ public:
 class object_storage final
 {
     friend class chunk;
+    friend class world;
     template<bool Const> class iterator_;
 
     // for_each_list() visits in this order: doors update before critters
