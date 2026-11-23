@@ -3379,6 +3379,38 @@ void test_cover_script_retreat_end_seen(point hidden, bool search_ended)
     fm_assert(dist(s.npc->position(), s.threat->position()) > dist0 + 2*tile_size_xy);
 }
 
+// Runs test_cover_script_retreat_end_seen's scene at twice the npc's speed, so the search's budget still allows a
+// restart when the retreat ends.
+void test_cover_script_search_resumes_octant_after_retreat_restart(point hidden)
+{
+    const point threat_pos{ch, {7, 1}, {}}, moved{ch, {5, 1}, {-20, 0}};
+    // The search's origin moves to the end of the first retreat's path, test_cover_script_retreat's spot.
+    const auto end = hidden + Vector2i{12, 204};
+    cover_scene s;
+    s.step_until(state::hidden);
+    fm_assert(s.npc->position() == hidden);
+    s.npc->speed = 2;
+    s.move_threat(threat_pos);
+    s.step_until(state::retreat);
+    s.move_threat(moved);
+    const auto t0 = s.status();
+    s.step_until(state::search);
+    const auto t1 = s.status();
+    fm_assert_equal(t0.counters.num_retreat_restarts + 1, t1.counters.num_retreat_restarts);
+    fm_assert(s.npc->position() != end);
+    fm_assert(t1.search.tiles_left > t1.search.num_tiles + 1);
+    const auto beside = moved + Vector2i{80, 0};
+    const auto octant = Cover::Point::nearest_octant(Vector2(moved - end));
+    fm_assert(Cover::Point::nearest_octant(Vector2(beside - end)) != octant);
+    s.move_threat(beside);
+    s.step();
+    fm_assert(s.status().st == state::search);
+    s.move_threat(moved);
+    s.step();
+    const auto t2 = s.status();
+    fm_assert(t2.st == state::search && t2.search.tile > t1.search.tile);
+}
+
 // A wall at tile (12, 8) whose west face, over 7 tiles from the npc, is the only cover from the
 // threat at (15, 8). The npc stands while its search reaches there, filling at most max_octant_fills_per_frame
 // octants and running at most one Dijkstra search per update, then walks there and hides. With
@@ -5051,6 +5083,7 @@ void Test::test_cover_point()
     test_cover_script_retreat_blocked_search_ended(hidden);
     test_cover_script_retreat_end_seen(hidden, false);
     test_cover_script_retreat_end_seen(hidden, true);
+    test_cover_script_search_resumes_octant_after_retreat_restart(hidden);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
     test_cover_script_cover_over_two_chunks_away();
