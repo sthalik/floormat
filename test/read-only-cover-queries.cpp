@@ -580,6 +580,14 @@ void check_cover_orders(ArrayView<const grid_order> orders, const chunk_range& r
     }
 }
 
+// Asserts that no two orders name the same chunk and octant.
+void assert_distinct_cover_orders(ArrayView<const grid_order> orders)
+{
+    for (u32 i = 0; i < (u32)orders.size(); i++)
+        for (u32 j = i + 1; j < (u32)orders.size(); j++)
+            fm_assert(!(orders[i].chunk == orders[j].chunk && orders[i].octant == orders[j].octant));
+}
+
 // Test 4: without grids, read-only results equal today's on an identical copy, and their orders are what the
 // rules for grid_order say. The finder's orders, once run, let it reach today's result.
 void test_read_only_cover_without_grids()
@@ -635,8 +643,9 @@ void test_read_only_cover_without_grids()
         fm_assert(r.out_of_fills);
         fm_assert(!r.found);
         fm_assert_equal(0u, r.fills);
-        // The first cell read has neither octant around its bearing to the threat.
-        fm_assert_equal(2u, (u32)orders.size());
+        // The first cell read has neither octant around its bearing to the threat. The call goes on to order the
+        // octants of later cells, which see the threat at other bearings.
+        fm_assert(orders.size() > 2);
         fm_assert(orders[0].chunk == orders[1].chunk);
         fm_assert_equal((orders[0].octant + 1u) % 32u, (u32)orders[1].octant);
         u32 num_rounds = 0;
@@ -644,6 +653,7 @@ void test_read_only_cover_without_grids()
         {
             fm_assert(++num_rounds <= max_rounds);
             check_cover_orders(orders, range);
+            assert_distinct_cover_orders(orders);
             run_cover_orders(b, cover_case, orders);
             arrayClear(orders);
             r = find_read_only(Fb, cb, P_case, c, orders);
@@ -694,14 +704,6 @@ void test_read_only_cover_without_grids()
     }
     fm_assert(a.at(missing_chunk));
     fm_assert(!cb.at(missing_chunk));
-}
-
-// Asserts that no two orders name the same chunk and octant.
-void assert_distinct_cover_orders(ArrayView<const grid_order> orders)
-{
-    for (u32 i = 0; i < (u32)orders.size(); i++)
-        for (u32 j = i + 1; j < (u32)orders.size(); j++)
-            fm_assert(!(orders[i].chunk == orders[j].chunk && orders[i].octant == orders[j].octant));
 }
 
 // Returns c with its area cut to the cover grid cell centered at center.

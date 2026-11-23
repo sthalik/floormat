@@ -705,16 +705,30 @@ result finder::Impl::find(World& w,
                             && (q.octants ? hidden_in_octants(center) : body_hidden(center));
             if (out_of_fills)
             {
-                result ret;
-                ret.fills = cover_pool.octant_fills() - fills0;
-                ret.out_of_fills = true;
-                return ret;
+                // A read-only call goes on, to order the octants each later cell reads.
+                if constexpr (std::is_const_v<World>)
+                    continue;
+                else
+                {
+                    result ret;
+                    ret.fills = cover_pool.octant_fills() - fills0;
+                    ret.out_of_fills = true;
+                    return ret;
+                }
             }
             if (!ok)
                 continue;
             const auto a = Math::abs(off);
             const auto walk_dist = (float)Math::max(a.x(), a.y()) + (Math::sqrt(2.f) - 1) * (float)Math::min(a.x(), a.y());
             arrayAppend(cands, candidate{center, walk_dist, blocker_px});
+        }
+    if constexpr (std::is_const_v<World>)
+        if (out_of_fills)
+        {
+            result ret;
+            ret.fills = cover_pool.octant_fills() - fills0;
+            ret.out_of_fills = true;
+            return ret;
         }
     // Cells mirrored about the npc's row or column can tie on both keys. std::sort leaves the
     // order of equal elements to the standard library, so the position breaks the tie and every
