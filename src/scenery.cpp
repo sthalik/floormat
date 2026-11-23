@@ -19,7 +19,7 @@ template class basic_bptr<const door_scenery, non_atomic_refcount>;
 
 // --- scenery ---
 
-enum object_type scenery::type() const noexcept { return object_type::scenery; } // NOLINT(*-convert-*-to-static)
+enum scenery_type scenery::scenery_type() const { return _scenery_type; }
 
 i32 scenery::depth_offset() const
 {
@@ -33,8 +33,8 @@ scenery::operator scenery_proto() const
     return ret;
 }
 
-scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto) :
-    object{id, c, proto}
+scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto, enum scenery_type scenery_type) :
+    object{id, c, proto, object_type_<scenery>::value, scenery_type}
 {
 #ifndef FM_NO_DEBUG
     if (id != 0)
@@ -47,7 +47,6 @@ scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto) :
 void generic_scenery::update(const bptr<object>&, usize&, const Ns&) {}
 bool generic_scenery::can_activate(usize) const { return interactive; }
 bool generic_scenery::activate(usize) { return false; }
-enum scenery_type generic_scenery::scenery_type() const { return scenery_type::generic; }
 
 generic_scenery::operator scenery_proto() const
 {
@@ -65,12 +64,10 @@ generic_scenery::operator generic_scenery_proto() const
 }
 
 generic_scenery::generic_scenery(object_id id, class chunk& c, const generic_scenery_proto& p, const scenery_proto& p0) :
-    scenery{id, c, p0}, active{p.active}, interactive{p.interactive}
+    scenery{id, c, p0, scenery_type_<generic_scenery>::value}, active{p.active}, interactive{p.interactive}
 {}
 
 // ---------- door_scenery ----------
-
-enum scenery_type door_scenery::scenery_type() const { return scenery_type::door; }
 
 void door_scenery::update(const bptr<object>&, usize&, const Ns& dt)
 {
@@ -146,7 +143,8 @@ door_scenery::operator door_scenery_proto() const
 }
 
 door_scenery::door_scenery(object_id id, class chunk& c, const door_scenery_proto& p, const scenery_proto& p0) :
-    scenery{id, c, p0}, closing{p.closing}, active{p.active}, interactive{p.interactive}
+    scenery{id, c, p0, scenery_type_<door_scenery>::value}, closing{p.closing}, active{p.active},
+    interactive{p.interactive}
 {}
 
 } // namespace floormat

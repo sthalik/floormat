@@ -41,7 +41,7 @@ hole_proto::hole_proto()
 hole_proto::hole_proto(object_proto base) : object_proto{move(base)} {}
 
 hole::hole(object_id id, floormat::chunk& c, const hole_proto& proto):
-    object{id, c, proto}, height{proto.height}, z_offset{proto.z_offset}, flags{proto.flags}
+    object{id, c, proto, object_type_<hole>::value, scenery_type::none}, height{proto.height}, z_offset{proto.z_offset}, flags{proto.flags}
 {
 }
 
@@ -103,7 +103,6 @@ void hole::set_enabled(bool value)
     }
 }
 
-object_type hole::type() const noexcept { return object_type::hole; }
 bool hole::is_virtual() const { return true; }
 bool hole::is_dynamic() const { return true; }
 bool hole::updates_passability() const { return true; }

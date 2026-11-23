@@ -43,7 +43,7 @@ bool light_proto::operator==(const object_proto& oʹ) const
 }
 
 light::light(object_id id, class chunk& c, const light_proto& proto) :
-    object{id, c, proto},
+    object{id, c, proto, object_type_<light>::value, scenery_type::none},
     max_distance{proto.max_distance},
     radius{proto.radius},
     color{proto.color},
@@ -68,7 +68,6 @@ light::operator light_proto() const
     return ret;
 }
 
-object_type light::type() const noexcept { return object_type::light; }
 void light::update(const bptr<object>&, usize&, const Ns&) {}
 bool light::is_dynamic() const { return true; }
 bool light::is_virtual() const { return true; }

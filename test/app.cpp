@@ -96,6 +96,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_json3),
     FM_TEST(test_loader),
     FM_TEST(test_scenery),
+    FM_TEST(test_object_type_dispatch),
     FM_TEST_GL(test_emit_quick),
     FM_TEST(test_raycast_line),
     FM_TEST(test_raycast),

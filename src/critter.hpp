@@ -33,7 +33,6 @@ struct critter_proto : object_proto
 struct critter final : object
 {
     ~critter() noexcept override;
-    object_type type() const noexcept override;
     explicit operator critter_proto() const;
 
     // Thinks and runs the orders at once, through the world's frame_order_buffer() and frame_order_list(), which

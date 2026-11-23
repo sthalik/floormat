@@ -34,7 +34,6 @@ struct light final : object
     light(object_id id, class chunk& c, const light_proto& proto);
 
     i32 depth_offset() const override;
-    object_type type() const noexcept override;
     void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
     bool is_dynamic() const override;
     bool is_virtual() const override;

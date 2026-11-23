@@ -6,6 +6,7 @@
 #include "rotation.hpp"
 #include "pass-mode.hpp"
 #include "object-type.hpp"
+#include "scenery-type.hpp"
 #include "object-id.hpp"
 #include "point.hpp"
 #include "script-enums.hpp"
@@ -76,7 +77,7 @@ public:
 
     explicit operator object_proto() const;
 
-    virtual object_type type() const noexcept = 0;
+    object_type type() const noexcept;
     virtual bool can_activate(usize i) const;
     virtual bool activate(usize i);
     virtual void update(const bptr<object>& self, usize& i, const Ns& dt) = 0;
@@ -128,11 +129,15 @@ public:
     virtual void destroy_script_post();
 
 protected:
+    const object_type _type;
     // What the non-const index() last returned. The const index() only reads it.
     // An insert or erase in the chunk's list can make it stale, so index() tests it.
     u32 _index_hint = 0;
+    // In scenery, it would make generic_scenery and door_scenery bigger on MSVC, which doesn't reuse a base's
+    // tail padding.
+    const scenery_type _scenery_type;
 
-    object(object_id id, class chunk& c, const object_proto& proto);
+    object(object_id id, class chunk& c, const object_proto& proto, object_type type, enum scenery_type scenery_type);
     void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 
     static void check_script_update_1(script_lifecycle state);

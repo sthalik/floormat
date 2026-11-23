@@ -32,7 +32,6 @@ struct hole final : object
     ~hole() noexcept override;
 
     i32 depth_offset() const override;
-    object_type type() const noexcept override;
     void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
     bool is_dynamic() const override;
     bool updates_passability() const override;

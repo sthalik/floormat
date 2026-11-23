@@ -14,12 +14,11 @@ struct door_scenery_proto;
 struct scenery : object
 {
     i32 depth_offset() const override;
-    enum object_type type() const noexcept override;
-    virtual enum scenery_type scenery_type() const = 0;
+    enum scenery_type scenery_type() const;
     virtual explicit operator scenery_proto() const; // todo make protected?
 
 protected:
-    scenery(object_id id, class chunk& c, const scenery_proto& proto);
+    scenery(object_id id, class chunk& c, const scenery_proto& proto, enum scenery_type scenery_type);
 };
 
 struct generic_scenery final : scenery
@@ -31,7 +30,6 @@ struct generic_scenery final : scenery
     bool can_activate(usize i) const override;
     bool activate(usize i) override;
 
-    enum scenery_type scenery_type() const override;
     explicit operator scenery_proto() const override;
     explicit operator generic_scenery_proto() const;
 
@@ -51,7 +49,6 @@ struct door_scenery final : scenery
     bool can_activate(usize i) const override;
     bool activate(usize i) override;
 
-    enum scenery_type scenery_type() const override;
     explicit operator scenery_proto() const override;
     explicit operator door_scenery_proto() const;
 

@@ -756,8 +756,6 @@ auto critter::move_toward(usize& index, Ns& dt, const point& from, const point& 
     return { .blocked = false, .moved = true };
 }
 
-object_type critter::type() const noexcept { return object_type::critter; }
-
 critter::operator critter_proto() const
 {
     critter_proto ret{object::operator object_proto()};
@@ -769,7 +767,7 @@ critter::operator critter_proto() const
 }
 
 critter::critter(object_id id, class chunk& c, critter_proto proto) :
-    object{id, c, proto},
+    object{id, c, proto, object_type_<critter>::value, scenery_type::none},
     name{move(proto.name)},
     speed{proto.speed},
     anim_speed{proto.anim_speed},

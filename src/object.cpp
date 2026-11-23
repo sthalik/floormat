@@ -43,11 +43,13 @@ object_proto::~object_proto() noexcept = default;
 object_proto::object_proto() noexcept = default;
 object_type object_proto::type_of() const noexcept { return type; }
 
-object::object(object_id id, class chunk& c, const object_proto& proto) :
+object::object(object_id id, class chunk& c, const object_proto& proto, object_type type,
+               enum scenery_type scenery_type) :
     id{id}, c{&c}, atlas{proto.atlas},
     offset{proto.offset}, bbox_offset{clamp_bbox_offset(proto.bbox_offset)},
     bbox_size{proto.bbox_size}, frame{proto.frame},
-    delta{proto.delta}, r{proto.r}, pass{proto.pass}
+    delta{proto.delta}, r{proto.r}, pass{proto.pass},
+    _type{type}, _scenery_type{scenery_type}
 {
     fm_assert(id);
     fm_assert(atlas);
@@ -406,7 +408,8 @@ point object::position() const
     [[assume(x >= -half_tile<int> && x < half_tile<int> && y >= -half_tile<int> && y < half_tile<int>)]];
     return {coord, off};
 }
-object_type object::type_of() const noexcept { return type(); }
+object_type object::type() const noexcept { return _type; }
+object_type object::type_of() const noexcept { return _type; }
 
 bool object::is_dynamic() const { return atlas->info().fps > 0; }
 bool object::updates_passability() const { return false; }
