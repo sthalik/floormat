@@ -3,7 +3,12 @@
 
 namespace floormat::Grid {
 
-GridRegistry::GridRegistry() = default;
+GridRegistry::GridRegistry()
+{
+    arrayReserve(pass_.pools_in_creation_order, 16);
+    arrayReserve(object_.pools_in_creation_order, 16);
+}
+
 GridRegistry::~GridRegistry() noexcept = default;
 
 template<typename Pools>
@@ -45,16 +50,24 @@ auto GridRegistry::find_pool_slot(Pools& pools, const Cover::Params& p) -> declt
 template<typename Pools, typename Params, typename... Args>
 auto& GridRegistry::find_or_add(Pools& pools, const Params& pʹ, Args&&... args)
 {
+    const auto add_in_creation_order = [&]([[maybe_unused]] auto& pool) {
+        if constexpr (requires { pools.pools_in_creation_order; })
+            arrayAppend(pools.pools_in_creation_order, &pool);
+    };
     if (auto* slot = find_pool_slot(pools, pʹ.validate()))
     {
         if (!*slot)
+        {
             slot->emplace(forward<Args>(args)...);
+            add_in_creation_order(**slot);
+        }
         return **slot;
     }
     else
     {
         arrayReserve(pools.fallback, 4);
         arrayAppend(pools.fallback, InPlaceInit, InPlaceInit, forward<Args>(args)...);
+        add_in_creation_order(*pools.fallback.back());
         return *pools.fallback.back();
     }
 }
@@ -90,6 +103,14 @@ const Cover::Pool* GridRegistry::find_cover_pool(const Cover::Params& p) const
 {
     const auto* slot = find_pool_slot(cover_, p.validate());
     return slot && *slot ? &**slot : nullptr;
+}
+
+void GridRegistry::rebuild_requested_stale_grids()
+{
+    for (auto* pool : pass_.pools_in_creation_order)
+        pool->rebuild_requested_stale_grids();
+    for (auto* pool : object_.pools_in_creation_order)
+        pool->rebuild_requested_stale_grids();
 }
 
 } // namespace floormat::Grid

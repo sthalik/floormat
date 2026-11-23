@@ -28,6 +28,10 @@ public:
     const Object::Pool* find_object_pool(const Object::Params& p) const;
     const Cover::Pool* find_cover_pool(const Cover::Params& p) const;
 
+    // Rebuilds every stale pass grid and object grid that has is_requested_by_reader set, then clears the flag on
+    // every pass and object grid. Cover grids are left to grid orders, which count their rebuild against the cap.
+    void rebuild_requested_stale_grids();
+
     // object bbox sizes are u8
     static constexpr u32 direct_max_bbox = limits<u8>::max;
     static constexpr u32 direct_bbox_count = direct_max_bbox - Pass::Grid::min_bbox_size + 1;
@@ -43,6 +47,8 @@ private:
     {
         std::array<std::array<std::array<Pointer<Pool>, direct_bbox_count>, direct_div_count>, direct_mode_count> direct;
         Array<Pointer<Pool>> fallback;
+        // The pools of direct and fallback, so a loop over every pool skips direct's empty slots.
+        Array<Pool*> pools_in_creation_order;
     };
 
     // Both return the slot for p's pool, empty until the pool is made, or null when p's pool belongs in the

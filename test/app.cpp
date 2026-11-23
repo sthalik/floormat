@@ -109,6 +109,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_grid_read_only),
     FM_TEST(test_read_only_queries),
     FM_TEST(test_read_only_cover_queries),
+    FM_TEST(test_grid_orders),
     FM_TEST(test_rtree),
     FM_TEST(test_astar),
     FM_TEST(test_hole),

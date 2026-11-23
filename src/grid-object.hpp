@@ -87,6 +87,7 @@ public:
     bool is_stale() const;
     /// @copydoc floormat::Grid::Pass::Grid::is_stale(u64)
     bool is_stale(u64 pass_gen) const;
+    bool is_requested_by_reader() const;
     void mark_stale();
     void build_if_stale();
 };
@@ -130,10 +131,12 @@ public:
 
     [[nodiscard]] Grid operator[](chunk& c);
     // Returns the pool's grid for c when one is attached and needs no rebuild, else an empty handle.
-    // Writes nothing.
+    // It writes only the grid's is_requested_by_reader.
     [[nodiscard]] ConstGrid find_built_grid(const chunk& c) const;
 
     void build_if_stale_all();
+    // As GridRegistry::rebuild_requested_stale_grids(), for this pool's grids.
+    void rebuild_requested_stale_grids();
 
     const Params& params() const;
     Pass::Pool& pass_pool();

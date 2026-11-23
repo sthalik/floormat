@@ -2,6 +2,7 @@
 #include "intra-coord.inl"
 #include "chunk.hpp"
 #include "world.hpp"
+#include "compat/atomic.hpp"
 #include "compat/function-view.hpp"
 #include "compat/spinlock.hpp"
 #include <bit>
@@ -65,6 +66,7 @@ void GridBase::reset_base_for_reuse(chunk& ch)
     coord = ch.coord();
     neighbors = {};
     built_pass_gen = 0;
+    atomic_store(&is_requested_by_reader, 0, memory_order::relaxed);
 }
 
 bool GridBase::is_current() const

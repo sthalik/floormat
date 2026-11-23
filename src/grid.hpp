@@ -43,6 +43,9 @@ struct GridBase
     u64 built_pass_gen = 0; // world::pass_gen() after the last build, or 0 while marked stale
     u64 build_no = 0;
     u32 in_use_index = (u32)-1;
+    // True when a read-only lookup found this grid since reuse or GridRegistry::rebuild_requested_stale_grids()
+    // last cleared it. Readers on several threads set it, so only compat/atomic.hpp's relaxed calls touch it.
+    mutable u8 is_requested_by_reader = 0;
 
     explicit GridBase(chunk& ch);
     fm_DISABLE_MOVE_COPY(GridBase);

@@ -108,7 +108,7 @@ public:
 
     [[nodiscard]] Grid operator[](chunk& c);
     // Returns the pool's grid for c when one is attached and needs no rebuild, else an empty handle.
-    // Writes nothing. The caller tests built_octants() for the octant it reads.
+    // It writes only the grid's is_requested_by_reader. The caller tests built_octants() for the octant it reads.
     [[nodiscard]] ConstGrid find_built_grid(const chunk& c) const;
 
     void build_if_stale_all();

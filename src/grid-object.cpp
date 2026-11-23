@@ -414,6 +414,10 @@ bool Grid::is_stale() const
     return grid->is_marked_stale() || !grid->is_current() || grid->objects_maybe_dirty();
 }
 bool Grid::is_stale(u64 pass_gen) const { return pass_gen != grid->built_pass_gen || is_stale(); }
+bool Grid::is_requested_by_reader() const
+{
+    return atomic_load(&grid->is_requested_by_reader, memory_order::relaxed);
+}
 void Grid::mark_stale() { grid->mark_stale(); }
 void Grid::build_if_stale() { grid->build_if_stale(); }
 
@@ -485,6 +489,11 @@ void Pool::build_if_stale_all()
 {
     for (auto* g : pool->grids_in_use)
         static_cast<detail::ObjectGrid*>(g)->build_if_stale();
+}
+
+void Pool::rebuild_requested_stale_grids()
+{
+    detail::rebuild_requested_stale_grids<detail::ObjectGrid>(pool);
 }
 
 const Params& Pool::params() const { return pool->params; }

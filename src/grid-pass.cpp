@@ -386,6 +386,11 @@ bool Grid::is_all_empty() const
     return grid->is_all_empty();
 }
 
+bool Grid::is_requested_by_reader() const
+{
+    return atomic_load(&grid->is_requested_by_reader, memory_order::relaxed);
+}
+
 
 void Grid::mark_stale()
 {
@@ -421,6 +426,11 @@ void Pool::build_if_stale_all()
 {
     for (auto* g : pool->grids_in_use)
         static_cast<detail::PassGrid*>(g)->build_if_stale();
+}
+
+void Pool::rebuild_requested_stale_grids()
+{
+    detail::rebuild_requested_stale_grids(pool);
 }
 
 Pool::Pool(Params params): pool{new detail::PassPool{params}} { }

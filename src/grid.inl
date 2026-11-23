@@ -2,6 +2,7 @@
 #include "grid.hpp"
 #include "world.hpp"
 #include "compat/assert.hpp"
+#include "compat/atomic.hpp"
 
 namespace floormat::Grid::detail {
 
@@ -98,13 +99,29 @@ template <typename T>
 const T* find_built_grid(const Pool<T>* p, const chunk& c)
 {
     const auto* g = static_cast<const T*>(p->find(c));
-    if (!g || g->needs_rebuild())
+    if (!g)
+        return nullptr;
+    // Stores only when clear, so threads reading the grid in one frame don't bounce its cache line.
+    if (!atomic_load(&g->is_requested_by_reader, memory_order::relaxed))
+        atomic_store(&g->is_requested_by_reader, 1, memory_order::relaxed);
+    if (g->needs_rebuild())
         return nullptr;
     else
     {
         check_current(g);
         return g;
     }
+}
+
+template <typename T>
+void rebuild_requested_stale_grids(Pool<T>* p)
+{
+    for (auto* g : p->grids_in_use)
+        if (atomic_load(&g->is_requested_by_reader, memory_order::relaxed))
+        {
+            static_cast<T*>(g)->build_if_stale();
+            atomic_store(&g->is_requested_by_reader, 0, memory_order::relaxed);
+        }
 }
 
 } // namespace floormat::Grid::detail
