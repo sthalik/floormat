@@ -22,7 +22,10 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
 #include "compat/thread-pool.hpp"
+#include <algorithm>
 #include <array>
+#include <initializer_list>
+#include <thread>
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 
@@ -513,6 +516,229 @@ void test_think_order_with_given_astars(ThreadPool& pool)
     fm_assert(has_searched[0] && has_searched[1] && has_searched[2]);
 }
 
+// Advances w by one update_world() frame of all its chunks, in w.chunks() order. coords is scratch.
+void update_all_chunks(world& w, Ns dt, Array<chunk_coords_>& coords)
+{
+    arrayClear(coords);
+    for (const auto& c : w.chunks())
+        arrayAppend(coords, c.coord());
+    update_world(w, coords, dt);
+}
+
+// Copies w.grid_orders() into sorted and sorts it stably by update_index, as run_grid_orders() does.
+void copy_sorted_grid_orders(world& w, Array<grid_order>& sorted)
+{
+    arrayClear(sorted);
+    arrayAppend(sorted, w.grid_orders());
+    std::stable_sort(sorted.begin(), sorted.end(),
+                     [](const grid_order& a, const grid_order& b) { return a.update_index < b.update_index; });
+}
+
+void assert_same_grid_orders(ArrayView<const grid_order> a, ArrayView<const grid_order> b)
+{
+    fm_assert_equal(a.size(), b.size());
+    for (auto i = 0u; i < (u32)a.size(); i++)
+    {
+        const auto &x = a[i], &y = b[i];
+        fm_assert(x.kind == y.kind && x.chunk == y.chunk && x.update_index == y.update_index);
+        fm_assert(x.pass_params == y.pass_params && x.cover_div_size == y.cover_div_size && x.octant == y.octant);
+    }
+}
+
+// The npcs walk, change state, fill octants and give grid orders alike without a pool and with pools of 1, 2
+// and 4 threads, and of 3 whose caller runs no jobs.
+void test_update_world_with_each_thread_count()
+{
+    ThreadPool pool1{1}, pool2{2}, pool4{4};
+    ThreadPool pool_without_caller_jobs{thread_pool_options{.num_threads = 3, .is_caller_running_jobs = false}};
+    cover_npcs_world s0{false}, s1{false}, s2{false}, s3{false}, s4{false};
+    cover_npcs_world* const worlds[] = {&s0, &s1, &s2, &s3, &s4};
+    ThreadPool* const pools[] = {nullptr, &pool1, &pool2, &pool4, &pool_without_caller_jobs};
+    for (auto i = 0u; i < 5; i++)
+        worlds[i]->w.set_thread_pool(pools[i]);
+    std::array<bool, 5> has_searched{};
+    Array<chunk_coords_> coords;
+    Array<grid_order> expected, sorted;
+    arrayReserve(coords, 16);
+    arrayReserve(expected, 16);
+    arrayReserve(sorted, 16);
+    const auto frame = s0.frame();
+    run_think_order_frames([&] {
+        for (auto* s : worlds)
+            update_all_chunks(s->w, frame, coords);
+        copy_sorted_grid_orders(s0.w, expected);
+        for (auto i = 1u; i < 5; i++)
+        {
+            auto& s = *worlds[i];
+            assert_same_state(s0, s);
+            copy_sorted_grid_orders(s.w, sorted);
+            assert_same_grid_orders(expected, sorted);
+            for (auto k = 0u; k < pools[i]->num_threads(); k++)
+                has_searched[i] = has_searched[i] || s.w.think_context(k).astar->last_node_count() > 0;
+        }
+    }, [&](point p) {
+        for (auto* s : worlds)
+            s->move_threat(p);
+    });
+    for (auto i = 1u; i < 5; i++)
+    {
+        fm_assert_equal(0u, worlds[i]->A.last_node_count());
+        fm_assert(has_searched[i]);
+    }
+}
+
+// Records in on_think() the think_context it was given and the thread it ran on.
+struct context_recording_script final : critter_script
+{
+    const order_buffer* given_orders = nullptr;
+    const Array<grid_order>* given_grid_orders = nullptr;
+    const astar* given_astar = nullptr;
+    std::thread::id thread_id;
+
+    StringView name() const override { return "context-recording"_s; }
+    const void* id() const override { return &given_orders; }
+    void on_init(const bptr<critter>&) override {}
+    void on_think(const critter&, const Ns&, think_context& ctx) override
+    {
+        given_orders = &ctx.orders;
+        given_grid_orders = &ctx.grid_orders;
+        given_astar = ctx.astar;
+        thread_id = std::this_thread::get_id();
+    }
+    void on_order(const bptr<critter>&, usize&, const Ns&, const order&) override { fm_assert(false); }
+    void on_destroy(const bptr<critter>&, script_destroy_reason) override {}
+    void delete_self() noexcept override { delete this; }
+};
+
+void test_jobs_think_with_their_thread_context()
+{
+    constexpr u32 num_critters = 64;
+    ThreadPool pool{thread_pool_options{.num_threads = 3, .is_caller_running_jobs = false}};
+    astar A;
+    world w;
+    add_ground(w, chunk_a);
+    w.set_grid_registry(&A.pool_registry());
+    w.set_thread_pool(&pool);
+    w.init_scripts();
+    std::array<context_recording_script*, num_critters> scripts{};
+    for (auto k = 0u; k < num_critters; k++)
+    {
+        const auto C = add_critter(w, point{chunk_a, {(u8)(k % 8 * 2), (u8)(k / 8 * 2)}, {}}, Vector2ui{24});
+        scripts[k] = new context_recording_script;
+        C->script.do_reassign(Pointer<critter_script>{scripts[k]}, C);
+    }
+    const chunk_coords_ chunks[] = {chunk_a};
+    update_world(w, chunks, Second/60);
+    for (const auto* s : scripts)
+    {
+        fm_assert(s->thread_id != std::this_thread::get_id());
+        auto k = 1u;
+        for (; k < pool.num_threads(); k++)
+        {
+            const auto ctx = w.think_context(k);
+            if (&ctx.orders == s->given_orders && &ctx.grid_orders == s->given_grid_orders &&
+                ctx.astar == s->given_astar)
+                break;
+        }
+        fm_assert(k < pool.num_threads());
+    }
+    for (const auto* a : scripts)
+        for (const auto* b : scripts)
+            fm_assert((a->thread_id == b->thread_id) == (a->given_orders == b->given_orders));
+    w.finish_scripts();
+}
+
+// Records the door's frame when the critter's order runs.
+struct door_watching_script final : critter_script
+{
+    object_id door_id;
+    u16 door_frame_at_order = (u16)-1;
+
+    explicit door_watching_script(object_id door_id) : door_id{door_id} {}
+    StringView name() const override { return "door-watching"_s; }
+    const void* id() const override { return &door_id; }
+    void on_init(const bptr<critter>&) override {}
+    void on_think(const critter& c, const Ns&, think_context& ctx) override
+    {
+        ctx.orders.add({.giver = c.id, .kind = order_kind::script_order});
+    }
+    void on_order(const bptr<critter>& c, usize&, const Ns&, const order&) override
+    {
+        const auto door = c->world().find_object(door_id);
+        fm_assert(door);
+        door_frame_at_order = door->frame;
+    }
+    void on_destroy(const bptr<critter>&, script_destroy_reason) override {}
+    void delete_self() noexcept override { delete this; }
+};
+
+constexpr auto chunk_b = chunk_coords_{1, 0, 0};
+
+// A critter in chunk_a, then an opening door and a critter in chunk_b. A chunk's doors update before its critters,
+// so update_world() of {chunk_a, chunk_b} gives orders in that sequence.
+struct door_between_critters_world
+{
+    world w;
+    door_scenery* door = nullptr;
+    std::array<door_watching_script*, 2> scripts{};
+
+    explicit door_between_critters_world(ThreadPool* pool);
+    ~door_between_critters_world() noexcept;
+};
+
+door_between_critters_world::door_between_critters_world(ThreadPool* pool)
+{
+    w.set_thread_pool(pool);
+    auto proto = loader.scenery("door1");
+    proto.pass = pass_mode::blocked;
+    proto.frame = (u16)(proto.atlas->info().nframes - 1);
+    const auto d = w.make_scenery(w.make_id(), {chunk_b, {8, 8}}, move(proto));
+    fm_assert(d->scenery_type() == scenery_type::door);
+    door = &static_cast<door_scenery&>(*d);
+    auto i = door->index();
+    fm_assert(door->activate(i));
+    const point positions[] = { {chunk_a, {8, 8}, {}}, {chunk_b, {3, 8}, {}} };
+    w.init_scripts();
+    for (auto k = 0u; k < 2; k++)
+    {
+        const auto C = add_critter(w, positions[k], Vector2ui{24});
+        scripts[k] = new door_watching_script{door->id};
+        C->script.do_reassign(Pointer<critter_script>{scripts[k]}, C);
+    }
+}
+
+door_between_critters_world::~door_between_critters_world() noexcept { w.finish_scripts(); }
+
+// The door opens alike without a pool and with both 3-thread pools. The first critter's order runs before the
+// door's, and the second's after it.
+void test_door_between_critters()
+{
+    ThreadPool pool{3};
+    ThreadPool pool_without_caller_jobs{thread_pool_options{.num_threads = 3, .is_caller_running_jobs = false}};
+    door_between_critters_world s0{nullptr}, s1{&pool}, s2{&pool_without_caller_jobs};
+    const chunk_coords_ chunks[] = {chunk_a, chunk_b};
+    const auto frame = Second/60;
+    auto has_door_frame_changed_between_orders = false;
+    for (auto n = 0u; s0.door->active; n++)
+    {
+        fm_assert(n < 1000);
+        const auto door_frame_before = s0.door->frame;
+        for (auto* s : { &s0, &s1, &s2 })
+            update_world(s->w, chunks, frame);
+        fm_assert_equal(door_frame_before, s0.scripts[0]->door_frame_at_order);
+        fm_assert_equal(s0.door->frame, s0.scripts[1]->door_frame_at_order);
+        has_door_frame_changed_between_orders |= door_frame_before != s0.door->frame;
+        for (const auto* s : { &s1, &s2 })
+        {
+            fm_assert_equal(s0.door->frame, s->door->frame);
+            fm_assert(s0.door->active == s->door->active && s0.door->pass == s->door->pass);
+            for (auto k = 0u; k < 2; k++)
+                fm_assert_equal(s0.scripts[k]->door_frame_at_order, s->scripts[k]->door_frame_at_order);
+        }
+    }
+    fm_assert(has_door_frame_changed_between_orders);
+}
+
 } // namespace
 
 void test_think_read_only()
@@ -526,6 +752,9 @@ void test_think_read_only()
     test_threat_made_after_init(pool);
     test_spot_tests_with_given_astar();
     test_think_order_with_given_astars(pool);
+    test_update_world_with_each_thread_count();
+    test_jobs_think_with_their_thread_context();
+    test_door_between_critters();
 }
 
 } // namespace floormat::Test

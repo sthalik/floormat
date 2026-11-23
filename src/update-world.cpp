@@ -9,6 +9,7 @@
 #include "grid-order.hpp"
 #include "grid-registry.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/thread-pool.hpp"
 #include <cr/GrowableArray.h>
 
 namespace floormat {
@@ -122,14 +123,16 @@ void prepare_world_for_thinking(world& w)
 
 void update_world(world& w, ArrayView<const chunk_coords_> chunks, Ns dt)
 {
-    auto& buffer = w.frame_order_buffer();
     auto& list = w.frame_order_list();
-    fm_assert(buffer.empty() && list.size() == 0);
+    auto& critters = w.thinking_critters();
+    for (const auto& b : w.order_buffers())
+        fm_assert(b.empty());
+    fm_assert(list.size() == 0 && critters.isEmpty());
 
     const auto frame_no = w.increment_frame_no();
     w.advance_game_time(dt);
     prepare_world_for_thinking(w);
-    auto ctx = think_context{buffer, w.grid_orders()};
+    auto& buffer = w.frame_order_buffer();
     u32 update_index = 0;
     for (auto ch : chunks)
     {
@@ -148,7 +151,7 @@ void update_world(world& w, ArrayView<const chunk_coords_> chunks, Ns dt)
                     // Generic scenery, lights and holes give no orders, since their update() is empty.
                     if constexpr (std::is_same_v<T, critter>)
                     {
-                        e.think(dt, ctx, update_index);
+                        arrayAppend(critters, thinking_critter{&e, update_index});
                         update_index++;
                     }
                     else if constexpr (std::is_same_v<T, door_scenery>)
@@ -162,10 +165,32 @@ void update_world(world& w, ArrayView<const chunk_coords_> chunks, Ns dt)
             });
     }
 
-    list.append_buffers({&buffer, 1});
+    const auto make_critters_think = [&](u32 begin, u32 end, u32 worker_index) {
+        auto ctx = w.think_context(worker_index);
+        for (auto k = begin; k < end; k++)
+            critters[k].critter->think(dt, ctx, critters[k].update_index);
+    };
+    const auto num_critters = (u32)critters.size();
+    if (auto* pool = w.thread_pool())
+        pool->parallel_for(num_critters, pool->default_grain_size(num_critters), make_critters_think);
+    else
+        make_critters_think(0, num_critters, 0);
+
+    // One thread's array holds each critter's grid orders, and run_grid_orders() sorts stably by update_index.
+    const auto num_threads = (u32)w.order_buffers().size();
+    auto& grid_orders = w.grid_orders();
+    for (auto i = 1u; i < num_threads; i++)
+    {
+        auto& thread_grid_orders = w.think_context(i).grid_orders;
+        arrayAppend(grid_orders, thread_grid_orders);
+        arrayClear(thread_grid_orders);
+    }
+    list.append_buffers(w.order_buffers());
     list.run_all([&](const order& o, u32) { run_order(w, o, dt); });
     list.clear();
-    buffer.clear();
+    for (auto i = 0u; i < num_threads; i++)
+        w.think_context(i).orders.clear();
+    arrayClear(critters);
 
 #if 0
 #ifndef FM_NO_DEBUG

@@ -5,6 +5,8 @@
 #include "src/critter.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
+#include "compat/thread-pool.hpp"
+#include <initializer_list>
 
 namespace floormat::Test {
 
@@ -38,9 +40,10 @@ bptr<critter> make_critter_walking_east(world& w, point pos)
     return npc;
 }
 
-void test_frame_no_and_game_time()
+void test_frame_no_and_game_time(ThreadPool* pool)
 {
     auto w = make_two_chunk_world();
+    w.set_thread_pool(pool);
     const chunk_coords_ chunks[] = { chunk_a };
     for (auto dt : { 17*Millisecond, 31*Millisecond })
     {
@@ -52,9 +55,10 @@ void test_frame_no_and_game_time()
     }
 }
 
-void test_unlisted_chunk_not_updated()
+void test_unlisted_chunk_not_updated(ThreadPool* pool)
 {
     auto w = make_two_chunk_world();
+    w.set_thread_pool(pool);
     const bptr<critter> listed[] = {
         make_critter(w, point{chunk_a, {3, 5}, {}}), make_critter(w, point{chunk_a, {7, 11}, {}}),
     };
@@ -73,10 +77,11 @@ void test_unlisted_chunk_not_updated()
     w.finish_scripts();
 }
 
-void test_coord_without_chunk_skipped()
+void test_coord_without_chunk_skipped(ThreadPool* pool)
 {
     constexpr auto coord_without_chunk = chunk_coords_{-3, 2, 0};
     auto w = make_two_chunk_world();
+    w.set_thread_pool(pool);
     const auto in_a = make_critter(w, point{chunk_a, {3, 5}, {}});
     const auto in_b = make_critter(w, point{chunk_b, {2, 13}, {}});
     fm_assert(!w.at(coord_without_chunk));
@@ -90,9 +95,10 @@ void test_coord_without_chunk_skipped()
     w.finish_scripts();
 }
 
-void test_crossing_critter_updated_once()
+void test_crossing_critter_updated_once(ThreadPool* pool)
 {
     auto w = make_two_chunk_world();
+    w.set_thread_pool(pool);
     const auto npc = make_critter_walking_east(w, start_near_east_edge);
     w.init_scripts();
     const chunk_coords_ chunks[] = { chunk_a, chunk_b };
@@ -113,9 +119,10 @@ void test_crossing_critter_updated_once()
     w.finish_scripts();
 }
 
-void test_next_critter_updated_after_one_leaves()
+void test_next_critter_updated_after_one_leaves(ThreadPool* pool)
 {
     auto w = make_two_chunk_world();
+    w.set_thread_pool(pool);
     const auto leaving = make_critter_walking_east(w, start_near_east_edge);
     const auto staying = make_critter(w, point{chunk_a, {3, 5}, {}});
     fm_assert(leaving->index() == 0 && staying->index() == 1);
@@ -134,11 +141,15 @@ void test_next_critter_updated_after_one_leaves()
 
 void test_update_world()
 {
-    test_frame_no_and_game_time();
-    test_unlisted_chunk_not_updated();
-    test_coord_without_chunk_skipped();
-    test_crossing_critter_updated_once();
-    test_next_critter_updated_after_one_leaves();
+    ThreadPool pool{2};
+    for (auto* p : { (ThreadPool*)nullptr, &pool })
+    {
+        test_frame_no_and_game_time(p);
+        test_unlisted_chunk_not_updated(p);
+        test_coord_without_chunk_skipped(p);
+        test_crossing_critter_updated_once(p);
+        test_next_critter_updated_after_one_leaves(p);
+    }
 }
 
 } // namespace floormat::Test

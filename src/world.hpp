@@ -146,7 +146,8 @@ public:
     void set_grid_registry(Grid::GridRegistry* reg) noexcept;
     Grid::GridRegistry* grid_registry() noexcept;
     const Grid::GridRegistry* grid_registry() const noexcept;
-    // The grid orders given since the last run_grid_orders().
+    // The grid orders given since the last run_grid_orders(). While update_world()'s critters think, it holds
+    // only those given with think_context(0).
     Array<grid_order>& grid_orders();
     // Returns the order buffer, grid orders and astar for critter::think() on the thread with this worker_index,
     // 0 without a pool. The astar is null without a pool or a grid registry. set_grid_registry() replaces it.
