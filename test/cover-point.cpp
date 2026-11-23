@@ -3450,6 +3450,41 @@ void test_cover_script_far_cover(bool threat_changes_octant)
     w.finish_scripts();
 }
 
+// The only cover lies behind a block in chunk ch, over 2 chunks west of the npc, which walks there and hides.
+void test_cover_script_cover_over_two_chunks_away()
+{
+    auto w = world();
+    for (const auto x : { (i16)0, (i16)1, (i16)2, (i16)3 })
+        add_ground(w, chunk_coords_{x, 0, 0});
+    add_blocker(w, {8, 8}, {64, 192});
+    rebuild(w);
+    const point npc_pos{chunk_coords_{2, 0, 0}, {14, 8}, {}}, threat_pos{chunk_coords_{3, 0, 0}, {6, 8}, {}};
+    const auto threat = add_critter(w, threat_pos);
+    auto npc = add_critter(w, npc_pos);
+    w.init_scripts();
+    auto A = astar{};
+    npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
+    const auto fps = npc->atlas->info().fps;
+    const auto frame = Second / fps;
+    const auto status = [&] { return *Cover::Script::get_status(*npc); };
+    for (auto frames = 0u; status().st != state::to_cover; frames++)
+    {
+        fm_assert(frames < 60*fps);
+        step_critter(w, npc, frame);
+    }
+    const auto& c = *status().cover;
+    const auto dist = point::distance(npc_pos, c.pos);
+    fm_assert(dist > 2*chunk_size_xy && dist < Cover::cover_search::radius);
+    for (auto frames = 0u; status().st != state::hidden; frames++)
+    {
+        fm_assert(frames < 60*fps);
+        step_critter(w, npc, frame);
+    }
+    fm_assert(npc->position() == c.pos);
+    fm_assert(is_safe_from_shots_at(w, threat_pos, threat->id, c.pos, body, npc->id));
+    w.finish_scripts();
+}
+
 u32 far_cover_search_updates(Vector2i threat_step)
 {
     auto w = world();
@@ -5018,6 +5053,7 @@ void Test::test_cover_point()
     test_cover_script_retreat_end_seen(hidden, true);
     test_cover_script_far_cover(false);
     test_cover_script_far_cover(true);
+    test_cover_script_cover_over_two_chunks_away();
     test_cover_script_search_threat_back_and_forth();
     test_cover_script_div_change();
     test_cover_scripts_count_own_octant_fills();
