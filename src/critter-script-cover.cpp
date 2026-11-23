@@ -786,8 +786,9 @@ void cover_script::check_walk(critter& C)
             flee(C);
         else
         {
-            // A moved cover may lie off a straight walk's line, so C walks a path there, or straight without one.
-            if (st == state::to_cover && refresh_cover(C) && walk.is_line() && !walk_to(C, c.pos, state::hidden))
+            // The walk leads to the old cover spot, which the threat sees. C walks a path to the moved one, or
+            // straight without one.
+            if (st == state::to_cover && refresh_cover(C) && !walk_to(C, c.pos, state::hidden))
                 walk_to_cover(C, {});
             if (st == state::to_peek && !has_line_of_fire(C, walk.dest(), pos))
                 peek_again(C);

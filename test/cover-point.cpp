@@ -3832,6 +3832,38 @@ void test_cover_script_rehides(u32 threat_reach)
     }
 }
 
+// cover_scene's threat moves while the npc walks a path to cover, and then sees the cover spot but not canonical.
+// The npc walks to the moved cover spot without stepping on the old one.
+void test_cover_script_walks_to_moved_cover_spot()
+{
+    cover_scene s;
+    s.step();
+    s.finish_search();
+    const auto t0 = s.status();
+    fm_assert(t0.st == state::to_cover && t0.cover);
+    const auto& c0 = *t0.cover;
+    fm_assert(c0.pos != c0.canonical);
+    const auto sign = Vector3i(c0.pos).y() < Vector3i(c0.canonical).y() ? -1 : 1;
+    Optional<point> to;
+    for (auto dy = 4; dy <= 320 && !to; dy += 4)
+        if (const auto p = s.threat->position() + Vector2i{0, sign*dy};
+            is_body_exposed_at(s, p, c0.pos) && !is_body_exposed_at(s, p, c0.canonical))
+            to = p;
+    fm_assert(to);
+    s.move_threat(*to);
+    for (auto frames = 0u; s.status().st != state::hidden; frames++)
+    {
+        fm_assert(frames < 60*s.fps);
+        s.step();
+        fm_assert(s.status().st == state::to_cover || s.status().st == state::hidden);
+        fm_assert(s.npc->position() != c0.pos);
+    }
+    const auto t = s.status();
+    const auto& c = *t.cover;
+    fm_assert(c.pos != c0.pos && s.npc->position() == c.pos);
+    fm_assert(cant_be_shot_at(s.w, *to, s.threat->id, c.pos, body, s.npc->id));
+}
+
 using fallback = Cover::Script::options::fallback;
 
 void move_npc(critter& npc, point pos)
@@ -4940,6 +4972,7 @@ void Test::test_cover_point()
     test_cover_script_rehides(0);
     for (const auto threat_reach : threat_reaches)
         test_cover_script_rehides(threat_reach);
+    test_cover_script_walks_to_moved_cover_spot();
     test_cover_script_needs_peek(false);
     test_cover_script_needs_peek(true);
     test_cover_script_search_cover_removed();
