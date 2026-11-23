@@ -51,7 +51,7 @@ void GridBase::build_without_build_no(this Self& self, Args&&... args)
     chunk* sc = self.c;
     fm_debug3_assert(sc);
     const auto& w = sc->world();
-    fm_assert(!w.is_thread_pool_running() || w.running_job_kind() == job_kind::build_grids);
+    fm_assert(!w.is_thread_pool_running() || w.running_job_kind() == Self::build_job_kind);
 
     self.neighbors = sc->world().neighbors(self.coord);
     self.build_impl(sc, forward<Args>(args)...);

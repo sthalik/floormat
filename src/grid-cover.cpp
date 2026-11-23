@@ -263,6 +263,9 @@ struct CoverGrid : GridBase
     // Each row spans two chunks and starts on a 64-byte boundary, row_size() after the one before.
     Array<u16> row;
     u32 built_octants = 0;
+    // The index of the grid's entry in GridRegistry's list of cover grids to fill, or (u32)-1 while it has none.
+    // Only the main thread reads or writes it.
+    u32 index_in_grids_to_fill = (u32)-1;
 
     CoverGrid(chunk& c, Params params);
     ~CoverGrid() noexcept = default;
@@ -282,8 +285,10 @@ struct CoverGrid : GridBase
     static u32 get_cell_index(u32 x, u32 y, u32 div_count);
     u32 get_cell_index_from_coord(intra_coord pos) const;
 
-    void build_impl(chunk* self);
-    bool fill_octant(u32 k, chunk& self);
+    void build_impl(chunk* self, cover_grid_to_fill* job_entry = nullptr);
+    // Returns true when it filled octant k. Without job_entry it builds the pass grids it reads and adds to the
+    // pool's totals; with one, those pass grids must need no rebuild, and the count and time go into the entry.
+    bool fill_octant(u32 k, chunk& self, cover_grid_to_fill* job_entry = nullptr);
     // Returns the chunks whose pass grids filling octant k reads, the grid's own first, null where the octant
     // reads none or no chunk exists.
     std::array<chunk*, 4> chunks_read_by_octant_fill(u32 k) const;
@@ -296,6 +301,8 @@ struct CoverGrid : GridBase
     template<typename T> void fill_non_octilinear_octant(u32 k, const std::array<chunk_pass_bits, 4>& pass_bits,
                                                          u32 num_neighbor_columns, u32 num_neighbor_rows);
     bool fill_next_unfilled_octant(chunk& self);
+
+    static constexpr job_kind build_job_kind = job_kind::fill_cover_octants;
 };
 
 struct CoverPool : Pool<CoverGrid>
@@ -699,11 +706,11 @@ u32 CoverGrid::get_cell_index_from_coord(intra_coord pos) const
     return GridBase::pack_bit_index_from_coord(pos, dc);
 }
 
-void CoverGrid::build_impl(chunk* self)
+void CoverGrid::build_impl(chunk* self, cover_grid_to_fill* job_entry)
 {
     // Without this, a rebuild leaves all octants marked built, holding the previous build's distances.
     built_octants = 0;
-    fill_octant(0, *self);
+    fill_octant(0, *self, job_entry);
 }
 
 bool CoverGrid::is_ring2_current() const
@@ -725,24 +732,34 @@ bool CoverGrid::is_stale(u64 pass_gen) const
     return pass_gen != built_pass_gen || !is_current() || !is_ring2_current();
 }
 
-bool CoverGrid::fill_octant(u32 k, chunk& self)
+bool CoverGrid::fill_octant(u32 k, chunk& self, cover_grid_to_fill* job_entry)
 {
     fm_debug_assert(k < octant_count);
     if (built_octants & (1u << k))
         return false;
-    fm_assert(!self.world().is_thread_pool_running());
+    const auto& w = self.world();
+    fm_assert(!w.is_thread_pool_running() || job_entry && w.running_job_kind() == job_kind::fill_cover_octants);
 
     auto& P = *static_cast<CoverPool*>(pool);
     auto t = Time::now();
     const auto chunks = chunks_read_by_octant_fill(k);
-    for (auto* ch : chunks)
-        if (ch)
-            P.pass_pool[*ch].build_if_stale();
+    if (!job_entry)
+        for (auto* ch : chunks)
+            if (ch)
+                P.pass_pool[*ch].build_if_stale();
     compute_octant_plane(k, chunks);
     built_octants |= (1u << k);
     const auto dt = t.update();
-    P.fills++;
-    P.fill_time += dt;
+    if (job_entry)
+    {
+        job_entry->num_octants_filled++;
+        job_entry->fill_time += dt;
+    }
+    else
+    {
+        P.fills++;
+        P.fill_time += dt;
+    }
 #if 0
     DBG << "{fill octant}" << coord << "k=" << k
         << "took" << (int)(Time::to_milliseconds(dt) * 1e3f) << "us";
@@ -783,6 +800,7 @@ void CoverGrid::compute_octant_plane(u32 k, const std::array<chunk*, 4>& chunks)
         if (!chunks[i])
             continue;
         const auto pass_grid = pass_pool[*chunks[i]];
+        fm_assert(!pass_grid.is_marked_stale());
         if (i == 0 || !pass_grid.is_all_empty())
             pass_bits[i] = {pass_grid.bits().data, dc};
     }
@@ -855,6 +873,27 @@ void CoverGrid::apply_params()
 }
 
 template struct Pool<CoverGrid>;
+
+void fill_listed_octants(cover_grid_to_fill& x)
+{
+    auto& g = *static_cast<CoverGrid*>(x.grid);
+    if (x.needs_rebuild)
+        g.build_without_build_no(&x);
+    for (auto octants = x.octants_to_fill; octants; octants &= octants - 1)
+        (void)g.fill_octant((u32)std::countr_zero(octants), *g.c, &x);
+}
+
+void add_listed_octant_fills(const cover_grid_to_fill& x)
+{
+    auto& g = *static_cast<CoverGrid*>(x.grid);
+    auto& P = *static_cast<CoverPool*>(g.pool);
+    P.fills += x.num_octants_filled;
+    P.fill_time += x.fill_time;
+    if (x.needs_rebuild)
+        g.build_no = GridBase::next_build_no();
+    g.index_in_grids_to_fill = (u32)-1;
+    g.is_listed_to_be_built = false;
+}
 
 } // namespace floormat::Grid::detail
 
@@ -977,6 +1016,46 @@ void Pool::build_if_stale_all()
 {
     for (auto* g : pool->grids_in_use)
         static_cast<detail::CoverGrid*>(g)->build_if_stale();
+}
+
+u32 Pool::list_octant(chunk& c, u32 k, u32 max_octant_fills, Array<detail::cover_grid_to_fill>& grids_to_fill,
+                      Array<detail::grid_to_build>& grids_to_build)
+{
+    fm_debug_assert(k < octant_count);
+    fm_assert(max_octant_fills >= 1);
+    auto* g = detail::pool_subscript(pool, c);
+    const bool has_entry = g->index_in_grids_to_fill != (u32)-1;
+    detail::cover_grid_to_fill new_entry{g};
+    auto& x = has_entry ? grids_to_fill[g->index_in_grids_to_fill] : new_entry;
+
+    u32 num_octant_fills_listed = 0;
+    const auto list_octant_fill = [&](u32 octant) {
+        num_octant_fills_listed++;
+        for (auto* ch : g->chunks_read_by_octant_fill(octant))
+            if (ch)
+                pool->pass_pool.list_grid(*ch, grids_to_build);
+    };
+    if (g->is_marked_stale() && !x.needs_rebuild)
+    {
+        x.needs_rebuild = true;
+        list_octant_fill(0);
+    }
+    // A rebuild clears built_octants and fills octant 0.
+    const auto built_octants = x.needs_rebuild ? 1u : g->built_octants;
+    if (num_octant_fills_listed < max_octant_fills && !((built_octants | x.octants_to_fill) & 1u << k))
+    {
+        x.octants_to_fill |= 1u << k;
+        list_octant_fill(k);
+    }
+
+    if (!has_entry && num_octant_fills_listed)
+    {
+        fm_debug_assert(!g->is_listed_to_be_built);
+        g->index_in_grids_to_fill = (u32)grids_to_fill.size();
+        g->is_listed_to_be_built = true;
+        arrayAppend(grids_to_fill, new_entry);
+    }
+    return num_octant_fills_listed;
 }
 
 Pool::Pool(Params params, Pass::Pool& pass_pool): pool{new detail::CoverPool{params, pass_pool}} { }

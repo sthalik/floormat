@@ -64,6 +64,7 @@ struct ObjectGrid : GridBase
     void build_impl(chunk* self, Array<u32>& scratch_runs);
     template<typename T> bool build_impl(Array<T>& cells, Array<T>& runs, Array<u32>& scratch_runs);
     static void build_grid(GridBase* grid, Array<u32>& scratch_runs);
+    static constexpr job_kind build_job_kind = job_kind::build_grids;
 };
 
 void ObjectGrid::build_grid(GridBase* grid, Array<u32>& scratch_runs)

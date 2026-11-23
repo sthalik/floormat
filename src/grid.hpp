@@ -46,7 +46,8 @@ struct GridBase
     // True when a read-only lookup found this grid since reuse or GridRegistry::list_requested_stale_grids()
     // last cleared it. Readers on several threads set it, so only compat/atomic.hpp's relaxed calls touch it.
     mutable u8 is_requested_by_reader = 0;
-    // True while the grid is in GridRegistry's list of grids to build. Only the main thread reads or writes it.
+    // True while the grid is in GridRegistry's list of grids to build or of cover grids to fill. Only the main
+    // thread reads or writes it.
     bool is_listed_to_be_built = false;
 
     explicit GridBase(chunk& ch);
@@ -69,7 +70,7 @@ struct GridBase
     }
     void build_if_stale(this Self& self, Args&&... args);
     // Builds the grid even if it needs no rebuild. The caller sets build_no afterwards.
-    // A job may call it only while world::running_job_kind() is job_kind::build_grids.
+    // A job may call it only while world::running_job_kind() is Self::build_job_kind.
     template <BitGrid Self, typename... Args>
     requires requires(Self& s, chunk* sc, Args&&... a) {
         s.build_impl(sc, forward<Args>(a)...);

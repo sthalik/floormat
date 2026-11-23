@@ -1,16 +1,36 @@
 #pragma once
 #include "grid.hpp"
+#include "compat/nanosecond.hpp"
 
 namespace floormat {
 struct local_coords;
 class chunk;
-struct Ns;
 }
 
 namespace floormat::Grid::detail {
 struct CoverGrid;
 struct CoverPool;
 void expand_pass_row(u16* out, const usize* pass_bits, u32 first_bit, u32 cell_count);
+
+// An entry of GridRegistry's list of cover grids to fill. One job runs it.
+struct cover_grid_to_fill
+{
+    GridBase* grid;
+    // Bit k is set when the job fills octant k.
+    u32 octants_to_fill = 0;
+    // True when the job rebuilds the grid first, which fills octant 0.
+    bool needs_rebuild = false;
+    // The job writes how many octants it filled, a rebuild's octant 0 included, and the time they took.
+    u32 num_octants_filled = 0;
+    Ns fill_time{};
+};
+
+// Rebuilds x's grid if x says so, then fills the octants x lists. The pass grids these octant fills read must
+// need no rebuild, as after GridRegistry::build_listed_grids().
+void fill_listed_octants(cover_grid_to_fill& x);
+// Adds x's counts to its pool's totals, gives a rebuilt grid its build_no and unlists the grid. Call it on the
+// main thread after x's job.
+void add_listed_octant_fills(const cover_grid_to_fill& x);
 } // namespace
 
 namespace floormat::Grid::Pass { class Pool; }
@@ -112,11 +132,15 @@ public:
     [[nodiscard]] ConstGrid find_built_grid(const chunk& c) const;
 
     void build_if_stale_all();
+    // Lists c's grid's rebuild if it is marked stale, then octant k if neither built nor listed, and the pass
+    // grids their octant fills read. Returns how many it listed, at most max_octant_fills, which must be >= 1.
+    u32 list_octant(chunk& c, u32 k, u32 max_octant_fills, Array<detail::cover_grid_to_fill>& grids_to_fill,
+                    Array<detail::grid_to_build>& grids_to_build);
 
     Params params() const;
     u32 free_grid_count() const;
-    // These return the number of octants filled since the pool was made, and the time spent filling them,
-    // pass-grid rebuilds included.
+    // These return the number of octants filled since the pool was made and the time spent on them, summed over
+    // jobs. The time includes pass grid builds except for octant fills that grid orders listed.
     u32 octant_fills() const;
     Ns octant_fill_time() const;
 };

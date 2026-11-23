@@ -134,6 +134,7 @@ struct PassGrid : GridBase
 
     void build_impl(chunk* self);
     static void build_grid(GridBase* grid, Array<u32>& scratch_runs);
+    static constexpr job_kind build_job_kind = job_kind::build_grids;
 };
 
 void PassGrid::build_grid(GridBase* grid, Array<u32>&)
