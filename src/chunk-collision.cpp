@@ -223,8 +223,8 @@ void chunk::ensure_passability() noexcept
     }
     for (auto i = 0u; i < TILE_COUNT; i++)
     {
-        auto tile = operator[](i);
-        if (const auto* atlas = tile.wall_north_atlas().get())
+        const auto tile = std::as_const(*this)[i];
+        if (const auto* atlas = tile.wall_north_atlas())
         {
             auto depth = (float)atlas->info().depth;
             auto pass = atlas->info().passability;
@@ -232,11 +232,11 @@ void chunk::ensure_passability() noexcept
             auto min_pass = pass_mode((unsigned)pass + 1);
             filter_bbox_through_holes(rtree, holes, id, wall_north(i, depth), min_pass, has_holes);
 
-            if (const auto* west = tile.wall_west_atlas().get())
+            if (const auto* west = tile.wall_west_atlas())
                 filter_bbox_through_holes(rtree, holes, id, wall_pillar(i, (float)west->info().depth, depth),
                                           min_pass, has_holes);
         }
-        if (const auto* atlas = tile.wall_west_atlas().get())
+        if (const auto* atlas = tile.wall_west_atlas())
         {
             auto depth = (float)atlas->info().depth;
             auto pass = atlas->info().passability;
