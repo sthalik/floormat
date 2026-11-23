@@ -115,8 +115,10 @@ bptr<critter> add_critter(world& w, point pos, Vector2ui size = body)
 // Shoots from threat at the pixels of critter id, whose box is centred on pos, passing through
 // critter threat_id. What a ray hits changes only at the slope of a pixel square's corner, so rays
 // at each corner's slope and between each adjacent pair cover every aim.
-bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vector2ui size, object_id id)
+bool is_safe_from_shots_at(world& w, point threat, object_id threat_id, point pos, Vector2ui size, object_id id)
 {
+    const auto c = w.find_object(id);
+    fm_assert(c && c->position() == pos);
     Grid::Pass::Pool pool{Pass::Params{8, pass_mode::shoot_through}};
     Grid::Object::Pool objects{pool};
     const auto T = Vector3i(threat).xy();
@@ -174,9 +176,9 @@ bool cant_be_shot_at(world& w, point threat, object_id threat_id, point pos, Vec
 }
 
 // Puts a critter at pos and shoots at it.
-bool cant_be_shot(world& w, point threat, point pos, Vector2ui size = body)
+bool is_safe_from_shots_at(world& w, point threat, point pos, Vector2ui size = body)
 {
-    return cant_be_shot_at(w, threat, 0, pos, size, add_critter(w, pos, size)->id);
+    return is_safe_from_shots_at(w, threat, 0, pos, size, add_critter(w, pos, size)->id);
 }
 
 void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, local_coords wall_tile,
@@ -213,7 +215,7 @@ void test_hides_behind_wall(local_coords npc_tile, local_coords threat_tile, loc
     const auto path = A.Dijkstra<0, false>(w, npc, r.pos, chunk_size_xy, size, Search::never_continue);
     fm_assert(path.is_found());
     fm_assert(path.path().back() == r.pos);
-    fm_assert(cant_be_shot(w, threat, r.pos, size));
+    fm_assert(is_safe_from_shots_at(w, threat, r.pos, size));
 }
 
 // From radius 32768 the loop reaches tile {513, 513}, whose squared distance of 2151680000 passes INT32_MAX.
@@ -307,7 +309,7 @@ void test_side_wall_corner_seen(Vector2ui size = body)
     const point npc{ch, {7, 8}, {-12, 12}}, threat{ch, {12, 10}, {-20, -24}};
     const auto r = find(w, npc, threat, 48, 8, size);
     fm_assert(r.candidates > 0);
-    fm_assert(!r.found || cant_be_shot(w, threat, r.pos, size));
+    fm_assert(!r.found || is_safe_from_shots_at(w, threat, r.pos, size));
 }
 
 // The pillar is as tall as the body, and a wall along its south end stops the body going past it.
@@ -328,7 +330,7 @@ void test_shift_to_only_spot(i8 pillar_dy, bool split = false, Vector2ui size = 
     const point npc{ch, {6, 8}, {20, -4}}, threat{ch, {14, 8}, {}};
     const auto r = find(w, npc, threat, 48, 8, size);
     fm_assert(r.found);
-    fm_assert(cant_be_shot(w, threat, r.pos, size));
+    fm_assert(is_safe_from_shots_at(w, threat, r.pos, size));
 }
 
 void test_pillar_pair(u8 far_x, u8 near_h, i8 near_dy, u8 far_h, i8 far_dy, bool must_find)
@@ -343,7 +345,7 @@ void test_pillar_pair(u8 far_x, u8 near_h, i8 near_dy, u8 far_h, i8 far_dy, bool
     const auto r = find(w, npc, threat, 48, 8);
     fm_assert(r.candidates > 0);
     fm_assert(r.found || !must_find);
-    fm_assert(!r.found || cant_be_shot(w, threat, r.pos));
+    fm_assert(!r.found || is_safe_from_shots_at(w, threat, r.pos));
 }
 
 point at_px(Vector2i px) { return point{Vector3i{px, 0}}; }
@@ -359,7 +361,7 @@ void test_octants_beside_bearing()
     const auto threat = at_px({574, 667});
     const auto r = find(w, at_px({438, 468}), threat, 48, 8);
     fm_assert(r.found);
-    fm_assert(cant_be_shot(w, threat, r.pos));
+    fm_assert(is_safe_from_shots_at(w, threat, r.pos));
 }
 
 void test_nearest_octant_of_zero()
@@ -382,7 +384,7 @@ void test_touching_blockers()
     const auto threat = at_px({454, 567});
     const auto r = find(w, at_px({455, 484}), threat, 48, 8);
     fm_assert(r.found);
-    fm_assert(cant_be_shot(w, threat, r.pos));
+    fm_assert(is_safe_from_shots_at(w, threat, r.pos));
 }
 
 void test_wall_out_of_radius()
@@ -412,7 +414,7 @@ void test_spot_taken()
     fm_assert(r.found);
     fm_assert(is_passable(w, r.pos, body, Search::never_continue));
     w[ch].remove_object(*other, other->index());
-    fm_assert(cant_be_shot(w, threat, r.pos));
+    fm_assert(is_safe_from_shots_at(w, threat, r.pos));
 }
 
 // Returns the search for npc and threat with its spots listed, after checking that a search
@@ -436,7 +438,7 @@ Cover::Point::result find_listed(world& w, point npc, point threat, u32 radius)
         fm_assert(!is_passable(w, pos + axis, body));
         // Removed after the shot, so it can't stop the rays aimed at the next spot.
         const auto c = add_critter(w, pos);
-        fm_assert(cant_be_shot_at(w, threat, 0, pos, body, c->id));
+        fm_assert(is_safe_from_shots_at(w, threat, 0, pos, body, c->id));
         w[ch].remove_object(*c, c->index());
     }
     return r;
@@ -609,7 +611,7 @@ Vector2i threat_in_neighbor_octant(Vector2i threat, Vector2i pos, int j)
 bool is_hidden_from(world& w, Vector2i threat, point pos)
 {
     const auto c = add_critter(w, pos);
-    const auto ret = cant_be_shot_at(w, at_px(threat), 0, pos, body, c->id);
+    const auto ret = is_safe_from_shots_at(w, at_px(threat), 0, pos, body, c->id);
     w[ch].remove_object(*c, c->index());
     return ret;
 }
@@ -834,7 +836,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
         if (npc->position() == last)
         {
             if (++still == fps && rests.isEmpty())
-                hidden_unshot = cant_be_shot_at(w, threat_pos, threat->id, last, body, npc->id);
+                hidden_unshot = is_safe_from_shots_at(w, threat_pos, threat->id, last, body, npc->id);
             continue;
         }
         if (still >= fps)
@@ -1100,7 +1102,7 @@ void test_cover_script_keeps_peeking(point hidden, point peek)
     fm_assert(standing + 2 >= 2*s.fps && standing <= 2*s.fps + 2);
     fm_assert(seen - still >= s.fps/2);
     const auto hidden2 = s.next_stop();
-    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, hidden2, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, threat_pos, s.threat->id, hidden2, body, s.npc->id));
 }
 
 // The threat moves to the wall's west side as in test_cover_script_keeps_peeking, and stays there. No update
@@ -1199,7 +1201,7 @@ void test_cover_script_follows_while_hidden()
     const point threat_pos{ch, {9, 2}, {}};
     auto i = s.threat->index();
     s.threat->teleport_to(i, threat_pos, rotation_COUNT);
-    fm_assert(!cant_be_shot_at(s.w, threat_pos, s.threat->id, hidden, body, s.npc->id));
+    fm_assert(!is_safe_from_shots_at(s.w, threat_pos, s.threat->id, hidden, body, s.npc->id));
 
     // Diagonal steps cost more than a frame, so some updates of a walk don't move the npc. The
     // loop ends at the npc's first move after a second without one, which is it stepping out.
@@ -1213,7 +1215,7 @@ void test_cover_script_follows_while_hidden()
         if (s.npc->position() == spot)
         {
             if (++still == s.fps)
-                spot_hidden = cant_be_shot_at(s.w, threat_pos, s.threat->id, spot, body, s.npc->id);
+                spot_hidden = is_safe_from_shots_at(s.w, threat_pos, s.threat->id, spot, body, s.npc->id);
             continue;
         }
         if (still >= s.fps)
@@ -1304,7 +1306,7 @@ void test_cover_script_walking_threat(point hidden)
         fm_assert(cover.canonical == canonical);
         last = s.npc->position();
         fm_assert(Vector3i(last).x() == Vector3i(hidden).x());
-        fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, last, body, s.npc->id));
+        fm_assert(is_safe_from_shots_at(s.w, s.threat->position(), s.threat->id, last, body, s.npc->id));
     }
     fm_assert(standing + 2 >= 2*s.fps);
     // It moved toward canonical, and no farther.
@@ -1568,7 +1570,7 @@ void test_cover_script_hidden_checks(u32 threat_reach)
     fm_assert(c.pos != hidden);
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == c.pos);
-    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, c.pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, threat_pos, s.threat->id, c.pos, body, s.npc->id));
 }
 
 using hold_phase = Cover::Script::options::hold_phase;
@@ -1696,8 +1698,8 @@ void test_cover_script_reach_position_sees_cover_spot(state st, bool critter_mov
     const auto& c0 = *t0.cover;
     fm_assert(s.npc->position() == c0.pos);
     const point threat_pos{ch, {8, 9}, {-28, 12}};
-    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, c0.pos, body, s.npc->id));
-    fm_assert(!cant_be_shot_at(s.w, threat_pos - Vector2i{48, 0}, s.threat->id, c0.pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, threat_pos, s.threat->id, c0.pos, body, s.npc->id));
+    fm_assert(!is_safe_from_shots_at(s.w, threat_pos - Vector2i{48, 0}, s.threat->id, c0.pos, body, s.npc->id));
     s.step_until(st);
     if (critter_moves)
         s.moving_critter = add_critter(s.w, point{ch, {14, 1}, {}});
@@ -1723,7 +1725,7 @@ void test_cover_script_reach_position_sees_cover_spot(state st, bool critter_mov
     fm_assert(point::distance(c.canonical, point{ch, {3, 3}, {}}) < tile_size_xy);
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == c.pos);
-    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, c.pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, threat_pos, s.threat->id, c.pos, body, s.npc->id));
     (void)s.step_until_unchanged(&counters::num_body_checks);
     const auto t1 = s.status();
     for (auto k = 0u; k < s.fps/2; k++)
@@ -1923,7 +1925,7 @@ void test_cover_script_flanked(point hidden, point peek)
     }
     fm_assert(s.npc->position() == cover);
     fm_assert_equal(t0.counters.num_searches + 1, s.status().counters.num_searches);
-    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, cover, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, threat_pos, s.threat->id, cover, body, s.npc->id));
 }
 
 // As test_cover_script_flanked, with the threat north of the wall, where nothing in the chunk hides the npc. The
@@ -2500,7 +2502,7 @@ void test_cover_script_walk_checks(point hidden, bool critter_moves)
         s.step();
     }
     fm_assert(s.npc->position() == c.pos);
-    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, c.pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, threat_pos, s.threat->id, c.pos, body, s.npc->id));
 }
 
 // The npc of cover_scene steps out toward peek. The threat moves 32 px along the wall away from the
@@ -3117,7 +3119,7 @@ void test_cover_script_retreat_finds_cover(point hidden, bool near_threat)
     fm_assert(s.npc->position() == c.pos);
     fm_assert(point::distance(c.pos, hidden) > 5*(u32)tile_size_xy);
     fm_assert(point::distance(c.pos, block) < 2*(u32)tile_size_xy);
-    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, c.pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, threat_pos, s.threat->id, c.pos, body, s.npc->id));
     fm_assert_equal(t0.counters.num_searches + 1, t.counters.num_searches);
 }
 
@@ -3421,7 +3423,7 @@ void test_cover_script_far_cover(bool threat_changes_octant)
         step();
     }
     fm_assert(npc->position() == c.pos);
-    fm_assert(cant_be_shot_at(w, threat_pos, threat->id, c.pos, body, npc->id));
+    fm_assert(is_safe_from_shots_at(w, threat_pos, threat->id, c.pos, body, npc->id));
     w.finish_scripts();
 }
 
@@ -3836,7 +3838,7 @@ void test_cover_script_rehides(u32 threat_reach)
         }
         fm_assert(retreating < s.fps/4);
         fm_assert(seen < s.fps/6);
-        fm_assert(cant_be_shot_at(s.w, end, s.threat->id, cover, body, s.npc->id));
+        fm_assert(is_safe_from_shots_at(s.w, end, s.threat->id, cover, body, s.npc->id));
     }
 }
 
@@ -3869,7 +3871,7 @@ void test_cover_script_walks_to_moved_cover_spot()
     const auto t = s.status();
     const auto& c = *t.cover;
     fm_assert(c.pos != c0.pos && s.npc->position() == c.pos);
-    fm_assert(cant_be_shot_at(s.w, *to, s.threat->id, c.pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, *to, s.threat->id, c.pos, body, s.npc->id));
 }
 
 using fallback = Cover::Script::options::fallback;
@@ -4182,7 +4184,7 @@ void test_search_takes_reachable_fallback_spot(u32 threat_reach)
             {
                 fm_assert(r.cover && r.cover->path.is_found());
                 move_npc(s, r.cover->end);
-                fm_assert(cant_be_shot_at(s.w, threat, s.threat->id, r.cover->end, body, s.npc->id));
+                fm_assert(is_safe_from_shots_at(s.w, threat, s.threat->id, r.cover->end, body, s.npc->id));
                 move_npc(s, from);
                 break;
             }
@@ -4255,7 +4257,7 @@ void test_search_takes_reachable_peekless_spot()
         {
             fm_assert(r.cover && r.cover->path.is_found() && r.cover->is_hidden_from_reach);
             move_npc(*npc, r.cover->end);
-            fm_assert(cant_be_shot_at(w, threat_pos, threat->id, r.cover->end, body, npc->id));
+            fm_assert(is_safe_from_shots_at(w, threat_pos, threat->id, r.cover->end, body, npc->id));
             break;
         }
     }
@@ -4288,7 +4290,7 @@ void test_search_takes_peekless_spot_after_5_unreachable()
             fm_assert(r.cover && r.cover->path.is_found() && r.cover->is_hidden_from_reach);
             fm_assert(r.cover->spot.pos == point{ch, {9, 8}, {-20, -4}});
             move_npc(*npc, r.cover->end);
-            fm_assert(cant_be_shot_at(w, threat_pos, threat->id, r.cover->end, body, npc->id));
+            fm_assert(is_safe_from_shots_at(w, threat_pos, threat->id, r.cover->end, body, npc->id));
             break;
         }
     }
@@ -4332,7 +4334,7 @@ void test_search_takes_reachable_in_reach_spot()
             fm_assert(r.cover && r.cover->path.is_found() && !r.cover->is_hidden_from_reach);
             fm_assert(r.cover->spot.pos == point{ch, {10, 8}, {20, -4}});
             move_npc(*npc, r.cover->end);
-            fm_assert(cant_be_shot_at(w, threat_pos, threat->id, r.cover->end, body, npc->id));
+            fm_assert(is_safe_from_shots_at(w, threat_pos, threat->id, r.cover->end, body, npc->id));
             break;
         }
     }
@@ -4353,7 +4355,7 @@ bool seen_within(cover_scene& s, point pos, int r)
         for (auto i = -n; i <= n; i++)
         {
             if ((i*i + j*j)*64 <= r*r &&
-                !cant_be_shot_at(s.w, center + Vector2i{i, j}*8, s.threat->id, pos, body, s.npc->id))
+                !is_safe_from_shots_at(s.w, center + Vector2i{i, j}*8, s.threat->id, pos, body, s.npc->id))
                 return true;
         }
     return false;
@@ -4484,7 +4486,7 @@ point threat_reach_hides(u32 threat_reach, bool has_side_walls)
     Cover::Script::set_options(*s.npc, o);
     s.step_until(state::hidden);
     const auto pos = s.npc->position();
-    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
     // A point north-west of the wall's end sees the spot behind it. Without side walls, the threat can walk there.
     fm_assert(!has_side_walls || seen_within(s, pos, (int)threat_reach));
     return pos;
@@ -4514,7 +4516,7 @@ void test_cover_script_cover_end_reach(u32 threat_reach)
     Cover::Script::set_options(*s.npc, {.threat_reach = threat_reach});
     s.step_until(state::hidden);
     const auto pos = s.npc->position();
-    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
     fm_assert(!threat_reach == seen_within(s, pos, threat_reach ? (int)threat_reach : 2*tile_size_xy));
 }
 
@@ -4625,7 +4627,7 @@ void test_cover_script_last_resort_no_peek(fallback last_resort)
     s.step_until(state::hidden);
     const auto pos = s.npc->position();
     fm_assert(Vector3i(pos).x() + (int)body.x()/2 == 312);
-    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
 }
 
 // As test_cover_script_last_resort_no_peek, the npc starting where the threat sees it. It retreats once the search
@@ -4641,7 +4643,7 @@ void test_cover_script_last_resort_seen()
     s.step_until(state::hidden);
     const auto pos = s.npc->position();
     fm_assert(Vector3i(pos).x() + (int)body.x()/2 == 312);
-    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
 }
 
 // The threat stands 56 px east of cover_scene's wall, 40 px long here, and can walk around either end. With
@@ -4659,7 +4661,7 @@ void test_cover_script_last_resort_in_reach(fallback last_resort, u32 threat_rea
     s.step_until(state::hidden);
     const auto pos = s.npc->position();
     fm_assert(point::distance(pos, point{ch, {7, 8}, {}}) < tile_size_xy);
-    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
 }
 
 // As test_cover_script_last_resort_no_peek with no_peek, the threat walking 1 px per update north and back over
@@ -4680,7 +4682,7 @@ void test_cover_script_last_resort_walking_threat()
     s.step_until(state::hidden);
     const auto pos = s.npc->position();
     fm_assert(Vector3i(pos).x() + (int)body.x()/2 == 312);
-    fm_assert(cant_be_shot_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, s.threat->position(), s.threat->id, pos, body, s.npc->id));
 }
 
 // One update with the threat walking 1 px north or back, 4 px each way.
@@ -4724,7 +4726,7 @@ void test_cover_script_retreats_after_search_while_hidden()
     const auto pos = s.npc->position(), threat_pos = s.threat->position();
     // The retreat ends over min_retreat_gain px farther from the threat than the npc's cover.
     fm_assert(point::distance(pos, threat_pos) > point::distance(cover_pos, threat_pos) + 3*(u32)tile_size_xy);
-    fm_assert(cant_be_shot_at(s.w, threat_pos, s.threat->id, pos, body, s.npc->id));
+    fm_assert(is_safe_from_shots_at(s.w, threat_pos, s.threat->id, pos, body, s.npc->id));
     for (const auto n = s.status().counters.num_searches + 2; s.status().counters.num_searches < n;
          step_threat_back_and_forth(s, frames))
     {
