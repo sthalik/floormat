@@ -26,11 +26,11 @@ namespace {
 constexpr u32 retreat_radius = 5*(u32)tile_size_xy;
 constexpr int min_retreat_gain = 3*tile_size_xy;
 /// @ref Cover::spot_tests::path_to and @ref Cover::spot_tests::is_reachable_without_critters calls, each one
-/// Dijkstra search. One took up to 120 µs on an i5-7600.
+/// Dijkstra search. One took up to 133 µs on an i5-7600.
 constexpr u32 max_retreat_dijkstra_calls_per_update = 4;
 /// Body checks by @ref Cover::spot_tests::is_seen_on_path that count as one Dijkstra search, after an update's
-/// first, toward @ref Cover::max_retreat_dijkstra_calls_per_update. One took 0.29 to 0.58 µs on an i5-7600.
-constexpr u32 hidden_at_calls_per_dijkstra_call = 710;
+/// first, toward @ref Cover::max_retreat_dijkstra_calls_per_update. This many took as long as the slowest search.
+constexpr u32 hidden_at_calls_per_dijkstra_call = 220;
 // has_line_of_sight() calls, each one ray from the threat to a spot's center.
 constexpr u32 max_retreat_rays_per_update = 256;
 // Search::is_passable calls for the npc's body at a spot, each an R-tree search.
