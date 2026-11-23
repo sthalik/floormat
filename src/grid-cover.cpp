@@ -284,6 +284,11 @@ struct CoverGrid : GridBase
 
     void build_impl(chunk* self);
     bool fill_octant(u32 k, chunk& self);
+    // Returns the chunks whose pass grids filling octant k reads, the grid's own first, null where the octant
+    // reads none or no chunk exists.
+    std::array<chunk*, 4> chunks_read_by_octant_fill(u32 k) const;
+    // chunks must be chunks_read_by_octant_fill(k), each with a pass grid that needs no rebuild.
+    void compute_octant_plane(u32 k, const std::array<chunk*, 4>& chunks);
     // pass_bits[iy*2 + ix] is the chunk at (ix, iy) times the signs of the octant's cell offset.
     template<typename T> void fill_octilinear_octant(u32 k, const std::array<chunk_pass_bits, 4>& pass_bits,
                                                      u32 num_neighbor_columns, u32 num_neighbor_rows,
@@ -727,28 +732,49 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
         return false;
     fm_assert(!self.world().is_thread_pool_running());
 
-    const u32 div_size = params.div_size;
     auto& P = *static_cast<CoverPool*>(pool);
-    auto& pass_pool = P.pass_pool;
-    fm_assert(pass_pool.params().div_size() == div_size);
     auto t = Time::now();
+    const auto chunks = chunks_read_by_octant_fill(k);
+    for (auto* ch : chunks)
+        if (ch)
+            P.pass_pool[*ch].build_if_stale();
+    compute_octant_plane(k, chunks);
+    built_octants |= (1u << k);
+    const auto dt = t.update();
+    P.fills++;
+    P.fill_time += dt;
+#if 0
+    DBG << "{fill octant}" << coord << "k=" << k
+        << "took" << (int)(Time::to_milliseconds(dt) * 1e3f) << "us";
+#endif
+    return true;
+}
+
+std::array<chunk*, 4> CoverGrid::chunks_read_by_octant_fill(u32 k) const
+{
+    fm_debug_assert(k < octant_count);
+    const auto s = octant_steps[k];
+    const Vector2i cell_offset_sign = Math::sign(Vector2i{s});
+    auto& w = c->world();
+    return {
+        c,
+        s.x() ? w.at(coord + Vector2i{cell_offset_sign.x(), 0}) : nullptr,
+        s.y() ? w.at(coord + Vector2i{0, cell_offset_sign.y()}) : nullptr,
+        s.x() && s.y() ? w.at(coord + cell_offset_sign) : nullptr,
+    };
+}
+
+void CoverGrid::compute_octant_plane(u32 k, const std::array<chunk*, 4>& chunks)
+{
+    const u32 div_size = params.div_size;
+    auto& pass_pool = static_cast<CoverPool*>(pool)->pass_pool;
+    fm_assert(pass_pool.params().div_size() == div_size);
 
     const u32 dc = chunk_size_xy / div_size;
     // pass bit and cell (x, y) are both y*dc + x, as pack_bit_index() lays them out
     fm_debug_assert(get_cell_index(1, 1, dc) == dc + 1);
 
     const auto s = octant_steps[k];
-    const Vector2i cell_offset_sign = Math::sign(Vector2i{s});
-    auto& w = self.world();
-    const std::array<chunk*, 4> chunks = {
-        &self,
-        s.x() ? w.at(coord + Vector2i{cell_offset_sign.x(), 0}) : nullptr,
-        s.y() ? w.at(coord + Vector2i{0, cell_offset_sign.y()}) : nullptr,
-        s.x() && s.y() ? w.at(coord + cell_offset_sign) : nullptr,
-    };
-    for (auto* ch : chunks)
-        if (ch)
-            pass_pool[*ch].build_if_stale();
 
     std::array<chunk_pass_bits, 4> pass_bits;
     for (u32 i = 0; i < chunks.size(); i++)
@@ -789,16 +815,6 @@ bool CoverGrid::fill_octant(u32 k, chunk& self)
         fill_non_octilinear_octant<u8>(k, pass_bits, num_neighbor_columns, num_neighbor_rows);
     else
         fill_non_octilinear_octant<u16>(k, pass_bits, num_neighbor_columns, num_neighbor_rows);
-
-    built_octants |= (1u << k);
-    const auto dt = t.update();
-    P.fills++;
-    P.fill_time += dt;
-#if 0
-    DBG << "{fill octant}" << coord << "k=" << k
-        << "took" << (int)(Time::to_milliseconds(dt) * 1e3f) << "us";
-#endif
-    return true;
 }
 
 bool CoverGrid::fill_next_unfilled_octant(chunk& self)
