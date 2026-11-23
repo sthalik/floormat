@@ -144,7 +144,7 @@ auto cover_search::tick(critter& c, spot_tests& t, const Cover::Script::options&
     else if (k != _octant)
     {
         _octant_tiles[_octant] = (u16)_tile;
-        if (from == _from && _tiles_left > tiles.size() - _octant_tiles[k] + 1)
+        if (_tiles_left > tiles.size() - _octant_tiles[k] + 1)
         {
             _octant = k;
             _exposed_cover = {};

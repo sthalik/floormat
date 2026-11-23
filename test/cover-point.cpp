@@ -4178,6 +4178,35 @@ void test_unreachable_spots_outside_disc_removed()
     fm_assert(!u.can_move_straight_to_listed_spot(w, inside, Vector2i(body), Search::never_continue));
 }
 
+// A change of the threat's octant resumes that octant's tiles and keeps the origin, also with from elsewhere, as
+// in state::search after a retreat walk that left the search's origin where it was.
+void test_search_resumes_octant_away_from_origin()
+{
+    cover_scene s;
+    s.w[ch].remove_object(*s.wall, s.wall->index());
+    rebuild(s.w);
+    Cover::spot_tests t{s.A, s.threat->id, 0};
+    Cover::cover_search search;
+    const Cover::Script::options o{};
+    const auto origin = s.npc->position(), threat = s.threat->position();
+    const auto north = origin - Vector2i{0, 4*tile_size_xy};
+    fm_assert(Cover::Point::nearest_octant(Vector2(threat - origin)) !=
+              Cover::Point::nearest_octant(Vector2(north - origin)));
+    search.begin(origin, threat);
+    for (auto i = 0u; i < 4; i++)
+        fm_assert(!tick_in_next_frame(search, *s.npc, t, o, origin, threat).done);
+    const auto tile = search.progress().tile;
+    fm_assert(tile > 0);
+    const auto from = origin + Vector2i{0, 3*tile_size_xy};
+    move_npc(s, from);
+    s.move_threat(north);
+    fm_assert(!tick_in_next_frame(search, *s.npc, t, o, from, north).done);
+    fm_assert(search.from() == origin);
+    s.move_threat(threat);
+    fm_assert(!tick_in_next_frame(search, *s.npc, t, o, from, threat).done);
+    fm_assert(search.progress().tile > tile);
+}
+
 // Replaces cover_scene's wall with one length px long at the same center.
 void resize_wall(cover_scene& s, u32 length)
 {
@@ -4994,6 +5023,7 @@ void Test::test_cover_point()
     test_seen_on_path();
     test_search_drops_exposed_cover_seen_by_threat_in_neighbor_octant();
     test_unreachable_spots_outside_disc_removed();
+    test_search_resumes_octant_away_from_origin();
     for (const auto threat_reach : threat_reaches)
     {
         test_search_takes_exposed_cover_over_seen_in_reach_spot(threat_reach);
