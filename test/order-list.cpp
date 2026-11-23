@@ -8,27 +8,9 @@ namespace floormat {
 
 struct order_list_access
 {
-    static Array<u32> dependents(const order_list& list, u32 position)
+    static std::array<usize, 2> capacities(order_list& list)
     {
-        Array<u32> ret;
-        arrayReserve(ret, 16);
-        const auto& nodes = list._dependent_nodes;
-        for (auto i = list._order_states[position].first_dependent_node; i != (u32)-1; i = nodes[i].next)
-            arrayAppend(ret, nodes[i].dependent);
-        return ret;
-    }
-
-    static u32 num_unfinished_dependencies(const order_list& list, u32 position)
-    {
-        return list._order_states[position].num_unfinished_dependencies;
-    }
-
-    static std::array<usize, 5> capacities(order_list& list)
-    {
-        return {
-            arrayCapacity(list._orders), arrayCapacity(list._order_states), arrayCapacity(list._dependent_nodes),
-            arrayCapacity(list._ready_heap), arrayCapacity(list._buffer_objects),
-        };
+        return { arrayCapacity(list._orders), arrayCapacity(list._buffer_objects) };
     }
 
     static std::array<usize, 4> capacities(order_buffer& buffer)
@@ -84,21 +66,7 @@ void test_merge_order()
     list.append_buffers(buffers);
     fm_assert_equal(6u, list.size());
     for (auto p = 0u; p < 6; p++)
-    {
         fm_assert_equal(givers[p/2], list[p].giver);
-        const auto dependents = order_list_access::dependents(list, p);
-        if (p % 2 == 0)
-        {
-            fm_assert_equal(1uz, dependents.size());
-            fm_assert_equal(p + 1, dependents[0]);
-            fm_assert_equal(0u, order_list_access::num_unfinished_dependencies(list, p));
-        }
-        else
-        {
-            fm_assert(dependents.isEmpty());
-            fm_assert_equal(1u, order_list_access::num_unfinished_dependencies(list, p));
-        }
-    }
 
     Array<u32> ran;
     list.run_all([&](order, u32 position) { arrayAppend(ran, position); });
@@ -157,7 +125,6 @@ void test_dependency_on_finished_order()
         {
             const u32 on_a[] = { a };
             c = list.add({}, on_a);
-            fm_assert_equal(0u, order_list_access::num_unfinished_dependencies(list, c));
         }
     });
     check_sequence(ran, { a, b, c });
@@ -175,7 +142,6 @@ void test_dependency_on_running_order()
         {
             const u32 on_a[] = { a };
             c = list.add({}, on_a);
-            fm_assert_equal(1u, order_list_access::num_unfinished_dependencies(list, c));
         }
     });
     check_sequence(ran, { a, b, c });
@@ -189,7 +155,6 @@ void test_two_dependencies()
     const auto b = list.add({}, on_a), c = list.add({}, on_a);
     const u32 on_b_and_c[] = { b, c };
     const auto d = list.add({}, on_b_and_c);
-    fm_assert_equal(2u, order_list_access::num_unfinished_dependencies(list, d));
     Array<u32> ran;
     list.run_all([&](order, u32 position) { arrayAppend(ran, position); });
     check_sequence(ran, { a, b, c, d });
