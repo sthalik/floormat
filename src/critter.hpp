@@ -65,7 +65,7 @@ struct critter final : object
 
     Vector2ui circumscribed_bbox_size() const;
 
-    i32 depth_offset() const override;
+    i32 depth_offset() const;
 
     void init_script(const bptr<object>& ptr) override;
     void destroy_script_pre(const bptr<object>& ptr, script_destroy_reason r) override;

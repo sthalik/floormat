@@ -65,7 +65,6 @@ public:
 
     virtual ~object() noexcept override;
 
-    virtual i32 depth_offset() const = 0;
     const class chunk& chunk() const;
     const class world& world() const;
     class chunk& chunk();

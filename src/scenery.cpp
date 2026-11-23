@@ -21,11 +21,6 @@ template class basic_bptr<const door_scenery, non_atomic_refcount>;
 
 enum scenery_type scenery::scenery_type() const { return _scenery_type; }
 
-i32 scenery::depth_offset() const
-{
-    return atlas->group(r).depth_offset.sum(); // todo replace with an integer
-}
-
 scenery::operator scenery_proto() const
 {
     scenery_proto ret;
@@ -45,6 +40,12 @@ scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto, enum 
 // ---------- generic_scenery ----------
 
 void generic_scenery::update(const bptr<object>&, usize&, const Ns&) {}
+
+i32 generic_scenery::depth_offset() const
+{
+    return atlas->group(r).depth_offset.sum(); // todo replace with an integer
+}
+
 bool generic_scenery::can_activate(usize) const { return interactive; }
 bool generic_scenery::activate(usize) { return false; }
 

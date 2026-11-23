@@ -31,7 +31,7 @@ struct hole final : object
     hole(object_id id, class chunk& c, const hole_proto& proto);
     ~hole() noexcept override;
 
-    i32 depth_offset() const override;
+    i32 depth_offset() const;
     void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
 
     void set_height(u8 height);

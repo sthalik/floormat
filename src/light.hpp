@@ -33,7 +33,7 @@ struct light final : object
 
     light(object_id id, class chunk& c, const light_proto& proto);
 
-    i32 depth_offset() const override;
+    i32 depth_offset() const;
     void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
 
     explicit operator light_proto() const;
