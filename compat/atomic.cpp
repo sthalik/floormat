@@ -306,8 +306,10 @@ FM_ATOMIC_FETCH_OP(xor, xor_, to_int(x))
 #else
     if (o == memory_order::seq_cst)
     {
+        compiler_barrier();
         volatile long guard = 0;
         (void)_InterlockedOr(&guard, 0);
+        compiler_barrier();
     }
     else
         compiler_barrier();
