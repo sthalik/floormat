@@ -1012,6 +1012,8 @@ ConstGrid Pool::find_built_grid(const chunk& c) const
     return ConstGrid{detail::find_built_grid(pool, c)};
 }
 
+bool Pool::has_grid_attached_to(const chunk& c) const { return pool->find(c) != nullptr; }
+
 void Pool::build_if_stale_all()
 {
     for (auto* g : pool->grids_in_use)

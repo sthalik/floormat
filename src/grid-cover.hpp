@@ -130,6 +130,8 @@ public:
     // Returns the pool's grid for c when one is attached and needs no rebuild, else an empty handle.
     // It writes only the grid's is_requested_by_reader. The caller tests built_octants() for the octant it reads.
     [[nodiscard]] ConstGrid find_built_grid(const chunk& c) const;
+    // True when a grid of this pool is attached to c, so that operator[] finds it and makes none.
+    bool has_grid_attached_to(const chunk& c) const;
 
     void build_if_stale_all();
     // Lists c's grid's rebuild if it is marked stale, then octant k if neither built nor listed, and the pass

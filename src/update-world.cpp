@@ -54,13 +54,18 @@ void sort_by_update_index(ArrayView<grid_order> orders)
     }
 }
 
-// Builds the grids already listed in reg and those that w.grid_orders()'s pass and object orders name, then runs
-// its cover orders and empties it. The orders must be sorted by update_index.
+// Builds the grids already listed in reg and those that w.grid_orders() names, then runs its cover orders'
+// rebuilds and octant fills and empties it. The orders must be sorted by update_index.
 void build_grids_and_run_cover_orders(world& w, Grid::GridRegistry& reg)
 {
+    using Grid::Cover::max_octant_fills_per_frame;
     auto& orders = w.grid_orders();
-    for (const auto& o : orders)
+    u32 num_octant_fills = 0;
+    for (u32 i = 0; i < (u32)orders.size(); i++)
     {
+        const auto& o = orders[i];
+        if (i > 0 && o.update_index != orders[i-1].update_index)
+            num_octant_fills = 0;
         auto* c = w.at(o.chunk);
         if (!c)
             continue;
@@ -68,33 +73,16 @@ void build_grids_and_run_cover_orders(world& w, Grid::GridRegistry& reg)
         {
         case grid_order::grid_kind::pass: reg.list_pass_grid(o.pass_params, *c); break;
         case grid_order::grid_kind::object: reg.list_object_grid(o.pass_params, *c); break;
-        case grid_order::grid_kind::cover: break;
+        case grid_order::grid_kind::cover:
+            // As in Cover::Point::finder::find(), the cap is tested before a rebuild and before an octant fill.
+            if (num_octant_fills < max_octant_fills_per_frame)
+                num_octant_fills += reg.list_cover_octant(Grid::Cover::Params{o.cover_div_size}, *c, o.octant,
+                                                          max_octant_fills_per_frame - num_octant_fills);
+            break;
         }
     }
     reg.build_listed_grids();
-
-    u32 num_octant_fills = 0;
-    // As in Cover::Point::finder::find(), the cap is tested before a rebuild and again before an octant fill.
-    const auto is_octant_fill_cap_reached = [&] {
-        return num_octant_fills >= Grid::Cover::max_octant_fills_per_frame;
-    };
-    for (u32 i = 0; i < (u32)orders.size(); i++)
-    {
-        const auto& o = orders[i];
-        if (i > 0 && o.update_index != orders[i-1].update_index)
-            num_octant_fills = 0;
-        auto* c = w.at(o.chunk);
-        if (!c || o.kind != grid_order::grid_kind::cover || is_octant_fill_cap_reached())
-            continue;
-        auto g = reg.cover_pool(Grid::Cover::Params{o.cover_div_size})[*c];
-        if (g.is_marked_stale())
-        {
-            g.build_if_stale();
-            num_octant_fills++;
-        }
-        if (!is_octant_fill_cap_reached() && !(g.built_octants() & 1u << o.octant))
-            num_octant_fills += g.ensure_octant(o.octant);
-    }
+    reg.fill_listed_cover_octants();
     arrayClear(orders);
 }
 

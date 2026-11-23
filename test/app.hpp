@@ -36,6 +36,7 @@ void test_component_table();
 void test_coords();
 void test_intra_coord();
 void test_corridor();
+void test_cover_octant_fill_jobs();
 void test_cover_point();
 void test_cpu_topology();
 void test_crc64();

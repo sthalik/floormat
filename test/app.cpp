@@ -125,6 +125,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_world_thread_pool),
     FM_TEST(test_rtree_rebuild_jobs),
     FM_TEST(test_grid_build_jobs),
+    FM_TEST(test_cover_octant_fill_jobs),
     FM_TEST(test_search_result_threads),
     FM_TEST(test_inplace_function),
     FM_TEST(test_inplace_array),
