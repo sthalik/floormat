@@ -153,9 +153,9 @@ struct benchmark_scene : chunks_and_queries
 };
 
 // New scenes go last, so the other scenes' queries take the same random numbers as without them.
-enum class scene : u8 { dense, cover, maze, save, clusters, torture, COUNT };
+enum class scene : u8 { dense, cover, maze, save, clusters, torture, save_copy_4, COUNT };
 constexpr u32 scene_count = (u32)scene::COUNT;
-constexpr const char* scene_names[scene_count] = { "dense", "cover", "maze", "save", "clusters", "torture" };
+constexpr const char* scene_names[scene_count] = { "dense", "cover", "maze", "save", "clusters", "torture", "save-copy-4" };
 
 template<u32 M, typename C>
 auto& old_tree(C& c)
@@ -910,8 +910,11 @@ Optional<world> make_scene_world(scene s)
         }
         return Optional<world>{move(w)};
     }
-    case scene::save: {
-        const auto path = Path::join(loader.TEMP_PATH, "bench/save/proto-32-quicksave.dat"_s);
+    case scene::save:
+    case scene::save_copy_4: {
+        const auto name = s == scene::save ? "bench/save/proto-32-quicksave.dat"_s
+                                           : "bench/save/proto-32-quicksave-copy-4.dat"_s;
+        const auto path = Path::join(loader.TEMP_PATH, name);
         if (!Path::exists(path))
             return NullOpt;
         else
