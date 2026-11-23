@@ -635,7 +635,10 @@ void test_read_only_cover_without_grids()
         fm_assert(r.out_of_fills);
         fm_assert(!r.found);
         fm_assert_equal(0u, r.fills);
-        const auto num_first_orders = (u32)orders.size();
+        // The first cell read has neither octant around its bearing to the threat.
+        fm_assert_equal(2u, (u32)orders.size());
+        fm_assert(orders[0].chunk == orders[1].chunk);
+        fm_assert_equal((orders[0].octant + 1u) % 32u, (u32)orders[1].octant);
         u32 num_rounds = 0;
         while (r.out_of_fills)
         {
@@ -646,7 +649,6 @@ void test_read_only_cover_without_grids()
             r = find_read_only(Fb, cb, P_case, c, orders);
             fm_assert_equal(0u, r.fills);
         }
-        fm_assert(num_first_orders > 0);
         fm_assert(orders.isEmpty());
         assert_same_result(expected, r, c.list_spots);
     }

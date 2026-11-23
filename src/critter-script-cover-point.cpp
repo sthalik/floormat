@@ -575,7 +575,9 @@ result finder::Impl::find(const world& w, world* writable_world, const Grid::Cov
         // The cell's center sees the threat between two octants. Either one hiding it makes a
         // candidate, since the slope check below decides exactly.
         const auto k = octants_around(v);
-        if (!ensure(writable_g, g, *c, k.lo) || !ensure(writable_g, g, *c, k.hi))
+        // Both run, so a read-only call orders each octant it lacks.
+        const auto has_lo_octant = ensure(writable_g, g, *c, k.lo), has_hi_octant = ensure(writable_g, g, *c, k.hi);
+        if (!has_lo_octant || !has_hi_octant)
         {
             known[i] = false;
             return cells[i];
