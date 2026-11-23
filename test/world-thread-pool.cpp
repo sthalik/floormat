@@ -1,13 +1,20 @@
 #include "app.hpp"
+#include "order-list-access.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/critter.hpp"
+#include "src/grid-order.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-cover.hpp"
+#include "src/grid-registry.hpp"
+#include "src/order-list.inl"
+#include "src/search-astar.hpp"
 #include "src/old-rtree.hpp"
+#include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/thread-pool.hpp"
 #include <array>
+#include <cr/GrowableArray.h>
 
 namespace floormat::Test {
 
@@ -141,6 +148,133 @@ void test_writes_outside_parallel_for()
     fm_assert(w.contains(coord));
 }
 
+// Asserts that w has num_threads distinct think_context()s, the first naming frame_order_buffer() and
+// grid_orders(). Each astar borrows astar_registry, or all are null when it is.
+void check_think_contexts(world& w, u32 num_threads, Grid::GridRegistry* astar_registry)
+{
+    const auto buffers = w.order_buffers();
+    fm_assert_equal(num_threads, (u32)buffers.size());
+    const auto first = w.think_context(0);
+    fm_assert(&first.orders == &w.frame_order_buffer());
+    fm_assert(&first.grid_orders == &w.grid_orders());
+    for (auto i = 0u; i < num_threads; i++)
+    {
+        const auto ctx = w.think_context(i);
+        fm_assert(&ctx.orders == &buffers[i]);
+        if (astar_registry)
+            fm_assert(ctx.astar && &ctx.astar->pool_registry() == astar_registry);
+        else
+            fm_assert(!ctx.astar);
+        for (auto j = 0u; j < i; j++)
+        {
+            const auto earlier = w.think_context(j);
+            fm_assert(&ctx.grid_orders != &earlier.grid_orders);
+            fm_assert(!astar_registry || ctx.astar != earlier.astar);
+        }
+    }
+}
+
+void test_think_contexts_without_pool()
+{
+    Grid::GridRegistry reg;
+    world w;
+    check_think_contexts(w, 1, nullptr);
+    w.set_grid_registry(&reg);
+    check_think_contexts(w, 1, nullptr);
+}
+
+void test_think_contexts_with_pool()
+{
+    ThreadPool pool{3};
+    Grid::GridRegistry reg, other_reg;
+    world w;
+    w.set_thread_pool(&pool);
+    check_think_contexts(w, 3, nullptr);
+    w.set_grid_registry(&reg);
+    check_think_contexts(w, 3, &reg);
+    w.set_grid_registry(&other_reg);
+    check_think_contexts(w, 3, &other_reg);
+    w.set_grid_registry(nullptr);
+    check_think_contexts(w, 3, nullptr);
+    w.set_grid_registry(&reg);
+    w.set_thread_pool(nullptr);
+    check_think_contexts(w, 1, nullptr);
+}
+
+void test_thread_pool_change_keeps_capacity()
+{
+    constexpr u32 num_orders = 41;
+    ThreadPool pool{3};
+    world w;
+    auto& buffer = w.frame_order_buffer();
+    buffer.begin_object(0);
+    for (auto i = 0u; i < num_orders; i++)
+        buffer.add({});
+    buffer.end_object();
+    buffer.clear();
+    auto& grid_orders = w.grid_orders();
+    const auto o = grid_order{
+        .pass_params = Pass::Params{16, pass_mode::pass}, .chunk = coord, .kind = grid_order::grid_kind::pass,
+    };
+    for (auto i = 0u; i < num_orders; i++)
+        arrayAppend(grid_orders, o);
+    arrayClear(grid_orders);
+    const auto buffer_capacities = order_list_access::capacities(w.frame_order_buffer());
+    const auto grid_order_capacity = arrayCapacity(w.grid_orders());
+    fm_assert(buffer_capacities[0] >= num_orders && grid_order_capacity >= num_orders);
+    for (auto* p : { &pool, (ThreadPool*)nullptr, &pool })
+    {
+        w.set_thread_pool(p);
+        fm_assert(order_list_access::capacities(w.frame_order_buffer()) == buffer_capacities);
+        fm_assert_equal(grid_order_capacity, arrayCapacity(w.grid_orders()));
+    }
+}
+
+void test_thread_pool_change_keeps_grid_orders()
+{
+    ThreadPool pool{3};
+    world w;
+    const grid_order pending[] = {
+        { .pass_params = Pass::Params{16, pass_mode::pass}, .chunk = coord, .kind = grid_order::grid_kind::pass,
+          .update_index = 7 },
+        { .pass_params = Pass::Params{16, pass_mode::pass}, .cover_div_size = 8, .chunk = missing_coord,
+          .kind = grid_order::grid_kind::cover, .octant = 5, .update_index = 3 },
+        { .pass_params = Pass::Params{32, pass_mode::shoot_through}, .chunk = coord,
+          .kind = grid_order::grid_kind::object, .update_index = 11 },
+    };
+    for (const auto& o : pending)
+        arrayAppend(w.grid_orders(), o);
+    for (auto* p : { &pool, (ThreadPool*)nullptr })
+    {
+        w.set_thread_pool(p);
+        const auto& orders = w.grid_orders();
+        fm_assert_equal(array_size(pending), orders.size());
+        for (auto i = 0u; i < array_size(pending); i++)
+        {
+            const auto &x = pending[i], &y = orders[i];
+            fm_assert(x.kind == y.kind && x.chunk == y.chunk && x.update_index == y.update_index);
+            fm_assert(x.pass_params == y.pass_params && x.cover_div_size == y.cover_div_size);
+            fm_assert(x.octant == y.octant);
+        }
+    }
+}
+
+void test_moved_world_keeps_thread_arrays()
+{
+    ThreadPool pool{3};
+    Grid::GridRegistry reg;
+    world w1;
+    w1.set_thread_pool(&pool);
+    w1.set_grid_registry(&reg);
+    world w2{move(w1)};
+    fm_assert(w2.thread_pool() == &pool && w2.grid_registry() == &reg);
+    check_think_contexts(w2, 3, &reg);
+    world w3;
+    w3 = move(w2);
+    fm_assert(w3.thread_pool() == &pool && w3.grid_registry() == &reg);
+    check_think_contexts(w3, 3, &reg);
+}
+
 } // namespace
 
 void test_world_thread_pool()
@@ -148,6 +282,11 @@ void test_world_thread_pool()
     test_world_without_pool();
     test_jobs_read_world();
     test_writes_outside_parallel_for();
+    test_think_contexts_without_pool();
+    test_think_contexts_with_pool();
+    test_thread_pool_change_keeps_capacity();
+    test_thread_pool_change_keeps_grid_orders();
+    test_moved_world_keeps_thread_arrays();
 }
 
 } // namespace floormat::Test

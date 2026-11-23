@@ -9,6 +9,8 @@
 #include "light.hpp"
 #include "hole.hpp"
 #include "grid-order.hpp"
+#include "search-astar.hpp"
+#include "update-world.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/borrowed-ptr.inl"
 #include "compat/debug.hpp"
@@ -18,6 +20,7 @@
 #include <cr/GrowableArray.h>
 #include <mg/Functions.h>
 #include <array>
+#include <utility>
 
 using namespace floormat;
 
@@ -27,7 +30,9 @@ template class basic_bptr<world::unique_id, non_atomic_refcount>;
 
 world::world() : _unique_id{InPlace}
 {
-    arrayReserve(_grid_orders, 16);
+    arrayAppend(_thread_order_buffers, InPlaceInit);
+    arrayReserve(arrayAppend(_thread_grid_orders, InPlaceInit), 16);
+    arrayReserve(_thinking_critters, 16);
 }
 
 world::world(world&& w) noexcept :
@@ -42,9 +47,11 @@ world::world(world&& w) noexcept :
     _current_frame{w._current_frame},
     _game_time{w._game_time},
     _pass_gen{w._pass_gen},
-    _frame_order_buffer{move(w._frame_order_buffer)},
     _frame_order_list{move(w._frame_order_list)},
-    _grid_orders{move(w._grid_orders)},
+    _thread_order_buffers{move(w._thread_order_buffers)},
+    _thread_grid_orders{move(w._thread_grid_orders)},
+    _thread_astars{move(w._thread_astars)},
+    _thinking_critters{move(w._thinking_critters)},
     _teardown{w._teardown},
     _script_initialized{w._script_initialized},
     _script_finalized{w._script_finalized},
@@ -110,9 +117,12 @@ world& world::operator=(world&& w) noexcept
     _current_frame = w._current_frame;
     _game_time = w._game_time;
     _pass_gen = Math::max(_pass_gen, w._pass_gen);
-    _frame_order_buffer = move(w._frame_order_buffer);
     _frame_order_list = move(w._frame_order_list);
-    _grid_orders = move(w._grid_orders);
+    // Array's move assignment swaps. std::exchange() leaves w's arrays empty.
+    _thread_order_buffers = std::exchange(w._thread_order_buffers, {});
+    _thread_grid_orders = std::exchange(w._thread_grid_orders, {});
+    _thread_astars = std::exchange(w._thread_astars, {});
+    _thinking_critters = std::exchange(w._thinking_critters, {});
     _check_objects_each_frame = w._check_objects_each_frame;
     return *this;
 }
@@ -452,7 +462,7 @@ void world::advance_game_time(Ns dt)
     _game_time += dt;
 }
 
-order_buffer& world::frame_order_buffer() { return _frame_order_buffer; }
+order_buffer& world::frame_order_buffer() { return _thread_order_buffers[0]; }
 order_list& world::frame_order_list() { return _frame_order_list; }
 
 u64 world::next_pass_gen() noexcept
@@ -463,11 +473,35 @@ u64 world::next_pass_gen() noexcept
 
 u64 world::pass_gen() const noexcept { return _pass_gen; }
 
+void world::remake_thread_astars()
+{
+    arrayClear(_thread_astars);
+    if (_thread_pool && _grid_registry)
+    {
+        const auto num_threads = _thread_pool->num_threads();
+        arrayReserve(_thread_astars, num_threads);
+        for (auto i = 0u; i < num_threads; i++)
+            arrayAppend(_thread_astars, InPlaceInit, InPlaceInit, *_grid_registry);
+    }
+}
+
 void world::set_thread_pool(ThreadPool* pool) noexcept
 {
     fm_assert(!is_thread_pool_running());
     fm_assert(!pool || !pool->is_running());
+    for (const auto& buffer : _thread_order_buffers)
+        fm_assert(buffer.empty());
+    // grid_orders() may still hold the last frame's, which the next frame runs.
+    for (auto i = 1u; i < (u32)_thread_grid_orders.size(); i++)
+        fm_assert(_thread_grid_orders[i].isEmpty());
     _thread_pool = pool;
+    const auto num_threads = pool ? pool->num_threads() : 1u;
+    const auto old_num_threads = (u32)_thread_grid_orders.size();
+    arrayResize(_thread_order_buffers, num_threads);
+    arrayResize(_thread_grid_orders, num_threads);
+    for (auto i = old_num_threads; i < num_threads; i++)
+        arrayReserve(_thread_grid_orders[i], 16);
+    remake_thread_astars();
 }
 
 ThreadPool* world::thread_pool() const noexcept { return _thread_pool; }
@@ -476,12 +510,28 @@ bool world::is_thread_pool_running() const noexcept { return _thread_pool && _th
 void world::set_grid_registry(Grid::GridRegistry* reg) noexcept
 {
     fm_assert(!is_thread_pool_running());
+    for (const auto& buffer : _thread_order_buffers)
+        fm_assert(buffer.empty());
+    // grid_orders() may still hold the last frame's, which the next frame runs.
+    for (auto i = 1u; i < (u32)_thread_grid_orders.size(); i++)
+        fm_assert(_thread_grid_orders[i].isEmpty());
     _grid_registry = reg;
+    remake_thread_astars();
 }
 
 Grid::GridRegistry* world::grid_registry() noexcept { return _grid_registry; }
 const Grid::GridRegistry* world::grid_registry() const noexcept { return _grid_registry; }
-Array<grid_order>& world::grid_orders() { return _grid_orders; }
+Array<grid_order>& world::grid_orders() { return _thread_grid_orders[0]; }
+
+struct think_context world::think_context(u32 worker_index)
+{
+    fm_assert(worker_index < _thread_order_buffers.size());
+    auto* A = _thread_astars.isEmpty() ? nullptr : &*_thread_astars[worker_index];
+    return { _thread_order_buffers[worker_index], _thread_grid_orders[worker_index], A };
+}
+
+ArrayView<const order_buffer> world::order_buffers() const { return _thread_order_buffers; }
+Array<thinking_critter>& world::thinking_critters() { return _thinking_critters; }
 
 void world::ensure_passability()
 {

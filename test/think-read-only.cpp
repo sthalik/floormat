@@ -125,8 +125,8 @@ void run_frame(world& w, ArrayView<const bptr<critter>> npcs, Ns dt, ThreadPool*
 // has_grids_built, every grid the npcs read and every octant of the cover grid is built before the first frame.
 struct cover_npcs_world
 {
-    world w;
     astar A;
+    world w;
     bptr<critter> threat;
     Array<bptr<critter>> npcs;
 
@@ -290,10 +290,10 @@ void test_world_without_grids_in_thread_pool(ThreadPool& pool)
 // Every path to cover behind the wall leaves chunk_a, and no think may create the chunk it crosses.
 void test_path_through_missing_chunk(ThreadPool& pool)
 {
-    world w;
     astar A;
     astar B{A.pool_registry()};
     astar* const astars[] = {&B};
+    world w;
     add_ground(w, chunk_a);
     for (const auto y : { u8{1}, u8{4}, u8{7}, u8{10}, u8{13} })
         add_wall(w, {10, y}, {16, 192});
@@ -432,10 +432,10 @@ void test_div_size_changed_mid_walk(ThreadPool& pool)
 
 void test_threat_made_after_init(ThreadPool& pool)
 {
-    world w;
     astar A;
     astar B{A.pool_registry()};
     astar* const astars[] = {&B};
+    world w;
     add_think_order_walls(w);
     const auto threat_id = w.make_id();
     const auto npc = add_critter(w, npc_positions[0]);

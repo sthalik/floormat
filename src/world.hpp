@@ -11,6 +11,7 @@
 #include "compat/nanosecond.hpp"
 #include "loader/policy.hpp"
 #include <array>
+#include <cr/Pointer.h>
 
 namespace floormat {
 
@@ -20,6 +21,8 @@ struct critter_proto;
 struct scenery;
 struct scenery_proto;
 struct grid_order;
+struct thinking_critter;
+class astar;
 class ThreadPool;
 namespace Grid { class GridRegistry; }
 
@@ -42,9 +45,13 @@ class world final
     u64 _current_frame = 1; // zero is special for struct object
     Ns _game_time{};
     u64 _pass_gen = 0;
-    order_buffer _frame_order_buffer;
     order_list _frame_order_list;
-    Array<grid_order> _grid_orders;
+    // The next three are indexed by a parallel_for() job's worker_index.
+    Array<order_buffer> _thread_order_buffers;
+    Array<Array<grid_order>> _thread_grid_orders;
+    // astar isn't movable.
+    Array<Pointer<astar>> _thread_astars;
+    Array<thinking_critter> _thinking_critters;
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
     bool _script_finalized : 1 = false;
@@ -57,6 +64,7 @@ class world final
     void register_chunk(chunk* c) noexcept;
     void unregister_chunk(chunk* c) noexcept;
     chunk& make_chunk_(chunk_coords_ coord);
+    void remake_thread_astars();
     /// Allocate the next stamp for chunk::_pass_gen, _objects_gen or _neighbor_pass_gen. Monotonic, so a
     /// chunk reused at a recycled address can't collide (ABA).
     u64 next_pass_gen() noexcept;
@@ -127,6 +135,7 @@ public:
     u64 max_collider_gen(chunk_coords_ ch, u32 radius) const noexcept;
 
     // The pool whose jobs read this world, or null. It must outlive the world or be replaced by null first.
+    // Invalidates references taken from frame_order_buffer(), grid_orders() and think_context().
     void set_thread_pool(ThreadPool* pool) noexcept;
     ThreadPool* thread_pool() const noexcept;
     // True while thread_pool() is running a parallel_for(). No thread may write the world then.
@@ -139,6 +148,13 @@ public:
     const Grid::GridRegistry* grid_registry() const noexcept;
     // The grid orders given since the last run_grid_orders().
     Array<grid_order>& grid_orders();
+    // Returns the order buffer, grid orders and astar for critter::think() on the thread with this worker_index,
+    // 0 without a pool. The astar is null without a pool or a grid registry. set_grid_registry() replaces it.
+    struct think_context think_context(u32 worker_index);
+    // Returns the order buffers of every think_context(), by worker_index.
+    ArrayView<const order_buffer> order_buffers() const;
+    // Returns the list in which update_world() puts the frame's critters before they think. Empty between frames.
+    Array<thinking_critter>& thinking_critters();
     // Calls chunk::ensure_passability() on every chunk.
     void ensure_passability();
 

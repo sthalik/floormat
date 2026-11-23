@@ -6,6 +6,9 @@ namespace floormat {
 class world;
 struct chunk_coords_;
 struct order;
+struct critter;
+
+struct thinking_critter { const struct critter* critter; u32 update_index; };
 
 // Advances w by one frame of length dt. Every critter and door of `chunks` gives its orders, chunks in the order
 // given, and then the orders run. A coordinate with no chunk is skipped.
