@@ -49,6 +49,7 @@ constexpr i32 box_sides[] = { 0, box_size, 128, 512, whole_chunk_side };
 constexpr u32 query_kind_count = (u32)std::size(box_sides);
 constexpr u32 query_count = 4096;
 constexpr u32 random_rect_entry_counts[] = { 8, 16, 32, 64, 96, 128, 160, 256, 512 };
+constexpr u32 cluster_entry_counts[] = { 32, 64, 96, 128, 160, 256, 512, 1000, 2000, 4000, 8000, 16000 };
 constexpr u32 critter_count = 8;
 constexpr u64 first_critter_id = ~u64{} - critter_count;
 
@@ -756,45 +757,68 @@ u8 random_scenery_bbox_side(Random::xoshiro256starstar& rng)
     return scenery_bbox_sides[i].side;
 }
 
+constexpr u32 clusters_scene_entry_count = [] {
+    u32 sum = uniform_scenery_count;
+    for (const auto& cl : scenery_clusters)
+        sum += cl.scenery_count;
+    return sum;
+}();
+
+// Returns entry_count bboxes, each cluster's scenery_count scaled by entry_count / clusters_scene_entry_count.
 // A center whose bbox would leave the chunk is drawn again, so the distributions are truncated to the chunk.
+Array<Range2Di> make_cluster_bboxes(u32 entry_count, Random::xoshiro256starstar& rng)
+{
+    const auto chunk_min = -half_tile<Vector2i>, chunk_max = chunk_min + chunk_size<Vector2i>;
+    Array<Range2Di> ret;
+    arrayReserve(ret, Math::max(entry_count, 16u));
+    const auto add_bbox = [&](const auto& random_center) {
+        const auto size = Vector2i{random_scenery_bbox_side(rng)};
+        Vector2i min;
+        do
+        {
+            min = random_center() - size/2;
+        }
+        while (!(min >= chunk_min).all() || !(min + size <= chunk_max).all());
+        arrayAppend(ret, Range2Di{min, min + size});
+    };
+    u32 num_cluster_bboxes = 0;
+    for (const auto& cl : scenery_clusters)
+    {
+        const auto mean = Vector2{cl.center_tile*tile_size_xy};
+        const auto sigma = (float)(cl.two_sigma_in_tiles*(u32)tile_size_xy)/2;
+        const auto count = (u32)((u64)cl.scenery_count*entry_count/clusters_scene_entry_count);
+        num_cluster_bboxes += count;
+        for (u32 i = 0; i < count; i++)
+            add_bbox([&] {
+                return Vector2i{Math::round(Vector2{Random::gaussian<float>(Random::next(rng), mean.x(), sigma),
+                                                    Random::gaussian<float>(Random::next(rng), mean.y(), sigma)})};
+            });
+    }
+    fm_assert(num_cluster_bboxes <= entry_count);
+    for (u32 i = num_cluster_bboxes; i < entry_count; i++)
+        add_bbox([&] {
+            return Vector2i{(i32)below(rng, chunk_size_xy), (i32)below(rng, chunk_size_xy)} - half_tile<Vector2i>;
+        });
+    return ret;
+}
+
 void make_clusters_world(world& w)
 {
     constexpr auto ch = chunk_coords_{0, 0, 0};
     auto& c = w[ch];
-    const auto chunk_min = -half_tile<Vector2i>, chunk_max = chunk_min + chunk_size<Vector2i>;
     Random::xoshiro256starstar rng;
-    const auto add_scenery = [&](const auto& random_center) {
-        const auto size = Vector2ub{random_scenery_bbox_side(rng)};
-        Vector2i center, min;
-        do
-        {
-            center = random_center();
-            min = center - Vector2i{size/2};
-        }
-        while (!(min >= chunk_min).all() || !(min + Vector2i{size} <= chunk_max).all());
+    for (const auto& bbox : make_cluster_bboxes(clusters_scene_entry_count, rng))
+    {
+        const auto center = bbox.min() + bbox.size()/2;
         const auto tile = (center + half_tile<Vector2i>) / tile_size_xy;
         scenery_proto p;
         p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
         p.subtype   = generic_scenery_proto{};
         p.offset    = Vector2b{center - tile*tile_size_xy};
-        p.bbox_size = size;
+        p.bbox_size = Vector2ub{bbox.size()};
         p.pass      = pass_mode::blocked;
         w.make_scenery(w.make_id(), {ch, local_coords{tile}}, move(p));
-    };
-    for (const auto& cl : scenery_clusters)
-    {
-        const auto mean = Vector2{cl.center_tile*tile_size_xy};
-        const auto sigma = (float)(cl.two_sigma_in_tiles*(u32)tile_size_xy)/2;
-        for (u32 i = 0; i < cl.scenery_count; i++)
-            add_scenery([&] {
-                return Vector2i{Math::round(Vector2{Random::gaussian<float>(Random::next(rng), mean.x(), sigma),
-                                                    Random::gaussian<float>(Random::next(rng), mean.y(), sigma)})};
-            });
     }
-    for (u32 i = 0; i < uniform_scenery_count; i++)
-        add_scenery([&] {
-            return Vector2i{(i32)below(rng, chunk_size_xy), (i32)below(rng, chunk_size_xy)} - half_tile<Vector2i>;
-        });
     c.mark_passability_modified();
     c.ensure_passability();
 }
@@ -1266,8 +1290,19 @@ Array<entry> make_random_entries(u32 count, ArrayView<const Vector2i> sizes, Ran
     return ret;
 }
 
-Pointer<chunks_and_queries> make_random_rects_set(u32 entry_count, ArrayView<const Vector2i> sizes,
-                                                  Random::xoshiro256starstar& rng)
+Array<entry> make_cluster_entries(u32 entry_count, Random::xoshiro256starstar& rng)
+{
+    const auto bboxes = make_cluster_bboxes(entry_count, rng);
+    Array<entry> ret{ValueInit, bboxes.size()};
+    for (u32 i = 0; i < bboxes.size(); i++)
+        ret[i] = {{Math::Vector2<i16>{bboxes[i].min()}, Math::Vector2<i16>{bboxes[i].max()}}, i};
+    return ret;
+}
+
+template<typename F>
+Pointer<chunks_and_queries> make_chunks_and_queries(StringView name, u32 entry_count,
+                                                    std::initializer_list<i32> query_sides, const F& make_entries,
+                                                    Random::xoshiro256starstar& rng)
 {
     // The arrays take 16 bytes per entry, so the chunks' arrays together take 1 MiB.
     const auto chunk_count = Math::max((1u << 16) / entry_count, 1u);
@@ -1277,17 +1312,19 @@ Pointer<chunks_and_queries> make_random_rects_set(u32 entry_count, ArrayView<con
     for (u32 i = 0; i < chunk_count; i++)
     {
         auto& c = ret->chunks[i];
-        const auto insertion_order = make_random_entries(entry_count, sizes, rng);
+        const auto insertion_order = make_entries();
+        fm_assert(insertion_order.size() == entry_count);
         insert_entries(c.old_tree_8, insertion_order);
         fill_structures(c, insertion_order);
         if (i < 16)
             check_edge_queries(c, rng);
     }
-    for (const auto side : { box_size, whole_chunk_side })
+    for (const auto side : query_sides)
         make_checked_queries(*ret, (u32)(std::find(std::begin(box_sides), std::end(box_sides), side) - box_sides), rng);
     const auto& c = ret->chunks.front();
-    DBG << "rtree random rects: entries" << entry_count << "chunks" << cat(chunk_count, ",") << "nodes" << c.nodes_8.size()
-        << "height" << c.nodes_8.front().m_level + 1;
+    DBG << "rtree" << name << "entries" << entry_count << "chunks" << cat(chunk_count, ",") << "nodes"
+        << c.nodes_8.size() << "height" << c.nodes_8.front().m_level + 1 << "nodes at fan-out 16:" << c.nodes_16.size()
+        << "at 32:" << c.nodes_32.size();
     return ret;
 }
 
@@ -1311,18 +1348,47 @@ std::array<Pointer<chunks_and_queries>, std::size(random_rect_entry_counts)> mak
     std::array<Pointer<chunks_and_queries>, std::size(random_rect_entry_counts)> sets;
     Random::xoshiro256starstar rng;
     for (u32 i = 0; i < sets.size(); i++)
-        sets[i] = make_random_rects_set(random_rect_entry_counts[i], sizes, rng);
+    {
+        const auto n = random_rect_entry_counts[i];
+        sets[i] = make_chunks_and_queries("random rects", n, {box_size, whole_chunk_side},
+                                          [&] { return make_random_entries(n, sizes, rng); }, rng);
+    }
     return sets;
+}
+
+std::array<Pointer<chunks_and_queries>, std::size(cluster_entry_counts)> make_cluster_sets()
+{
+    std::array<Pointer<chunks_and_queries>, std::size(cluster_entry_counts)> sets;
+    Random::xoshiro256starstar rng;
+    for (u32 i = 0; i < sets.size(); i++)
+    {
+        const auto n = cluster_entry_counts[i];
+        sets[i] = make_chunks_and_queries("clusters", n, {0, box_size, 128, 512, whole_chunk_side},
+                                          [&] { return make_cluster_entries(n, rng); }, rng);
+    }
+    return sets;
+}
+
+template<usize N>
+const chunks_and_queries& find_set_by_entry_count(const std::array<Pointer<chunks_and_queries>, N>& sets,
+                                                  const u32 (&entry_counts)[N], benchmark::State& state)
+{
+    const auto* const it = std::find(std::begin(entry_counts), std::end(entry_counts), (u32)state.range(0));
+    fm_assert(it != std::end(entry_counts));
+    return *sets[(u32)(it - entry_counts)];
 }
 
 const chunks_and_queries& get_random_rects_set(benchmark::State& state)
 {
     // Function-local, so the copies are destroyed before the node pools.
     static const auto sets = make_random_rects_sets();
-    const auto* const it = std::find(std::begin(random_rect_entry_counts), std::end(random_rect_entry_counts),
-                                     (u32)state.range(0));
-    fm_assert(it != std::end(random_rect_entry_counts));
-    return *sets[(u32)(it - random_rect_entry_counts)];
+    return find_set_by_entry_count(sets, random_rect_entry_counts, state);
+}
+
+const chunks_and_queries& get_cluster_set(benchmark::State& state)
+{
+    static const auto sets = make_cluster_sets();
+    return find_set_by_entry_count(sets, cluster_entry_counts, state);
 }
 
 u32 box_side_index(i64 side)
@@ -1426,6 +1492,13 @@ void bench_random_rects_search(benchmark::State& state, const F& search_checksum
                     search_checksum);
 }
 
+template<typename F>
+void bench_cluster_search(benchmark::State& state, const F& search_checksum)
+{
+    run_search_loop(state, get_cluster_set(state), (u32)state.range(1), box_side_index(state.range(2)),
+                    search_checksum);
+}
+
 void RTree_Search_Old(benchmark::State& state) { bench_search(state, old_tree_checksum); }
 void RTree_Search_Soa(benchmark::State& state) { bench_search(state, soa_checksum<8>); }
 void RTree_Search_Soa_Fanout_16(benchmark::State& state) { bench_search(state, soa_checksum<16>); }
@@ -1453,6 +1526,13 @@ void RTree_Random_Rects_Search_Soa_Fanout_32(benchmark::State& state)
 }
 void RTree_Random_Rects_Search_Arrays(benchmark::State& state) { bench_random_rects_search(state, arrays_checksum); }
 void RTree_Random_Rects_Search_Aosoa(benchmark::State& state) { bench_random_rects_search(state, blocks_checksum); }
+
+void RTree_Clusters_Search_Old(benchmark::State& state) { bench_cluster_search(state, old_tree_checksum); }
+void RTree_Clusters_Search_Soa(benchmark::State& state) { bench_cluster_search(state, soa_checksum<8>); }
+void RTree_Clusters_Search_Soa_Fanout_16(benchmark::State& state) { bench_cluster_search(state, soa_checksum<16>); }
+void RTree_Clusters_Search_Soa_Fanout_32(benchmark::State& state) { bench_cluster_search(state, soa_checksum<32>); }
+void RTree_Clusters_Search_Arrays(benchmark::State& state) { bench_cluster_search(state, arrays_checksum); }
+void RTree_Clusters_Search_Aosoa(benchmark::State& state) { bench_cluster_search(state, blocks_checksum); }
 
 std::vector<i64> box_side_args(std::initializer_list<i32> sides)
 {
@@ -1485,6 +1565,14 @@ void random_rects_args(benchmark::Benchmark* b)
      ->Unit(benchmark::kNanosecond);
 }
 
+void cluster_args(benchmark::Benchmark* b)
+{
+    b->ArgNames({"entries", "chunks", "box"})
+     ->ArgsProduct({{std::begin(cluster_entry_counts), std::end(cluster_entry_counts)}, {0, 1},
+                    box_side_args({0, box_size, 128, 512, whole_chunk_side})})
+     ->Unit(benchmark::kNanosecond);
+}
+
 BENCHMARK(RTree_Search_Old)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa_Fanout_16)->Apply(search_args);
@@ -1506,6 +1594,13 @@ BENCHMARK(RTree_Random_Rects_Search_Soa_Fanout_16)->Apply(random_rects_args);
 BENCHMARK(RTree_Random_Rects_Search_Soa_Fanout_32)->Apply(random_rects_args);
 BENCHMARK(RTree_Random_Rects_Search_Arrays)->Apply(random_rects_args);
 BENCHMARK(RTree_Random_Rects_Search_Aosoa)->Apply(random_rects_args);
+
+BENCHMARK(RTree_Clusters_Search_Old)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Soa)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Soa_Fanout_16)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Soa_Fanout_32)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Arrays)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Aosoa)->Apply(cluster_args);
 
 void RTree_Ensure_Passability(benchmark::State& state)
 {
