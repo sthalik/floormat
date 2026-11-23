@@ -1,6 +1,7 @@
 #include "cover-world.hpp"
 #include "raycast-dense-world.hpp"
 #include "editor/mazes.hpp"
+#include "editor/torture-test.hpp"
 #include "random/random.hpp"
 #include "src/old-rtree.hpp"
 #include "src/old-rtree-search.hpp"
@@ -60,7 +61,7 @@ static_assert(cmp::less_equal<>{}(2, 2) && !cmp::less_equal<>{}(3, 2) && cmp::le
 template<u32 M> using Chunk_RTree_Fanout = ::old_rtree<object_id, float, 2, float, (int)M, (int)M/2>;
 static_assert(std::is_same_v<Chunk_RTree_Fanout<8>, Chunk_RTree>);
 
-constexpr std::integer_sequence<u32, 16, 24, 32, 48, 64> fanouts_above_8;
+constexpr std::integer_sequence<u32, 4, 16, 24, 32, 48, 64> fanouts_other_than_8;
 
 template<u32 M>
 struct alignas(64) Node
@@ -107,12 +108,14 @@ static_assert(sizeof(entry_block) == 128);
 
 struct chunk_structures
 {
+    Chunk_RTree_Fanout<4> old_tree_4;
     Chunk_RTree_Fanout<8> old_tree_8;
     Chunk_RTree_Fanout<16> old_tree_16;
     Chunk_RTree_Fanout<24> old_tree_24;
     Chunk_RTree_Fanout<32> old_tree_32;
     Chunk_RTree_Fanout<48> old_tree_48;
     Chunk_RTree_Fanout<64> old_tree_64;
+    Array<Node<4>> nodes_4;
     Array<Node<8>> nodes_8;
     Array<Node<16>> nodes_16;
     Array<Node<24>> nodes_24;
@@ -149,15 +152,17 @@ struct benchmark_scene : chunks_and_queries
     Array<entry> largest_chunk_shuffled_entries;
 };
 
-// clusters stays last, so the other scenes' queries take the same random numbers as without it.
-enum class scene : u8 { dense, cover, maze, save, clusters, COUNT };
+// New scenes go last, so the other scenes' queries take the same random numbers as without them.
+enum class scene : u8 { dense, cover, maze, save, clusters, torture, COUNT };
 constexpr u32 scene_count = (u32)scene::COUNT;
-constexpr const char* scene_names[scene_count] = { "dense", "cover", "maze", "save", "clusters" };
+constexpr const char* scene_names[scene_count] = { "dense", "cover", "maze", "save", "clusters", "torture" };
 
 template<u32 M, typename C>
 auto& old_tree(C& c)
 {
-    if constexpr (M == 8)
+    if constexpr (M == 4)
+        return c.old_tree_4;
+    else if constexpr (M == 8)
         return c.old_tree_8;
     else if constexpr (M == 16)
         return c.old_tree_16;
@@ -177,7 +182,9 @@ auto& old_tree(C& c)
 template<u32 M, typename C>
 auto& nodes(C& c)
 {
-    if constexpr (M == 8)
+    if constexpr (M == 4)
+        return c.nodes_4;
+    else if constexpr (M == 8)
         return c.nodes_8;
     else if constexpr (M == 16)
         return c.nodes_16;
@@ -476,7 +483,7 @@ branch_bits<M> OverlappingBranches(const Node<M>& node, const broadcast_rect& re
 {
     using bits_t = branch_bits<M>;
 #if HWY_MAX_BYTES <= 64
-    constexpr hn::CappedTag<i16, max_lanes> d;
+    constexpr hn::CappedTag<i16, Math::min(M, max_lanes)> d;
     constexpr auto N = (u32)hn::MaxLanes(d);
     static_assert(M % N == 0 && M <= 64);
     const auto q_min_x = hn::Load(d, rect.m_min[0]), q_min_y = hn::Load(d, rect.m_min[1]);
@@ -756,7 +763,44 @@ constexpr scenery_cluster scenery_clusters[] = {
     {{4, 12}, 4, 2000},
     {{12, 4}, 1, 2000},
 };
-constexpr u32 uniform_scenery_count = 10000;
+
+constexpr scenery_cluster narrow_and_wide_clusters[] = {
+    {{3, 3}, 1, 256}, {{12, 12}, 1, 256}, {{3, 12}, 2, 256}, {{12, 3}, 2, 256},
+    {{5, 10}, 3, 512}, {{10, 5}, 4, 512},
+};
+
+constexpr scenery_cluster lattice_clusters[] = {
+    {{2, 2}, 2, 256}, {{6, 2}, 2, 256}, {{10, 2}, 2, 256}, {{14, 2}, 2, 256},
+    {{2, 6}, 2, 256}, {{6, 6}, 2, 256}, {{10, 6}, 2, 256}, {{14, 6}, 2, 256},
+    {{2, 10}, 2, 256}, {{6, 10}, 2, 256}, {{10, 10}, 2, 256}, {{14, 10}, 2, 256},
+    {{2, 14}, 2, 256}, {{6, 14}, 2, 256}, {{10, 14}, 2, 256}, {{14, 14}, 2, 256},
+};
+
+struct scenery_mixture
+{
+    ArrayView<const scenery_cluster> clusters;
+    u32 uniform_scenery_count;
+};
+
+constexpr u32 scenery_count(const scenery_mixture& m)
+{
+    u32 sum = m.uniform_scenery_count;
+    for (const auto& cl : m.clusters)
+        sum += cl.scenery_count;
+    return sum;
+}
+
+constexpr scenery_mixture clusters_scene_mixture = {scenery_clusters, 10000};
+constexpr u32 clusters_scene_entry_count = scenery_count(clusters_scene_mixture);
+
+constexpr u32 distribution_entry_count = 4096;
+constexpr scenery_mixture distribution_mixtures[] = {
+    {narrow_and_wide_clusters, 2048},
+    {nullptr, distribution_entry_count},
+    {lattice_clusters, 0},
+};
+constexpr const char* distribution_mixture_names[] = {"narrow and wide clusters", "uniform", "lattice clusters"};
+static_assert(std::size(distribution_mixture_names) == std::size(distribution_mixtures));
 
 struct weighted_bbox_side
 {
@@ -766,37 +810,37 @@ struct weighted_bbox_side
 constexpr weighted_bbox_side scenery_bbox_sides[] = {
     {16, 16}, {32, 8}, {64, 4}, {128, 2}, {192, 1},
 };
+constexpr weighted_bbox_side small_bbox_sides[] = {{16, 1}};
+constexpr weighted_bbox_side tile_bbox_sides[] = {{tile_size_xy, 1}};
 
-u8 random_scenery_bbox_side(Random::xoshiro256starstar& rng)
+constexpr ArrayView<const weighted_bbox_side> distribution_bbox_sides[] = {
+    scenery_bbox_sides, small_bbox_sides, tile_bbox_sides,
+};
+constexpr const char* distribution_bbox_side_names[] = {"16 to 192 px", "16 px", "64 px"};
+static_assert(std::size(distribution_bbox_side_names) == std::size(distribution_bbox_sides));
+
+u8 random_bbox_side(ArrayView<const weighted_bbox_side> sides, Random::xoshiro256starstar& rng)
 {
-    constexpr u32 weight_sum = [] {
-        u32 sum = 0;
-        for (const auto& s : scenery_bbox_sides)
-            sum += s.weight;
-        return sum;
-    }();
+    u32 weight_sum = 0;
+    for (const auto& s : sides)
+        weight_sum += s.weight;
     u32 r = below(rng, weight_sum), i = 0;
-    while (r >= scenery_bbox_sides[i].weight)
-        r -= scenery_bbox_sides[i++].weight;
-    return scenery_bbox_sides[i].side;
+    while (r >= sides[i].weight)
+        r -= sides[i++].weight;
+    return sides[i].side;
 }
 
-constexpr u32 clusters_scene_entry_count = [] {
-    u32 sum = uniform_scenery_count;
-    for (const auto& cl : scenery_clusters)
-        sum += cl.scenery_count;
-    return sum;
-}();
-
-// Returns entry_count bboxes, each cluster's scenery_count scaled by entry_count / clusters_scene_entry_count.
+// Returns entry_count bboxes, each cluster's scenery_count scaled by entry_count / scenery_count(m).
 // A center whose bbox would leave the chunk is drawn again, so the distributions are truncated to the chunk.
-Array<Range2Di> make_cluster_bboxes(u32 entry_count, Random::xoshiro256starstar& rng)
+Array<Range2Di> make_cluster_bboxes(const scenery_mixture& m, ArrayView<const weighted_bbox_side> sides,
+                                    u32 entry_count, Random::xoshiro256starstar& rng)
 {
     const auto chunk_min = -half_tile<Vector2i>, chunk_max = chunk_min + chunk_size<Vector2i>;
+    const auto mixture_count = scenery_count(m);
     Array<Range2Di> ret;
     arrayReserve(ret, Math::max(entry_count, 16u));
     const auto add_bbox = [&](const auto& random_center) {
-        const auto size = Vector2i{random_scenery_bbox_side(rng)};
+        const auto size = Vector2i{random_bbox_side(sides, rng)};
         Vector2i min;
         do
         {
@@ -806,11 +850,11 @@ Array<Range2Di> make_cluster_bboxes(u32 entry_count, Random::xoshiro256starstar&
         arrayAppend(ret, Range2Di{min, min + size});
     };
     u32 num_cluster_bboxes = 0;
-    for (const auto& cl : scenery_clusters)
+    for (const auto& cl : m.clusters)
     {
         const auto mean = Vector2{cl.center_tile*tile_size_xy};
         const auto sigma = (float)(cl.two_sigma_in_tiles*(u32)tile_size_xy)/2;
-        const auto count = (u32)((u64)cl.scenery_count*entry_count/clusters_scene_entry_count);
+        const auto count = (u32)((u64)cl.scenery_count*entry_count/mixture_count);
         num_cluster_bboxes += count;
         for (u32 i = 0; i < count; i++)
             add_bbox([&] {
@@ -831,7 +875,7 @@ void make_clusters_world(world& w)
     constexpr auto ch = chunk_coords_{0, 0, 0};
     auto& c = w[ch];
     Random::xoshiro256starstar rng;
-    for (const auto& bbox : make_cluster_bboxes(clusters_scene_entry_count, rng))
+    for (const auto& bbox : make_cluster_bboxes(clusters_scene_mixture, scenery_bbox_sides, clusters_scene_entry_count, rng))
     {
         const auto center = bbox.min() + bbox.size()/2;
         const auto tile = (center + half_tile<Vector2i>) / tile_size_xy;
@@ -878,13 +922,18 @@ Optional<world> make_scene_world(scene s)
         make_clusters_world(w);
         return Optional<world>{move(w)};
     }
+    case scene::torture: {
+        auto w = world();
+        torture_test::generate_scene(w, 0, 0, true);
+        return Optional<world>{move(w)};
+    }
     case scene::COUNT:
         break;
     }
     fm_assert(false);
 }
 
-// c.old_tree_8 must hold the chunk's entries. The trees of fanouts_above_8 get them in insertion_order.
+// c.old_tree_8 must hold the chunk's entries. The trees of fanouts_other_than_8 get them in insertion_order.
 void fill_structures(chunk_structures& c, ArrayView<const entry> insertion_order)
 {
     c.entries = leaf_entries(c.old_tree_8);
@@ -892,7 +941,7 @@ void fill_structures(chunk_structures& c, ArrayView<const entry> insertion_order
         (insert_entries(old_tree<Ms>(c), insertion_order), ...);
         c.nodes_8 = copy_tree<8>(c.old_tree_8);
         ((nodes<Ms>(c) = copy_tree<Ms>(old_tree<Ms>(c))), ...);
-    }(fanouts_above_8);
+    }(fanouts_other_than_8);
     c.blocks = make_entry_blocks(c.entries);
     fill_entry_arrays(c.arrays, c.entries);
 }
@@ -1000,7 +1049,7 @@ u32 check_query(const chunk_structures& c, const query& q)
     const auto strict = strict_hits(c.entries, min, max);
     [&]<u32... Ms>(std::integer_sequence<u32, Ms...>) {
         (check_query_at_fanout<Ms>(c, q, hits_8, strict), ...);
-    }(fanouts_above_8);
+    }(fanouts_other_than_8);
 
     check_hits_in_order(hits_8, [&](auto&& f) { return search_tree(root, r, f); });
     if (c.shuffled_root)
@@ -1220,7 +1269,7 @@ void print_tree_sizes(const chunk_structures& c)
 {
     [&]<u32... Ms>(std::integer_sequence<u32, Ms...>) {
         (print_tree_size<Ms>(c), ...);
-    }(std::integer_sequence<u32, 8, 16, 24, 32, 48, 64>{});
+    }(std::integer_sequence<u32, 4, 8, 16, 24, 32, 48, 64>{});
 }
 
 void print_entry_count_histogram(StringView scene_name, StringView tree_name, ArrayView<u32> counts)
@@ -1332,9 +1381,10 @@ Array<entry> make_random_entries(u32 count, ArrayView<const Vector2i> sizes, Ran
     return ret;
 }
 
-Array<entry> make_cluster_entries(u32 entry_count, Random::xoshiro256starstar& rng)
+Array<entry> make_cluster_entries(const scenery_mixture& m, ArrayView<const weighted_bbox_side> sides,
+                                  u32 entry_count, Random::xoshiro256starstar& rng)
 {
-    const auto bboxes = make_cluster_bboxes(entry_count, rng);
+    const auto bboxes = make_cluster_bboxes(m, sides, entry_count, rng);
     Array<entry> ret{ValueInit, bboxes.size()};
     for (u32 i = 0; i < bboxes.size(); i++)
         ret[i] = {{Math::Vector2<i16>{bboxes[i].min()}, Math::Vector2<i16>{bboxes[i].max()}}, i};
@@ -1405,8 +1455,31 @@ std::array<Pointer<chunks_and_queries>, std::size(cluster_entry_counts)> make_cl
     {
         const auto n = cluster_entry_counts[i];
         sets[i] = make_chunks_and_queries("clusters", n, {0, box_size, 128, 512, whole_chunk_side},
-                                          [&] { return make_cluster_entries(n, rng); }, rng);
+                                          [&] { return make_cluster_entries(clusters_scene_mixture, scenery_bbox_sides,
+                                                                            n, rng); }, rng);
     }
+    return sets;
+}
+
+using distribution_sets = std::array<std::array<Pointer<chunks_and_queries>, std::size(distribution_bbox_sides)>,
+                                     std::size(distribution_mixtures)>;
+
+distribution_sets make_distribution_sets()
+{
+    distribution_sets sets;
+    for (u32 m = 0; m < sets.size(); m++)
+        for (u32 s = 0; s < sets[m].size(); s++)
+        {
+            Random::xoshiro256starstar rng;
+            Random::seed(rng, m * sets[m].size() + s);
+            DBG << "rtree distribution:" << distribution_mixture_names[m] << "/" << distribution_bbox_side_names[s];
+            sets[m][s] = make_chunks_and_queries("distribution", distribution_entry_count,
+                                                 {0, box_size, 128, 512, whole_chunk_side},
+                                                 [&] { return make_cluster_entries(distribution_mixtures[m],
+                                                                                   distribution_bbox_sides[s],
+                                                                                   distribution_entry_count, rng); },
+                                                 rng);
+        }
     return sets;
 }
 
@@ -1430,6 +1503,15 @@ const chunks_and_queries& get_cluster_set(benchmark::State& state)
 {
     static const auto sets = make_cluster_sets();
     return find_set_by_entry_count(sets, cluster_entry_counts, state);
+}
+
+const chunks_and_queries& get_distribution_set(benchmark::State& state)
+{
+    static const auto sets = make_distribution_sets();
+    const auto m = (u32)state.range(0), s = (u32)state.range(1);
+    fm_assert(m < sets.size() && s < sets[m].size());
+    state.SetLabel(std::string{distribution_mixture_names[m]} + " / " + distribution_bbox_side_names[s]);
+    return *sets[m][s];
 }
 
 u32 box_side_index(i64 side)
@@ -1540,10 +1622,19 @@ void bench_cluster_search(benchmark::State& state, const F& search_checksum)
                     search_checksum);
 }
 
+template<typename F>
+void bench_distribution_search(benchmark::State& state, const F& search_checksum)
+{
+    run_search_loop(state, get_distribution_set(state), (u32)state.range(2), box_side_index(state.range(3)),
+                    search_checksum);
+}
+
 void RTree_Search_Old(benchmark::State& state) { bench_search(state, old_tree_checksum); }
+void RTree_Search_Soa_Fanout_4(benchmark::State& state) { bench_search(state, soa_checksum<4>); }
 void RTree_Search_Soa(benchmark::State& state) { bench_search(state, soa_checksum<8>); }
 void RTree_Search_Soa_Fanout_16(benchmark::State& state) { bench_search(state, soa_checksum<16>); }
 void RTree_Search_Soa_Fanout_32(benchmark::State& state) { bench_search(state, soa_checksum<32>); }
+void RTree_Search_Soa_Fanout_64(benchmark::State& state) { bench_search(state, soa_checksum<64>); }
 void RTree_Search_Soa_Shuffled_Nodes(benchmark::State& state) { bench_search(state, shuffled_nodes_checksum); }
 void RTree_Search_Soa_Stack(benchmark::State& state) { bench_search(state, stack_search_checksum); }
 void RTree_Search_Arrays(benchmark::State& state) { bench_search(state, arrays_checksum); }
@@ -1569,6 +1660,7 @@ void RTree_Random_Rects_Search_Arrays(benchmark::State& state) { bench_random_re
 void RTree_Random_Rects_Search_Aosoa(benchmark::State& state) { bench_random_rects_search(state, blocks_checksum); }
 
 void RTree_Clusters_Search_Old(benchmark::State& state) { bench_cluster_search(state, old_tree_checksum); }
+void RTree_Clusters_Search_Soa_Fanout_4(benchmark::State& state) { bench_cluster_search(state, soa_checksum<4>); }
 void RTree_Clusters_Search_Soa(benchmark::State& state) { bench_cluster_search(state, soa_checksum<8>); }
 void RTree_Clusters_Search_Soa_Fanout_16(benchmark::State& state) { bench_cluster_search(state, soa_checksum<16>); }
 void RTree_Clusters_Search_Soa_Fanout_24(benchmark::State& state) { bench_cluster_search(state, soa_checksum<24>); }
@@ -1577,6 +1669,26 @@ void RTree_Clusters_Search_Soa_Fanout_48(benchmark::State& state) { bench_cluste
 void RTree_Clusters_Search_Soa_Fanout_64(benchmark::State& state) { bench_cluster_search(state, soa_checksum<64>); }
 void RTree_Clusters_Search_Arrays(benchmark::State& state) { bench_cluster_search(state, arrays_checksum); }
 void RTree_Clusters_Search_Aosoa(benchmark::State& state) { bench_cluster_search(state, blocks_checksum); }
+
+void RTree_Distribution_Search_Old(benchmark::State& state) { bench_distribution_search(state, old_tree_checksum); }
+void RTree_Distribution_Search_Soa_Fanout_4(benchmark::State& state)
+{
+    bench_distribution_search(state, soa_checksum<4>);
+}
+void RTree_Distribution_Search_Soa(benchmark::State& state) { bench_distribution_search(state, soa_checksum<8>); }
+void RTree_Distribution_Search_Soa_Fanout_16(benchmark::State& state)
+{
+    bench_distribution_search(state, soa_checksum<16>);
+}
+void RTree_Distribution_Search_Soa_Fanout_32(benchmark::State& state)
+{
+    bench_distribution_search(state, soa_checksum<32>);
+}
+void RTree_Distribution_Search_Soa_Fanout_64(benchmark::State& state)
+{
+    bench_distribution_search(state, soa_checksum<64>);
+}
+void RTree_Distribution_Search_Aosoa(benchmark::State& state) { bench_distribution_search(state, blocks_checksum); }
 
 std::vector<i64> box_side_args(std::initializer_list<i32> sides)
 {
@@ -1617,10 +1729,22 @@ void cluster_args(benchmark::Benchmark* b)
      ->Unit(benchmark::kNanosecond);
 }
 
+// The arguments distribution and sizes index distribution_mixtures and distribution_bbox_sides.
+void distribution_args(benchmark::Benchmark* b)
+{
+    b->ArgNames({"distribution", "sizes", "chunks", "box"})
+     ->ArgsProduct({benchmark::CreateDenseRange(0, (i64)std::size(distribution_mixtures) - 1, 1),
+                    benchmark::CreateDenseRange(0, (i64)std::size(distribution_bbox_sides) - 1, 1), {0, 1},
+                    box_side_args({0, box_size, 128, 512, whole_chunk_side})})
+     ->Unit(benchmark::kNanosecond);
+}
+
 BENCHMARK(RTree_Search_Old)->Apply(search_args);
+BENCHMARK(RTree_Search_Soa_Fanout_4)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa_Fanout_16)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa_Fanout_32)->Apply(search_args);
+BENCHMARK(RTree_Search_Soa_Fanout_64)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa_Shuffled_Nodes)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa_Stack)->Apply(search_args);
 BENCHMARK(RTree_Search_Arrays)->Apply(search_args);
@@ -1640,6 +1764,7 @@ BENCHMARK(RTree_Random_Rects_Search_Arrays)->Apply(random_rects_args);
 BENCHMARK(RTree_Random_Rects_Search_Aosoa)->Apply(random_rects_args);
 
 BENCHMARK(RTree_Clusters_Search_Old)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Soa_Fanout_4)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Soa)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Soa_Fanout_16)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Soa_Fanout_24)->Apply(cluster_args);
@@ -1648,6 +1773,14 @@ BENCHMARK(RTree_Clusters_Search_Soa_Fanout_48)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Soa_Fanout_64)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Arrays)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Aosoa)->Apply(cluster_args);
+
+BENCHMARK(RTree_Distribution_Search_Old)->Apply(distribution_args);
+BENCHMARK(RTree_Distribution_Search_Soa_Fanout_4)->Apply(distribution_args);
+BENCHMARK(RTree_Distribution_Search_Soa)->Apply(distribution_args);
+BENCHMARK(RTree_Distribution_Search_Soa_Fanout_16)->Apply(distribution_args);
+BENCHMARK(RTree_Distribution_Search_Soa_Fanout_32)->Apply(distribution_args);
+BENCHMARK(RTree_Distribution_Search_Soa_Fanout_64)->Apply(distribution_args);
+BENCHMARK(RTree_Distribution_Search_Aosoa)->Apply(distribution_args);
 
 void RTree_Ensure_Passability(benchmark::State& state)
 {
@@ -1735,6 +1868,7 @@ void bench_refill_old(benchmark::State& state)
     }
 }
 
+void RTree_Refill_Old_Fanout_4(benchmark::State& state) { bench_refill_old<4>(state); }
 void RTree_Refill_Old(benchmark::State& state) { bench_refill_old<8>(state); }
 void RTree_Refill_Old_Fanout_16(benchmark::State& state) { bench_refill_old<16>(state); }
 void RTree_Refill_Old_Fanout_24(benchmark::State& state) { bench_refill_old<24>(state); }
@@ -1839,6 +1973,7 @@ BENCHMARK(RTree_Move_Old)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Move_Old_Fanout_16)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Move_Old_Fanout_32)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Move_Arrays)->Apply(scene_args)->Unit(benchmark::kNanosecond);
+BENCHMARK(RTree_Refill_Old_Fanout_4)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Old)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Old_Fanout_16)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Old_Fanout_24)->Apply(refill_args)->Unit(benchmark::kMicrosecond);

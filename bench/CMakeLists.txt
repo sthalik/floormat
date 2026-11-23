@@ -4,7 +4,7 @@ file(GLOB sources CONFIGURE_DEPENDS "*.cpp")
 
 find_package(Threads QUIET REQUIRED)
 add_library(${self}_o OBJECT "${sources}")
-target_sources(${self}_o PRIVATE "../editor/mazes.cpp")
+target_sources(${self}_o PRIVATE "../editor/mazes.cpp" "../editor/torture-test.cpp")
 add_executable(${self} dummy.cc)
 
 target_link_libraries(${self}_o PUBLIC
