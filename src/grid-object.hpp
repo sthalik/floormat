@@ -80,6 +80,7 @@ public:
                         ArrayView<const bool> entry_blocked) const;
 
     u32 div_count() const;
+    u64 build_no() const;
     /// @copydoc floormat::Grid::Pass::Grid::built_pass_gen()
     u64 built_pass_gen() const;
     /// @copydoc floormat::Grid::Pass::Grid::is_marked_stale()
@@ -133,6 +134,8 @@ public:
     // Returns the pool's grid for c when one is attached and needs no rebuild, else an empty handle.
     // It writes only the grid's is_requested_by_reader.
     [[nodiscard]] ConstGrid find_built_grid(const chunk& c) const;
+    // True when a grid of this pool is attached to c, so that operator[] finds it and makes none.
+    bool has_grid_attached_to(const chunk& c) const;
 
     void build_if_stale_all();
     // As GridRegistry::list_requested_stale_grids(), for this pool's grids, appending to list.

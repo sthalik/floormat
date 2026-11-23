@@ -58,6 +58,7 @@ void test_getopt();
 void test_gl_call();
 void test_gl_error();
 void test_grid();
+void test_grid_build_jobs();
 void test_grid_orders();
 void test_grid_read_only();
 void test_guard_page_memory_resource();

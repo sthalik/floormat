@@ -412,6 +412,13 @@ void Grid::mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out
 }
 
 u32 Grid::div_count() const { return grid->params.div_count; }
+
+u64 Grid::build_no() const
+{
+    detail::check_current(grid);
+    return grid->build_no;
+}
+
 u64 Grid::built_pass_gen() const { return grid->built_pass_gen; }
 bool Grid::is_marked_stale() const { return grid->is_marked_stale(); }
 bool Grid::is_stale() const
@@ -489,6 +496,8 @@ ConstGrid Pool::find_built_grid(const chunk& c) const
 {
     return ConstGrid{detail::find_built_grid<detail::ObjectGrid>(pool, c)};
 }
+
+bool Pool::has_grid_attached_to(const chunk& c) const { return pool->find(c) != nullptr; }
 
 void Pool::build_if_stale_all()
 {
