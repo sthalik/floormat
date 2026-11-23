@@ -16,6 +16,7 @@ namespace floormat::Test {
 chunk& make_test_chunk(world& w, chunk_coords_ ch);
 Array<char> write_old_savegame(world& w, ArrayView<const StringView> scenery_names);
 bool has_gl_context();
+ScopeGuard silence_gl_debug_output();
 
 void test_astar();
 void test_astar_pool();
