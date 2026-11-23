@@ -1942,8 +1942,8 @@ void test_cover_script_flanked_retreat(point peek)
     const auto& c0 = *t0.cover;
     fm_assert(s.seen_from(threat_pos, c0.pos));
     s.step();
-    s.finish_search();
     fm_assert(s.status().st == state::retreat);
+    s.finish_search();
     s.step_until(state::seek);
     fm_assert_equal(t0.counters.num_searches + 1, s.status().counters.num_searches);
     const auto dist = [&](point p) { return std::sqrt((double)point::distance_squared(p, threat_pos)); };
@@ -2672,8 +2672,8 @@ void test_cover_script_retreat(point hidden)
     fm_assert(s.seen_from(threat_pos, hidden));
     fm_assert(!find(s.w, hidden, threat_pos, chunk_size_xy, 8).found);
     s.step();
-    s.finish_search();
     fm_assert(s.status().st == state::retreat);
+    s.finish_search();
     s.step_until(state::seek);
     fm_assert_equal(t0.counters.num_searches + 1, s.status().counters.num_searches);
     const auto spot = s.npc->position();
@@ -2703,6 +2703,9 @@ void test_cover_script_retreat(point hidden)
     fm_assert(s.status().st == state::search);
 }
 
+// Halves the npc's speed, so its retreat walk from test_cover_script_retreat's hidden outlasts the search.
+void halve_npc_speed(cover_scene& s) { s.npc->speed = 0.5f; }
+
 // As test_cover_script_retreat, until the npc walks to a spot in the wall's shadow. The wall then goes away, so
 // the threat, standing still, sees that spot, and the npc looks for a retreat again once the wait allows.
 void test_cover_script_retreat_cover_removed(point hidden, bool search_ended)
@@ -2710,6 +2713,8 @@ void test_cover_script_retreat_cover_removed(point hidden, bool search_ended)
     cover_scene s;
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
+    if (search_ended)
+        halve_npc_speed(s);
     const point threat_pos{ch, {7, 1}, {}};
     s.move_threat(threat_pos);
     s.step_until(state::retreat);
@@ -3247,6 +3252,7 @@ void test_cover_script_retreat_blocked_search_ended(point hidden)
     cover_scene s;
     s.step_until(state::hidden);
     fm_assert(s.npc->position() == hidden);
+    halve_npc_speed(s);
     s.move_threat(point{ch, {7, 1}, {}});
     s.step();
     s.finish_search();
@@ -3280,6 +3286,8 @@ void test_cover_script_retreat_end_seen(point hidden, bool search_ended)
     const auto restart = [&](cover_scene& s) {
         s.step_until(state::hidden);
         fm_assert(s.npc->position() == hidden);
+        if (search_ended)
+            halve_npc_speed(s);
         s.move_threat(threat_pos);
         s.step_until(state::retreat);
         if (search_ended)

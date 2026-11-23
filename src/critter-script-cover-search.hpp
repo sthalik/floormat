@@ -6,6 +6,7 @@
 #include <array>
 #include <cr/Array.h>
 #include <cr/Optional.h>
+#include <mg/Constants.h>
 
 namespace floormat { struct critter; }
 
@@ -67,7 +68,7 @@ public:
     // done is true once the search ended, with cover when it found some.
     struct result { Optional<reachable_cover> cover; bool done = false; };
 
-    static constexpr u32 radius = 2*chunk_size_xy;
+    static constexpr u32 radius = (u32)(2*chunk_size_xy*Math::Constants<float>::sqrt2());
 
     cover_search();
     // Without is_fallback_allowed, the search ends with cover hidden from reach that the threat sees nowhere on
