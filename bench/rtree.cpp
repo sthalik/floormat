@@ -22,6 +22,7 @@
 #include <cmath>
 #include <numbers>
 #include <type_traits>
+#include <utility>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <cr/Path.h>
@@ -59,6 +60,8 @@ static_assert(cmp::less_equal<>{}(2, 2) && !cmp::less_equal<>{}(3, 2) && cmp::le
 template<u32 M> using Chunk_RTree_Fanout = ::RTree<object_id, float, 2, float, (int)M, (int)M/2>;
 static_assert(std::is_same_v<Chunk_RTree_Fanout<8>, Chunk_RTree>);
 
+constexpr std::integer_sequence<u32, 16, 24, 32, 48, 64> fanouts_above_8;
+
 template<u32 M>
 struct alignas(64) Node
 {
@@ -68,6 +71,8 @@ struct alignas(64) Node
     int m_count, m_level;
 };
 static_assert(sizeof(Node<8>) == 192);
+
+template<u32 M> using branch_bits = std::conditional_t<(M <= 32), u32, u64>;
 
 struct alignas(64) broadcast_rect
 {
@@ -104,10 +109,16 @@ struct chunk_structures
 {
     Chunk_RTree_Fanout<8> old_tree_8;
     Chunk_RTree_Fanout<16> old_tree_16;
+    Chunk_RTree_Fanout<24> old_tree_24;
     Chunk_RTree_Fanout<32> old_tree_32;
+    Chunk_RTree_Fanout<48> old_tree_48;
+    Chunk_RTree_Fanout<64> old_tree_64;
     Array<Node<8>> nodes_8;
     Array<Node<16>> nodes_16;
+    Array<Node<24>> nodes_24;
     Array<Node<32>> nodes_32;
+    Array<Node<48>> nodes_48;
+    Array<Node<64>> nodes_64;
     const Node<8>* shuffled_root = nullptr;
     // The leaves of old_tree_8 in the order its search reports them.
     Array<entry> entries;
@@ -150,10 +161,16 @@ auto& old_tree(C& c)
         return c.old_tree_8;
     else if constexpr (M == 16)
         return c.old_tree_16;
+    else if constexpr (M == 24)
+        return c.old_tree_24;
+    else if constexpr (M == 32)
+        return c.old_tree_32;
+    else if constexpr (M == 48)
+        return c.old_tree_48;
     else
     {
-        static_assert(M == 32);
-        return c.old_tree_32;
+        static_assert(M == 64);
+        return c.old_tree_64;
     }
 }
 
@@ -164,10 +181,16 @@ auto& nodes(C& c)
         return c.nodes_8;
     else if constexpr (M == 16)
         return c.nodes_16;
+    else if constexpr (M == 24)
+        return c.nodes_24;
+    else if constexpr (M == 32)
+        return c.nodes_32;
+    else if constexpr (M == 48)
+        return c.nodes_48;
     else
     {
-        static_assert(M == 32);
-        return c.nodes_32;
+        static_assert(M == 64);
+        return c.nodes_64;
     }
 }
 
@@ -449,29 +472,30 @@ namespace {
 namespace hn = hwy::HWY_NAMESPACE;
 
 template<u32 M>
-u32 OverlappingBranches(const Node<M>& node, const broadcast_rect& rect)
+branch_bits<M> OverlappingBranches(const Node<M>& node, const broadcast_rect& rect)
 {
+    using bits_t = branch_bits<M>;
 #if HWY_MAX_BYTES <= 64
     constexpr hn::CappedTag<i16, max_lanes> d;
     constexpr auto N = (u32)hn::MaxLanes(d);
-    static_assert(M % N == 0 && M <= 32);
+    static_assert(M % N == 0 && M <= 64);
     const auto q_min_x = hn::Load(d, rect.m_min[0]), q_min_y = hn::Load(d, rect.m_min[1]);
     const auto q_max_x = hn::Load(d, rect.m_max[0]), q_max_y = hn::Load(d, rect.m_max[1]);
-    u32 disjoint_bits = 0;
+    bits_t disjoint_bits = 0;
     for (u32 i = 0; i < M; i += N)
     {
         const auto disjoint = hn::Or(hn::Or(hn::Gt(hn::Load(d, node.m_min[0] + i), q_max_x),
                                             hn::Gt(hn::Load(d, node.m_min[1] + i), q_max_y)),
                                      hn::Or(hn::Lt(hn::Load(d, node.m_max[0] + i), q_min_x),
                                             hn::Lt(hn::Load(d, node.m_max[1] + i), q_min_y)));
-        disjoint_bits |= (u32)hn::BitsFromMask(d, disjoint) << i;
+        disjoint_bits |= (bits_t)hn::BitsFromMask(d, disjoint) << i;
     }
-    return ~disjoint_bits & (u32)((u64{1} << M) - 1);
+    return ~disjoint_bits & (bits_t)(~u64{} >> (64 - M));
 #else
-    u32 bits = 0;
+    bits_t bits = 0;
     for (u32 i = 0; i < M; i++)
-        bits |= (u32)(node.m_min[0][i] <= rect.m_max[0][0] && node.m_min[1][i] <= rect.m_max[1][0] &&
-                      node.m_max[0][i] >= rect.m_min[0][0] && node.m_max[1][i] >= rect.m_min[1][0]) << i;
+        bits |= (bits_t)(node.m_min[0][i] <= rect.m_max[0][0] && node.m_min[1][i] <= rect.m_max[1][0] &&
+                         node.m_max[0][i] >= rect.m_min[0][0] && node.m_max[1][i] >= rect.m_min[1][0]) << i;
     return bits;
 #endif
 }
@@ -480,7 +504,7 @@ template<u32 M, typename F>
 bool search_node(const Node<M>& node, int level, const broadcast_rect& rect, F& callback)
 {
     auto bits = OverlappingBranches(node, rect);
-    fm_debug3_assert(!((u64)bits >> node.m_count));
+    fm_debug3_assert(std::bit_width(bits) <= node.m_count);
     if (level > 0)
     {
         for (; bits; bits &= bits - 1)
@@ -527,7 +551,7 @@ int search_tree_with_float_query(const Node<M>& root, const float a_min[2], cons
 template<typename Compare = cmp::less_equal<>, u32 M, typename F>
 int search_tree_with_stack(const Node<M>& root, const Range2Di& query, F&& callback)
 {
-    struct node_bits { const Node<M>* node; u32 bits; };
+    struct node_bits { const Node<M>* node; branch_bits<M> bits; };
     constexpr u32 max_height = 16;
     const auto rect = make_broadcast_rect(SearchRect<Compare>(query));
     const auto leaf_depth = (u32)root.m_level;
@@ -860,15 +884,15 @@ Optional<world> make_scene_world(scene s)
     fm_assert(false);
 }
 
-// c.old_tree_8 must hold the chunk's entries. The trees of fan-out 16 and 32 get them in insertion_order.
+// c.old_tree_8 must hold the chunk's entries. The trees of fanouts_above_8 get them in insertion_order.
 void fill_structures(chunk_structures& c, ArrayView<const entry> insertion_order)
 {
     c.entries = leaf_entries(c.old_tree_8);
-    insert_entries(c.old_tree_16, insertion_order);
-    insert_entries(c.old_tree_32, insertion_order);
-    c.nodes_8 = copy_tree<8>(c.old_tree_8);
-    c.nodes_16 = copy_tree<16>(c.old_tree_16);
-    c.nodes_32 = copy_tree<32>(c.old_tree_32);
+    [&]<u32... Ms>(std::integer_sequence<u32, Ms...>) {
+        (insert_entries(old_tree<Ms>(c), insertion_order), ...);
+        c.nodes_8 = copy_tree<8>(c.old_tree_8);
+        ((nodes<Ms>(c) = copy_tree<Ms>(old_tree<Ms>(c))), ...);
+    }(fanouts_above_8);
     c.blocks = make_entry_blocks(c.entries);
     fill_entry_arrays(c.arrays, c.entries);
 }
@@ -953,21 +977,32 @@ Array<entry> strict_hits(ArrayView<const entry> entries, const T min[2], const T
     return ret;
 }
 
+template<u32 M>
+void check_query_at_fanout(const chunk_structures& c, const query& q, ArrayView<const entry> hits_8,
+                           ArrayView<const entry> strict)
+{
+    const auto hits = old_tree_hits(old_tree<M>(c), q.min, q.max, c.entries.size());
+    fm_assert(hits.size() == hits_8.size() && hash_sum(hits) == hash_sum(hits_8));
+    const auto& root = nodes<M>(c).front();
+    check_hits_in_order(hits, [&](auto&& f) { return search_tree(root, q.rect, f); });
+    check_hits_in_any_order(strict, [&](auto&& f) { return search_tree<cmp::less<>>(root, q.rect, f); });
+}
+
 // Returns the number of entries the old tree reports for q, whose float and integer bounds must be equal.
 u32 check_query(const chunk_structures& c, const query& q)
 {
+    using lt = cmp::less<>;
     const auto n = c.entries.size();
     const auto hits_8 = old_tree_hits(c.old_tree_8, q.min, q.max, n);
-    const auto hits_16 = old_tree_hits(c.old_tree_16, q.min, q.max, n);
-    const auto hits_32 = old_tree_hits(c.old_tree_32, q.min, q.max, n);
-    fm_assert(hits_16.size() == hits_8.size() && hash_sum(hits_16) == hash_sum(hits_8));
-    fm_assert(hits_32.size() == hits_8.size() && hash_sum(hits_32) == hash_sum(hits_8));
-
     const auto& r = q.rect;
     const auto& root = c.nodes_8.front();
+    const i32 min[2] = {r.min().x(), r.min().y()}, max[2] = {r.max().x(), r.max().y()};
+    const auto strict = strict_hits(c.entries, min, max);
+    [&]<u32... Ms>(std::integer_sequence<u32, Ms...>) {
+        (check_query_at_fanout<Ms>(c, q, hits_8, strict), ...);
+    }(fanouts_above_8);
+
     check_hits_in_order(hits_8, [&](auto&& f) { return search_tree(root, r, f); });
-    check_hits_in_order(hits_16, [&](auto&& f) { return search_tree(c.nodes_16.front(), r, f); });
-    check_hits_in_order(hits_32, [&](auto&& f) { return search_tree(c.nodes_32.front(), r, f); });
     if (c.shuffled_root)
         check_hits_in_order(hits_8, [&](auto&& f) { return search_tree(*c.shuffled_root, r, f); });
     check_hits_in_order(hits_8, [&](auto&& f) { return search_tree_with_stack(root, r, f); });
@@ -975,12 +1010,7 @@ u32 check_query(const chunk_structures& c, const query& q)
     check_hits_in_order(hits_8, [&](auto&& f) { return search_blocks(c.blocks, r, f); });
     check_hits_in_order(hits_8, [&](auto&& f) { return search_tree_with_float_query(root, q.min, q.max, f); });
 
-    using lt = cmp::less<>;
-    const i32 min[2] = {r.min().x(), r.min().y()}, max[2] = {r.max().x(), r.max().y()};
-    const auto strict = strict_hits(c.entries, min, max);
     check_hits_in_order(strict, [&](auto&& f) { return search_tree<lt>(root, r, f); });
-    check_hits_in_any_order(strict, [&](auto&& f) { return search_tree<lt>(c.nodes_16.front(), r, f); });
-    check_hits_in_any_order(strict, [&](auto&& f) { return search_tree<lt>(c.nodes_32.front(), r, f); });
     check_hits_in_order(strict, [&](auto&& f) { return search_tree_with_stack<lt>(root, r, f); });
     check_hits_in_order(strict, [&](auto&& f) { return search_arrays<lt>(c.arrays, r, f); });
     check_hits_in_order(strict, [&](auto&& f) { return search_blocks<lt>(c.blocks, r, f); });
@@ -1180,6 +1210,19 @@ void make_checked_queries(chunks_and_queries& s, u32 kind, Random::xoshiro256sta
     }
 }
 
+template<u32 M>
+void print_tree_size(const chunk_structures& c)
+{
+    DBG << "  fan-out" << M << "nodes" << nodes<M>(c).size() << "height" << nodes<M>(c).front().m_level + 1;
+}
+
+void print_tree_sizes(const chunk_structures& c)
+{
+    [&]<u32... Ms>(std::integer_sequence<u32, Ms...>) {
+        (print_tree_size<Ms>(c), ...);
+    }(std::integer_sequence<u32, 8, 16, 24, 32, 48, 64>{});
+}
+
 void print_entry_count_histogram(StringView scene_name, StringView tree_name, ArrayView<u32> counts)
 {
     std::sort(counts.begin(), counts.end());
@@ -1232,9 +1275,8 @@ Pointer<benchmark_scene> make_benchmark_scene(StringView name, world& w, Random:
     for (u32 kind = 0; kind < query_kind_count; kind++)
         make_checked_queries(*ret, kind, rng);
 
-    DBG << "rtree" << name << "chunks" << cat(chunk_count, ",") << "largest tree: entries" << cat(c.entries.size(), ",")
-        << "nodes" << cat(c.nodes_8.size(), ",") << "height" << cat(c.nodes_8.front().m_level + 1, ",")
-        << "nodes at fan-out 16:" << cat(c.nodes_16.size(), ",") << "at 32:" << c.nodes_32.size();
+    DBG << "rtree" << name << "chunks" << cat(chunk_count, ",") << "largest tree: entries" << c.entries.size();
+    print_tree_sizes(c);
     print_entry_count_histogram(name, "collider tree", entry_counts);
     print_entry_count_histogram(name, "hole tree", hole_entry_counts);
     return ret;
@@ -1322,9 +1364,8 @@ Pointer<chunks_and_queries> make_chunks_and_queries(StringView name, u32 entry_c
     for (const auto side : query_sides)
         make_checked_queries(*ret, (u32)(std::find(std::begin(box_sides), std::end(box_sides), side) - box_sides), rng);
     const auto& c = ret->chunks.front();
-    DBG << "rtree" << name << "entries" << entry_count << "chunks" << cat(chunk_count, ",") << "nodes"
-        << c.nodes_8.size() << "height" << c.nodes_8.front().m_level + 1 << "nodes at fan-out 16:" << c.nodes_16.size()
-        << "at 32:" << c.nodes_32.size();
+    DBG << "rtree" << name << "entries" << entry_count << "chunks" << chunk_count;
+    print_tree_sizes(c);
     return ret;
 }
 
@@ -1530,7 +1571,10 @@ void RTree_Random_Rects_Search_Aosoa(benchmark::State& state) { bench_random_rec
 void RTree_Clusters_Search_Old(benchmark::State& state) { bench_cluster_search(state, old_tree_checksum); }
 void RTree_Clusters_Search_Soa(benchmark::State& state) { bench_cluster_search(state, soa_checksum<8>); }
 void RTree_Clusters_Search_Soa_Fanout_16(benchmark::State& state) { bench_cluster_search(state, soa_checksum<16>); }
+void RTree_Clusters_Search_Soa_Fanout_24(benchmark::State& state) { bench_cluster_search(state, soa_checksum<24>); }
 void RTree_Clusters_Search_Soa_Fanout_32(benchmark::State& state) { bench_cluster_search(state, soa_checksum<32>); }
+void RTree_Clusters_Search_Soa_Fanout_48(benchmark::State& state) { bench_cluster_search(state, soa_checksum<48>); }
+void RTree_Clusters_Search_Soa_Fanout_64(benchmark::State& state) { bench_cluster_search(state, soa_checksum<64>); }
 void RTree_Clusters_Search_Arrays(benchmark::State& state) { bench_cluster_search(state, arrays_checksum); }
 void RTree_Clusters_Search_Aosoa(benchmark::State& state) { bench_cluster_search(state, blocks_checksum); }
 
@@ -1598,7 +1642,10 @@ BENCHMARK(RTree_Random_Rects_Search_Aosoa)->Apply(random_rects_args);
 BENCHMARK(RTree_Clusters_Search_Old)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Soa)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Soa_Fanout_16)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Soa_Fanout_24)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Soa_Fanout_32)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Soa_Fanout_48)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Soa_Fanout_64)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Arrays)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Aosoa)->Apply(cluster_args);
 
@@ -1690,7 +1737,10 @@ void bench_refill_old(benchmark::State& state)
 
 void RTree_Refill_Old(benchmark::State& state) { bench_refill_old<8>(state); }
 void RTree_Refill_Old_Fanout_16(benchmark::State& state) { bench_refill_old<16>(state); }
+void RTree_Refill_Old_Fanout_24(benchmark::State& state) { bench_refill_old<24>(state); }
 void RTree_Refill_Old_Fanout_32(benchmark::State& state) { bench_refill_old<32>(state); }
+void RTree_Refill_Old_Fanout_48(benchmark::State& state) { bench_refill_old<48>(state); }
+void RTree_Refill_Old_Fanout_64(benchmark::State& state) { bench_refill_old<64>(state); }
 
 void RTree_Refill_Arrays(benchmark::State& state)
 {
@@ -1791,7 +1841,10 @@ BENCHMARK(RTree_Move_Old_Fanout_32)->Apply(scene_args)->Unit(benchmark::kNanosec
 BENCHMARK(RTree_Move_Arrays)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Refill_Old)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Old_Fanout_16)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
+BENCHMARK(RTree_Refill_Old_Fanout_24)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Old_Fanout_32)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
+BENCHMARK(RTree_Refill_Old_Fanout_48)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
+BENCHMARK(RTree_Refill_Old_Fanout_64)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Arrays)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Remove_Insert_Old)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Remove_Insert_Old_Fanout_16)->Apply(scene_args)->Unit(benchmark::kNanosecond);
