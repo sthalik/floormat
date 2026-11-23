@@ -15,6 +15,8 @@
 #include <array>
 #include <bit>
 #include <cmath>
+#include <cstddef>
+#include <type_traits>
 #include <cr/GrowableArray.h>
 #include <cr/Optional.h>
 #include <mg/Range.h>
@@ -44,7 +46,7 @@ const std::array<Vector2, Grid::Cover::octant_count>& octant_dirs()
 }
 
 // The two octants whose bearings are on either side of v's.
-octant_pair octants_around(Vector2 v)
+[[fm_always_inline]] inline octant_pair octants_around(Vector2 v)
 {
     constexpr auto n = (u32)Grid::Cover::octant_count;
     const auto& dirs = octant_dirs();
@@ -121,10 +123,11 @@ enum class end_step : u8 { hidden, seen, stopped, };
 
 // The exact tests of a body of q.body_size against the R-tree rects between it and q.threat. Positions are in
 // whole px, as Vector3i(point).xy() gives them.
+template<typename World>
 struct visibility_tests
 {
-    visibility_tests(const world& w, world* writable_world, const query& q, const Search::pred& pred,
-                     Array<slope_range>& runs, Array<Range2Di>& neighbor_octant_rects, Array<Range2Di>& end_rects);
+    visibility_tests(World& w, const query& q, const Search::pred& pred, Array<slope_range>& runs,
+                     Array<Range2Di>& neighbor_octant_rects, Array<Range2Di>& end_rects);
 
     point to_point(Vector2i px) const { return q_pos + (px - P); }
     bool is_passable(Vector2i center) const;
@@ -139,9 +142,7 @@ struct visibility_tests
     end_step end_test(Vector2i pos, Vector2i axis, Vector2i across);
     Vector2i move_spot_to_cover_end(Vector2i pos, Vector2i axis, Vector2i across);
 
-    const world& w;
-    // w, set only in a writable call, which may rebuild R-trees
-    world* writable_world;
+    World& w;
     Search::pred pred;
     Array<slope_range>& runs;
     Array<Range2Di>& neighbor_octant_rects;
@@ -156,42 +157,40 @@ struct visibility_tests
     Vector2 octant_cos_sin[4];
 };
 
-visibility_tests::visibility_tests(const world& w, world* writable_world, const query& q, const Search::pred& pred,
-                                   Array<slope_range>& runs, Array<Range2Di>& neighbor_octant_rects,
-                                   Array<Range2Di>& end_rects) :
-    w{w}, writable_world{writable_world}, pred{pred}, runs{runs}, neighbor_octant_rects{neighbor_octant_rects},
-    end_rects{end_rects}, q_pos{q.pos},
+template<typename World>
+visibility_tests<World>::visibility_tests(World& w, const query& q, const Search::pred& pred,
+                                          Array<slope_range>& runs, Array<Range2Di>& neighbor_octant_rects,
+                                          Array<Range2Di>& end_rects) :
+    w{w}, pred{pred}, runs{runs}, neighbor_octant_rects{neighbor_octant_rects}, end_rects{end_rects}, q_pos{q.pos},
     P{Vector3i(q.pos).xy()}, T{Vector3i(q.threat).xy()}, body_size{q.body_size},
     body_lo{Vector2i(q.body_size / 2u)}, body_hi{Vector2i(q.body_size) - body_lo},
     ext_lo{body_lo}, ext_hi{body_hi - Vector2i{1}}, half{(int)(q.octants/2u)},
     step_px{Math::max(1, (int)Math::min(q.body_size.x(), q.body_size.y())/2)},
     max_cover_end_dist{q.max_cover_end_dist}
 {
-    fm_debug_assert(!writable_world || writable_world == &w);
     fm_assert(half <= (int)std::size(octant_cos_sin));
     for (auto j = 1; j <= half; j++)
         octant_cos_sin[j - 1] = { std::cos((float)j * octant_step), std::sin((float)j * octant_step) };
 }
 
-bool visibility_tests::is_passable(Vector2i center) const
+template<typename World>
+bool visibility_tests<World>::is_passable(Vector2i center) const
 {
     const auto pt = to_point(center);
     const auto min = Vector2(pt.intra().center_shifted() - body_lo);
-    const auto bb = Range2D{min, min + Vector2(body_size)};
-    if (writable_world)
-        return Search::is_passable(*writable_world, pt.chunk3(), bb, pred);
-    else
-        return Search::is_passable(w, pt.chunk3(), bb, pred);
+    return Search::is_passable(w, pt.chunk3(), Range2D{min, min + Vector2(body_size)}, pred);
 }
 
-int visibility_tests::reach(Vector2i dir) const
+template<typename World>
+int visibility_tests<World>::reach(Vector2i dir) const
 {
     return Math::dot(Math::max(dir, Vector2i{0}), ext_hi) + Math::dot(Math::max(-dir, Vector2i{0}), ext_lo);
 }
 
 // Appends the rects that the box from qlo to qhi touches, relative to threat and doubled. The
 // rects a ray skips are left out the same way.
-void visibility_tests::collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi, Array<Range2Di>& out) const
+template<typename World>
+void visibility_tests<World>::collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi, Array<Range2Di>& out) const
 {
     const auto z = q_pos.chunk3().z;
     const auto chunk_of = [](int px) { return floormat::floor_div(px + half_tile<int>, chunk_size<int>); };
@@ -200,15 +199,12 @@ void visibility_tests::collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi
     for (auto cy = chunk_of(qlo.y()) - 1; cy <= chunk_of(qhi.y()) + 1; cy++)
         for (auto cx = chunk_of(qlo.x()) - 1; cx <= chunk_of(qhi.x()) + 1; cx++)
         {
-            const auto cc = chunk_coords_{(i16)cx, (i16)cy, z};
-            auto* wc = writable_world ? writable_world->at(cc) : nullptr;
-            const auto* c = writable_world ? wc : w.at(cc);
+            auto* c = w.at(chunk_coords_{(i16)cx, (i16)cy, z});
             if (!c)
                 continue;
             const auto origin = Vector2i{cx, cy}*chunk_size<int>;
             const auto clo = Vector2(qlo - origin), chi = Vector2(qhi - origin);
-            const auto* tree = wc ? wc->rtree() : c->rtree();
-            tree->Search(clo.data(), chi.data(), [&](u64 data, const auto& r) {
+            c->rtree()->Search(clo.data(), chi.data(), [&](u64 data, const auto& r) {
                 const auto x = std::bit_cast<collision_data>(data);
                 const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
                 const auto pmin = Vector2i(Math::ceil(range.min())), pmax = Vector2i(Math::ceil(range.max()));
@@ -220,7 +216,8 @@ void visibility_tests::collect_rects(Vector2i threat, Vector2i qlo, Vector2i qhi
         }
 }
 
-square_box visibility_tests::body_at(Vector2i pos, Vector2i axis, Vector2i across, Vector2i threat) const
+template<typename World>
+square_box visibility_tests<World>::body_at(Vector2i pos, Vector2i axis, Vector2i across, Vector2i threat) const
 {
     const auto e = Math::dot(threat - pos, axis), c = Math::dot(pos - threat, across);
     return square_box{ 2*(e - reach(axis)) - 1, 2*(e + reach(-axis)) + 1,
@@ -229,8 +226,9 @@ square_box visibility_tests::body_at(Vector2i pos, Vector2i axis, Vector2i acros
 
 // A ray aimed anywhere hits a rect when it touches a closed pixel square (bresenham_line::orthogonal_at).
 // Only squares nearer than the body's near face surely come first. Open ranges let a grazing ray pass.
-void visibility_tests::build_runs(const square_box& body, Vector2i axis, Vector2i across,
-                                  ArrayView<const Range2Di> from)
+template<typename World>
+void visibility_tests<World>::build_runs(const square_box& body, Vector2i axis, Vector2i across,
+                                         ArrayView<const Range2Di> from)
 {
     arrayClear(runs);
     for (const auto& r : from)
@@ -256,7 +254,8 @@ void visibility_tests::build_runs(const square_box& body, Vector2i axis, Vector2
     arrayResize(runs, NoInit, n);
 }
 
-bool visibility_tests::is_hidden(const square_box& body) const
+template<typename World>
+bool visibility_tests<World>::is_hidden(const square_box& body) const
 {
     if (body.d0 <= 1)
         return false;
@@ -269,7 +268,9 @@ bool visibility_tests::is_hidden(const square_box& body) const
 
 // True when threat sees no pixel of a body centered on pos, judged along axis and along the axis toward threat.
 // rects holds collect_rects() for threat over a box holding threat and the body, or over a larger one.
-bool visibility_tests::is_hidden_by(Vector2i threat, Vector2i pos, Vector2i axis, ArrayView<const Range2Di> rects)
+template<typename World>
+bool visibility_tests<World>::is_hidden_by(Vector2i threat, Vector2i pos, Vector2i axis,
+                                           ArrayView<const Range2Di> rects)
 {
     const auto seen_along = [&](Vector2i ax) {
         const auto ac = across_of(ax);
@@ -282,7 +283,8 @@ bool visibility_tests::is_hidden_by(Vector2i threat, Vector2i pos, Vector2i axis
 }
 
 // is_hidden_by() with rects refilled for the box spanning threat and the body.
-bool visibility_tests::is_hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects)
+template<typename World>
+bool visibility_tests<World>::is_hidden_from(Vector2i threat, Vector2i pos, Vector2i axis, Array<Range2Di>& rects)
 {
     arrayClear(rects);
     collect_rects(threat, Math::min(threat, pos - ext_lo) - Vector2i{1}, Math::max(threat, pos + ext_hi) + Vector2i{1},
@@ -292,7 +294,8 @@ bool visibility_tests::is_hidden_from(Vector2i threat, Vector2i pos, Vector2i ax
 
 // True when the threat, at its distance from pos in each of the q.octants/2 octants on either side of its own,
 // sees no pixel of a body centered on pos and pushed along axis. Each position gets an R-tree search of its own.
-bool visibility_tests::is_hidden_from_threat_in_neighbor_octants(Vector2i pos, Vector2i axis)
+template<typename World>
+bool visibility_tests<World>::is_hidden_from_threat_in_neighbor_octants(Vector2i pos, Vector2i axis)
 {
     const auto v = Vector2(T - pos);
     for (auto j = 0; j < half; j++)
@@ -306,7 +309,8 @@ bool visibility_tests::is_hidden_from_threat_in_neighbor_octants(Vector2i pos, V
     return true;
 }
 
-end_step visibility_tests::end_test(Vector2i pos, Vector2i axis, Vector2i across)
+template<typename World>
+end_step visibility_tests<World>::end_test(Vector2i pos, Vector2i axis, Vector2i across)
 {
     const auto body = body_at(pos, axis, across, T);
     build_runs(body, axis, across, end_rects);
@@ -317,7 +321,8 @@ end_step visibility_tests::end_test(Vector2i pos, Vector2i axis, Vector2i across
 
 // The moved bodies can lie past the box of rects, which holds only the candidates' area, so this
 // searches its own box from the threat to the bodies on both sides.
-Vector2i visibility_tests::move_spot_to_cover_end(Vector2i pos, Vector2i axis, Vector2i across)
+template<typename World>
+Vector2i visibility_tests<World>::move_spot_to_cover_end(Vector2i pos, Vector2i axis, Vector2i across)
 {
     const auto m = (int)max_cover_end_dist;
     arrayClear(end_rects);
@@ -407,16 +412,21 @@ void nearest_tiles(u32 radius, Array<Vector2i>& out)
 
 struct finder::Impl
 {
-    // The bodies of finder's overloads. A writable call passes w and cover_pool again as the writable pointers,
-    // and a null orders. A read-only call passes null writable pointers.
-    result find(const world& w, world* writable_world, const Grid::Cover::Pool& cover_pool,
-                Grid::Cover::Pool* writable_cover_pool, const query& q, const Search::pred& pred,
-                Array<grid_order>* orders, bool list_spots);
-    bool is_hidden_at(const world& w, world* writable_world, point threat, const spot& s, Vector2ui body_size);
-    bool is_hidden_from_threat_in_neighbor_octants(const world& w, world* writable_world, point threat,
-                                                   const spot& s, Vector2ui body_size, u8 octants);
-    point move_to_cover_end(const world& w, world* writable_world, const query& q, Vector2i axis,
-                            const Search::pred& pred, ArrayView<const point> also_from);
+    // The bodies of finder's overloads.
+    template<typename World>
+    result find(World& w,
+                std::conditional_t<std::is_const_v<World>, const Grid::Cover::Pool&, Grid::Cover::Pool&> cover_pool,
+                const query& q, const Search::pred& pred,
+                std::conditional_t<std::is_const_v<World>, Array<grid_order>&, std::nullptr_t> orders,
+                bool list_spots);
+    template<typename World>
+    bool is_hidden_at(World& w, point threat, const spot& s, Vector2ui body_size);
+    template<typename World>
+    bool is_hidden_from_threat_in_neighbor_octants(World& w, point threat, const spot& s, Vector2ui body_size,
+                                                   u8 octants);
+    template<typename World>
+    point move_to_cover_end(World& w, const query& q, Vector2i axis, const Search::pred& pred,
+                            ArrayView<const point> also_from);
 
     Array<u8> known;
     Array<cell_info> cells;
@@ -446,24 +456,23 @@ finder::~finder() noexcept = default;
 result finder::find(world& w, Grid::GridRegistry& pools, Grid::Cover::Params params,
                     const query& q, const Search::pred& pred, bool list_spots)
 {
-    auto& cover_pool = pools.cover_pool(params);
-    return impl->find(w, &w, cover_pool, &cover_pool, q, pred, nullptr, list_spots);
+    return impl->find(w, pools.cover_pool(params), q, pred, nullptr, list_spots);
 }
 
 result finder::find(const world& w, const Grid::Cover::Pool& cover_pool, const query& q, const Search::pred& pred,
                     Array<grid_order>& orders, bool list_spots)
 {
-    return impl->find(w, nullptr, cover_pool, nullptr, q, pred, &orders, list_spots);
+    return impl->find(w, cover_pool, q, pred, orders, list_spots);
 }
 
-result finder::Impl::find(const world& w, world* writable_world, const Grid::Cover::Pool& cover_pool,
-                          Grid::Cover::Pool* writable_cover_pool, const query& q, const Search::pred& pred,
-                          Array<grid_order>* orders, bool list_spots)
+template<typename World>
+result finder::Impl::find(World& w,
+                          std::conditional_t<std::is_const_v<World>, const Grid::Cover::Pool&,
+                                             Grid::Cover::Pool&> cover_pool,
+                          const query& q, const Search::pred& pred,
+                          std::conditional_t<std::is_const_v<World>, Array<grid_order>&, std::nullptr_t> orders,
+                          bool list_spots)
 {
-    fm_debug_assert(!writable_world || writable_world == &w);
-    fm_debug_assert(!writable_world == !writable_cover_pool
-                    && (!writable_cover_pool || writable_cover_pool == &cover_pool));
-    fm_debug_assert(!writable_world == (orders != nullptr));
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     // Odd, so the octants checked lie evenly on both sides of the nearest one.
     fm_assert(q.octants == 0 || q.octants % 2 == 1 && q.octants <= 9);
@@ -477,7 +486,7 @@ result finder::Impl::find(const world& w, world* writable_world, const Grid::Cov
     const auto dc = chunk_size_xy / (u32)ds;
     fm_assert(q.radius <= 1u << 20);
     const auto R = (int)q.radius;
-    visibility_tests X{w, writable_world, q, pred, runs, neighbor_octant_rects, end_rects};
+    visibility_tests<World> X{w, q, pred, runs, neighbor_octant_rects, end_rects};
     const auto &P = X.P, &T = X.T, &body_lo = X.body_lo, &body_hi = X.body_hi;
     const auto to_point = [&](Vector2i px) { return X.to_point(px); };
 
@@ -524,22 +533,28 @@ result finder::Impl::find(const world& w, world* writable_world, const Grid::Cov
         out_of_fills = out_of_fills || cover_pool.octant_fills() - fills0 >= q.max_fills;
         return !out_of_fills;
     };
-    // False when octant k of c's grid can't be read. A writable call leaves writable_g unchanged when building it
-    // or filling k would pass q.max_fills. In a read-only call, g lacking k appends a grid_order.
-    const auto ensure = [&](Grid::Cover::Grid& writable_g, const Grid::Cover::ConstGrid& g, const chunk& c, u32 k) {
-        if (writable_g)
+    const auto cover_grid_of = [&](auto& c) {
+        if constexpr (std::is_const_v<World>)
+            return cover_pool.find_built_grid(c);
+        else
+            return cover_pool[c];
+    };
+    // False when octant k of c's grid g can't be read. A writable call leaves g unchanged when building it or
+    // filling k would pass q.max_fills. In a read-only call, g lacking k appends a grid_order.
+    const auto ensure = [&] [[fm_always_inline]] (auto& g, [[maybe_unused]] const chunk& c, u32 k) {
+        if constexpr (!std::is_const_v<World>)
         {
-            if (writable_g.is_marked_stale())
+            if (g.is_marked_stale())
             {
                 if (!may_fill())
                     return false;
-                writable_g.build_if_stale();
+                g.build_if_stale();
             }
-            if (!(writable_g.built_octants() & 1u << k))
+            if (!(g.built_octants() & 1u << k))
             {
                 if (!may_fill())
                     return false;
-                (void)writable_g.ensure_octant(k);
+                (void)g.ensure_octant(k);
             }
             return true;
         }
@@ -548,7 +563,7 @@ result finder::Impl::find(const world& w, world* writable_world, const Grid::Cov
         else
         {
             out_of_fills = true;
-            arrayAppend(*orders, grid_order{
+            arrayAppend(orders, grid_order{
                 .pass_params = Pass::Params{(u32)ds, pass_mode::shoot_through}, .cover_div_size = (u32)ds,
                 .chunk = c.coord(), .kind = grid_order::grid_kind::cover, .octant = (u8)k,
             });
@@ -564,19 +579,17 @@ result finder::Impl::find(const world& w, world* writable_world, const Grid::Cov
         cells[i] = { false, false, Grid::Cover::blocked };
         const auto center = center_of(n);
         const auto pt = to_point(center);
-        auto* wc = writable_world ? writable_world->at(pt.chunk3()) : nullptr;
-        const auto* c = writable_world ? wc : w.at(pt.chunk3());
+        auto* c = w.at(pt.chunk3());
         const auto v = Vector2(T - center);
         const auto len = v.length();
         if (!c || len < 1)
             return cells[i];
-        auto writable_g = wc ? (*writable_cover_pool)[*wc] : Grid::Cover::Grid{nullptr};
-        const auto g = wc ? Grid::Cover::ConstGrid{writable_g.raw()} : cover_pool.find_built_grid(*c);
+        auto g = cover_grid_of(*c);
         // The cell's center sees the threat between two octants. Either one hiding it makes a
         // candidate, since the slope check below decides exactly.
         const auto k = octants_around(v);
         // Both run, so a read-only call orders each octant it lacks.
-        const auto has_lo_octant = ensure(writable_g, g, *c, k.lo), has_hi_octant = ensure(writable_g, g, *c, k.hi);
+        const auto has_lo_octant = ensure(g, *c, k.lo), has_hi_octant = ensure(g, *c, k.hi);
         if (!has_lo_octant || !has_hi_octant)
         {
             known[i] = false;
@@ -593,13 +606,11 @@ result finder::Impl::find(const world& w, world* writable_world, const Grid::Cov
     // Cells under a body near a chunk edge lie in the next chunk, whose octants are filled lazily too.
     const auto distance_at = [&](Vector2i n, u32 k) -> Optional<u16> {
         const auto pt = to_point(center_of(n));
-        auto* wc = writable_world ? writable_world->at(pt.chunk3()) : nullptr;
-        const auto* c = writable_world ? wc : w.at(pt.chunk3());
+        auto* c = w.at(pt.chunk3());
         if (!c)
             return {};
-        auto writable_g = wc ? (*writable_cover_pool)[*wc] : Grid::Cover::Grid{nullptr};
-        const auto g = wc ? Grid::Cover::ConstGrid{writable_g.raw()} : cover_pool.find_built_grid(*c);
-        if (!ensure(writable_g, g, *c, k))
+        auto g = cover_grid_of(*c);
+        if (!ensure(g, *c, k))
             return {};
         return g.distance(g.get_cell_index_from_coord(pt.intra()), k);
     };
@@ -808,64 +819,66 @@ result finder::Impl::find(const world& w, world* writable_world, const Grid::Cov
 
 bool finder::is_hidden_at(world& w, point threat, const spot& s, Vector2ui body_size)
 {
-    return impl->is_hidden_at(w, &w, threat, s, body_size);
+    return impl->is_hidden_at(w, threat, s, body_size);
 }
 
 bool finder::is_hidden_at(const world& w, point threat, const spot& s, Vector2ui body_size)
 {
-    return impl->is_hidden_at(w, nullptr, threat, s, body_size);
+    return impl->is_hidden_at(w, threat, s, body_size);
 }
 
-bool finder::Impl::is_hidden_at(const world& w, world* writable_world, point threat, const spot& s,
-                                Vector2ui body_size)
+template<typename World>
+bool finder::Impl::is_hidden_at(World& w, point threat, const spot& s, Vector2ui body_size)
 {
     fm_assert(s.pos.chunk3().z == threat.chunk3().z);
     auto& I = *this;
-    visibility_tests X{w, writable_world, {s.pos, body_size, threat, 0}, Search::never_continue, I.runs,
-                       I.neighbor_octant_rects, I.end_rects};
+    visibility_tests<World> X{w, {s.pos, body_size, threat, 0}, Search::never_continue, I.runs,
+                              I.neighbor_octant_rects, I.end_rects};
     return X.is_hidden_from(X.T, X.P, s.axis, I.rects);
 }
 
 bool finder::is_hidden_from_threat_in_neighbor_octants(world& w, point threat, const spot& s, Vector2ui body_size,
                                                        u8 octants)
 {
-    return impl->is_hidden_from_threat_in_neighbor_octants(w, &w, threat, s, body_size, octants);
+    return impl->is_hidden_from_threat_in_neighbor_octants(w, threat, s, body_size, octants);
 }
 
 bool finder::is_hidden_from_threat_in_neighbor_octants(const world& w, point threat, const spot& s,
                                                        Vector2ui body_size, u8 octants)
 {
-    return impl->is_hidden_from_threat_in_neighbor_octants(w, nullptr, threat, s, body_size, octants);
+    return impl->is_hidden_from_threat_in_neighbor_octants(w, threat, s, body_size, octants);
 }
 
-bool finder::Impl::is_hidden_from_threat_in_neighbor_octants(const world& w, world* writable_world, point threat,
-                                                             const spot& s, Vector2ui body_size, u8 octants)
+template<typename World>
+bool finder::Impl::is_hidden_from_threat_in_neighbor_octants(World& w, point threat, const spot& s,
+                                                             Vector2ui body_size, u8 octants)
 {
     fm_assert(s.pos.chunk3().z == threat.chunk3().z);
     auto& I = *this;
-    visibility_tests X{w, writable_world, {s.pos, body_size, threat, 0, octants}, Search::never_continue, I.runs,
-                       I.neighbor_octant_rects, I.end_rects};
+    visibility_tests<World> X{w, {s.pos, body_size, threat, 0, octants}, Search::never_continue, I.runs,
+                              I.neighbor_octant_rects, I.end_rects};
     return X.is_hidden_from_threat_in_neighbor_octants(X.P, s.axis);
 }
 
 point finder::move_to_cover_end(world& w, const query& q, Vector2i axis, const Search::pred& pred,
                                ArrayView<const point> also_from)
 {
-    return impl->move_to_cover_end(w, &w, q, axis, pred, also_from);
+    return impl->move_to_cover_end(w, q, axis, pred, also_from);
 }
 
 point finder::move_to_cover_end(const world& w, const query& q, Vector2i axis, const Search::pred& pred,
                                ArrayView<const point> also_from)
 {
-    return impl->move_to_cover_end(w, nullptr, q, axis, pred, also_from);
+    return impl->move_to_cover_end(w, q, axis, pred, also_from);
 }
 
-point finder::Impl::move_to_cover_end(const world& w, world* writable_world, const query& q, Vector2i axis,
-                                      const Search::pred& pred, ArrayView<const point> also_from)
+template<typename World>
+point finder::Impl::move_to_cover_end(World& w, const query& q, Vector2i axis, const Search::pred& pred,
+                                      ArrayView<const point> also_from)
 {
     fm_assert(q.pos.chunk3().z == q.threat.chunk3().z);
     auto& I = *this;
-    visibility_tests X{w, writable_world, q, pred, I.runs, I.neighbor_octant_rects, I.end_rects};
+    visibility_tests<World> X{w, q, pred, I.runs, I.neighbor_octant_rects, I.end_rects};
     const auto across = across_of(axis);
     const auto end = X.move_spot_to_cover_end(X.P, axis, across);
     const auto hidden_from_all = [&](Vector2i pos) {

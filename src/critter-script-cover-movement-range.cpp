@@ -108,18 +108,24 @@ movement_range::movement_range()
 ArrayView<const point> movement_range::border(world& w, Grid::GridRegistry& pools, point from,
                                               Optional<u32> bbox_side, u32 max_dist)
 {
-    return border(w, &w, &pools, nullptr, from, bbox_side, max_dist, nullptr);
+    return border<world>(w, pools, nullptr, from, bbox_side, max_dist, nullptr);
 }
 
 ArrayView<const point> movement_range::border(const world& w, const Grid::Pass::Pool& pool, point from,
                                               Optional<u32> bbox_side, u32 max_dist, Array<grid_order>& orders)
 {
-    return border(w, nullptr, nullptr, &pool, from, bbox_side, max_dist, &orders);
+    return border<const world>(w, nullptr, pool, from, bbox_side, max_dist, orders);
 }
 
-ArrayView<const point> movement_range::border(const world& w, world* writable_world, Grid::GridRegistry* pools,
-                                              const Grid::Pass::Pool* poolʹ, point from, Optional<u32> bbox_side,
-                                              u32 max_dist, Array<grid_order>* orders)
+template<typename World>
+ArrayView<const point> movement_range::border(World& w,
+                                              std::conditional_t<std::is_const_v<World>, std::nullptr_t,
+                                                                 Grid::GridRegistry&> pools,
+                                              std::conditional_t<std::is_const_v<World>, const Grid::Pass::Pool&,
+                                                                 std::nullptr_t> poolʹ,
+                                              point from, Optional<u32> bbox_side, u32 max_dist,
+                                              std::conditional_t<std::is_const_v<World>, Array<grid_order>&,
+                                                                 std::nullptr_t> orders)
 {
     const auto R = (int)max_dist;
     // The Dijkstra search reads cells within 9/8 R + 2 div px of from, div being at most default_div_size, and
@@ -136,9 +142,15 @@ ArrayView<const point> movement_range::border(const world& w, world* writable_wo
         return cached_points;
 
     const auto params = Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass};
-    auto* writable_pool = pools ? &pools->pass_pool(params) : nullptr;
-    const auto& pool = writable_pool ? *writable_pool : *poolʹ;
-    fm_assert(pool.params() == params);
+    auto& pool = [&]() -> auto& {
+        if constexpr (std::is_const_v<World>)
+        {
+            fm_assert(poolʹ.params() == params);
+            return poolʹ;
+        }
+        else
+            return pools.pass_pool(params);
+    }();
     const auto div = (int)pool.params().div_size();
     const auto diag = (int)(div*Math::sqrt(2.) + .5);
     // In open ground a cell's Dijkstra distance is at most max_ratio times its straight-line distance.
@@ -150,8 +162,7 @@ ArrayView<const point> movement_range::border(const world& w, world* writable_wo
     const auto n = max_walk_dist/div + 1, side = 2*n + 1;
     const auto count = (u32)(side*side);
     const auto g = Vector3i(from).xy();
-    const auto origin = compute_dijkstra_map(w, writable_world, pool, writable_pool, nullptr, nullptr, from, {}, n,
-                                             max_walk_dist, orders);
+    const auto origin = compute_dijkstra_map(w, pool, nullptr, from, {}, n, max_walk_dist, orders);
     if (arrayCapacity(cell_labels) < count)
         arrayReserve(cell_labels, count + count/2);
     arrayResize(cell_labels, NoInit, count);
@@ -181,16 +192,16 @@ ArrayView<const point> movement_range::reachable_lattice_points(world& w, Grid::
                                                                 Optional<u32> bbox_side, u32 radius, u32 spacing,
                                                                 u32 max_walk_dist)
 {
-    return reachable_lattice_points_impl(w, &w, &pools, nullptr, from, excluded_blocker_ids, bbox_side, radius,
-                                         spacing, max_walk_dist, nullptr);
+    return reachable_lattice_points_impl<world>(w, pools, nullptr, from, excluded_blocker_ids, bbox_side, radius,
+                                                spacing, max_walk_dist, nullptr);
 }
 
 ArrayView<const point> movement_range::reachable_lattice_points_without_critters(
     world& w, Grid::GridRegistry& pools, point from, Optional<u32> bbox_side, u32 radius, u32 spacing,
     u32 max_walk_dist)
 {
-    return reachable_lattice_points_impl(w, &w, &pools, nullptr, from, {}, bbox_side, radius, spacing,
-                                         max_walk_dist, nullptr);
+    return reachable_lattice_points_impl<world>(w, pools, nullptr, from, {}, bbox_side, radius, spacing,
+                                                max_walk_dist, nullptr);
 }
 
 ArrayView<const point> movement_range::reachable_lattice_points(const world& w, const Grid::Object::Pool& objects,
@@ -199,22 +210,24 @@ ArrayView<const point> movement_range::reachable_lattice_points(const world& w, 
                                                                 Optional<u32> bbox_side, u32 radius, u32 spacing,
                                                                 Array<grid_order>& orders, u32 max_walk_dist)
 {
-    return reachable_lattice_points_impl(w, nullptr, nullptr, &objects, from, excluded_blocker_ids, bbox_side,
-                                         radius, spacing, max_walk_dist, &orders);
+    return reachable_lattice_points_impl<const world>(w, nullptr, objects, from, excluded_blocker_ids, bbox_side,
+                                                      radius, spacing, max_walk_dist, orders);
 }
 
 ArrayView<const point> movement_range::reachable_lattice_points_without_critters(
     const world& w, const Grid::Object::Pool& objects, point from, Optional<u32> bbox_side, u32 radius,
     u32 spacing, Array<grid_order>& orders, u32 max_walk_dist)
 {
-    return reachable_lattice_points_impl(w, nullptr, nullptr, &objects, from, {}, bbox_side, radius, spacing,
-                                         max_walk_dist, &orders);
+    return reachable_lattice_points_impl<const world>(w, nullptr, objects, from, {}, bbox_side, radius, spacing,
+                                                      max_walk_dist, orders);
 }
 
+template<typename World>
 ArrayView<const point> movement_range::reachable_lattice_points_impl(
-    const world& w, world* writable_world, Grid::GridRegistry* pools, const Grid::Object::Pool* objectsʹ,
-    point from, Optional<std::array<object_id, 2>> excluded_blocker_ids, Optional<u32> bbox_side, u32 radius,
-    u32 spacing, u32 max_walk_dist, Array<grid_order>* orders)
+    World& w, std::conditional_t<std::is_const_v<World>, std::nullptr_t, Grid::GridRegistry&> pools,
+    std::conditional_t<std::is_const_v<World>, const Grid::Object::Pool&, std::nullptr_t> objectsʹ, point from,
+    Optional<std::array<object_id, 2>> excluded_blocker_ids, Optional<u32> bbox_side, u32 radius, u32 spacing,
+    u32 max_walk_dist, std::conditional_t<std::is_const_v<World>, Array<grid_order>&, std::nullptr_t> orders)
 {
     fm_assert(spacing);
     const auto chunk_radius = (radius + 2*astar::default_div_size)/chunk_size_xy + 2;
@@ -230,21 +243,25 @@ ArrayView<const point> movement_range::reachable_lattice_points_impl(
         return cached_points;
 
     const auto params = Pass::Params{astar::default_div_size, *bbox_side, pass_mode::pass};
-    auto* writable_objects = pools ? &pools->object_pool(params) : nullptr;
-    const auto& objects = writable_objects ? *writable_objects : *objectsʹ;
-    fm_assert(objects.params() == params);
+    auto& objects = [&]() -> auto& {
+        if constexpr (std::is_const_v<World>)
+        {
+            fm_assert(objectsʹ.params() == params);
+            return objectsʹ;
+        }
+        else
+            return pools.object_pool(params);
+    }();
     const auto div = (int)objects.params().div_size();
     const auto n = ((int)radius + div - 1)/div, side = 2*n + 1;
     // No path inside the window is longer than one diagonal step per cell, so the Dijkstra search isn't cut short.
     fm_assert(side*side*2*div < (u16)-1);
     const auto max_dist = (int)Math::min(max_walk_dist, (u32)(u16)-2);
-    auto* writable_pool = writable_objects ? &writable_objects->pass_pool() : nullptr;
     const auto origin =
         excluded_blocker_ids
-            ? compute_dijkstra_map(w, writable_world, objects.pass_pool(), writable_pool, &objects, writable_objects,
-                                   from, *excluded_blocker_ids, n, max_dist, orders)
-            : compute_dijkstra_map(w, writable_world, objects.pass_pool(), writable_pool, nullptr, nullptr, from, {},
-                                   n, max_dist, orders);
+            ? compute_dijkstra_map(w, objects.pass_pool(), &objects, from, *excluded_blocker_ids, n, max_dist,
+                                   orders)
+            : compute_dijkstra_map(w, objects.pass_pool(), nullptr, from, {}, n, max_dist, orders);
     const auto g = Vector3i(from).xy();
     const auto k = (int)(radius/spacing);
     for (auto j = -k; j <= k; j++)
@@ -262,16 +279,17 @@ ArrayView<const point> movement_range::reachable_lattice_points_impl(
     return cached_points;
 }
 
-Vector2i movement_range::compute_dijkstra_map(const world& w, world* writable_world, const Grid::Pass::Pool& pool,
-                                              Grid::Pass::Pool* writable_pool, const Grid::Object::Pool* objects,
-                                              Grid::Object::Pool* writable_objects, point from,
-                                              std::array<object_id, 2> excluded_blocker_ids, int n, int max_dist,
-                                              Array<grid_order>* orders)
+template<typename World>
+Vector2i movement_range::compute_dijkstra_map(World& w,
+                                              std::conditional_t<std::is_const_v<World>, const Grid::Pass::Pool&,
+                                                                 Grid::Pass::Pool&> pool,
+                                              std::conditional_t<std::is_const_v<World>, const Grid::Object::Pool*,
+                                                                 Grid::Object::Pool*> objects,
+                                              point from, std::array<object_id, 2> excluded_blocker_ids, int n,
+                                              int max_dist,
+                                              std::conditional_t<std::is_const_v<World>, Array<grid_order>&,
+                                                                 std::nullptr_t> orders)
 {
-    fm_debug_assert(!writable_world || writable_world == &w);
-    fm_debug_assert(!writable_world == !writable_pool && (!writable_pool || writable_pool == &pool));
-    fm_debug_assert(writable_objects == (writable_world ? objects : nullptr));
-    fm_debug_assert(!writable_world == (orders != nullptr));
     const auto div = (int)pool.params().div_size(), dc = (int)pool.params().div_count;
     const auto R = max_dist;
     const auto side = 2*n + 1;
@@ -290,14 +308,19 @@ Vector2i movement_range::compute_dijkstra_map(const world& w, world* writable_wo
     // pushed away.
     const auto pred = Search::blocks_all_but(excluded_blocker_ids[0], excluded_blocker_ids[1]);
     const Search::pred object_pred = pred;
-    Optional<Pass::ConstGrid> gridʹ;
+    Optional<std::conditional_t<std::is_const_v<World>, Pass::ConstGrid, Pass::Grid>> gridʹ;
     // grid_ch's object grid while one of its objects blocks, with entry_blocked filled for it.
-    Optional<Grid::Object::ConstGrid> object_gridʹ;
+    Optional<std::conditional_t<std::is_const_v<World>, Grid::Object::ConstGrid, Grid::Object::Grid>> object_gridʹ;
     // True while grid_ch exists without a built pass or object grid, so each of its cells needs an R-tree test.
     bool needs_rtree_test = false;
     chunk_coords_ grid_ch;
     bool looked = false;
-    const auto num_orders_at_start = orders ? (u32)orders->size() : 0u;
+    const auto num_orders_at_start = [&] {
+        if constexpr (std::is_const_v<World>)
+            return (u32)orders.size();
+        else
+            return 0u;
+    }();
     for (auto y = 0; y < side; y++)
         for (auto x = 0; x < side; x++)
         {
@@ -311,35 +334,42 @@ Vector2i movement_range::compute_dijkstra_map(const world& w, world* writable_wo
                 gridʹ = {};
                 object_gridʹ = {};
                 needs_rtree_test = false;
-                if (const auto* p = w.at(cc))
+                if (auto* p = w.at(cc))
                 {
-                    if (writable_world)
+                    if constexpr (!std::is_const_v<World>)
                     {
-                        auto& wc = *writable_world->at(cc);
-                        (*writable_pool)[wc].build_if_stale();
-                        if (writable_objects)
-                            (*writable_objects)[wc].build_if_stale();
-                    }
-                    const auto grid = pool.find_built_grid(*p);
-                    const auto object_grid = objects ? objects->find_built_grid(*p) : Grid::Object::ConstGrid{};
-                    if (grid && (!objects || object_grid))
-                    {
-                        gridʹ = grid;
-                        if (objects && object_grid.blocked_objects(pred, entry_blocked))
-                            object_gridʹ = object_grid;
+                        gridʹ.emplace(pool[*p]).build_if_stale();
+                        if (objects)
+                        {
+                            auto object_grid = (*objects)[*p];
+                            object_grid.build_if_stale();
+                            if (object_grid.blocked_objects(pred, entry_blocked))
+                                object_gridʹ = object_grid;
+                        }
                     }
                     else
                     {
-                        fm_debug3_assert(!writable_world);
-                        needs_rtree_test = true;
-                        // The loop leaves a chunk and comes back to it on each row.
-                        const auto appended_orders = orders->exceptPrefix(num_orders_at_start);
-                        if (std::find_if(appended_orders.begin(), appended_orders.end(),
-                                         [&](const grid_order& o) { return o.chunk == cc; }) == appended_orders.end())
-                            arrayAppend(*orders, grid_order{
-                                .pass_params = pool.params(), .chunk = cc,
-                                .kind = objects ? grid_order::grid_kind::object : grid_order::grid_kind::pass,
-                            });
+                        const auto grid = pool.find_built_grid(*p);
+                        const auto object_grid = objects ? objects->find_built_grid(*p) : Grid::Object::ConstGrid{};
+                        if (grid && (!objects || object_grid))
+                        {
+                            gridʹ = grid;
+                            if (objects && object_grid.blocked_objects(pred, entry_blocked))
+                                object_gridʹ = object_grid;
+                        }
+                        else
+                        {
+                            needs_rtree_test = true;
+                            // The loop leaves a chunk and comes back to it on each row.
+                            const auto appended_orders = orders.exceptPrefix(num_orders_at_start);
+                            if (std::find_if(appended_orders.begin(), appended_orders.end(),
+                                             [&](const grid_order& o) { return o.chunk == cc; })
+                                == appended_orders.end())
+                                arrayAppend(orders, grid_order{
+                                    .pass_params = pool.params(), .chunk = cc,
+                                    .kind = objects ? grid_order::grid_kind::object : grid_order::grid_kind::pass,
+                                });
+                        }
                     }
                 }
             }
@@ -354,15 +384,18 @@ Vector2i movement_range::compute_dijkstra_map(const world& w, world* writable_wo
                 if (passable[i] && object_gridʹ)
                 {
                     const auto& object_grid = *object_gridʹ;
-                    passable[i] = object_grid.uses_u32() ? !object_grid.is_blocked<u32>(k, entry_blocked)
-                                                         : !object_grid.is_blocked<u16>(k, entry_blocked);
+                    passable[i] = object_grid.uses_u32() ? !object_grid.template is_blocked<u32>(k, entry_blocked)
+                                                         : !object_grid.template is_blocked<u16>(k, entry_blocked);
                 }
             }
-            else if (needs_rtree_test)
+            else if constexpr (std::is_const_v<World>)
             {
-                const auto center = cell*div + Vector2i{div/2 - half_tile<int>};
-                passable[i] = Search::is_passable_by_rtree(w, pool.params(), from + (center - g),
-                                                           objects ? &object_pred : nullptr);
+                if (needs_rtree_test)
+                {
+                    const auto center = cell*div + Vector2i{div/2 - half_tile<int>};
+                    passable[i] = Search::is_passable_by_rtree(w, pool.params(), from + (center - g),
+                                                               objects ? &object_pred : nullptr);
+                }
             }
             dist[i] = (u16)-1;
         }

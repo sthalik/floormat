@@ -2,6 +2,8 @@
 #include "object-id.hpp"
 #include "point.hpp"
 #include <array>
+#include <cstddef>
+#include <type_traits>
 #include <cr/Array.h>
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>
@@ -27,23 +29,40 @@ class movement_range
 
     // Returns the first of the (2n + 1)² cells around the cell of from that dist and passable then hold. passable
     // leaves out cells blocked by static colliders, and with objects by critters not in excluded_blocker_ids.
-    Vector2i compute_dijkstra_map(const world& w, world* writable_world, const Grid::Pass::Pool& pool,
-                                  Grid::Pass::Pool* writable_pool, const Grid::Object::Pool* objects,
-                                  Grid::Object::Pool* writable_objects, point from,
-                                  std::array<object_id, 2> excluded_blocker_ids, int n, int max_dist,
-                                  Array<grid_order>* orders);
-    // The bodies of the public overloads. A writable call passes w again as writable_world, the registry and a
-    // null orders. A read-only call passes null writable_world and pools, and the pool it reads.
-    ArrayView<const point> border(const world& w, world* writable_world, Grid::GridRegistry* pools,
-                                  const Grid::Pass::Pool* pool, point from, Optional<u32> bbox_side,
-                                  u32 max_dist, Array<grid_order>* orders);
+    template<typename World>
+    Vector2i compute_dijkstra_map(World& w,
+                                  std::conditional_t<std::is_const_v<World>, const Grid::Pass::Pool&,
+                                                     Grid::Pass::Pool&> pool,
+                                  std::conditional_t<std::is_const_v<World>, const Grid::Object::Pool*,
+                                                     Grid::Object::Pool*> objects,
+                                  point from, std::array<object_id, 2> excluded_blocker_ids, int n, int max_dist,
+                                  std::conditional_t<std::is_const_v<World>, Array<grid_order>&,
+                                                     std::nullptr_t> orders);
+    // The bodies of the public overloads. A const World takes a pool and orders, a writable one pools.
+    template<typename World>
+    ArrayView<const point> border(World& w,
+                                  std::conditional_t<std::is_const_v<World>, std::nullptr_t,
+                                                     Grid::GridRegistry&> pools,
+                                  std::conditional_t<std::is_const_v<World>, const Grid::Pass::Pool&,
+                                                     std::nullptr_t> pool,
+                                  point from, Optional<u32> bbox_side, u32 max_dist,
+                                  std::conditional_t<std::is_const_v<World>, Array<grid_order>&,
+                                                     std::nullptr_t> orders);
     // Critters don't count as blockers when excluded_blocker_ids is empty.
-    ArrayView<const point> reachable_lattice_points_impl(const world& w, world* writable_world,
-                                                         Grid::GridRegistry* pools, const Grid::Object::Pool* objects,
+    template<typename World>
+    ArrayView<const point> reachable_lattice_points_impl(World& w,
+                                                         std::conditional_t<std::is_const_v<World>, std::nullptr_t,
+                                                                            Grid::GridRegistry&> pools,
+                                                         std::conditional_t<std::is_const_v<World>,
+                                                                            const Grid::Object::Pool&,
+                                                                            std::nullptr_t> objects,
                                                          point from,
                                                          Optional<std::array<object_id, 2>> excluded_blocker_ids,
                                                          Optional<u32> bbox_side, u32 radius, u32 spacing,
-                                                         u32 max_walk_dist, Array<grid_order>* orders);
+                                                         u32 max_walk_dist,
+                                                         std::conditional_t<std::is_const_v<World>,
+                                                                            Array<grid_order>&,
+                                                                            std::nullptr_t> orders);
 
     // The points the last call returned, for _key's arguments, while world::max_pass_gen(), or max_collider_gen()
     // when critters block, over the chunks it read returns _key->collider_gen. The others are scratch arrays.
