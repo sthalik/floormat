@@ -4,6 +4,7 @@
 #include "critter.hpp"
 #include "grid-order.hpp"
 #include "grid-registry.hpp"
+#include "order-list.hpp"
 #include "point.inl"
 #include "raycast.hpp"
 #include "search-astar.hpp"
@@ -77,35 +78,36 @@ void spot_tests::create_pools(critter& c, const Cover::Script::options& o)
 }
 
 bool spot_tests::append_orders_for_missing_pools(const critter& c, const Cover::Script::options& o,
-                                                 Array<grid_order>& orders) const
+                                                 think_context& ctx) const
 {
     const auto& w = c.world();
     const auto& reg = registry_of(w);
-    const auto n = orders.size();
+    const auto n = ctx.grid_orders.size();
     const auto ch = c.coord.chunk3();
     const auto add_object_pool_order = [&](u32 bbox_side) {
         if (const auto p = object_pool_params(bbox_side); !reg.find_object_pool(p))
-            arrayAppend(orders, grid_order{.pass_params = p, .chunk = ch, .kind = grid_order::grid_kind::object});
+            arrayAppend(ctx.grid_orders,
+                        grid_order{.pass_params = p, .chunk = ch, .kind = grid_order::grid_kind::object});
     };
     const auto npc_side = bbox_side_of(c);
     add_object_pool_order(npc_side);
     if (!reg.find_cover_pool(Grid::Cover::Params{o.div_size}))
-        arrayAppend(orders, grid_order{
+        arrayAppend(ctx.grid_orders, grid_order{
             .pass_params = Grid::Pass::Params{o.div_size, pass_mode::shoot_through}, .cover_div_size = o.div_size,
             .chunk = ch, .kind = grid_order::grid_kind::cover, .octant = 0,
         });
     if (const auto* threat = w.find_object(_threat_id); threat && bbox_side_of(*threat) != npc_side)
         add_object_pool_order(bbox_side_of(*threat));
-    return orders.size() != n;
+    return ctx.grid_orders.size() != n;
 }
 
 bool spot_tests::has_line_of_sight(const critter& c, const Cover::Script::options& o, point from, point to,
-                                   Array<grid_order>& orders)
+                                   think_context& ctx)
 {
     counters.num_rays++;
     const auto& w = c.world();
     return !Raycast::is_occluded(w, from, to, c.id, existing_shoot_through_pool(w, o.div_size),
-                                 Search::without_critters, orders);
+                                 Search::without_critters, ctx.grid_orders);
 }
 
 bool spot_tests::has_line_of_sight(critter& c, const Cover::Script::options& o, point from, point to)
@@ -130,7 +132,7 @@ bool spot_tests::is_hidden_from_threat_in_neighbor_octants(const critter& c, con
 }
 
 ArrayView<const point> spot_tests::reach_positions(const critter& c, const Cover::Script::options& o, point threat,
-                                                   Array<grid_order>& orders)
+                                                   think_context& ctx)
 {
     const auto& w = c.world();
     Optional<u32> bbox_side;
@@ -138,7 +140,7 @@ ArrayView<const point> spot_tests::reach_positions(const critter& c, const Cover
         bbox_side = bbox_side_of(*obj);
     // Without bbox_side, border() returns threat before reading the pool.
     const auto& pool = existing_object_pool(w, bbox_side ? *bbox_side : bbox_side_of(c)).pass_pool();
-    return _threat_range.border(w, pool, threat, bbox_side, o.threat_reach, orders);
+    return _threat_range.border(w, pool, threat, bbox_side, o.threat_reach, ctx.grid_orders);
 }
 
 ArrayView<const point> spot_tests::reach_positions(critter& c, const Cover::Script::options& o, point threat)
@@ -150,10 +152,10 @@ ArrayView<const point> spot_tests::reach_positions(critter& c, const Cover::Scri
 }
 
 point spot_tests::cover_end(const critter& c, const Cover::Script::options& o, const Cover::Point::spot& s,
-                            point threat, Array<grid_order>& orders)
+                            point threat, think_context& ctx)
 {
     const Cover::Point::query q{s.pos, Vector2ui(c.bbox_size), threat, 0, 0, o.max_cover_end_dist};
-    const auto from = q.max_cover_end_dist ? reach_positions(c, o, threat, orders).exceptPrefix(1)
+    const auto from = q.max_cover_end_dist ? reach_positions(c, o, threat, ctx).exceptPrefix(1)
                                            : ArrayView<const point>{};
     return _finder.move_to_cover_end(c.world(), q, s.axis, blocks_all_but(c.id), from);
 }
@@ -167,10 +169,10 @@ point spot_tests::cover_end(critter& c, const Cover::Script::options& o, const C
 }
 
 Optional<Cover::Script::peek> spot_tests::peek_spot(const critter& c, const Cover::Script::options& o, point from,
-                                                    Vector2i axis, point threat, Array<grid_order>& orders)
+                                                    Vector2i axis, point threat, think_context& ctx)
 {
     return Cover::peek_spot(c, from, axis, threat, _gun_offset, blocks_all_but(c.id),
-                            [&](point to) { return has_line_of_sight(c, o, threat, to, orders); });
+                            [&](point to) { return has_line_of_sight(c, o, threat, to, ctx); });
 }
 
 Optional<Cover::Script::peek> spot_tests::peek_spot(critter& c, const Cover::Script::options& o, point from,
@@ -182,7 +184,7 @@ Optional<Cover::Script::peek> spot_tests::peek_spot(critter& c, const Cover::Scr
                             [&](point to) { return has_line_of_sight(c, o, threat, to); });
 }
 
-path_search_result spot_tests::path_to(const critter& c, point to, Array<grid_order>& orders)
+path_search_result spot_tests::path_to(const critter& c, point to, think_context& ctx)
 {
     const auto& w = c.world();
     const auto from = c.position();
@@ -190,10 +192,12 @@ path_search_result spot_tests::path_to(const critter& c, point to, Array<grid_or
     const auto pred = blocks_all_but(c.id);
     const auto max_dist = Cover::max_search_path_length(from, to);
     const auto& objects = existing_object_pool(w, bbox_side_of(c));
+    auto& A = ctx.astar ? *ctx.astar : _astar;
     counters.num_dijkstra_calls++;
-    auto path = _astar.Dijkstra<0, false>(w, objects, from, to, max_dist, body, pred, orders);
+    auto path = A.Dijkstra<0, false>(w, objects, from, to, max_dist, body, pred, ctx.grid_orders);
     if (path.is_found())
-        (void)_astar.string_pull(w, objects, path, body, pred, orders);
+        (void)A.string_pull(w, objects, path, body, pred, ctx.grid_orders);
+    _last_dijkstra_node_count = A.last_node_count();
     return path;
 }
 
@@ -208,24 +212,28 @@ path_search_result spot_tests::path_to(critter& c, point to)
     auto path = _astar.Dijkstra<0, false>(w, from, to, max_dist, body, pred);
     if (path.is_found())
         (void)_astar.string_pull(w, path, body, pred);
+    _last_dijkstra_node_count = _astar.last_node_count();
     return path;
 }
 
-bool spot_tests::is_reachable_without_critters(const critter& c, point to, Array<grid_order>& orders)
+bool spot_tests::is_reachable_without_critters(const critter& c, point to, think_context& ctx)
 {
     const auto& w = c.world();
     const auto from = c.position();
     const auto size = Vector2ui(c.bbox_size);
     const auto& pool = existing_object_pool(w, bbox_side_of(c)).pass_pool();
+    auto& A = ctx.astar ? *ctx.astar : _astar;
     counters.num_dijkstra_calls++;
-    return _astar.Dijkstra<0, false>(w, pool, from, to, Cover::max_search_path_length(from, to), size,
-                                     Search::without_critters, orders).is_found();
+    const auto is_found = A.Dijkstra<0, false>(w, pool, from, to, Cover::max_search_path_length(from, to), size,
+                                               Search::without_critters, ctx.grid_orders).is_found();
+    _last_dijkstra_node_count = A.last_node_count();
+    return is_found;
 }
 
-u32 spot_tests::last_dijkstra_node_count() const { return _astar.last_node_count(); }
+u32 spot_tests::last_dijkstra_node_count() const { return _last_dijkstra_node_count; }
 
 ArrayView<const point> spot_tests::threat_lattice(const critter& c, const Cover::Script::options& o, point threat,
-                                                  Array<grid_order>& orders)
+                                                  think_context& ctx)
 {
     const auto& w = c.world();
     Optional<u32> bbox_side;
@@ -235,11 +243,11 @@ ArrayView<const point> spot_tests::threat_lattice(const critter& c, const Cover:
     const auto& objects = existing_object_pool(w, bbox_side ? *bbox_side : bbox_side_of(c));
     return _threat_lattice.reachable_lattice_points_without_critters(
         w, objects, threat, bbox_side, Math::min(threat_lattice_radius, o.threat_reach), threat_lattice_spacing,
-        orders);
+        ctx.grid_orders);
 }
 
 bool spot_tests::has_hidden_position_nearby(const critter& c, const Cover::Script::options& o, point threat,
-                                            Array<grid_order>& orders)
+                                            think_context& ctx)
 {
     const auto& w = c.world();
     const auto from = c.position();
@@ -247,11 +255,11 @@ bool spot_tests::has_hidden_position_nearby(const critter& c, const Cover::Scrip
         r && r->frame_no == w.frame_no() && r->from == from && r->threat == threat)
         return r->found;
     const auto body = Vector2ui(c.bbox_size);
-    const auto threat_positions = threat_lattice(c, o, threat, orders);
+    const auto threat_positions = threat_lattice(c, o, threat, ctx);
     const auto side = bbox_side_of(c);
     const auto spots = _npc_lattice.reachable_lattice_points(w, existing_object_pool(w, side), from, {c.id, 0}, side,
                                                              max_walk_to_hidden_position, path_body_check_spacing,
-                                                             orders, max_walk_to_hidden_position);
+                                                             ctx.grid_orders, max_walk_to_hidden_position);
     bool found = false;
     for (auto i = 0u; i < spots.size() && !found; i++)
     {
@@ -272,23 +280,23 @@ bool spot_tests::has_hidden_position_nearby(const critter& c, const Cover::Scrip
 }
 
 bool spot_tests::is_seen_on_path(const critter& c, const Cover::Script::options& o, point threat,
-                                 const path_search_result& path, Array<grid_order>& orders)
+                                 const path_search_result& path, think_context& ctx)
 {
-    return is_seen_on_path_impl(c, o, threat, path, false, orders);
+    return is_seen_on_path_impl(c, o, threat, path, false, ctx);
 }
 
 bool spot_tests::is_seen_anywhere_on_path(const critter& c, const Cover::Script::options& o, point threat,
-                                          const path_search_result& path, Array<grid_order>& orders)
+                                          const path_search_result& path, think_context& ctx)
 {
-    return is_seen_on_path_impl(c, o, threat, path, true, orders);
+    return is_seen_on_path_impl(c, o, threat, path, true, ctx);
 }
 
 bool spot_tests::is_seen_on_path_impl(const critter& c, const Cover::Script::options& o, point threat,
                                       const path_search_result& path, bool is_seen_at_start_counted,
-                                      Array<grid_order>& orders)
+                                      think_context& ctx)
 {
     const auto& w = c.world();
-    const auto threat_positions = threat_lattice(c, o, threat, orders);
+    const auto threat_positions = threat_lattice(c, o, threat, ctx);
     const auto body = Vector2ui(c.bbox_size);
     bool hidden_before = is_seen_at_start_counted, seen_past_start = false;
     const auto is_seen_after_hidden = [&](point pos, float walked) {
@@ -324,7 +332,7 @@ bool spot_tests::is_seen_on_path_impl(const critter& c, const Cover::Script::opt
         walked += len;
     }
     return is_seen_after_hidden(at(count - 1), walked) ||
-           seen_past_start && has_hidden_position_nearby(c, o, threat, orders);
+           seen_past_start && has_hidden_position_nearby(c, o, threat, ctx);
 }
 
 Cover::Point::finder& spot_tests::finder() { return _finder; }

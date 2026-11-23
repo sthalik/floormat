@@ -80,7 +80,7 @@ void retreat_finder::begin(Vector2i body, u32 threat_octant)
 }
 
 retreat_finder::result retreat_finder::tick(const critter& c, spot_tests& t, const Cover::Script::options& o,
-                                            point threat, Array<grid_order>& orders)
+                                            point threat, think_context& ctx)
 {
     const auto& w = c.world();
     const auto from = c.position();
@@ -193,7 +193,7 @@ retreat_finder::result retreat_finder::tick(const critter& c, spot_tests& t, con
         {
             rays_left--;
             _rays--;
-            if (t.has_line_of_sight(c, o, threat, to, orders))
+            if (t.has_line_of_sight(c, o, threat, to, ctx))
             {
                 s.seen_octants |= octant_bit;
                 _next++;
@@ -205,9 +205,9 @@ retreat_finder::result retreat_finder::tick(const critter& c, spot_tests& t, con
         _next++;
         // TODO: a Dijkstra search mode that adds the threat seeing the npc to a path's cost could use another
         // cost here than for paths to cover.
-        if (auto path = t.path_to(c, to, orders); path.is_found())
+        if (auto path = t.path_to(c, to, ctx); path.is_found())
         {
-            if (!t.is_seen_on_path(c, o, threat, path, orders))
+            if (!t.is_seen_on_path(c, o, threat, path, ctx))
             {
                 _path_from = from;
                 _path_needs_ray_test = !_all;
@@ -227,17 +227,17 @@ retreat_finder::result retreat_finder::tick(const critter& c, spot_tests& t, con
             _num_failed_dijkstra_calls++;
         dijkstra_left--;
         // path_to lets no other critter through, so its failure doesn't say whether a critter cut the spot off.
-        s.needs_recheck = t.is_reachable_without_critters(c, to, orders);
+        s.needs_recheck = t.is_reachable_without_critters(c, to, ctx);
     }
 }
 
 bool retreat_finder::is_still_retreat_spot(const critter& c, spot_tests& t, const Cover::Script::options& o,
-                                           point to, point threat, Array<grid_order>& orders) const
+                                           point to, point threat, think_context& ctx) const
 {
     fm_debug_assert(_next > 0);
     const auto dist = [&](point p) { return Math::sqrt((double)point::distance_squared(p, threat)); };
     return dist(to) - dist(_path_from) > min_retreat_gain &&
-           (!_path_needs_ray_test || !t.has_line_of_sight(c, o, threat, to, orders));
+           (!_path_needs_ray_test || !t.has_line_of_sight(c, o, threat, to, ctx));
 }
 
 Cover::Script::retreat_progress retreat_finder::progress() const

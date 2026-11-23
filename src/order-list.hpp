@@ -6,6 +6,7 @@ namespace floormat {
 
 struct order_list_access;
 struct grid_order;
+class astar;
 
 // The orders one thread gave, grouped by the object that gave them. Only that thread writes it.
 class order_buffer
@@ -37,6 +38,8 @@ struct think_context
 {
     order_buffer& orders;
     Array<grid_order>& grid_orders;
+    // The astar this think's path searches use. Null means the script's own.
+    class astar* astar = nullptr;
 };
 
 class order_list

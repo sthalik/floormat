@@ -8,7 +8,7 @@
 #include <cr/ArrayView.h>
 #include <cr/Optional.h>
 
-namespace floormat { struct critter; class astar; class world; struct grid_order; }
+namespace floormat { struct critter; class astar; class world; struct think_context; }
 namespace floormat::Grid { class GridRegistry; }
 namespace floormat::Grid::Pass { class Pool; }
 namespace floormat::Grid::Object { class Pool; }
@@ -33,12 +33,12 @@ class spot_tests
     struct nearby_hidden_position_cache { u64 frame_no; point from, threat; bool found; };
 
     ArrayView<const point> threat_lattice(const critter& c, const Cover::Script::options& o, point threat,
-                                          Array<grid_order>& orders);
+                                          think_context& ctx);
     bool has_hidden_position_nearby(const critter& c, const Cover::Script::options& o, point threat,
-                                    Array<grid_order>& orders);
+                                    think_context& ctx);
     bool is_seen_on_path_impl(const critter& c, const Cover::Script::options& o, point threat,
                               const path_search_result& path, bool is_seen_at_start_counted,
-                              Array<grid_order>& orders);
+                              think_context& ctx);
 
     astar& _astar;
     Cover::Point::finder _finder;
@@ -49,6 +49,7 @@ class spot_tests
     Optional<nearby_hidden_position_cache> _nearby_hidden_position;
     object_id _threat_id;
     Optional<int> _gun_offset;
+    u32 _last_dijkstra_node_count = 0;
 
 public:
     spot_tests(astar& A, object_id threat_id, Optional<int> gun_offset);
@@ -58,14 +59,14 @@ public:
     void create_pools(critter& c, const Cover::Script::options& o);
     // Appends a grid_order at c's chunk for each pool create_pools() would create, and returns whether it did.
     bool append_orders_for_missing_pools(const critter& c, const Cover::Script::options& o,
-                                         Array<grid_order>& orders) const;
+                                         think_context& ctx) const;
 
-    // The overloads taking orders write neither c nor its world, and append a grid_order for each grid they read
+    // The overloads taking ctx write neither c nor its world, and append a grid_order for each grid they read
     // unbuilt. The others are for the main thread, outside critter_script::on_think.
 
     // Every ray the script casts goes through here, so counters.num_rays counts them all.
     bool has_line_of_sight(const critter& c, const Cover::Script::options& o, point from, point to,
-                           Array<grid_order>& orders);
+                           think_context& ctx);
     bool has_line_of_sight(critter& c, const Cover::Script::options& o, point from, point to);
     // True when threat sees no pixel of c's body centered on pos, flush against a blocker along axis.
     bool is_hidden_at(const critter& c, point threat, point pos, Vector2i axis);
@@ -76,32 +77,32 @@ public:
     // Returns the threat's reach, which is threat and points along the edges of the areas it can walk to within
     // o.threat_reach px and within 3/4 and 1/2 of it.
     ArrayView<const point> reach_positions(const critter& c, const Cover::Script::options& o, point threat,
-                                           Array<grid_order>& orders);
+                                           think_context& ctx);
     ArrayView<const point> reach_positions(critter& c, const Cover::Script::options& o, point threat);
     // s moved along its face as far as no point of reach_positions() for threat sees a pixel of c there.
     point cover_end(const critter& c, const Cover::Script::options& o, const Cover::Point::spot& s, point threat,
-                    Array<grid_order>& orders);
+                    think_context& ctx);
     point cover_end(critter& c, const Cover::Script::options& o, const Cover::Point::spot& s, point threat);
     Optional<Cover::Script::peek> peek_spot(const critter& c, const Cover::Script::options& o, point from,
-                                            Vector2i axis, point threat, Array<grid_order>& orders);
+                                            Vector2i axis, point threat, think_context& ctx);
     Optional<Cover::Script::peek> peek_spot(critter& c, const Cover::Script::options& o, point from, Vector2i axis,
                                             point threat);
     // A Dijkstra path from c to `to`, smoothed when string_pull can. Not found when no path within
     // max_search_path_length() leads there.
-    path_search_result path_to(const critter& c, point to, Array<grid_order>& orders);
+    path_search_result path_to(const critter& c, point to, think_context& ctx);
     path_search_result path_to(critter& c, point to);
     // True when a Dijkstra search from c that lets every critter through finds a path to `to` within
     // max_search_path_length().
-    bool is_reachable_without_critters(const critter& c, point to, Array<grid_order>& orders);
+    bool is_reachable_without_critters(const critter& c, point to, think_context& ctx);
     // The nodes that the last path_to or is_reachable_without_critters call added.
     u32 last_dijkstra_node_count() const;
     // True when the threat, or a point near it that it can walk to, sees c's body on path after a stretch where it
     // doesn't, or past path's first 32 px when c could walk 48 px to a position none of those points see.
     bool is_seen_on_path(const critter& c, const Cover::Script::options& o, point threat,
-                         const path_search_result& path, Array<grid_order>& orders);
+                         const path_search_result& path, think_context& ctx);
     // True when the threat, or a point near it that it can walk to, sees c's body anywhere on path.
     bool is_seen_anywhere_on_path(const critter& c, const Cover::Script::options& o, point threat,
-                                  const path_search_result& path, Array<grid_order>& orders);
+                                  const path_search_result& path, think_context& ctx);
 
     Cover::Point::finder& finder();
     Grid::GridRegistry& pool_registry();

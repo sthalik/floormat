@@ -28,6 +28,7 @@
 #include "src/grid-order.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-registry.hpp"
+#include "src/order-list.hpp"
 #include "src/intra-coord.inl"
 #include "src/point.inl"
 #include "src/raycast.hpp"
@@ -2980,9 +2981,10 @@ void test_retreat_finder_rechecks_spot_blocked_by_critter(point hidden)
     Cover::spot_tests t{s.A, s.threat->id, 0};
     const Cover::Script::options o{};
     Cover::retreat_finder retreat;
+    auto ctx = think_context{s.w.frame_order_buffer(), s.w.grid_orders()};
     retreat.begin(Vector2i(c.bbox_size), Cover::Point::nearest_octant(Vector2(threat_pos - hidden)));
     prepare_world_for_thinking(s.w);
-    const auto r0 = retreat.tick(c, t, o, threat_pos, s.w.grid_orders());
+    const auto r0 = retreat.tick(c, t, o, threat_pos, ctx);
     fm_assert(!r0.path.is_found() && !r0.done);
     fm_assert_equal(0u, t.counters.num_dijkstra_calls);
     const auto num_spots = retreat.progress().num_spots;
@@ -2996,7 +2998,7 @@ void test_retreat_finder_rechecks_spot_blocked_by_critter(point hidden)
     {
         fm_assert(k < 8);
         prepare_world_for_thinking(s.w);
-        const auto r = retreat.tick(c, t, o, moved, s.w.grid_orders());
+        const auto r = retreat.tick(c, t, o, moved, ctx);
         const auto p = retreat.progress();
         fm_assert(!r.done && !p.all);
         if (!r.path.is_found())
@@ -3040,13 +3042,14 @@ void test_retreat_finder_rechecks_only_spots_critters_cut_off(point hidden)
         Cover::spot_tests t{s.A, s.threat->id, 0};
         const Cover::Script::options o{};
         Cover::retreat_finder retreat;
+        auto ctx = think_context{s.w.frame_order_buffer(), s.w.grid_orders()};
         retreat.begin(Vector2i(c.bbox_size), Cover::Point::nearest_octant(Vector2(threat_pos - hidden)));
         const auto num_spots = retreat.progress().num_spots;
         for (auto k = 0u; !retreat.progress().all; k++)
         {
             fm_assert(k < 20);
             prepare_world_for_thinking(s.w);
-            const auto r = retreat.tick(c, t, o, threat_pos, s.w.grid_orders());
+            const auto r = retreat.tick(c, t, o, threat_pos, ctx);
             fm_assert(!r.path.is_found() && !r.done);
         }
         fm_assert(t.counters.num_dijkstra_calls > 0);
@@ -4019,19 +4022,20 @@ void test_seen_on_path()
     cover_scene s{point{ch, {10, 8}, {}}};
     rehides_round_6_scene(s);
     Cover::spot_tests t{s.A, s.threat->id, 0};
+    auto ctx = think_context{s.w.frame_order_buffer(), s.w.grid_orders()};
     const auto threat = s.threat->position();
     const Cover::Script::options o{};
 
     const auto south = t.path_to(*s.npc, point{ch, {3, 13}, {8, -20}});
     fm_assert(south.is_found());
     prepare_world_for_thinking(s.w);
-    fm_assert(t.is_seen_on_path(*s.npc, o, threat, south, s.w.grid_orders()));
+    fm_assert(t.is_seen_on_path(*s.npc, o, threat, south, ctx));
     fm_assert_equal(65u, t.counters.num_path_body_checks);
 
     const auto along_block = t.path_to(*s.npc, point{ch, {2, 9}, {20, -28}});
     fm_assert(along_block.is_found());
     prepare_world_for_thinking(s.w);
-    fm_assert(!t.is_seen_on_path(*s.npc, o, threat, along_block, s.w.grid_orders()));
+    fm_assert(!t.is_seen_on_path(*s.npc, o, threat, along_block, ctx));
     fm_assert_equal(65u + 29u, t.counters.num_path_body_checks);
 }
 
@@ -4042,7 +4046,8 @@ auto tick_in_next_frame(Cover::cover_search& search, critter& npc, Cover::spot_t
     auto& w = npc.world();
     w.increment_frame_no();
     prepare_world_for_thinking(w);
-    return search.tick(npc, t, o, from, threat, w.grid_orders());
+    auto ctx = think_context{w.frame_order_buffer(), w.grid_orders()};
+    return search.tick(npc, t, o, from, threat, ctx);
 }
 
 // Calls search.tick() until an update tests a path with is_seen_on_path, which must not end the search.
@@ -4084,6 +4089,7 @@ void test_search_takes_exposed_cover(u32 threat_reach)
     move_npc(s, point{ch, {2, 9}, {}});
     s.move_threat(point{ch, {13, 3}, {}});
     Cover::spot_tests t{s.A, s.threat->id, 0};
+    auto ctx = think_context{s.w.frame_order_buffer(), s.w.grid_orders()};
     Cover::cover_search search;
     const Cover::Script::options o{.threat_reach = threat_reach, .last_resort = fallback::none};
     const auto from = s.npc->position(), threat = s.threat->position();
@@ -4094,7 +4100,7 @@ void test_search_takes_exposed_cover(u32 threat_reach)
     fm_assert(r.done && r.cover && r.cover->end == exposed_cover_end);
     fm_assert_equal(5u, t.counters.num_dijkstra_calls);
     prepare_world_for_thinking(s.w);
-    fm_assert(t.is_seen_on_path(*s.npc, o, threat, r.cover->path, s.w.grid_orders()));
+    fm_assert(t.is_seen_on_path(*s.npc, o, threat, r.cover->path, ctx));
 }
 
 // As in test_search_takes_exposed_cover, but the threat moves to (464, 304), on its bearing from the npc, where it

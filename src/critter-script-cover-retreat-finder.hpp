@@ -3,7 +3,7 @@
 #include "search-result.hpp"
 #include <cr/Array.h>
 
-namespace floormat { struct critter; struct grid_order; }
+namespace floormat { struct critter; struct think_context; }
 namespace floormat::Cover::Script { struct options; struct retreat_progress; }
 
 namespace floormat::Cover {
@@ -46,11 +46,11 @@ public:
     // One update's work of the retreat, within the max_retreat_*_per_update limits. Each of its two passes ends
     // at max_failed_dijkstra_calls counted path_to failures, the first also when _rays runs out.
     result tick(const critter& c, spot_tests& t, const Cover::Script::options& o, point threat,
-                Array<grid_order>& orders);
+                think_context& ctx);
     // True when `to`, the end of tick()'s last found path, is still over min_retreat_gain px farther from threat
     // than that path's start, and the second pass found it or a ray from threat doesn't reach it.
     bool is_still_retreat_spot(const critter& c, spot_tests& t, const Cover::Script::options& o, point to,
-                               point threat, Array<grid_order>& orders) const;
+                               point threat, think_context& ctx) const;
 
     Cover::Script::retreat_progress progress() const;
 };

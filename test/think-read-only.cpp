@@ -4,6 +4,7 @@
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"
 #include "src/critter-script-cover.hpp"
+#include "src/critter-script-cover-spot-tests.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-order.hpp"
@@ -88,10 +89,10 @@ bool is_hidden_or_retreating(state st)
 }
 
 // Advances w by one frame in which npcs[k] thinks under update_index k, in that order or reversed, inside
-// pool->parallel_for() with a pool. after_think(k) runs after each think. Then the orders run.
+// pool->parallel_for() with a pool, with astars[(w.frame_no() + k) % astars.size()] if any. Then the orders run.
 template<typename F>
-void run_frame(world& w, ArrayView<const bptr<critter>> npcs, Ns dt, ThreadPool* pool, bool is_reverse_order,
-               F&& after_think)
+void run_frame(world& w, ArrayView<const bptr<critter>> npcs, Ns dt, ThreadPool* pool,
+               ArrayView<astar* const> astars, bool is_reverse_order, F&& after_think)
 {
     fm_assert(w.thread_pool() == pool);
     w.increment_frame_no();
@@ -104,6 +105,7 @@ void run_frame(world& w, ArrayView<const bptr<critter>> npcs, Ns dt, ThreadPool*
     for (auto n = 0u; n < npcs.size(); n++)
     {
         const auto k = is_reverse_order ? (u32)npcs.size() - 1 - n : n;
+        ctx.astar = astars.isEmpty() ? nullptr : astars[(w.frame_no() + k) % astars.size()];
         const auto num_pools = reg.pool_count();
         const auto think = [&](u32, u32, u32) { npcs[k]->think(dt, ctx, k); };
         if (pool)
@@ -132,7 +134,7 @@ struct cover_npcs_world
     ~cover_npcs_world() noexcept;
     Cover::Script::status status(u32 k);
     void move_threat(point pos);
-    void run_frame(Ns dt, ThreadPool* pool, bool is_reverse_order = false);
+    void run_frame(Ns dt, ThreadPool* pool, ArrayView<astar* const> astars, bool is_reverse_order = false);
     Ns frame() const;
 };
 
@@ -183,9 +185,9 @@ void cover_npcs_world::move_threat(point pos)
     threat->teleport_to(i, pos, rotation_COUNT);
 }
 
-void cover_npcs_world::run_frame(Ns dt, ThreadPool* pool, bool is_reverse_order)
+void cover_npcs_world::run_frame(Ns dt, ThreadPool* pool, ArrayView<astar* const> astars, bool is_reverse_order)
 {
-    Test::run_frame(w, npcs, dt, pool, is_reverse_order, [](u32) {});
+    Test::run_frame(w, npcs, dt, pool, astars, is_reverse_order, [](u32) {});
 }
 
 Ns cover_npcs_world::frame() const { return Second / npcs[0]->atlas->info().fps; }
@@ -243,25 +245,30 @@ void run_threat_move_phases(cover_npcs_world& s, F&& run_one_frame, G&& move_thr
         }
 }
 
-// Runs test_cover_npcs_think_order's 900 frames in s, moving the threat as that test does.
-void run_think_order_frames(cover_npcs_world& s, ThreadPool* pool)
+// Calls run_one_frame() for test_cover_npcs_think_order's 900 frames, and move_threat_to() where that test moves
+// the threat.
+template<typename F, typename G>
+void run_think_order_frames(F&& run_one_frame, G&& move_threat_to)
 {
     const point threat_positions[] = { {chunk_a, {12, 4}, {}}, {chunk_a, {12, 13}, {}} };
-    const auto frame = s.frame();
     for (auto n = 0u; n < 900; n++)
     {
         if (n % 300 == 299)
-            s.move_threat(threat_positions[n / 300 % 2]);
-        s.run_frame(frame, pool);
+            move_threat_to(threat_positions[n / 300 % 2]);
+        run_one_frame();
     }
 }
 
 void test_think_order_world_in_thread_pool(ThreadPool& pool)
 {
     cover_npcs_world plain{true}, threaded{true};
+    astar B{threaded.A.pool_registry()};
+    astar* const astars[] = {&B};
     threaded.w.set_thread_pool(&pool);
-    run_think_order_frames(plain, nullptr);
-    run_think_order_frames(threaded, &pool);
+    const auto frame = plain.frame();
+    run_think_order_frames([&] { plain.run_frame(frame, nullptr, {}); }, [&](point p) { plain.move_threat(p); });
+    run_think_order_frames([&] { threaded.run_frame(frame, &pool, astars); },
+                           [&](point p) { threaded.move_threat(p); });
     for (auto k = 0u; k < num_cover_npcs; k++)
     {
         const auto &a = *plain.npcs[k], &b = *threaded.npcs[k];
@@ -272,9 +279,11 @@ void test_think_order_world_in_thread_pool(ThreadPool& pool)
 void test_world_without_grids_in_thread_pool(ThreadPool& pool)
 {
     cover_npcs_world s{false};
+    astar B{s.A.pool_registry()};
+    astar* const astars[] = {&B};
     s.w.set_thread_pool(&pool);
     const auto frame = s.frame();
-    run_threat_move_phases(s, [&] { s.run_frame(frame, &pool); }, [&](point p) { s.move_threat(p); });
+    run_threat_move_phases(s, [&] { s.run_frame(frame, &pool, astars); }, [&](point p) { s.move_threat(p); });
 }
 
 // A wall spans chunk_a from north to south, with the threat and the npc west of it, and no other chunk exists.
@@ -283,6 +292,8 @@ void test_path_through_missing_chunk(ThreadPool& pool)
 {
     world w;
     astar A;
+    astar B{A.pool_registry()};
+    astar* const astars[] = {&B};
     add_ground(w, chunk_a);
     for (const auto y : { u8{1}, u8{4}, u8{7}, u8{10}, u8{13} })
         add_wall(w, {10, y}, {16, 192});
@@ -306,7 +317,7 @@ void test_path_through_missing_chunk(ThreadPool& pool)
         fm_assert(n < max_frames_per_phase);
         for (auto i = 0u; i < 9; i++)
             has_chunk_before_think[i] = has_chunk(i);
-        run_frame(w, npcs, frame, &pool, false, [&](u32) {
+        run_frame(w, npcs, frame, &pool, astars, false, [&](u32) {
             for (auto i = 0u; i < 9; i++)
                 fm_assert(has_chunk(i) == has_chunk_before_think[i]);
         });
@@ -348,44 +359,51 @@ void assert_same_state(cover_npcs_world& a, cover_npcs_world& b)
 void test_think_order_without_grids(ThreadPool& pool)
 {
     cover_npcs_world s1{false}, s2{false};
+    astar B1{s1.A.pool_registry()}, B2{s2.A.pool_registry()};
+    astar* const astars1[] = {&B1};
+    astar* const astars2[] = {&B2};
     s1.w.set_thread_pool(&pool);
     s2.w.set_thread_pool(&pool);
     const auto frame = s1.frame();
     run_threat_move_phases(s1, [&] {
-        s1.run_frame(frame, &pool, false);
-        s2.run_frame(frame, &pool, true);
+        s1.run_frame(frame, &pool, astars1, false);
+        s2.run_frame(frame, &pool, astars2, true);
         assert_same_state(s1, s2);
     }, [&](point p) { s1.move_threat(p); s2.move_threat(p); });
 }
 
 // Runs the frame in which the npc finds a pool missing: it gives no order and one or more grid orders.
-void run_frame_waiting_for_pool(world& w, ArrayView<const bptr<critter>> npcs, Ns dt, ThreadPool& pool)
+void run_frame_waiting_for_pool(world& w, ArrayView<const bptr<critter>> npcs, Ns dt, ThreadPool& pool,
+                                ArrayView<astar* const> astars)
 {
     fm_assert_equal(1u, (u32)npcs.size());
-    run_frame(w, npcs, dt, &pool, false, [&](u32) {
+    run_frame(w, npcs, dt, &pool, astars, false, [&](u32) {
         fm_assert(w.frame_order_buffer().empty());
         fm_assert(!w.grid_orders().isEmpty());
     });
 }
 
-void run_frames_until_hidden(world& w, ArrayView<const bptr<critter>> npcs, Ns dt, ThreadPool& pool)
+void run_frames_until_hidden(world& w, ArrayView<const bptr<critter>> npcs, Ns dt, ThreadPool& pool,
+                             ArrayView<astar* const> astars)
 {
     for (auto n = 0u; Cover::Script::get_status(*npcs[0])->st != state::hidden; n++)
     {
         fm_assert(n < max_frames_per_phase);
-        run_frame(w, npcs, dt, &pool, false, [](u32) {});
+        run_frame(w, npcs, dt, &pool, astars, false, [](u32) {});
     }
 }
 
 void test_div_size_changed_mid_walk(ThreadPool& pool)
 {
     cover_npcs_world s{false, 1};
+    astar B{s.A.pool_registry()};
+    astar* const astars[] = {&B};
     s.w.set_thread_pool(&pool);
     const auto frame = s.frame();
     for (auto n = 0u; s.status(0).st != state::to_cover; n++)
     {
         fm_assert(n < max_frames_per_phase);
-        s.run_frame(frame, &pool);
+        s.run_frame(frame, &pool, astars);
     }
     const auto params = Grid::Cover::Params{2*cover_div_size};
     const auto& reg = s.A.pool_registry();
@@ -393,7 +411,7 @@ void test_div_size_changed_mid_walk(ThreadPool& pool)
     Cover::Script::set_options(*s.npcs[0], {.div_size = params.div_size});
     fm_assert(reg.find_cover_pool(params));
     // run_frame() asserts that no think changes reg.pool_count().
-    run_frame(s.w, s.npcs, frame, &pool, false, [&](u32) {
+    run_frame(s.w, s.npcs, frame, &pool, astars, false, [&](u32) {
         for (const auto& o : s.w.grid_orders())
             switch (o.kind)
             {
@@ -409,13 +427,15 @@ void test_div_size_changed_mid_walk(ThreadPool& pool)
             }
         fm_assert(!s.w.frame_order_buffer().empty());
     });
-    run_frames_until_hidden(s.w, s.npcs, frame, pool);
+    run_frames_until_hidden(s.w, s.npcs, frame, pool, astars);
 }
 
 void test_threat_made_after_init(ThreadPool& pool)
 {
     world w;
     astar A;
+    astar B{A.pool_registry()};
+    astar* const astars[] = {&B};
     add_think_order_walls(w);
     const auto threat_id = w.make_id();
     const auto npc = add_critter(w, npc_positions[0]);
@@ -426,17 +446,71 @@ void test_threat_made_after_init(ThreadPool& pool)
     const bptr<critter> npcs[] = {npc};
     const auto frame = Second / npc->atlas->info().fps;
     for (auto n = 0u; n < 4; n++)
-        run_frame(w, npcs, frame, &pool, false, [](u32) {});
+        run_frame(w, npcs, frame, &pool, astars, false, [](u32) {});
     // A threat as big as the npc would read the npc's own object pool.
     constexpr auto threat_size = Vector2ui{40, 40};
     const auto params = Grid::Object::Params{astar::default_div_size, threat_size.x(), pass_mode::pass};
     const auto& reg = A.pool_registry();
     fm_assert(!reg.find_object_pool(params));
     (void)add_critter(w, threat_start, threat_size, threat_id);
-    run_frame_waiting_for_pool(w, npcs, frame, pool);
-    run_frame(w, npcs, frame, &pool, false, [&](u32) { fm_assert(reg.find_object_pool(params)); });
-    run_frames_until_hidden(w, npcs, frame, pool);
+    run_frame_waiting_for_pool(w, npcs, frame, pool, astars);
+    run_frame(w, npcs, frame, &pool, astars, false, [&](u32) { fm_assert(reg.find_object_pool(params)); });
+    run_frames_until_hidden(w, npcs, frame, pool, astars);
     w.finish_scripts();
+}
+
+void test_spot_tests_with_given_astar()
+{
+    cover_npcs_world s{true, 1};
+    astar B{s.A.pool_registry()};
+    auto& npc = *s.npcs[0];
+    Cover::spot_tests t{s.A, s.threat->id, 0};
+    t.create_pools(npc, {.div_size = cover_div_size});
+    // East of the wall at {7, 8}, which stands between it and the npc.
+    const auto to = point{chunk_a, {9, 8}, {}};
+    prepare_world_for_thinking(s.w);
+    auto ctx = think_context{s.w.frame_order_buffer(), s.w.grid_orders(), &B};
+    fm_assert(t.path_to(npc, to, ctx).is_found());
+    fm_assert_equal(0u, s.A.last_node_count());
+    fm_assert(B.last_node_count() > 0);
+    fm_assert_equal(B.last_node_count(), t.last_dijkstra_node_count());
+    fm_assert(t.is_reachable_without_critters(npc, to, ctx));
+    fm_assert_equal(0u, s.A.last_node_count());
+    fm_assert(B.last_node_count() > 0);
+    fm_assert_equal(B.last_node_count(), t.last_dijkstra_node_count());
+    ctx.astar = nullptr;
+    fm_assert(t.path_to(npc, to, ctx).is_found());
+    fm_assert(s.A.last_node_count() > 0);
+    fm_assert_equal(s.A.last_node_count(), t.last_dijkstra_node_count());
+    fm_assert(t.is_reachable_without_critters(npc, to, ctx));
+    fm_assert_equal(s.A.last_node_count(), t.last_dijkstra_node_count());
+}
+
+// The npcs decide the same whether each think searches with the scripts' astar, with one other astar, or with
+// one of two others picked by frame and npc.
+void test_think_order_with_given_astars(ThreadPool& pool)
+{
+    cover_npcs_world s1{false}, s2{false}, s3{false};
+    astar B2{s2.A.pool_registry()}, B3{s3.A.pool_registry()}, C3{s3.A.pool_registry()};
+    astar* const astars2[] = {&B2};
+    astar* const astars3[] = {&B3, &C3};
+    const astar* const given_astars[] = {&B2, &B3, &C3};
+    std::array<bool, 3> has_searched{};
+    s2.w.set_thread_pool(&pool);
+    s3.w.set_thread_pool(&pool);
+    const auto frame = s1.frame();
+    run_think_order_frames([&] {
+        s1.run_frame(frame, nullptr, {});
+        s2.run_frame(frame, &pool, astars2);
+        s3.run_frame(frame, &pool, astars3);
+        assert_same_state(s1, s2);
+        assert_same_state(s1, s3);
+        for (auto i = 0u; i < has_searched.size(); i++)
+            has_searched[i] = has_searched[i] || given_astars[i]->last_node_count() > 0;
+    }, [&](point p) { s1.move_threat(p); s2.move_threat(p); s3.move_threat(p); });
+    fm_assert_equal(0u, s2.A.last_node_count());
+    fm_assert_equal(0u, s3.A.last_node_count());
+    fm_assert(has_searched[0] && has_searched[1] && has_searched[2]);
 }
 
 } // namespace
@@ -450,6 +524,8 @@ void test_think_read_only()
     test_think_order_without_grids(pool);
     test_div_size_changed_mid_walk(pool);
     test_threat_made_after_init(pool);
+    test_spot_tests_with_given_astar();
+    test_think_order_with_given_astars(pool);
 }
 
 } // namespace floormat::Test

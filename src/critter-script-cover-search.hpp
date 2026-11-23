@@ -8,7 +8,7 @@
 #include <cr/Optional.h>
 #include <mg/Constants.h>
 
-namespace floormat { struct critter; struct grid_order; }
+namespace floormat { struct critter; struct think_context; }
 
 namespace floormat::Cover {
 
@@ -80,7 +80,7 @@ public:
     // One update's work of the search for c, with from as restart() takes it. Stale unreachable spots, or walls,
     // holes or static scenery changing nearby, restart the search. A new threat octant resumes its scan.
     result tick(const critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat,
-                Array<grid_order>& orders);
+                think_context& ctx);
     void end();
     void give_up();
 
@@ -118,13 +118,13 @@ private:
     // world::max_pass_gen() over the chunks the search reads.
     visibility_from_reach test_spot_against_reach(const critter& c, spot_tests& t, const Cover::Script::options& o,
                                                   point threat, const Cover::Point::spot& s, u64 max_pass_gen,
-                                                  u32 max_body_checks, Array<grid_order>& orders);
+                                                  u32 max_body_checks, think_context& ctx);
     Optional<reachable_cover> take_last_resort(const critter& c, spot_tests& t, const Cover::Script::options& o,
                                                point threat, u64 max_pass_gen, u32 max_body_checks,
-                                               Array<grid_order>& orders);
+                                               think_context& ctx);
     Optional<reachable_cover> take_exposed_cover(const critter& c, spot_tests& t, const Cover::Script::options& o,
                                                  point threat, u64 max_pass_gen, u32 max_body_checks,
-                                                 Array<grid_order>& orders);
+                                                 think_context& ctx);
 
     Optional<reachable_cover> _exposed_cover;
     reach_positions_hidden_from _reach_positions_not_seeing_spot;

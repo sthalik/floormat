@@ -78,7 +78,7 @@ private:
     enum class search_then : u8 { seek, relocate, follow, };
     enum class script_order_kind : u8 { clear_script, walk_or_face_threat, };
 
-    void update(const critter& C, const Ns& dt, Array<grid_order>& orders);
+    void update(const critter& C, const Ns& dt, think_context& ctx);
     void mark_go_on_needed();
     void go_on(const bptr<critter>& C, usize& i, const Ns& dt);
     bool should_switch_state(const critter& C) const;
@@ -86,44 +86,44 @@ private:
     bool is_phase_held() const;
     const object* find_threat(const critter& C) const;
     bool find_threat_or_retry(const critter& C);
-    bool has_line_of_fire(const critter& C, point pos, point threat, Array<grid_order>& orders);
-    bool refresh_cover(const critter& C, Array<grid_order>& orders);
+    bool has_line_of_fire(const critter& C, point pos, point threat, think_context& ctx);
+    bool refresh_cover(const critter& C, think_context& ctx);
     Vector2i across() const;
     bool start_search(const critter& C, search_then next);
-    void begin_search(const critter& C, search_then next, Array<grid_order>& orders);
-    void flee(const critter& C, Array<grid_order>& orders);
+    void begin_search(const critter& C, search_then next, think_context& ctx);
+    void flee(const critter& C, think_context& ctx);
     point search_origin(const critter& C) const;
     void restart_search(const critter& C);
     void resume_search(const critter& C);
-    void search_step(const critter& C, Array<grid_order>& orders);
+    void search_step(const critter& C, think_context& ctx);
     void end_search(const critter& C, Optional<Cover::cover_search::reachable_cover> r, bool is_search_not_done,
-                    Array<grid_order>& orders);
-    void walk_to_peek_spot_or_cover(const critter& C, path_search_result path, Array<grid_order>& orders);
-    void walk_to_found_cover(const critter& C, Array<grid_order>& orders);
+                    think_context& ctx);
+    void walk_to_peek_spot_or_cover(const critter& C, path_search_result path, think_context& ctx);
+    void walk_to_found_cover(const critter& C, think_context& ctx);
     void begin_retreat(const critter& C, bool restart = false);
-    void retreat_step(const critter& C, Array<grid_order>& orders);
-    bool walk_to(const critter& C, point to, state then, Array<grid_order>& orders);
+    void retreat_step(const critter& C, think_context& ctx);
+    bool walk_to(const critter& C, point to, state then, think_context& ctx);
     void walk_to_cover(const critter& C, path_search_result path);
     void retry_later(const critter& C);
-    void seek(const critter& C, Array<grid_order>& orders);
-    void follow_threat(const critter& C, Array<grid_order>& orders);
+    void seek(const critter& C, think_context& ctx);
+    void follow_threat(const critter& C, think_context& ctx);
     bool needs_LOS_check(const critter& C, point threat, point at) const;
-    void check_hidden(const critter& C, point threat, Array<grid_order>& orders);
-    void check_exposed(const critter& C, point threat, Array<grid_order>& orders);
-    void check_walk(const critter& C, Array<grid_order>& orders);
-    void flee_if_body_exposed(const critter& C, Array<grid_order>& orders);
-    bool check_retreat(const critter& C, Array<grid_order>& orders);
-    bool is_remaining_path_unblocked_without_critters(const critter& C, Array<grid_order>& orders);
-    void check_reach(const critter& C, Array<grid_order>& orders);
-    void search_while_hidden(const critter& C, Array<grid_order>& orders);
-    void handle_blocked_walk(const critter& C, Array<grid_order>& orders);
-    void peek_again(const critter& C, Array<grid_order>& orders);
-    void step_out(const critter& C, Array<grid_order>& orders);
-    void leave_peek(const critter& C, Array<grid_order>& orders);
-    void take_cover(const critter& C, Array<grid_order>& orders);
+    void check_hidden(const critter& C, point threat, think_context& ctx);
+    void check_exposed(const critter& C, point threat, think_context& ctx);
+    void check_walk(const critter& C, think_context& ctx);
+    void flee_if_body_exposed(const critter& C, think_context& ctx);
+    bool check_retreat(const critter& C, think_context& ctx);
+    bool is_remaining_path_unblocked_without_critters(const critter& C, think_context& ctx);
+    void check_reach(const critter& C, think_context& ctx);
+    void search_while_hidden(const critter& C, think_context& ctx);
+    void handle_blocked_walk(const critter& C, think_context& ctx);
+    void peek_again(const critter& C, think_context& ctx);
+    void step_out(const critter& C, think_context& ctx);
+    void leave_peek(const critter& C, think_context& ctx);
+    void take_cover(const critter& C, think_context& ctx);
     void walk_update(const bptr<critter>& C, usize& i, const Ns& dt);
     void face_threat(critter& C, usize i, point threat);
-    Optional<point> find_peek_pos(const critter& C, point threat, Array<grid_order>& orders);
+    Optional<point> find_peek_pos(const critter& C, point threat, think_context& ctx);
 
     Cover::spot_tests tests;
     critter_walk walk;
@@ -215,12 +215,13 @@ void cover_script::on_init(const bptr<critter>& C)
 
 void cover_script::on_think(const critter& C, const Ns& dt, think_context& ctx)
 {
-    auto& orders = ctx.grid_orders;
+    // Scripts made with one astar share it, so a think running in the world's parallel_for() must be given one.
+    fm_assert(ctx.astar || !C.world().is_thread_pool_running());
     if (C.needs_to_stop_auto_movement())
         ctx.orders.add({.giver = C.id, .kind = order_kind::script_order,
                         .script_order_kind = (u8)script_order_kind::clear_script});
     // The next update finds the pools. prev_game_time stays, so update() counts this one as missed.
-    else if (tests.append_orders_for_missing_pools(C, options, orders))
+    else if (tests.append_orders_for_missing_pools(C, options, ctx))
         void();
     else
     {
@@ -228,10 +229,10 @@ void cover_script::on_think(const critter& C, const Ns& dt, think_context& ctx)
         if (needs_blocked_walk_handling)
         {
             needs_blocked_walk_handling = false;
-            handle_blocked_walk(C, orders);
+            handle_blocked_walk(C, ctx);
         }
         needs_go_on = false;
-        update(C, dt, orders);
+        update(C, dt, ctx);
         if (needs_go_on || st == state::seek)
             ctx.orders.add({.giver = C.id, .kind = order_kind::script_order,
                             .script_order_kind = (u8)script_order_kind::walk_or_face_threat});
@@ -269,7 +270,7 @@ void cover_script::on_order(const bptr<critter>& C, usize& i, const Ns& dt, cons
     fm_assert(false);
 }
 
-void cover_script::update(const critter& C, const Ns& dt, Array<grid_order>& orders)
+void cover_script::update(const critter& C, const Ns& dt, think_context& ctx)
 {
     // Game time that passes while C gets no updates, as outside the chunks the editor updates, doesn't count
     // toward a wait, so game_time_to_switch_state moves forward by the game time since C's last update, less dt.
@@ -284,16 +285,16 @@ void cover_script::update(const critter& C, const Ns& dt, Array<grid_order>& ord
     {
     case state::seek:
         if (should_switch_state(C))
-            seek(C, orders);
+            seek(C, ctx);
         else if (!is_fallback_cover_allowed)
-            flee_if_body_exposed(C, orders);
+            flee_if_body_exposed(C, ctx);
         return;
     case state::search:
         if (path_to_found_cover)
-            walk_to_found_cover(C, orders);
+            walk_to_found_cover(C, ctx);
         else
         {
-            search_step(C, orders);
+            search_step(C, ctx);
             // This runs after search_step, so cover found in this update needs no retreat.
             if (st == state::search && !path_to_found_cover &&
                 (search.has_last_resort() || !is_fallback_cover_allowed ||
@@ -307,16 +308,16 @@ void cover_script::update(const critter& C, const Ns& dt, Array<grid_order>& ord
     case state::to_cover:
     case state::to_peek:
         if (!options.search_every_move)
-            check_walk(C, orders);
+            check_walk(C, ctx);
         mark_go_on_needed();
         return;
     case state::find_retreat:
-        retreat_step(C, orders);
+        retreat_step(C, ctx);
         mark_go_on_needed();
         return;
     case state::retreat:
-        if ((options.search_every_move || !check_retreat(C, orders)) && search.is_running())
-            search_step(C, orders);
+        if ((options.search_every_move || !check_retreat(C, ctx)) && search.is_running())
+            search_step(C, ctx);
         mark_go_on_needed();
         return;
     case state::hidden:
@@ -324,9 +325,9 @@ void cover_script::update(const critter& C, const Ns& dt, Array<grid_order>& ord
         if (!is_phase_held() && should_switch_state(C))
         {
             if (st == state::hidden)
-                step_out(C, orders);
+                step_out(C, ctx);
             else
-                leave_peek(C, orders);
+                leave_peek(C, ctx);
         }
         else if (const auto threat = find_threat(C); !threat)
             retry_later(C);
@@ -338,15 +339,15 @@ void cover_script::update(const critter& C, const Ns& dt, Array<grid_order>& ord
                 // This update started with C standing, so its dt was spent on the wait above, and a
                 // walk the checks start moves by the same dt.
                 if (options.search_every_move)
-                    follow_threat(C, orders);
+                    follow_threat(C, ctx);
                 else if (st == state::hidden)
                 {
-                    check_hidden(C, pos, orders);
+                    check_hidden(C, pos, ctx);
                     if (st == state::hidden)
-                        check_reach(C, orders);
+                        check_reach(C, ctx);
                 }
                 else
-                    check_exposed(C, pos, orders);
+                    check_exposed(C, pos, ctx);
                 mark_go_on_needed();
             }
             else
@@ -356,7 +357,7 @@ void cover_script::update(const critter& C, const Ns& dt, Array<grid_order>& ord
                 // C peeking tests reach_positions() only once it hides again, so it shoots before switching cover.
                 if (const auto st0 = st; st == state::hidden && !options.search_every_move)
                 {
-                    check_reach(C, orders);
+                    check_reach(C, ctx);
                     if (st != st0)
                         mark_go_on_needed();
                 }
@@ -369,7 +370,7 @@ void cover_script::update(const critter& C, const Ns& dt, Array<grid_order>& ord
         }
         else if (st == state::hidden)
         {
-            search_while_hidden(C, orders);
+            search_while_hidden(C, ctx);
             if (st != state::hidden)
                 mark_go_on_needed();
         }
@@ -472,10 +473,10 @@ bool cover_script::find_threat_or_retry(const critter& C)
 
 // True when a ray from threat reaches gun_point() of C's body centered on pos. Cover's peek spot then stores
 // both points for the status.
-bool cover_script::has_line_of_fire(const critter& C, point pos, point threat, Array<grid_order>& orders)
+bool cover_script::has_line_of_fire(const critter& C, point pos, point threat, think_context& ctx)
 {
     const auto gun = Cover::gun_point(C, pos, threat, across(), tests.gun_offset());
-    if (!tests.has_line_of_sight(C, options, threat, gun, orders))
+    if (!tests.has_line_of_sight(C, options, threat, gun, ctx))
         return false;
     auto& c = *cover;
     auto& p = *c.peek;
@@ -485,12 +486,12 @@ bool cover_script::has_line_of_fire(const critter& C, point pos, point threat, A
 }
 
 // Replaces a cover the threat at threat_pos sees with cover_end() of canonical, and returns whether it did.
-bool cover_script::refresh_cover(const critter& C, Array<grid_order>& orders)
+bool cover_script::refresh_cover(const critter& C, think_context& ctx)
 {
     auto& c = *cover;
     if (c.pos == c.canonical || tests.is_hidden_at(C, threat_pos, c.pos, c.axis))
         return false;
-    c.pos = tests.cover_end(C, options, {c.canonical, c.axis}, threat_pos, orders);
+    c.pos = tests.cover_end(C, options, {c.canonical, c.axis}, threat_pos, ctx);
     return true;
 }
 
@@ -516,19 +517,19 @@ bool cover_script::start_search(const critter& C, search_then next)
 }
 
 // start_search, then the search's first tick() in the same update.
-void cover_script::begin_search(const critter& C, search_then next, Array<grid_order>& orders)
+void cover_script::begin_search(const critter& C, search_then next, think_context& ctx)
 {
     if (start_search(C, next))
-        search_step(C, orders);
+        search_step(C, ctx);
 }
 
 // C looks for a retreat at once, and the search for cover runs during the walk.
-void cover_script::flee(const critter& C, Array<grid_order>& orders)
+void cover_script::flee(const critter& C, think_context& ctx)
 {
     if (!start_search(C, search_then::seek))
         return;
     begin_retreat(C);
-    retreat_step(C, orders);
+    retreat_step(C, ctx);
 }
 
 point cover_script::search_origin(const critter& C) const
@@ -550,7 +551,7 @@ void cover_script::resume_search(const critter& C)
         restart_search(C);
 }
 
-void cover_script::search_step(const critter& C, Array<grid_order>& orders)
+void cover_script::search_step(const critter& C, think_context& ctx)
 {
     if (st != state::retreat || options.search_every_move)
     {
@@ -570,9 +571,9 @@ void cover_script::search_step(const critter& C, Array<grid_order>& orders)
         return;
     }
     const auto n = tests.counters.num_dijkstra_calls;
-    auto r = search.tick(C, tests, options, search_origin(C), threat_pos, orders);
+    auto r = search.tick(C, tests, options, search_origin(C), threat_pos, ctx);
     if (r.done)
-        end_search(C, move(r.cover), tests.counters.num_dijkstra_calls == n, orders);
+        end_search(C, move(r.cover), tests.counters.num_dijkstra_calls == n, ctx);
     else if (st == state::retreat && is_retreat_exposed && search.has_last_resort() &&
              search.progress().tile >= tiles_searched_before_give_up)
         search.give_up();
@@ -581,7 +582,7 @@ void cover_script::search_step(const critter& C, Array<grid_order>& orders)
 // Takes r's cover, or continues the retreat, retreats or waits as `then` says when r is empty.
 // is_search_not_done is false when this update already made a Dijkstra search.
 void cover_script::end_search(const critter& C, Optional<Cover::cover_search::reachable_cover> r,
-                              bool is_search_not_done, Array<grid_order>& orders)
+                              bool is_search_not_done, think_context& ctx)
 {
     search.end();
     const auto from = search.from();
@@ -628,11 +629,11 @@ void cover_script::end_search(const critter& C, Optional<Cover::cover_search::re
             c.peek = Cover::Script::cover_peek{pos, gun, threat_pos};
         }
         else
-            find_peek_pos(C, threat_pos, orders);
+            find_peek_pos(C, threat_pos, ctx);
         if (is_search_not_done || !c.peek)
-            walk_to_peek_spot_or_cover(C, move(reachable.path), orders);
+            walk_to_peek_spot_or_cover(C, move(reachable.path), ctx);
         else if (const auto& p = *c.peek; p.pos == C.position())
-            walk_to_peek_spot_or_cover(C, move(reachable.path), orders);
+            walk_to_peek_spot_or_cover(C, move(reachable.path), ctx);
         else
             path_to_found_cover = move(reachable.path);
         return;
@@ -643,13 +644,13 @@ void cover_script::end_search(const critter& C, Optional<Cover::cover_search::re
 // Walks C to its cover's peek spot, or along path to hide at cover for hidden_time when it has none or no path
 // leads there. C then steps out from cover.
 void cover_script::walk_to_peek_spot_or_cover(const critter& C, path_search_result path,
-                                              Array<grid_order>& orders)
+                                              think_context& ctx)
 {
     auto& c = *cover;
     if (c.peek)
     {
         const auto& p = *c.peek;
-        if (!walk_to(C, p.pos, state::exposed, orders))
+        if (!walk_to(C, p.pos, state::exposed, ctx))
             c.peek = {};
     }
     if (!c.peek)
@@ -661,7 +662,7 @@ void cover_script::walk_to_peek_spot_or_cover(const critter& C, path_search_resu
 
 // Runs walk_to_peek_spot_or_cover with path_to_found_cover. When needs_LOS_check() is true, find_peek_pos runs
 // again for where the threat stands, and threat_pos keeps its value, so a later check still sees the change.
-void cover_script::walk_to_found_cover(const critter& C, Array<grid_order>& orders)
+void cover_script::walk_to_found_cover(const critter& C, think_context& ctx)
 {
     auto path = move(*path_to_found_cover);
     path_to_found_cover = {};
@@ -672,10 +673,10 @@ void cover_script::walk_to_found_cover(const critter& C, Array<grid_order>& orde
     {
         const auto& c = *cover;
         if (const auto pos = threat->position(); needs_LOS_check(C, pos, c.canonical))
-            find_peek_pos(C, pos, orders);
-        walk_to_peek_spot_or_cover(C, move(path), orders);
-        if (!c.peek && st == state::to_cover && !is_remaining_path_unblocked_without_critters(C, orders))
-            handle_blocked_walk(C, orders);
+            find_peek_pos(C, pos, ctx);
+        walk_to_peek_spot_or_cover(C, move(path), ctx);
+        if (!c.peek && st == state::to_cover && !is_remaining_path_unblocked_without_critters(C, ctx))
+            handle_blocked_walk(C, ctx);
     }
 }
 
@@ -697,11 +698,11 @@ void cover_script::begin_retreat(const critter& C, bool restart)
     needs_retreat_LOS_check = false;
 }
 
-void cover_script::retreat_step(const critter& C, Array<grid_order>& orders)
+void cover_script::retreat_step(const critter& C, think_context& ctx)
 {
     if (!find_threat_or_retry(C))
         void();
-    else if (auto r = retreat.tick(C, tests, options, threat_pos, orders); r.path.is_found())
+    else if (auto r = retreat.tick(C, tests, options, threat_pos, ctx); r.path.is_found())
     {
         walk = critter_walk{move(r.path)};
         st = state::retreat;
@@ -722,14 +723,14 @@ void cover_script::retreat_step(const critter& C, Array<grid_order>& orders)
 
 // Sets st to `then` when C stands at `to`, else starts the walk there along path_to's path. False
 // when there is no path.
-bool cover_script::walk_to(const critter& C, point to, state then, Array<grid_order>& orders)
+bool cover_script::walk_to(const critter& C, point to, state then, think_context& ctx)
 {
     if (C.position() == to)
     {
         st = then;
         return true;
     }
-    auto path = tests.path_to(C, to, orders);
+    auto path = tests.path_to(C, to, ctx);
     if (!path.is_found())
         return false;
     walk = critter_walk{move(path)};
@@ -758,13 +759,13 @@ void cover_script::retry_later(const critter& C)
     game_time_to_switch_state = C.world().game_time() + retry_time;
 }
 
-void cover_script::seek(const critter& C, Array<grid_order>& orders) { begin_search(C, search_then::seek, orders); }
+void cover_script::seek(const critter& C, think_context& ctx) { begin_search(C, search_then::seek, ctx); }
 
 // Looks for other cover. A hidden C relocates. An exposed C walks to find_peek_pos's spot for the new cover, or
 // hides at it for hidden_time without one.
-void cover_script::follow_threat(const critter& C, Array<grid_order>& orders)
+void cover_script::follow_threat(const critter& C, think_context& ctx)
 {
-    begin_search(C, st == state::hidden ? search_then::relocate : search_then::follow, orders);
+    begin_search(C, st == state::hidden ? search_then::relocate : search_then::follow, ctx);
 }
 
 // True when `threat` isn't at threat_pos, or a collider other than a critter changed near `at` since
@@ -780,7 +781,7 @@ bool cover_script::needs_LOS_check(const critter& C, point threat, point at) con
 
 // C flees when `threat`, for which needs_LOS_check() is true, sees a pixel of C at canonical. If it sees one only
 // at cover, C walks to a new cover_end().
-void cover_script::check_hidden(const critter& C, point threat, Array<grid_order>& orders)
+void cover_script::check_hidden(const critter& C, point threat, think_context& ctx)
 {
     threat_dist_moved_while_hidden += point::distance(threat_pos, threat);
     threat_pos = threat;
@@ -788,30 +789,30 @@ void cover_script::check_hidden(const critter& C, point threat, Array<grid_order
     const auto& c = *cover;
     // TODO: once critters have a facing, a threat that faces away from C may not see it.
     if (!tests.is_hidden_at(C, threat, c.canonical, c.axis))
-        flee(C, orders);
-    else if (refresh_cover(C, orders))
+        flee(C, ctx);
+    else if (refresh_cover(C, ctx))
         walk_to_cover(C, {});
 }
 
 // A ray from `threat`, for which needs_LOS_check() is true, to C's gun. A pixel of C at canonical seen makes C
 // stop peeking and flee. A blocked gun ray sends C to a new peek spot.
-void cover_script::check_exposed(const critter& C, point threat, Array<grid_order>& orders)
+void cover_script::check_exposed(const critter& C, point threat, think_context& ctx)
 {
     threat_pos = threat;
     pass_gen_at_last_check = C.world().pass_gen();
     const auto& c = *cover;
     if (!tests.is_hidden_at(C, threat, c.canonical, c.axis))
     {
-        flee(C, orders);
+        flee(C, ctx);
         return;
     }
-    if (!has_line_of_fire(C, C.position(), threat, orders))
-        peek_again(C, orders);
+    if (!has_line_of_fire(C, C.position(), threat, ctx))
+        peek_again(C, ctx);
 }
 
 // The checks of a walk update in which needs_LOS_check() is true, as in check_hidden. A blocked ray to the gun at
 // the peek spot sends C to a new one. Path tests follow them and other critters' steps.
-void cover_script::check_walk(const critter& C, Array<grid_order>& orders)
+void cover_script::check_walk(const critter& C, think_context& ctx)
 {
     const auto& w = C.world();
     const auto& c = *cover;
@@ -821,18 +822,18 @@ void cover_script::check_walk(const critter& C, Array<grid_order>& orders)
         threat_pos = pos;
         pass_gen_at_last_check = w.pass_gen();
         if (!tests.is_hidden_at(C, pos, c.canonical, c.axis))
-            flee(C, orders);
+            flee(C, ctx);
         else
         {
             // The walk leads to the old cover spot, which the threat sees. C walks a path to the moved one, or
             // straight without one.
-            if (st == state::to_cover && refresh_cover(C, orders) && !walk_to(C, c.pos, state::hidden, orders))
+            if (st == state::to_cover && refresh_cover(C, ctx) && !walk_to(C, c.pos, state::hidden, ctx))
                 walk_to_cover(C, {});
-            if (st == state::to_peek && !has_line_of_fire(C, walk.dest(), pos, orders))
-                peek_again(C, orders);
+            if (st == state::to_peek && !has_line_of_fire(C, walk.dest(), pos, ctx))
+                peek_again(C, ctx);
             if ((st == state::to_cover || st == state::to_peek) &&
-                !walk.is_remaining_path_unblocked(C, blocks_all_but(C.id), nullptr, orders))
-                handle_blocked_walk(C, orders);
+                !walk.is_remaining_path_unblocked(C, blocks_all_but(C.id), nullptr, ctx.grid_orders))
+                handle_blocked_walk(C, ctx);
         }
     }
     // The path test treats critters as blockers, so C reacts once one steps onto its path. It costs a test per
@@ -841,27 +842,27 @@ void cover_script::check_walk(const critter& C, Array<grid_order>& orders)
              !walk.is_line() && w.max_collider_gen(c.canonical.chunk3(), radius) > pass_gen_at_last_check)
     {
         pass_gen_at_last_check = w.pass_gen();
-        if (!walk.is_remaining_path_unblocked(C, blocks_all_but(C.id), nullptr, orders))
-            handle_blocked_walk(C, orders);
+        if (!walk.is_remaining_path_unblocked(C, blocks_all_but(C.id), nullptr, ctx.grid_orders))
+            handle_blocked_walk(C, ctx);
     }
 }
 
 // C flees when the threat moved or a collider changed since the last check, and the threat sees a pixel of C
 // where it stands.
-void cover_script::flee_if_body_exposed(const critter& C, Array<grid_order>& orders)
+void cover_script::flee_if_body_exposed(const critter& C, think_context& ctx)
 {
     if (const auto threat = find_threat(C); threat && needs_LOS_check(C, threat->position(), C.position()))
     {
         threat_pos = threat->position();
         pass_gen_at_last_check = C.world().pass_gen();
         if (!tests.is_hidden_at(C, threat_pos, C.position(), Cover::Point::axis_toward(threat_pos - C.position())))
-            flee(C, orders);
+            flee(C, ctx);
     }
 }
 
 // True when the checks end C's walk or give C a new path to its end. Until the wait for the LOS check is over,
 // path tests run only on static changes and ignore critters.
-bool cover_script::check_retreat(const critter& C, Array<grid_order>& orders)
+bool cover_script::check_retreat(const critter& C, think_context& ctx)
 {
     using Cover::Script::min_updates_before_LOS_check, Cover::Script::max_updates_before_LOS_check;
     const auto& w = C.world();
@@ -877,17 +878,17 @@ bool cover_script::check_retreat(const critter& C, Array<grid_order>& orders)
         threat_pos = threat->position();
         pass_gen_at_last_check = w.pass_gen();
         needs_retreat_LOS_check = false;
-        if (!retreat.is_still_retreat_spot(C, tests, options, to, threat_pos, orders))
+        if (!retreat.is_still_retreat_spot(C, tests, options, to, threat_pos, ctx))
         {
             begin_retreat(C, true);
-            retreat_step(C, orders);
+            retreat_step(C, ctx);
             return true;
         }
-        else if (walk.is_line() || walk.is_remaining_path_unblocked(C, blocks_all_but(C.id), nullptr, orders))
+        else if (walk.is_line() || walk.is_remaining_path_unblocked(C, blocks_all_but(C.id), nullptr, ctx.grid_orders))
             return false;
         else
         {
-            handle_blocked_walk(C, orders);
+            handle_blocked_walk(C, ctx);
             return true;
         }
     }
@@ -900,22 +901,22 @@ bool cover_script::check_retreat(const critter& C, Array<grid_order>& orders)
         // Moving the stamp past a static change would hide it from the LOS check after the wait.
         needs_retreat_LOS_check = true;
         pass_gen_at_last_check = w.pass_gen();
-        if (is_remaining_path_unblocked_without_critters(C, orders))
+        if (is_remaining_path_unblocked_without_critters(C, ctx))
             return false;
         else
         {
-            handle_blocked_walk(C, orders);
+            handle_blocked_walk(C, ctx);
             return true;
         }
     }
     else if (w.max_collider_gen(to.chunk3(), radius) > pass_gen_at_last_check)
     {
         pass_gen_at_last_check = w.pass_gen();
-        if (walk.is_remaining_path_unblocked(C, blocks_all_but(C.id), nullptr, orders))
+        if (walk.is_remaining_path_unblocked(C, blocks_all_but(C.id), nullptr, ctx.grid_orders))
             return false;
         else
         {
-            handle_blocked_walk(C, orders);
+            handle_blocked_walk(C, ctx);
             return true;
         }
     }
@@ -924,16 +925,16 @@ bool cover_script::check_retreat(const critter& C, Array<grid_order>& orders)
 }
 
 // As walk.is_remaining_path_unblocked(C), ignoring critters, so only bumping into one stops C.
-bool cover_script::is_remaining_path_unblocked_without_critters(const critter& C, Array<grid_order>& orders)
+bool cover_script::is_remaining_path_unblocked_without_critters(const critter& C, think_context& ctx)
 {
     const auto size = Math::max(C.bbox_size.x(), C.bbox_size.y());
     const auto& pool = Cover::existing_object_pool(C.world(), size).pass_pool();
-    return walk.is_remaining_path_unblocked(C, Search::without_critters, &pool, orders);
+    return walk.is_remaining_path_unblocked(C, Search::without_critters, &pool, ctx.grid_orders);
 }
 
 // Tests where C hides, and canonical once a reach_positions() point sees C there. C then searches if one sees
 // canonical, and otherwise walks to a new cover_end(). Makes at most max_reach_body_checks_per_update body checks.
-void cover_script::check_reach(const critter& C, Array<grid_order>& orders)
+void cover_script::check_reach(const critter& C, think_context& ctx)
 {
     using Cover::visibility_from_reach;
     auto& c = *cover;
@@ -941,7 +942,7 @@ void cover_script::check_reach(const critter& C, Array<grid_order>& orders)
         return;
     const auto radius = Cover::search_chunk_radius(c.canonical, threat_pos, 0, options);
     const auto max_pass_gen = C.world().max_pass_gen(c.canonical.chunk3(), radius);
-    const auto positions = tests.reach_positions(C, options, threat_pos, orders).exceptPrefix(1);
+    const auto positions = tests.reach_positions(C, options, threat_pos, ctx).exceptPrefix(1);
     auto body_checks_left = max_reach_body_checks_per_update;
     if (!needs_canonical_reach_test)
     {
@@ -949,7 +950,7 @@ void cover_script::check_reach(const critter& C, Array<grid_order>& orders)
         const auto v = reach_positions_not_seeing.cover_spot.test_spot_against_reach(
             C, tests, positions, {c.pos, c.axis}, max_pass_gen, body_checks_left);
         if (v == visibility_from_reach::exposed && c.pos == c.canonical)
-            follow_threat(C, orders);
+            follow_threat(C, ctx);
         else if (v == visibility_from_reach::exposed)
         {
             needs_canonical_reach_test = true;
@@ -963,15 +964,15 @@ void cover_script::check_reach(const critter& C, Array<grid_order>& orders)
                                                                                     max_pass_gen, body_checks_left);
         needs_canonical_reach_test = v == visibility_from_reach::unknown;
         if (v == visibility_from_reach::exposed)
-            follow_threat(C, orders);
+            follow_threat(C, ctx);
         else if (v == visibility_from_reach::hidden)
         {
-            if (const auto end = tests.cover_end(C, options, s, threat_pos, orders); end != c.pos)
+            if (const auto end = tests.cover_end(C, options, s, threat_pos, ctx); end != c.pos)
             {
                 c.pos = end;
                 // A search with needs_peek skips a cover without a peek spot too.
-                if (!find_peek_pos(C, threat_pos, orders) && options.needs_peek)
-                    follow_threat(C, orders);
+                if (!find_peek_pos(C, threat_pos, ctx) && options.needs_peek)
+                    follow_threat(C, ctx);
                 else
                     walk_to_cover(C, {});
             }
@@ -981,7 +982,7 @@ void cover_script::check_reach(const critter& C, Array<grid_order>& orders)
 
 // At a cover that a reach_positions() point saw when the search found it, C searches again each time the threat
 // moved threat_reach px. C moves to cover hidden from every such point, or retreats when there is none.
-void cover_script::search_while_hidden(const critter& C, Array<grid_order>& orders)
+void cover_script::search_while_hidden(const critter& C, think_context& ctx)
 {
     if (!is_searching_while_hidden && !options.search_every_move && options.threat_reach &&
         !is_canonical_hidden_from_reach && threat_dist_moved_while_hidden >= options.threat_reach)
@@ -993,14 +994,14 @@ void cover_script::search_while_hidden(const critter& C, Array<grid_order>& orde
     if (is_searching_while_hidden)
     {
         const auto n = tests.counters.num_dijkstra_calls;
-        if (auto r = search.tick(C, tests, options, C.position(), threat_pos, orders); r.done)
+        if (auto r = search.tick(C, tests, options, C.position(), threat_pos, ctx); r.done)
         {
             is_searching_while_hidden = false;
             if (r.cover)
             {
                 fm_debug_assert(r.cover->is_hidden_from_reach);
                 then = search_then::relocate;
-                end_search(C, move(r.cover), tests.counters.num_dijkstra_calls == n, orders);
+                end_search(C, move(r.cover), tests.counters.num_dijkstra_calls == n, ctx);
             }
             else
             {
@@ -1015,16 +1016,16 @@ void cover_script::search_while_hidden(const critter& C, Array<grid_order>& orde
 
 // C hides when it walked to its peek spot. Walking to cover, it seeks, after retry_time from the second block on.
 // Retreating, C takes a new path to its spot at the first block, and looks for a retreat again at the next.
-void cover_script::handle_blocked_walk(const critter& C, Array<grid_order>& orders)
+void cover_script::handle_blocked_walk(const critter& C, think_context& ctx)
 {
     if (st == state::to_peek)
-        take_cover(C, orders);
+        take_cover(C, ctx);
     else if (st == state::retreat)
     {
         const auto* threat = find_threat(C);
-        auto path = threat && !num_blocked_walks++ ? tests.path_to(C, walk.dest(), orders) : path_search_result{};
+        auto path = threat && !num_blocked_walks++ ? tests.path_to(C, walk.dest(), ctx) : path_search_result{};
         if (path.is_found() &&
-            (is_retreat_exposed || !tests.is_seen_on_path(C, options, threat->position(), path, orders)))
+            (is_retreat_exposed || !tests.is_seen_on_path(C, options, threat->position(), path, ctx)))
             walk = critter_walk{move(path)};
         else if (find_threat_or_retry(C))
             begin_retreat(C, true);
@@ -1039,19 +1040,19 @@ void cover_script::handle_blocked_walk(const critter& C, Array<grid_order>& orde
 // Walks C to find_peek_pos's spot for its cover with the threat at threat_pos, or to the cover
 // itself to hide there for all of hidden_time when there is none. With no path, C seeks after
 // retry_time.
-void cover_script::peek_again(const critter& C, Array<grid_order>& orders)
+void cover_script::peek_again(const critter& C, think_context& ctx)
 {
-    if (const auto p = find_peek_pos(C, threat_pos, orders); !p)
-        take_cover(C, orders);
-    else if (!walk_to(C, *p, state::exposed, orders))
+    if (const auto p = find_peek_pos(C, threat_pos, ctx); !p)
+        take_cover(C, ctx);
+    else if (!walk_to(C, *p, state::exposed, ctx))
         retry_later(C);
 }
 
 // With no peek spot, C hides for hidden_time more. Held exposed, a wait of time_in()'s none would
 // call find_peek_pos in every update.
-void cover_script::step_out(const critter& C, Array<grid_order>& orders)
+void cover_script::step_out(const critter& C, think_context& ctx)
 {
-    if (const auto p = find_peek_pos(C, threat_pos, orders))
+    if (const auto p = find_peek_pos(C, threat_pos, ctx))
     {
         walk = critter_walk{*p};
         st = state::to_peek;
@@ -1063,22 +1064,22 @@ void cover_script::step_out(const critter& C, Array<grid_order>& orders)
 
 // Ends C's time out with a walk back to cover. A cover that refresh_cover moved may lie off the line that
 // find_peek_pos checked clear, so C walks a path there, or straight when path_to finds none.
-void cover_script::leave_peek(const critter& C, Array<grid_order>& orders)
+void cover_script::leave_peek(const critter& C, think_context& ctx)
 {
     game_time_to_switch_state = C.world().game_time() + time_in(state::hidden);
     const auto& c = *cover;
-    if (!refresh_cover(C, orders) || !walk_to(C, c.pos, state::hidden, orders))
+    if (!refresh_cover(C, ctx) || !walk_to(C, c.pos, state::hidden, ctx))
         walk_to_cover(C, {});
 }
 
 // Walks C to cover along a Dijkstra path and hides it there for hidden_time. It serves where C may
 // be off the line from its cover that find_peek_pos checked clear, so a straight walk back could
 // run into the blocker. With no path, C seeks after retry_time.
-void cover_script::take_cover(const critter& C, Array<grid_order>& orders)
+void cover_script::take_cover(const critter& C, think_context& ctx)
 {
-    refresh_cover(C, orders);
+    refresh_cover(C, ctx);
     const auto& c = *cover;
-    if (walk_to(C, c.pos, state::hidden, orders))
+    if (walk_to(C, c.pos, state::hidden, ctx))
         game_time_to_switch_state = C.world().game_time() + time_in(state::hidden);
     else
         retry_later(C);
@@ -1133,10 +1134,10 @@ void cover_script::face_threat(critter& C, usize i, point threat)
 
 // peek_spot for C's cover. The peek of cover holds the spot, its gun point and threat when found, and is empty
 // otherwise.
-Optional<point> cover_script::find_peek_pos(const critter& C, point threat, Array<grid_order>& orders)
+Optional<point> cover_script::find_peek_pos(const critter& C, point threat, think_context& ctx)
 {
     auto& c = *cover;
-    const auto p = tests.peek_spot(C, options, c.pos, c.axis, threat, orders);
+    const auto p = tests.peek_spot(C, options, c.pos, c.axis, threat, ctx);
     if (!p)
     {
         c.peek = {};

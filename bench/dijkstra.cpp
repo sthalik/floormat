@@ -5,6 +5,7 @@
 #include "src/critter.hpp"
 #include "src/critter-script-cover-search.hpp"
 #include "src/critter-script-cover-spot-tests.hpp"
+#include "src/order-list.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/tile-defs.hpp"
 #include "src/tile-image.hpp"
@@ -224,7 +225,8 @@ void Dijkstra_Reachable_Without_Critters(benchmark::State& st)
 {
     time_spot_tests_call(st, [](Cover::spot_tests& t, critter& c, point to) {
         auto& w = c.world();
-        return t.is_reachable_without_critters(c, to, w.grid_orders());
+        auto ctx = think_context{w.frame_order_buffer(), w.grid_orders()};
+        return t.is_reachable_without_critters(c, to, ctx);
     });
 }
 
@@ -438,16 +440,17 @@ void time_is_seen_on_path(benchmark::State& st, astar& A, const wall_scene& s, b
 
     const Cover::Script::options o{};
     const auto threat = s.threat->position();
+    auto ctx = think_context{w.frame_order_buffer(), w.grid_orders()};
     // The timed calls reuse the threat lattice that this one computes.
-    fm_assert(t.is_seen_on_path(*s.npc, o, threat, path, w.grid_orders()) == is_seen);
+    fm_assert(t.is_seen_on_path(*s.npc, o, threat, path, ctx) == is_seen);
     // Builds the grids that call ordered, so the timed calls read only built grids.
     prepare_world_for_thinking(w);
     const auto body_checks_before = t.counters.num_path_body_checks;
-    fm_assert(t.is_seen_on_path(*s.npc, o, threat, path, w.grid_orders()) == is_seen);
+    fm_assert(t.is_seen_on_path(*s.npc, o, threat, path, ctx) == is_seen);
     const auto body_checks_per_call = t.counters.num_path_body_checks - body_checks_before;
     fm_assert(w.grid_orders().isEmpty());
     for (auto _ : st)
-        benchmark::DoNotOptimize(t.is_seen_on_path(*s.npc, o, threat, path, w.grid_orders()));
+        benchmark::DoNotOptimize(t.is_seen_on_path(*s.npc, o, threat, path, ctx));
     st.counters["body_checks_per_call"] = body_checks_per_call;
     w.set_grid_registry(nullptr);
 }

@@ -3,6 +3,7 @@
 #include "critter-script-cover-point.hpp"
 #include "critter-script-cover-spot-tests.hpp"
 #include "critter.hpp"
+#include "order-list.hpp"
 #include "point.inl"
 #include "intra-coord.inl"
 #include "tile-defs.hpp"
@@ -113,7 +114,7 @@ void cover_search::restart(point from, point threat)
 }
 
 auto cover_search::tick(const critter& c, spot_tests& t, const Cover::Script::options& o, point from,
-                        point threat, Array<grid_order>& orders) -> result
+                        point threat, think_context& ctx) -> result
 {
     using fallback = Cover::Script::options::fallback;
     const auto& w = c.world();
@@ -169,7 +170,7 @@ auto cover_search::tick(const critter& c, spot_tests& t, const Cover::Script::op
     {
         const auto end = failed_search->end;
         _dijkstra_search_to_rerun = {};
-        if (!t.is_reachable_without_critters(c, end, orders))
+        if (!t.is_reachable_without_critters(c, end, ctx))
         {
             _unreachable.add_failed(w, failed_search->spot_pos,
                                     max_search_path_length(here, end) + point::distance(here, _from));
@@ -184,14 +185,14 @@ auto cover_search::tick(const critter& c, spot_tests& t, const Cover::Script::op
         // With a spot kept for last_resort, a path kept or a rerun waiting, the search ends in a later update than
         // its last spot, since that spot may have used the update's one Dijkstra call.
         const auto n = t.counters.num_dijkstra_calls;
-        if (auto r = take_last_resort(c, t, o, threat, max_pass_gen, body_checks_left(), orders))
+        if (auto r = take_last_resort(c, t, o, threat, max_pass_gen, body_checks_left(), ctx))
             return {move(r), true};
         // Spots take_last_resort kept and a rerun wait for the next update, and so does take_exposed_cover after
         // a Dijkstra search here.
         else if (_fallback_spots.has_cover_spot() || _dijkstra_search_to_rerun ||
                  _exposed_cover && t.counters.num_dijkstra_calls != n)
             return {};
-        else if (auto e = take_exposed_cover(c, t, o, threat, max_pass_gen, body_checks_left(), orders);
+        else if (auto e = take_exposed_cover(c, t, o, threat, max_pass_gen, body_checks_left(), ctx);
                  e || !_exposed_cover)
             return {move(e), true};
         else
@@ -199,7 +200,7 @@ auto cover_search::tick(const critter& c, spot_tests& t, const Cover::Script::op
     }
     if (_exposed_cover && !_exposed_updates_left)
     {
-        if (auto r = take_exposed_cover(c, t, o, threat, max_pass_gen, body_checks_left(), orders))
+        if (auto r = take_exposed_cover(c, t, o, threat, max_pass_gen, body_checks_left(), ctx))
             return {move(r), true};
         else
             return {};
@@ -218,7 +219,7 @@ auto cover_search::tick(const critter& c, spot_tests& t, const Cover::Script::op
             const auto mid = base + tiles[_tile]*tile_size_xy;
             const Cover::Point::query q{_from, body, threat, radius, o.octants, o.listed_cover_end_dist(),
                                         Range2Di::fromCenter(mid, Vector2i{half_tile<int>})};
-            const auto r = t.finder().find(w, existing_cover_pool(w, o.div_size), q, pred, orders, true);
+            const auto r = t.finder().find(w, existing_cover_pool(w, o.div_size), q, pred, ctx.grid_orders, true);
             t.counters.num_find_cover_point_calls++;
             if (r.out_of_fills)
                 return {};
@@ -256,7 +257,7 @@ auto cover_search::tick(const critter& c, spot_tests& t, const Cover::Script::op
                 return {};
             if (o.threat_reach)
             {
-                const auto reach = t.reach_positions(c, o, threat, orders);
+                const auto reach = t.reach_positions(c, o, threat, ctx);
                 auto& fs = _fallback_spots;
                 const auto& kept = fs.in_reach_spots;
                 const auto max_count = last_resort < fallback::in_reach ? 0u
@@ -283,8 +284,8 @@ auto cover_search::tick(const critter& c, spot_tests& t, const Cover::Script::op
             }
             peek_spot_searches_left--;
             // A path to s.pos could pass end and come back.
-            const auto end = t.cover_end(c, o, s, threat, orders);
-            const auto peek = o.needs_peek ? t.peek_spot(c, o, end, s.axis, threat, orders)
+            const auto end = t.cover_end(c, o, s, threat, ctx);
+            const auto peek = o.needs_peek ? t.peek_spot(c, o, end, s.axis, threat, ctx)
                                            : Optional<Cover::Script::peek>{};
             if (o.needs_peek && !peek)
             {
@@ -303,10 +304,10 @@ auto cover_search::tick(const critter& c, spot_tests& t, const Cover::Script::op
             dijkstra_left--;
             // TODO: a Dijkstra search mode that adds the threat seeing the npc to a path's cost, with one cost
             // while the npc retreats and another when it goes to cover from state::retreat.
-            if (auto path = t.path_to(c, end, orders); path.is_found())
+            if (auto path = t.path_to(c, end, ctx); path.is_found())
             {
-                if (_is_fallback_allowed ? !t.is_seen_on_path(c, o, threat, path, orders)
-                                         : !t.is_seen_anywhere_on_path(c, o, threat, path, orders))
+                if (_is_fallback_allowed ? !t.is_seen_on_path(c, o, threat, path, ctx)
+                                         : !t.is_seen_anywhere_on_path(c, o, threat, path, ctx))
                     return {reachable_cover{s, end, move(path), peek}, true};
                 arrayAppend(_tile_skipped, skipped_spot{s, _octant});
                 if (_exposed_cover || !_is_fallback_allowed)
@@ -413,9 +414,9 @@ auto reach_positions_hidden_from::test_spot_against_reach(const critter& c, spot
 
 auto cover_search::test_spot_against_reach(const critter& c, spot_tests& t, const Cover::Script::options& o,
                                            point threat, const Cover::Point::spot& s, u64 max_pass_gen,
-                                           u32 max_body_checks, Array<grid_order>& orders) -> visibility_from_reach
+                                           u32 max_body_checks, think_context& ctx) -> visibility_from_reach
 {
-    return _reach_positions_not_seeing_spot.test_spot_against_reach(c, t, t.reach_positions(c, o, threat, orders),
+    return _reach_positions_not_seeing_spot.test_spot_against_reach(c, t, t.reach_positions(c, o, threat, ctx),
                                                                     s, max_pass_gen, max_body_checks);
 }
 
@@ -423,13 +424,13 @@ auto cover_search::test_spot_against_reach(const critter& c, spot_tests& t, cons
 // It stays kept when testing that takes over max_body_checks body checks. At most one path_to call.
 auto cover_search::take_exposed_cover(const critter& c, spot_tests& t, const Cover::Script::options& o,
                                       point threat, u64 max_pass_gen, u32 max_body_checks,
-                                      Array<grid_order>& orders) -> Optional<reachable_cover>
+                                      think_context& ctx) -> Optional<reachable_cover>
 {
     if (!_exposed_cover)
         return {};
     const auto num_body_checks_at_start = t.counters.num_body_checks;
     auto v = test_spot_against_reach(c, t, o, threat, _exposed_cover->spot, max_pass_gen, max_body_checks,
-                                     orders);
+                                     ctx);
     if (v == visibility_from_reach::hidden)
     {
         if (t.counters.num_body_checks - num_body_checks_at_start + 2*(o.octants/2u) > max_body_checks)
@@ -448,13 +449,13 @@ auto cover_search::take_exposed_cover(const critter& c, spot_tests& t, const Cov
         else
         {
             const auto s = r.spot;
-            const auto end = t.cover_end(c, o, s, threat, orders);
+            const auto end = t.cover_end(c, o, s, threat, ctx);
             const auto here = c.position();
             if (s.pos == here || end == here)
                 return reachable_cover{s, end, {}, {}};
             else if (const auto raw = r.path.path(); end == r.end && !raw.isEmpty() && raw.front() == here)
                 return r;
-            else if (auto path = t.path_to(c, end, orders); path.is_found())
+            else if (auto path = t.path_to(c, end, ctx); path.is_found())
                 return reachable_cover{s, end, move(path), {}};
             else
                 return {};
@@ -466,7 +467,7 @@ auto cover_search::take_exposed_cover(const critter& c, spot_tests& t, const Cov
 // each also from the threat in neighbor octants. Spots this call didn't test stay kept.
 auto cover_search::take_last_resort(const critter& c, spot_tests& t, const Cover::Script::options& o, point threat,
                                     u64 max_pass_gen, u32 max_body_checks,
-                                    Array<grid_order>& orders) -> Optional<reachable_cover>
+                                    think_context& ctx) -> Optional<reachable_cover>
 {
     const auto& w = c.world();
     auto& peekless_spots = _fallback_spots.peekless_spots;
@@ -489,7 +490,7 @@ auto cover_search::take_last_resort(const critter& c, spot_tests& t, const Cover
         if (is_unreachable(s))
             arrayRemove(peekless_spots, 0);
         else if (const auto v = test_spot_against_reach(c, t, o, threat, s, max_pass_gen, body_checks_left(),
-                                                        orders);
+                                                        ctx);
                  v == visibility_from_reach::unknown ||
                  v == visibility_from_reach::hidden && body_checks_left() < num_neighbor_octant_body_checks)
             return {};
@@ -525,16 +526,16 @@ auto cover_search::take_last_resort(const critter& c, spot_tests& t, const Cover
     else
     {
         const auto s = *spot;
-        const auto end = t.cover_end(c, o, s, threat, orders);
+        const auto end = t.cover_end(c, o, s, threat, ctx);
         const auto here = c.position();
         if (s.pos == here || end == here)
         {
             _fallback_spots.clear();
             return reachable_cover{s, end, {}, {}, is_hidden_from_reach};
         }
-        else if (auto path = t.path_to(c, end, orders); path.is_found())
+        else if (auto path = t.path_to(c, end, ctx); path.is_found())
         {
-            if (!is_hidden_from_reach && t.is_seen_on_path(c, o, threat, path, orders))
+            if (!is_hidden_from_reach && t.is_seen_on_path(c, o, threat, path, ctx))
                 return {};
             else
             {
