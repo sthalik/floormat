@@ -70,9 +70,8 @@ void think_then_run_order(const bptr<critter>& C, order_kind kind, const Ns& dt)
     order_buffer buffer;
     order_list list;
     const auto before = movement_state_of(*C);
-    buffer.begin_object(0);
-    C->think(dt, buffer);
-    buffer.end_object();
+    auto ctx = think_context{buffer, C->world().grid_orders()};
+    C->think(dt, ctx, 0);
     assert_same_movement_state(before, movement_state_of(*C));
     list.append_buffers({&buffer, 1});
     fm_assert_equal(1u, list.size());
@@ -199,7 +198,7 @@ struct position_recording_script final : critter_script
     StringView name() const override { return "position-recording"_s; }
     const void* id() const override { return &watched_id; }
     void on_init(const bptr<critter>&) override {}
-    void on_think(critter& c, const Ns&, order_buffer&) override
+    void on_think(const critter& c, const Ns&, think_context&) override
     {
         const auto watched = c.world().find_object<critter>(watched_id);
         fm_assert(watched);
@@ -319,9 +318,8 @@ void cover_npcs_world::run_frame(Ns dt, bool is_reverse_order, order_buffer& buf
     for (auto n = 0u; n < num_cover_npcs; n++)
     {
         const auto k = is_reverse_order ? num_cover_npcs - 1 - n : n;
-        buffer.begin_object(k);
-        npcs[k]->think(dt, buffer);
-        buffer.end_object();
+        auto ctx = think_context{buffer, w.grid_orders()};
+        npcs[k]->think(dt, ctx, k);
     }
     list.append_buffers({&buffer, 1});
     list.run_all([&](const order& o, u32) { run_order(w, o, dt); });

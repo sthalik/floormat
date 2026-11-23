@@ -9,6 +9,7 @@
 #include "search.hpp"
 #include "raycast-line.hpp"
 #include "order-list.inl"
+#include "grid-order.hpp"
 #include "update-world.hpp"
 #include "loader/loader.hpp"
 #include "compat/map.hpp"
@@ -502,9 +503,8 @@ void critter::update(const bptr<object>& ptrʹ, usize& i, const Ns& dt)
     fm_assert(buffer.empty() && list.size() == 0);
 
     prepare_world_for_thinking(w);
-    buffer.begin_object(0);
-    think(dt, buffer);
-    buffer.end_object();
+    auto ctx = think_context{buffer, w.grid_orders()};
+    think(dt, ctx, 0);
     list.append_buffers({&buffer, 1});
     const auto ptr = static_pointer_cast<critter>(ptrʹ);
     list.run_all([&](const order& o, u32) {
@@ -515,12 +515,17 @@ void critter::update(const bptr<object>& ptrʹ, usize& i, const Ns& dt)
     buffer.clear();
 }
 
-void critter::think(const Ns& dt, order_buffer& orders)
+void critter::think(const Ns& dt, think_context& ctx, u32 update_index) const
 {
     check_script_update_1(script.state());
-    script->on_think(*this, dt, orders);
+    const auto num_earlier_grid_orders = (u32)ctx.grid_orders.size();
+    ctx.orders.begin_object(update_index);
+    script->on_think(*this, dt, ctx);
     if (playable) [[unlikely]]
-        orders.add({.giver = id, .kind = order_kind::move_by_keys});
+        ctx.orders.add({.giver = id, .kind = order_kind::move_by_keys});
+    ctx.orders.end_object();
+    for (auto k = num_earlier_grid_orders; k < (u32)ctx.grid_orders.size(); k++)
+        ctx.grid_orders[k].update_index = update_index;
 }
 
 void critter::run_order(const bptr<critter>& ptr, usize& i, const Ns& dt, const order& o)

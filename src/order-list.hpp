@@ -5,6 +5,7 @@
 namespace floormat {
 
 struct order_list_access;
+struct grid_order;
 
 // The orders one thread gave, grouped by the object that gave them. Only that thread writes it.
 class order_buffer
@@ -30,6 +31,13 @@ public:
     void end_object();
     void clear();
     bool empty() const;
+};
+
+// What a thread running on_think() writes besides the script's own state.
+struct think_context
+{
+    order_buffer& orders;
+    Array<grid_order>& grid_orders;
 };
 
 class order_list

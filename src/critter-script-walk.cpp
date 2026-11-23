@@ -190,7 +190,7 @@ struct walk_script final : critter_script
     StringView name() const override;
     const void* id() const override;
     void on_init(const bptr<critter>& c) override;
-    void on_think(critter& c, const Ns& dt, order_buffer& orders) override;
+    void on_think(const critter& c, const Ns& dt, think_context& ctx) override;
     void on_order(const bptr<critter>& c, usize& i, const Ns& dt, const order& o) override;
     void on_destroy(const bptr<critter>& c, script_destroy_reason reason) override;
     void delete_self() noexcept override;
@@ -214,9 +214,9 @@ void walk_script::on_init(const bptr<critter>& c)
     c->last_walk = walk_result::none;
 }
 
-void walk_script::on_think(critter& c, const Ns&, order_buffer& orders)
+void walk_script::on_think(const critter& c, const Ns&, think_context& ctx)
 {
-    orders.add({.giver = c.id, .kind = order_kind::script_order});
+    ctx.orders.add({.giver = c.id, .kind = order_kind::script_order});
 }
 
 void walk_script::on_order(const bptr<critter>& c, usize& i, const Ns& dt, const order&)

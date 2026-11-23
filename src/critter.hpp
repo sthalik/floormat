@@ -10,7 +10,7 @@ namespace floormat {
 class anim_atlas;
 class world;
 struct critter_script;
-class order_buffer;
+struct think_context;
 struct order;
 
 constexpr u32 anim_speed_unit = 1u << 16;
@@ -39,8 +39,8 @@ struct critter final : object
     // Thinks and runs the orders at once, through the world's frame_order_buffer() and frame_order_list(), which
     // must be empty.
     void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
-    // The caller has opened this critter in orders with begin_object().
-    void think(const Ns& dt, order_buffer& orders);
+    // Gives this critter's orders for the frame. update_index is its position in the frame's update list.
+    void think(const Ns& dt, think_context& ctx, u32 update_index) const;
     void run_order(const bptr<critter>& ptr, usize& i, const Ns& dt, const order& o);
     void update_movement(usize& i, const Ns& dt, rotation r);
 

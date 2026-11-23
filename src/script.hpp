@@ -49,7 +49,7 @@ public:
     // [no-init]        -> ~script() // for tests
 
     script_lifecycle state() const;
-    S* operator->();
+    S* operator->() const;
     explicit operator bool() const;
 
     void do_create(S* ptr);

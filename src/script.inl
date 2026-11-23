@@ -6,7 +6,7 @@
 #include <cr/Pointer.h>
 
 namespace floormat {
-class order_buffer;
+struct think_context;
 struct order;
 } // namespace floormat
 
@@ -14,12 +14,12 @@ namespace floormat::detail::Script {
 
 template<typename S, typename Obj>
 concept BaseScript =
-requires (S& script, const ::floormat::bptr<Obj>& obj, Obj& obj_ref, usize& i, const Ns& ns, order_buffer& orders,
-          const order& o)
+requires (S& script, const ::floormat::bptr<Obj>& obj, const Obj& obj_ref, usize& i, const Ns& ns,
+          think_context& ctx, const order& o)
 {
     requires std::is_base_of_v<base_script, S>;
     script.on_init(obj);
-    script.on_think(obj_ref, ns, orders);
+    script.on_think(obj_ref, ns, ctx);
     script.on_order(obj, i, ns, o);
     script.on_destroy(obj, script_destroy_reason::COUNT);
     script.delete_self();
@@ -70,7 +70,7 @@ template <typename S, typename Obj> script_lifecycle Script<S, Obj>::state() con
 template<typename S, typename Obj> Script<S, Obj>::operator bool() const { return ptr; }
 
 template <typename S, typename Obj>
-S* Script<S, Obj>::operator->()
+S* Script<S, Obj>::operator->() const
 {
     FM_ASSERT_SCRIPT_STATE(script_lifecycle::created);
     fm_debug_assert(ptr);

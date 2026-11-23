@@ -57,7 +57,7 @@ struct cover_script final : critter_script
     StringView name() const override;
     const void* id() const override;
     void on_init(const bptr<critter>& C) override;
-    void on_think(critter& C, const Ns& dt, order_buffer& orders) override;
+    void on_think(const critter& Cʹ, const Ns& dt, think_context& ctx) override;
     void on_order(const bptr<critter>& C, usize& i, const Ns& dt, const order& o) override;
     void on_destroy(const bptr<critter>& C, script_destroy_reason reason) override;
     void delete_self() noexcept override;
@@ -214,11 +214,13 @@ void cover_script::on_init(const bptr<critter>& C)
     prev_game_time = C->world().game_time();
 }
 
-void cover_script::on_think(critter& C, const Ns& dt, order_buffer& orders)
+void cover_script::on_think(const critter& Cʹ, const Ns& dt, think_context& ctx)
 {
+    // XXX: casts away const because the functions below still call the writable queries.
+    auto& C = const_cast<critter&>(Cʹ);
     if (C.needs_to_stop_auto_movement())
-        orders.add({.giver = C.id, .kind = order_kind::script_order,
-                    .script_order_kind = (u8)script_order_kind::clear_script});
+        ctx.orders.add({.giver = C.id, .kind = order_kind::script_order,
+                        .script_order_kind = (u8)script_order_kind::clear_script});
     else
     {
         auto t = Time::now();
@@ -230,8 +232,8 @@ void cover_script::on_think(critter& C, const Ns& dt, order_buffer& orders)
         needs_go_on = false;
         update(C, dt);
         if (needs_go_on || st == state::seek)
-            orders.add({.giver = C.id, .kind = order_kind::script_order,
-                        .script_order_kind = (u8)script_order_kind::walk_or_face_threat});
+            ctx.orders.add({.giver = C.id, .kind = order_kind::script_order,
+                            .script_order_kind = (u8)script_order_kind::walk_or_face_threat});
         last_update = t.update();
         max_update = Math::max(max_update, last_update);
         total_update += last_update;

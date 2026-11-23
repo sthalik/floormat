@@ -8,7 +8,7 @@ namespace floormat {
 struct critter;
 struct Ns;
 class astar;
-class order_buffer;
+struct think_context;
 struct order;
 
 struct point;
@@ -22,7 +22,7 @@ struct critter_script : base_script
     virtual void on_init(const bptr<critter>& c) = 0;
     // Called once per frame while nothing writes the world. Decides what c does this frame, may change only this
     // script's own state, and gives the orders that act on the decision.
-    virtual void on_think(critter& c, const Ns& dt, order_buffer& orders) = 0;
+    virtual void on_think(const critter& c, const Ns& dt, think_context& ctx) = 0;
     // Runs one order that on_think() gave in this frame. May change c and the world, and may clear the script.
     virtual void on_order(const bptr<critter>& c, usize& i, const Ns& dt, const order& o) = 0;
     virtual void on_destroy(const bptr<critter>& c, script_destroy_reason reason) = 0;
