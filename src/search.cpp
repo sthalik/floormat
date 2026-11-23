@@ -8,7 +8,9 @@
 #include "object.hpp"
 #include "old-rtree-search.hpp"
 #include "rect-intersects.hpp"
+#include "grid-pass.hpp"
 #include "point.inl"
+#include "intra-coord.inl"
 #include "compat/array-size.hpp"
 #include "compat/function-view.hpp"
 #include "compat/zip.hpp"
@@ -120,6 +122,31 @@ bool visit_colliders(chunk* c0, const std::array<chunk*, 8>& neighbors, Vector2 
 bool visit_colliders(const chunk* c0, const std::array<const chunk*, 8>& neighbors, Vector2 min, Vector2 max,
                      const collider_visitor& f)
 { return detail::is_passable_(c0, neighbors, min, max, f); }
+
+bool is_passable_by_rtree(const world& w, const Grid::Pass::Params& params, point pt,
+                          const pred* dynamic_object_pred)
+{
+    const auto d = (i32)params.div_size(), bbox_size = (i32)params.bbox_size;
+    auto min_center = Vector2i(intra_coord{pt}) / d * d - half_tile<Vector2i>;
+    auto max_center = min_center + Vector2i{d - 1};
+    // A pass grid's bit holds for the box at the cell's node.
+    // Any other grid's bit holds for the box at every position of the cell.
+    if (params.min_pass == pass_mode::pass)
+        min_center = max_center = min_center + Vector2i{(i32)params.node_offset()};
+    const auto min = Vector2(min_center - Vector2i{bbox_size / 2}),
+               max = Vector2(max_center + Vector2i{bbox_size - bbox_size / 2});
+    const auto min_pass = (u64)params.min_pass;
+    const auto p = [&](const chunk& c, collision_data x) {
+        if (x.pass >= min_pass)
+            return path_search_continue::pass;
+        else if (is_dynamic_object(c, x))
+            return dynamic_object_pred ? (*dynamic_object_pred)(c, x) : path_search_continue::pass;
+        else
+            return path_search_continue::blocked;
+    };
+    const auto ch = pt.chunk3();
+    return detail::is_passable_(w.at(ch), w.neighbors(ch), min, max, p);
+}
 
 path_search_continue without_critters(const chunk& self, collision_data data)
 {
