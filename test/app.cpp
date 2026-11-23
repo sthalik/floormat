@@ -107,6 +107,7 @@ constexpr test_entry test_list[] = {
     // the rest are slow
     FM_TEST(test_grid),
     FM_TEST(test_grid_read_only),
+    FM_TEST(test_read_only_queries),
     FM_TEST(test_rtree),
     FM_TEST(test_astar),
     FM_TEST(test_hole),

@@ -8,6 +8,7 @@
 namespace floormat {
 
 class world;
+struct grid_order;
 
 } // namespace floormat
 
@@ -43,12 +44,23 @@ constexpr u32 min_pool_bbox_size(float radius)
                                        Grid::Pass::Pool& pass_grid_pool, Search::pred const& pred, float radius = 0);
 [[nodiscard]] raycast_result_s raycast(world& w, point from, point to, object_id self,
                                        Grid::Object::Pool& object_pool, Search::pred const& pred, float radius = 0);
+// These write neither w nor the pool. Every chunk they read needs a clean R-tree, which the const rtree() asserts.
+// Each chunk read without a built grid gets a grid_order and the R-tree test, which sees critters too.
+[[nodiscard]] raycast_result_s raycast(const world& w, point from, point to, object_id self,
+                                       const Grid::Pass::Pool& pass_grid_pool, Search::pred const& pred,
+                                       Array<grid_order>& orders, float radius = 0);
+[[nodiscard]] raycast_result_s raycast(const world& w, point from, point to, object_id self,
+                                       const Grid::Object::Pool& object_pool, Search::pred const& pred,
+                                       Array<grid_order>& orders, float radius = 0);
 [[nodiscard]] raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self,
                                                  Grid::Pass::Pool& pass_grid_pool,
                                                  const Search::pred& pred, float radius = 0);
 // Returns !raycast(...).success for the same arguments.
 [[nodiscard]] bool is_occluded(world& w, point from, point to, object_id self,
                                Grid::Pass::Pool& pass_grid_pool, const Search::pred& pred, float radius = 0);
+[[nodiscard]] bool is_occluded(const world& w, point from, point to, object_id self,
+                               const Grid::Pass::Pool& pass_grid_pool, const Search::pred& pred,
+                               Array<grid_order>& orders, float radius = 0);
 [[nodiscard]] raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self,
                                                  Grid::Object::Pool& object_pool,
                                                  const Search::pred& pred, float radius = 0);

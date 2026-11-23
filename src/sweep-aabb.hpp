@@ -7,7 +7,7 @@
 
 namespace Magnum { using Range2D = Math::Range2D<Float>; }
 namespace Magnum::Math { template<UnsignedInt dimensions, class T> class Range; }
-namespace floormat { class chunk; class world; struct chunk_coords_; }
+namespace floormat { class chunk; class world; struct chunk_coords_; struct grid_order; }
 namespace floormat::Raycast { class bresenham_line; }
 namespace floormat::Grid::Pass { class Pool; }
 namespace floormat::Grid::Object { class Pool; }
@@ -42,6 +42,26 @@ void find_swept_collider(world& w, chunk_coords_ ch, const Raycast::bresenham_li
 void find_swept_collider(world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
                          u32 first_step, u32 last_step, Vector2ui bbox_size,
                          const Search::pred& p, Grid::Object::Pool& objects, std::array<Array<bool>, 4>& entry_blocked,
+                         function_view<bool(const swept_collider_result&) const> f);
+
+// These write neither w nor the pool. Every chunk they read needs a clean R-tree, which the const rtree() asserts.
+// Each chunk read without a built grid gets a grid_order and the R-tree test, which sees critters too.
+swept_collider_result find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
+                                          u32 first_step, u32 last_step, Vector2ui bbox_size,
+                                          const Search::pred& p, Array<grid_order>& orders,
+                                          const Grid::Pass::Pool* pool = nullptr);
+swept_collider_result find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
+                                          u32 first_step, u32 last_step, Vector2ui bbox_size,
+                                          const Search::pred& p, const Grid::Object::Pool& objects,
+                                          Array<grid_order>& orders, std::array<Array<bool>, 4>& entry_blocked);
+void find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
+                         u32 first_step, u32 last_step, Vector2ui bbox_size,
+                         const Search::pred& p, const Grid::Pass::Pool* pool, Array<grid_order>& orders,
+                         function_view<bool(const swept_collider_result&) const> f);
+void find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
+                         u32 first_step, u32 last_step, Vector2ui bbox_size,
+                         const Search::pred& p, const Grid::Object::Pool& objects, Array<grid_order>& orders,
+                         std::array<Array<bool>, 4>& entry_blocked,
                          function_view<bool(const swept_collider_result&) const> f);
 
 } // namespace floormat

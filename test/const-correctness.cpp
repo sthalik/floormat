@@ -7,6 +7,11 @@
 #include "src/grid-cover.hpp"
 #include "src/grid-object.hpp"
 #include "src/grid-registry.hpp"
+#include "src/grid-order.hpp"
+#include "src/raycast.hpp"
+#include "src/raycast-line.hpp"
+#include "src/sweep-aabb.hpp"
+#include "compat/function-view.hpp"
 #include <concepts>
 
 namespace floormat {
@@ -119,6 +124,52 @@ static_assert(same<decltype(std::declval<const Grid::detail::PoolBase&>().find(s
                    const Grid::detail::GridBase*>);
 static_assert(same<decltype(std::declval<const Grid::detail::PoolBase&>().find(std::declval<chunk&>())),
                    Grid::detail::GridBase*>);
+
+template<typename Wo, typename P> concept is_raycast_callable =
+    requires(Wo& w, P& pool, point pt, const Search::pred& p) { raycast(w, pt, pt, object_id{}, pool, p); };
+template<typename Wo, typename P> concept is_read_only_raycast_callable =
+    requires(Wo& w, P& pool, point pt, const Search::pred& p, Array<grid_order>& orders) {
+        { raycast(w, pt, pt, object_id{}, pool, p, orders) } -> std::same_as<Raycast::raycast_result_s>;
+    };
+
+static_assert(is_read_only_raycast_callable<const world, const Pass::Pool>);
+static_assert(is_read_only_raycast_callable<const world, const Grid::Object::Pool>);
+static_assert(is_raycast_callable<world, Pass::Pool>);
+static_assert(is_raycast_callable<world, Grid::Object::Pool>);
+static_assert(!is_raycast_callable<const world, Pass::Pool>);
+static_assert(!is_raycast_callable<const world, Grid::Object::Pool>);
+static_assert(!is_raycast_callable<world, const Pass::Pool>);
+
+using swept_visitor = function_view<bool(const swept_collider_result&) const>;
+using entry_blocked_arrays = std::array<Array<bool>, 4>;
+
+template<typename Wo, typename P>
+concept is_read_only_swept_collider_callable =
+    requires(Wo& w, P* pool, const Raycast::bresenham_line& l, const Search::pred& p, Array<grid_order>& orders,
+             swept_visitor f) {
+        { find_swept_collider(w, chunk_coords_{}, l, 0, 1, Vector2ui{}, p, orders, pool) }
+            -> std::same_as<swept_collider_result>;
+        { find_swept_collider(w, chunk_coords_{}, l, 0, 1, Vector2ui{}, p, orders) }
+            -> std::same_as<swept_collider_result>;
+        find_swept_collider(w, chunk_coords_{}, l, 0, 1, Vector2ui{}, p, pool, orders, f);
+    };
+template<typename Wo, typename P>
+concept is_read_only_swept_object_collider_callable =
+    requires(Wo& w, P& objects, const Raycast::bresenham_line& l, const Search::pred& p, Array<grid_order>& orders,
+             entry_blocked_arrays& entry_blocked, swept_visitor f) {
+        { find_swept_collider(w, chunk_coords_{}, l, 0, 1, Vector2ui{}, p, objects, orders, entry_blocked) }
+            -> std::same_as<swept_collider_result>;
+        find_swept_collider(w, chunk_coords_{}, l, 0, 1, Vector2ui{}, p, objects, orders, entry_blocked, f);
+    };
+template<typename Wo>
+concept is_swept_collider_callable = requires(Wo& w, const Raycast::bresenham_line& l, const Search::pred& p) {
+    find_swept_collider(w, chunk_coords_{}, l, 0, 1, Vector2ui{}, p);
+};
+
+static_assert(is_read_only_swept_collider_callable<const world, const Pass::Pool>);
+static_assert(is_read_only_swept_object_collider_callable<const world, const Grid::Object::Pool>);
+static_assert(is_swept_collider_callable<world>);
+static_assert(!is_swept_collider_callable<const world>);
 
 } // namespace
 } // namespace floormat

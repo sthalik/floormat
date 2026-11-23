@@ -183,8 +183,10 @@ float raycast_one(chunk& self,
         return (float)max_ray_px;
     const point to = from + step*n;
 
-    const auto r = Raycast::detail::do_raycasting<false, false>(nullptr, self.world(), from, to, 0, pass_pool,
-                                                                nullptr, Search::without_dynamic_objects, 0);
+    auto& w = self.world();
+    const auto r = Raycast::detail::do_raycasting<false, false>(nullptr, w, &w, from, to, 0, pass_pool, &pass_pool,
+                                                                nullptr, nullptr, Search::without_dynamic_objects,
+                                                                nullptr, 0);
 
     if (!r.has_result || r.success)
         return (float)max_ray_px;

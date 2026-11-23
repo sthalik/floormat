@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "grid-read-only.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-object.hpp"
 #include "src/grid-cover.hpp"
@@ -36,6 +37,8 @@ void add_ground_all(chunk& c)
             c[{i, j}].ground() = floor;
 }
 
+} // namespace
+
 void rebuild_passability(chunk& c)
 {
     c.mark_passability_modified();
@@ -55,7 +58,6 @@ world make_world_with_ground()
     return w;
 }
 
-// px is relative to the center of COORD's first tile.
 bptr<critter> add_critter_at(world& w, Vector2i px, u8 size, pass_mode pass)
 {
     const auto pt = point::normalize_coords(point{COORD, {}, {}}, px);
@@ -66,6 +68,8 @@ bptr<critter> add_critter_at(world& w, Vector2i px, u8 size, pass_mode pass)
     p.pass = pass;
     return w.make_object<critter>(w.make_id(), pt.coord(), move(p));
 }
+
+namespace {
 
 void add_scenery(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass)
 {
@@ -302,13 +306,8 @@ void test_registry_lookup()
     fm_assert(creg.find_pass_pool(cover_pass_params) == &reg.pass_pool(cover_pass_params));
 }
 
-struct pred_object_ids
-{
-    object_id door_id, critter_id;
-};
+} // namespace
 
-// Returns the ids of a door and of one critter, after adding colliders to the 3x3 chunks around COORD, many of
-// them across chunk borders.
 pred_object_ids add_colliders(world& w)
 {
     const auto wall = wall_image_proto{ loader.wall_atlas("empty"), 0 };
@@ -378,6 +377,8 @@ pred_object_ids add_colliders(world& w)
             rebuild_passability(w[chunk_coords_{x, y, 0}]);
     return { door_id, critter_id };
 }
+
+namespace {
 
 intra_coord node_of_cell(const Pass::Params& params, u32 i, u32 j)
 {

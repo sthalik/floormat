@@ -9,6 +9,7 @@
 #include "tile-bbox.hpp"
 #include "grid-pass.hpp"
 #include "grid-object.hpp"
+#include "grid-order.hpp"
 #include "search-pred.hpp"
 #include "old-rtree-search.hpp"
 #include "compat/function-view.hpp"
@@ -108,21 +109,27 @@ aabb_result ray_rounded_rect_intersection(Vector2 ray_origin, Vector2 ray_dir, V
     return { Math::max(0.f, -b - Math::sqrt(discr)), true };
 }
 
-template<typename Pool>
-void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
+template<typename Pool, typename WritablePool>
+void traverse_line_cells(const world& w, world* writable_world, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
-                         Pool pool, const Search::pred& p, std::array<Array<bool>, 4>* entry_blocked,
+                         Pool pool, WritablePool writable_pool, const Search::pred& p,
+                         std::array<Array<bool>, 4>* entry_blocked, Array<grid_order>* orders,
                          function_view<bool(const line_cell&) const> visit,
                          object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32)
 {
-    static_assert(std::is_null_pointer_v<Pool> || std::is_same_v<Pool, Grid::Pass::Pool*> ||
-                  std::is_same_v<Pool, Grid::Object::Pool*>);
-    constexpr bool has_pool = !std::is_null_pointer_v<Pool>, has_object_pool = std::is_same_v<Pool, Grid::Object::Pool*>;
+    static_assert(std::is_null_pointer_v<Pool> && std::is_null_pointer_v<WritablePool> ||
+                  std::is_same_v<Pool, const Grid::Pass::Pool*> && std::is_same_v<WritablePool, Grid::Pass::Pool*> ||
+                  std::is_same_v<Pool, const Grid::Object::Pool*> && std::is_same_v<WritablePool, Grid::Object::Pool*>);
+    constexpr bool has_pool = !std::is_null_pointer_v<Pool>;
+    constexpr bool has_object_pool = std::is_same_v<Pool, const Grid::Object::Pool*>;
     fm_assert(first_step <= last_step && last_step <= line.steps());
     if constexpr (has_object_pool)
         fm_assert(pool && entry_blocked);
     else if constexpr (has_pool)
         fm_assert(pool);
+    fm_debug_assert(!writable_world || writable_world == &w);
+    if constexpr (has_pool)
+        fm_debug_assert(!writable_world == !writable_pool && (!writable_pool || writable_pool == pool));
 
     constexpr auto csize = chunk_size<i32>;
     const auto div = [&] {
@@ -182,61 +189,102 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
 
     line_cell cell = {};
     Vector2i loaded{INT32_MAX, INT32_MAX};
-    Pass::Grid grid{nullptr, nullptr};
-    Grid::Object::Grid object_grid{nullptr};
+    Pass::ConstGrid grid;
+    Grid::Object::ConstGrid object_grid;
     bool has_grid = false, has_objects = false, chunk_empty = false;
     const usize* corner_bits[4] = {};
-    std::array<Grid::Object::Grid, 4> corner_objects{Grid::Object::Grid{nullptr}, Grid::Object::Grid{nullptr},
-                                                     Grid::Object::Grid{nullptr}, Grid::Object::Grid{nullptr}};
+    std::array<Grid::Object::ConstGrid, 4> corner_objects;
     bool corner_has_objects[4] = {};
     u32 corners_loaded = 0;
 
-    const auto chunks_3x3 = [&](Vector2i off) -> std::array<chunk*, 9> {
-        std::array<chunk*, 9> chunks;
+    // Returns the cell of steps first to last in the chunk at offset off, with that chunk's 3x3 chunks.
+    const auto make_line_cell = [&](Vector2i off, u32 first, u32 last) -> line_cell {
+        line_cell c = { .chunks = {}, .writable_chunks = {}, .chunk_offset = off,
+                        .first_step = first, .last_step = last };
         for (int j = 0; j < 3; j++)
             for (int i = 0; i < 3; i++)
-                chunks[(usize)(j*3 + i)] = w.at(chunk_coords_{
-                    (i16)(ch.x + off.x() + i - 1), (i16)(ch.y + off.y() + j - 1), ch.z });
-        return chunks;
+            {
+                const auto k = (usize)(j*3 + i);
+                const auto coord = chunk_coords_{ (i16)(ch.x + off.x() + i - 1), (i16)(ch.y + off.y() + j - 1), ch.z };
+                if (writable_world)
+                    c.chunks[k] = c.writable_chunks[k] = writable_world->at(coord);
+                else
+                    c.chunks[k] = w.at(coord);
+            }
+        return c;
+    };
+    struct chunk_grids { Pass::ConstGrid pass; Grid::Object::ConstGrid objects; };
+    // Returns c's grids, after building them when wc is set. Both are empty when c has no built grid, for which
+    // it appends an order.
+    const auto grids_of = [&](const chunk& c, chunk* wc) -> chunk_grids {
+        chunk_grids ret;
+        if constexpr (has_pool)
+        {
+            if constexpr (has_object_pool)
+            {
+                if (wc)
+                {
+                    writable_pool->pass_pool()[*wc].build_if_stale();
+                    (*writable_pool)[*wc].build_if_stale();
+                }
+                ret = { pool->pass_pool().find_built_grid(c), pool->find_built_grid(c) };
+                if (!ret.objects)
+                    ret.pass = {};
+            }
+            else
+            {
+                if (wc)
+                    (*writable_pool)[*wc].build_if_stale();
+                ret.pass = pool->find_built_grid(c);
+            }
+            if (!ret.pass)
+            {
+                fm_debug3_assert(!wc);
+                ret.objects = {};
+                if (orders)
+                    arrayAppend(*orders, grid_order{
+                        .pass_params = pool->params(), .chunk = c.coord(),
+                        .kind = has_object_pool ? grid_order::grid_kind::object : grid_order::grid_kind::pass,
+                    });
+            }
+        }
+        return ret;
     };
     // Callers compare with loaded first, so a cell in the loaded chunk makes no call.
     const auto load = [&](Vector2i off) {
         loaded = off;
-        cell.chunk_offset = off;
-        cell.chunks = chunks_3x3(off);
-        auto* c = cell.chunks[4];
-        if constexpr (!std::is_null_pointer_v<Pool>)
-            has_grid = c != nullptr;
+        cell = make_line_cell(off, cell.first_step, cell.last_step);
+        const auto* c = cell.chunks[4];
         has_objects = false;
+        if constexpr (has_pool)
+        {
+            has_grid = false;
+            if (c)
+            {
+                const auto grids = grids_of(*c, cell.writable_chunks[4]);
+                grid = grids.pass;
+                object_grid = grids.objects;
+                has_grid = (bool)grid;
+            }
+        }
         if (has_grid)
         {
-            if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
-            {
-                grid = pool->pass_pool()[*c];
-                grid.build_if_stale();
-                object_grid = (*pool)[*c];
-                object_grid.build_if_stale();
+            if constexpr (has_object_pool)
                 has_objects = object_grid.blocked_objects(p, (*entry_blocked)[0]);
-            }
-            else if constexpr (std::is_same_v<Pool, Grid::Pass::Pool*>)
-            {
-                grid = (*pool)[*c];
-                grid.build_if_stale();
-            }
             chunk_empty = grid.is_all_empty() && !has_objects;
         }
         else if (!c)
         {
             // colliders overhang from loaded neighbors into a missing chunk
             chunk_empty = true;
-            for (auto* nb : cell.chunks)
+            for (const auto* nb : cell.chunks)
                 chunk_empty &= !nb;
         }
         else
             chunk_empty = false;
         if constexpr (has_pool)
         {
-            corner_bits[0] = has_grid ? grid.bits().data : nullptr;
+            corner_bits[0] = has_grid ? grid.bits().data() : nullptr;
             corner_objects[0] = object_grid;
             corner_has_objects[0] = has_objects;
             corners_loaded = 1;
@@ -246,24 +294,22 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         corners_loaded |= 1u << n;
         corner_bits[n] = nullptr;
         corner_has_objects[n] = false;
-        auto* c = cell.chunks[4 + (n & 1) + 3*(n >> 1)];
+        const auto k = (usize)(4 + (n & 1) + 3*(n >> 1));
+        const auto* c = cell.chunks[k];
         if (!c)
             return;
-        if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
+        if constexpr (has_pool)
         {
-            auto g = pool->pass_pool()[*c];
-            g.build_if_stale();
-            corner_bits[n] = g.bits().data;
-            auto og = (*pool)[*c];
-            og.build_if_stale();
-            corner_has_objects[n] = og.blocked_objects(p, (*entry_blocked)[n]);
-            corner_objects[n] = og;
-        }
-        else if constexpr (std::is_same_v<Pool, Grid::Pass::Pool*>)
-        {
-            auto g = (*pool)[*c];
-            g.build_if_stale();
-            corner_bits[n] = g.bits().data;
+            const auto [g, og] = grids_of(*c, cell.writable_chunks[k]);
+            if (g)
+            {
+                corner_bits[n] = g.bits().data();
+                if constexpr (has_object_pool)
+                {
+                    corner_has_objects[n] = og.blocked_objects(p, (*entry_blocked)[n]);
+                    corner_objects[n] = og;
+                }
+            }
         }
     };
     const auto test_bit = [](const usize* b, u32 i) -> bool {
@@ -318,7 +364,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             else
             {
                 const auto off = loaded + Vector2i{(i32)(n & 1), (i32)(n >> 1)};
-                return f(line_cell{chunks_3x3(off), off, cell.first_step, cell.last_step}, g, g.objects_at_cell<U>(i), blocked);
+                return f(make_line_cell(off, cell.first_step, cell.last_step), g, g.objects_at_cell<U>(i), blocked);
             }
         };
         if (n ? g.uses_u32() : std::is_same_v<T, u32>)
@@ -343,7 +389,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
         if (!run_pending)
             return true;
         run_pending = false;
-        return visit(line_cell{cell.chunks, cell.chunk_offset, run_first, run_last});
+        return visit(line_cell{cell.chunks, cell.writable_chunks, cell.chunk_offset, run_first, run_last});
     };
     // Returns false after loading a chunk whose object grid isn't T,
     // so the loop over cells continues with the other index type.
@@ -457,8 +503,11 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                                 continue;
                             }
                         }
-                        const auto chunks = corner_off == loaded ? cell.chunks : chunks_3x3(corner_off);
-                        if (!visit(line_cell{chunks, corner_off, last + 1, last + 1}))
+                        const auto orthogonal_cell =
+                            corner_off == loaded
+                            ? line_cell{cell.chunks, cell.writable_chunks, corner_off, last + 1, last + 1}
+                            : make_line_cell(corner_off, last + 1, last + 1);
+                        if (!visit(orthogonal_cell))
                         {
                             if constexpr (has_pool)
                                 flush_run();
@@ -484,8 +533,11 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
                     if (c == c0 || c == c1)
                         continue;
                     const auto c_off = chunk_of(c);
-                    const auto chunks = c_off == loaded ? cell.chunks : chunks_3x3(c_off);
-                    if (!visit(line_cell{chunks, c_off, last + 1, last + 1}))
+                    const auto orthogonal_cell =
+                        c_off == loaded
+                        ? line_cell{cell.chunks, cell.writable_chunks, c_off, last + 1, last + 1}
+                        : make_line_cell(c_off, last + 1, last + 1);
+                    if (!visit(orthogonal_cell))
                         return true;
                 }
             }
@@ -493,7 +545,7 @@ void traverse_line_cells(world& w, chunk_coords_ ch, const bresenham_line& line,
             global_cell = cell_of(line.point_at(k));
         }
     };
-    if constexpr (std::is_same_v<Pool, Grid::Object::Pool*>)
+    if constexpr (has_object_pool)
     {
         for (bool done = false; !done; )
             done = walk.template operator()<u16>() || walk.template operator()<u32>();
@@ -538,12 +590,19 @@ line_pixel first_pixel_in_bounds(const bresenham_line& line, Vector2i lo, Vector
 
 template<bool EnableDiagnostics, bool HasObjectPool, raycast_mode Mode>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
-                               world& w, point from, point to, object_id self, Grid::Pass::Pool& pass_pool,
-                               std::conditional_t<HasObjectPool, Grid::Object::Pool&, std::nullptr_t> objects,
-                               const Search::pred& pred, float radius)
+                               const world& w, world* writable_world, point from, point to, object_id self,
+                               const Grid::Pass::Pool& pass_pool, Grid::Pass::Pool* writable_pass_pool,
+                               std::conditional_t<HasObjectPool, const Grid::Object::Pool&, std::nullptr_t> objects,
+                               std::conditional_t<HasObjectPool, Grid::Object::Pool*, std::nullptr_t> writable_objects,
+                               const Search::pred& pred, Array<grid_order>* orders, float radius)
 {
     raycast_result_s result;
     fm_assert(from.chunk3().z == to.chunk3().z);
+    fm_debug_assert(!writable_world || writable_world == &w);
+    fm_debug_assert(!writable_world == !writable_pass_pool
+                    && (!writable_pass_pool || writable_pass_pool == &pass_pool));
+    if constexpr (HasObjectPool)
+        fm_debug_assert(!writable_world == !writable_objects && (!writable_objects || writable_objects == &objects));
 
     using Math::abs;
     using Math::floor;
@@ -652,11 +711,11 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     }
 
     Vector2i last_chunk_off { (i32)1<<30, (i32)1<<30 };
-    chunk* last_nb[9] = {};
-    chunk* last_c = nullptr;
-    Pass::Grid last_g{nullptr, nullptr};
-    Grid::Object::Grid last_og{nullptr};
-    bool last_pass_grid_built = false, last_has_objects = false;
+    const chunk* last_nb[9] = {};
+    chunk* writable_last_nb[9] = {};
+    Pass::ConstGrid last_g;
+    Grid::Object::ConstGrid last_og;
+    bool last_has_grid = false, last_has_objects = false;
     bool last_chunk_empty = true;
 
     float min_tmin = FLT_MAX;
@@ -666,7 +725,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     float t_entry = 0;
 
     const auto find_intersecting_collider = [&]<bool UsingRayPredicate>(std::bool_constant<UsingRayPredicate>,
-                                                                        chunk& nb, Vector2i nb_world,
+                                                                        const chunk& nb, Vector2i nb_world,
                                                                         collision_data x, const Range2D& range) {
         if (radius == 0)
         {
@@ -707,7 +766,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
         b = false;
     };
 
-    // Returns false after building a chunk's object grid that isn't T,
+    // Returns false after loading a chunk whose object grid isn't T,
     // so the loop over cells continues with the other index type.
     const auto walk = [&]<typename T>() -> bool {
         // A hit's tmin can lie up to a full rect extent past the cell whose query returned it, so the loop goes on
@@ -725,18 +784,11 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                             (i16)(from.chunk().x + chunk_off_x + i - 1),
                             (i16)(from.chunk().y + chunk_off_y + j - 1),
                             from.chunk3().z };
-                        last_nb[j*3 + i] = w.at(co);
+                        if (writable_world)
+                            last_nb[j*3 + i] = writable_last_nb[j*3 + i] = writable_world->at(co);
+                        else
+                            last_nb[j*3 + i] = w.at(co);
                     }
-                last_c = last_nb[4];
-                last_pass_grid_built = false;
-                if (!last_c)
-                {
-                    // colliders overhang from loaded neighbors into a missing chunk.
-                    // skip it only when the whole 3x3 area is unloaded.
-                    last_chunk_empty = true;
-                    for (auto* nb : last_nb)
-                        last_chunk_empty &= !nb;
-                }
 
                 if constexpr(EnableDiagnostics)
                 {
@@ -749,27 +801,57 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         chunk_size<Vector2ui>,
                     });
                 }
-            }
 
-            bool bit = true;
-            if (last_c)
-            {
-                if (!last_pass_grid_built)
+                last_has_grid = false;
+                last_has_objects = false;
+                if (const auto* c = last_nb[4])
                 {
-                    last_g = pass_pool[*last_c];
-                    last_g.build_if_stale();
-                    last_pass_grid_built = true;
+                    if (auto* wc = writable_last_nb[4])
+                    {
+                        (*writable_pass_pool)[*wc].build_if_stale();
+                        if constexpr (HasObjectPool)
+                            (*writable_objects)[*wc].build_if_stale();
+                    }
+                    last_g = pass_pool.find_built_grid(*c);
+                    last_has_grid = (bool)last_g;
                     if constexpr (HasObjectPool)
                     {
-                        last_og = objects[*last_c];
-                        last_og.build_if_stale();
-                        last_has_objects = last_og.blocked_objects(pred);
+                        last_og = objects.find_built_grid(*c);
+                        last_has_grid &= (bool)last_og;
                     }
-                    last_chunk_empty = last_g.is_all_empty() && !last_has_objects;
+                    if (last_has_grid)
+                    {
+                        if constexpr (HasObjectPool)
+                            last_has_objects = last_og.blocked_objects(pred);
+                        last_chunk_empty = last_g.is_all_empty() && !last_has_objects;
+                    }
+                    else
+                    {
+                        fm_debug3_assert(!writable_world);
+                        last_chunk_empty = false;
+                        if (orders)
+                            arrayAppend(*orders, grid_order{
+                                .pass_params = pass_pool.params(), .chunk = c->coord(),
+                                .kind = HasObjectPool ? grid_order::grid_kind::object : grid_order::grid_kind::pass,
+                            });
+                    }
                     if constexpr (HasObjectPool)
                         if (last_has_objects && last_og.uses_u32() != std::is_same_v<T, u32>)
                             return false;
                 }
+                else
+                {
+                    // colliders overhang from loaded neighbors into a missing chunk.
+                    // skip it only when the whole 3x3 area is unloaded.
+                    last_chunk_empty = true;
+                    for (const auto* nb : last_nb)
+                        last_chunk_empty &= !nb;
+                }
+            }
+
+            bool bit = true;
+            if (last_has_grid)
+            {
                 if (!last_chunk_empty)
                 {
                     auto bit_idx = Pass::Grid::get_bitmask_index(
@@ -830,7 +912,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         if (!within_chunk_bounds(fmin, fmax))
                             continue;
 
-                        nb->rtree()->Search(fmin.data(), fmax.data(), [&, min_pass](u64 data, const Rect& r)
+                        const auto* tree = writable_world ? writable_last_nb[j*3 + i]->rtree() : nb->rtree();
+                        tree->Search(fmin.data(), fmax.data(), [&, min_pass](u64 data, const Rect& r)
                         {
                             auto x = std::bit_cast<collision_data>(data);
                             fm_debug3_assert(x.type != (u64)collision_type::none);
@@ -933,28 +1016,25 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     return result;
 }
 
-template raycast_result_s do_raycasting<false, false>(std::nullptr_t, world&, point, point, object_id,
-                                                      Grid::Pass::Pool&, std::nullptr_t, const Search::pred&, float);
-template raycast_result_s do_raycasting<false, false, raycast_mode::any_hit>(
-    std::nullptr_t, world&, point, point, object_id, Grid::Pass::Pool&, std::nullptr_t, const Search::pred&, float);
-template raycast_result_s do_raycasting<false, true>(std::nullptr_t, world&, point, point, object_id,
-                                                     Grid::Pass::Pool&, Grid::Object::Pool&, const Search::pred&, float);
-template raycast_result_s do_raycasting<true, false>(raycast_diag_s&, world&, point, point, object_id,
-                                                     Grid::Pass::Pool&, std::nullptr_t, const Search::pred&, float);
-template raycast_result_s do_raycasting<true, true>(raycast_diag_s&, world&, point, point, object_id,
-                                                    Grid::Pass::Pool&, Grid::Object::Pool&, const Search::pred&, float);
+#define FM_DO_RAYCASTING(EnableDiagnostics, Diag, HasObjectPool, ObjectPool, WritableObjectPool, Mode)           \
+    template raycast_result_s do_raycasting<EnableDiagnostics, HasObjectPool, raycast_mode::Mode>(                \
+        Diag, const world&, world*, point, point, object_id, const Grid::Pass::Pool&, Grid::Pass::Pool*,         \
+        ObjectPool, WritableObjectPool, const Search::pred&, Array<grid_order>*, float)
+FM_DO_RAYCASTING(false, std::nullptr_t, false, std::nullptr_t, std::nullptr_t, closest_hit);
+FM_DO_RAYCASTING(false, std::nullptr_t, false, std::nullptr_t, std::nullptr_t, any_hit);
+FM_DO_RAYCASTING(false, std::nullptr_t, true, const Grid::Object::Pool&, Grid::Object::Pool*, closest_hit);
+FM_DO_RAYCASTING(true, raycast_diag_s&, false, std::nullptr_t, std::nullptr_t, closest_hit);
+FM_DO_RAYCASTING(true, raycast_diag_s&, true, const Grid::Object::Pool&, Grid::Object::Pool*, closest_hit);
+#undef FM_DO_RAYCASTING
 
-template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
-                                  std::nullptr_t, const Search::pred&, std::array<Array<bool>, 4>*,
-                                  function_view<bool(const line_cell&) const>,
-                                  object_cell_visitor<u16>, object_cell_visitor<u32>);
-template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
-                                  Grid::Pass::Pool*, const Search::pred&, std::array<Array<bool>, 4>*,
-                                  function_view<bool(const line_cell&) const>,
-                                  object_cell_visitor<u16>, object_cell_visitor<u32>);
-template void traverse_line_cells(world&, chunk_coords_, const bresenham_line&, u32, u32, bool,
-                                  Grid::Object::Pool*, const Search::pred&, std::array<Array<bool>, 4>*,
-                                  function_view<bool(const line_cell&) const>,
-                                  object_cell_visitor<u16>, object_cell_visitor<u32>);
+#define FM_TRAVERSE_LINE_CELLS(Pool, WritablePool)                                                                \
+    template void traverse_line_cells(const world&, world*, chunk_coords_, const bresenham_line&, u32, u32, bool, \
+                                      Pool, WritablePool, const Search::pred&, std::array<Array<bool>, 4>*,      \
+                                      Array<grid_order>*, function_view<bool(const line_cell&) const>,           \
+                                      object_cell_visitor<u16>, object_cell_visitor<u32>)
+FM_TRAVERSE_LINE_CELLS(std::nullptr_t, std::nullptr_t);
+FM_TRAVERSE_LINE_CELLS(const Grid::Pass::Pool*, Grid::Pass::Pool*);
+FM_TRAVERSE_LINE_CELLS(const Grid::Object::Pool*, Grid::Object::Pool*);
+#undef FM_TRAVERSE_LINE_CELLS
 
 } // namespace floormat::Raycast::detail
