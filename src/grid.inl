@@ -113,13 +113,13 @@ const T* find_built_grid(const Pool<T>* p, const chunk& c)
     }
 }
 
-template <typename T>
-void rebuild_requested_stale_grids(Pool<T>* p)
+template <typename T, typename... Args>
+void rebuild_requested_stale_grids(Pool<T>* p, Args&&... args)
 {
     for (auto* g : p->grids_in_use)
         if (atomic_load(&g->is_requested_by_reader, memory_order::relaxed))
         {
-            static_cast<T*>(g)->build_if_stale();
+            static_cast<T*>(g)->build_if_stale(args...);
             atomic_store(&g->is_requested_by_reader, 0, memory_order::relaxed);
         }
 }

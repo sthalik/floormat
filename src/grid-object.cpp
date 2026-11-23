@@ -61,7 +61,7 @@ struct ObjectGrid : GridBase
     // A new objects_gen() value marks no grid stale. objects_maybe_dirty() compares the 9 chunks' values
     // instead, so moving a critter writes to no grid.
     bool needs_rebuild() const { return is_marked_stale() || objects_maybe_dirty(); }
-    void build_impl(chunk* self);
+    void build_impl(chunk* self, Array<u32>& scratch_runs);
     template<typename T> bool build_impl(Array<T>& cells, Array<T>& runs, Array<u32>& scratch_runs);
 };
 
@@ -164,11 +164,10 @@ bool ObjectGrid::objects_maybe_dirty() const
     return false;
 }
 
-void ObjectGrid::build_impl(chunk* self)
+void ObjectGrid::build_impl(chunk* self, Array<u32>& scratch_runs)
 {
     const auto dc = params.div_count;
     fm_assert(dc*dc <= cells.size());
-    auto& scratch_runs = static_cast<ObjectPool*>(pool)->scratch_runs;
     clear_cells();
     arrayClear(entry_data);
     arrayClear(entry_chunks);
@@ -419,7 +418,7 @@ bool Grid::is_requested_by_reader() const
     return atomic_load(&grid->is_requested_by_reader, memory_order::relaxed);
 }
 void Grid::mark_stale() { grid->mark_stale(); }
-void Grid::build_if_stale() { grid->build_if_stale(); }
+void Grid::build_if_stale() { grid->build_if_stale(static_cast<detail::ObjectPool*>(grid->pool)->scratch_runs); }
 
 ConstGrid::ConstGrid() noexcept: ConstGrid{nullptr} {}
 // g gets only const calls.
@@ -488,12 +487,12 @@ ConstGrid Pool::find_built_grid(const chunk& c) const
 void Pool::build_if_stale_all()
 {
     for (auto* g : pool->grids_in_use)
-        static_cast<detail::ObjectGrid*>(g)->build_if_stale();
+        static_cast<detail::ObjectGrid*>(g)->build_if_stale(pool->scratch_runs);
 }
 
 void Pool::rebuild_requested_stale_grids()
 {
-    detail::rebuild_requested_stale_grids<detail::ObjectGrid>(pool);
+    detail::rebuild_requested_stale_grids<detail::ObjectGrid>(pool, pool->scratch_runs);
 }
 
 const Params& Pool::params() const { return pool->params; }
