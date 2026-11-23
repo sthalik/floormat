@@ -37,9 +37,14 @@ public:
     void list_pass_grid(const Pass::Params& p, chunk& c);
     // As list_pass_grid() for c's object grid, then for its pass grid of the same params.
     void list_object_grid(const Object::Params& p, chunk& c);
+    // As Cover::Pool::list_octant() on p's pool, which it makes if missing, listing into this registry's lists.
+    u32 list_cover_octant(const Cover::Params& p, chunk& c, u32 k, u32 max_octant_fills);
     // Builds the listed grids, as jobs of their world's thread pool if it has one, numbers them in list order and
     // empties the list. With a pool, every chunk's R-trees must be current, as after world::ensure_passability().
     void build_listed_grids();
+    // As build_listed_grids(), for what list_cover_octant() listed, and adds the octant fills to their pools'
+    // totals. Only a rebuilt grid gets a build_no. Call build_listed_grids() first.
+    void fill_listed_cover_octants();
     // Builds what list_requested_stale_grids() lists.
     void rebuild_requested_stale_grids();
 
@@ -81,6 +86,7 @@ private:
         Array<Pointer<Cover::Pool>> fallback;
     } cover_;
     Array<detail::grid_to_build> grids_to_build_;
+    Array<detail::cover_grid_to_fill> cover_grids_to_fill_;
     // Indexed by the worker_index of a build_listed_grids() job.
     Array<Array<u32>> thread_scratch_runs_;
 };

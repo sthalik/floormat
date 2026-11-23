@@ -10,6 +10,7 @@ GridRegistry::GridRegistry()
     arrayReserve(pass_.pools_in_creation_order, 16);
     arrayReserve(object_.pools_in_creation_order, 16);
     arrayReserve(grids_to_build_, 16);
+    arrayReserve(cover_grids_to_fill_, 16);
 }
 
 GridRegistry::~GridRegistry() noexcept = default;
@@ -137,6 +138,11 @@ void GridRegistry::list_object_grid(const Object::Params& p, chunk& c)
     pool.pass_pool().list_grid(c, grids_to_build_);
 }
 
+u32 GridRegistry::list_cover_octant(const Cover::Params& p, chunk& c, u32 k, u32 max_octant_fills)
+{
+    return cover_pool(p).list_octant(c, k, max_octant_fills, cover_grids_to_fill_, grids_to_build_);
+}
+
 void GridRegistry::build_listed_grids()
 {
     if (grids_to_build_.isEmpty())
@@ -175,6 +181,33 @@ void GridRegistry::build_listed_grids()
         x.grid->is_listed_to_be_built = false;
     }
     arrayClear(grids_to_build_);
+}
+
+void GridRegistry::fill_listed_cover_octants()
+{
+    if (cover_grids_to_fill_.isEmpty())
+        return;
+    fm_debug_assert(grids_to_build_.isEmpty());
+    auto& w = cover_grids_to_fill_[0].grid->c->world();
+    for (const auto& x : cover_grids_to_fill_)
+        fm_debug_assert(&x.grid->c->world() == &w);
+
+    if (auto* pool = w.thread_pool())
+    {
+        w.set_running_job_kind(job_kind::fill_cover_octants);
+        pool->parallel_for((u32)cover_grids_to_fill_.size(), 1, [this](u32 begin, u32 end, u32) {
+            for (auto i = begin; i < end; i++)
+                detail::fill_listed_octants(cover_grids_to_fill_[i]);
+        });
+        w.set_running_job_kind(job_kind::make_critters_think);
+    }
+    else
+        for (auto& x : cover_grids_to_fill_)
+            detail::fill_listed_octants(x);
+
+    for (const auto& x : cover_grids_to_fill_)
+        detail::add_listed_octant_fills(x);
+    arrayClear(cover_grids_to_fill_);
 }
 
 void GridRegistry::rebuild_requested_stale_grids()
