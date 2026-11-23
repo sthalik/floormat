@@ -61,7 +61,6 @@ public:
     const rotation r = rotation::N; // todo remove bitfield?
     const pass_mode pass = pass_mode::see_through;
     bool ephemeral : 1 = false;
-    //char _pad[4]; // got 4 bytes left
 
     virtual ~object() noexcept override;
 
@@ -71,6 +70,7 @@ public:
     class chunk& chunk();
     class world& world();
     usize index() const;
+    usize index();
     virtual bool is_virtual() const;
     point position() const;
 
@@ -128,6 +128,10 @@ public:
     virtual void destroy_script_post();
 
 protected:
+    // What the non-const index() last returned. The const index() only reads it.
+    // An insert or erase in the chunk's list can make it stale, so index() tests it.
+    u32 _index_hint = 0;
+
     object(object_id id, class chunk& c, const object_proto& proto);
     void set_bbox_(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 

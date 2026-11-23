@@ -115,15 +115,20 @@ u32 object_storage::size() const noexcept
 
 bool object_storage::empty() const noexcept { return size() == 0; }
 
-usize object_storage::index_of(const object& e) const
+usize object_storage::index_of(const object& e, u32 hint) const
 {
     fm_assert(_sorted);
-    const auto fn = [id = e.id](const bptr<object>& a, std::nullptr_t) { return a->id < id; };
     const auto& es = list_for(e.type(), scenery_type_of(e))._items;
-    auto it = lower_bound(es.cbegin(), es.cend(), nullptr, fn);
-    fm_assert(it != es.cend());
-    fm_assert((*it)->id == e.id);
-    return (usize)(it - es.cbegin());
+    if (hint < es.size() && &*es[hint] == &e)
+        return hint;
+    else
+    {
+        const auto fn = [id = e.id](const bptr<object>& a, std::nullptr_t) { return a->id < id; };
+        auto it = lower_bound(es.cbegin(), es.cend(), nullptr, fn);
+        fm_assert(it != es.cend());
+        fm_assert((*it)->id == e.id);
+        return (usize)(it - es.cbegin());
+    }
 }
 
 const bptr<object>& object_storage::ptr(const object& e, usize i)

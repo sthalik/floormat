@@ -15,7 +15,7 @@ namespace floormat {
 
 void run_order(world& w, const order& o, const Ns& dt)
 {
-    const auto objʹ = w.find_object(o.giver);
+    auto objʹ = w.find_object(o.giver);
     fm_assert(objʹ);
     auto& obj = *objʹ;
     usize i = obj.index();
@@ -30,7 +30,7 @@ void run_order(world& w, const order& o, const Ns& dt)
     case order_kind::script_order:
     case order_kind::move_by_keys:
         fm_assert(obj.type() == object_type::critter);
-        static_cast<critter&>(obj).run_order(static_pointer_cast<critter>(objʹ), i, dt, o);
+        static_cast<critter&>(obj).run_order(static_pointer_cast<critter>(std::move(objʹ)), i, dt, o);
         return;
     case order_kind::COUNT:
         break;

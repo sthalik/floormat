@@ -139,7 +139,8 @@ public:
 
     u32 size() const noexcept;
     bool empty() const noexcept;
-    usize index_of(const object& e) const;
+    // Returns e's index in its list, testing hint before searching.
+    usize index_of(const object& e, u32 hint) const;
     const bptr<object>& ptr(const object& e, usize i);
 
     iterator begin() noexcept;

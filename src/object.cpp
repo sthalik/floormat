@@ -14,6 +14,7 @@
 #include "compat/nanosecond.inl"
 #include <cr/Pair.h>
 #include <cr/StructuredBindings.h>
+#include <utility>
 
 namespace floormat {
 
@@ -70,7 +71,14 @@ object::~object() noexcept
 
 usize object::index() const
 {
-    return chunk().objects().index_of(*this);
+    return chunk().objects().index_of(*this, _index_hint);
+}
+
+usize object::index()
+{
+    const auto i = std::as_const(*this).index();
+    _index_hint = (u32)i;
+    return i;
 }
 
 bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
