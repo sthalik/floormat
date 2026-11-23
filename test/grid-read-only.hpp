@@ -4,6 +4,9 @@
 #include "compat/borrowed-ptr-fwd.hpp"
 
 namespace floormat { class chunk; class world; struct critter; }
+namespace floormat::Grid::Pass { class Pool; }
+namespace floormat::Grid::Object { class Pool; }
+namespace floormat::Grid::Cover { class Pool; }
 
 namespace floormat::Test {
 
@@ -20,5 +23,10 @@ bptr<critter> add_critter_at(world& w, Vector2i px, u8 size, pass_mode pass);
 // Returns the ids of a door and of one critter, after adding colliders to the 3x3 chunks around (0, 0, 0), many of
 // them across chunk borders.
 pred_object_ids add_colliders(world& w);
+// Appends what a read-only query must leave unchanged: each chunk's stamps, flags and built grids with their
+// stamps and octants, each pool's free grid count and octant fills, and world::pass_gen().
+void record_state(const world& w, ArrayView<const Grid::Pass::Pool* const> pass_pools,
+                  ArrayView<const Grid::Object::Pool* const> object_pools,
+                  ArrayView<const Grid::Cover::Pool* const> cover_pools, Array<u64>& out);
 
 } // namespace floormat::Test

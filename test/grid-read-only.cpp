@@ -378,6 +378,46 @@ pred_object_ids add_colliders(world& w)
     return { door_id, critter_id };
 }
 
+void record_state(const world& w, ArrayView<const Pass::Pool* const> pass_pools,
+                  ArrayView<const Grid::Object::Pool* const> object_pools,
+                  ArrayView<const Grid::Cover::Pool* const> cover_pools, Array<u64>& out)
+{
+    for (i16 y = -2; y <= 2; y++)
+        for (i16 x = -2; x <= 2; x++)
+        {
+            const auto* c = w.at(chunk_coords_{x, y, 0});
+            arrayAppend(out, (u64)(c != nullptr));
+            if (c)
+            {
+                arrayAppend(out, { c->pass_gen(), c->objects_gen(), (u64)c->is_passability_modified() });
+                for (const auto* pool : pass_pools)
+                {
+                    const auto g = pool->find_built_grid(*c);
+                    arrayAppend(out, { (u64)(bool)g, g ? g.build_no() : 0, g ? g.built_pass_gen() : 0 });
+                }
+                for (const auto* pool : object_pools)
+                {
+                    const auto g = pool->find_built_grid(*c);
+                    arrayAppend(out, { (u64)(bool)g, g ? g.built_pass_gen() : 0,
+                                       g ? (u64)(uptr)g.entry_data().data() : 0 });
+                }
+                for (const auto* pool : cover_pools)
+                {
+                    const auto g = pool->find_built_grid(*c);
+                    arrayAppend(out, { (u64)(bool)g, g ? g.build_no() : 0, g ? g.built_pass_gen() : 0,
+                                       g ? (u64)g.built_octants() : 0 });
+                }
+            }
+        }
+    for (const auto* pool : pass_pools)
+        arrayAppend(out, (u64)pool->free_grid_count());
+    for (const auto* pool : object_pools)
+        arrayAppend(out, (u64)pool->free_grid_count());
+    for (const auto* pool : cover_pools)
+        arrayAppend(out, { (u64)pool->free_grid_count(), (u64)pool->octant_fills() });
+    arrayAppend(out, w.pass_gen());
+}
+
 namespace {
 
 intra_coord node_of_cell(const Pass::Params& params, u32 i, u32 j)

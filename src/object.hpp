@@ -87,6 +87,15 @@ public:
     bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size);
     bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size,
                      const Search::pred& p);
+    // The const overloads create no chunk and test a missing one's neighbors alone. They need clean R-trees.
+    bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset,
+                    Vector2ub bbox_size) const;
+    bool can_rotate(global_coords coord, rotation new_r, rotation old_r, Vector2b offset, Vector2b bbox_offset,
+                    Vector2ub bbox_size, const Search::pred& p) const;
+    bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset,
+                     Vector2ub bbox_size) const;
+    bool can_move_to(Vector2i delta, global_coords coord, Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size,
+                     const Search::pred& p) const;
     void set_bbox(Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass);
 
     object_type type_of() const noexcept;
@@ -98,6 +107,8 @@ public:
 
     bool can_rotate(rotation new_r);
     bool can_move_to(Vector2i delta);
+    bool can_rotate(rotation new_r) const;
+    bool can_move_to(Vector2i delta) const;
     bool move_to(usize& i, Vector2i delta, rotation new_r);
     bool move_to(Vector2i delta);
     void teleport_to(usize& i, global_coords coord, Vector2b offset, rotation new_r);

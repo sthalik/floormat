@@ -44,8 +44,31 @@ bool critter_walk::is_remaining_path_unblocked(critter& c) const
 
 bool critter_walk::is_remaining_path_unblocked(critter& c, const Search::pred& p, Grid::Pass::Pool* pool) const
 {
+    return is_remaining_path_unblocked(c, &c, p, pool, pool, nullptr);
+}
+
+bool critter_walk::is_remaining_path_unblocked(const critter& c, const Search::pred& p, const Grid::Pass::Pool* pool,
+                                               Array<grid_order>& orders) const
+{
+    return is_remaining_path_unblocked(c, nullptr, p, pool, nullptr, &orders);
+}
+
+bool critter_walk::is_remaining_path_unblocked(const critter& c, critter* writable_critter, const Search::pred& p,
+                                               const Grid::Pass::Pool* pool, Grid::Pass::Pool* writable_pool,
+                                               Array<grid_order>* orders) const
+{
+    fm_debug_assert(!writable_critter || writable_critter == &c);
+    fm_debug_assert(!writable_pool || writable_pool == pool && writable_critter);
+    fm_debug_assert(!writable_critter == (orders != nullptr));
     if (mode != walk_mode::smoothed)
         return true;
+    const auto can_rotate = [&](global_coords coord, rotation new_r, rotation old_r, Vector2b offset,
+                                Vector2b bbox_offset, Vector2ub bbox_size) {
+        if (writable_critter)
+            return writable_critter->can_rotate(coord, new_r, old_r, offset, bbox_offset, bbox_size, p);
+        else
+            return c.can_rotate(coord, new_r, old_r, offset, bbox_offset, bbox_size, p);
+    };
     const auto sp = path.smoothings();
     const auto pos = c.position();
     auto r = c.r;
@@ -69,16 +92,20 @@ bool critter_walk::is_remaining_path_unblocked(critter& c, const Search::pred& p
         {
             if (j == path_index)
             {
-                if (!c.can_rotate(c.coord, new_r, c.r, c.offset, c.bbox_offset, c.bbox_size, p))
+                if (!can_rotate(c.coord, new_r, c.r, c.offset, c.bbox_offset, c.bbox_size))
                     return false;
             }
-            else if (!c.can_rotate(from.coord(), new_r, r, from.offset(), rotate_point(c.bbox_offset, c.r, r),
-                                   rotate_size(c.bbox_size, c.r, r), p))
+            else if (!can_rotate(from.coord(), new_r, r, from.offset(), rotate_point(c.bbox_offset, c.r, r),
+                                 rotate_size(c.bbox_size, c.r, r)))
                 return false;
         }
         const auto [bb_off, size] = rotate_bbox(c.bbox_offset, c.bbox_size, c.r, new_r);
         const auto box_line = Raycast::bresenham_line{from - origin + Vector2i(bb_off), to - origin + Vector2i(bb_off)};
-        if (find_swept_collider(c.world(), ch, box_line, k, line.steps(), Vector2ui(size), p, pool).has_collider)
+        const auto swept = writable_critter
+            ? find_swept_collider(writable_critter->world(), ch, box_line, k, line.steps(), Vector2ui(size), p,
+                                  writable_pool)
+            : find_swept_collider(c.world(), ch, box_line, k, line.steps(), Vector2ui(size), p, *orders, pool);
+        if (swept.has_collider)
             return false;
         r = new_r;
     }

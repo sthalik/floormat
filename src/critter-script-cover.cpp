@@ -1310,4 +1310,20 @@ Grid::Pass::Pool& line_of_sight_pass_pool(Grid::GridRegistry& reg, u32 div_size)
     return reg.pass_pool(Pass::Params{div_size, pass_mode::shoot_through});
 }
 
+const object* find_object_at_z(const world& w, object_id id, i8 z)
+{
+    const auto* obj = w.find_object(id);
+    if (obj && obj->position().chunk3().z == z)
+        return obj;
+    else
+        return nullptr;
+}
+
+Raycast::raycast_result_s line_of_sight(const world& w, const Grid::Pass::Pool& pool, point from, point to,
+                                        object_id self, Array<grid_order>& orders)
+{
+    fm_assert(pool.params() == Pass::Params{pool.params().bbox_size, pass_mode::shoot_through});
+    return raycast(w, from, to, self, pool, Search::without_critters, orders);
+}
+
 } // namespace floormat::Cover::Script

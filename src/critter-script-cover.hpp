@@ -7,7 +7,7 @@
 #include "critter-script-cover-point.hpp"
 #include <cr/Optional.h>
 
-namespace floormat { struct critter; struct object; class world; }
+namespace floormat { struct critter; struct object; class world; struct grid_order; }
 namespace floormat::Grid { class GridRegistry; }
 namespace floormat::Grid::Pass { class Pool; }
 namespace floormat::Raycast { struct raycast_result_s; }
@@ -167,6 +167,7 @@ void set_options(critter& c, const options& options);
 
 // Object id of w, or empty when it's gone or its chunk3().z isn't z.
 bptr<object> find_object_at_z(world& w, object_id id, i8 z);
+const object* find_object_at_z(const world& w, object_id id, i8 z);
 
 // The ray the script casts from `from` to `to`, in grids of div_size. It stops at the first collider a shot
 // can't pass, and critters, self included, don't stop it.
@@ -174,5 +175,10 @@ Raycast::raycast_result_s line_of_sight(world& w, Grid::GridRegistry& reg, u32 d
                                         object_id self);
 // The pass grids line_of_sight() casts through.
 Grid::Pass::Pool& line_of_sight_pass_pool(Grid::GridRegistry& reg, u32 div_size);
+
+// As above, writing nothing. pool is the registry's pass pool the overload above uses for some div_size.
+// It needs clean R-trees, and a chunk without its built grid gets a grid_order, as the read-only raycast() does.
+Raycast::raycast_result_s line_of_sight(const world& w, const Grid::Pass::Pool& pool, point from, point to,
+                                        object_id self, Array<grid_order>& orders);
 
 } // namespace floormat::Cover::Script

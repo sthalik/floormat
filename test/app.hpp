@@ -83,6 +83,7 @@ void test_random();
 void test_range_algorithms();
 void test_raycast();
 void test_raycast_line();
+void test_read_only_cover_queries();
 void test_read_only_queries();
 void test_reverse_iterator();
 void test_rtree();

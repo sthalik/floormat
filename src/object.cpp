@@ -20,6 +20,18 @@ namespace floormat {
 template class basic_bptr<object, non_atomic_refcount>;
 template class basic_bptr<const object, non_atomic_refcount>;
 
+namespace {
+
+// Returns the box of bbox_size centred bbox_offset px from pt, in the coordinates of pt's chunk.
+Range2D chunk_local_bbox(point pt, Vector2b bbox_offset, Vector2ub bbox_size)
+{
+    const auto center = Vector2(pt.coord().local())*TILE_SIZE2 + Vector2(pt.offset()) + Vector2(bbox_offset),
+               min = center - Vector2(bbox_size/2), max = min + Vector2(bbox_size);
+    return {min, max};
+}
+
+} // namespace
+
 bool object_proto::operator==(const object_proto&) const = default;
 bool object_proto::operator!=(const object_proto& o) const noexcept { return !operator==(o); }
 object_proto::object_proto(const object_proto&) noexcept = default;
@@ -86,6 +98,30 @@ bool object::can_rotate(rotation new_r)
     return can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size);
 }
 
+bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
+                        Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size) const
+{
+    const auto pred = Search::blocks_all_but(id);
+    return can_rotate(coord, new_r, old_r, offset, bbox_offset, bbox_size, pred);
+}
+
+bool object::can_rotate(global_coords coord, rotation new_r, rotation old_r,
+                        Vector2b offset, Vector2b bbox_offset, Vector2ub bbox_size, const Search::pred& p) const
+{
+    const auto [offset_, bbox_offset_] = !is_dynamic() ? rotate_offset(offset, bbox_offset, old_r, new_r)
+                                                       : Pair<Vector2b, Vector2b>{offset, rotate_point(bbox_offset, old_r, new_r)};
+    const auto bbox_size_ = rotate_size(bbox_size, old_r, new_r);
+    return can_move_to({}, coord, offset_, bbox_offset_, bbox_size_, p);
+}
+
+bool object::can_rotate(rotation new_r) const
+{
+    if (new_r == r)
+        return true;
+
+    return can_rotate(coord, new_r, r, offset, bbox_offset, bbox_size);
+}
+
 void object::rotate(usize, rotation new_r)
 {
     fm_assert(!world().is_thread_pool_running());
@@ -121,14 +157,45 @@ bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
     auto& w = *c->_world;
     auto& cʹ = coord_.chunk() == coord.chunk() ? *c : w[coord_.chunk3()];
 
-    const auto center = Vector2(coord_.local())*TILE_SIZE2 + Vector2(pt.offset()) + Vector2(bbox_offset),
-               min = center - Vector2(bbox_size/2), max = min + Vector2(bbox_size);
-    if (min == max)
+    const auto bb = chunk_local_bbox(pt, bbox_offset, bbox_size);
+    if (bb.min() == bb.max())
         return true;
-    return Search::is_passable_(&cʹ, w.neighbors(coord_.chunk3()), min, max, p);
+    return Search::is_passable_(&cʹ, w.neighbors(coord_.chunk3()), bb.min(), bb.max(), p);
 }
 
 bool object::can_move_to(Vector2i delta)
+{
+    return can_move_to(delta, coord, offset, bbox_offset, bbox_size);
+}
+
+bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
+                         Vector2b bbox_offset, Vector2ub bbox_size) const
+{
+    const auto pred = Search::blocks_all_but(id);
+    return can_move_to(delta, coord2, offset, bbox_offset, bbox_size, pred);
+}
+
+bool object::can_move_to(Vector2i delta, global_coords coord2, Vector2b offset,
+                         Vector2b bbox_offset, Vector2ub bbox_size, const Search::pred& p) const
+{
+    const auto pt = point::normalize_coords(coord2, offset, delta);
+    const auto coord_ = pt.coord();
+
+    if (coord_.z() != coord.z()) [[unlikely]]
+        return false;
+    if (pass == pass_mode::pass)
+        return true;
+
+    const auto& w = world();
+    const auto* cʹ = coord_.chunk() == coord.chunk() ? &chunk() : w.at(coord_.chunk3());
+
+    const auto bb = chunk_local_bbox(pt, bbox_offset, bbox_size);
+    if (bb.min() == bb.max())
+        return true;
+    return Search::is_passable_(cʹ, w.neighbors(coord_.chunk3()), bb.min(), bb.max(), p);
+}
+
+bool object::can_move_to(Vector2i delta) const
 {
     return can_move_to(delta, coord, offset, bbox_offset, bbox_size);
 }

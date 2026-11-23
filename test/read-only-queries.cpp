@@ -379,36 +379,11 @@ void build_ordered_grids(world& w, query_pools& P, ArrayView<const grid_order> o
     }
 }
 
-// Appends what a read-only query must leave unchanged: each chunk's stamps and flags, the grid each pool finds
-// built for it with that grid's stamps, each pool's count of free grids, and world::pass_gen().
 void record_state(const world& w, const query_pools& P, Array<u64>& out)
 {
-    for (i16 y = -2; y <= 2; y++)
-        for (i16 x = -2; x <= 2; x++)
-        {
-            const auto* c = w.at(chunk_coords_{x, y, 0});
-            arrayAppend(out, (u64)(c != nullptr));
-            if (c)
-            {
-                arrayAppend(out, { c->pass_gen(), c->objects_gen(), (u64)c->is_passability_modified() });
-                for (const auto* pool : { &P.ray_pass, &P.box_pass })
-                {
-                    const auto g = pool->find_built_grid(*c);
-                    arrayAppend(out, { (u64)(bool)g, g ? g.build_no() : 0, g ? g.built_pass_gen() : 0 });
-                }
-                for (const auto* pool : { &P.ray_objects, &P.box_objects })
-                {
-                    const auto g = pool->find_built_grid(*c);
-                    arrayAppend(out, { (u64)(bool)g, g ? g.built_pass_gen() : 0,
-                                       g ? (u64)(uptr)g.entry_data().data() : 0 });
-                }
-            }
-        }
-    for (const auto* pool : { &P.ray_pass, &P.box_pass })
-        arrayAppend(out, (u64)pool->free_grid_count());
-    for (const auto* pool : { &P.ray_objects, &P.box_objects })
-        arrayAppend(out, (u64)pool->free_grid_count());
-    arrayAppend(out, w.pass_gen());
+    const Pass::Pool* const pass_pools[] = { &P.ray_pass, &P.box_pass };
+    const Grid::Object::Pool* const object_pools[] = { &P.ray_objects, &P.box_objects };
+    Test::record_state(w, pass_pools, object_pools, {}, out);
 }
 
 void assert_passability_clean(const world& w)
