@@ -242,6 +242,34 @@ void test_start_handler(u32 num_threads, u32 idle_spin_usec)
     });
 }
 
+void test_single_range(u32 idle_spin_usec)
+{
+    run_with_progress_deadline("single_range", [&](volatile u32& progress) {
+        const auto caller_thread_id = std::this_thread::get_id();
+        for (bool is_caller_running_jobs : {true, false})
+        {
+            ThreadPool pool{{.num_threads = 3, .is_caller_running_jobs = is_caller_running_jobs,
+                             .idle_spin_usec = idle_spin_usec}};
+            for (u32 count : {1u, 5u, 64u})
+            {
+                u32 num_body_calls = 0;
+                pool.parallel_for(count, 64, [&](u32 begin, u32 end, u32 worker_index) {
+                    fm_assert(begin == 0 && end == count);
+                    fm_assert(pool.is_running());
+                    if (is_caller_running_jobs)
+                        fm_assert(worker_index == 0 && std::this_thread::get_id() == caller_thread_id);
+                    else
+                        fm_assert(worker_index != 0 && std::this_thread::get_id() != caller_thread_id);
+                    ++num_body_calls;
+                });
+                fm_assert(num_body_calls == 1);
+                fm_assert(!pool.is_running());
+                atomic_fetch_add(&progress, 1u, memory_order::relaxed);
+            }
+        }
+    });
+}
+
 // The calls come faster than the worker's 2 ms spin, so it finds most jobs while spinning.
 void test_back_to_back_calls_while_spinning()
 {
@@ -279,6 +307,7 @@ void Test::test_thread_pool()
         test_start_handler(1, idle_spin_usec);
         test_start_handler(2, idle_spin_usec);
         test_start_handler(5, idle_spin_usec);
+        test_single_range(idle_spin_usec);
     }
     test_back_to_back_calls_while_spinning();
 }

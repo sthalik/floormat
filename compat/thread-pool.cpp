@@ -183,32 +183,42 @@ void ThreadPool::parallel_for_impl(u32 count, u32 grain_size,
         return;
 
     const u32 num_jobs = count / grain_size + (count % grain_size != 0);
-    if (num_jobs > s.parallel_for_jobs.size())
-        s.parallel_for_jobs = std::vector<state::job>(num_jobs + num_jobs / 2);
-    for (u32 i = 0; i < num_jobs; ++i)
+    if (num_jobs == 1 && s.is_caller_running_jobs)
     {
-        const u32 begin = i * grain_size;
-        const u32 end = count - begin > grain_size ? begin + grain_size : count;
-        s.parallel_for_jobs[i] = { run, body, begin, end };
+        // is_running() must be true while the body runs, as in any other job.
+        atomic_store(&s.num_unfinished_jobs, 1u, memory_order::relaxed);
+        run(body, 0, count, 0);
+        atomic_store(&s.num_unfinished_jobs, 0u, memory_order::relaxed);
     }
-
-    atomic_store(&s.num_unfinished_jobs, num_jobs, memory_order::relaxed);
-    for (u32 i = 0; i < num_jobs; ++i)
-        s.deque.push(&s.parallel_for_jobs[i]);
-    // GenMC finds a lost wake-up with the waiter count loaded before the pushes.
-    s.idle_workers.notify_all();
-
-    if (s.is_caller_running_jobs)
-        while (state::job* j = s.deque.take())
+    else
+    {
+        if (num_jobs > s.parallel_for_jobs.size())
+            s.parallel_for_jobs = std::vector<state::job>(num_jobs + num_jobs / 2);
+        for (u32 i = 0; i < num_jobs; ++i)
         {
-            j->run(j->body, j->begin, j->end, 0);
-            u32 old = atomic_fetch_sub(&s.num_unfinished_jobs, 1u, memory_order::acq_rel);
-            fm_assert(old != 0);
+            const u32 begin = i * grain_size;
+            const u32 end = count - begin > grain_size ? begin + grain_size : count;
+            s.parallel_for_jobs[i] = { run, body, begin, end };
         }
 
-    // Acquire, with the acq_rel decrements, makes the jobs' writes visible to the caller.
-    for (u32 v; (v = atomic_load(&s.num_unfinished_jobs, memory_order::acquire)) != 0; )
-        atomic_wait(&s.num_unfinished_jobs, v, memory_order::acquire);
+        atomic_store(&s.num_unfinished_jobs, num_jobs, memory_order::relaxed);
+        for (u32 i = 0; i < num_jobs; ++i)
+            s.deque.push(&s.parallel_for_jobs[i]);
+        // GenMC finds a lost wake-up with the waiter count loaded before the pushes.
+        s.idle_workers.notify_all();
+
+        if (s.is_caller_running_jobs)
+            while (state::job* j = s.deque.take())
+            {
+                j->run(j->body, j->begin, j->end, 0);
+                u32 old = atomic_fetch_sub(&s.num_unfinished_jobs, 1u, memory_order::acq_rel);
+                fm_assert(old != 0);
+            }
+
+        // Acquire, with the acq_rel decrements, makes the jobs' writes visible to the caller.
+        for (u32 v; (v = atomic_load(&s.num_unfinished_jobs, memory_order::acquire)) != 0; )
+            atomic_wait(&s.num_unfinished_jobs, v, memory_order::acquire);
+    }
 }
 
 void ThreadPool::submit(inplace_function<void(u32 worker_index) noexcept, 48> job) noexcept
