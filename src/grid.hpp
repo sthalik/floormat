@@ -66,6 +66,13 @@ struct GridBase
         s.build_impl(sc, forward<Args>(a)...);
     }
     void build_if_stale(this Self& self, Args&&... args);
+    // Builds the grid even if it needs no rebuild. The caller sets build_no afterwards.
+    // A job may call it only while world::running_job_kind() is job_kind::build_grids.
+    template <BitGrid Self, typename... Args>
+    requires requires(Self& s, chunk* sc, Args&&... a) {
+        s.build_impl(sc, forward<Args>(a)...);
+    }
+    void build_without_build_no(this Self& self, Args&&... args);
 
 protected:
     ~GridBase() noexcept = default;

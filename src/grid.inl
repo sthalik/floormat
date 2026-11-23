@@ -35,14 +35,26 @@ void GridBase::build_if_stale(this Self& self, Args&&... args)
     if (!self.needs_rebuild())
         return;
 
+    fm_debug3_assert(self.c);
+    fm_assert(!self.c->world().is_thread_pool_running());
+    self.build_without_build_no(forward<Args>(args)...);
+    self.build_no = GridBase::next_build_no();
+}
+
+template <BitGrid Self, typename... Args>
+requires requires(Self& s, chunk* sc, Args&&... a) {
+    s.build_impl(sc, forward<Args>(a)...);
+}
+void GridBase::build_without_build_no(this Self& self, Args&&... args)
+{
     chunk* sc = self.c;
     fm_debug3_assert(sc);
-    fm_assert(!sc->world().is_thread_pool_running());
+    const auto& w = sc->world();
+    fm_assert(!w.is_thread_pool_running() || w.running_job_kind() == job_kind::build_grids);
 
     self.neighbors = sc->world().neighbors(self.coord);
     self.build_impl(sc, forward<Args>(args)...);
-    self.built_pass_gen = sc->world().pass_gen();
-    self.build_no = GridBase::next_build_no();
+    self.built_pass_gen = w.pass_gen();
 }
 
 template <typename T>

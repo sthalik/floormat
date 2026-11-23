@@ -31,6 +31,7 @@ enum class job_kind : u8
 {
     make_critters_think, // They write nothing in the world.
     rebuild_rtrees,      // Each writes its own chunk's two R-trees and _pass_modified.
+    build_grids,         // Each writes one pass or object grid and the run scratch of its thread.
 };
 
 class world final
