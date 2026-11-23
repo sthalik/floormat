@@ -27,6 +27,8 @@ public:
     const Pass::Pool* find_pass_pool(const Pass::Params& p) const;
     const Object::Pool* find_object_pool(const Object::Params& p) const;
     const Cover::Pool* find_cover_pool(const Cover::Params& p) const;
+    // The number of pass, object and cover pools made, all three kinds together.
+    u32 pool_count() const;
 
     // Rebuilds every stale pass grid and object grid that has is_requested_by_reader set, then clears the flag on
     // every pass and object grid. Cover grids are left to grid orders, which count their rebuild against the cap.

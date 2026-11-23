@@ -79,10 +79,10 @@ void retreat_finder::begin(Vector2i body, u32 threat_octant)
     _exposed_path = {};
 }
 
-retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                            point threat)
+retreat_finder::result retreat_finder::tick(const critter& c, spot_tests& t, const Cover::Script::options& o,
+                                            point threat, Array<grid_order>& orders)
 {
-    auto& w = c.world();
+    const auto& w = c.world();
     const auto from = c.position();
     const auto body = Vector2i(c.bbox_size);
     const auto restart_from_first_spot = [&] {
@@ -193,7 +193,7 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
         {
             rays_left--;
             _rays--;
-            if (t.has_line_of_sight(c, o, threat, to))
+            if (t.has_line_of_sight(c, o, threat, to, orders))
             {
                 s.seen_octants |= octant_bit;
                 _next++;
@@ -205,9 +205,9 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
         _next++;
         // TODO: a Dijkstra search mode that adds the threat seeing the npc to a path's cost could use another
         // cost here than for paths to cover.
-        if (auto path = t.path_to(c, to); path.is_found())
+        if (auto path = t.path_to(c, to, orders); path.is_found())
         {
-            if (!t.is_seen_on_path(c, o, threat, path))
+            if (!t.is_seen_on_path(c, o, threat, path, orders))
             {
                 _path_from = from;
                 _path_needs_ray_test = !_all;
@@ -227,16 +227,17 @@ retreat_finder::result retreat_finder::tick(critter& c, spot_tests& t, const Cov
             _num_failed_dijkstra_calls++;
         dijkstra_left--;
         // path_to lets no other critter through, so its failure doesn't say whether a critter cut the spot off.
-        s.needs_recheck = t.is_reachable_without_critters(c, to);
+        s.needs_recheck = t.is_reachable_without_critters(c, to, orders);
     }
 }
 
-bool retreat_finder::is_still_retreat_spot(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                           point to, point threat) const
+bool retreat_finder::is_still_retreat_spot(const critter& c, spot_tests& t, const Cover::Script::options& o,
+                                           point to, point threat, Array<grid_order>& orders) const
 {
     fm_debug_assert(_next > 0);
     const auto dist = [&](point p) { return Math::sqrt((double)point::distance_squared(p, threat)); };
-    return dist(to) - dist(_path_from) > min_retreat_gain && (!_path_needs_ray_test || !t.has_line_of_sight(c, o, threat, to));
+    return dist(to) - dist(_path_from) > min_retreat_gain &&
+           (!_path_needs_ray_test || !t.has_line_of_sight(c, o, threat, to, orders));
 }
 
 Cover::Script::retreat_progress retreat_finder::progress() const

@@ -132,6 +132,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_critter),
     FM_TEST(test_update_world),
     FM_TEST(test_think_orders),
+    FM_TEST(test_think_read_only),
     FM_TEST(test_sweep_aabb),
     FM_TEST(test_critter_walk),
     FM_TEST(test_slide),

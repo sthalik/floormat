@@ -594,6 +594,7 @@ void Critter_cover(benchmark::State& st)
         auto j = threat->index();
         threat->teleport_to(j, threat_start, N);
         A.emplace();
+        w.set_grid_registry(&A->pool_registry());
         npc->script.do_reassign(critter_script::make_cover_script(*A, threat->id, div_size), npc);
     };
     script_update_times times{updates};
@@ -790,6 +791,7 @@ void Critter_cover_chase(benchmark::State& st)
             moving_critter->teleport_to(k, moving_critter_start, N);
         }
         A.emplace();
+        w.set_grid_registry(&A->pool_registry());
         npc->script.do_reassign(critter_script::make_cover_script(*A, threat->id, div_size), npc);
     };
     const auto run_cycles = [&] {

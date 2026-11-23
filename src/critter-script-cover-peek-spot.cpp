@@ -23,10 +23,11 @@ point gun_point(const critter& c, point pos, point threat, Vector2i across, Opti
     return pos + Vector2i(Math::round(f.perpendicular() * ((float)dist / f.length())));
 }
 
-Optional<Cover::Script::peek> peek_spot(critter& c, point from, Vector2i axis, point threat, Optional<int> gun_offset,
-                                        const Search::pred& pred, function_view<bool(point)> sees)
+Optional<Cover::Script::peek> peek_spot(const critter& c, point from, Vector2i axis, point threat,
+                                        Optional<int> gun_offset, const Search::pred& pred,
+                                        function_view<bool(point)> sees)
 {
-    auto& w = c.world();
+    const auto& w = c.world();
     const auto body = Vector2i(c.bbox_size);
     const auto across = Cover::Point::across_of(axis);
     // The spot is flush against a blocker along axis, so the last three run into it on the first

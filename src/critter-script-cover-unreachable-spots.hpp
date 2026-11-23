@@ -28,7 +28,7 @@ public:
     void clear();
     // True when a body centered on `to` can move in a straight line to a listed spot no more than a tile away
     // on each axis. Then path_to finds no path to `to` either, unless its max_dist is larger.
-    bool can_move_straight_to_listed_spot(world& w, point to, Vector2i body, const Search::pred& pred) const;
+    bool can_move_straight_to_listed_spot(const world& w, point to, Vector2i body, const Search::pred& pred) const;
     // Appends pos unless the list holds it already, as a tile listed again lists its unreachable spots again.
     void add(point pos);
     // Adds pos, which a Dijkstra search found no path to. No lattice point that search could visit lies farther

@@ -70,6 +70,7 @@ void think_then_run_order(const bptr<critter>& C, order_kind kind, const Ns& dt)
     order_buffer buffer;
     order_list list;
     const auto before = movement_state_of(*C);
+    prepare_world_for_thinking(C->world());
     auto ctx = think_context{buffer, C->world().grid_orders()};
     C->think(dt, ctx, 0);
     assert_same_movement_state(before, movement_state_of(*C));
@@ -266,15 +267,19 @@ cover_npcs_world::cover_npcs_world()
     };
     for (auto k = 0u; k < num_cover_npcs; k++)
         npcs[k] = add_critter(npc_positions[k]);
+    w.set_grid_registry(&A.pool_registry());
     w.init_scripts();
     for (const auto& npc : npcs)
         npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, cover_div_size), npc);
 
-    auto& dijkstra_pass_pool = A.pool_registry().pass_pool(
+    auto& dijkstra_pool = A.pool_registry().object_pool(
         Grid::Pass::Params{astar::default_div_size, Math::max(body.x(), body.y()), pass_mode::pass});
+    auto& ray_pool = A.pool_registry().pass_pool(Grid::Pass::Params{cover_div_size, pass_mode::shoot_through});
     for (auto& ch : w.chunks())
     {
-        dijkstra_pass_pool[ch].build_if_stale();
+        dijkstra_pool[ch].build_if_stale();
+        dijkstra_pool.pass_pool()[ch].build_if_stale();
+        ray_pool[ch].build_if_stale();
         auto g = cover_pool()[ch];
         g.build_if_stale();
         for (auto k = 0u; k < Grid::Cover::octant_count; k++)
@@ -315,6 +320,7 @@ void cover_npcs_world::run_frame(Ns dt, bool is_reverse_order, order_buffer& buf
 {
     w.increment_frame_no();
     w.advance_game_time(dt);
+    prepare_world_for_thinking(w);
     for (auto n = 0u; n < num_cover_npcs; n++)
     {
         const auto k = is_reverse_order ? num_cover_npcs - 1 - n : n;

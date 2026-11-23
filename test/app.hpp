@@ -112,6 +112,7 @@ void test_virtual_memory();
 void test_vqsort();
 void test_texcoords();
 void test_think_orders();
+void test_think_read_only();
 void test_tie();
 void test_timer();
 void test_type_list();

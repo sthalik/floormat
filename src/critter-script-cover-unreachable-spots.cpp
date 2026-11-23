@@ -19,7 +19,8 @@ void unreachable_spots::clear()
     _max_lattice_point_dist = 0;
 }
 
-bool unreachable_spots::can_move_straight_to_listed_spot(world& w, point to, Vector2i body, const Search::pred& pred) const
+bool unreachable_spots::can_move_straight_to_listed_spot(const world& w, point to, Vector2i body,
+                                                         const Search::pred& pred) const
 {
     for (const auto& u : _spots)
     {

@@ -3,6 +3,7 @@
 #include "src/chunk.hpp"
 #include "src/tile.hpp"
 #include "src/critter.hpp"
+#include "src/critter-script.hpp"
 #include "src/critter-walk.hpp"
 #include "src/critter-script-cover.hpp"
 #include "src/critter-script-cover-movement-range.hpp"
@@ -12,6 +13,7 @@
 #include "src/grid-object.hpp"
 #include "src/grid-registry.hpp"
 #include "src/grid-order.hpp"
+#include "src/order-list.hpp"
 #include "src/raycast.hpp"
 #include "src/raycast-line.hpp"
 #include "src/sweep-aabb.hpp"
@@ -307,6 +309,14 @@ template<typename Wo, typename P> concept is_read_only_line_of_sight_callable =
 
 static_assert(is_read_only_line_of_sight_callable<const world, const Pass::Pool>);
 static_assert(same<decltype(Cover::Script::find_object_at_z(std::declval<W>(), object_id{}, i8{})), const object*>);
+
+template<typename C> concept is_on_think_callable =
+    requires(critter_script& s, C& c, const Ns& dt, think_context& ctx) { s.on_think(c, dt, ctx); };
+template<typename C> concept is_think_callable =
+    requires(C& c, const Ns& dt, think_context& ctx) { c.think(dt, ctx, u32{}); };
+
+static_assert(is_on_think_callable<const critter>);
+static_assert(is_think_callable<const critter>);
 
 } // namespace
 } // namespace floormat

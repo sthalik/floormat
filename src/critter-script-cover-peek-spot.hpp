@@ -18,7 +18,8 @@ constexpr inline int max_peek_spot_dist = 2*tile_size_xy;
 point gun_point(const critter& c, point pos, point threat, Vector2i across, Optional<int> offset);
 // The spot nearest `from`, up to 2 tiles away along ±axis, across it or diagonally, where sees() is true for
 // gun_point() of c's body there, and that gun point. A seen stretch shorter than half a body can be missed.
-Optional<Cover::Script::peek> peek_spot(critter& c, point from, Vector2i axis, point threat, Optional<int> gun_offset,
-                                        const Search::pred& pred, function_view<bool(point)> sees);
+Optional<Cover::Script::peek> peek_spot(const critter& c, point from, Vector2i axis, point threat,
+                                        Optional<int> gun_offset, const Search::pred& pred,
+                                        function_view<bool(point)> sees);
 
 } // namespace floormat::Cover

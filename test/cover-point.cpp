@@ -25,6 +25,7 @@
 #include "src/anim-atlas.hpp"
 #include "src/grid-cover.hpp"
 #include "src/grid-object.hpp"
+#include "src/grid-order.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-registry.hpp"
 #include "src/intra-coord.inl"
@@ -34,6 +35,7 @@
 #include "src/search.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
+#include "src/update-world.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/scenery-proto.hpp"
@@ -818,6 +820,7 @@ cover_cycle test_cover_script(const Optional<point>& other_pos = {})
     const auto other = other_pos ? add_critter(w, *other_pos) : bptr<critter>{};
     w.init_scripts();
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
 
     const auto fps = npc->atlas->info().fps;
@@ -911,6 +914,7 @@ cover_scene::cover_scene(point threat_pos, Optional<int> gun_offset, const Optio
     npc = add_critter(w, point{ch, {4, 8}, {}}, npc_size);
     if (other_pos)
         add_critter(w, *other_pos);
+    w.set_grid_registry(&A.pool_registry());
     w.init_scripts();
     auto script = gun_offset ? critter_script::make_cover_script(A, threat->id, 8, *gun_offset)
                              : critter_script::make_cover_script(A, threat->id, 8);
@@ -1398,10 +1402,12 @@ Vector2i peek_walk(world& w, const Cover::Point::spot& spot, point threat_pos)
     const auto npc = add_critter(w, spot.pos);
     w.init_scripts();
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
     Cover::Script::set_options(*npc, {.max_cover_end_dist = 0});
     const auto p = Cover::Script::find_peek(*npc, spot);
     w.finish_scripts();
+    w.set_grid_registry(nullptr);
     fm_assert(p);
     const auto& peek = *p;
     const auto d = Vector3i(peek.pos).xy() - Vector3i(spot.pos).xy();
@@ -2140,6 +2146,7 @@ point canonical_after_threat_moves(bool moves, bool reset_options)
     auto npc = add_critter(w, at_px({128, 512}));
     w.init_scripts();
     astar A;
+    w.set_grid_registry(&A.pool_registry());
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8, 0), npc);
     const Cover::Script::options opts{.octants = 0, .max_cover_end_dist = 0, .threat_reach = 0,
                                       .last_resort = Cover::Script::options::fallback::none};
@@ -2974,7 +2981,8 @@ void test_retreat_finder_rechecks_spot_blocked_by_critter(point hidden)
     const Cover::Script::options o{};
     Cover::retreat_finder retreat;
     retreat.begin(Vector2i(c.bbox_size), Cover::Point::nearest_octant(Vector2(threat_pos - hidden)));
-    const auto r0 = retreat.tick(c, t, o, threat_pos);
+    prepare_world_for_thinking(s.w);
+    const auto r0 = retreat.tick(c, t, o, threat_pos, s.w.grid_orders());
     fm_assert(!r0.path.is_found() && !r0.done);
     fm_assert_equal(0u, t.counters.num_dijkstra_calls);
     const auto num_spots = retreat.progress().num_spots;
@@ -2987,7 +2995,8 @@ void test_retreat_finder_rechecks_spot_blocked_by_critter(point hidden)
     for (auto k = 0u; ; k++)
     {
         fm_assert(k < 8);
-        const auto r = retreat.tick(c, t, o, moved);
+        prepare_world_for_thinking(s.w);
+        const auto r = retreat.tick(c, t, o, moved, s.w.grid_orders());
         const auto p = retreat.progress();
         fm_assert(!r.done && !p.all);
         if (!r.path.is_found())
@@ -3036,7 +3045,8 @@ void test_retreat_finder_rechecks_only_spots_critters_cut_off(point hidden)
         for (auto k = 0u; !retreat.progress().all; k++)
         {
             fm_assert(k < 20);
-            const auto r = retreat.tick(c, t, o, threat_pos);
+            prepare_world_for_thinking(s.w);
+            const auto r = retreat.tick(c, t, o, threat_pos, s.w.grid_orders());
             fm_assert(!r.path.is_found() && !r.done);
         }
         fm_assert(t.counters.num_dijkstra_calls > 0);
@@ -3431,6 +3441,7 @@ void test_cover_script_far_cover(bool threat_changes_octant)
     auto npc = add_critter(w, npc_pos);
     w.init_scripts();
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
     const auto& pool = A.pool_registry().cover_pool(Grid::Cover::Params{8});
     const auto frame = Second / npc->atlas->info().fps;
@@ -3532,6 +3543,7 @@ u32 far_cover_search_updates(Vector2i threat_step)
     auto npc = add_critter(w, npc_pos);
     w.init_scripts();
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
     const auto frame = Second / npc->atlas->info().fps;
     const auto status = [&] { return *Cover::Script::get_status(*npc); };
@@ -3576,6 +3588,7 @@ void test_cover_script_div_change()
     auto npc = add_critter(w, npc_pos);
     w.init_scripts();
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
     const auto frame = Second / npc->atlas->info().fps;
     const auto status = [&] { return *Cover::Script::get_status(*npc); };
@@ -3591,9 +3604,10 @@ void test_cover_script_div_change()
         fm_assert(status().st == state::search);
     }
     fm_assert(fills(16) == 0);
-    const auto fills8 = fills(8);
     Cover::Script::set_options(*npc, {.div_size = 16});
     step();
+    // That update ran the div 8 orders given before set_options().
+    const auto fills8 = fills(8);
     fm_assert(status().st == state::search && status().search.tile <= 32);
     for (auto updates = 0u; status().st == state::search; updates++)
     {
@@ -3622,6 +3636,7 @@ void test_cover_scripts_count_own_octant_fills()
     const bptr<critter> npcs[] = {add_critter(w, point{ch, {4, 8}, {}}), add_critter(w, point{ch, {8, 4}, {}})};
     w.init_scripts();
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     npcs[0]->script.do_reassign(critter_script::make_cover_script(A, threat1->id, 8), npcs[0]);
     npcs[1]->script.do_reassign(critter_script::make_cover_script(A, threat2->id, 8), npcs[1]);
     const auto& pool = A.pool_registry().cover_pool(Grid::Cover::Params{8});
@@ -3741,6 +3756,7 @@ void test_cover_script_threat_off_floor()
     auto threat = add_critter(w, point{ch, {12, 8}, {}});
     w.init_scripts();
     astar A;
+    w.set_grid_registry(&A.pool_registry());
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8, 0), npc);
     auto i = npc->index();
     npc->update(npc, i, Second / npc->atlas->info().fps);
@@ -4008,21 +4024,25 @@ void test_seen_on_path()
 
     const auto south = t.path_to(*s.npc, point{ch, {3, 13}, {8, -20}});
     fm_assert(south.is_found());
-    fm_assert(t.is_seen_on_path(*s.npc, o, threat, south));
+    prepare_world_for_thinking(s.w);
+    fm_assert(t.is_seen_on_path(*s.npc, o, threat, south, s.w.grid_orders()));
     fm_assert_equal(65u, t.counters.num_path_body_checks);
 
     const auto along_block = t.path_to(*s.npc, point{ch, {2, 9}, {20, -28}});
     fm_assert(along_block.is_found());
-    fm_assert(!t.is_seen_on_path(*s.npc, o, threat, along_block));
+    prepare_world_for_thinking(s.w);
+    fm_assert(!t.is_seen_on_path(*s.npc, o, threat, along_block, s.w.grid_orders()));
     fm_assert_equal(65u + 29u, t.counters.num_path_body_checks);
 }
 
-// Returns search.tick()'s result for an update in a new world frame, which has all of the frame's octant fills.
+// Returns search.tick()'s result for an update in a new world frame, after the grid orders given before it ran.
 auto tick_in_next_frame(Cover::cover_search& search, critter& npc, Cover::spot_tests& t,
                         const Cover::Script::options& o, point from, point threat)
 {
-    npc.world().increment_frame_no();
-    return search.tick(npc, t, o, from, threat, Grid::Cover::max_octant_fills_per_frame);
+    auto& w = npc.world();
+    w.increment_frame_no();
+    prepare_world_for_thinking(w);
+    return search.tick(npc, t, o, from, threat, w.grid_orders());
 }
 
 // Calls search.tick() until an update tests a path with is_seen_on_path, which must not end the search.
@@ -4073,7 +4093,8 @@ void test_search_takes_exposed_cover(u32 threat_reach)
     const auto r = tick_in_next_frame(search, *s.npc, t, o, from, threat);
     fm_assert(r.done && r.cover && r.cover->end == exposed_cover_end);
     fm_assert_equal(5u, t.counters.num_dijkstra_calls);
-    fm_assert(t.is_seen_on_path(*s.npc, o, threat, r.cover->path));
+    prepare_world_for_thinking(s.w);
+    fm_assert(t.is_seen_on_path(*s.npc, o, threat, r.cover->path, s.w.grid_orders()));
 }
 
 // As in test_search_takes_exposed_cover, but the threat moves to (464, 304), on its bearing from the npc, where it
@@ -4108,9 +4129,11 @@ void test_search_drops_exposed_cover_seen_by_threat_in_neighbor_octant()
     const auto threat_critter = add_critter(w, point{ch, {14, 8}, {}});
     const auto npc = add_critter(w, point{ch, {10, 8}, {}});
     astar A;
+    w.set_grid_registry(&A.pool_registry());
     Cover::spot_tests t{A, threat_critter->id, 0};
     Cover::cover_search search;
     const Cover::Script::options o{.threat_reach = 0, .last_resort = fallback::none};
+    t.create_pools(*npc, o);
     const auto from = npc->position(), threat = threat_critter->position(), moved = threat + Vector2i{40, -24};
     const Cover::Point::spot kept{point{ch, {8, 7}, {-20, 30}}, {1, 0}};
     fm_assert(Cover::Point::nearest_octant(Vector2(moved - from)) ==
@@ -4264,6 +4287,7 @@ void test_unreachable_spots_outside_disc_removed()
     Cover::unreachable_spots u;
     u.add_failed(w, inside, 0);
     u.add_failed(w, outside, 0);
+    prepare_world_for_thinking(w);
     fm_assert(u.can_move_straight_to_listed_spot(w, outside, Vector2i(body), Search::never_continue));
     u.remove_spots_outside_disc(center, 3*chunk_size_xy);
     fm_assert(u.can_move_straight_to_listed_spot(w, inside, Vector2i(body), Search::never_continue));
@@ -4397,7 +4421,9 @@ void test_search_takes_reachable_peekless_spot()
     const auto threat = add_critter(w, point{ch, {10, 8}, {}});
     const auto npc = add_critter(w, point{ch, {6, 8}, {}});
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     Cover::spot_tests t{A, threat->id, 0};
+    t.create_pools(*npc, {});
     fm_assert(!t.path_to(*npc, point{ch, {5, 8}, {-20, -4}}).is_found());
     Cover::cover_search search;
     const Cover::Script::options o{};
@@ -4430,7 +4456,9 @@ void test_search_takes_peekless_spot_after_5_unreachable()
     const auto threat = add_critter(w, point{ch, {10, 8}, {}});
     const auto npc = add_critter(w, point{ch, {6, 8}, {}});
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     Cover::spot_tests t{A, threat->id, 0};
+    t.create_pools(*npc, {});
     Cover::cover_search search;
     const Cover::Script::options o{};
     const auto from = npc->position(), threat_pos = threat->position();
@@ -4472,7 +4500,9 @@ void test_search_takes_reachable_in_reach_spot()
     const auto threat = add_critter(w, point{ch, {8, 8}, {}});
     const auto npc = add_critter(w, point{ch, {12, 8}, {}});
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     Cover::spot_tests t{A, threat->id, 0};
+    t.create_pools(*npc, {});
     fm_assert(!t.path_to(*npc, point{ch, {7, 8}, {-20, -4}}).is_found());
     const auto num_dijkstra_calls = t.counters.num_dijkstra_calls;
     Cover::cover_search search;

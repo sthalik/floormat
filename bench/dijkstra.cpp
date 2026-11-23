@@ -8,6 +8,7 @@
 #include "src/scenery-proto.hpp"
 #include "src/tile-defs.hpp"
 #include "src/tile-image.hpp"
+#include "src/update-world.hpp"
 #include "src/point.inl"
 #include "src/wall-atlas.hpp"
 #include "src/world.hpp"
@@ -192,17 +193,24 @@ void time_spot_tests_call(benchmark::State& st, F&& find_path)
     p.bbox_size = Vector2ub(body);
     const auto npc = w.make_object<critter>(w.make_id(), npc_tile, move(p));
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     auto t = Cover::spot_tests{A, 0, NullOpt};
     const auto to = point{to_tile, {}};
+    // The read-only calls need the object pool, which this call creates.
+    (void)t.path_to(*npc, to);
 
     fm_assert(find_path(t, *npc, to) == !walled_in);
     const auto added_node_count = t.last_dijkstra_node_count();
     fm_assert(added_node_count > 0);
+    // Builds the grids that a read-only call ordered, so the timed calls read only built grids.
+    prepare_world_for_thinking(w);
     for (int i = 0; i < 2; i++)
         (void)find_path(t, *npc, to);
+    fm_assert(w.grid_orders().isEmpty());
     for (auto _ : st)
         benchmark::DoNotOptimize(find_path(t, *npc, to));
     st.counters["added_node_count"] = added_node_count;
+    w.set_grid_registry(nullptr);
 }
 
 void Dijkstra_Path_To(benchmark::State& st)
@@ -215,7 +223,8 @@ void Dijkstra_Path_To(benchmark::State& st)
 void Dijkstra_Reachable_Without_Critters(benchmark::State& st)
 {
     time_spot_tests_call(st, [](Cover::spot_tests& t, critter& c, point to) {
-        return t.is_reachable_without_critters(c, to);
+        auto& w = c.world();
+        return t.is_reachable_without_critters(c, to, w.grid_orders());
     });
 }
 
@@ -421,6 +430,8 @@ void time_path_to(benchmark::State& st, astar& A, const wall_scene& s, bool foun
 
 void time_is_seen_on_path(benchmark::State& st, astar& A, const wall_scene& s, bool is_seen)
 {
+    auto& w = s.npc->world();
+    w.set_grid_registry(&A.pool_registry());
     auto t = Cover::spot_tests{A, s.threat->id, NullOpt};
     const auto path = t.path_to(*s.npc, s.to);
     fm_assert(path.is_found());
@@ -428,13 +439,17 @@ void time_is_seen_on_path(benchmark::State& st, astar& A, const wall_scene& s, b
     const Cover::Script::options o{};
     const auto threat = s.threat->position();
     // The timed calls reuse the threat lattice that this one computes.
-    fm_assert(t.is_seen_on_path(*s.npc, o, threat, path) == is_seen);
+    fm_assert(t.is_seen_on_path(*s.npc, o, threat, path, w.grid_orders()) == is_seen);
+    // Builds the grids that call ordered, so the timed calls read only built grids.
+    prepare_world_for_thinking(w);
     const auto body_checks_before = t.counters.num_path_body_checks;
-    fm_assert(t.is_seen_on_path(*s.npc, o, threat, path) == is_seen);
+    fm_assert(t.is_seen_on_path(*s.npc, o, threat, path, w.grid_orders()) == is_seen);
     const auto body_checks_per_call = t.counters.num_path_body_checks - body_checks_before;
+    fm_assert(w.grid_orders().isEmpty());
     for (auto _ : st)
-        benchmark::DoNotOptimize(t.is_seen_on_path(*s.npc, o, threat, path));
+        benchmark::DoNotOptimize(t.is_seen_on_path(*s.npc, o, threat, path, w.grid_orders()));
     st.counters["body_checks_per_call"] = body_checks_per_call;
+    w.set_grid_registry(nullptr);
 }
 
 void Dijkstra_Path_To_Around_Wall(benchmark::State& st)

@@ -8,7 +8,7 @@
 #include <cr/Optional.h>
 #include <mg/Constants.h>
 
-namespace floormat { struct critter; }
+namespace floormat { struct critter; struct grid_order; }
 
 namespace floormat::Cover {
 
@@ -42,11 +42,11 @@ struct reach_positions_hidden_from
 
     // Returns how many points of reach see c's body at s, at most max_count + 1, or nothing once the points in
     // neither list need over max_body_checks. max_pass_gen is world::max_pass_gen() around s.
-    Optional<u32> count_reach_positions_seeing(critter& c, spot_tests& t, ArrayView<const point> reach,
+    Optional<u32> count_reach_positions_seeing(const critter& c, spot_tests& t, ArrayView<const point> reach,
                                                const Cover::Point::spot& s, u64 max_pass_gen, u32 max_body_checks,
                                                u32 max_count);
     // Whether a point of reach sees c's body at s, as count_reach_positions_seeing() with a max_count of 0.
-    visibility_from_reach test_spot_against_reach(critter& c, spot_tests& t, ArrayView<const point> reach,
+    visibility_from_reach test_spot_against_reach(const critter& c, spot_tests& t, ArrayView<const point> reach,
                                                   const Cover::Point::spot& s, u64 max_pass_gen,
                                                   u32 max_body_checks);
 };
@@ -79,8 +79,8 @@ public:
     void restart(point from, point threat);
     // One update's work of the search for c, with from as restart() takes it. Stale unreachable spots, or walls,
     // holes or static scenery changing nearby, restart the search. A new threat octant resumes its scan.
-    result tick(critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat,
-                u32 max_octant_fills);
+    result tick(const critter& c, spot_tests& t, const Cover::Script::options& o, point from, point threat,
+                Array<grid_order>& orders);
     void end();
     void give_up();
 
@@ -116,13 +116,15 @@ private:
 
     // _reach_positions_not_seeing_spot's test of s against reach_positions() for threat. max_pass_gen is
     // world::max_pass_gen() over the chunks the search reads.
-    visibility_from_reach test_spot_against_reach(critter& c, spot_tests& t, const Cover::Script::options& o,
+    visibility_from_reach test_spot_against_reach(const critter& c, spot_tests& t, const Cover::Script::options& o,
                                                   point threat, const Cover::Point::spot& s, u64 max_pass_gen,
-                                                  u32 max_body_checks);
-    Optional<reachable_cover> take_last_resort(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                               point threat, u64 max_pass_gen, u32 max_body_checks);
-    Optional<reachable_cover> take_exposed_cover(critter& c, spot_tests& t, const Cover::Script::options& o,
-                                                 point threat, u64 max_pass_gen, u32 max_body_checks);
+                                                  u32 max_body_checks, Array<grid_order>& orders);
+    Optional<reachable_cover> take_last_resort(const critter& c, spot_tests& t, const Cover::Script::options& o,
+                                               point threat, u64 max_pass_gen, u32 max_body_checks,
+                                               Array<grid_order>& orders);
+    Optional<reachable_cover> take_exposed_cover(const critter& c, spot_tests& t, const Cover::Script::options& o,
+                                                 point threat, u64 max_pass_gen, u32 max_body_checks,
+                                                 Array<grid_order>& orders);
 
     Optional<reachable_cover> _exposed_cover;
     reach_positions_hidden_from _reach_positions_not_seeing_spot;

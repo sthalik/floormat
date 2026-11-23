@@ -105,6 +105,15 @@ const Cover::Pool* GridRegistry::find_cover_pool(const Cover::Params& p) const
     return slot && *slot ? &**slot : nullptr;
 }
 
+u32 GridRegistry::pool_count() const
+{
+    auto n = (u32)(pass_.pools_in_creation_order.size() + object_.pools_in_creation_order.size() +
+                   cover_.fallback.size());
+    for (const auto& p : cover_.direct)
+        n += !!p;
+    return n;
+}
+
 void GridRegistry::rebuild_requested_stale_grids()
 {
     for (auto* pool : pass_.pools_in_creation_order)
