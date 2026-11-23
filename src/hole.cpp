@@ -103,9 +103,4 @@ void hole::set_enabled(bool value)
     }
 }
 
-bool hole::is_virtual() const { return true; }
-bool hole::is_dynamic() const { return true; }
-bool hole::updates_passability() const { return true; }
-bool hole::updates_walls() const { return true; }
-
 } // namespace floormat

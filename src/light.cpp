@@ -69,7 +69,5 @@ light::operator light_proto() const
 }
 
 void light::update(const bptr<object>&, usize&, const Ns&) {}
-bool light::is_dynamic() const { return true; }
-bool light::is_virtual() const { return true; }
 
 } // namespace floormat

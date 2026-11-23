@@ -399,7 +399,7 @@ const class chunk& object::chunk() const { return *c; }
 const class world& object::world() const { return c->world(); }
 class chunk& object::chunk() { return *c; }
 class world& object::world() { return c->world(); }
-bool object::is_virtual() const { return false; }
+bool object::is_virtual() const { return _type == object_type::light || _type == object_type::hole; }
 point object::position() const
 {
     // asserted by both writers: the constructor and set_bbox_()
@@ -411,9 +411,24 @@ point object::position() const
 object_type object::type() const noexcept { return _type; }
 object_type object::type_of() const noexcept { return _type; }
 
-bool object::is_dynamic() const { return atlas->info().fps > 0; }
-bool object::updates_passability() const { return false; }
-bool object::updates_walls() const { return false; }
+bool object::is_dynamic() const
+{
+    switch (_type)
+    {
+    case object_type::critter:
+    case object_type::scenery:
+        return atlas->info().fps > 0;
+    case object_type::light:
+    case object_type::hole:
+        return true;
+    case object_type::none:
+    case object_type::COUNT:
+        break;
+    }
+    fm_abort("invalid object type %d", (int)_type);
+}
+
+bool object::updates_walls() const { return _type == object_type::hole; }
 void object::mark_modified_with_neighbors() {}
 
 void object::init_script(const bptr<object>&) {}

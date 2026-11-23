@@ -35,8 +35,6 @@ struct light final : object
 
     i32 depth_offset() const override;
     void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
-    bool is_dynamic() const override;
-    bool is_virtual() const override;
 
     explicit operator light_proto() const;
 

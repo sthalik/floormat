@@ -33,10 +33,6 @@ struct hole final : object
 
     i32 depth_offset() const override;
     void update(const bptr<object>& ptr, usize& i, const Ns& dt) override;
-    bool is_dynamic() const override;
-    bool updates_passability() const override;
-    bool updates_walls() const override;
-    bool is_virtual() const override;
 
     void set_height(u8 height);
     void set_z_offset(u8 z);

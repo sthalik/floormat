@@ -72,7 +72,7 @@ public:
     class world& world();
     usize index() const;
     usize index();
-    virtual bool is_virtual() const;
+    bool is_virtual() const;
     point position() const;
 
     explicit operator object_proto() const;
@@ -101,9 +101,9 @@ public:
 
     object_type type_of() const noexcept;
 
-    virtual bool is_dynamic() const;
-    virtual bool updates_passability() const;
-    virtual bool updates_walls() const;
+    bool is_dynamic() const;
+    constexpr bool updates_passability() const;
+    bool updates_walls() const;
     virtual void mark_modified_with_neighbors();
 
     bool can_rotate(rotation new_r);
@@ -143,5 +143,7 @@ protected:
     static void check_script_update_1(script_lifecycle state);
     [[nodiscard]] static bool check_script_update_2(script_lifecycle state);
 };
+
+constexpr bool object::updates_passability() const { return _type == object_type::hole; }
 
 } // namespace floormat
