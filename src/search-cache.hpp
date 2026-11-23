@@ -59,6 +59,8 @@ struct cache
     void clear_chunk(u32 chunk_index);
 
     bool is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, const pred& p);
+    // pt's chunk must be missing.
+    bool is_passable_for_bbox(const world& w, const Grid::Pass::Pool& pool, point pt, const pred& p) const;
 };
 
 } // namespace floormat::Search

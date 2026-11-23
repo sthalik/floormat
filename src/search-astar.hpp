@@ -17,6 +17,7 @@ namespace floormat {
 class world;
 struct point;
 struct path_search_result;
+struct grid_order;
 
 class astar
 {
@@ -56,6 +57,14 @@ public:
     template<int Debug = 0, bool FindClosestOnFailure = true>
     path_search_result Dijkstra(world& w, Grid::Object::Pool& objects, point from, point to,
                                 u32 max_dist, Vector2ui own_size, const pred& p);
+    // These write neither w nor the pool. Chunks they read need clean R-trees, which the const rtree() asserts.
+    // Each chunk read without a built grid gets a grid_order, and its nodes are tested against its R-tree.
+    template<int Debug = 0, bool FindClosestOnFailure = true>
+    path_search_result Dijkstra(const world& w, const Grid::Pass::Pool& pool, point from, point to,
+                                u32 max_dist, Vector2ui own_size, const pred& p, Array<grid_order>& orders);
+    template<int Debug = 0, bool FindClosestOnFailure = true>
+    path_search_result Dijkstra(const world& w, const Grid::Object::Pool& objects, point from, point to,
+                                u32 max_dist, Vector2ui own_size, const pred& p, Array<grid_order>& orders);
 
     struct string_pull_result
     {
@@ -73,21 +82,28 @@ public:
                                    Vector2ui own_size, const pred& p);
     string_pull_result string_pull(world& w, Grid::Object::Pool& objects, path_search_result& result,
                                    Vector2ui own_size, const pred& p);
+    // These write neither w nor the pool. Chunks they read need clean R-trees, which the const rtree() asserts.
+    // Each chunk read without a built grid gets a grid_order, once per path segment that reads it.
+    string_pull_result string_pull(const world& w, const Grid::Pass::Pool& pool, path_search_result& result,
+                                   Vector2ui own_size, const pred& p, Array<grid_order>& orders);
+    string_pull_result string_pull(const world& w, const Grid::Object::Pool& objects, path_search_result& result,
+                                   Vector2ui own_size, const pred& p, Array<grid_order>& orders);
 
 private:
     struct seed_search;
     struct closest;
+    struct world_and_pools;
 
     static constexpr u32 initial_capacity = 1u << 17;
 
     template<int Debug, bool FindClosestOnFailure>
-    path_search_result Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects, point from, point to,
+    path_search_result Dijkstra(const world_and_pools& wp, point from, point to,
                                 u32 max_dist, Vector2ui own_size, const pred& p);
-    string_pull_result string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
-                                   path_search_result& result, Vector2ui own_size, const pred& p);
+    string_pull_result string_pull(const world_and_pools& wp, path_search_result& result,
+                                   Vector2ui own_size, const pred& p);
 
     bucket_queue make_queue(u32 bucket_count);
-    chunk_bitmaps make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::Object::Pool* objects);
+    chunk_bitmaps make_bitmaps(const world_and_pools& wp, const pred& p);
     bool seed_ring(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist);
     closest run_seed_search(chunk_bitmaps& bm, bucket_queue& Q, const endpoint& start, point to, u32 max_dist,
                             closest best);

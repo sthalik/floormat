@@ -11,6 +11,8 @@
 #include "src/raycast.hpp"
 #include "src/raycast-line.hpp"
 #include "src/sweep-aabb.hpp"
+#include "src/search-astar.hpp"
+#include "src/search-result.hpp"
 #include "compat/function-view.hpp"
 #include <concepts>
 
@@ -170,6 +172,38 @@ static_assert(is_read_only_swept_collider_callable<const world, const Pass::Pool
 static_assert(is_read_only_swept_object_collider_callable<const world, const Grid::Object::Pool>);
 static_assert(is_swept_collider_callable<world>);
 static_assert(!is_swept_collider_callable<const world>);
+
+template<typename Wo, typename P> concept is_dijkstra_callable =
+    requires(astar& a, Wo& w, P& pool, point pt, const Search::pred& p) {
+        a.Dijkstra(w, pool, pt, pt, 0, Vector2ui{}, p);
+    };
+template<typename Wo, typename P> concept is_read_only_dijkstra_callable =
+    requires(astar& a, Wo& w, P& pool, point pt, const Search::pred& p, Array<grid_order>& orders) {
+        { a.Dijkstra(w, pool, pt, pt, 0, Vector2ui{}, p, orders) } -> std::same_as<path_search_result>;
+    };
+template<typename Wo, typename P> concept is_string_pull_callable =
+    requires(astar& a, Wo& w, P& pool, path_search_result& r, const Search::pred& p) {
+        a.string_pull(w, pool, r, Vector2ui{}, p);
+    };
+template<typename Wo, typename P> concept is_read_only_string_pull_callable =
+    requires(astar& a, Wo& w, P& pool, path_search_result& r, const Search::pred& p, Array<grid_order>& orders) {
+        { a.string_pull(w, pool, r, Vector2ui{}, p, orders) } -> std::same_as<astar::string_pull_result>;
+    };
+
+static_assert(is_read_only_dijkstra_callable<const world, const Pass::Pool>);
+static_assert(is_read_only_dijkstra_callable<const world, const Grid::Object::Pool>);
+static_assert(is_dijkstra_callable<world, Pass::Pool>);
+static_assert(is_dijkstra_callable<world, Grid::Object::Pool>);
+static_assert(!is_dijkstra_callable<const world, Pass::Pool>);
+static_assert(!is_dijkstra_callable<const world, Grid::Object::Pool>);
+static_assert(!is_dijkstra_callable<world, const Pass::Pool>);
+static_assert(is_read_only_string_pull_callable<const world, const Pass::Pool>);
+static_assert(is_read_only_string_pull_callable<const world, const Grid::Object::Pool>);
+static_assert(is_string_pull_callable<world, Pass::Pool>);
+static_assert(is_string_pull_callable<world, Grid::Object::Pool>);
+static_assert(!is_string_pull_callable<const world, Pass::Pool>);
+static_assert(!is_string_pull_callable<const world, Grid::Object::Pool>);
+static_assert(!is_string_pull_callable<world, const Pass::Pool>);
 
 } // namespace
 } // namespace floormat

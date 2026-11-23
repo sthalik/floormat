@@ -9,6 +9,8 @@
 #include "src/raycast.hpp"
 #include "src/raycast-line.hpp"
 #include "src/sweep-aabb.hpp"
+#include "src/search-astar.hpp"
+#include "src/search-result.hpp"
 #include "src/search-pred.hpp"
 #include "src/point.inl"
 #include "loader/loader.hpp"
@@ -66,6 +68,28 @@ struct query_case
     float radius;
 };
 
+constexpr u32 path_max_dist = 8192;
+
+// The first three cross three chunks each and the fourth ends in a missing chunk. The fifth goes through
+// add_colliders()' critter at (990, 301), and the last ends at its critter_id.
+constexpr segment path_segments[] = {
+    {{-700, 100}, {1700, 700}},
+    {{-900, -900}, {1800, 1800}},
+    {{100, -900}, {300, 1800}},
+    {{1500, 500}, {2300, 500}},
+    {{800, 301}, {1200, 301}},
+    {{700, 900}, {992, 992}},
+};
+
+struct path_case
+{
+    segment seg;
+    Search::pred pred;
+    pool_type pools;
+    // True when pred blocks a collider at seg.to, so Dijkstra() returns before reading a grid.
+    bool is_goal_blocked;
+};
+
 point at(Vector2i px)
 {
     return point::normalize_coords(point{COORD, {}, {}}, px);
@@ -108,6 +132,24 @@ Array<query_case> make_cases(const Search::pred& object_pred, const Search::pred
         arrayAppend(cases, query_case{ s, other_object_pred, pool_type::object, 2 });
         arrayAppend(cases, query_case{ s, Search::without_critters, pool_type::pass, 0 });
         arrayAppend(cases, query_case{ s, Search::without_critters, pool_type::none, 0 });
+    }
+    return cases;
+}
+
+// blocks_critter_id must block add_colliders()' critter_id, which stands on the last segment's `to`. Paths on the
+// pass pool go through critters, which a read-only string_pull() sees without a grid, as in test 6.
+Array<path_case> make_path_cases(const Search::pred& blocks_critter_id)
+{
+    constexpr auto n = (u32)array_size(path_segments);
+    Array<path_case> cases;
+    arrayReserve(cases, (n + 1) * 2);
+    for (const auto pools : { pool_type::object, pool_type::pass })
+    {
+        const auto pred = pools == pool_type::object ? blocks_critter_id : Search::pred{Search::without_critters};
+        for (u32 i = 0; i + 1 < n; i++)
+            arrayAppend(cases, path_case{ path_segments[i], pred, pools, false });
+        arrayAppend(cases, path_case{ path_segments[n - 1], blocks_critter_id, pools, true });
+        arrayAppend(cases, path_case{ path_segments[n - 1], Search::without_critters, pools, false });
     }
     return cases;
 }
@@ -188,6 +230,83 @@ void collect_swept_colliders(const world& w, const query_pools& P, const query_c
                             q.pools == pool_type::pass ? &P.box_pass : nullptr, orders, f);
 }
 
+path_search_result find_path(astar& A, world& w, query_pools& P, const path_case& q)
+{
+    const auto from = at(q.seg.from), to = at(q.seg.to);
+    if (q.pools == pool_type::object)
+        return A.Dijkstra(w, P.box_objects, from, to, path_max_dist, box_size, q.pred);
+    else
+        return A.Dijkstra(w, P.box_pass, from, to, path_max_dist, box_size, q.pred);
+}
+
+path_search_result find_path(astar& A, const world& w, const query_pools& P, const path_case& q,
+                             Array<grid_order>& orders)
+{
+    const auto from = at(q.seg.from), to = at(q.seg.to);
+    if (q.pools == pool_type::object)
+        return A.Dijkstra(w, P.box_objects, from, to, path_max_dist, box_size, q.pred, orders);
+    else
+        return A.Dijkstra(w, P.box_pass, from, to, path_max_dist, box_size, q.pred, orders);
+}
+
+astar::string_pull_result smooth_path(astar& A, world& w, query_pools& P, const path_case& q,
+                                      path_search_result& path)
+{
+    if (q.pools == pool_type::object)
+        return A.string_pull(w, P.box_objects, path, box_size, q.pred);
+    else
+        return A.string_pull(w, P.box_pass, path, box_size, q.pred);
+}
+
+astar::string_pull_result smooth_path(astar& A, const world& w, const query_pools& P, const path_case& q,
+                                      path_search_result& path, Array<grid_order>& orders)
+{
+    if (q.pools == pool_type::object)
+        return A.string_pull(w, P.box_objects, path, box_size, q.pred, orders);
+    else
+        return A.string_pull(w, P.box_pass, path, box_size, q.pred, orders);
+}
+
+void assert_same_path_length(const path_search_result& a, const path_search_result& b)
+{
+    fm_assert_equal(a.is_found(), b.is_found());
+    fm_assert_equal(a.distance(), b.distance());
+    fm_assert_equal(a.cost(), b.cost());
+}
+
+void assert_same_path(const path_search_result& a, const path_search_result& b)
+{
+    assert_same_path_length(a, b);
+    const auto pa = a.path(), pb = b.path();
+    fm_assert_equal(pa.size(), pb.size());
+    for (u32 i = 0; i < (u32)pa.size(); i++)
+        fm_assert(pa[i] == pb[i]);
+}
+
+// Returns a result holding r's points and cell size, for string_pull() to smooth.
+path_search_result copy_raw_path(const path_search_result& r)
+{
+    path_search_result copy;
+    copy.set_div_size(r.div_size());
+    arrayAppend(copy.raw_path(), r.path());
+    return copy;
+}
+
+void assert_same_smoothing(const astar::string_pull_result& a, const path_search_result& path_a,
+                           const astar::string_pull_result& b, const path_search_result& path_b)
+{
+    fm_assert_equal(a.smoothed, b.smoothed);
+    fm_assert_equal(a.corners_added, b.corners_added);
+    fm_assert_equal(a.los_checks, b.los_checks);
+    const auto sa = path_a.smoothings(), sb = path_b.smoothings();
+    fm_assert_equal(sa.size(), sb.size());
+    for (u32 i = 0; i < (u32)sa.size(); i++)
+    {
+        fm_assert(sa[i].pt == sb[i].pt);
+        fm_assert_equal(sa[i].raw_index, sb[i].raw_index);
+    }
+}
+
 // Sorts r by collider, then by step, and keeps each collider's first step. Which cells report a collider, and so
 // how often, depends on which grids are built.
 void keep_first_step_per_collider(Array<swept_collider_result>& r)
@@ -224,22 +343,26 @@ void assert_same_swept(ArrayView<const swept_collider_result> a, ArrayView<const
         assert_same_swept(a[i], b[i]);
 }
 
-// Asserts that each order names a chunk in range, once, with the kind and the params of the pools given.
+// Asserts that each order names a chunk in range, with the kind and the params of the pools given.
 void check_orders(ArrayView<const grid_order> orders, const chunk_range& range, pool_type pools,
                   const Pass::Params& params)
 {
     const auto kind = pools == pool_type::object ? grid_order::grid_kind::object : grid_order::grid_kind::pass;
-    for (u32 i = 0; i < (u32)orders.size(); i++)
+    for (const auto& o : orders)
     {
-        const auto& o = orders[i];
         fm_assert(o.kind == kind);
         fm_assert(o.pass_params == params);
         fm_assert_equal(range.lo.z, o.chunk.z);
         fm_assert(o.chunk.x >= range.lo.x && o.chunk.x <= range.hi.x);
         fm_assert(o.chunk.y >= range.lo.y && o.chunk.y <= range.hi.y);
-        for (u32 j = 0; j < i; j++)
-            fm_assert(orders[j].chunk != o.chunk);
     }
+}
+
+void assert_no_chunk_ordered_twice(ArrayView<const grid_order> orders)
+{
+    for (u32 i = 0; i < (u32)orders.size(); i++)
+        for (u32 j = 0; j < i; j++)
+            fm_assert(orders[j].chunk != orders[i].chunk);
 }
 
 // Builds the grids that orders name, through P's pools.
@@ -344,6 +467,14 @@ void test_read_only_writes_nothing()
         collect_swept_colliders(cw, cP, q, orders, entry_blocked, found);
     }
     fm_assert(!orders.isEmpty());
+    arrayClear(orders);
+    astar A;
+    for (const auto& q : make_path_cases(blocks_all_but_door))
+    {
+        auto path = find_path(A, cw, cP, q, orders);
+        (void)smooth_path(A, cw, cP, q, path, orders);
+    }
+    fm_assert(!orders.isEmpty());
     record_state(cw, cP, after);
     fm_assert_equal(before.size(), after.size());
     for (u32 i = 0; i < (u32)before.size(); i++)
@@ -379,6 +510,18 @@ void test_read_only_with_built_grids()
         assert_same_swept(expected, found);
         fm_assert(orders.isEmpty());
     }
+
+    astar A;
+    for (const auto& q : make_path_cases(blocks_all_but_door))
+    {
+        auto expected_path = find_path(A, w, P, q);
+        const auto expected_smoothing = smooth_path(A, w, P, q, expected_path);
+        auto path = find_path(A, cw, cP, q, orders);
+        assert_same_path(expected_path, path);
+        const auto smoothing = smooth_path(A, cw, cP, q, path, orders);
+        assert_same_smoothing(expected_smoothing, expected_path, smoothing, path);
+        fm_assert(orders.isEmpty());
+    }
 }
 
 struct today_results
@@ -403,6 +546,7 @@ u32 compare_read_only_results(const world& w, const query_pools& P, ArrayView<co
         const auto& q = cases[i];
         const auto check_call_orders = [&](const chunk_range& range, const Pass::Params& params) {
             check_orders(orders, range, q.pools, params);
+            assert_no_chunk_ordered_twice(orders);
             fm_assert_equal(are_grids_missing && q.pools != pool_type::none, !orders.isEmpty());
             arrayAppend(all_orders, orders);
             arrayClear(orders);
@@ -428,8 +572,46 @@ u32 compare_read_only_results(const world& w, const query_pools& P, ArrayView<co
     return num_stopped_by_critter;
 }
 
-// Tests 4 and 5: without grids, read-only results equal today's on an identical copy, and every call with a pool
-// orders grids. Once those are built, the same calls order nothing.
+struct today_paths
+{
+    Array<path_search_result> paths;
+    Array<astar::string_pull_result> smoothings;
+};
+
+// Runs the read-only Dijkstra() and string_pull() of every case, compares them with expected and appends their
+// orders to all_orders.
+void compare_read_only_paths(astar& A, const world& w, const query_pools& P, ArrayView<const path_case> cases,
+                             const today_paths& expected, bool are_grids_missing, Array<grid_order>& all_orders)
+{
+    constexpr auto world_chunks = chunk_range{ {-1, -1, 0}, {1, 1, 0} };
+    Array<grid_order> orders;
+    for (u32 i = 0; i < (u32)cases.size(); i++)
+    {
+        const auto& q = cases[i];
+        const auto check_call_orders = [&] {
+            check_orders(orders, world_chunks, q.pools, box_params);
+            fm_assert_equal(are_grids_missing && !q.is_goal_blocked, !orders.isEmpty());
+            arrayAppend(all_orders, orders);
+            arrayClear(orders);
+        };
+        auto path = find_path(A, w, P, q, orders);
+        // A chunk without a bitmap gives window() 0, so the search tries all 8 moves and can keep another path of
+        // equal cost.
+        if (are_grids_missing)
+            assert_same_path_length(expected.paths[i], path);
+        else
+            assert_same_path(expected.paths[i], path);
+        assert_no_chunk_ordered_twice(orders);
+        check_call_orders();
+        auto today_path = copy_raw_path(expected.paths[i]);
+        const auto smoothing = smooth_path(A, w, P, q, today_path, orders);
+        assert_same_smoothing(expected.smoothings[i], expected.paths[i], smoothing, today_path);
+        check_call_orders();
+    }
+}
+
+// Tests 4 and 5: without grids, read-only results equal today's on an identical copy, paths in length only, and
+// every call with a pool orders grids. Once those are built, the same calls order nothing and give today's paths.
 void test_read_only_without_grids()
 {
     auto a = make_world_with_ground(), b = make_world_with_ground();
@@ -456,14 +638,31 @@ void test_read_only_without_grids()
         keep_first_step_per_collider(expected.colliders[i]);
     }
 
+    astar A;
+    const auto path_cases = make_path_cases(blocks_all_but_door);
+    today_paths expected_paths = { .paths = Array<path_search_result>{ValueInit, path_cases.size()},
+                                   .smoothings = Array<astar::string_pull_result>{ValueInit, path_cases.size()} };
+    for (u32 i = 0; i < (u32)path_cases.size(); i++)
+    {
+        const auto& q = path_cases[i];
+        expected_paths.paths[i] = find_path(A, a, Pa, q);
+        fm_assert_equal(!q.is_goal_blocked, expected_paths.paths[i].is_found());
+        expected_paths.smoothings[i] = smooth_path(A, a, Pa, q, expected_paths.paths[i]);
+    }
+    // On path_segments[4], the object pool's path goes around the critter and the pass pool's through it.
+    constexpr auto num_cases_per_pool = (u32)array_size(path_segments) + 1;
+    fm_assert(expected_paths.paths[4].cost() > expected_paths.paths[num_cases_per_pool + 4].cost());
+
     Array<grid_order> all_orders;
     const auto num_stopped_by_critter = compare_read_only_results(cb, cPb, cases, expected, ids.critter_id, true,
                                                                   all_orders);
     fm_assert(num_stopped_by_critter >= 2);
+    compare_read_only_paths(A, cb, cPb, path_cases, expected_paths, true, all_orders);
 
     build_ordered_grids(b, Pb, all_orders);
     arrayClear(all_orders);
     (void)compare_read_only_results(cb, cPb, cases, expected, ids.critter_id, false, all_orders);
+    compare_read_only_paths(A, cb, cPb, path_cases, expected_paths, false, all_orders);
     fm_assert(all_orders.isEmpty());
 }
 
@@ -511,6 +710,10 @@ void test_today_overloads_build()
     constexpr auto seg = segments[0];
     constexpr chunk_coords_ crossed[] = { {-1, 0, 0}, {0, 0, 0}, {1, 0, 0} };
     const auto copy = make_world_with_ground();
+    // string_pull() smooths a path that Dijkstra() found here, so that no other call builds w's grids.
+    auto path_world = make_world_with_ground();
+    query_pools path_pools;
+    astar A;
     std::array<Array<bool>, 4> entry_blocked;
     Array<grid_order> orders;
     Array<swept_collider_result> found;
@@ -534,8 +737,9 @@ void test_today_overloads_build()
     for (const auto pools : { pool_type::pass, pool_type::object })
     {
         const auto q = query_case{ seg, Search::never_continue, pools, 0 };
+        const auto path_q = path_case{ seg, Search::never_continue, pools, false };
         const query_pools copy_pools;
-        for (u32 call = 0; call < 3; call++)
+        for (u32 call = 0; call < 5; call++)
         {
             auto w = make_world_with_ground();
             query_pools P;
@@ -551,10 +755,22 @@ void test_today_overloads_build()
                 (void)find_first_collider(w, P, q, entry_blocked);
                 (void)find_first_collider(copy, copy_pools, q, orders, entry_blocked);
             }
-            else
+            else if (call == 2)
             {
                 collect_swept_colliders(w, P, q, entry_blocked, found);
                 collect_swept_colliders(copy, copy_pools, q, orders, entry_blocked, found);
+            }
+            else if (call == 3)
+            {
+                (void)find_path(A, w, P, path_q);
+                (void)find_path(A, copy, copy_pools, path_q, orders);
+            }
+            else
+            {
+                auto path = find_path(A, path_world, path_pools, path_q);
+                fm_assert(path.is_found());
+                (void)smooth_path(A, w, P, path_q, path);
+                (void)smooth_path(A, copy, copy_pools, path_q, path, orders);
             }
             check_built(w, P, pools, call == 0);
         }

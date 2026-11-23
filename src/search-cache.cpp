@@ -217,4 +217,13 @@ bool cache::is_passable_for_bbox(world& w, Grid::Pass::Pool& pool, point pt, con
     return Search::is_passable_(nullptr, nbs, min, min + Vector2{(float)size}, p);
 }
 
+bool cache::is_passable_for_bbox(const world& w, const Grid::Pass::Pool& pool, point pt, const pred& p) const
+{
+    fm_debug3_assert(!w.at(pt.chunk3()));
+    const auto nbs = w.neighbors(pt.chunk3());
+    const auto size = pool.params().bbox_size;
+    const auto min = Vector2(intra_coord{pt}.center_shifted()) - Vector2{(float)(size / 2)};
+    return Search::is_passable_(nullptr, nbs, min, min + Vector2{(float)size}, p);
+}
+
 } // namespace floormat::Search

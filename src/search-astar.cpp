@@ -2,6 +2,7 @@
 #include "search-octile.hpp"
 #include "search-cache.hpp"
 #include "grid-registry.hpp"
+#include "grid-order.hpp"
 #include "search-result.hpp"
 #include "search.hpp"
 #include "world.hpp"
@@ -310,13 +311,32 @@ point node_at_or_below(point pt, u32 div_size, u32 node_offset)
 
 } // namespace
 
-// bits[i] is the bitmap of the cache's chunk i, null until resolved or 1 for a missing chunk, so `(uptr)b > 1`
-// tests for a bitmap. Nothing marks a grid stale during a search, so the pointers stay valid until it ends.
+// The world and pools a search reads. The writable pointers point at the same objects, or are null in a read-only
+// search, which appends to orders instead of building grids.
+struct astar::world_and_pools
+{
+    const world& w;
+    world* writable_world;
+    const Grid::Pass::Pool& pool;
+    Grid::Pass::Pool* writable_pool;
+    const Grid::Object::Pool* objects;
+    Grid::Object::Pool* writable_objects;
+    Array<grid_order>* orders;
+
+    void assert_writable_pointers_match() const
+    {
+        fm_debug_assert(!writable_world || writable_world == &w);
+        fm_debug_assert(!writable_world == !writable_pool && (!writable_pool || writable_pool == &pool));
+        fm_debug_assert(!writable_objects == (!writable_world || !objects)
+                        && (!writable_objects || writable_objects == objects));
+    }
+};
+
+// bits[i] is the cache's chunk i's bitmap, or null until resolved, 1 for a missing chunk and 2 for one without a
+// built grid, so `(uptr)b > 2` tests for a bitmap. Nothing marks a grid stale during a search, so they stay valid.
 struct astar::chunk_bitmaps
 {
-    world& w;
-    Grid::Pass::Pool& pool;
-    Grid::Object::Pool* objects;
+    const world_and_pools& wp;
     Search::cache& cache;
     const astar::pred& p;
     const usize** bits;
@@ -337,27 +357,39 @@ struct astar::chunk_bitmaps
         return test_bit(b, Vector2ui(Vector2i(intra_coord{pt})));
     }
 
-    // Returns the bitmap of pt's chunk, or pointer value 1 when it is missing, and stores it in bits[chunk_idx].
-    // Call it only while bits[chunk_idx] is null, since clear_chunk() sets the chunk's cells to -1.
+    // Returns pt's chunk's bitmap, or pointer value 1 for a missing chunk and 2 for one without a built grid, and
+    // stores it in bits[chunk_idx]. Call it only while that is null: clear_chunk() sets the chunk's cells to -1.
     CORRADE_NEVER_INLINE const usize* resolve(point pt, usize chunk_idx)
     {
         cache.clear_chunk((u32)chunk_idx);
-        auto* c = w.at(pt.chunk3());
+        const auto* c = wp.w.at(pt.chunk3());
         if (!c)
             return bits[chunk_idx] = std::bit_cast<const usize*>(uptr{1});
-        auto grid = pool[*c];
-        grid.build_if_stale();
-        const usize* b = grid.bits().data;
-        if (objects)
+        if (wp.writable_world)
         {
-            auto og = (*objects)[*c];
-            og.build_if_stale();
-            if (og.blocked_objects(p, entry_blocked))
-            {
-                auto* out = masked_bits + chunk_idx * bitmask_word_count;
-                og.mask_pass_bits({b, bitmask_word_count}, {out, bitmask_word_count}, entry_blocked);
-                b = out;
-            }
+            auto& wc = *wp.writable_world->at(pt.chunk3());
+            (*wp.writable_pool)[wc].build_if_stale();
+            if (wp.objects)
+                (*wp.writable_objects)[wc].build_if_stale();
+        }
+        const auto grid = wp.pool.find_built_grid(*c);
+        const auto og = wp.objects ? wp.objects->find_built_grid(*c) : Grid::Object::ConstGrid{};
+        if (!grid || wp.objects && !og)
+        {
+            fm_debug3_assert(!wp.writable_world);
+            if (wp.orders)
+                arrayAppend(*wp.orders, grid_order{
+                    .pass_params = wp.pool.params(), .chunk = c->coord(),
+                    .kind = wp.objects ? grid_order::grid_kind::object : grid_order::grid_kind::pass,
+                });
+            return bits[chunk_idx] = std::bit_cast<const usize*>(uptr{2});
+        }
+        const usize* b = grid.bits().data();
+        if (wp.objects && og.blocked_objects(p, entry_blocked))
+        {
+            auto* out = masked_bits + chunk_idx * bitmask_word_count;
+            og.mask_pass_bits({b, bitmask_word_count}, {out, bitmask_word_count}, entry_blocked);
+            b = out;
         }
         return bits[chunk_idx] = b;
     }
@@ -367,13 +399,18 @@ struct astar::chunk_bitmaps
         const auto* b = bits[chunk_idx];
         if (!b)
             b = resolve(pt, chunk_idx);
-        if ((uptr)b > 1)
+        if ((uptr)b > 2)
             return test_bit(b, pt);
-        return cache.is_passable_for_bbox(w, pool, pt, p);
+        else if ((uptr)b == 2)
+            return Search::is_passable_by_rtree(wp.w, wp.pool.params(), pt, wp.objects ? &p : nullptr);
+        else if (wp.writable_world)
+            return cache.is_passable_for_bbox(*wp.writable_world, *wp.writable_pool, pt, p);
+        else
+            return cache.is_passable_for_bbox(wp.w, wp.pool, pt, p);
     }
 
-    // Returns pt's 3x3 window, or 0 while a chunk it covers is unresolved or missing. Resolving one could build
-    // a grid no move reads, and a missing chunk's cells are tested with cache.is_passable_for_bbox().
+    // Returns pt's 3x3 window, or 0 while a chunk it covers is unresolved, missing or without a built grid.
+    // Resolving one could build a grid no move reads, and is_passable_slow() tests the other chunks' nodes.
     CORRADE_NEVER_INLINE u32 window_edge(point pt, Vector2i pos_in_chunk)
     {
         constexpr int cs = (int)chunk_size_xy;
@@ -393,7 +430,7 @@ struct astar::chunk_bitmaps
             for (int c = 0; c < 3; c++)
             {
                 const auto* b = bits[cache.get_chunk_index({chunk[c].x(), chunk[r].y()})];
-                if ((uptr)b <= 1)
+                if ((uptr)b <= 2)
                     return 0;
                 win |= (u32)test_bit(b, Vector2ui{pos[c].x(), pos[r].y()}) << (r*3 + c);
             }
@@ -412,11 +449,11 @@ struct astar::chunk_bitmaps
         const auto chunk_idx = cache.get_chunk_index(Vector2i(pt.chunk()));
         const auto tile_idx = cache.get_tile_index(intra_coord{pt});
         const auto* b = bits[chunk_idx];
-        if ((uptr)b <= 1) [[unlikely]]
+        if ((uptr)b <= 2) [[unlikely]]
         {
             if (!b)
                 b = resolve(pt, chunk_idx);
-            if ((uptr)b <= 1)
+            if ((uptr)b <= 2)
                 return { 0, chunk_idx, tile_idx, pos_in_chunk };
         }
         u32 win = 0;
@@ -445,7 +482,7 @@ struct astar::chunk_bitmaps
 
     CORRADE_ALWAYS_INLINE bool is_passable(point pt, usize chunk_idx)
     {
-        if (const auto* b = bits[chunk_idx]; (uptr)b > 1) [[likely]]
+        if (const auto* b = bits[chunk_idx]; (uptr)b > 2) [[likely]]
             return test_bit(b, pt);
         return is_passable_slow(pt, chunk_idx);
     }
@@ -478,19 +515,46 @@ struct astar::endpoint
 {
     point pt;
     Vector2 center, own_lo, own_hi;
-    chunk* c;
-    std::array<chunk*, 8> neighbors;
+    const chunk* c;
+    std::array<const chunk*, 8> neighbors;
+    // The same chunks as writable pointers, set only when has_writable_chunks.
+    chunk* writable_c = nullptr;
+    std::array<chunk*, 8> writable_neighbors{};
+    bool has_writable_chunks;
 
-    endpoint(world& w, point pt, Vector2ui own_size) :
+    endpoint(const world& w, world* writable_world, point pt, Vector2ui own_size) :
         pt{pt}, center{intra_coord{pt}.center_shifted()},
         own_lo{own_size/2u}, own_hi{Vector2(own_size) - own_lo},
-        c{w.at(pt.chunk3())}, neighbors{w.neighbors(pt.chunk3())}
+        c{w.at(pt.chunk3())}, neighbors{w.neighbors(pt.chunk3())},
+        has_writable_chunks{writable_world != nullptr}
     {
+        if (writable_world)
+        {
+            writable_c = writable_world->at(pt.chunk3());
+            writable_neighbors = writable_world->neighbors(pt.chunk3());
+        }
+    }
+
+    bool visit_colliders(Vector2 min, Vector2 max, const Search::collider_visitor& f) const
+    {
+        if (has_writable_chunks)
+            return Search::visit_colliders(writable_c, writable_neighbors, min, max, f);
+        else
+            return Search::visit_colliders(c, neighbors, min, max, f);
+    }
+
+    // Returns true when p blocks no collider overlapping the box from min to max, in the frame of pt's chunk.
+    bool is_box_passable(Vector2 min, Vector2 max, const pred& p) const
+    {
+        if (has_writable_chunks)
+            return Search::is_passable_(writable_c, writable_neighbors, min, max, p);
+        else
+            return Search::is_passable_(c, neighbors, min, max, p);
     }
 
     bool is_passable(const pred& p) const
     {
-        return Search::is_passable_(c, neighbors, center - own_lo, center + own_hi, p);
+        return is_box_passable(center - own_lo, center + own_hi, p);
     }
 
     // Returns true when p blocks no collider overlapping the bounding box of the boxes at pt and at other, so
@@ -498,9 +562,7 @@ struct astar::endpoint
     bool is_passable_to(point other, const pred& p) const
     {
         const auto other_center = center + Vector2(other - pt);
-        return Search::is_passable_(c, neighbors,
-                                    Math::min(center, other_center) - own_lo,
-                                    Math::max(center, other_center) + own_hi, p);
+        return is_box_passable(Math::min(center, other_center) - own_lo, Math::max(center, other_center) + own_hi, p);
     }
 };
 
@@ -901,10 +963,9 @@ struct astar::seed_search
         const auto ch = source.pt.chunk3();
         arrayClear(rects);
         arrayReserve(rects, 16);
-        Search::visit_colliders(source.c, source.neighbors,
-                                source.center - Vector2{(float)R} - source.own_lo,
-                                source.center + Vector2{(float)R} + source.own_hi,
-                                [&](const chunk& c, collision_data data, Range2D r) {
+        source.visit_colliders(source.center - Vector2{(float)R} - source.own_lo,
+                               source.center + Vector2{(float)R} + source.own_hi,
+                               [&](const chunk& c, collision_data data, Range2D r) {
             if (bm.p(c, data) == path_search_continue::pass)
                 return path_search_continue::pass;
             // r is in c's frame
@@ -1113,14 +1174,34 @@ template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, const point from, const point to,
                                    u32 max_dist, Vector2ui own_size, const pred& p)
 {
-    return Dijkstra<Debug, FindClosestOnFailure>(w, pool, nullptr, from, to, max_dist, own_size, p);
+    const auto wp = world_and_pools{ w, &w, pool, &pool, nullptr, nullptr, nullptr };
+    return Dijkstra<Debug, FindClosestOnFailure>(wp, from, to, max_dist, own_size, p);
 }
 
 template<int Debug, bool FindClosestOnFailure>
 path_search_result astar::Dijkstra(world& w, Grid::Object::Pool& objects, const point from, const point to,
                                    u32 max_dist, Vector2ui own_size, const pred& p)
 {
-    return Dijkstra<Debug, FindClosestOnFailure>(w, objects.pass_pool(), &objects, from, to, max_dist, own_size, p);
+    auto& pool = objects.pass_pool();
+    const auto wp = world_and_pools{ w, &w, pool, &pool, &objects, &objects, nullptr };
+    return Dijkstra<Debug, FindClosestOnFailure>(wp, from, to, max_dist, own_size, p);
+}
+
+template<int Debug, bool FindClosestOnFailure>
+path_search_result astar::Dijkstra(const world& w, const Grid::Pass::Pool& pool, const point from, const point to,
+                                   u32 max_dist, Vector2ui own_size, const pred& p, Array<grid_order>& orders)
+{
+    const auto wp = world_and_pools{ w, nullptr, pool, nullptr, nullptr, nullptr, &orders };
+    return Dijkstra<Debug, FindClosestOnFailure>(wp, from, to, max_dist, own_size, p);
+}
+
+template<int Debug, bool FindClosestOnFailure>
+path_search_result astar::Dijkstra(const world& w, const Grid::Object::Pool& objects, const point from,
+                                   const point to, u32 max_dist, Vector2ui own_size, const pred& p,
+                                   Array<grid_order>& orders)
+{
+    const auto wp = world_and_pools{ w, nullptr, objects.pass_pool(), nullptr, &objects, nullptr, &orders };
+    return Dijkstra<Debug, FindClosestOnFailure>(wp, from, to, max_dist, own_size, p);
 }
 
 auto astar::make_queue(u32 bucket_count) -> bucket_queue
@@ -1128,10 +1209,10 @@ auto astar::make_queue(u32 bucket_count) -> bucket_queue
     return make_bucket_queue(buckets, bucket_sizes, bucket_count);
 }
 
-auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::Object::Pool* objects) -> chunk_bitmaps
+auto astar::make_bitmaps(const world_and_pools& wp, const pred& p) -> chunk_bitmaps
 {
     auto& cache = *_cache;
-    const auto params = pool.params();
+    const auto params = wp.pool.params();
     const auto nchunks = (usize)cache.size.product();
     if (chunk_bits.size() < nchunks)
         chunk_bits = Array<const usize*>{ValueInit, nchunks};
@@ -1139,7 +1220,7 @@ auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::
         fill(chunk_bits.prefix(nchunks), nullptr);
 
     const auto bitmask_word_count = Grid::detail::bitmask_size(params.div_count) / (u32)(sizeof(usize)*8);
-    if (const auto n = (u32)(nchunks * bitmask_word_count); objects)
+    if (const auto n = (u32)(nchunks * bitmask_word_count); wp.objects)
     {
         if (arrayCapacity(masked_bits) < n)
             arrayReserve(masked_bits, n + n/2);
@@ -1147,7 +1228,7 @@ auto astar::make_bitmaps(world& w, Grid::Pass::Pool& pool, const pred& p, Grid::
     }
 
     return chunk_bitmaps{
-        .w = w, .pool = pool, .objects = objects, .cache = cache, .p = p,
+        .wp = wp, .cache = cache, .p = p,
         .bits = chunk_bits.data(),
         .masked_bits = masked_bits.data(),
         .entry_blocked = entry_blocked[0],
@@ -1435,10 +1516,10 @@ path_search_result astar::make_result(const closest& best, point from, point to,
 }
 
 template<int Debug, bool FindClosestOnFailure>
-path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
-                                   const point from, const point to,
+path_search_result astar::Dijkstra(const world_and_pools& wp, const point from, const point to,
                                    u32 max_dist, Vector2ui own_size, const pred& p)
 {
+    wp.assert_writable_pointers_match();
     const auto t0 = Debug > 0 ? Time::now() : Time{0};
     const auto elapsed = [&] { return Debug > 0 ? Time::to_seconds(Time::now() - t0) : 0; };
 
@@ -1454,7 +1535,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Objec
 
     fm_debug3_assert(own_size < chunk_size<Vector2ui>);
 
-    const auto params = pool.params();
+    const auto params = wp.pool.params();
     fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
     fm_assert(params.min_pass == pass_mode::pass);
 
@@ -1466,7 +1547,8 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Objec
     max_dist = cache.allocate(from, to, max_dist, params.div_size());
     nodes = as_nodes(cache.commit_nodes(initial_capacity * sizeof(visited)));
 
-    const auto start = endpoint{w, from, own_size}, goal = endpoint{w, to, own_size};
+    const auto start = endpoint{wp.w, wp.writable_world, from, own_size},
+               goal = endpoint{wp.w, wp.writable_world, to, own_size};
     if (!start.is_passable(p) || !goal.is_passable(p))
         return {};
 
@@ -1478,7 +1560,7 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Objec
         if (!to_in_cache)
             return {};
 
-    auto bm = make_bitmaps(w, pool, p, objects);
+    auto bm = make_bitmaps(wp, p);
     // Seeds lie up to seed_radius px from `from` per axis, so their f range is at most twice its octile distance.
     // A move raises f by at most 2*diag.
     const auto seed_radius = 2*step - 1;
@@ -1553,7 +1635,14 @@ path_search_result astar::Dijkstra(world& w, Grid::Pass::Pool& pool, Grid::Objec
     template path_search_result astar::Dijkstra<Debug, FindClosest>(world&, Grid::Pass::Pool&, point, point, \
                                                                     u32, Vector2ui, const pred&);          \
     template path_search_result astar::Dijkstra<Debug, FindClosest>(world&, Grid::Object::Pool&, point,     \
-                                                                    point, u32, Vector2ui, const pred&)
+                                                                    point, u32, Vector2ui, const pred&);   \
+    template path_search_result astar::Dijkstra<Debug, FindClosest>(const world&, const Grid::Pass::Pool&,  \
+                                                                    point, point, u32, Vector2ui,          \
+                                                                    const pred&, Array<grid_order>&);      \
+    template path_search_result astar::Dijkstra<Debug, FindClosest>(const world&,                           \
+                                                                    const Grid::Object::Pool&, point,      \
+                                                                    point, u32, Vector2ui, const pred&,    \
+                                                                    Array<grid_order>&)
 FM_DIJKSTRA(0, true);
 FM_DIJKSTRA(1, true);
 FM_DIJKSTRA(2, true);
@@ -1572,18 +1661,36 @@ auto astar::string_pull(world& w, path_search_result& result, Vector2ui own_size
 auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& result,
                         Vector2ui own_size, const pred& p) -> string_pull_result
 {
-    return string_pull(w, pool, nullptr, result, own_size, p);
+    const auto wp = world_and_pools{ w, &w, pool, &pool, nullptr, nullptr, nullptr };
+    return string_pull(wp, result, own_size, p);
 }
 
 auto astar::string_pull(world& w, Grid::Object::Pool& objects, path_search_result& result,
                         Vector2ui own_size, const pred& p) -> string_pull_result
 {
-    return string_pull(w, objects.pass_pool(), &objects, result, own_size, p);
+    auto& pool = objects.pass_pool();
+    const auto wp = world_and_pools{ w, &w, pool, &pool, &objects, &objects, nullptr };
+    return string_pull(wp, result, own_size, p);
 }
 
-auto astar::string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* objects,
-                        path_search_result& result, Vector2ui own_size, const pred& p) -> string_pull_result
+auto astar::string_pull(const world& w, const Grid::Pass::Pool& pool, path_search_result& result,
+                        Vector2ui own_size, const pred& p, Array<grid_order>& orders) -> string_pull_result
 {
+    const auto wp = world_and_pools{ w, nullptr, pool, nullptr, nullptr, nullptr, &orders };
+    return string_pull(wp, result, own_size, p);
+}
+
+auto astar::string_pull(const world& w, const Grid::Object::Pool& objects, path_search_result& result,
+                        Vector2ui own_size, const pred& p, Array<grid_order>& orders) -> string_pull_result
+{
+    const auto wp = world_and_pools{ w, nullptr, objects.pass_pool(), nullptr, &objects, nullptr, &orders };
+    return string_pull(wp, result, own_size, p);
+}
+
+auto astar::string_pull(const world_and_pools& wp, path_search_result& result, Vector2ui own_size,
+                        const pred& p) -> string_pull_result
+{
+    wp.assert_writable_pointers_match();
     u32 corners_added = 0, los_checks = 0;
     auto& sp = result.smoothings();
     arrayClear(sp);
@@ -1592,9 +1699,10 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* ob
         return {};
 
     const auto own_lo = Vector2(own_size/2u), own_hi = Vector2(own_size) - own_lo;
-    fm_assert(pool.params().bbox_size >= Math::max(own_size.x(), own_size.y()));
-    fm_assert_equal(result.div_size(), pool.params().div_size());
-    const auto cell = (int)pool.params().div_size();
+    const auto params = wp.pool.params();
+    fm_assert(params.bbox_size >= Math::max(own_size.x(), own_size.y()));
+    fm_assert_equal(result.div_size(), params.div_size());
+    const auto cell = (int)params.div_size();
 
     auto& P = temp_nodes;
     arrayClear(P);
@@ -1635,10 +1743,16 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, Grid::Object::Pool* ob
             }
             return true;
         };
-        if (objects)
-            find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, *objects, entry_blocked, f);
+        if (wp.writable_objects)
+            find_swept_collider(*wp.writable_world, ch, line, 0, line.steps(), own_size, p, *wp.writable_objects,
+                                entry_blocked, f);
+        else if (wp.writable_world)
+            find_swept_collider(*wp.writable_world, ch, line, 0, line.steps(), own_size, p, wp.writable_pool, f);
+        else if (wp.objects)
+            find_swept_collider(wp.w, ch, line, 0, line.steps(), own_size, p, *wp.objects, *wp.orders,
+                                entry_blocked, f);
         else
-            find_swept_collider(w, ch, line, 0, line.steps(), own_size, p, &pool, f);
+            find_swept_collider(wp.w, ch, line, 0, line.steps(), own_size, p, &wp.pool, *wp.orders, f);
         return res;
     };
 
