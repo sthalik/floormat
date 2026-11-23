@@ -1,5 +1,6 @@
 #pragma once
 #include "compat/move.hpp"
+#include "compat/spinlock.hpp"
 
 namespace floormat::detail {
 
@@ -30,6 +31,7 @@ private:
     static void poison(node_u* n) noexcept;
     static void unpoison(node_u* n) noexcept;
 
+    mutable Spinlock pool_lock;
     node_u* free_list = nullptr;
     usize live_count = 0;
 };

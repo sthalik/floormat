@@ -26,10 +26,15 @@ template<typename T> void rtree_pool<T>::unpoison([[maybe_unused]] node_u* n) no
 #endif
 }
 
-template<typename T> usize rtree_pool<T>::alive_count() const { return live_count; }
+template<typename T> usize rtree_pool<T>::alive_count() const
+{
+    Locker<Spinlock> guard{pool_lock};
+    return live_count;
+}
 
 template<typename T> rtree_pool<T>::~rtree_pool() noexcept
 {
+    Locker<Spinlock> guard{pool_lock};
     fm_assert_equal(0zu, live_count);
 #ifdef RTREE_POOL_DEBUG
     auto last = dtor_counter;
@@ -54,58 +59,50 @@ template<typename... Xs>
 T* rtree_pool<T>::construct(Xs&&... args)
 noexcept(noexcept(T{std::declval<Xs>()...}))
 {
-    T* ret;
-
-    if (!free_list)
+    node_u* n;
     {
-        constexpr u32 alloc_batch = 1024;
-
-        for (auto i = 0u; i < alloc_batch-1; i++)
+        Locker<Spinlock> guard{pool_lock};
+        if (!free_list) [[unlikely]]
         {
-            auto* n = new node_u;
-            n->next = free_list;
-            free_list = n;
-            poison(n);
-        }
+            constexpr u32 alloc_batch = 1024;
 
-#ifdef RTREE_POOL_DEBUG
-        Debug{} << "rtree-pool: fresh"_s << ++fresh_counter; std::fflush(stdout);
-#endif
-        node_u* n;
-        n =  new node_u;
-        if constexpr(noexcept(T{std::declval<Xs>()...}))
-            ret = new (&n->data) T{forward<Xs>(args)...};
-        else
-            try {
-                ret = new (&n->data) T{forward<Xs>(args)...};
-            } catch (...) {
-                delete n;
-                throw;
-            }
-    }
-    else [[likely]]
-    {
-#ifdef RTREE_POOL_DEBUG
-        Debug{} << "rtree-pool: reused"_s << ++reuse_counter; std::fflush(stdout);
-#endif
-        auto* n = free_list;
-        unpoison(n);
-        free_list = n->next;
-        if constexpr(noexcept(T{std::declval<Xs>()...}))
-            ret = new (&n->data) T{forward<Xs>(args)...};
-        else
-            try {
-                ret = new (&n->data) T{forward<Xs>(args)...};
-            } catch (...) {
+            for (auto i = 0u; i < alloc_batch; i++)
+            {
+                n = new node_u;
                 n->next = free_list;
                 free_list = n;
                 poison(n);
-                throw;
             }
+
+#ifdef RTREE_POOL_DEBUG
+            Debug{} << "rtree-pool: fresh"_s << ++fresh_counter; std::fflush(stdout);
+#endif
+        }
+#ifdef RTREE_POOL_DEBUG
+        else
+        {
+            Debug{} << "rtree-pool: reused"_s << ++reuse_counter; std::fflush(stdout);
+        }
+#endif
+        n = free_list;
+        unpoison(n);
+        free_list = n->next;
+        live_count++;
     }
 
-    live_count++;
-    return ret;
+    if constexpr(noexcept(T{std::declval<Xs>()...}))
+        return new (&n->data) T{forward<Xs>(args)...};
+    else
+        try {
+            return new (&n->data) T{forward<Xs>(args)...};
+        } catch (...) {
+            Locker<Spinlock> guard{pool_lock};
+            live_count--;
+            n->next = free_list;
+            free_list = n;
+            poison(n);
+            throw;
+        }
 }
 
 template<typename T>
@@ -113,7 +110,6 @@ void rtree_pool<T>::free(T* ptr)
 noexcept(std::is_nothrow_destructible_v<T>)
 {
     fm_assert(ptr);
-    live_count--;
     auto* n = std::launder(reinterpret_cast<node_u*>(ptr));
 
     if constexpr(std::is_nothrow_destructible_v<T>)
@@ -122,9 +118,15 @@ noexcept(std::is_nothrow_destructible_v<T>)
         try {
             ptr->~T();
         } catch (...) {
+            {
+                Locker<Spinlock> guard{pool_lock};
+                live_count--;
+            }
             delete n;
             throw;
         }
+    Locker<Spinlock> guard{pool_lock};
+    live_count--;
     n->next = free_list;
     free_list = n;
     poison(n);
