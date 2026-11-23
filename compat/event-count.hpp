@@ -57,6 +57,9 @@ public:
         fm_debug3_assert(old_waiter_count != 0);
     }
 
+    // Returns the number of threads between prepare_wait() and the end of commit_wait() or cancel_wait().
+    u32 num_waiters() const noexcept { return atomic_load(&_waiters, memory_order::relaxed); }
+
     // Every waiter must wait for the same condition. Otherwise the one woken may find its own condition
     // false and sleep again, while the waiter whose condition became true stays asleep.
     void notify_one() noexcept { notify(false); }

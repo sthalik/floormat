@@ -1,10 +1,22 @@
 #pragma once
 #include "defs.hpp"
-#include "inplace-function-fwd.hpp"
+#include "inplace-function.hpp"
 #include "integer-types.hpp"
 #include <type_traits>
 
 namespace floormat {
+
+struct thread_pool_options
+{
+    // Counts the constructing thread. A caller that doesn't run jobs needs num_threads >= 2.
+    u32 num_threads;
+    bool is_caller_running_jobs = true;
+    // Called once on each worker thread, with its index, before the worker looks for its first job. Never called
+    // on the constructing thread. Several threads may be inside it at once.
+    inplace_function<void(u32 worker_index) noexcept, 48> start_handler = {};
+    // How long an idle worker keeps looking for jobs before it sleeps. Zero means it sleeps at once.
+    u32 idle_spin_usec = 0;
+};
 
 class ThreadPool final
 {
@@ -16,7 +28,7 @@ class ThreadPool final
                            void (*run)(void* body, u32 begin, u32 end, u32 worker_index) noexcept, void* body) noexcept;
 
 public:
-    // num_threads counts the constructing thread. A caller that doesn't run jobs needs num_threads >= 2.
+    explicit ThreadPool(thread_pool_options options) noexcept;
     explicit ThreadPool(u32 num_threads, bool is_caller_running_jobs = true) noexcept;
     // Returns after every job submitted before it has run.
     ~ThreadPool() noexcept;
@@ -27,6 +39,8 @@ public:
     u32 default_grain_size(u32 count) const noexcept;
     // Any thread may call it.
     bool is_running() const noexcept;
+    // Returns how many workers are asleep, about to sleep or just woken. For tests and benchmarks.
+    u32 num_waiting_workers() const noexcept;
 
     // Calls body(begin, end, worker_index) once per grain_size range of [0, count). worker_index is 0 on the
     // calling thread. Only the constructing thread may call it, and never from inside a job.

@@ -36,6 +36,7 @@ foreach(target ${self}-atomic ${self}-atomic-delays)
         ../compat/slab-allocator.cpp ../compat/slab-arena.cpp ../compat/guard-page-memory-resource.cpp
         ../compat/virtual-memory.cpp ../compat/spinlock.cpp ../compat/superpage.cpp ../compat/strerror.cpp
         ../compat/format.cpp ../random/random.cpp
+        ../compat/timer.cpp
     )
     target_include_directories(${target} SYSTEM PRIVATE
         $<TARGET_PROPERTY:Corrade::Utility,INTERFACE_INCLUDE_DIRECTORIES>

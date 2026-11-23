@@ -5,6 +5,8 @@
 #include "chase-lev-deque.inl"
 #include "event-count.hpp"
 #include "inplace-function.hpp"
+#include "nanosecond.inl"
+#include "timer.hpp"
 #include "stl/thread.hpp"
 #include <mutex>
 #include <vector>
@@ -32,6 +34,8 @@ struct ThreadPool::state
     std::vector<job> parallel_for_jobs;
     std::vector<std::thread> threads;
     std::thread::id constructing_thread_id;
+    inplace_function<void(u32 worker_index) noexcept, 48> start_handler;
+    Ns idle_spin_duration;
     u32 num_threads = 0;
     bool is_caller_running_jobs = false;
 };
@@ -40,8 +44,10 @@ struct ThreadPool::state
 void ThreadPool::run_worker(state& s, u32 worker_index) noexcept
 {
     set_fp_mask();
-    for (;;)
-    {
+    if (s.start_handler)
+        s.start_handler(worker_index);
+
+    auto try_run_job = [&s, worker_index] {
         if (state::job* j = s.deque.steal())
         {
             j->run(j->body, j->begin, j->end, worker_index);
@@ -49,9 +55,9 @@ void ThreadPool::run_worker(state& s, u32 worker_index) noexcept
             fm_assert(old != 0);
             if (old == 1)
                 atomic_notify_all(&s.num_unfinished_jobs);
-            continue;
+            return true;
         }
-        if (atomic_load(&s.num_shared_queue_jobs, memory_order::relaxed) != 0)
+        else if (atomic_load(&s.num_shared_queue_jobs, memory_order::relaxed) != 0)
         {
             inplace_function<void(u32 worker_index) noexcept, 48> submitted_job;
             s.shared_queue_mutex.lock();
@@ -70,9 +76,31 @@ void ThreadPool::run_worker(state& s, u32 worker_index) noexcept
             if (submitted_job)
             {
                 submitted_job(worker_index);
-                continue;
+                return true;
             }
+            else
+                return false;
         }
+        else
+            return false;
+    };
+    auto try_run_job_while_spinning = [&s, &try_run_job] {
+        const Time spin_start = Time::now();
+        while (Time::now() - spin_start < s.idle_spin_duration)
+        {
+            cpu_relax();
+            if (try_run_job())
+                return true;
+        }
+        return false;
+    };
+
+    for (;;)
+    {
+        if (try_run_job())
+            continue;
+        if (s.idle_spin_duration != Ns{} && try_run_job_while_spinning())
+            continue;
         // The stop flag is loaded after prepare_wait(), or its wake-up is lost, and before the job check, or a job
         // submitted just before the stop is dropped.
         u32 key = s.idle_workers.prepare_wait();
@@ -89,18 +117,25 @@ void ThreadPool::run_worker(state& s, u32 worker_index) noexcept
     }
 }
 
-ThreadPool::ThreadPool(u32 num_threads, bool is_caller_running_jobs) noexcept:
+ThreadPool::ThreadPool(thread_pool_options options) noexcept:
     _state{new state}
 {
-    fm_assert(num_threads >= 1);
+    fm_assert(options.num_threads >= 1);
     auto& s = *_state;
     s.constructing_thread_id = std::this_thread::get_id();
-    s.num_threads = num_threads;
-    s.is_caller_running_jobs = is_caller_running_jobs;
+    s.start_handler = move(options.start_handler);
+    s.idle_spin_duration = options.idle_spin_usec * Microsecond;
+    s.num_threads = options.num_threads;
+    s.is_caller_running_jobs = options.is_caller_running_jobs;
     s.shared_queue.reserve(16);
-    s.threads.reserve(num_threads - 1);
-    for (u32 i = 1; i < num_threads; ++i)
+    s.threads.reserve(options.num_threads - 1);
+    for (u32 i = 1; i < options.num_threads; ++i)
         s.threads.emplace_back([&s, i] { run_worker(s, i); });
+}
+
+ThreadPool::ThreadPool(u32 num_threads, bool is_caller_running_jobs) noexcept:
+    ThreadPool{thread_pool_options{.num_threads = num_threads, .is_caller_running_jobs = is_caller_running_jobs}}
+{
 }
 
 ThreadPool::~ThreadPool() noexcept
@@ -128,6 +163,11 @@ u32 ThreadPool::default_grain_size(u32 count) const noexcept
 bool ThreadPool::is_running() const noexcept
 {
     return atomic_load(&_state->num_unfinished_jobs, memory_order::relaxed) != 0;
+}
+
+u32 ThreadPool::num_waiting_workers() const noexcept
+{
+    return _state->idle_workers.num_waiters();
 }
 
 void ThreadPool::parallel_for_impl(u32 count, u32 grain_size,
