@@ -1662,7 +1662,7 @@ auto astar::string_pull(world& w, Grid::Pass::Pool& pool, path_search_result& re
                         Vector2ui own_size, const pred& p) -> string_pull_result
 {
     const auto wp = world_and_pools{ w, &w, pool, &pool, nullptr, nullptr, nullptr };
-    return string_pull(wp, result, own_size, p);
+    return string_pull<world>(wp, result, own_size, p);
 }
 
 auto astar::string_pull(world& w, Grid::Object::Pool& objects, path_search_result& result,
@@ -1670,23 +1670,24 @@ auto astar::string_pull(world& w, Grid::Object::Pool& objects, path_search_resul
 {
     auto& pool = objects.pass_pool();
     const auto wp = world_and_pools{ w, &w, pool, &pool, &objects, &objects, nullptr };
-    return string_pull(wp, result, own_size, p);
+    return string_pull<world>(wp, result, own_size, p);
 }
 
 auto astar::string_pull(const world& w, const Grid::Pass::Pool& pool, path_search_result& result,
                         Vector2ui own_size, const pred& p, Array<grid_order>& orders) -> string_pull_result
 {
     const auto wp = world_and_pools{ w, nullptr, pool, nullptr, nullptr, nullptr, &orders };
-    return string_pull(wp, result, own_size, p);
+    return string_pull<const world>(wp, result, own_size, p);
 }
 
 auto astar::string_pull(const world& w, const Grid::Object::Pool& objects, path_search_result& result,
                         Vector2ui own_size, const pred& p, Array<grid_order>& orders) -> string_pull_result
 {
     const auto wp = world_and_pools{ w, nullptr, objects.pass_pool(), nullptr, &objects, nullptr, &orders };
-    return string_pull(wp, result, own_size, p);
+    return string_pull<const world>(wp, result, own_size, p);
 }
 
+template<typename World>
 auto astar::string_pull(const world_and_pools& wp, path_search_result& result, Vector2ui own_size,
                         const pred& p) -> string_pull_result
 {
@@ -1719,7 +1720,7 @@ auto astar::string_pull(const world_and_pools& wp, path_search_result& result, V
 
     // The best corner of the rects blocking from -> to, grown by the bbox and rounded outward.
     // With limit, only corners at a smaller angle.
-    const auto los = [&](point from, point to, Vector2i ref, const corner_pick* limit) {
+    const auto los = [&](point from, point to, Vector2i ref, const corner_pick* limit) -> los_result {
         const auto ch = from.chunk3();
         const auto origin = point{ch, {}, {}};
         const auto o = from - origin;
@@ -1743,11 +1744,20 @@ auto astar::string_pull(const world_and_pools& wp, path_search_result& result, V
             }
             return true;
         };
-        if (wp.writable_objects)
-            find_swept_collider(*wp.writable_world, ch, line, 0, line.steps(), own_size, p, *wp.writable_objects,
-                                entry_blocked, f);
-        else if (wp.writable_world)
-            find_swept_collider(*wp.writable_world, ch, line, 0, line.steps(), own_size, p, wp.writable_pool, f);
+        if constexpr (!std::is_const_v<World>)
+        {
+            if (wp.writable_objects)
+                find_swept_collider(*wp.writable_world, ch, line, 0, line.steps(), own_size, p, *wp.writable_objects,
+                                    entry_blocked, f);
+            else
+            {
+                // Assuming writable_pool is non-null lets LTO drop find_swept_collider()'s null-pool path,
+                // whose call keeps traverse_line_cells() without a pool out of line.
+                auto* const writable_pool = wp.writable_pool;
+                [[assume(writable_pool)]];
+                find_swept_collider(*wp.writable_world, ch, line, 0, line.steps(), own_size, p, writable_pool, f);
+            }
+        }
         else if (wp.objects)
             find_swept_collider(wp.w, ch, line, 0, line.steps(), own_size, p, *wp.objects, *wp.orders,
                                 entry_blocked, f);

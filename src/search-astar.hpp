@@ -99,6 +99,7 @@ private:
     template<int Debug, bool FindClosestOnFailure>
     path_search_result Dijkstra(const world_and_pools& wp, point from, point to,
                                 u32 max_dist, Vector2ui own_size, const pred& p);
+    template<typename World>
     string_pull_result string_pull(const world_and_pools& wp, path_search_result& result,
                                    Vector2ui own_size, const pred& p);
 

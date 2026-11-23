@@ -8,16 +8,15 @@
 
 namespace floormat { struct grid_order; }
 namespace floormat::Raycast { class bresenham_line; }
-namespace floormat::Grid::Object { class Pool; class ConstGrid; template<typename T> class cell_object_view; }
+namespace floormat::Grid::Object { class Pool; class Grid; class ConstGrid; template<typename T> class cell_object_view; }
 
 namespace floormat::Raycast::detail {
 
+template<typename World>
 struct line_cell
 {
     // The 3x3 chunks around the cell's, row by row from (-1, -1). Any may be null.
-    std::array<const chunk*, 9> chunks;
-    // The same chunks as writable pointers, or nulls when the traversal has no writable world.
-    std::array<chunk*, 9> writable_chunks;
+    std::array<std::conditional_t<std::is_const_v<World>, const chunk, chunk>*, 9> chunks;
     // Offset of the cell's chunk from the line's chunk, in chunks.
     Vector2i chunk_offset;
     // The cell holds no pixel of the line other than those of steps first_step to last_step and
@@ -25,20 +24,24 @@ struct line_cell
     u32 first_step, last_step;
 };
 
+template<typename World>
+using object_grid_type = std::conditional_t<std::is_const_v<World>, Grid::Object::ConstGrid, Grid::Object::Grid>;
+
 // Called instead of visit for each corner of a skipped square where p blocks an object listed there.
-template<typename T>
-using object_cell_visitor = function_view<bool(const line_cell&, const Grid::Object::ConstGrid&,
+template<typename World, typename T>
+using object_cell_visitor = function_view<bool(const line_cell<World>&, const object_grid_type<World>&,
                                                Grid::Object::cell_object_view<T>, ArrayView<const bool>) const>;
 
 // Visits the squares between 4 neighbouring nodes, or whole chunks when pool is nullptr, that the line's pixels
 // from first_step to last_step cross. Skips a square whose corners are set and where p blocks no object.
-template<typename Pool, typename WritablePool>
-void traverse_line_cells(const world& w, world* writable_world, chunk_coords_ ch, const bresenham_line& line,
+template<typename World, typename Pool>
+void traverse_line_cells(World& w, chunk_coords_ ch, const bresenham_line& line,
                          u32 first_step, u32 last_step, bool both_orthogonal,
-                         Pool pool, WritablePool writable_pool, const Search::pred& p,
+                         Pool pool, const Search::pred& p,
                          std::array<Array<bool>, 4>* entry_blocked, Array<grid_order>* orders,
-                         function_view<bool(const line_cell&) const> visit,
-                         object_cell_visitor<u16> visit_objects_u16, object_cell_visitor<u32> visit_objects_u32);
+                         function_view<bool(const line_cell<World>&) const> visit,
+                         object_cell_visitor<World, u16> visit_objects_u16,
+                         object_cell_visitor<World, u32> visit_objects_u32);
 
 struct aabb_result
 {
@@ -68,13 +71,15 @@ constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
 // any_hit returns the first collider found, which may not be the nearest.
 enum class raycast_mode : u8 { closest_hit, any_hit, };
 
-// Each writable pointer is null or points at its const counterpart. Grids are built only through them.
-template<bool EnableDiagnostics, bool HasObjectPool, raycast_mode Mode = raycast_mode::closest_hit>
+// A const World makes it read only built grids and append an order to orders for each chunk without one.
+template<bool EnableDiagnostics, bool HasObjectPool, raycast_mode Mode = raycast_mode::closest_hit, typename World>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
-                               const world& w, world* writable_world, point from, point to, object_id self,
-                               const Grid::Pass::Pool& pass_pool, Grid::Pass::Pool* writable_pass_pool,
-                               std::conditional_t<HasObjectPool, const Grid::Object::Pool&, std::nullptr_t> objects,
-                               std::conditional_t<HasObjectPool, Grid::Object::Pool*, std::nullptr_t> writable_objects,
+                               World& w, point from, point to, object_id self,
+                               std::conditional_t<std::is_const_v<World>, const Grid::Pass::Pool&,
+                                                  Grid::Pass::Pool&> pass_pool,
+                               std::conditional_t<!HasObjectPool, std::nullptr_t,
+                                                  std::conditional_t<std::is_const_v<World>, const Grid::Object::Pool&,
+                                                                     Grid::Object::Pool&>> objects,
                                const Search::pred& pred, Array<grid_order>* orders, float radius);
 
 } // namespace floormat::Raycast::detail

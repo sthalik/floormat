@@ -20,10 +20,9 @@ namespace {
 
 // on_blocker(step, collider, rect) returns the new bound. Rects blocking only at or past it are skipped, and
 // traverse_line_cells() stops once a cell's steps reach it.
-template<typename Pool, typename WritablePool, typename F>
-void sweep_aabb(const world& w, world* writable_world, chunk_coords_ ch, const Raycast::bresenham_line& line,
-                u32 first_step, u32 last_step, Vector2ui bbox_size,
-                const Search::pred& p, Pool pool, WritablePool writable_pool,
+template<typename World, typename Pool, typename F>
+void sweep_aabb(World& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
+                u32 first_step, u32 last_step, Vector2ui bbox_size, const Search::pred& p, Pool pool,
                 std::array<Array<bool>, 4>* entry_blocked, Array<grid_order>* orders, F&& on_blocker)
 {
     if constexpr (!std::is_null_pointer_v<Pool>)
@@ -53,15 +52,14 @@ void sweep_aabb(const world& w, world* writable_world, chunk_coords_ ch, const R
         return Math::min(pixel, Math::min(off0, off1) == INT64_MAX ? INT64_MAX : Math::min(off0, off1) + 1);
     };
 
-    const auto visit = [&](const Raycast::detail::line_cell& cell) {
+    const auto visit = [&](const Raycast::detail::line_cell<World>& cell) {
         const auto k0 = cell.first_step, k1 = cell.last_step;
         const auto a = line.point_at(k0 > first_step ? k0 - 1 : k0), b = line.point_at(k1 < last_step ? k1 + 1 : k1);
         const auto qmin = Math::min(a, b) - lo, qmax = Math::max(a, b) + hi;
         for (int j = 0; j < 3; j++)
             for (int i = 0; i < 3; i++)
             {
-                const auto k = (usize)(j*3 + i);
-                const auto* c = cell.chunks[k];
+                auto* c = cell.chunks[(usize)(j*3 + i)];
                 if (!c)
                     continue;
                 const auto shift = (cell.chunk_offset + Vector2i{i - 1, j - 1}) * chunk_size<i32>;
@@ -69,8 +67,7 @@ void sweep_aabb(const world& w, world* writable_world, chunk_coords_ ch, const R
                 if (!Raycast::detail::within_chunk_bounds(imin, imax))
                     continue;
                 const auto fmin = Vector2(imin), fmax = Vector2(imax);
-                const auto* tree = writable_world ? cell.writable_chunks[k]->rtree() : c->rtree();
-                tree->Search(fmin.data(), fmax.data(), [&](u64 data, const auto& r) {
+                c->rtree()->Search(fmin.data(), fmax.data(), [&](u64 data, const auto& r) {
                     const auto x = std::bit_cast<collision_data>(data);
                     if (x.pass == (u64)pass_mode::pass)
                         return true;
@@ -91,7 +88,8 @@ void sweep_aabb(const world& w, world* writable_world, chunk_coords_ ch, const R
         return bound > (i64)k1 + 1;
     };
 
-    const auto visit_objects = [&]<typename T>(const Raycast::detail::line_cell& cell, const Grid::Object::ConstGrid& g,
+    const auto visit_objects = [&]<typename T>(const Raycast::detail::line_cell<World>& cell,
+                                               const Raycast::detail::object_grid_type<World>& g,
                                                Grid::Object::cell_object_view<T> objects, ArrayView<const bool> blocked) {
         const auto k0 = cell.first_step, k1 = cell.last_step;
         const auto chunks = g.entry_chunks();
@@ -102,7 +100,7 @@ void sweep_aabb(const world& w, world* writable_world, chunk_coords_ ch, const R
                 continue;
             const auto off = chunks[e] ? Vector2i(world::neighbor_offsets[chunks[e] - 1]) : Vector2i{};
             const auto shift = (cell.chunk_offset + off) * chunk_size<i32>;
-            const auto* o = w.find_object(objects[i].id);
+            const auto* o = std::as_const(w).find_object(objects[i].id);
             fm_debug3_assert(o);
             const auto box = scenery_tile(o->coord.local(), o->offset, o->bbox_offset, o->bbox_size);
             const auto r0 = box.first() + shift, r1 = box.second() + shift;
@@ -114,35 +112,34 @@ void sweep_aabb(const world& w, world* writable_world, chunk_coords_ ch, const R
         return bound > (i64)k1 + 1;
     };
 
-    Raycast::detail::traverse_line_cells(w, writable_world, ch, line, first_step, last_step, true, pool, writable_pool,
-                                         p, entry_blocked, orders, visit, visit_objects, visit_objects);
+    Raycast::detail::traverse_line_cells<World>(w, ch, line, first_step, last_step, true, pool, p, entry_blocked,
+                                                orders, visit, visit_objects, visit_objects);
 }
 
-template<typename Pool, typename WritablePool>
-swept_collider_result find_first_swept_collider(const world& w, world* writable_world, chunk_coords_ ch,
-                                                const Raycast::bresenham_line& line,
+template<typename World, typename Pool>
+swept_collider_result find_first_swept_collider(World& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
                                                 u32 first_step, u32 last_step, Vector2ui bbox_size,
-                                                const Search::pred& p, Pool pool, WritablePool writable_pool,
+                                                const Search::pred& p, Pool pool,
                                                 std::array<Array<bool>, 4>* entry_blocked, Array<grid_order>* orders)
 {
     swept_collider_result res = { .step = last_step + 1, .collider = {}, .rect = {}, .has_collider = false };
-    sweep_aabb(w, writable_world, ch, line, first_step, last_step, bbox_size, p, pool, writable_pool, entry_blocked,
-               orders, [&](i64 step, collision_data x, Range2D rect) {
+    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, entry_blocked, orders,
+               [&](i64 step, collision_data x, Range2D rect) {
         res = { .step = (u32)step, .collider = x, .rect = rect, .has_collider = true };
         return step;
     });
     return res;
 }
 
-template<typename Pool, typename WritablePool>
-void visit_swept_colliders(const world& w, world* writable_world, chunk_coords_ ch, const Raycast::bresenham_line& line,
+template<typename World, typename Pool>
+void visit_swept_colliders(World& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
                            u32 first_step, u32 last_step, Vector2ui bbox_size,
-                           const Search::pred& p, Pool pool, WritablePool writable_pool,
+                           const Search::pred& p, Pool pool,
                            std::array<Array<bool>, 4>* entry_blocked, Array<grid_order>* orders,
                            function_view<bool(const swept_collider_result&) const> f)
 {
-    sweep_aabb(w, writable_world, ch, line, first_step, last_step, bbox_size, p, pool, writable_pool, entry_blocked,
-               orders, [&](i64 step, collision_data x, Range2D rect) {
+    sweep_aabb(w, ch, line, first_step, last_step, bbox_size, p, pool, entry_blocked, orders,
+               [&](i64 step, collision_data x, Range2D rect) {
         const bool more = f(swept_collider_result{ .step = (u32)step, .collider = x, .rect = rect, .has_collider = true });
         return more ? (i64)last_step + 1 : 0;
     });
@@ -155,11 +152,9 @@ swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const Rayc
                                           const Search::pred& p, Grid::Pass::Pool* pool)
 {
     if (pool)
-        return find_first_swept_collider(w, &w, ch, line, first_step, last_step, bbox_size, p,
-                                         (const Grid::Pass::Pool*)pool, pool, nullptr, nullptr);
+        return find_first_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, pool, nullptr, nullptr);
     else
-        return find_first_swept_collider(w, &w, ch, line, first_step, last_step, bbox_size, p,
-                                         nullptr, nullptr, nullptr, nullptr);
+        return find_first_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, nullptr, nullptr, nullptr);
 }
 
 swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
@@ -167,8 +162,8 @@ swept_collider_result find_swept_collider(world& w, chunk_coords_ ch, const Rayc
                                           const Search::pred& p, Grid::Object::Pool& objects,
                                           std::array<Array<bool>, 4>& entry_blocked)
 {
-    return find_first_swept_collider(w, &w, ch, line, first_step, last_step, bbox_size, p,
-                                     (const Grid::Object::Pool*)&objects, &objects, &entry_blocked, nullptr);
+    return find_first_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, &objects, &entry_blocked,
+                                     nullptr);
 }
 
 void find_swept_collider(world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
@@ -177,11 +172,9 @@ void find_swept_collider(world& w, chunk_coords_ ch, const Raycast::bresenham_li
                          function_view<bool(const swept_collider_result&) const> f)
 {
     if (pool)
-        visit_swept_colliders(w, &w, ch, line, first_step, last_step, bbox_size, p,
-                              (const Grid::Pass::Pool*)pool, pool, nullptr, nullptr, f);
+        visit_swept_colliders(w, ch, line, first_step, last_step, bbox_size, p, pool, nullptr, nullptr, f);
     else
-        visit_swept_colliders(w, &w, ch, line, first_step, last_step, bbox_size, p,
-                              nullptr, nullptr, nullptr, nullptr, f);
+        visit_swept_colliders(w, ch, line, first_step, last_step, bbox_size, p, nullptr, nullptr, nullptr, f);
 }
 
 void find_swept_collider(world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
@@ -189,8 +182,7 @@ void find_swept_collider(world& w, chunk_coords_ ch, const Raycast::bresenham_li
                          const Search::pred& p, Grid::Object::Pool& objects, std::array<Array<bool>, 4>& entry_blocked,
                          function_view<bool(const swept_collider_result&) const> f)
 {
-    visit_swept_colliders(w, &w, ch, line, first_step, last_step, bbox_size, p,
-                          (const Grid::Object::Pool*)&objects, &objects, &entry_blocked, nullptr, f);
+    visit_swept_colliders(w, ch, line, first_step, last_step, bbox_size, p, &objects, &entry_blocked, nullptr, f);
 }
 
 swept_collider_result find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
@@ -199,11 +191,9 @@ swept_collider_result find_swept_collider(const world& w, chunk_coords_ ch, cons
                                           const Grid::Pass::Pool* pool)
 {
     if (pool)
-        return find_first_swept_collider(w, nullptr, ch, line, first_step, last_step, bbox_size, p,
-                                         pool, (Grid::Pass::Pool*)nullptr, nullptr, &orders);
+        return find_first_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, pool, nullptr, &orders);
     else
-        return find_first_swept_collider(w, nullptr, ch, line, first_step, last_step, bbox_size, p,
-                                         nullptr, nullptr, nullptr, nullptr);
+        return find_first_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, nullptr, nullptr, nullptr);
 }
 
 swept_collider_result find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
@@ -211,8 +201,8 @@ swept_collider_result find_swept_collider(const world& w, chunk_coords_ ch, cons
                                           const Search::pred& p, const Grid::Object::Pool& objects,
                                           Array<grid_order>& orders, std::array<Array<bool>, 4>& entry_blocked)
 {
-    return find_first_swept_collider(w, nullptr, ch, line, first_step, last_step, bbox_size, p,
-                                     &objects, (Grid::Object::Pool*)nullptr, &entry_blocked, &orders);
+    return find_first_swept_collider(w, ch, line, first_step, last_step, bbox_size, p, &objects, &entry_blocked,
+                                     &orders);
 }
 
 void find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
@@ -221,11 +211,9 @@ void find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresen
                          function_view<bool(const swept_collider_result&) const> f)
 {
     if (pool)
-        visit_swept_colliders(w, nullptr, ch, line, first_step, last_step, bbox_size, p,
-                              pool, (Grid::Pass::Pool*)nullptr, nullptr, &orders, f);
+        visit_swept_colliders(w, ch, line, first_step, last_step, bbox_size, p, pool, nullptr, &orders, f);
     else
-        visit_swept_colliders(w, nullptr, ch, line, first_step, last_step, bbox_size, p,
-                              nullptr, nullptr, nullptr, nullptr, f);
+        visit_swept_colliders(w, ch, line, first_step, last_step, bbox_size, p, nullptr, nullptr, nullptr, f);
 }
 
 void find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
@@ -234,8 +222,7 @@ void find_swept_collider(const world& w, chunk_coords_ ch, const Raycast::bresen
                          std::array<Array<bool>, 4>& entry_blocked,
                          function_view<bool(const swept_collider_result&) const> f)
 {
-    visit_swept_colliders(w, nullptr, ch, line, first_step, last_step, bbox_size, p,
-                          &objects, (Grid::Object::Pool*)nullptr, &entry_blocked, &orders, f);
+    visit_swept_colliders(w, ch, line, first_step, last_step, bbox_size, p, &objects, &entry_blocked, &orders, f);
 }
 
 } // namespace floormat
