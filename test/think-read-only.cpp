@@ -391,9 +391,22 @@ void test_div_size_changed_mid_walk(ThreadPool& pool)
     const auto& reg = s.A.pool_registry();
     fm_assert(!reg.find_cover_pool(params));
     Cover::Script::set_options(*s.npcs[0], {.div_size = params.div_size});
-    run_frame_waiting_for_pool(s.w, s.npcs, frame, pool);
+    fm_assert(reg.find_cover_pool(params));
+    // run_frame() asserts that no think changes reg.pool_count().
     run_frame(s.w, s.npcs, frame, &pool, false, [&](u32) {
-        fm_assert(reg.find_cover_pool(params));
+        for (const auto& o : s.w.grid_orders())
+            switch (o.kind)
+            {
+            case grid_order::grid_kind::pass:
+                fm_assert(reg.find_pass_pool(o.pass_params));
+                break;
+            case grid_order::grid_kind::object:
+                fm_assert(reg.find_object_pool(o.pass_params));
+                break;
+            case grid_order::grid_kind::cover:
+                fm_assert(reg.find_cover_pool(Grid::Cover::Params{o.cover_div_size}));
+                break;
+            }
         fm_assert(!s.w.frame_order_buffer().empty());
     });
     run_frames_until_hidden(s.w, s.npcs, frame, pool);

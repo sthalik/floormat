@@ -433,6 +433,7 @@ void cover_script::set_options(critter& C, const Cover::Script::options& o)
     using hold_phase = Cover::Script::options::hold_phase;
     const auto old = options;
     options = o;
+    tests.create_pools(C, options);
     // hold and search_every_move change no search result. begin() keeps the unreachable spots, as path_to reads
     // no option.
     const auto same_results = o.octants == old.octants && o.max_cover_end_dist == old.max_cover_end_dist &&
