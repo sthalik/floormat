@@ -261,6 +261,30 @@ void test_mark_modified_through_base_ref()
         fm_assert_equal(before[k].objects_gen, after[k].objects_gen);
 }
 
+void test_scenery_proto_through_base_ref()
+{
+    auto w = world();
+    auto table = scenery_proto(loader.scenery("table1"));
+    auto* table_subtype = swl::get_if<generic_scenery_proto>(&table.subtype);
+    fm_assert(table_subtype);
+    table_subtype->interactive = true;
+    const auto genericʹ = w.make_scenery(w.make_id(), {ch, {2, 2}}, scenery_proto(table));
+    const auto doorʹ = w.make_scenery(w.make_id(), {ch, {4, 2}}, scenery_proto(loader.scenery("door1")));
+    auto& door = static_cast<door_scenery&>(*doorʹ);
+    fm_assert(door.activate(door.index()) && door.active);
+
+    const auto& generic = static_cast<const generic_scenery&>(*genericʹ);
+    const auto generic_proto = scenery_proto(generic), door_proto = scenery_proto(door);
+    const auto* generic_subtype = swl::get_if<generic_scenery_proto>(&generic_proto.subtype);
+    const auto* door_subtype = swl::get_if<door_scenery_proto>(&door_proto.subtype);
+    fm_assert(generic_subtype && generic_subtype->interactive);
+    fm_assert(door_subtype && door_subtype->active && door_subtype->interactive);
+
+    const scenery& generic_as_scenery = generic, & door_as_scenery = door;
+    fm_assert(scenery_proto(generic_as_scenery) == generic_proto);
+    fm_assert(scenery_proto(door_as_scenery) == door_proto);
+}
+
 } // namespace
 
 void test_object_type_dispatch()
@@ -269,6 +293,7 @@ void test_object_type_dispatch()
     test_activate_through_base_ref();
     test_script_lifecycle_through_base_ref();
     test_mark_modified_through_base_ref();
+    test_scenery_proto_through_base_ref();
 }
 
 } // namespace floormat::Test

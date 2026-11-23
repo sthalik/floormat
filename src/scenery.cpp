@@ -23,9 +23,17 @@ enum scenery_type scenery::scenery_type() const { return _scenery_type; }
 
 scenery::operator scenery_proto() const
 {
-    scenery_proto ret;
-    static_cast<object_proto&>(ret) = object::operator object_proto();
-    return ret;
+    switch (_scenery_type)
+    {
+    case scenery_type::generic:
+        return static_cast<const generic_scenery&>(*this).operator scenery_proto();
+    case scenery_type::door:
+        return static_cast<const door_scenery&>(*this).operator scenery_proto();
+    case scenery_type::none:
+    case scenery_type::COUNT:
+        break;
+    }
+    fm_abort("invalid scenery type %d", (int)_scenery_type);
 }
 
 scenery::scenery(object_id id, class chunk& c, const scenery_proto& proto, enum scenery_type scenery_type) :
@@ -51,7 +59,8 @@ bool generic_scenery::activate(usize) { return false; }
 
 generic_scenery::operator scenery_proto() const
 {
-    auto p = scenery::operator scenery_proto();
+    scenery_proto p;
+    static_cast<object_proto&>(p) = object::operator object_proto();
     p.subtype = operator generic_scenery_proto();
     return p;
 }
@@ -129,7 +138,8 @@ bool door_scenery::activate(usize)
 
 door_scenery::operator scenery_proto() const
 {
-    auto p = scenery::operator scenery_proto();
+    scenery_proto p;
+    static_cast<object_proto&>(p) = object::operator object_proto();
     p.subtype = operator door_scenery_proto();
     return p;
 }
