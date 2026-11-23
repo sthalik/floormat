@@ -8,6 +8,7 @@
 #include "scenery-proto.hpp"
 #include "light.hpp"
 #include "hole.hpp"
+#include "grid-order.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/borrowed-ptr.inl"
 #include "compat/debug.hpp"
@@ -24,7 +25,10 @@ namespace floormat {
 
 template class basic_bptr<world::unique_id, non_atomic_refcount>;
 
-world::world() : _unique_id{InPlace} {}
+world::world() : _unique_id{InPlace}
+{
+    arrayReserve(_grid_orders, 16);
+}
 
 world::world(world&& w) noexcept :
     _chunk_table{move(w._chunk_table)},
@@ -32,6 +36,7 @@ world::world(world&& w) noexcept :
     _head{w._head},
     _tail{w._tail},
     _thread_pool{w._thread_pool},
+    _grid_registry{w._grid_registry},
     _unique_id{move(w._unique_id)},
     _object_counter{w._object_counter},
     _current_frame{w._current_frame},
@@ -39,6 +44,7 @@ world::world(world&& w) noexcept :
     _pass_gen{w._pass_gen},
     _frame_order_buffer{move(w._frame_order_buffer)},
     _frame_order_list{move(w._frame_order_list)},
+    _grid_orders{move(w._grid_orders)},
     _teardown{w._teardown},
     _script_initialized{w._script_initialized},
     _script_finalized{w._script_finalized},
@@ -48,6 +54,7 @@ world::world(world&& w) noexcept :
     w._head = nullptr;
     w._tail = nullptr;
     w._thread_pool = nullptr;
+    w._grid_registry = nullptr;
     w._object_counter = 0;
     w._script_initialized = false;
     w._script_finalized = false;
@@ -87,9 +94,11 @@ world& world::operator=(world&& w) noexcept
     _head = w._head;
     _tail = w._tail;
     _thread_pool = w._thread_pool;
+    _grid_registry = w._grid_registry;
     w._head = nullptr;
     w._tail = nullptr;
     w._thread_pool = nullptr;
+    w._grid_registry = nullptr;
     for (auto& c : chunks())
         c._world = this;
 
@@ -103,6 +112,7 @@ world& world::operator=(world&& w) noexcept
     _pass_gen = Math::max(_pass_gen, w._pass_gen);
     _frame_order_buffer = move(w._frame_order_buffer);
     _frame_order_list = move(w._frame_order_list);
+    _grid_orders = move(w._grid_orders);
     _check_objects_each_frame = w._check_objects_each_frame;
     return *this;
 }
@@ -462,6 +472,22 @@ void world::set_thread_pool(ThreadPool* pool) noexcept
 
 ThreadPool* world::thread_pool() const noexcept { return _thread_pool; }
 bool world::is_thread_pool_running() const noexcept { return _thread_pool && _thread_pool->is_running(); }
+
+void world::set_grid_registry(Grid::GridRegistry* reg) noexcept
+{
+    fm_assert(!is_thread_pool_running());
+    _grid_registry = reg;
+}
+
+Grid::GridRegistry* world::grid_registry() noexcept { return _grid_registry; }
+const Grid::GridRegistry* world::grid_registry() const noexcept { return _grid_registry; }
+Array<grid_order>& world::grid_orders() { return _grid_orders; }
+
+void world::ensure_passability()
+{
+    for (auto& c : chunks())
+        c.ensure_passability();
+}
 
 u64 world::max_pass_gen(chunk_coords_ ch, u32 radius) const noexcept
 {

@@ -25,6 +25,8 @@ int main_impl::exec()
 main_impl::~main_impl() noexcept
 {
     reset_world();
+    // _grid_registry is destroyed before _world.
+    _world.set_grid_registry(nullptr);
     if (_frame_times_file && _frame_times_file != stdout)
         std::fclose(_frame_times_file);
 }

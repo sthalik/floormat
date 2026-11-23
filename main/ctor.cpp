@@ -24,6 +24,7 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
     }
     else
         (void)setSwapInterval(0);
+    _world.set_grid_registry(&*_grid_registry);
     set_fp_mask();
     arrayReserve(_clickable_scenery, 128);
     if (s.log_frame_times == "-"_s)
@@ -54,6 +55,7 @@ class world& main_impl::reset_world(class world&& w) noexcept
     _world = move(w);
     auto new_grid_registry = safe_ptr<Grid::GridRegistry>{InPlaceInit};
     _astar = safe_ptr<class astar>{InPlaceInit, *new_grid_registry};
+    _world.set_grid_registry(&*new_grid_registry);
     _grid_registry = move(new_grid_registry);
     _world.chunk_table_prepare_frame();
     _first_frame = true;

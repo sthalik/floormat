@@ -69,8 +69,6 @@ bptr<critter> add_critter_at(world& w, Vector2i px, u8 size, pass_mode pass)
     return w.make_object<critter>(w.make_id(), pt.coord(), move(p));
 }
 
-namespace {
-
 void add_scenery(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass)
 {
     scenery_proto p;
@@ -81,6 +79,8 @@ void add_scenery(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bb
     p.pass        = pass;
     (void)w.make_scenery(w.make_id(), pos, move(p));
 }
+
+namespace {
 
 void add_hole(world& w, global_coords pos, Vector2b bbox_offset, Vector2ub bbox_size, pass_mode pass)
 {

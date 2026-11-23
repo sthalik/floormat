@@ -9,6 +9,7 @@
 #include "search.hpp"
 #include "raycast-line.hpp"
 #include "order-list.inl"
+#include "update-world.hpp"
 #include "loader/loader.hpp"
 #include "compat/map.hpp"
 #include "compat/iota.hpp"
@@ -500,6 +501,7 @@ void critter::update(const bptr<object>& ptrʹ, usize& i, const Ns& dt)
     auto& list = w.frame_order_list();
     fm_assert(buffer.empty() && list.size() == 0);
 
+    prepare_world_for_thinking(w);
     buffer.begin_object(0);
     think(dt, buffer);
     buffer.end_object();

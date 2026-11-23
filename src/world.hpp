@@ -19,7 +19,9 @@ struct critter;
 struct critter_proto;
 struct scenery;
 struct scenery_proto;
+struct grid_order;
 class ThreadPool;
+namespace Grid { class GridRegistry; }
 
 class world final
 {
@@ -33,6 +35,7 @@ class world final
     chunk* _head = nullptr;
     chunk* _tail = nullptr;
     ThreadPool* _thread_pool = nullptr;
+    Grid::GridRegistry* _grid_registry = nullptr;
 
     bptr<unique_id> _unique_id;
     object_id _object_counter = object_counter_init;
@@ -41,6 +44,7 @@ class world final
     u64 _pass_gen = 0;
     order_buffer _frame_order_buffer;
     order_list _frame_order_list;
+    Array<grid_order> _grid_orders;
     bool _teardown : 1 = false;
     bool _script_initialized : 1 = false;
     bool _script_finalized : 1 = false;
@@ -127,6 +131,16 @@ public:
     ThreadPool* thread_pool() const noexcept;
     // True while thread_pool() is running a parallel_for(). No thread may write the world then.
     bool is_thread_pool_running() const noexcept;
+
+    // The registry whose pools the world's read-only queries look grids up in, or null.
+    // It must outlive the world or be replaced by null first.
+    void set_grid_registry(Grid::GridRegistry* reg) noexcept;
+    Grid::GridRegistry* grid_registry() noexcept;
+    const Grid::GridRegistry* grid_registry() const noexcept;
+    // The grid orders given since the last run_grid_orders().
+    Array<grid_order>& grid_orders();
+    // Calls chunk::ensure_passability() on every chunk.
+    void ensure_passability();
 
     template<typename T, bool sorted = true, typename... Xs>
     requires requires(chunk& c, Xs&&... xs) {

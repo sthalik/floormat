@@ -16,6 +16,7 @@ struct grid_order
     chunk_coords_ chunk;
     grid_kind kind;
     u8 octant = 0;                  // cover: 0 to 31
+    u32 update_index = 0; // the giver's position in the frame's update list, as in order_buffer::begin_object()
 };
 
 // chunk_coords_'s copy assignment is user-provided, so grid_order isn't trivially copyable.
