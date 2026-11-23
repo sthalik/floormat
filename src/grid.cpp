@@ -97,7 +97,7 @@ u32 GridBase::pack_bit_index_from_coord(intra_coord posʹ, u32 div_count)
 
 std::pair<u32, usize> GridBase::word_and_mask(u32 bit_index)
 {
-    return { bit_index / (sizeof(usize)*8), usize{1} << bit_index % (sizeof(usize)*8) };
+    return { bit_index / (u32)(sizeof(usize)*8), usize{1} << bit_index % (sizeof(usize)*8) };
 }
 
 GridBase* free_list::take()
