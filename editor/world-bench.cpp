@@ -1,6 +1,7 @@
 #include "app.hpp"
 #include "pgo-scenes.hpp"
 #include "mazes.hpp"
+#include "torture-test.hpp"
 #include "src/world.hpp"
 #include "src/object-storage.inl"
 #include "src/hole.hpp"
@@ -20,8 +21,6 @@
 #include "compat/assert.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/enumerate.hpp"
-#include "compat/timer.hpp"
-#include "compat/zip.hpp"
 #include "compat/nanosecond.hpp"
 #include "floormat/main.hpp"
 #include "loader/loader.hpp"
@@ -36,7 +35,14 @@ namespace floormat {
 
 namespace {
 
-constexpr inline i16 bench_chunk_min = -8, bench_chunk_max = 8;
+using torture_test::bench_chunk_min;
+using torture_test::bench_chunk_max;
+using torture_test::light_colors;
+using torture_test::pmod;
+using torture_test::hash2;
+using torture_test::load_assets;
+using torture_test::generate_scene;
+
 constexpr inline int diag_u0 = 0;
 using pgo::walk_chunk_min;
 using pgo::walk_chunk_max;
@@ -79,29 +85,6 @@ constexpr inline u32 clickables_per_tile = 16;
 constexpr inline u32 clickables_seed = 0xc11c4b1eu;
 constexpr inline i16 clickables_chunk_min = -1, clickables_chunk_max = 1;
 
-// Each pattern axis below uses a period from {2,3,4,5,7} on a different linear form of the
-// tile coordinate, so the combined pattern repeats no sooner than every 420 tiles.
-
-// A tile's own N/W wall strips lie *outside* it, at [T-depth, T), so only a half-extent above
-// tile_size_xy/2 reaches them; anything positive reaches the S/E neighbors'. Depth here is 32.
-constexpr inline Vector2ub hole_sizes[] = {
-    { u8(7*tile_size_xy/4), u8(tile_size_xy/2)   }, // own W, E and S neighbors'
-    { u8(tile_size_xy/2),   u8(7*tile_size_xy/4) }, // own N, E and S neighbors'
-    { u8(3*tile_size_xy/2), u8(3*tile_size_xy/2) }, // all four, plus the corner piece
-};
-
-struct hole_z_profile { u8 z_offset, height; };
-
-// A cut reaching tile_size_z lowers the wall's top cap onto the stub instead of leaving it
-// at full height, so the "eats the top" cases below look different from the rest.
-constexpr inline hole_z_profile hole_z_profiles[] = {
-    { 0,                        u8(tile_size_z)   }, // full height, eats the top
-    { 0,                        u8(tile_size_z/2) }, // wall left floating above the gap
-    { u8(tile_size_z/2),   u8(tile_size_z/2) }, // eats the top
-    { u8(tile_size_z/4),   u8(tile_size_z/2) }, // wall above and below
-    { u8(2*tile_size_z/3), u8(tile_size_z/3) }, // eats the top, reaching it exactly
-};
-
 // The raycast scene's obstacle field. Everything the dense scene puts in a ray's way is a full
 // tile across, so the ray meets the first one head-on and the case worth measuring never comes up:
 // a collider the DDA's cell rectangle catches and ray_aabb_intersection then rejects. A pin is
@@ -134,39 +117,6 @@ constexpr inline int pin_size = 4, grid_pin_size = 8, pin_pitch = 3*tile_size_xy
 constexpr inline int pin_clump_deg = 15, pin_clump_r0 = chunk_size<int>/4;
 constexpr inline float pin_clump_span = .4f;
 constexpr inline u32 pin_clump_rings = 7, pin_clump_seed = 0xc10b5eedu;
-
-constexpr inline const char* const scenery_names[] = {
-    "chair1", "stool1", "drawers1", "shelf1", "table4", "door1", "control panel (wall) 1",
-};
-
-// Prime count so the color never lines up with any of the placement periods.
-constexpr inline Vector4ub light_colors[] = {
-    { 255,  64,  64, 255 }, { 255, 128,  32, 255 }, { 255, 192,  32, 255 },
-    { 255, 255,  64, 255 }, { 192, 255,  64, 255 }, {  96, 255,  64, 255 },
-    {  64, 255, 144, 255 }, {  64, 255, 224, 255 }, {  64, 224, 255, 255 },
-    {  64, 160, 255, 255 }, {  64,  96, 255, 255 }, { 128,  64, 255, 255 },
-    { 192,  64, 255, 255 }, { 255,  64, 224, 255 }, { 255,  64, 144, 255 },
-    { 255, 224, 192, 255 }, { 192, 224, 255, 255 }, { 255, 255, 255, 255 },
-    { 224, 160,  96, 255 }, { 160, 224, 160, 255 }, { 160, 160, 224, 255 },
-    { 224, 224, 128, 255 }, { 224, 128, 160, 255 },
-};
-
-static_assert(array_size(light_colors) == 23);
-
-constexpr u32 pmod(i32 x, i32 m)
-{
-    auto r = x % m;
-    return u32(r < 0 ? r + m : r);
-}
-
-u32 hash2(u32 x, u32 y) // same mixer as app::populate_raycast_fractal()
-{
-    u32 h = x * 0x9E3779B1u + y * 0x85EBCA77u;
-    h ^= h >> 16; h *= 0xC2B2AE3Du;
-    h ^= h >> 13; h *= 0x27D4EB2Du;
-    h ^= h >> 16;
-    return h;
-}
 
 // The lightmap image covers neighbor_count = 4 chunks per axis and iter_bounds() centers it at
 // [x-2, x+1] (shaders/lightmap.cpp), so a 6x6 world is the smallest that gives every chunk of the
@@ -271,29 +221,6 @@ constexpr bool lm_layouts_in_bounds()
 
 static_assert(lm_layouts_in_bounds());
 
-struct scene_assets
-{
-    std::array<bptr<ground_atlas>, 2> ground;
-    std::array<bptr<wall_atlas>, 3> walls;
-    std::array<scenery_proto, array_size(scenery_names)> scenery;
-};
-
-scene_assets load_assets()
-{
-    scene_assets a;
-    // "texel" is pass-mode blocked, so it can't stand in for either of these.
-    a.ground[0] = loader.ground_atlas("floor-tiles");
-    a.ground[1] = loader.ground_atlas("metal1");
-    // Only test1..3 share depth 32; "empty" also lacks the side/top/corner groups entirely,
-    // which would leave the hole-cut paths this scene exists to exercise unreached.
-    a.walls[0] = loader.wall_atlas("test1", loader_policy::warn);
-    a.walls[1] = loader.wall_atlas("test2", loader_policy::warn);
-    a.walls[2] = loader.wall_atlas("test3", loader_policy::warn);
-    for (auto& [name, proto] : zip(scenery_names, a.scenery))
-        proto = loader.scenery(name);
-    return a;
-}
-
 scenery_proto pin_proto(int size)
 {
     auto p = loader.scenery("stool1");
@@ -367,75 +294,6 @@ void generate_raycast_pins(world& w)
         c.sort_objects();
         c.mark_modified();
     }
-}
-
-u32 generate_chunk(world& w, chunk_coords_ ch, const scene_assets& a, bool walls)
-{
-    auto& c = w[ch];
-    const auto chunk_parity = pmod(ch.x + ch.y, 2);
-    const auto& ground = a.ground[chunk_parity];
-
-    for (auto k = 0u; k < TILE_COUNT; k++)
-        c[k].ground() = { ground, variant_t(k % ground->num_tiles()) };
-
-    u32 objects = 0;
-
-    for (u8 ly = 0; ly < TILE_MAX_DIM; ly++)
-        for (u8 lx = 0; lx < TILE_MAX_DIM; lx++)
-        {
-            // Shifting by a different coprime multiple of z per axis keeps stacked Z levels
-            // from being copies of each other.
-            const auto px = i32(ch.x)*i32(TILE_MAX_DIM) + lx + 7*ch.z;
-            const auto py = i32(ch.y)*i32(TILE_MAX_DIM) + ly + 11*ch.z;
-            const local_coords at{lx, ly};
-
-            // variant -1 picks the frame by hashing the coordinate, giving per-tile variety
-            // without a fourth pattern axis to keep coprime.
-            if (walls)
-            {
-                c[at].wall_north() = { a.walls[hash2((u32)px, (u32)py) % 3], (variant_t)-1 };
-                c[at].wall_west()  = { a.walls[hash2((u32)py, (u32)px) % 3], (variant_t)-1 };
-            }
-
-            // TILE_MAX_DIM is even, so a plain tile checkerboard runs straight through a chunk
-            // boundary. Folding in the chunk coordinate inverts it per chunk, marking the seam.
-            if (pmod(px + py + ch.x + ch.y, 2) == 0)
-            {
-                const auto& z = hole_z_profiles[pmod(2*px + py, 5)];
-                hole_proto p;
-                p.bbox_size = hole_sizes[pmod(px + 2*py, 3)];
-                p.z_offset  = z.z_offset;
-                p.height    = z.height;
-                w.make_object<hole, false>(w.make_id(), {ch, at}, p);
-                objects++;
-            }
-
-            {
-                auto p = a.scenery[pmod(3*px + 5*py, 7)];
-                w.make_scenery<false>(w.make_id(), {ch, at}, move(p));
-                objects++;
-            }
-
-            // Every fourth tile. This form forces px even, so whether the light lands on a
-            // hole tile flips with each row rather than being fixed for the whole scene.
-            if (pmod(px + 2*py, 4) == 0)
-            {
-                light_proto p;
-                p.color = light_colors[hash2((u32)px ^ 0x5a5au, (u32)py) % array_size(light_colors)];
-                // Tiles, not pixels: lightmap_shader::add_light() multiplies by tile_size.
-                // Zero would drop the light before the falloff is read.
-                p.max_distance = 3;
-                p.falloff = light_falloff::linear;
-                w.make_object<light, false>(w.make_id(), {ch, at}, p);
-                objects++;
-            }
-        }
-
-    // Objects go in unsorted above, because at ~450 per chunk a positioned insert each would
-    // cost more than the rest of the generator put together.
-    c.sort_objects();
-    c.mark_modified();
-    return objects;
 }
 
 // Cuts a north-south corridor. Only N and W walls exist, so the corridor's sides are the W wall
@@ -901,29 +759,6 @@ point maze_cell_point(u32 i, u32 j)
     const auto lx = (int)pmod(gx, dim), ly = (int)pmod(gy, dim);
     return point{chunk_coords_{(i16)((gx - lx)/dim), (i16)((gy - ly)/dim), 0},
                  local_coords{(u8)lx, (u8)ly}, {}};
-}
-
-void generate_scene(world& w, int z_min, int z_max, bool walls,
-                    i16 cmin = bench_chunk_min, i16 cmax = bench_chunk_max)
-{
-    const auto a = load_assets();
-    auto t = Time::now();
-    u32 chunks = 0, objects = 0;
-
-    for (int z = z_min; z <= z_max; z++)
-    {
-        for (i16 cy = cmin; cy <= cmax; cy++)
-            for (i16 cx = cmin; cx <= cmax; cx++)
-            {
-                objects += generate_chunk(w, {cx, cy, (i8)z}, a, walls);
-                chunks++;
-            }
-        if (z_min != z_max)
-            fm_debug("scene benchmark: z=%d done, %u chunks", z, chunks);
-    }
-
-    fm_debug("scene benchmark: %u chunks, %u objects in %.1f ms",
-             chunks, objects, (double)Time::to_milliseconds(t.update()));
 }
 
 void lm_pillar(world& w, chunk_coords_ ch, u8 lx, u8 ly, Vector2b off)
