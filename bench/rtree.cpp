@@ -54,6 +54,8 @@ constexpr u32 random_rect_entry_counts[] = { 8, 16, 32, 64, 96, 128, 160, 256, 5
 constexpr u32 cluster_entry_counts[] = { 32, 64, 96, 128, 160, 256, 512, 1000, 2000, 4000, 8000, 16000 };
 constexpr u32 critter_count = 8;
 constexpr u64 first_critter_id = ~u64{} - critter_count;
+constexpr i32 pass_grid_bbox_sizes[] = { 16, 32, 64 };
+constexpr u32 missing_chunk_index = ~0u;
 
 static_assert(cmp::less<>{}(1, 2) && !cmp::less<>{}(2, 2) && cmp::less<>{}(1, 1.5f) && cmp::less<int>{}(1, 2));
 static_assert(cmp::less_equal<>{}(2, 2) && !cmp::less_equal<>{}(3, 2) && cmp::less_equal<int>{}(2, 2));
@@ -126,6 +128,7 @@ struct chunk_structures
     // The leaves of old_tree_8 in the order its search reports them.
     Array<entry> entries;
     Array<entry_block> blocks;
+    Math::Range2D<i16> bounding_rect;
     entry_arrays arrays;
     chunk_coords_ coord;
 };
@@ -150,6 +153,11 @@ struct benchmark_scene : chunks_and_queries
 {
     Array<Node<8>> shuffled_nodes;
     Array<entry> largest_chunk_shuffled_entries;
+    // Each chunk's neighbours in world::neighbor_offsets order, as indices in chunks or missing_chunk_index.
+    Array<std::array<u32, 8>> neighbor_indices;
+    // Indexed like queries, with pass_grid_bbox_sizes in place of box_sides.
+    Array<u32> pass_grid_chunk_indices[2];
+    u64 pass_grid_num_hits[2][std::size(pass_grid_bbox_sizes)];
 };
 
 // New scenes go last, so the other scenes' queries take the same random numbers as without them.
@@ -946,6 +954,13 @@ void fill_structures(chunk_structures& c, ArrayView<const entry> insertion_order
         ((nodes<Ms>(c) = copy_tree<Ms>(old_tree<Ms>(c))), ...);
     }(fanouts_other_than_8);
     c.blocks = make_entry_blocks(c.entries);
+    Vector2s min{empty_rect_min}, max{empty_rect_max};
+    for (const auto& e : c.entries)
+    {
+        min = Math::min(min, e.rect.min());
+        max = Math::max(max, e.rect.max());
+    }
+    c.bounding_rect = {min, max};
     fill_entry_arrays(c.arrays, c.entries);
 }
 
@@ -1262,6 +1277,101 @@ void make_checked_queries(chunks_and_queries& s, u32 kind, Random::xoshiro256sta
     }
 }
 
+bool is_overlapping(const Math::Range2D<i16>& a, const Range2Di& b)
+{
+    return a.min().x() <= b.max().x() && a.min().y() <= b.max().y() &&
+           a.max().x() >= b.min().x() && a.max().y() >= b.min().y();
+}
+
+// Returns the boxes PassGrid::build_impl searches for bbox_size, in the order of its chunks[9].
+std::array<query, 9> make_pass_grid_queries(i32 bbox_size)
+{
+    const auto bbox_lo = bbox_size/2, bbox_hi = bbox_size - bbox_lo;
+    const auto min = Vector2i{-half_tile<i32> - bbox_lo};
+    const auto max = Vector2i{chunk_size<i32> - half_tile<i32> + bbox_hi};
+    std::array<query, 9> ret;
+    ret[0] = make_query(0, min, max);
+    for (u32 k = 0; k < 8; k++)
+    {
+        const auto off = Vector2i{world::neighbor_offsets[k]} * chunk_size<i32>;
+        ret[k + 1] = make_query(0, min - off, max - off);
+    }
+    return ret;
+}
+
+Array<std::array<u32, 8>> make_neighbor_indices(ArrayView<const chunk_structures> chunks)
+{
+    const auto chunk_count = (u32)chunks.size();
+    Array<std::array<u32, 8>> ret{NoInit, chunk_count};
+    for (u32 i = 0; i < chunk_count; i++)
+        for (u32 k = 0; k < 8; k++)
+        {
+            const auto coord = chunks[i].coord + world::neighbor_offsets[k];
+            ret[i][k] = missing_chunk_index;
+            for (u32 j = 0; j < chunk_count; j++)
+                if (chunks[j].coord == coord)
+                    ret[i][k] = j;
+        }
+    return ret;
+}
+
+// Returns the number of entries in the trees of chunk i and its neighbours.
+usize num_entries_in_9_trees(const benchmark_scene& s, u32 i)
+{
+    auto ret = s.chunks[i].entries.size();
+    for (const auto j : s.neighbor_indices[i])
+        if (j != missing_chunk_index)
+            ret += s.chunks[j].entries.size();
+    return ret;
+}
+
+// Draws from its own generator, so the other benchmarks' queries take the same random numbers as without it.
+void make_pass_grid_sets(StringView name, benchmark_scene& s, u64 seed)
+{
+    Random::xoshiro256starstar rng;
+    Random::seed(rng, seed);
+    const auto chunk_count = (u32)s.chunks.size();
+    s.neighbor_indices = make_neighbor_indices(s.chunks);
+    u32 chunk_with_most_entries = 0;
+    for (u32 i = 1; i < chunk_count; i++)
+        if (num_entries_in_9_trees(s, i) > num_entries_in_9_trees(s, chunk_with_most_entries))
+            chunk_with_most_entries = i;
+    for (u32 is_largest_only = 0; is_largest_only < 2; is_largest_only++)
+    {
+        auto& indices = s.pass_grid_chunk_indices[is_largest_only];
+        indices = Array<u32>{NoInit, query_count};
+        for (auto& i : indices)
+            i = is_largest_only ? chunk_with_most_entries : below(rng, chunk_count);
+        for (u32 b = 0; b < std::size(pass_grid_bbox_sizes); b++)
+        {
+            const auto queries = make_pass_grid_queries(pass_grid_bbox_sizes[b]);
+            u64 num_hits = 0;
+            usize num_entries_checked = 0;
+            for (const auto i : indices)
+                for (u32 k = 0; k < 9; k++)
+                {
+                    const auto j = k == 0 ? i : s.neighbor_indices[i][k - 1];
+                    if (j == missing_chunk_index)
+                        continue;
+                    const auto& c = s.chunks[j];
+                    const auto& q = queries[k];
+                    num_entries_checked += c.entries.size();
+                    if (num_entries_checked <= max_entries_checked_per_query_set)
+                    {
+                        const auto hits = check_query(c, q);
+                        fm_assert(hits == 0 || is_overlapping(c.bounding_rect, q.rect));
+                        num_hits += hits;
+                    }
+                    else
+                        num_hits += (u64)c.old_tree_8.Search(q.min, q.max, [](u64, const auto&) { return true; });
+                }
+            s.pass_grid_num_hits[is_largest_only][b] = num_hits;
+        }
+    }
+    DBG << "rtree" << name << "pass grid: chunk" << chunk_with_most_entries << "has"
+        << num_entries_in_9_trees(s, chunk_with_most_entries) << "entries in 9 trees";
+}
+
 template<u32 M>
 void print_tree_size(const chunk_structures& c)
 {
@@ -1345,6 +1455,9 @@ std::array<Pointer<benchmark_scene>, scene_count> make_benchmark_scenes()
     for (u32 s = 0; s < scene_count; s++)
         if (worlds[s])
             scenes[s] = make_benchmark_scene(scene_names[s], *worlds[s], rng);
+    for (u32 s = 0; s < scene_count; s++)
+        if (scenes[s] && (scene)s != scene::clusters)
+            make_pass_grid_sets(scene_names[s], *scenes[s], s + 1);
     return scenes;
 }
 
@@ -1560,6 +1673,13 @@ constexpr auto blocks_checksum = [](const chunk_structures& c, const query& q) {
     return checksum_of_hits([&](auto&& f) { return search_blocks(c.blocks, q.rect, f); });
 };
 
+constexpr auto blocks_checksum_with_bounding_rect_test = [](const chunk_structures& c, const query& q) {
+    if (is_overlapping(c.bounding_rect, q.rect))
+        return blocks_checksum(c, q);
+    else
+        return u64{0};
+};
+
 template<typename F>
 void run_search_loop(benchmark::State& state, const chunks_and_queries& s, u32 is_largest_only, u32 kind,
                      const F& search_checksum)
@@ -1632,6 +1752,42 @@ void bench_distribution_search(benchmark::State& state, const F& search_checksum
                     search_checksum);
 }
 
+u32 pass_grid_bbox_size_index(i64 bbox_size)
+{
+    const auto* const it = std::find(std::begin(pass_grid_bbox_sizes), std::end(pass_grid_bbox_sizes), (i32)bbox_size);
+    fm_assert(it != std::end(pass_grid_bbox_sizes));
+    return (u32)(it - pass_grid_bbox_sizes);
+}
+
+// Searches the trees of a chunk and its neighbours as PassGrid::build_impl does, one chunk per iteration.
+template<typename F>
+void bench_pass_grid_search(benchmark::State& state, const F& search_checksum)
+{
+    const auto* sc = get_benchmark_scene(state);
+    if (!sc)
+        return;
+    const auto is_largest_only = (u32)state.range(1), b = pass_grid_bbox_size_index(state.range(2));
+    const auto queries = make_pass_grid_queries(pass_grid_bbox_sizes[b]);
+    const auto& indices = sc->pass_grid_chunk_indices[is_largest_only];
+    fm_assert(indices.size() == query_count);
+    const auto* const chunks = sc->chunks.data();
+    const auto* const neighbors = sc->neighbor_indices.data();
+    u64 checksum = 0;
+    u32 i = 0;
+    for (auto _ : state)
+    {
+        const auto ci = indices[i];
+        checksum += search_checksum(chunks[ci], queries[0]);
+        for (u32 k = 0; k < 8; k++)
+            if (const auto j = neighbors[ci][k]; j != missing_chunk_index)
+                checksum += search_checksum(chunks[j], queries[k + 1]);
+        if (++i == query_count)
+            i = 0;
+    }
+    benchmark::DoNotOptimize(checksum);
+    state.counters["hits"] = (double)sc->pass_grid_num_hits[is_largest_only][b]/query_count;
+}
+
 void RTree_Search_Old(benchmark::State& state) { bench_search(state, old_tree_checksum); }
 void RTree_Search_Soa_Fanout_4(benchmark::State& state) { bench_search(state, soa_checksum<4>); }
 void RTree_Search_Soa(benchmark::State& state) { bench_search(state, soa_checksum<8>); }
@@ -1693,6 +1849,27 @@ void RTree_Distribution_Search_Soa_Fanout_64(benchmark::State& state)
 }
 void RTree_Distribution_Search_Aosoa(benchmark::State& state) { bench_distribution_search(state, blocks_checksum); }
 
+void RTree_Pass_Grid_Search_Old(benchmark::State& state) { bench_pass_grid_search(state, old_tree_checksum); }
+void RTree_Pass_Grid_Search_Soa_Fanout_4(benchmark::State& state) { bench_pass_grid_search(state, soa_checksum<4>); }
+void RTree_Pass_Grid_Search_Soa(benchmark::State& state) { bench_pass_grid_search(state, soa_checksum<8>); }
+void RTree_Pass_Grid_Search_Soa_Fanout_16(benchmark::State& state)
+{
+    bench_pass_grid_search(state, soa_checksum<16>);
+}
+void RTree_Pass_Grid_Search_Soa_Fanout_32(benchmark::State& state)
+{
+    bench_pass_grid_search(state, soa_checksum<32>);
+}
+void RTree_Pass_Grid_Search_Soa_Fanout_64(benchmark::State& state)
+{
+    bench_pass_grid_search(state, soa_checksum<64>);
+}
+void RTree_Pass_Grid_Search_Aosoa(benchmark::State& state) { bench_pass_grid_search(state, blocks_checksum); }
+void RTree_Pass_Grid_Search_Aosoa_Bounding_Rect(benchmark::State& state)
+{
+    bench_pass_grid_search(state, blocks_checksum_with_bounding_rect_test);
+}
+
 std::vector<i64> box_side_args(std::initializer_list<i32> sides)
 {
     return {sides.begin(), sides.end()};
@@ -1742,6 +1919,19 @@ void distribution_args(benchmark::Benchmark* b)
      ->Unit(benchmark::kNanosecond);
 }
 
+// scene leaves out clusters, whose one chunk has no neighbours. chunks: 0 searches around a random chunk,
+// 1 around the chunk whose tree and neighbours' trees hold the most entries.
+void pass_grid_search_args(benchmark::Benchmark* b)
+{
+    std::vector<i64> scenes;
+    for (u32 s = 0; s < scene_count; s++)
+        if ((scene)s != scene::clusters)
+            scenes.push_back(s);
+    b->ArgNames({"scene", "chunks", "bbox"})
+     ->ArgsProduct({scenes, {0, 1}, {std::begin(pass_grid_bbox_sizes), std::end(pass_grid_bbox_sizes)}})
+     ->Unit(benchmark::kNanosecond);
+}
+
 BENCHMARK(RTree_Search_Old)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa_Fanout_4)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa)->Apply(search_args);
@@ -1784,6 +1974,15 @@ BENCHMARK(RTree_Distribution_Search_Soa_Fanout_16)->Apply(distribution_args);
 BENCHMARK(RTree_Distribution_Search_Soa_Fanout_32)->Apply(distribution_args);
 BENCHMARK(RTree_Distribution_Search_Soa_Fanout_64)->Apply(distribution_args);
 BENCHMARK(RTree_Distribution_Search_Aosoa)->Apply(distribution_args);
+
+BENCHMARK(RTree_Pass_Grid_Search_Old)->Apply(pass_grid_search_args);
+BENCHMARK(RTree_Pass_Grid_Search_Soa_Fanout_4)->Apply(pass_grid_search_args);
+BENCHMARK(RTree_Pass_Grid_Search_Soa)->Apply(pass_grid_search_args);
+BENCHMARK(RTree_Pass_Grid_Search_Soa_Fanout_16)->Apply(pass_grid_search_args);
+BENCHMARK(RTree_Pass_Grid_Search_Soa_Fanout_32)->Apply(pass_grid_search_args);
+BENCHMARK(RTree_Pass_Grid_Search_Soa_Fanout_64)->Apply(pass_grid_search_args);
+BENCHMARK(RTree_Pass_Grid_Search_Aosoa)->Apply(pass_grid_search_args);
+BENCHMARK(RTree_Pass_Grid_Search_Aosoa_Bounding_Rect)->Apply(pass_grid_search_args);
 
 void RTree_Ensure_Passability(benchmark::State& state)
 {
