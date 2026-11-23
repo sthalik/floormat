@@ -25,9 +25,11 @@ namespace {
 // threat. As the gain can't exceed the distance, that spot is over min_retreat_gain px from the npc too.
 constexpr u32 retreat_radius = 5*(u32)tile_size_xy;
 constexpr int min_retreat_gain = 3*tile_size_xy;
+/// @ref Cover::spot_tests::path_to and @ref Cover::spot_tests::is_reachable_without_critters calls, each one
+/// Dijkstra search. One took up to 120 µs on an i5-7600.
 constexpr u32 max_retreat_dijkstra_calls_per_update = 4;
-// is_seen_on_path's is_hidden_at calls that count as one Dijkstra search toward that cap, after an update's first.
-// A search that found a path took up to 0.71 ms among dense scenery, a call 0.33 to 0.82 microseconds.
+/// Body checks by @ref Cover::spot_tests::is_seen_on_path that count as one Dijkstra search, after an update's
+/// first, toward @ref Cover::max_retreat_dijkstra_calls_per_update. One took 0.29 to 0.58 µs on an i5-7600.
 constexpr u32 hidden_at_calls_per_dijkstra_call = 710;
 // has_line_of_sight() calls, each one ray from the threat to a spot's center.
 constexpr u32 max_retreat_rays_per_update = 256;

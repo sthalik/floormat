@@ -27,7 +27,8 @@ constexpr u32 path_slack = 5*(u32)tile_size_xy;
 
 // Tiles of search_tiles(), each listed by one Cover::Point::finder::find call over the tile's area.
 constexpr u32 max_search_tiles_per_update = 32;
-// path_to calls, each one Dijkstra search. One that found a path took up to 0.71 ms among dense scenery.
+/// @ref Cover::spot_tests::path_to calls, each one Dijkstra search. One to a spot @ref Cover::cover_search::radius
+/// away took up to 2.7 ms on an i5-7600.
 constexpr u32 max_search_dijkstra_calls_per_update = 1;
 // Listed cover spots that no reach position sees. Each gets cover_end, up to 0.1 ms among dense
 // scenery, and with needs_peek a search for its peek spot, which casts rays and took up to 42 microseconds.
