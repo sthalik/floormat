@@ -255,7 +255,8 @@ void cover_script::update(const bptr<critter>& C, usize& i, const Ns& dt)
             search_step(*C);
             // This runs after search_step, so cover found in this update needs no retreat.
             if (st == state::search && !path_to_found_cover &&
-                (search.has_last_resort() || !is_fallback_cover_allowed) && !search_retreated &&
+                (search.has_last_resort() || !is_fallback_cover_allowed ||
+                 search.num_tiles_searched() >= search.progress().num_tiles) && !search_retreated &&
                 !tests.is_hidden_at(*C, threat_pos, C->position(),
                                  Cover::Point::axis_toward(threat_pos - C->position())))
                 begin_retreat(*C);

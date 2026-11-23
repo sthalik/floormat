@@ -3086,6 +3086,29 @@ void test_cover_script_search_circling_threat(point hidden, bool far_block)
         fm_assert_equal(s.status().search.num_tiles, s.status().search.tile);
 }
 
+// The threat circles the exposed npc in a world with no blocker, changing octant every update. The npc retreats
+// once its search passed as many tiles as one scan has, before the search ends.
+void test_cover_script_retreats_from_search_with_circling_threat()
+{
+    cover_scene s;
+    s.w[ch].remove_object(*s.wall, s.wall->index());
+    rebuild(s.w);
+    const auto npc_pos = s.npc->position();
+    s.step();
+    fm_assert(s.status().st == state::search);
+    for (auto updates = 0u; s.status().st == state::search; updates++)
+    {
+        fm_assert(updates < 60*s.fps);
+        fm_assert(s.npc->position() == npc_pos);
+        const auto a = (updates + 1) * 2 * Math::Constants<double>::pi() / Grid::Cover::octant_count;
+        s.move_threat(npc_pos + Vector2i(Math::round(Vector2d{std::cos(a), std::sin(a)} * 64.)));
+        s.step();
+    }
+    const auto t = s.status();
+    fm_assert(t.st == state::find_retreat || t.st == state::retreat);
+    fm_assert(t.search.tiles_left > 0);
+}
+
 // As test_cover_script_retreat, with a block 7 tiles south of hidden that hides a spot from tile (7, 1). The npc
 // walks off, then takes that spot, also when a block at (3, 2) hides a nearer one toward the threat.
 void test_cover_script_retreat_finds_cover(point hidden, bool near_threat)
@@ -4981,6 +5004,7 @@ void Test::test_cover_point()
     test_retreat_finder_rechecks_only_spots_critters_cut_off(hidden);
     test_cover_script_search_circling_threat(hidden, false);
     test_cover_script_search_circling_threat(hidden, true);
+    test_cover_script_retreats_from_search_with_circling_threat();
     test_cover_script_retreat_finds_cover(hidden, false);
     test_cover_script_retreat_finds_cover(hidden, true);
     test_cover_script_retreat_blocked(hidden);

@@ -51,6 +51,12 @@ const Array<Vector2i>& search_tiles()
     return tiles;
 }
 
+u32 max_tiles_searched()
+{
+    const auto n = (u32)search_tiles().size();
+    return n + n/2;
+}
+
 } // namespace
 
 u32 max_search_path_length(point from, point to) { return point::distance(from, to)*2 + path_slack; }
@@ -80,8 +86,7 @@ void cover_search::begin(point from, point threat, bool is_fallback_allowed)
     _num_failed_dijkstra_calls = 0;
     _num_failed_dijkstra_calls_for_fallback = 0;
     _pass_gen_at_last_tick = 0;
-    const auto n = (u32)search_tiles().size();
-    _tiles_left = n + n/2;
+    _tiles_left = max_tiles_searched();
     restart(from, threat);
 }
 
@@ -559,6 +564,8 @@ Cover::Script::search_progress cover_search::progress() const
 {
     return {.tile = _tile, .tiles_left = _tiles_left, .num_tiles = (u32)search_tiles().size()};
 }
+
+u32 cover_search::num_tiles_searched() const { return max_tiles_searched() - _tiles_left; }
 
 bool cover_search::has_last_resort() const { return _fallback_spots.has_cover_spot(); }
 

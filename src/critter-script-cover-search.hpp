@@ -87,6 +87,9 @@ public:
     bool is_running() const;
     point from() const;
     Cover::Script::search_progress progress() const;
+    // Returns the tiles of every scan since begin(), plus one per restart and change of octant. It reaches
+    // progress().num_tiles before the search ends only after a restart or a change of octant.
+    u32 num_tiles_searched() const;
     bool has_last_resort() const;
 
 private:
