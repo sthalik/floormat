@@ -2,6 +2,7 @@
 #include "src/grid-pass.hpp"
 #include "src/grid-object.hpp"
 #include "src/grid-cover.hpp"
+#include "src/grid-order.hpp"
 #include "src/grid-registry.hpp"
 #include "src/critter-script-cover-point.hpp"
 #include "src/point.inl"
@@ -329,6 +330,27 @@ void Cover_Find(benchmark::State& state)
     set_find_counters(state, r);
 }
 
+// As Cover_Find, through the read-only overload. The writable one builds the grids first.
+void Cover_Find_Read_Only(benchmark::State& state)
+{
+    auto w = world();
+    make_cover_world(w);
+    const auto params = Grid::Cover::Params{(u32)state.range(0)};
+    const auto q = make_cover_query(w, find_cases[state.range(1)]);
+    Grid::GridRegistry pools;
+    Cover::Point::finder finder;
+    const Search::pred pred{Search::never_continue};
+    (void)finder.find(w, pools, params, q, pred);
+    const world& cw = w;
+    const Grid::Cover::Pool& cover_pool = pools.cover_pool(params);
+    Array<grid_order> orders;
+    Cover::Point::result r;
+    for (auto _ : state)
+        r = finder.find(cw, cover_pool, q, pred, orders);
+    fm_assert(orders.isEmpty());
+    set_find_counters(state, r);
+}
+
 // The first seek from a threat at a bearing no cover grid has seen: the pass grids and cover grids
 // are built, but only octant 0 of each.
 void Cover_Find_Octants(benchmark::State& state)
@@ -386,6 +408,7 @@ void find_args(benchmark::Benchmark* b)
 }
 
 BENCHMARK(Cover_Find)->Apply(find_args)->Unit(benchmark::kMicrosecond);
+BENCHMARK(Cover_Find_Read_Only)->Apply(find_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(Cover_Find_Octants)->Apply(find_args)->Unit(benchmark::kMillisecond);
 BENCHMARK(Cover_Find_Fresh)->Apply(find_args)->Unit(benchmark::kMillisecond);
 
