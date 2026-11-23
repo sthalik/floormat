@@ -417,12 +417,68 @@ bool Grid::is_stale(u64 pass_gen) const { return pass_gen != grid->built_pass_ge
 void Grid::mark_stale() { grid->mark_stale(); }
 void Grid::build_if_stale() { grid->build_if_stale(); }
 
+ConstGrid::ConstGrid() noexcept: ConstGrid{nullptr} {}
+// g gets only const calls.
+ConstGrid::ConstGrid(const detail::ObjectGrid* grid) noexcept: g{const_cast<detail::ObjectGrid*>(grid)} {}
+
+u32 ConstGrid::get_cell_index_from_coord(intra_coord pos) const { return g.get_cell_index_from_coord(pos); }
+
+template<typename T> cell_object_view<T> ConstGrid::objects_at_cell(u32 index) const
+{
+    return g.objects_at_cell<T>(index);
+}
+
+template cell_object_view<u16> ConstGrid::objects_at_cell<u16>(u32) const;
+template cell_object_view<u32> ConstGrid::objects_at_cell<u32>(u32) const;
+
+ArrayView<const collision_data> ConstGrid::entry_data() const { return g.entry_data(); }
+ArrayView<const u8> ConstGrid::entry_chunks() const { return g.entry_chunks(); }
+bool ConstGrid::uses_u32() const { return g.uses_u32(); }
+
+bool ConstGrid::blocked_objects(const Search::pred& p, Array<bool>& entry_blocked) const
+{
+    return g.blocked_objects(p, entry_blocked);
+}
+
+bool ConstGrid::blocked_objects(const Search::pred& p) const { return g.blocked_objects(p); }
+
+template<typename T> bool ConstGrid::is_blocked(u32 index, ArrayView<const bool> entry_blocked) const
+{
+    return g.is_blocked<T>(index, entry_blocked);
+}
+
+template bool ConstGrid::is_blocked<u16>(u32, ArrayView<const bool>) const;
+template bool ConstGrid::is_blocked<u32>(u32, ArrayView<const bool>) const;
+
+template<typename T> bool ConstGrid::is_empty_at(u32 index, u32 count) const
+{
+    return g.is_empty_at<T>(index, count);
+}
+
+template bool ConstGrid::is_empty_at<u16>(u32, u32) const;
+template bool ConstGrid::is_empty_at<u32>(u32, u32) const;
+
+void ConstGrid::mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out,
+                               ArrayView<const bool> entry_blocked) const
+{
+    g.mask_pass_bits(pass_bits, out, entry_blocked);
+}
+
+u32 ConstGrid::div_count() const { return g.div_count(); }
+u64 ConstGrid::built_pass_gen() const { return g.built_pass_gen(); }
+ConstGrid::operator bool() const noexcept { return g.grid != nullptr; }
+
 Pool::Pool(Pass::Pool& pass_pool): pool{new detail::ObjectPool{pass_pool}} {}
 Pool::~Pool() noexcept { delete pool; }
 
 Grid Pool::operator[](chunk& c)
 {
     return Grid{detail::pool_subscript<detail::ObjectGrid>(pool, c)};
+}
+
+ConstGrid Pool::find_built_grid(const chunk& c) const
+{
+    return ConstGrid{detail::find_built_grid<detail::ObjectGrid>(pool, c)};
 }
 
 void Pool::build_if_stale_all()
@@ -432,7 +488,8 @@ void Pool::build_if_stale_all()
 }
 
 const Params& Pool::params() const { return pool->params; }
-Pass::Pool& Pool::pass_pool() const { return pool->pass_pool; }
+Pass::Pool& Pool::pass_pool() { return pool->pass_pool; }
+const Pass::Pool& Pool::pass_pool() const { return pool->pass_pool; }
 u32 Pool::free_grid_count() const { return pool->freelist.size(); }
 
 } // namespace floormat::Grid::Object

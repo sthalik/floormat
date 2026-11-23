@@ -187,6 +187,11 @@ void PoolBase::detach_all() noexcept
 
 GridBase* PoolBase::find(chunk& c) const noexcept
 {
+    return const_cast<GridBase*>(find(static_cast<const chunk&>(c)));
+}
+
+const GridBase* PoolBase::find(const chunk& c) const noexcept
+{
     if (!c._grid_slots)
         return nullptr;
     const auto& s = c._grid_slots->slots;

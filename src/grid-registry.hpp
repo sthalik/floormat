@@ -23,6 +23,11 @@ public:
     Cover::Pool& cover_pool(const Cover::Params& p);
     Object::Pool& object_pool(const Object::Params& p);
 
+    // These return the pool for the params, or null when no call has created it. They write nothing.
+    const Pass::Pool* find_pass_pool(const Pass::Params& p) const;
+    const Object::Pool* find_object_pool(const Object::Params& p) const;
+    const Cover::Pool* find_cover_pool(const Cover::Params& p) const;
+
     // object bbox sizes are u8
     static constexpr u32 direct_max_bbox = limits<u8>::max;
     static constexpr u32 direct_bbox_count = direct_max_bbox - Pass::Grid::min_bbox_size + 1;
@@ -40,8 +45,15 @@ private:
         Array<Pointer<Pool>> fallback;
     };
 
-    template<typename Pool, typename... Args>
-    static Pool& find_or_add(pools_by_params<Pool>& pools, const Pass::Params& p, Args&&... args);
+    // Both return the slot for p's pool, empty until the pool is made, or null when p's pool belongs in the
+    // fallback list and isn't in it.
+    template<typename Pools>
+    static auto find_pool_slot(Pools& pools, const Pass::Params& p) -> decltype(&pools.direct[0][0][0]);
+    template<typename Pools>
+    static auto find_pool_slot(Pools& pools, const Cover::Params& p) -> decltype(&pools.direct[0]);
+
+    template<typename Pools, typename Params, typename... Args>
+    static auto& find_or_add(Pools& pools, const Params& p, Args&&... args);
 
     pools_by_params<Pass::Pool> pass_;
     // after the pass pools, so destroyed first: each borrows one of them

@@ -51,6 +51,8 @@ class Grid
 {
     detail::ObjectGrid* grid;
 
+    friend class ConstGrid;
+
 public:
     ~Grid() noexcept;
     explicit Grid(detail::ObjectGrid* grid);
@@ -89,6 +91,33 @@ public:
     void build_if_stale();
 };
 
+class ConstGrid
+{
+    Grid g;
+
+public:
+    ConstGrid() noexcept;
+    explicit ConstGrid(const detail::ObjectGrid* grid) noexcept;
+
+    u32 get_cell_index_from_coord(intra_coord pos) const;
+    template<typename T> cell_object_view<T> objects_at_cell(u32 index) const;
+    ArrayView<const collision_data> entry_data() const;
+    ArrayView<const u8> entry_chunks() const;
+    bool uses_u32() const;
+
+    bool blocked_objects(const Search::pred& p, Array<bool>& entry_blocked) const;
+    bool blocked_objects(const Search::pred& p) const;
+    template<typename T> bool is_blocked(u32 index, ArrayView<const bool> entry_blocked) const;
+    template<typename T> bool is_empty_at(u32 index, u32 count) const;
+    void mask_pass_bits(ArrayView<const usize> pass_bits, ArrayView<usize> out,
+                        ArrayView<const bool> entry_blocked) const;
+
+    u32 div_count() const;
+    u64 built_pass_gen() const;
+
+    explicit operator bool() const noexcept;
+};
+
 class Pool final
 {
     detail::ObjectPool* pool;
@@ -100,11 +129,15 @@ public:
     fm_DISABLE_MOVE_COPY(Pool);
 
     [[nodiscard]] Grid operator[](chunk& c);
+    // Returns the pool's grid for c when one is attached and needs no rebuild, else an empty handle.
+    // Writes nothing.
+    [[nodiscard]] ConstGrid find_built_grid(const chunk& c) const;
 
     void build_if_stale_all();
 
     const Params& params() const;
-    Pass::Pool& pass_pool() const;
+    Pass::Pool& pass_pool();
+    const Pass::Pool& pass_pool() const;
     u32 free_grid_count() const;
 };
 

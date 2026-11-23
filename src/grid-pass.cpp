@@ -316,6 +316,11 @@ Grid Pool::operator[](chunk& c)
     return Grid{detail::pool_subscript(pool, c), pool};
 }
 
+ConstGrid Pool::find_built_grid(const chunk& c) const
+{
+    return ConstGrid{detail::find_built_grid(pool, c)};
+}
+
 Grid::~Grid() noexcept = default;
 
 Grid::Grid(detail::PassGrid* grid_, detail::PassPool* pool_):
@@ -393,6 +398,24 @@ void Grid::mark_stale()
 
 detail::PassGrid* Grid::raw() const noexcept { return grid; }
 void Grid::build_if_stale() { grid->build_if_stale(); }
+
+ConstGrid::ConstGrid() noexcept: ConstGrid{nullptr} {}
+// g gets only const calls, and none of them reads its pool.
+ConstGrid::ConstGrid(const detail::PassGrid* grid) noexcept: g{const_cast<detail::PassGrid*>(grid), nullptr} {}
+
+u32 ConstGrid::get_bitmask_index_from_coord(intra_coord pos) const { return g.get_bitmask_index_from_coord(pos); }
+bool ConstGrid::bit(u32 index) const { return g.bit(index); }
+
+ArrayView<const usize> ConstGrid::bits() const
+{
+    return { g.bits().data, detail::bitmask_size(g.div_count()) / (u32)(sizeof(usize)*8) };
+}
+
+u32 ConstGrid::div_count() const { return g.div_count(); }
+u64 ConstGrid::build_no() const { return g.build_no(); }
+u64 ConstGrid::built_pass_gen() const { return g.built_pass_gen(); }
+bool ConstGrid::is_all_empty() const { return g.is_all_empty(); }
+ConstGrid::operator bool() const noexcept { return g.raw() != nullptr; }
 
 void Pool::build_if_stale_all()
 {

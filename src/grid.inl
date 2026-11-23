@@ -93,4 +93,17 @@ T* pool_subscript(Pool<T>* p, chunk& c)
     return t;
 }
 
+template <typename T>
+const T* find_built_grid(const Pool<T>* p, const chunk& c)
+{
+    const auto* g = static_cast<const T*>(p->find(c));
+    if (!g || g->needs_rebuild())
+        return nullptr;
+    else
+    {
+        check_current(g);
+        return g;
+    }
+}
+
 } // namespace floormat::Grid::detail

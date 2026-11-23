@@ -107,6 +107,26 @@ public:
     static constexpr u32 min_bbox_size = 4;
 };
 
+class ConstGrid
+{
+    Grid g;
+
+public:
+    ConstGrid() noexcept;
+    explicit ConstGrid(const detail::PassGrid* grid) noexcept;
+
+    u32 get_bitmask_index_from_coord(intra_coord pos) const;
+    bool bit(u32 index) const;
+    // Returns detail::bitmask_size(div_count()) bits, the size Grid::Object::Grid::mask_pass_bits() takes.
+    ArrayView<const usize> bits() const;
+    u32 div_count() const;
+    u64 build_no() const;
+    u64 built_pass_gen() const;
+    bool is_all_empty() const;
+
+    explicit operator bool() const noexcept;
+};
+
 constexpr Params::Params(u32 div_size, u32 bbox_size, pass_mode min_pass):
     bbox_size{bbox_size > Grid::min_bbox_size ? bbox_size : Grid::min_bbox_size},
     min_pass{min_pass}
@@ -125,6 +145,9 @@ public:
     fm_DISABLE_MOVE_COPY(Pool);
 
     [[nodiscard]] Grid operator[](chunk& c);
+    // Returns the pool's grid for c when one is attached and needs no rebuild, else an empty handle.
+    // Writes nothing.
+    [[nodiscard]] ConstGrid find_built_grid(const chunk& c) const;
 
     void build_if_stale_all();
 

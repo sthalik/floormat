@@ -933,9 +933,26 @@ u32 Grid::built_octants() const
     return grid->built_octants;
 }
 
+ConstGrid::ConstGrid() noexcept: ConstGrid{nullptr} {}
+// g gets only const calls.
+ConstGrid::ConstGrid(const detail::CoverGrid* grid) noexcept: g{const_cast<detail::CoverGrid*>(grid)} {}
+
+u32 ConstGrid::get_cell_index_from_coord(intra_coord pos) const { return g.get_cell_index_from_coord(pos); }
+u16 ConstGrid::distance(u32 index, u32 octant) const { return g.distance(index, octant); }
+u32 ConstGrid::div_count() const { return g.div_count(); }
+u64 ConstGrid::build_no() const { return g.build_no(); }
+u64 ConstGrid::built_pass_gen() const { return g.built_pass_gen(); }
+u32 ConstGrid::built_octants() const { return g.built_octants(); }
+ConstGrid::operator bool() const noexcept { return (bool)g; }
+
 Grid Pool::operator[](chunk& c)
 {
     return Grid{detail::pool_subscript(pool, c)};
+}
+
+ConstGrid Pool::find_built_grid(const chunk& c) const
+{
+    return ConstGrid{detail::find_built_grid(pool, c)};
 }
 
 void Pool::build_if_stale_all()

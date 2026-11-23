@@ -78,6 +78,24 @@ public:
     u32 built_octants() const;
 };
 
+class ConstGrid
+{
+    Grid g;
+
+public:
+    ConstGrid() noexcept;
+    explicit ConstGrid(const detail::CoverGrid* grid) noexcept;
+
+    u32 get_cell_index_from_coord(intra_coord pos) const;
+    u16 distance(u32 index, u32 octant) const;
+    u32 div_count() const;
+    u64 build_no() const;
+    u64 built_pass_gen() const;
+    u32 built_octants() const;
+
+    explicit operator bool() const noexcept;
+};
+
 class Pool final
 {
     detail::CoverPool* pool;
@@ -89,6 +107,9 @@ public:
     fm_DISABLE_MOVE_COPY(Pool);
 
     [[nodiscard]] Grid operator[](chunk& c);
+    // Returns the pool's grid for c when one is attached and needs no rebuild, else an empty handle.
+    // Writes nothing. The caller tests built_octants() for the octant it reads.
+    [[nodiscard]] ConstGrid find_built_grid(const chunk& c) const;
 
     void build_if_stale_all();
 
