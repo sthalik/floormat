@@ -128,6 +128,15 @@ if command -v nojit >/dev/null 2>&1; then
     runner=nojit
 fi
 
+# These cause GL errors on purpose. MESA_DEBUG makes Mesa print each one, so they run without it.
+gl_error_handling_tests="gl_error gl_call"
+other_gl_tests="$($runner "$build_dir/install/bin/floormat-test.exe" --gl-only -l | tr -d '\r' |
+    grep -vxF -- "$(printf '%s\n' $gl_error_handling_tests)")" || true
+if test -z "$other_gl_tests"; then
+    echo "fatal: floormat-test --gl-only -l lists no GL test besides $gl_error_handling_tests" >&2
+    exit 1
+fi
+
 download_mesa() {
     if test -f "$mesa_dir/x64/opengl32.dll" && test -f "$mesa_dir/x64/libgallium_wgl.dll" &&
        test -f "$mesa_dir/x64/dxil.dll"; then
@@ -275,8 +284,9 @@ failed=0
 # Runs floormat-test and the editor with every extension outside core 3.3 disabled, except those $1 joins with +.
 # The other arguments go to the editor.
 run_tests_with() {
-    local name="$1" keep= mesa_keep= test_status=0 editor_status=0 errors enums proxy=
+    local name="$1" keep= mesa_keep= test_status=0 gl_error_handling_status=0 editor_status=0 errors enums proxy=
     local test_log="$run_dir/logs/$name-test.log" editor_log="$run_dir/logs/$name-editor.log"
+    local gl_error_handling_log="$run_dir/logs/$name-gl-error-handling-test.log"
     shift
     if test "$name" != none; then
         keep="$(echo "$name" | tr + ' ')"
@@ -295,16 +305,18 @@ run_tests_with() {
         with_dll_dir "$run_dir/dlls" floormat-editor.exe "$@" 2>&1 | tee "$editor_log" || editor_status=$?
         set -- "$editor_log"
     else
-        MAGNUM_LOG=verbose with_dll_dir "$run_dir/dlls" floormat-test.exe --gl-only > "$test_log" 2>&1 ||
+        MAGNUM_LOG=verbose with_dll_dir "$run_dir/dlls" floormat-test.exe $other_gl_tests > "$test_log" 2>&1 ||
             test_status=$?
+        (unset MESA_DEBUG; MAGNUM_LOG=verbose with_dll_dir "$run_dir/dlls" floormat-test.exe $gl_error_handling_tests) \
+            > "$gl_error_handling_log" 2>&1 || gl_error_handling_status=$?
         FLOORMAT_PGO_DRIVER_SHORTEN_SCENES=1 with_dll_dir "$run_dir/dlls" floormat-editor.exe --window=minimized \
             --vsync=off --scenes="$editor_scenes" "$@" > "$editor_log" 2>&1 || editor_status=$?
-        set -- "$test_log" "$editor_log"
+        set -- "$test_log" "$gl_error_handling_log" "$editor_log"
     fi
     unset FLOORMAT_GL33_ALLOWED_FUNCTIONS FLOORMAT_GL33_ALLOWED_ENUMS MESA_EXTENSION_OVERRIDE MAGNUM_DISABLE_EXTENSIONS
 
-    errors="$(cat "$@" | grep -c '^Mesa: error: ' || true)"
-    enums="$(cat "$@" | grep -c '^gl33-proxy: gl[A-Za-z0-9_]* got ' || true)"
+    errors="$(cat "$@" | grep -c 'Mesa: error: ' || true)"
+    enums="$(cat "$@" | grep -c 'gl33-proxy: gl[A-Za-z0-9_]* got ' || true)"
     for log; do
         if ! grep -q '^gl33-proxy: [0-9]* GL functions allowed by ' "$log"; then
             proxy=", gl33-proxy not loaded"
@@ -314,14 +326,15 @@ run_tests_with() {
         echo "$name: floormat-editor exit $editor_status, $errors Mesa errors, $enums enums reported by" \
             "gl33-proxy$proxy"
     else
-        echo "$name: floormat-test exit $test_status, floormat-editor exit $editor_status, $errors Mesa errors," \
+        echo "$name: floormat-test exit $test_status, floormat-test $gl_error_handling_tests exit" \
+            "$gl_error_handling_status, floormat-editor exit $editor_status, $errors Mesa errors," \
             "$enums enums reported by gl33-proxy$proxy"
     fi
     grep -ho 'gl33-proxy: gl[A-Za-z0-9_]* was called.*' "$@" || true
     grep -hoE 'gl33-proxy: gl[A-Za-z0-9_]* (passed|linked) .*' "$@" || true
     { grep -ho 'gl33-proxy: gl[A-Za-z0-9_]* got .*' "$@" || true; } | sort -u | append_enum_names
-    if test "$test_status" != 0 || test "$editor_status" != 0 || test "$errors" != 0 || test "$enums" != 0 ||
-       test -n "$proxy"; then
+    if test "$test_status" != 0 || test "$gl_error_handling_status" != 0 || test "$editor_status" != 0 ||
+       test "$errors" != 0 || test "$enums" != 0 || test -n "$proxy"; then
         failed=1
     fi
 }
