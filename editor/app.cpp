@@ -140,6 +140,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption('g', "geometry", "").setHelp("geometry", "width x height, e.g. 1024x768", "WxH")
         .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "fullscreen|maximized|windowed|minimized")
         .addOption("fixed-framerate", "").setHelp("fixed-framerate", "feed update() a constant dt, 0 for the measured frame time; 60 with --scenes, else 0", "HZ")
+        .addOption("threads", "0").setHelp("threads", "update the world with N threads, the main one included; 0 picks N from the CPU's cores and caches, 1 makes no thread pool", "N")
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
         .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns, one per line, to FILE or, for -, to stdout; a relative FILE is relative to the directory the editor started in", "FILE")
         .addBooleanOption("show-fps").setHelp("show-fps", "print FPS to stderr every 5 seconds")
@@ -269,6 +270,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         ERR << "--fixed-framerate must be at least 10";
         std::exit(EX_USAGE);
     }
+    opts.num_threads = parse_uint("threads", args);
     if (auto str = args.value<StringView>("geometry"))
     {
         Vector2us size;

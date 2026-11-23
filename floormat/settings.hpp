@@ -20,6 +20,9 @@ struct fm_settings
     const char* const* argv = nullptr; int argc = 0;
     Magnum::Math::Vector2<int> resolution{1024, 720};
     u32 fixed_framerate = 0;   // 0 = feed update() the measured frame time
+    // Counts the threads that update the world, the main one included. 0 picks the count from the CPU's cores
+    // and caches, and 1 makes no thread pool.
+    u32 num_threads = 0;
     // The enum is opaque here, so {} stands for blit.
     SpriteAtlas::layer_copy_mode atlas_layer_copy{};
     bool driver = false;

@@ -1,6 +1,8 @@
 #include "main-impl.hpp"
 #include "compat/arch.hpp"
+#include "compat/cpu-topology.hpp"
 #include "compat/strerror.hpp"
+#include "compat/thread-pool.hpp"
 #include "src/search-astar.hpp"
 #include "src/search.hpp"
 #include "src/grid-registry.hpp"
@@ -25,6 +27,29 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
     else
         (void)setSwapInterval(0);
     _world.set_grid_registry(&*_grid_registry);
+    const auto cpus = query_thread_pool_cpus();
+    const auto num_threads = s.num_threads ? s.num_threads : cpus.num_workers + 1;
+    // The main thread is pinned only with a pool, so --threads=1 leaves its affinity to the OS.
+    if (num_threads >= 2)
+    {
+        const u64 worker_logical_cpu_mask = cpus.core_masks.empty() ? 0
+                                                                    : cpus.logical_cpu_mask & ~cpus.core_masks[0];
+        // Bounds how long an idle worker looks for jobs before it sleeps. Waking a sleeping worker for the
+        // frame's next parallel_for() costs 6 to 12 us, which this spin mostly avoids.
+        constexpr u32 idle_spin_usec = 16;
+        _thread_pool = Containers::Pointer<ThreadPool>{InPlaceInit, thread_pool_options{
+            .num_threads = num_threads,
+            .start_handler = [worker_logical_cpu_mask](u32) noexcept {
+                if (worker_logical_cpu_mask != 0)
+                    (void)set_current_thread_affinity(worker_logical_cpu_mask);
+            },
+            .idle_spin_usec = idle_spin_usec,
+        }};
+        _world.set_thread_pool(&*_thread_pool);
+        // A Linux thread starts with its creator's mask, so main is pinned after the pool makes the workers.
+        if (!cpus.core_masks.empty())
+            (void)set_current_thread_affinity(cpus.core_masks[0]);
+    }
     set_fp_mask();
     arrayReserve(_clickable_scenery, 128);
     if (s.log_frame_times == "-"_s)
@@ -56,6 +81,7 @@ class world& main_impl::reset_world(class world&& w) noexcept
     auto new_grid_registry = safe_ptr<Grid::GridRegistry>{InPlaceInit};
     _astar = safe_ptr<class astar>{InPlaceInit, *new_grid_registry};
     _world.set_grid_registry(&*new_grid_registry);
+    _world.set_thread_pool(_thread_pool ? &*_thread_pool : nullptr);
     _grid_registry = move(new_grid_registry);
     _world.chunk_table_prepare_frame();
     _first_frame = true;

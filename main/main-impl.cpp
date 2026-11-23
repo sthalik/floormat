@@ -2,6 +2,7 @@
 #include "src/search.hpp"
 #include "src/search-astar.hpp"
 #include "src/grid-registry.hpp"
+#include "compat/thread-pool.hpp"
 #include <mg/Sdl2Application.h>
 
 namespace floormat {

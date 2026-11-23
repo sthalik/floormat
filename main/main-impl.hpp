@@ -12,6 +12,7 @@
 #include "clickable.hpp"
 #include <concepts>
 #include <cstdio>
+#include <cr/Pointer.h>
 #include <mg/Sdl2Application.h>
 #include <mg/Framebuffer.h>
 #include <mg/Renderbuffer.h>
@@ -26,6 +27,7 @@ struct scenery;
 class anim_atlas;
 struct clickable;
 class astar;
+class ThreadPool;
 
 struct main_impl final : private Platform::Sdl2Application, public floormat_main
 {
@@ -141,6 +143,7 @@ private:
     tile_shader _shader;
     struct lightmap_shader _lightmap_shader{_tuc};
     Array<clickable> _clickable_scenery;
+    Containers::Pointer<ThreadPool> _thread_pool;
     class world _world{};
     u32 _mouse_cursor = (u32)-1;
     SpriteBatch _sprite_batch;
