@@ -529,6 +529,10 @@ result finder::Impl::find(World& w,
 
     const auto fills0 = cover_pool.octant_fills();
     bool out_of_fills = false;
+    // The number of orders the caller's array held before this call appended its own.
+    [[maybe_unused]] u32 num_grid_orders_at_start = 0;
+    if constexpr (std::is_const_v<World>)
+        num_grid_orders_at_start = (u32)orders.size();
     const auto may_fill = [&] {
         out_of_fills = out_of_fills || cover_pool.octant_fills() - fills0 >= q.max_fills;
         return !out_of_fills;
@@ -540,7 +544,7 @@ result finder::Impl::find(World& w,
             return cover_pool[c];
     };
     // False when octant k of c's grid g can't be read. A writable call leaves g unchanged when building it or
-    // filling k would pass q.max_fills. In a read-only call, g lacking k appends a grid_order.
+    // filling k would pass q.max_fills. In a read-only call, g lacking k appends a grid_order, once per call.
     const auto ensure = [&] [[fm_always_inline]] (auto& g, [[maybe_unused]] const chunk& c, u32 k) {
         if constexpr (!std::is_const_v<World>)
         {
@@ -563,6 +567,9 @@ result finder::Impl::find(World& w,
         else
         {
             out_of_fills = true;
+            for (auto i = num_grid_orders_at_start; i < (u32)orders.size(); i++)
+                if (orders[i].chunk == c.coord() && orders[i].octant == k)
+                    return false;
             arrayAppend(orders, grid_order{
                 .pass_params = Pass::Params{(u32)ds, pass_mode::shoot_through}, .cover_div_size = (u32)ds,
                 .chunk = c.coord(), .kind = grid_order::grid_kind::cover, .octant = (u8)k,
@@ -627,8 +634,18 @@ result finder::Impl::find(World& w,
         for (auto y = a.y(); y <= b.y(); y++)
             for (auto x = a.x(); x <= b.x(); x++)
                 if (const auto info = look({x, y}); !info.hidden && !info.blocked)
+                {
+                    // A read-only call goes on past a cell whose octants look() ordered, to order every octant
+                    // this test reads.
+                    if constexpr (std::is_const_v<World>)
+                        if (!known[(usize)(y - lo.y())*(usize)span.x() + (usize)(x - lo.x())])
+                            continue;
                     return false;
-        return true;
+                }
+        if constexpr (std::is_const_v<World>)
+            return !out_of_fills;
+        else
+            return true;
     };
 
     // True when, in each of the q.octants octants centered on the one nearest the bearing to the
@@ -651,14 +668,24 @@ result finder::Impl::find(World& w,
                 {
                     const auto d = distance_at({x, y}, k);
                     if (!d)
+                    {
+                        // As in body_hidden(), for an octant distance_at() ordered. A higher distance never
+                        // hides, so hides() failing on the other cells' highest still returns false below.
+                        if constexpr (std::is_const_v<World>)
+                            if (w.at(to_point(center_of({x, y})).chunk3()))
+                                continue;
                         return false;
+                    }
                     if (*d != Grid::Cover::blocked)
                         highest = Math::max(highest, *d);
                 }
             if (!hides(highest, len))
                 return false;
         }
-        return true;
+        if constexpr (std::is_const_v<World>)
+            return !out_of_fills;
+        else
+            return true;
     };
 
     arrayClear(cands);

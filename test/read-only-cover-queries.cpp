@@ -696,6 +696,80 @@ void test_read_only_cover_without_grids()
     fm_assert(!cb.at(missing_chunk));
 }
 
+// Asserts that no two orders name the same chunk and octant.
+void assert_distinct_cover_orders(ArrayView<const grid_order> orders)
+{
+    for (u32 i = 0; i < (u32)orders.size(); i++)
+        for (u32 j = i + 1; j < (u32)orders.size(); j++)
+            fm_assert(!(orders[i].chunk == orders[j].chunk && orders[i].octant == orders[j].octant));
+}
+
+// Returns c with its area cut to the cover grid cell centered at center.
+finder_case with_one_cell_area(finder_case c, Vector2i center)
+{
+    const auto off = center - Vector3i(c.q.pos).xy();
+    const auto half = Vector2i{(int)cover_params.div_size/2};
+    c.q.area = Range2Di{off - half, off + half};
+    return c;
+}
+
+// Test 5: a read-only call stopped at a candidate whose test lacks several octants orders all of them, so once
+// they are filled the next call passes that test.
+void test_read_only_cover_orders_every_missing_octant()
+{
+    auto ta = make_test_world(), tb = make_test_world();
+    auto& a = ta.w;
+    auto& b = tb.w;
+    const auto& cb = b;
+    Grid::GridRegistry reg_a, reg_b;
+    add_pools(reg_b);
+    const auto Pb = pools_of(reg_b);
+    auto& cover_b = reg_b.cover_pool(cover_params);
+    finder Fa, Fb;
+
+    const auto c = make_finder_cases()[5];
+    fm_assert(c.q.octants == 5);
+    // A cell whose test passes in a, so that the test reads all 5 octants of each cell under the body.
+    constexpr auto ds = (int)cover_params.div_size;
+    const auto R = (int)c.q.radius;
+    const auto P = Vector3i(c.q.pos).xy();
+    const auto cell_of = [](int px) { return floor_div(px + half_tile<int>, ds); };
+    Optional<finder_case> one_cell;
+    result expected;
+    for (auto y = cell_of(P.y() - R); !one_cell && y <= cell_of(P.y() + R); y++)
+        for (auto x = cell_of(P.x() - R); !one_cell && x <= cell_of(P.x() + R); x++)
+        {
+            const auto center = Vector2i{x, y}*ds + Vector2i{ds/2 - half_tile<int>};
+            if ((center - P).dot() > R*R)
+                continue;
+            const auto cell_case = with_one_cell_area(c, center);
+            expected = find_today(Fa, a, reg_a, cell_case);
+            fm_assert(!expected.out_of_fills);
+            if (expected.candidates == 1)
+                one_cell = cell_case;
+        }
+    fm_assert(one_cell);
+
+    Array<grid_order> orders;
+    // The cell's look() lacks both octants around its bearing to the threat.
+    auto r = find_read_only(Fb, cb, Pb, *one_cell, orders);
+    fm_assert(r.out_of_fills);
+    fm_assert_equal(2u, (u32)orders.size());
+    run_cover_orders(b, cover_b, orders);
+    arrayClear(orders);
+    // Of the 5 octants hidden_in_octants() reads, the cell's chunk has only look()'s 2 and octant 0.
+    r = find_read_only(Fb, cb, Pb, *one_cell, orders);
+    fm_assert(r.out_of_fills);
+    fm_assert(orders.size() >= 2);
+    assert_distinct_cover_orders(orders);
+    check_cover_orders(orders, finder_chunks_of(one_cell->q));
+    run_cover_orders(b, cover_b, orders);
+    arrayClear(orders);
+    r = find_read_only(Fb, cb, Pb, *one_cell, orders);
+    fm_assert(orders.isEmpty());
+    assert_same_result(expected, r, one_cell->list_spots);
+}
+
 } // namespace
 
 void test_read_only_cover_queries()
@@ -703,6 +777,7 @@ void test_read_only_cover_queries()
     test_read_only_cover_writes_nothing();
     test_read_only_cover_with_built_grids();
     test_read_only_cover_without_grids();
+    test_read_only_cover_orders_every_missing_octant();
 }
 
 } // namespace floormat::Test
