@@ -7,9 +7,11 @@
 #include "src/rtree-pool.inl"
 #include "src/chunk.hpp"
 #include "src/grid-pass.hpp"
+#include "src/scenery-proto.hpp"
 #include "src/tile-defs.hpp"
 #include "src/world.hpp"
 #include "loader/loader.hpp"
+#include "loader/scenery-cell.hpp"
 #include "loader/policy.hpp"
 #include "compat/assert.hpp"
 #include "compat/cmp.hpp"
@@ -135,9 +137,10 @@ struct benchmark_scene : chunks_and_queries
     Array<entry> largest_chunk_shuffled_entries;
 };
 
-enum class scene : u8 { dense, cover, maze, save, COUNT };
+// clusters stays last, so the other scenes' queries take the same random numbers as without it.
+enum class scene : u8 { dense, cover, maze, save, clusters, COUNT };
 constexpr u32 scene_count = (u32)scene::COUNT;
-constexpr const char* scene_names[scene_count] = { "dense", "cover", "maze", "save" };
+constexpr const char* scene_names[scene_count] = { "dense", "cover", "maze", "save", "clusters" };
 
 template<u32 M, typename C>
 auto& old_tree(C& c)
@@ -718,6 +721,84 @@ using HWY_NAMESPACE::search_blocks;
 using HWY_NAMESPACE::move_entry;
 using HWY_NAMESPACE::remove_entry;
 
+struct scenery_cluster
+{
+    Vector2i center_tile;
+    u32 two_sigma_in_tiles, scenery_count;
+};
+constexpr scenery_cluster scenery_clusters[] = {
+    {{4, 4}, 3, 2000},
+    {{4, 12}, 4, 2000},
+    {{12, 4}, 1, 2000},
+};
+constexpr u32 uniform_scenery_count = 10000;
+
+struct weighted_bbox_side
+{
+    u8 side;
+    u32 weight;
+};
+constexpr weighted_bbox_side scenery_bbox_sides[] = {
+    {16, 16}, {32, 8}, {64, 4}, {128, 2}, {192, 1},
+};
+
+u8 random_scenery_bbox_side(Random::xoshiro256starstar& rng)
+{
+    constexpr u32 weight_sum = [] {
+        u32 sum = 0;
+        for (const auto& s : scenery_bbox_sides)
+            sum += s.weight;
+        return sum;
+    }();
+    u32 r = below(rng, weight_sum), i = 0;
+    while (r >= scenery_bbox_sides[i].weight)
+        r -= scenery_bbox_sides[i++].weight;
+    return scenery_bbox_sides[i].side;
+}
+
+// A center whose bbox would leave the chunk is drawn again, so the distributions are truncated to the chunk.
+void make_clusters_world(world& w)
+{
+    constexpr auto ch = chunk_coords_{0, 0, 0};
+    auto& c = w[ch];
+    const auto chunk_min = -half_tile<Vector2i>, chunk_max = chunk_min + chunk_size<Vector2i>;
+    Random::xoshiro256starstar rng;
+    const auto add_scenery = [&](const auto& random_center) {
+        const auto size = Vector2ub{random_scenery_bbox_side(rng)};
+        Vector2i center, min;
+        do
+        {
+            center = random_center();
+            min = center - Vector2i{size/2};
+        }
+        while (!(min >= chunk_min).all() || !(min + Vector2i{size} <= chunk_max).all());
+        const auto tile = (center + half_tile<Vector2i>) / tile_size_xy;
+        scenery_proto p;
+        p.atlas     = loader.invalid_scenery_atlas().proto->atlas;
+        p.subtype   = generic_scenery_proto{};
+        p.offset    = Vector2b{center - tile*tile_size_xy};
+        p.bbox_size = size;
+        p.pass      = pass_mode::blocked;
+        w.make_scenery(w.make_id(), {ch, local_coords{tile}}, move(p));
+    };
+    for (const auto& cl : scenery_clusters)
+    {
+        const auto mean = Vector2{cl.center_tile*tile_size_xy};
+        const auto sigma = (float)(cl.two_sigma_in_tiles*(u32)tile_size_xy)/2;
+        for (u32 i = 0; i < cl.scenery_count; i++)
+            add_scenery([&] {
+                return Vector2i{Math::round(Vector2{Random::gaussian<float>(Random::next(rng), mean.x(), sigma),
+                                                    Random::gaussian<float>(Random::next(rng), mean.y(), sigma)})};
+            });
+    }
+    for (u32 i = 0; i < uniform_scenery_count; i++)
+        add_scenery([&] {
+            return Vector2i{(i32)below(rng, chunk_size_xy), (i32)below(rng, chunk_size_xy)} - half_tile<Vector2i>;
+        });
+    c.mark_passability_modified();
+    c.ensure_passability();
+}
+
 Optional<world> make_scene_world(scene s)
 {
     switch (s)
@@ -743,6 +824,11 @@ Optional<world> make_scene_world(scene s)
             return NullOpt;
         else
             return world::deserialize(path, loader_policy::warn);
+    }
+    case scene::clusters: {
+        auto w = world();
+        make_clusters_world(w);
+        return Optional<world>{move(w)};
     }
     case scene::COUNT:
         break;
@@ -1042,6 +1128,10 @@ Array<query> make_queries(u32 chunk_count, u32 largest_chunk_index, bool is_larg
     return queries;
 }
 
+// check_query reads every entry of the queried chunk. A query set checks its queries while the entries of their
+// chunks total at most this many, and only counts the hits of the rest.
+constexpr usize max_entries_checked_per_query_set = 1 << 22;
+
 void make_checked_queries(chunks_and_queries& s, u32 kind, Random::xoshiro256starstar& rng)
 {
     for (u32 is_largest_only = 0; is_largest_only < 2; is_largest_only++)
@@ -1049,10 +1139,18 @@ void make_checked_queries(chunks_and_queries& s, u32 kind, Random::xoshiro256sta
         auto& queries = s.queries[is_largest_only][kind];
         queries = make_queries((u32)s.chunks.size(), s.largest_chunk_index, is_largest_only, box_sides[kind], rng);
         u64 num_hits = 0;
+        usize num_entries_checked = 0;
         for (const auto& q : queries)
         {
-            num_hits += check_query(s.chunks[q.chunk_index], q);
-            check_fractional_query(s.chunks[q.chunk_index], q, rng);
+            const auto& c = s.chunks[q.chunk_index];
+            num_entries_checked += c.entries.size();
+            if (num_entries_checked <= max_entries_checked_per_query_set)
+            {
+                num_hits += check_query(c, q);
+                check_fractional_query(c, q, rng);
+            }
+            else
+                num_hits += (u64)c.old_tree_8.Search(q.min, q.max, [](u64, const auto&) { return true; });
         }
         s.num_hits[is_largest_only][kind] = num_hits;
     }
@@ -1195,14 +1293,16 @@ Pointer<chunks_and_queries> make_random_rects_set(u32 entry_count, ArrayView<con
 
 std::array<Pointer<chunks_and_queries>, std::size(random_rect_entry_counts)> make_random_rects_sets()
 {
+    // The clusters scene's entries would outnumber the other scenes' entries.
+    const auto scenes = ArrayView<const Pointer<benchmark_scene>>{benchmark_scenes().data(), (usize)scene::clusters};
     Array<Vector2i> sizes;
     usize size_count = 0;
-    for (const auto& sc : benchmark_scenes())
+    for (const auto& sc : scenes)
         if (sc)
             for (const auto& c : sc->chunks)
                 size_count += c.entries.size();
     arrayReserve(sizes, Math::max(size_count, usize{16}));
-    for (const auto& sc : benchmark_scenes())
+    for (const auto& sc : scenes)
         if (sc)
             for (const auto& c : sc->chunks)
                 for (const auto& e : c.entries)
