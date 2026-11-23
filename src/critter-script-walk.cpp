@@ -8,7 +8,7 @@
 #include "raycast-line.hpp"
 #include "rotation.inl"
 #include "sweep-aabb.hpp"
-#include "order-list.hpp"
+#include "order-list.inl"
 #include "compat/function-view.hpp"
 #include "entity/name-of.hpp"
 #include <utility>

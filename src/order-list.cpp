@@ -17,44 +17,13 @@ template<typename T> void reserve_with_headroom(Array<T>& A, usize count)
 order_buffer::order_buffer()
 {
     arrayReserve(_orders, 16);
-    arrayReserve(_dependency_counts, 16);
-    arrayReserve(_dependencies, 16);
     arrayReserve(_object_orders, 16);
-}
-
-void order_buffer::begin_object(u32 update_index)
-{
-    fm_assert(!_is_object_open);
-    _is_object_open = true;
-    arrayAppend(_object_orders, object_orders{update_index, (u32)_orders.size(), 0, (u32)_dependencies.size()});
-}
-
-u32 order_buffer::add(const order& o, ArrayView<const u32> dependencies)
-{
-    fm_assert(_is_object_open);
-    auto& object = _object_orders.back();
-    const auto position = object.order_count;
-    for (auto d : dependencies)
-        fm_assert(d < position);
-    arrayAppend(_orders, o);
-    arrayAppend(_dependency_counts, (u32)dependencies.size());
-    arrayAppend(_dependencies, dependencies);
-    object.order_count++;
-    return position;
-}
-
-void order_buffer::end_object()
-{
-    fm_assert(_is_object_open);
-    _is_object_open = false;
 }
 
 void order_buffer::clear()
 {
     fm_assert(!_is_object_open);
     arrayClear(_orders);
-    arrayClear(_dependency_counts);
-    arrayClear(_dependencies);
     arrayClear(_object_orders);
 }
 

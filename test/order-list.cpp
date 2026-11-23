@@ -13,12 +13,9 @@ struct order_list_access
         return { arrayCapacity(list._orders), arrayCapacity(list._buffer_objects) };
     }
 
-    static std::array<usize, 4> capacities(order_buffer& buffer)
+    static std::array<usize, 2> capacities(order_buffer& buffer)
     {
-        return {
-            arrayCapacity(buffer._orders), arrayCapacity(buffer._dependency_counts),
-            arrayCapacity(buffer._dependencies), arrayCapacity(buffer._object_orders),
-        };
+        return { arrayCapacity(buffer._orders), arrayCapacity(buffer._object_orders) };
     }
 };
 

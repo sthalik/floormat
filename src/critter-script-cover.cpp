@@ -17,7 +17,7 @@
 #include "search-result.hpp"
 #include "tile-defs.hpp"
 #include "world.hpp"
-#include "order-list.hpp"
+#include "order-list.inl"
 #include "entity/name-of.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/function-view.hpp"

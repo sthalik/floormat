@@ -13,11 +13,9 @@ class order_buffer
     friend class order_list;
     friend struct order_list_access;
 
-    struct object_orders { u32 update_index, first_order, order_count, first_dependency; };
+    struct object_orders { u32 update_index, first_order, order_count; };
 
     Array<order> _orders;
-    Array<u32> _dependency_counts;
-    Array<u32> _dependencies;
     Array<object_orders> _object_orders;
     bool _is_object_open = false;
 
