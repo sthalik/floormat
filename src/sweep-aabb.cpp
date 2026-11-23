@@ -8,7 +8,7 @@
 #include "raycast-loop.hpp"
 #include "grid-pass.hpp"
 #include "grid-object.hpp"
-#include "RTree-search.hpp"
+#include "old-rtree-search.hpp"
 #include "compat/function-view.hpp"
 #include <bit>
 #include <mg/Functions.h>

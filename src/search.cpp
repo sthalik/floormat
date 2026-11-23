@@ -6,7 +6,7 @@
 #include "world.hpp"
 #include "pass-mode.hpp"
 #include "object.hpp"
-#include "RTree-search.hpp"
+#include "old-rtree-search.hpp"
 #include "rect-intersects.hpp"
 #include "point.inl"
 #include "compat/array-size.hpp"

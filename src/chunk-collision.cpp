@@ -5,7 +5,7 @@
 #include "world.hpp"
 #include "pass-through.hpp"
 #include "search.hpp"
-#include "RTree-search.hpp"
+#include "old-rtree-search.hpp"
 #include "rect-intersects.hpp"
 #include "hole.hpp"
 #include "hole-cut.hpp"

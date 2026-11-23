@@ -2,8 +2,8 @@
 #include "raycast-dense-world.hpp"
 #include "editor/mazes.hpp"
 #include "random/random.hpp"
-#include "src/RTree.hpp"
-#include "src/RTree-search.hpp"
+#include "src/old-rtree.hpp"
+#include "src/old-rtree-search.hpp"
 #include "src/rtree-pool.inl"
 #include "src/chunk.hpp"
 #include "src/grid-pass.hpp"
@@ -57,7 +57,7 @@ constexpr u64 first_critter_id = ~u64{} - critter_count;
 static_assert(cmp::less<>{}(1, 2) && !cmp::less<>{}(2, 2) && cmp::less<>{}(1, 1.5f) && cmp::less<int>{}(1, 2));
 static_assert(cmp::less_equal<>{}(2, 2) && !cmp::less_equal<>{}(3, 2) && cmp::less_equal<int>{}(2, 2));
 
-template<u32 M> using Chunk_RTree_Fanout = ::RTree<object_id, float, 2, float, (int)M, (int)M/2>;
+template<u32 M> using Chunk_RTree_Fanout = ::old_rtree<object_id, float, 2, float, (int)M, (int)M/2>;
 static_assert(std::is_same_v<Chunk_RTree_Fanout<8>, Chunk_RTree>);
 
 constexpr std::integer_sequence<u32, 16, 24, 32, 48, 64> fanouts_above_8;

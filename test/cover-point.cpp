@@ -30,7 +30,7 @@
 #include "src/intra-coord.inl"
 #include "src/point.inl"
 #include "src/raycast.hpp"
-#include "src/RTree-search.hpp"
+#include "src/old-rtree-search.hpp"
 #include "src/search.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"

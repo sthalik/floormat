@@ -10,7 +10,7 @@
 #include "grid-pass.hpp"
 #include "grid-object.hpp"
 #include "search-pred.hpp"
-#include "RTree-search.hpp"
+#include "old-rtree-search.hpp"
 #include "compat/function-view.hpp"
 #include <cfloat>
 #include <bit>

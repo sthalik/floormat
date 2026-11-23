@@ -16,7 +16,7 @@
 #include "src/tile-constants.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
-#include "src/RTree-search.hpp"
+#include "src/old-rtree-search.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/function-view.hpp"
 #include "compat/nanosecond.hpp"

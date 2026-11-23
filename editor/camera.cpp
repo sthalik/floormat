@@ -2,7 +2,7 @@
 #include "src/tile-constants.hpp"
 #include "src/global-coords.hpp"
 #include "src/point.inl"
-#include "src/RTree-search.hpp"
+#include "src/old-rtree-search.hpp"
 #include "src/object.hpp"
 #include "src/light.hpp"
 #include "src/object-storage.inl"

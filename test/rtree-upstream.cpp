@@ -1,6 +1,6 @@
 #include "app.hpp"
-#include "src/RTree.hpp"
-#include "src/RTree-search.hpp"
+#include "src/old-rtree.hpp"
+#include "src/old-rtree-search.hpp"
 #include "src/rtree-pool.inl"
 #include "random/random.hpp"
 #include <cr/Array.h>
@@ -53,7 +53,7 @@ void check_basic_entries(Tree& t)
 
 void test_basics()
 {
-    using Tree = ::RTree<int, int, 2, float>;
+    using Tree = ::old_rtree<int, int, 2, float>;
     Tree t;
     for (const auto& b : basic_boxes)
         t.Insert(b.min, b.max, b.value);
@@ -74,7 +74,7 @@ void test_basics()
 
 void test_memory()
 {
-    using Tree = ::RTree<int, float, 3>;
+    using Tree = ::old_rtree<int, float, 3>;
     struct thing { float min[3], max[3]; bool live; };
     constexpr u32 count = 40, step = 4;
 
@@ -128,7 +128,7 @@ void test_memory()
 
 void test_bad_data()
 {
-    using Tree = ::RTree<int, i64, 2, float>;
+    using Tree = ::old_rtree<int, i64, 2, float>;
     struct row { i64 x, y, w, h; };
     static constexpr row rows[] = {
         { 20041225182812, 20041225182812, 32743, 32743 }, { 20050120182105, 20050120182105, 32743, 32743 },
@@ -258,7 +258,7 @@ void test_bad_data()
 
 void test_tree_list()
 {
-    using Tree = ::RTree<int, int, 2, float, 4>;
+    using Tree = ::old_rtree<int, int, 2, float, 4>;
     Tree t;
     for (int i = 0; i < 10; i++)
     {

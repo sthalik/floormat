@@ -1,10 +1,10 @@
 #pragma once
 #include "compat/assert.hpp"
-#include "RTree.h"
+#include "old-rtree.h"
 
-RTREE_TEMPLATE
+OLD_RTREE_TEMPLATE
 template<typename F>
-int RTREE_QUAL::Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], F&& callback) const
+int OLD_RTREE_QUAL::Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDIMS], F&& callback) const
 {
 #ifndef FM_NO_DEBUG3
   for(int index=0; index<NUMDIMS; ++index)
@@ -30,9 +30,9 @@ int RTREE_QUAL::Search(const ELEMTYPE a_min[NUMDIMS], const ELEMTYPE a_max[NUMDI
 }
 
 // Search in an index tree or subtree for all data retangles that overlap the argument rectangle.
-RTREE_TEMPLATE
+OLD_RTREE_TEMPLATE
 template<typename F>
-bool RTREE_QUAL::Search(Node* a_node, Rect* a_rect, int& a_foundCount, F&& callback) const
+bool OLD_RTREE_QUAL::Search(Node* a_node, Rect* a_rect, int& a_foundCount, F&& callback) const
 {
   fm_debug3_assert(a_node);
   fm_debug3_assert(a_node->m_level >= 0);

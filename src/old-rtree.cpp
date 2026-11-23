@@ -8,16 +8,16 @@ usize fresh_counter, reuse_counter, dtor_counter; // NOLINT
 } // namespace
 } // namespace floormat::detail
 #endif
-#include "RTree.hpp"
+#include "old-rtree.hpp"
 #include "rtree-pool.inl"
 #include "object-id.hpp"
 
 namespace floormat::detail {
 
-template struct rtree_pool<RTree<object_id, float, 2, float>::Node>;
-template struct rtree_pool<RTree<object_id, float, 2, float>::ListNode>;
+template struct rtree_pool<old_rtree<object_id, float, 2, float>::Node>;
+template struct rtree_pool<old_rtree<object_id, float, 2, float>::ListNode>;
 
 } // namespace floormat::detail
 
 using floormat::object_id;
-template class RTree<object_id, float, 2, float>;
+template class old_rtree<object_id, float, 2, float>;

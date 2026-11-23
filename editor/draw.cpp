@@ -9,7 +9,7 @@
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
-#include "src/RTree-search.hpp"
+#include "src/old-rtree-search.hpp"
 #include "src/spritebatch.hpp"
 #include "src/point.inl"
 #include "src/depth.hpp"

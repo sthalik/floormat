@@ -16,7 +16,7 @@
 #include "src/point.inl"
 #include "src/raycast.hpp"
 #include "src/hole.hpp"
-#include "src/RTree.hpp"
+#include "src/old-rtree.hpp"
 #include "src/search.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"

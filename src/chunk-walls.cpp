@@ -4,7 +4,7 @@
 #include "wall-atlas.hpp"
 #include "spritebatch.hpp"
 #include "point.inl"
-#include "RTree-search.hpp"
+#include "old-rtree-search.hpp"
 #include "depth.hpp"
 #include "hole-cut.hpp"
 #include "sprite-atlas.hpp"

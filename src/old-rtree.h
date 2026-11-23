@@ -13,7 +13,7 @@
 #endif
 
 //
-// RTree.h
+// old-rtree.h
 //
 
 //#define RTREE_DONT_USE_MEMPOOLS // This version does not contain a fixed memory allocator, fill in lines with EXAMPLE to implement one.
@@ -26,12 +26,12 @@ class RTFileStream;  // File I/O helper class, look below for implementation and
 
 namespace floormat::detail { template<typename T> struct rtree_pool; }
 
-#define RTREE_TEMPLATE template<class DATATYPE, class ELEMTYPE, int NUMDIMS, class ELEMTYPEREAL, int TMAXNODES, int TMINNODES>
-#define RTREE_QUAL RTree<DATATYPE, ELEMTYPE, NUMDIMS, ELEMTYPEREAL, TMAXNODES, TMINNODES>
+#define OLD_RTREE_TEMPLATE template<class DATATYPE, class ELEMTYPE, int NUMDIMS, class ELEMTYPEREAL, int TMAXNODES, int TMINNODES>
+#define OLD_RTREE_QUAL old_rtree<DATATYPE, ELEMTYPE, NUMDIMS, ELEMTYPEREAL, TMAXNODES, TMINNODES>
 
-/// \class RTree
+/// \class old_rtree
 /// Implementation of RTree, a multidimensional bounding rectangle tree.
-/// Example usage: For a 3-dimensional tree use RTree<Object*, float, 3> myTree;
+/// Example usage: For a 3-dimensional tree use old_rtree<Object*, float, 3> myTree;
 ///
 /// This modified, templated C++ version by Greg Douglas at Auran (http://www.auran.com)
 ///
@@ -47,7 +47,7 @@ namespace floormat::detail { template<typename T> struct rtree_pool; }
 ///
 template<class DATATYPE, class ELEMTYPE, int NUMDIMS,
          class ELEMTYPEREAL, int TMAXNODES, int TMINNODES>
-class RTree final
+class old_rtree final
 {
 public:
 
@@ -62,10 +62,10 @@ public:
     MINNODES = TMINNODES,                         ///< Min elements in node
   };
 
-  RTree();
-  RTree(const RTree& other);
-  ~RTree() noexcept;
-  RTree& operator=(const RTree&);
+  old_rtree();
+  old_rtree(const old_rtree& other);
+  ~old_rtree() noexcept;
+  old_rtree& operator=(const old_rtree&);
 
   /// Insert entry
   /// \param a_min Min of bounding rect
@@ -175,7 +175,7 @@ public:
     StackElement m_stack[MAX_STACK];              ///< Stack as we are doing iteration instead of recursion
     int m_tos;                                    ///< Top Of Stack index
 
-    friend class RTree; // Allow hiding of non-public functions while allowing manipulation by logical owner
+    friend class old_rtree; // Allow hiding of non-public functions while allowing manipulation by logical owner
   };
 
   /// Get 'first' for iteration
@@ -298,11 +298,11 @@ public:
 #ifndef RTREE_NO_EXTERN_TEMPLATE
 
 namespace floormat::detail {
-extern template struct rtree_pool<RTree<u64, float, 2, float>::Node>;
-extern template struct rtree_pool<RTree<u64, float, 2, float>::ListNode>;
+extern template struct rtree_pool<old_rtree<u64, float, 2, float>::Node>;
+extern template struct rtree_pool<old_rtree<u64, float, 2, float>::ListNode>;
 } // namespace floormat::detail
-extern template class RTree<floormat::u64, float, 2, float>;
+extern template class old_rtree<floormat::u64, float, 2, float>;
 
 #endif
-//#undef RTREE_TEMPLATE
-//#undef RTREE_QUAL
+//#undef OLD_RTREE_TEMPLATE
+//#undef OLD_RTREE_QUAL
