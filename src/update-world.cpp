@@ -147,14 +147,17 @@ void update_world(world& w, ArrayView<const chunk_coords_> chunks, Ns dt)
                     e.last_frame_no = frame_no;
                     // Generic scenery, lights and holes give no orders, since their update() is empty.
                     if constexpr (std::is_same_v<T, critter>)
+                    {
                         e.think(dt, ctx, update_index);
+                        update_index++;
+                    }
                     else if constexpr (std::is_same_v<T, door_scenery>)
                     {
                         buffer.begin_object(update_index);
                         buffer.add({.giver = e.id, .kind = order_kind::update_object});
                         buffer.end_object();
+                        update_index++;
                     }
-                    update_index++;
                 }
             });
     }

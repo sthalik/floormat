@@ -24,7 +24,8 @@ class order_buffer
 public:
     order_buffer();
 
-    // update_index is the object's position in the frame's update list.
+    // update_index is the object's position among the frame's objects that give orders. Keep the indices
+    // dense, since order_list::append_buffers() makes a slot for each index up to the largest.
     void begin_object(u32 update_index);
     // Returns the order's position among its object's orders, from 0. Each dependency is such a position.
     u32 add(const order& o, ArrayView<const u32> dependencies = {});
@@ -47,6 +48,7 @@ class order_list
     struct buffer_object { const order_buffer* buffer; u32 object_index; };
 
     Array<order> _orders;
+    // Slot k holds the buffer object whose update_index is k, or a null buffer.
     Array<buffer_object> _buffer_objects;
     u32 _num_finished_orders = 0;
     u32 _running_position = (u32)-1;

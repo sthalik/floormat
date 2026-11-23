@@ -1,6 +1,5 @@
 #include "order-list.hpp"
 #include "compat/assert.hpp"
-#include <algorithm>
 #include <cr/GrowableArray.h>
 
 namespace floormat {
@@ -72,32 +71,33 @@ order_list::order_list()
 
 void order_list::append_buffers(ArrayView<const order_buffer> buffers)
 {
-    usize num_objects = 0, num_orders = 0;
+    u32 num_slots = 0;
+    usize num_orders = 0;
     for (const auto& b : buffers)
     {
         fm_assert(!b._is_object_open);
-        num_objects += b._object_orders.size();
+        for (const auto& object : b._object_orders)
+            if (object.update_index >= num_slots)
+                num_slots = object.update_index + 1;
         num_orders += b._orders.size();
     }
     arrayClear(_buffer_objects);
-    reserve_with_headroom(_buffer_objects, num_objects);
+    reserve_with_headroom(_buffer_objects, num_slots);
+    arrayResize(_buffer_objects, ValueInit, num_slots);
     reserve_with_headroom(_orders, _orders.size() + num_orders);
 
     for (const auto& b : buffers)
         for (auto i = 0u; i < (u32)b._object_orders.size(); i++)
-            arrayAppend(_buffer_objects, buffer_object{&b, i});
-
-    const auto update_index_of = [](const buffer_object& x) {
-        return x.buffer->_object_orders[x.object_index].update_index;
-    };
-    std::sort(_buffer_objects.begin(), _buffer_objects.end(), [&](const buffer_object& a, const buffer_object& b) {
-        return update_index_of(a) < update_index_of(b);
-    });
-    for (auto i = 1u; i < (u32)_buffer_objects.size(); i++)
-        fm_assert(update_index_of(_buffer_objects[i-1]) != update_index_of(_buffer_objects[i]));
+        {
+            auto& slot = _buffer_objects[b._object_orders[i].update_index];
+            fm_assert(!slot.buffer);
+            slot = buffer_object{&b, i};
+        }
 
     for (const auto& [b, object_index] : _buffer_objects)
     {
+        if (!b)
+            continue;
         const auto& object = b->_object_orders[object_index];
         arrayAppend(_orders, b->_orders.sliceSize(object.first_order, object.order_count));
     }
