@@ -1,8 +1,8 @@
 #include "app.hpp"
 #include "compat/atomic.hpp"
 #include "compat/combinations.hpp"
-#include "compat/fwd/chrono.hpp"
-#include "compat/fwd/thread.hpp"
+#include "compat/stl/chrono.hpp"
+#include "compat/stl/thread.hpp"
 #include "compat/zip.hpp"
 #include <array>
 #include <iterator>

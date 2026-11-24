@@ -2,7 +2,7 @@
 #include "point.inl"
 #include "compat/debug.hpp"
 #include "compat/hash.hpp"
-#include "compat/fwd/algorithm/sort.hpp"
+#include "compat/stl/algorithm/sort.hpp"
 #include <array>
 
 namespace floormat {

@@ -2,8 +2,8 @@
 #include "compat/atomic.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/event-count.hpp"
-#include "compat/fwd/chrono.hpp"
-#include "compat/fwd/thread.hpp"
+#include "compat/stl/chrono.hpp"
+#include "compat/stl/thread.hpp"
 #include <array>
 #include <latch>
 

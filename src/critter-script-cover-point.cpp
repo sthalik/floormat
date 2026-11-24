@@ -10,7 +10,7 @@
 #include "old-rtree-search.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/function-view.hpp"
-#include "compat/fwd/algorithm/sort.hpp"
+#include "compat/stl/algorithm/sort.hpp"
 #include <array>
 #include <bit>
 #include <cmath>

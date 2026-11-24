@@ -9,7 +9,7 @@
 #include "src/object-storage.inl"
 #include "shaders/shader.hpp"
 #include "compat/function-view.hpp"
-#include "compat/fwd/algorithm/sort.hpp"
+#include "compat/stl/algorithm/sort.hpp"
 #include "compat/nanosecond.inl"
 #include <cr/GrowableArray.h>
 #include <cr/ArrayView.h>

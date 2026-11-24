@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/array-fwd.hpp"
+#include "stl/array-fwd.hpp"
 #include <type_traits>
 #include <mg/Math/TypeTraits.h>
 

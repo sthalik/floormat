@@ -2,8 +2,8 @@
 #include "compat/atomic.hpp"
 #include "compat/chase-lev-deque.inl"
 #include "compat/enumerate.hpp"
-#include "compat/fwd/chrono.hpp"
-#include "compat/fwd/thread.hpp"
+#include "compat/stl/chrono.hpp"
+#include "compat/stl/thread.hpp"
 #include "compat/valgrind.hpp"
 #include <array>
 #include <bit>

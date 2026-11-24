@@ -1,6 +1,6 @@
 #pragma once
 #include "array-size.hpp"
-#include "fwd/tuple-fwd.hpp"
+#include "stl/tuple-fwd.hpp"
 #include <type_traits>
 #include <utility>
 #include <mg/Math/TypeTraits.h>

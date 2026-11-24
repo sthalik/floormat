@@ -2,8 +2,8 @@
 #include "object.hpp"
 #include "scenery.hpp"
 #include "compat/borrowed-ptr.inl"
-#include "compat/fwd/algorithm/sort.hpp"
-#include "compat/fwd/algorithm/lower_bound.hpp"
+#include "compat/stl/algorithm/sort.hpp"
+#include "compat/stl/algorithm/lower_bound.hpp"
 #include <array>
 #include <utility>
 #include <cr/GrowableArray.h>

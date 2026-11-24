@@ -1,5 +1,5 @@
 #include "random.hpp"
-#include "compat/fwd/chrono.hpp"
+#include "compat/stl/chrono.hpp"
 #include "compat/enumerate.hpp"
 #include <bit>
 #include <cinttypes>

@@ -3,7 +3,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/weak-borrowed-ptr.inl"
 #include "compat/exception.inl"
-#include "compat/fwd/thread.hpp"
+#include "compat/stl/thread.hpp"
 #include <new>
 #include <latch>
 #include <cr/GrowableArray.h>

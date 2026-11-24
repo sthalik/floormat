@@ -8,7 +8,7 @@
 #include "compat/borrowed-ptr.inl"
 #include "compat/hash-table-load-factor.hpp"
 #include "compat/crc64.hpp"
-#include "compat/fwd/algorithm/sort.hpp"
+#include "compat/stl/algorithm/sort.hpp"
 #include "compat/nanosecond.inl"
 
 #include "src/ground-atlas.hpp"

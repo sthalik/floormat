@@ -6,7 +6,7 @@
 #include "compat/enumerate.hpp"
 #include "compat/exception.inl"
 #include "compat/defs.hpp"
-#include "compat/fwd/thread.hpp"
+#include "compat/stl/thread.hpp"
 #include "compat/zip.hpp"
 #include "random/random.hpp"
 #include <array>

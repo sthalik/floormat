@@ -6,7 +6,7 @@
 #include "src/depth.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/limits.hpp"
-#include "compat/fwd/algorithm/ranges_sort.hpp"
+#include "compat/stl/algorithm/ranges_sort.hpp"
 #include "compat/zip.hpp"
 #include <vector>
 #include <bit>
