@@ -9,6 +9,7 @@
 #include "compat/exception.hpp"
 #include "compat/limits.hpp"
 #include "compat/non-const.hpp"
+#include "compat/saturate-cast.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/nanosecond.inl"
 #include <cr/Pair.h>
@@ -213,7 +214,7 @@ Ns object::fraction_to_ns(u32 fraction)
 
 u32 object::ns_to_delta(const Ns& time)
 {
-    return (u32)Math::min(time.stamp, u64{limits<u32>::max});
+    return saturate_cast<u32>(time.stamp);
 }
 
 Ns object::alloc_ticks(const Ns& dt, u32 delta, Ns frame, float speed)

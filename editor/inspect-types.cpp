@@ -1,5 +1,6 @@
 #include "entity/metadata.hpp"
 #include "compat/limits.hpp"
+#include "compat/saturate-cast.hpp"
 #include "src/scenery.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/tile-defs.hpp"
@@ -74,11 +75,9 @@ struct entity_accessors<object, inspect_intent_t> {
             E::type<Vector3i>::field{"chunk"_s,
                 [](const object& x) { return Vector3i(x.chunk().coord()); },
                 [](object& x, Vector3i cʹ) {
-                    constexpr auto cmin = Vector3i(limits<i16>::min, limits<i16>::min, chunk_z_min);
-                    constexpr auto cmax = Vector3i(limits<i16>::max, limits<i16>::max, chunk_z_max);
                     auto i  = x.index();
-                    auto c  = Math::clamp(cʹ, cmin, cmax);
-                    auto ch = chunk_coords_{(i16)c.x(), (i16)c.y(), (i8)c.z()};
+                    auto z  = (i8)Math::clamp(cʹ.z(), (int)chunk_z_min, (int)chunk_z_max);
+                    auto ch = chunk_coords_{saturate_cast<i16>(cʹ.x()), saturate_cast<i16>(cʹ.y()), z};
                     auto g0 = x.coord;
                     auto g  = global_coords{ch, x.coord.local()};
                     if (g0 != g)

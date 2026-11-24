@@ -5,6 +5,7 @@
 #include "compat/enumerate.hpp"
 #include "compat/function-view.hpp"
 #include "compat/nanosecond.hpp"
+#include "compat/saturate-cast.hpp"
 #include "compat/valgrind.hpp"
 #include "src/grid-pass.hpp"
 #include "src/grid-cover.hpp"
@@ -1549,7 +1550,7 @@ u32 cover_fixed(float px)
 u16 cover_units_fixed(u32 fixed, u32 div_size)
 {
     const auto unit = div_size * cover_fixed_one;
-    return (u16)((Math::min(fixed, (u32)UINT16_MAX) + unit / 2) / unit);
+    return (u16)((saturate_cast<u16>(fixed) + unit / 2) / unit);
 }
 
 u32 cover_units(float px, u32 div_size)
@@ -1636,7 +1637,7 @@ Array<u16> cover_reference_distances(ArrayView<const bool> passable, u32 div_siz
     const auto crossed = k % 4 == 0 ? Array<Vector2i>{} : cover_crossed_cells(k);
     const auto crossed_cell_distance = [&](int major_offset) {
         const double major_px = (u32)major_offset * div_size * len / major;
-        return Math::min((u32)(major_px*cover_fixed_one + .5), (u32)UINT16_MAX);
+        return saturate_cast<u16>((u32)(major_px*cover_fixed_one + .5));
     };
 
     // The cell at which the model stops following a line, as its row_from_edge() and its distance in
@@ -1676,8 +1677,8 @@ Array<u16> cover_reference_distances(ArrayView<const bool> passable, u32 div_siz
                     continue;
                 break;
             }
-            const auto fixed = Math::min(last.fixed + R(n) - R(last.n), i64{UINT16_MAX});
-            ret[i] = cover_units_fixed((u32)fixed, div_size);
+            const auto fixed = saturate_cast<u16>(last.fixed + R(n) - R(last.n));
+            ret[i] = cover_units_fixed(fixed, div_size);
         }
     return ret;
 }

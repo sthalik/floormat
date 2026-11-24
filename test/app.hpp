@@ -81,6 +81,7 @@ void test_reverse_iterator();
 void test_rtree();
 void test_rtree_pool();
 void test_rtree_upstream();
+void test_saturate_cast();
 void test_save();
 void test_saves();
 void test_scenery();

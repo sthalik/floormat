@@ -10,6 +10,7 @@
 #include "compat/function-view.hpp"
 #include "compat/map.hpp"
 #include "compat/nanosecond.inl"
+#include "compat/saturate-cast.hpp"
 #include "compat/timer.hpp"
 #include <bit>
 #include <array>
@@ -591,7 +592,7 @@ void fill_non_octilinear_octant(CoverGrid& g, u32 k, const std::array<chunk_pass
     for (u32 c = 0; c < o.count; c++)
     {
         const double major_px = o.cells[c].major * div_size * len / Math::max(aq, ap);
-        stop_px[c] = (u16)Math::min((u32)(major_px*fixed_one + .5), (u32)UINT16_MAX);
+        stop_px[c] = saturate_cast<u16>((u32)(major_px*fixed_one + .5));
     }
 
     const u32 slots = ap + 1, rs = row_size(dc);
@@ -611,7 +612,7 @@ void fill_non_octilinear_octant(CoverGrid& g, u32 k, const std::array<chunk_pass
         const auto r = (u32)(n + (i32)num_neighbor_rows);
         const u32 iy = n < 0;
         const auto y = (u32)((p > 0 ? (i32)dc - 1 - n : n) + (i32)dc) % dc;
-        const auto step = (u32)Math::min(R(n) - R(n - (i32)ap), (i32)UINT16_MAX);
+        const u32 step = saturate_cast<u16>(R(n) - R(n - (i32)ap));
         const chunk_pass_bits &bits = pass_bits[iy*2], &neighbor_bits = pass_bits[iy*2 + 1];
 
         u16* const mask = mask_row(r);

@@ -7,6 +7,7 @@
 #include "compat/enumerate.hpp"
 #include "compat/gl-error.hpp"
 #include "compat/limits.hpp"
+#include "compat/saturate-cast.hpp"
 #include <cstring>
 #include <cstdio>
 #include <bit>
@@ -279,8 +280,8 @@ Atlas::Limits get_texture_limits()
     return {
         .size = std::bit_floor((u32)max.x()),
         .layer_count = (u32)max.z(),
-        .sparse_texture_size = (u32)Math::max(sparse_texture_size, 0),
-        .sparse_array_texture_layer_count = (u32)Math::max(sparse_array_texture_layer_count, 0),
+        .sparse_texture_size = saturate_cast<u32>(sparse_texture_size),
+        .sparse_array_texture_layer_count = saturate_cast<u32>(sparse_array_texture_layer_count),
         .buffer_storage_supported = ctx.isExtensionSupported<ARB::buffer_storage>(),
     };
 }

@@ -3,6 +3,7 @@
 #include "tile-defs.hpp"
 #include "compat/assert.hpp"
 #include "compat/limits.hpp"
+#include "compat/saturate-cast.hpp"
 #include <mg/Functions.h>
 #include <mg/Vector2.h>
 
@@ -50,7 +51,7 @@ constexpr Pair<Vector2b, Vector2b> rotate_offset(Vector2b offset, Vector2b bbox_
     const auto off = Vector2i(rotate_point(offset, r_old, r_new));
     const auto offʹ = Math::clamp(off, -half_tile<Vector2i>, half_tile<Vector2i> - Vector2i{1});
     const auto bb = Vector2i(rotate_point(bbox_offset, r_old, r_new)) + off - offʹ;
-    return { Vector2b(offʹ), Vector2b(Math::min(bb, Vector2i{limits<i8>::max})) };
+    return { Vector2b(offʹ), saturate_cast<Vector2b>(bb) };
 }
 
 constexpr Vector2ub rotate_size(Vector2ub size0, rotation r_old, rotation r_new)

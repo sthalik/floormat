@@ -50,6 +50,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_tie),
     FM_TEST(test_sequence_traits),
     FM_TEST(test_checked_cast),
+    FM_TEST(test_saturate_cast),
     FM_TEST(test_map),
     FM_TEST(test_combinations),
     FM_TEST(test_range_algorithms),
