@@ -46,6 +46,9 @@ constexpr u32 min_pool_bbox_size(float radius)
 [[nodiscard]] raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self,
                                                  Grid::Pass::Pool& pass_grid_pool,
                                                  const Search::pred& pred, float radius = 0);
+// Returns !raycast(...).success for the same arguments.
+[[nodiscard]] bool is_occluded(world& w, point from, point to, object_id self,
+                               Grid::Pass::Pool& pass_grid_pool, const Search::pred& pred, float radius = 0);
 [[nodiscard]] raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self,
                                                  Grid::Object::Pool& object_pool,
                                                  const Search::pred& pred, float radius = 0);

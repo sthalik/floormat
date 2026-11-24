@@ -23,6 +23,14 @@ raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, p
     return detail::do_raycasting<true, false>(diag, w, from, to, self, pass_grid_pool, nullptr, pred, radius);
 }
 
+bool is_occluded(world& w, point from, point to, object_id self,
+                 Grid::Pass::Pool& pass_grid_pool, Search::pred const& pred, float radius)
+{
+    return !detail::do_raycasting<false, false, detail::raycast_mode::any_hit>(nullptr, w, from, to, self,
+                                                                               pass_grid_pool, nullptr,
+                                                                               pred, radius).success;
+}
+
 raycast_result_s raycast_with_diag(raycast_diag_s& diag, world& w, point from, point to, object_id self,
                                    Grid::Object::Pool& object_pool, Search::pred const& pred, float radius)
 {

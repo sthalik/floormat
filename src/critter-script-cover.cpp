@@ -1253,8 +1253,12 @@ bptr<object> find_object_at_z(world& w, object_id id, i8 z)
 Raycast::raycast_result_s line_of_sight(world& w, Grid::GridRegistry& reg, u32 div_size, point from, point to,
                                         object_id self)
 {
-    const auto params = Pass::Params{div_size, pass_mode::shoot_through};
-    return raycast(w, from, to, self, reg.pass_pool(params), Search::without_critters);
+    return raycast(w, from, to, self, line_of_sight_pass_pool(reg, div_size), Search::without_critters);
+}
+
+Grid::Pass::Pool& line_of_sight_pass_pool(Grid::GridRegistry& reg, u32 div_size)
+{
+    return reg.pass_pool(Pass::Params{div_size, pass_mode::shoot_through});
 }
 
 } // namespace floormat::Cover::Script

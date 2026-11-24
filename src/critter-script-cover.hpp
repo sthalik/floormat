@@ -9,6 +9,7 @@
 
 namespace floormat { struct critter; struct object; class world; }
 namespace floormat::Grid { class GridRegistry; }
+namespace floormat::Grid::Pass { class Pool; }
 namespace floormat::Raycast { struct raycast_result_s; }
 
 namespace floormat::Cover::Script {
@@ -171,5 +172,7 @@ bptr<object> find_object_at_z(world& w, object_id id, i8 z);
 // can't pass, and critters, self included, don't stop it.
 Raycast::raycast_result_s line_of_sight(world& w, Grid::GridRegistry& reg, u32 div_size, point from, point to,
                                         object_id self);
+// The pass grids line_of_sight() casts through.
+Grid::Pass::Pool& line_of_sight_pass_pool(Grid::GridRegistry& reg, u32 div_size);
 
 } // namespace floormat::Cover::Script

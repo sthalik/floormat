@@ -96,6 +96,7 @@ auto run(Pass::Pool& pool, point from, point to, world& w, bool b, float len)
     constexpr float fuzz = TILE_SIZE2.x();
     auto diag = Raycast::raycast_diag_s{};
     auto res = raycast_with_diag(diag, w, from, to, 0, pool, Search::never_continue);
+    fm_assert(Raycast::is_occluded(w, from, to, 0, pool, Search::never_continue) == !res.success);
     const auto div = (int)pool.params().div_size();
     for (const auto& q : diag.queries)
         fm_assert(Vector2i(intra_coord{q.center}) % div == Vector2i{div / 2});
@@ -509,6 +510,7 @@ void test_supercover_hits()
         for (auto& pool : pools)
         {
             const auto res = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool, Search::never_continue);
+            fm_assert(Raycast::is_occluded(w, origin + from, origin + to, 0, pool, Search::never_continue) == !res.success);
             const auto px = res.collision - origin;
             bool ok = res.success == !ref.count;
             if (ok && ref.count)
@@ -530,6 +532,8 @@ void test_supercover_hits()
                 const auto expected = nearest_rounded_hit(pillars, from, Vector2(to - from), radius);
                 const auto r = raycast_with_diag(diag, w, origin + from, origin + to, 0, pool,
                                                  Search::never_continue, radius);
+                fm_assert(Raycast::is_occluded(w, origin + from, origin + to, 0, pool, Search::never_continue,
+                                               radius) == !r.success);
                 if (r.success != (expected == FLT_MAX) || (!r.success && Math::abs(diag.tmin - expected) > 1e-3f))
                     fm_abort("ray (%d %d)-(%d %d) div %u radius %g: success %d tmin %g, expected %g",
                              from.x(), from.y(), to.x(), to.y(), pool.params().div_size(), (double)radius,
@@ -622,7 +626,14 @@ void test_object_pool()
     auto& pass_pool = reg.pass_pool(params);
     auto& object_pool = reg.object_pool(params);
     const auto ray = [&](point from, point to, Grid::Object::Pool* objects, const Search::pred& pred, float radius = 0) {
-        return objects ? raycast(w, from, to, 0, *objects, pred, radius) : raycast(w, from, to, 0, pass_pool, pred, radius);
+        if (objects)
+            return raycast(w, from, to, 0, *objects, pred, radius);
+        else
+        {
+            const auto ret = raycast(w, from, to, 0, pass_pool, pred, radius);
+            fm_assert(Raycast::is_occluded(w, from, to, 0, pass_pool, pred, radius) == !ret.success);
+            return ret;
+        }
     };
     const auto sweep_params = Pass::Params{8, pass_mode::pass};
     auto& sweep_pass_pool = reg.pass_pool(sweep_params);

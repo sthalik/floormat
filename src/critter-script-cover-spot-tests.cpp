@@ -33,7 +33,8 @@ spot_tests::spot_tests(astar& A, object_id threat_id, Optional<int> gun_offset) 
 bool spot_tests::has_line_of_sight(critter& c, const Cover::Script::options& o, point from, point to)
 {
     counters.num_rays++;
-    return Cover::Script::line_of_sight(c.world(), _astar.pool_registry(), o.div_size, from, to, c.id).success;
+    auto& pool = Cover::Script::line_of_sight_pass_pool(_astar.pool_registry(), o.div_size);
+    return !Raycast::is_occluded(c.world(), from, to, c.id, pool, Search::without_critters);
 }
 
 bool spot_tests::is_hidden_at(critter& c, point threat, point pos, Vector2i axis)

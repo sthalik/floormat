@@ -61,7 +61,10 @@ constexpr bool within_chunk_bounds(Math::Vector2<T> p0, Math::Vector2<T> p1)
            b.min().y() <= p1.y() && b.max().y() >= p0.y();
 }
 
-template<bool EnableDiagnostics, bool HasObjectPool>
+// any_hit returns the first collider found, which may not be the nearest.
+enum class raycast_mode : u8 { closest_hit, any_hit, };
+
+template<bool EnableDiagnostics, bool HasObjectPool, raycast_mode Mode = raycast_mode::closest_hit>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
                                world& w, point from, point to, object_id self, Grid::Pass::Pool& pass_pool,
                                std::conditional_t<HasObjectPool, Grid::Object::Pool&, std::nullptr_t> objects,

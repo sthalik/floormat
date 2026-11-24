@@ -536,7 +536,7 @@ line_pixel first_pixel_in_bounds(const bresenham_line& line, Vector2i lo, Vector
 
 } // namespace
 
-template<bool EnableDiagnostics, bool HasObjectPool>
+template<bool EnableDiagnostics, bool HasObjectPool, raycast_mode Mode>
 raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_diag_s&, std::nullptr_t> diag,
                                world& w, point from, point to, object_id self, Grid::Pass::Pool& pass_pool,
                                std::conditional_t<HasObjectPool, Grid::Object::Pool&, std::nullptr_t> objects,
@@ -712,7 +712,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
     const auto walk = [&]<typename T>() -> bool {
         // A hit's tmin can lie up to a full rect extent past the cell whose query returned it, so the loop goes on
         // until the cell entry distance passes the best hit.
-        while (t_entry <= ray_len + eps && (b || t_entry <= min_tmin))
+        while (t_entry <= ray_len + eps && (b || Mode == raycast_mode::closest_hit && t_entry <= min_tmin))
         {
             Vector2i this_chunk_off{chunk_off_x, chunk_off_y};
             if (this_chunk_off != last_chunk_off)
@@ -781,7 +781,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         {
                             const auto objects = last_og.objects_at_cell<T>(bit_idx);
                             const auto chunks = last_og.entry_chunks();
-                            for (auto i = 0u; i < objects.size(); i++)
+                            for (auto i = 0u; i < objects.size() && (Mode != raycast_mode::any_hit || b); i++)
                             {
                                 const auto& x = objects[i];
                                 if (x.id == self)
@@ -814,9 +814,9 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                 if constexpr(EnableDiagnostics)
                     arrayAppend(diag.queries, bbox{point{from.chunk3(), {}, {}} + (query_min + query_size/2), Vector2ui(query_size)});
 
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 3 && (Mode != raycast_mode::any_hit || b); i++)
                 {
-                    for (int j = 0; j < 3; j++)
+                    for (int j = 0; j < 3 && (Mode != raycast_mode::any_hit || b); j++)
                     {
                         auto* nb = last_nb[j*3 + i];
                         if (!nb)
@@ -838,7 +838,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                                 return true;
                             find_intersecting_collider(std::true_type{}, *nb, nb_world, x,
                                                        Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}});
-                            return true;
+                            return Mode != raycast_mode::any_hit || b;
                         });
                     }
                 }
@@ -935,6 +935,8 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
 
 template raycast_result_s do_raycasting<false, false>(std::nullptr_t, world&, point, point, object_id,
                                                       Grid::Pass::Pool&, std::nullptr_t, const Search::pred&, float);
+template raycast_result_s do_raycasting<false, false, raycast_mode::any_hit>(
+    std::nullptr_t, world&, point, point, object_id, Grid::Pass::Pool&, std::nullptr_t, const Search::pred&, float);
 template raycast_result_s do_raycasting<false, true>(std::nullptr_t, world&, point, point, object_id,
                                                      Grid::Pass::Pool&, Grid::Object::Pool&, const Search::pred&, float);
 template raycast_result_s do_raycasting<true, false>(raycast_diag_s&, world&, point, point, object_id,
