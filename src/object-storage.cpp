@@ -3,7 +3,7 @@
 #include "scenery.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/stl/algorithm/sort.hpp"
-#include "compat/stl/algorithm/lower_bound.hpp"
+#include "compat/lower-bound.hpp"
 #include <array>
 #include <utility>
 #include <cr/GrowableArray.h>
@@ -75,7 +75,7 @@ usize object_storage::insert(const bptr<object>& e)
     fm_assert(_sorted);
     auto& es = list_for(e->type(), scenery_type_of(*e))._items;
     arrayReserve(es, 8);
-    auto* it = std::lower_bound(es.data(), es.data() + es.size(), e, object_id_lessp);
+    auto* it = lower_bound(es.data(), es.data() + es.size(), e, object_id_lessp);
     auto i = (usize)(it - es.data());
     arrayInsert(es, i, e);
     return i;
@@ -131,7 +131,7 @@ usize object_storage::index_of(const object& e) const
     fm_assert(_sorted);
     const auto fn = [id = e.id](const bptr<object>& a, std::nullptr_t) { return a->id < id; };
     const auto& es = list_for(e.type(), scenery_type_of(e))._items;
-    auto it = std::lower_bound(es.cbegin(), es.cend(), nullptr, fn);
+    auto it = lower_bound(es.cbegin(), es.cend(), nullptr, fn);
     fm_assert(it != es.cend());
     fm_assert((*it)->id == e.id);
     return (usize)(it - es.cbegin());

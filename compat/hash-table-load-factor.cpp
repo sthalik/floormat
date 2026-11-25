@@ -1,5 +1,6 @@
 #include "hash-table-load-factor.hpp"
 #include "array-size.hpp"
+#include "lower-bound.hpp"
 #include <cr/Math.h>
 
 namespace floormat::Hash {
@@ -34,20 +35,8 @@ constexpr Entry separate_chaining_load_factor_table[] = {
 
 constexpr float get_value(usize element_count, const auto& table)
 {
-    usize i{};
-#if 0
-    auto it = std::lower_bound(
-        table, table + array_size(table), element_count,
-        [](const Entry a, usize b) {
-            return a.max_capacity < b;
-        });
-    i = (usize)std::distance(table, it);
-#else
-    for (i = 0; i < array_size(table); i++)
-        if (element_count <= table[i].max_capacity)
-            break;
-#endif
-    i = Utility::min(i, array_size(table)-1);
+    const auto* it = lower_bound(table, element_count, [](const Entry& a, usize b) { return a.max_capacity < b; });
+    auto i = Utility::min((usize)(it - table), array_size(table)-1);
     return table[i].load_factor;
 }
 
