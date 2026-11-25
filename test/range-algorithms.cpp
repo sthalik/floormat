@@ -5,6 +5,7 @@
 #include "compat/count-if.hpp"
 #include "compat/equal.hpp"
 #include "compat/find-if.hpp"
+#include "compat/lower-bound.hpp"
 #include <cr/Array.h>
 #include <cr/StridedArrayView.h>
 #include <cr/StringView.h>
@@ -167,6 +168,72 @@ constexpr bool test_member_predicates()
 }
 static_assert(test_member_predicates());
 
+constexpr auto int_less = [](int a, int b) { return a < b; };
+
+template<typename R> concept lower_bound_callable = requires(R&& r) { floormat::lower_bound(forward<R>(r), 0, int_less); };
+
+static_assert(lower_bound_callable<Array<int>&>);
+static_assert(lower_bound_callable<const int(&)[3]>);
+static_assert(lower_bound_callable<const ArrayView<const int>&>);
+static_assert(!lower_bound_callable<Array<int>>);
+static_assert(!lower_bound_callable<const Array<int>>);
+static_assert(!lower_bound_callable<const list&>);
+static_assert(!lower_bound_callable<const c_string&>);
+
+constexpr bool test_lower_bound_positions()
+{
+    constexpr int xs[] = { 191, 191, 193, 197, 197, 197, 199, 211, 211 };
+    bool is_correct = true;
+    for (u32 n = 0; n <= 9; n++)
+    {
+        for (int value = 190; value <= 212; value++)
+        {
+            u32 expected = 0;
+            while (expected < n && xs[expected] < value)
+                expected++;
+            is_correct = is_correct && lower_bound(xs, xs + n, value, int_less) == xs + expected;
+        }
+    }
+    return is_correct;
+}
+static_assert(test_lower_bound_positions());
+
+struct keyed { int key; char tag; };
+
+constexpr bool test_lower_bound_other_value_type()
+{
+    constexpr keyed xs[] = { {223, 'a'}, {227, 'b'}, {227, 'c'}, {229, 'd'} };
+    constexpr auto key_less = [](const keyed& x, int key) { return x.key < key; };
+    return lower_bound(xs, xs + 4, 222, key_less) == xs && lower_bound(xs, xs + 4, 227, key_less) == xs + 1 &&
+           lower_bound(xs, xs + 4, 228, key_less) == xs + 3 && lower_bound(xs, xs + 4, 230, key_less) == xs + 4 &&
+           lower_bound(xs, 227, key_less)->tag == 'b';
+}
+static_assert(test_lower_bound_other_value_type());
+
+constexpr bool test_lower_bound_ranges()
+{
+    constexpr int xs[] = { 233, 239, 241 };
+    const ArrayView<const int> view{xs};
+    std::array<int, 3> sa = { 233, 239, 241 };
+    return lower_bound(xs, 239, int_less) == xs + 1 && lower_bound(view, 240, int_less) == xs + 2 &&
+           lower_bound(view, 242, int_less) == view.end() && lower_bound(sa, 0, int_less) == sa.begin() &&
+           lower_bound(sa, 241, int_less) == sa.begin() + 2;
+}
+static_assert(test_lower_bound_ranges());
+
+void test_lower_bound_containers()
+{
+    fm_assert(test_lower_bound_positions());
+    fm_assert(test_lower_bound_other_value_type());
+    fm_assert(test_lower_bound_ranges());
+    Array<int> arr{InPlaceInit, { 251, 257, 263 }};
+    std::vector<int> v = { 251, 257, 263 };
+    fm_assert(lower_bound(arr, 257, int_less) == arr.data() + 1);
+    fm_assert(lower_bound(v, 258, int_less) == v.begin() + 2);
+    fm_assert(floormat::lower_bound(v.cbegin(), v.cend(), 250, int_less) == v.cbegin());
+    fm_assert(floormat::lower_bound(v.cbegin(), v.cend(), 264, int_less) == v.cend());
+}
+
 void test_stops_early()
 {
     const int xs[] = { 107, 109, 113, 127 };
@@ -209,6 +276,7 @@ void Test::test_range_algorithms()
 {
     test_stops_early();
     test_containers();
+    test_lower_bound_containers();
 }
 
 } // namespace floormat
