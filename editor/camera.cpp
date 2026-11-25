@@ -114,16 +114,16 @@ object_id app::get_object_colliding_with_cursor(bool virtual_objects)
             else
             {
                 c.hole_rtree()->Search(t0.data(), t1.data(), pick);
-                for (const light& L : c.objects().list<light>())
-                {
-                    if (ret)
-                        break;
-                    if (Vector2ui(L.bbox_size).product() == 0)
-                        continue;
-                    const auto [min, max] = scenery_tile(L.coord.local(), L.offset, L.bbox_offset, L.bbox_size);
-                    const collision_data x{(u64)collision_type::scenery, (u64)L.pass, L.id};
-                    pick(std::bit_cast<u64>(x), {{(float)min.x(), (float)min.y()}, {(float)max.x(), (float)max.y()}});
-                }
+                if (!ret)
+                    for (const light& L : c.objects().list<light>())
+                    {
+                        if (Vector2ui(L.bbox_size).product() == 0)
+                            continue;
+                        const auto [min, max] = scenery_tile(L.coord.local(), L.offset, L.bbox_offset, L.bbox_size);
+                        const collision_data x{(u64)collision_type::scenery, (u64)L.pass, L.id};
+                        if (!pick(std::bit_cast<u64>(x), {{(float)min.x(), (float)min.y()}, {(float)max.x(), (float)max.y()}}))
+                            break;
+                    }
             }
             if (ret)
                 return ret;
