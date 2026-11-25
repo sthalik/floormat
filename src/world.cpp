@@ -445,27 +445,18 @@ bptr<critter> world::ensure_player_character(object_id& id_, critter_proto p)
 
     auto id = (object_id)-1;
 
+    for (auto& c : chunks())
+        for (const critter& C : c.objects().list<critter>())
+            if (C.playable && C.id < id)
+                id = C.id;
+
     bptr<critter> ret;
 
-    for (auto& c : chunks())
-    {
-        for (const auto& eʹ : c.objects())
-        {
-            const auto& e = *eʹ;
-            if (e.type() == object_type::critter)
-            {
-                const auto& C = static_cast<const critter&>(e);
-                if (C.playable && C.id < id)
-                {
-                    id = C.id;
-                    ret = static_pointer_cast<critter>(eʹ);
-                }
-            }
-        }
-    }
-
     if (id != (object_id)-1)
+    {
         id_ = id;
+        ret = find_object<critter>(id);
+    }
     else
     {
         p.playable = true;

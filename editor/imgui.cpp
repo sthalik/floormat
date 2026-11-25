@@ -633,22 +633,18 @@ void app::do_lightmap_test()
             if (auto* chunk = w.at(c))
             {
                 auto offset = Vector2(Vector2i(c.x, c.y) - Vector2i(x, y));
-                for (const auto& eʹ : chunk->objects())
+                for (const light& li : chunk->objects().list<light>())
                 {
-                    if (eʹ->type() == object_type::light)
-                    {
-                        const auto& li = static_cast<const light&>(*eʹ);
-                        if (li.max_distance < 1e-6f)
-                            continue;
-                        light_s L {
-                            .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
-                            .dist = li.max_distance,
-                            .radius = li.radius,
-                            .color = li.color,
-                            .falloff = li.falloff,
-                        };
-                        shader.add_light(offset, L);
-                    }
+                    if (li.max_distance < 1e-6f)
+                        continue;
+                    light_s L {
+                        .center = Vector2(li.coord.local()) * TILE_SIZE2 + Vector2(li.offset),
+                        .dist = li.max_distance,
+                        .radius = li.radius,
+                        .color = li.color,
+                        .falloff = li.falloff,
+                    };
+                    shader.add_light(offset, L);
                 }
             }
         }
