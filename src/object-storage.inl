@@ -85,20 +85,10 @@ auto object_storage::iterator_<Const>::operator++() noexcept -> iterator_&
 template<typename T, typename... Ts, typename Self, typename F>
 void object_storage::for_each_list(this Self& self, F&& fn)
 {
-    static_assert(!is_one_of<object, T, Ts...> || sizeof...(Ts) == 0, "object selects every class; name no other");
-    static_assert(std::is_same_v<T, object> || (is_object_class<T> && ... && is_object_class<Ts>), "not a final object class");
-    static_assert(types_are_distinct<T, Ts...>, "class named twice");
-    static_assert(object_class_count == 5, "add the new class to each list of classes in object-storage.hpp and .inl");
-    if constexpr (object_class_selected<generic_scenery, T, Ts...>)
-        invoke(fn, self._generic);
-    if constexpr (object_class_selected<door_scenery, T, Ts...>)
-        invoke(fn, self._door);
-    if constexpr (object_class_selected<critter, T, Ts...>)
-        invoke(fn, self._critter);
-    if constexpr (object_class_selected<light, T, Ts...>)
-        invoke(fn, self._light);
-    if constexpr (object_class_selected<hole, T, Ts...>)
-        invoke(fn, self._hole);
+    self.template for_each_listʹ<T, Ts...>([&](auto& l) {
+        invoke(fn, l);
+        return true;
+    });
 }
 
 template<typename T, typename... Ts, typename Self, typename F>
@@ -109,15 +99,20 @@ void object_storage::for_each_listʹ(this Self& self, F&& fn)
     static_assert(types_are_distinct<T, Ts...>, "class named twice");
     static_assert(object_class_count == 5, "add the new class to each list of classes in object-storage.hpp and .inl");
     if constexpr (object_class_selected<generic_scenery, T, Ts...>)
-        if (!invoke(fn, self._generic)) return;
+        if (!invoke(fn, self._generic))
+            return;
     if constexpr (object_class_selected<door_scenery, T, Ts...>)
-        if (!invoke(fn, self._door)) return;
+        if (!invoke(fn, self._door))
+            return;
     if constexpr (object_class_selected<critter, T, Ts...>)
-        if (!invoke(fn, self._critter)) return;
+        if (!invoke(fn, self._critter))
+            return;
     if constexpr (object_class_selected<light, T, Ts...>)
-        if (!invoke(fn, self._light)) return;
+        if (!invoke(fn, self._light))
+            return;
     if constexpr (object_class_selected<hole, T, Ts...>)
-        if (!invoke(fn, self._hole)) return;
+        if (!invoke(fn, self._hole))
+            return;
 }
 
 template<typename C>
