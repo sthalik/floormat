@@ -111,6 +111,7 @@ class object_storage final
     bool _sorted = true;
 
     template<typename T, typename... Ts, typename Self, typename F> void for_each_list(this Self& self, F&& fn);
+    template<typename T, typename... Ts, typename Self, typename F> void for_each_listʹ(this Self& self, F&& fn);
     object_list_base& list_for(object_type type, scenery_type sc_type) noexcept;
     const object_list_base& list_for(object_type type, scenery_type sc_type) const noexcept;
     const object_list_base* list_at(u32 k) const noexcept;

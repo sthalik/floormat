@@ -190,13 +190,18 @@ object_storage::const_iterator object_storage::end() const noexcept { return {};
 const bptr<object>& object_storage::item_at(u32 i) const noexcept
 {
     const bptr<object>* ret = nullptr;
-    for_each_list<object>([&](const object_list_base& l) {
-        if (ret)
-            return;
+    for_each_listʹ<object>([&](const object_list_base& l) {
+        fm_debug3_assert(!ret);
         if (i < l.size())
+        {
             ret = &l._items[i];
+            return false;
+        }
         else
+        {
             i -= l.size();
+            return true;
+        }
     });
     fm_assert(ret);
     return *ret;
