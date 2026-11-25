@@ -114,7 +114,6 @@ class object_storage final
     template<typename T, typename... Ts, typename Self, typename F> void for_each_listʹ(this Self& self, F&& fn);
     object_list_base& list_for(object_type type, scenery_type sc_type) noexcept;
     const object_list_base& list_for(object_type type, scenery_type sc_type) const noexcept;
-    const object_list_base* list_at(u32 k) const noexcept;
     const bptr<object>& item_at(u32 i) const noexcept;
 
     [[nodiscard]] usize insert(const bptr<object>& e);

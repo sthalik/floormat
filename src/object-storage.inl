@@ -91,8 +91,13 @@ void object_storage::for_each_list(this Self& self, F&& fn)
     });
 }
 
+#if defined __GNUC__ && !defined __clang__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 template<typename T, typename... Ts, typename Self, typename F>
-void object_storage::for_each_listʹ(this Self& self, F&& fn)
+[[fm_always_inline]] void object_storage::for_each_listʹ(this Self& self, F&& fn)
 {
     static_assert(!is_one_of<object, T, Ts...> || sizeof...(Ts) == 0, "object selects every class; name no other");
     static_assert(std::is_same_v<T, object> || (is_object_class<T> && ... && is_object_class<Ts>), "not a final object class");
@@ -114,6 +119,10 @@ void object_storage::for_each_listʹ(this Self& self, F&& fn)
         if (!invoke(fn, self._hole))
             return;
 }
+
+#if defined __GNUC__ && !defined __clang__
+#pragma GCC diagnostic pop
+#endif
 
 template<typename C>
 object_list<C>& object_storage::list() noexcept

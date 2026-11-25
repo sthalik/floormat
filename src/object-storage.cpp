@@ -59,17 +59,6 @@ object_list_base& object_storage::list_for(object_type type, scenery_type sc_typ
     return non_const(std::as_const(*this).list_for(type, sc_type));
 }
 
-const object_list_base* object_storage::list_at(u32 k) const noexcept
-{
-    const object_list_base* ret = nullptr;
-    u32 n = 0;
-    for_each_list<object>([&](const object_list_base& l) {
-        if (n++ == k)
-            ret = &l;
-    });
-    return ret;
-}
-
 usize object_storage::insert(const bptr<object>& e)
 {
     fm_assert(_sorted);
@@ -155,17 +144,19 @@ object_storage::iterator_<Const>::iterator_(const object_storage& s) noexcept : 
 template<bool Const>
 void object_storage::iterator_<Const>::load(u32 k) noexcept
 {
-    for (; const auto* l = _s->list_at(k); k++)
-    {
-        if (l->size() != 0)
-        {
-            _k = k;
-            _p = l->_items.data();
-            _end = _p + l->size();
-            return;
-        }
-    }
     _p = _end = nullptr;
+    u32 n = 0;
+    _s->for_each_listʹ<object>([&](const object_list_base& l) {
+        if (n++ < k || l.size() == 0)
+            return true;
+        else
+        {
+            _k = n - 1;
+            _p = l._items.data();
+            _end = _p + l.size();
+            return false;
+        }
+    });
 }
 
 template class object_storage::iterator_<false>;
