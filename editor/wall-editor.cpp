@@ -1,5 +1,6 @@
 #include "wall-editor.hpp"
 #include "compat/array-size.hpp"
+#include "compat/sorted-string-map.inl"
 #include "src/wall-defs.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/world.hpp"
@@ -8,6 +9,8 @@
 #include <cr/ArrayView.h>
 
 namespace floormat {
+
+template class sorted_string_map<wall_cell>;
 
 using namespace floormat::Wall;
 
@@ -76,7 +79,7 @@ void wall_editor::select_item(const wall_cell& cell) { _selected_atlas = cell.at
 void wall_editor::clear_selection() { _selected_atlas = nullptr; }
 bool wall_editor::is_item_selected(const wall_cell& cell) const { return _selected_atlas == cell.atlas; }
 bool wall_editor::is_anything_selected() const { return _selected_atlas != nullptr; }
-const std::map<StringView, wall_cell>& wall_editor::items() const noexcept { return _atlases; }
+const sorted_string_map<wall_cell>& wall_editor::items() const noexcept { return _atlases; }
 
 void wall_editor::place_wall(world& w, global_coords coords, const bptr<wall_atlas>& atlas)
 {

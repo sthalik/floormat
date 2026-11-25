@@ -3,7 +3,7 @@
 #include "src/rotation.hpp"
 #include "src/global-coords.hpp"
 #include "loader/wall-cell.hpp"
-#include <map>
+#include "compat/sorted-string-map.h"
 
 namespace floormat {
 
@@ -12,14 +12,14 @@ class wall_atlas;
 
 class wall_editor final
 {
-    std::map<StringView, wall_cell> _atlases;
+    sorted_string_map<wall_cell> _atlases;
     bptr<wall_atlas> _selected_atlas;
     enum rotation _r = rotation::N;
 
     void load_atlases();
 
 public:
-    const std::map<StringView, wall_cell>& items() const noexcept;
+    const sorted_string_map<wall_cell>& items() const noexcept;
 
     wall_editor();
     StringView name() const;

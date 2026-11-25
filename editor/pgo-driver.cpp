@@ -872,7 +872,7 @@ task app::scene_ground_editor()
     u32 n = 0, a = 0;
     const auto shorten = pgo_driver_use_short_scenes();
 
-    for (const auto& [name, cell] : ed->items())
+    for (auto [name, cell] : ed->items())
     {
         fm_assert(cell.atlas);
 

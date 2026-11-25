@@ -1,6 +1,6 @@
 #pragma once
 #include "src/scenery-proto.hpp"
-#include <map>
+#include "compat/sorted-string-map.h"
 #include <cr/String.h>
 
 namespace floormat {
@@ -34,12 +34,12 @@ public:
     bool is_anything_selected() const;
     static void place_scenery(world& w, global_coords pos, const scenery_& s, app& a);
 
-    const std::map<StringView, scenery_>& items() const noexcept;
+    const sorted_string_map<scenery_>& items() const noexcept;
 
 private:
     void load_atlases();
 
-    std::map<StringView, scenery_> _atlases;
+    sorted_string_map<scenery_> _atlases;
     scenery_ _selected;
 };
 

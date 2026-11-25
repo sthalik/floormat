@@ -88,6 +88,7 @@ void test_scenery();
 void test_sequence_traits();
 void test_shader();
 void test_slide();
+void test_sorted_string_map();
 void test_spinlock();
 void test_split();
 void test_sprite_atlas();

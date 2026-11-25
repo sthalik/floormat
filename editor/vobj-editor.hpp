@@ -2,7 +2,7 @@
 #include "src/object-type.hpp"
 #include "src/object-id.hpp"
 #include "compat/borrowed-ptr-fwd.hpp"
-#include <map>
+#include "compat/sorted-string-map.h"
 #include <cr/String.h>
 #include <cr/Pointer.h>
 
@@ -47,12 +47,12 @@ public:
 
     static void place_vobj(world& w, global_coords pos, const vobj_* x, app& a);
 
-    const std::map<String, vobj_>& items() const noexcept;
+    const sorted_string_map<vobj_>& items() const noexcept;
 
 private:
-    static std::map<String, vobj_> make_vobj_type_map();
+    static sorted_string_map<vobj_> make_vobj_type_map();
 
-    std::map<String, vobj_> _types = make_vobj_type_map();
+    sorted_string_map<vobj_> _types = make_vobj_type_map();
     const vobj_* _selected = nullptr;
 };
 

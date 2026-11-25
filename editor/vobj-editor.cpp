@@ -5,10 +5,13 @@
 #include "src/hole.hpp"
 #include "loader/loader.hpp"
 #include "loader/vobj-cell.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
+#include "compat/sorted-string-map.inl"
 #include <cr/StringView.h>
 
 namespace floormat {
+
+template class sorted_string_map<vobj_editor::vobj_>;
 
 StringView vobj_factory::name() const { return info().name; }
 StringView vobj_factory::descr() const { return info().descr; }
@@ -19,7 +22,7 @@ vobj_factory::~vobj_factory() noexcept = default;
 vobj_editor::vobj_editor() = default;
 void vobj_editor::select_item(const vobj_& type) { _selected = &type; }
 void vobj_editor::clear_selection() { _selected = nullptr; }
-auto vobj_editor::items() const noexcept -> const std::map<String, vobj_>& { return _types; }
+auto vobj_editor::items() const noexcept -> const sorted_string_map<vobj_>& { return _types; }
 
 auto vobj_editor::get_selected() const -> const vobj_*
 {
@@ -116,13 +119,13 @@ bptr<object> hole_factory::make(world& w, object_id id, global_coords pos) const
 
 } // namespace
 
-auto vobj_editor::make_vobj_type_map() -> std::map<String, vobj_>
+auto vobj_editor::make_vobj_type_map() -> sorted_string_map<vobj_>
 {
     constexpr auto add = [](auto& m, Pointer<vobj_factory>&& x) {
         StringView name = x->name(), descr = x->descr();
         m[name] = vobj_editor::vobj_{ name, descr, move(x) };
     };
-    std::map<String, vobj_> map;
+    sorted_string_map<vobj_> map;
     add(map, Pointer<light_factory>{InPlace});
     add(map, Pointer<hole_factory>{InPlace});
     return map;

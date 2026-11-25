@@ -243,7 +243,7 @@ void draw_palette_pane(editor& e, T& ed, Vector2 dpi)
     };
     clear_on_middle_click();
 
-    for (const auto& [name, item] : ed.items())
+    for (auto [name, item] : ed.items())
     {
         auto atlasʹ = get_atlas(item);
         fm_debug_assert(atlasʹ);
@@ -352,7 +352,7 @@ void app::draw_editor_pane(float main_menu_height)
                     static ImDrawListSplitter splitter;
                     auto* draw_list = ImGui::GetWindowDrawList();
                     splitter.Split(draw_list, 2);
-                    for (const auto& [k, v] : ed->items())
+                    for (auto [k, v] : ed->items())
                         draw_ground_palette_atlas(*_editor, *ed, k, v.atlas, dpi, splitter);
                     splitter.Merge(draw_list);
                 }

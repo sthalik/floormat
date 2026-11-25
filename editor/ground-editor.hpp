@@ -3,20 +3,19 @@
 #include "editor-enums.hpp"
 #include "src/tile-image.hpp"
 #include "src/global-coords.hpp"
-#include <map>
-#include <cr/String.h>
+#include "loader/ground-cell.hpp"
+#include "compat/sorted-string-map.h"
 
 namespace floormat {
 
 class world;
-struct ground_cell;
 
 class ground_editor final
 {
     enum selection_mode : unsigned char { sel_none, sel_tile, sel_perm, };
     struct tuple;
 
-    std::map<StringView, ground_cell> _atlases;
+    sorted_string_map<ground_cell> _atlases;
     tile_image_proto _selected_tile;
     safe_ptr<tuple> _permutation;
     selection_mode _selection_mode = sel_none;
@@ -29,7 +28,7 @@ public:
     ~ground_editor() noexcept;
     bptr<ground_atlas> maybe_atlas(StringView str);
     bptr<ground_atlas> atlas(StringView str);
-    const std::map<StringView, ground_cell>& items() const noexcept;
+    const sorted_string_map<ground_cell>& items() const noexcept;
     StringView name() const noexcept;
 
     void clear_selection();

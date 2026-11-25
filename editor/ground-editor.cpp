@@ -2,6 +2,7 @@
 #include "keys.hpp"
 #include "compat/assert.hpp"
 #include "compat/exception.hpp"
+#include "compat/sorted-string-map.inl"
 #include "src/ground-atlas.hpp"
 #include "src/world.hpp"
 #include "random/random.hpp"
@@ -12,7 +13,9 @@
 
 namespace floormat {
 
-const std::map<StringView, ground_cell>& ground_editor::items() const noexcept { return _atlases; }
+template class sorted_string_map<ground_cell>;
+
+const sorted_string_map<ground_cell>& ground_editor::items() const noexcept { return _atlases; }
 
 struct ground_editor::tuple
 {

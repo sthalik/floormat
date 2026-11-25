@@ -6,12 +6,14 @@
 #include "src/scenery.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
-#include "compat/borrowed-ptr.inl"
 #include "compat/tie.hpp"
+#include "compat/sorted-string-map.inl"
 #include <cr/ArrayView.h>
 #include <cr/StructuredBindings.h>
 
 namespace floormat {
+
+template class sorted_string_map<scenery_editor::scenery_>;
 
 using rotation_t = std::underlying_type_t<enum rotation>;
 
@@ -94,7 +96,7 @@ bool scenery_editor::is_anything_selected() const
     return _selected.proto.atlas != nullptr;
 }
 
-auto scenery_editor::items() const noexcept -> const std::map<StringView, scenery_>& { return _atlases; }
+auto scenery_editor::items() const noexcept -> const sorted_string_map<scenery_>& { return _atlases; }
 
 void scenery_editor::place_scenery(world& w, global_coords pos, const scenery_& s, app& a)
 {
