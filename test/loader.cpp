@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
+#include "compat/exception.inl"
 #include "compat/borrowed-ptr.h"
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
@@ -80,6 +81,17 @@ void Test::test_loader()
     fm_assert(loader.ground_atlas("texel")->pass_mode() == pass_mode::blocked);
     check_texture_pixels("jxl-test-rgb8"_s, PixelFormat::RGB8Unorm, jxl_rgb8_pixels);
     check_texture_pixels("jxl-test-rgba8"_s, PixelFormat::RGBA8Unorm, jxl_rgba8_pixels);
+
+    bool caught = false;
+    try
+    {
+        (void)loader.texture("images/"_s, "jxl-test-animated"_s);
+    }
+    catch (const floormat::exception&)
+    {
+        caught = true;
+    }
+    fm_assert(caught);
 }
 
 void Test::test_loader2()

@@ -39,6 +39,7 @@ Trade::ImageData2D loader_impl::texture(StringView prefix, StringView filename_)
         auto& importer = extension == ".tga"_s ? tga_importer : extension == ".jxl"_s ? jxl_importer : image_importer;
         if (Path::exists(path) && importer->openFile(path))
         {
+            fm_soft_assert(importer->image2DCount() == 1);
             auto img = importer->image2D(0);
             if (!img)
                 fm_abort("can't allocate image for '%s'", buf);
