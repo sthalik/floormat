@@ -58,6 +58,12 @@
 #   define fm_always_inline gnu::always_inline
 #endif
 
+#ifdef __GNUG__
+#   define fm_flatten gnu::flatten
+#else
+#   define fm_flatten
+#endif
+
 #ifdef _MSC_VER
 // standard version not supported in MSVC v14x ABI
 // see https://devblogs.microsoft.com/cppblog/msvc-cpp20-and-the-std-cpp20-switch/
