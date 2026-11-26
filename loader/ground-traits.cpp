@@ -5,6 +5,7 @@
 #include "src/tile-defs.hpp"
 #include "src/ground-atlas.hpp"
 #include "compat/assert.hpp"
+#include "compat/exception.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include <cr/Optional.h>
 #include <mg/ImageView.h>
@@ -40,6 +41,7 @@ auto ground_traits::make_atlas(StringView name, const Cell& c) -> ::floormat::bp
 {
     auto def = ground_def{name, c.size, c.pass};
     auto tex = ::floormat::loader.texture(::floormat::loader.GROUND_TILESET_PATH, name);
+    fm_soft_assert(tex.format() == PixelFormat::RGB8Unorm);
     auto atlas = ::floormat::bptr<Atlas>{InPlace, def, tex};
     return atlas;
 }

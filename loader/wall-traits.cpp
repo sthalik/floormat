@@ -60,6 +60,7 @@ auto wall_traits::make_atlas(StringView name, const Cell&) -> ::floormat::bptr<A
     fm_soft_assert(name == def.header.name);
     fm_soft_assert(!def.frames.isEmpty());
     auto tex = ::floormat::loader.texture(""_s, file);
+    fm_soft_assert(tex.format() == PixelFormat::RGB8Unorm);
     auto atlas = ::floormat::bptr<class wall_atlas>(InPlace, move(def), file, tex);
     return atlas;
 }
