@@ -22,6 +22,12 @@ endif()
 set(FLOORMAT_SUBMODULE-BENCHMARK ON CACHE BOOL
     "Benchmark as a submodule")
 
+set(FLOORMAT_SUBMODULE-HWY ON CACHE BOOL
+    "Highway as a submodule")
+
+set(FLOORMAT_SUBMODULE-JXL ON CACHE BOOL
+    "libjxl as a submodule")
+
 set(FLOORMAT_SUBMODULE-DEPENDENCIES ON CACHE BOOL
     "Use dependencies included in the source directory (needs git submodule update --init).")
 
@@ -349,10 +355,14 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
             cmake_policy(SET CMP0218 OLD)
         endif()
         set(CMAKE_WARN_DEPRECATED OFF) # still needed even with cmake_diagnostic()
-        # LINK_ONLY keeps floormat-hwy's definitions out of libjxl, which sets its own HWY_DISABLED_TARGETS.
         add_library(hwy INTERFACE)
-        target_include_directories(hwy SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/highway")
-        target_link_libraries(hwy INTERFACE $<LINK_ONLY:floormat-hwy>)
+        if(FLOORMAT_SUBMODULE-HWY)
+            # LINK_ONLY keeps floormat-hwy's definitions out of libjxl, which sets its own HWY_DISABLED_TARGETS.
+            target_include_directories(hwy SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/highway")
+            target_link_libraries(hwy INTERFACE $<LINK_ONLY:floormat-hwy>)
+        else()
+            target_link_libraries(hwy INTERFACE hwy::hwy)
+        endif()
         add_subdirectory(libjxl SYSTEM)
     endfunction()
 
@@ -373,7 +383,9 @@ if(FLOORMAT_SUBMODULE-DEPENDENCIES)
         else()
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
         endif()
-        fm_add_libjxl()
+        if(FLOORMAT_SUBMODULE-JXL)
+            fm_add_libjxl()
+        endif()
         add_subdirectory(fmt SYSTEM)
         add_subdirectory(json SYSTEM)
         add_subdirectory(corrade SYSTEM)
@@ -407,58 +419,64 @@ endif()
 add_subdirectory(swl-variant)
 target_compile_definitions(swl-variant INTERFACE -DSWL_VARIANT_NO_CONSTEXPR_EMPLACE -DSWL_VARIANT_NO_STD_HASH)
 
-# No f16: x86 has HWY_HAVE_FLOAT16 only on AVX3_SPR, which is disabled, so those entry points abort.
-set(floormat-hwy-sorts u16 i16 u32 i32 u64 i64 f32 f64 128 kv64 kv128)
-set(floormat-hwy-sources highway/hwy/targets.cc highway/hwy/abort.cc)
-foreach(t ${floormat-hwy-sorts})
-    list(APPEND floormat-hwy-sources highway/hwy/contrib/sort/vqsort_${t}a.cc highway/hwy/contrib/sort/vqsort_${t}d.cc)
-endforeach()
-add_library(floormat-hwy STATIC ${floormat-hwy-sources})
-target_include_directories(floormat-hwy SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/highway")
-# Highway's SSE4 also needs AES and PCLMUL. Nothing uses them, and Sandy Bridge Core i3 lacks AES.
-target_compile_definitions(floormat-hwy PUBLIC
-    VQSORT_ONLY_STATIC=1
-    HWY_WANT_SSE4=1
-    HWY_DISABLE_PCLMUL_AES
-    "HWY_DISABLED_TARGETS=(HWY_AVX3_ZEN4|HWY_AVX3_DL|HWY_AVX3_SPR|HWY_AVX10_2)"
-)
-# VQSort replaces NaN before sorting. Below AVX3 its check is _mm_cmpunord_ps(v, v), which finite math folds to false.
-fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE
-    highway/hwy/contrib/sort/vqsort_f32a.cc highway/hwy/contrib/sort/vqsort_f32d.cc
-    highway/hwy/contrib/sort/vqsort_f64a.cc highway/hwy/contrib/sort/vqsort_f64d.cc
-)
-# At -Ob0 every Highway op is an out-of-line call. -Ob3 inlines them even under -Od.
-# -O2 would fail against the debug build's -RTCs (D8016).
-if(MSVC)
-    target_compile_options(floormat-hwy PRIVATE -Otb3)
-endif()
-# -msse4.2: Highway's ops are always_inline with target("sse4.2"). A caller compiled without it
-# fails to build. MSVC has no target attributes.
-# A universal build compiles every CMAKE_OSX_ARCHITECTURES entry in one clang call.
-if(APPLE AND "x86_64" IN_LIST CMAKE_OSX_ARCHITECTURES)
-    target_compile_options(floormat-hwy PUBLIC "SHELL:-Xarch_x86_64 -msse4.2")
-elseif(NOT MSVC AND NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|x86|i[3-6]86)$")
-    target_compile_options(floormat-hwy PUBLIC -msse4.2)
-endif()
-
-# cl.exe never defines __OPTIMIZE__, so Highway assumes a debug build.
-# Defining it makes Highway sort with HeapSort on cl.exe. A copy of shared-inl.h drops that.
-function(fm_hwy_msvc_vqsort)
-    set(src "${CMAKE_CURRENT_SOURCE_DIR}/highway/hwy/contrib/sort/shared-inl.h")
-    set(dir "${CMAKE_CURRENT_BINARY_DIR}/hwy-msvc")
-    set(dst "${dir}/hwy/contrib/sort/shared-inl.h")
-    file(READ "${src}" text)
-    string(REPLACE "(HWY_COMPILER_MSVC && !HWY_IS_DEBUG_BUILD) ||" "" patched "${text}")
-    if(patched STREQUAL text)
-        message(FATAL_ERROR "${src} no longer has the MSVC clause")
+if(FLOORMAT_SUBMODULE-DEPENDENCIES AND FLOORMAT_SUBMODULE-HWY)
+    # No f16: x86 has HWY_HAVE_FLOAT16 only on AVX3_SPR, which is disabled, so those entry points abort.
+    set(floormat-hwy-sorts u16 i16 u32 i32 u64 i64 f32 f64 128 kv64 kv128)
+    set(floormat-hwy-sources highway/hwy/targets.cc highway/hwy/abort.cc)
+    foreach(t ${floormat-hwy-sorts})
+        list(APPEND floormat-hwy-sources highway/hwy/contrib/sort/vqsort_${t}a.cc highway/hwy/contrib/sort/vqsort_${t}d.cc)
+    endforeach()
+    add_library(floormat-hwy STATIC ${floormat-hwy-sources})
+    target_include_directories(floormat-hwy SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/highway")
+    # Highway's SSE4 also needs AES and PCLMUL. Nothing uses them, and Sandy Bridge Core i3 lacks AES.
+    target_compile_definitions(floormat-hwy PUBLIC
+        VQSORT_ONLY_STATIC=1
+        HWY_WANT_SSE4=1
+        HWY_DISABLE_PCLMUL_AES
+        "HWY_DISABLED_TARGETS=(HWY_AVX3_ZEN4|HWY_AVX3_DL|HWY_AVX3_SPR|HWY_AVX10_2)"
+    )
+    # VQSort replaces NaN before sorting. Below AVX3 its check is _mm_cmpunord_ps(v, v),
+    # which finite math folds to false.
+    fm_no_fast_math(FINITE_MATH_ONLY MSVC SOURCE
+        highway/hwy/contrib/sort/vqsort_f32a.cc highway/hwy/contrib/sort/vqsort_f32d.cc
+        highway/hwy/contrib/sort/vqsort_f64a.cc highway/hwy/contrib/sort/vqsort_f64d.cc
+    )
+    # At -Ob0 every Highway op is an out-of-line call. -Ob3 inlines them even under -Od.
+    # -O2 would fail against the debug build's -RTCs (D8016).
+    if(MSVC)
+        target_compile_options(floormat-hwy PRIVATE -Otb3)
     endif()
-    file(CONFIGURE OUTPUT "${dst}" CONTENT "${patched}" @ONLY NEWLINE_STYLE UNIX)
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${src}")
-    target_include_directories(floormat-hwy BEFORE PRIVATE "${dir}")
-    target_compile_definitions(floormat-hwy PUBLIC $<$<NOT:$<CONFIG:Debug>>:__OPTIMIZE__>)
-endfunction()
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    fm_hwy_msvc_vqsort()
+    # -msse4.2: Highway's ops are always_inline with target("sse4.2"). A caller compiled without it
+    # fails to build. MSVC has no target attributes.
+    # A universal build compiles every CMAKE_OSX_ARCHITECTURES entry in one clang call.
+    if(APPLE AND "x86_64" IN_LIST CMAKE_OSX_ARCHITECTURES)
+        target_compile_options(floormat-hwy PUBLIC "SHELL:-Xarch_x86_64 -msse4.2")
+    elseif(NOT MSVC AND NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|x86|i[3-6]86)$")
+        target_compile_options(floormat-hwy PUBLIC -msse4.2)
+    endif()
+
+    # cl.exe never defines __OPTIMIZE__, so Highway assumes a debug build.
+    # Defining it makes Highway sort with HeapSort on cl.exe. A copy of shared-inl.h drops that.
+    function(fm_hwy_msvc_vqsort)
+        set(src "${CMAKE_CURRENT_SOURCE_DIR}/highway/hwy/contrib/sort/shared-inl.h")
+        set(dir "${CMAKE_CURRENT_BINARY_DIR}/hwy-msvc")
+        set(dst "${dir}/hwy/contrib/sort/shared-inl.h")
+        file(READ "${src}" text)
+        string(REPLACE "(HWY_COMPILER_MSVC && !HWY_IS_DEBUG_BUILD) ||" "" patched "${text}")
+        if(patched STREQUAL text)
+            message(FATAL_ERROR "${src} no longer has the MSVC clause")
+        endif()
+        file(CONFIGURE OUTPUT "${dst}" CONTENT "${patched}" @ONLY NEWLINE_STYLE UNIX)
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${src}")
+        target_include_directories(floormat-hwy BEFORE PRIVATE "${dir}")
+        target_compile_definitions(floormat-hwy PUBLIC $<$<NOT:$<CONFIG:Debug>>:__OPTIMIZE__>)
+    endfunction()
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        fm_hwy_msvc_vqsort()
+    endif()
+else()
+    add_library(floormat-hwy INTERFACE)
+    target_link_libraries(floormat-hwy INTERFACE hwy::hwy hwy::hwy_contrib)
 endif()
 
 if(FLOORMAT_SUBMODULE-DEPENDENCIES)
@@ -476,7 +494,7 @@ find_package(Magnum QUIET REQUIRED)
 find_package(MagnumPlugins QUIET REQUIRED JxlImporter)
 find_package(MagnumIntegration QUIET REQUIRED ImGui)
 find_package(HWY QUIET REQUIRED)
-find_package(Jxl QUIET REQUIRED)
+find_package(Jxl QUIET REQUIRED GLOBAL)
 
 if(NOT FLOORMAT_SUBMODULE-DEPENDENCIES)
     find_package(fmt QUIET REQUIRED)

@@ -1,8 +1,10 @@
-# libjxl's hwy target is defined in external/CMakeLists.txt from external/highway.
-if(TARGET hwy)
+if(FLOORMAT_SUBMODULE-DEPENDENCIES AND FLOORMAT_SUBMODULE-HWY)
     set(HWY_FOUND TRUE)
 else()
-    find_package(HWY CONFIG QUIET)
+    block(PROPAGATE HWY_CONFIG HWY_VERSION)
+        unset(HWY_FIND_VERSION_COMPLETE)
+        find_package(HWY CONFIG QUIET)
+    endblock()
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(HWY CONFIG_MODE)
 endif()
