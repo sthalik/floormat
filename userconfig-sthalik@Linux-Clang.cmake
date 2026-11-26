@@ -15,7 +15,6 @@ sets(STRING
 add_link_options(-fuse-ld=lld)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    set(BUILD_SHARED_LIBS OFF)
     add_compile_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-fmerge-all-constants -flto=full -fwhole-program-vtables -fforce-emit-vtables)
     add_link_options(-Wl,--lto-O3)

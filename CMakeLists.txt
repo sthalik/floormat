@@ -161,6 +161,8 @@ else()
     endif()
 endif()
 
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
 if(NOT "$ENV{FLOORMAT_NO_USERCONFIG}" AND NOT FLOORMAT_NO_USERCONFIG)
     fm_load_userconfig()
 endif()

@@ -13,9 +13,7 @@ if(NOT DEFINED OpenCV_DIR)
     endif()
 endif()
 
-if(NOT CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
-    set(BUILD_SHARED_LIBS OFF)
-else()
+if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     add_definitions(-D_MSVC_STL_HARDENING=1)
 endif()
 
