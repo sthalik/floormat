@@ -8,6 +8,8 @@ namespace floormat::wall_tool {
 struct options
 {
     String input_dir, input_file, output_dir;
+    u32 num_threads = 0;
+    u32 jxl_effort = 11;
 };
 
 struct frame

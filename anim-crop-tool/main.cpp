@@ -26,6 +26,8 @@ struct options
     String input_dir, input_file, output_dir;
     usize nframes = 0;
     anim_scale scale;
+    u32 num_threads = 0;
+    u32 jxl_effort = 11;
 };
 
 struct image_bounds_tuple
@@ -217,7 +219,9 @@ arg_tuple parse_cmdline(int argc, const char* const* argv) noexcept
         .addArgument("input.json")
         .addOption('W', "width", "")
         .addOption('H', "height", "")
-        .addOption('F', "scale", "");
+        .addOption('F', "scale", "")
+        .addOption('j', "threads", "0").setHelp("threads", "JPEG XL encoder threads, 0 for one per CPU thread", "N")
+        .addOption("jxl-effort", "11").setHelp("jxl-effort", "JPEG XL encoder effort, 1 to 11", "N");
 
     args.parse(argc, argv);
     options opts;
@@ -229,6 +233,13 @@ arg_tuple parse_cmdline(int argc, const char* const* argv) noexcept
     else if (!args.value<StringView>("scale").isEmpty())
         opts.scale = anim_scale::ratio{args.value<float>("scale")};
 
+    opts.num_threads = args.value<u32>("threads");
+    opts.jxl_effort = args.value<u32>("jxl-effort");
+    if (opts.jxl_effort < 1 || opts.jxl_effort > 11)
+    {
+        ERR << "fatal: --jxl-effort must be between 1 and 11";
+        return { move(opts), move(args), false };
+    }
     opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input.json"));
     opts.input_dir = Path::path(opts.input_file);
 
@@ -285,7 +296,7 @@ int main(int argc, char** argv)
                              ? anim_info.object_name + "-" + anim_info.anim_name
                              : anim_info.object_name;
 
-    if (auto pathname = Path::join(opts.output_dir, (base_name + ".png")); !atlas.dump(pathname)) {
+    if (auto pathname = Path::join(opts.output_dir, (base_name + ".jxl")); !atlas.dump(pathname, opts.num_threads, opts.jxl_effort)) {
         auto errstr = error_string();
         ERR << "error: failed writing image to" << quoted(pathname) << errstr;
         return EX_CANTCREAT;

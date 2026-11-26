@@ -1,6 +1,7 @@
 #include "atlas.hpp"
 #include "src/anim.hpp"
-#include <opencv2/imgcodecs.hpp>
+#include "jxl-encoder/encode-jxl.hpp"
+#include <cr/Path.h>
 #include "compat/assert.hpp" // must go below opencv headers
 
 namespace floormat::Serialize {
@@ -44,8 +45,9 @@ Magnum::Vector2ui anim_atlas_::size() const noexcept
     return { std::max(maxx, row.xpos), ypos + row.max_height };
 }
 
-bool anim_atlas_::dump(StringView filename) const
+bool anim_atlas_::dump(StringView filename, u32 num_threads, u32 jxl_effort) const
 {
+    fm_assert(filename.hasSuffix(".jxl"_s));
     auto sz = size();
     cv::Mat4b mat((int)sz[1], (int)sz[0]);
     mat.setTo(0);
@@ -57,7 +59,8 @@ bool anim_atlas_::dump(StringView filename) const
             x.mat.copyTo(mat(roi));
         }
 
-    return cv::imwrite(filename.data(), mat);
+    const auto data = encode_jxl(mat, num_threads, jxl_effort);
+    return data && Path::write(filename, *data);
 }
 
 } // namespace floormat::Serialize

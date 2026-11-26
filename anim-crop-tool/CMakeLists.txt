@@ -7,6 +7,7 @@ if(OpenCV_FOUND)
     include_directories(SYSTEM "${OpenCV_INCLUDE_DIRS}")
     link_libraries(Corrade::Utility Magnum::Magnum)
     link_libraries(opencv_imgproc opencv_imgcodecs opencv_core)
+    link_libraries(floormat-jxl-encoder)
     link_libraries(nlohmann_json::nlohmann_json)
     link_libraries(floormat-common)
 

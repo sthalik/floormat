@@ -9,6 +9,7 @@
 #include "src/wall-atlas.hpp"
 #include "serialize/wall-atlas.hpp"
 #include "loader/loader.hpp"
+#include "jxl-encoder/encode-jxl.hpp"
 #include <utility>
 #include <tuple>
 #include <cr/GrowableArray.h>
@@ -147,11 +148,18 @@ bool save_image(state st)
         }
     }
 
-    auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".png"_s});
+    auto filename = ""_s.join({Path::join(st.opts.output_dir, st.new_atlas.header.name), ".jxl"_s});
     cv::Mat3b img;
     cv::cvtColor(st.dest, img, cv::COLOR_BGRA2BGR);
-    cv::imwrite(filename, img);
-    return true;
+    const auto data = encode_jxl(img, st.opts.num_threads, st.opts.jxl_effort);
+    if (!data || !Path::write(filename, *data))
+    {
+        ERR << "error: failed writing image to" << quoted(filename);
+        st.error = EX_CANTCREAT;
+        return false;
+    }
+    else
+        return true;
 }
 
 bool save_json(state st)
@@ -338,8 +346,12 @@ argument_tuple parse_cmdline(int argc, const char* const* argv) noexcept
     Corrade::Utility::Arguments args{};
     args.addOption('o', "output"s, "\0"_s).setHelp("output"s, ""_s, "DIR"s);
     args.addArgument("input.json"s);
+    args.addOption('j', "threads"s, "0"s).setHelp("threads"s, "JPEG XL encoder threads, 0 for one per CPU thread"s, "N"s);
+    args.addOption("jxl-effort"s, "11"s).setHelp("jxl-effort"s, "JPEG XL encoder effort, 1 to 11"s, "N"s);
     args.parse(argc, argv);
     options opts;
+    opts.num_threads = args.value<u32>("threads");
+    opts.jxl_effort = args.value<u32>("jxl-effort");
 
     opts.input_file = Path::join(loader.startup_directory(), args.value<StringView>("input.json"));
     opts.input_dir = Path::path(opts.input_file);
@@ -357,6 +369,8 @@ argument_tuple parse_cmdline(int argc, const char* const* argv) noexcept
         ERR << "fatal: output directory" << quoted(opts.output_dir) << "doesn't exist";
     else if (Path::isDirectory(opts.input_file))
         ERR << "fatal: input file" << quoted(opts.input_file) << "is a directory";
+    else if (opts.jxl_effort < 1 || opts.jxl_effort > 11)
+        ERR << "fatal: --jxl-effort must be between 1 and 11";
     else
     {
         fm_assert(opts.output_dir);

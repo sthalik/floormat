@@ -32,7 +32,7 @@ public:
     void advance_row();
     Magnum::Vector2ui offset() const noexcept;
     Magnum::Vector2ui size() const noexcept;
-    [[nodiscard]] bool dump(StringView filename) const;
+    [[nodiscard]] bool dump(StringView filename, u32 num_threads, u32 jxl_effort) const;
 };
 
 } // namespace floormat::Serialize
