@@ -150,7 +150,7 @@ find_profgen() {
 # llvm-profgen needs symbols and disassemblable code in one view, which rules out install/bin
 # (stripped) and its .debug companion (--only-keep-debug keeps neither). RELEASE/bin has both
 # but no sibling share/floormat, and floormat resolves assets from the exe path, so it aborts
-# on walls/walls.json. Copying the unstripped exe into install/bin satisfies both.
+# on art/walls/walls.json. Copying the unstripped exe into install/bin satisfies both.
 staged_path() {
     echo "${tree}/install/bin/floormat-${exe}-fdo.exe"
 }

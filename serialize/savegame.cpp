@@ -160,7 +160,8 @@ using proto_t  = u16;
 // 30: allow bbox_size as an odd number
 // 31: drop critter::offset_frac, store object::delta in ns
 // 32: add world frame number and game time
-static constexpr proto_t proto_version = 32;
+// 33: move anim and scenery atlases under art/
+static constexpr proto_t proto_version = 33;
 
 static constexpr usize string_max          = 512;
 static constexpr proto_t proto_version_min  = 20;
@@ -174,6 +175,16 @@ using chunksiz = u32;
 
 template<std::unsigned_integral T> static constexpr T highbit = (T{1} << sizeof(T)*8-1);
 template<std::unsigned_integral T> static constexpr T null = T(~highbit<T>);
+
+String migrate_anim_atlas_name(StringView name)
+{
+    if (name.hasPrefix("anim/"_s))
+        return loader_::ANIM_PATH + name.exceptPrefix("anim/"_s);
+    else if (name.hasPrefix("scenery/"_s))
+        return loader_::SCENERY_PATH + name.exceptPrefix("scenery/"_s);
+    else
+        return name;
+}
 
 template<bool IsNewest> struct visitor_base;
 template<> struct visitor_base<true> { [[maybe_unused]] static constexpr proto_t PROTO = proto_version; };
@@ -1201,12 +1212,19 @@ ok:
                     wall = loader.make_placeholder_wall_atlas(str);
                 atlas = &*wall;
                 break;
-            case atlas_type::anim:
+            case atlas_type::anim: {
+                String migrated_name;
+                if (PROTO < 33) [[unlikely]]
+                {
+                    migrated_name = migrate_anim_atlas_name(str);
+                    str = migrated_name;
+                }
                 anim = loader.anim_atlas(str, {}, asset_policy);
                 if (anim->is_placeholder()) [[unlikely]]
                     anim = loader.make_placeholder_anim_atlas(str, {});
                 atlas = &*anim;
                 break;
+            }
             case atlas_type::vobj:
                 atlas = loader.vobj(str).atlas.get();
                 break;

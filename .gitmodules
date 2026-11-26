@@ -41,3 +41,27 @@
 [submodule "libjxl"]
 	path = external/libjxl
 	url = https://github.com/libjxl/libjxl
+[submodule "assets/art/images"]
+	path = assets/art/images
+	url = https://github.com/sthalik/floormat
+	branch = asset/art/images/v1
+[submodule "assets/art/anim"]
+	path = assets/art/anim
+	url = https://github.com/sthalik/floormat
+	branch = asset/art/anim/v1
+[submodule "assets/art/scenery"]
+	path = assets/art/scenery
+	url = https://github.com/sthalik/floormat
+	branch = asset/art/scenery/v1
+[submodule "assets/art/vobj"]
+	path = assets/art/vobj
+	url = https://github.com/sthalik/floormat
+	branch = asset/art/vobj/v1
+[submodule "assets/art/ground"]
+	path = assets/art/ground
+	url = https://github.com/sthalik/floormat
+	branch = asset/art/ground/v1
+[submodule "assets/art/walls"]
+	path = assets/art/walls
+	url = https://github.com/sthalik/floormat
+	branch = asset/art/walls/v1

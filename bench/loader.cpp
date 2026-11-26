@@ -27,11 +27,11 @@ constexpr const char* wall_atlases[] = {
 };
 
 constexpr const char* anim_atlases[] = {
-    "anim/npc-walk",
-    "anim/test-8x8",
-    "scenery/door-close",
-    "scenery/control-panel",
-    "scenery/table",
+    "art/anim/npc-walk",
+    "art/anim/test-8x8",
+    "art/scenery/door-close",
+    "art/scenery/control-panel",
+    "art/scenery/table",
 };
 
 using nlohmann::json;

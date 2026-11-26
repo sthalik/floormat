@@ -37,9 +37,9 @@ constexpr const char* wall_atlases[] = {
 };
 
 constexpr const char* anim_atlases[] = {
-    "anim/npc-walk",
-    "anim/test-8x8",
-    "scenery/door-close",
+    "art/anim/npc-walk",
+    "art/anim/test-8x8",
+    "art/scenery/door-close",
 };
 
 constexpr const char* sceneries[] = {
@@ -64,7 +64,7 @@ constexpr Color4ub jxl_rgba8_pixels[2][3] = {
 template<typename T, u32 W, u32 H>
 void check_texture_pixels(StringView name, PixelFormat format, const T (&expected)[H][W])
 {
-    const auto img = loader.texture("images/"_s, name);
+    const auto img = loader.texture("art/images/"_s, name);
     fm_assert(img.format() == format);
     fm_assert(img.size() == Vector2i{(int)W, (int)H});
     const auto pixels = img.pixels<T>();
@@ -85,7 +85,7 @@ void Test::test_loader()
     bool caught = false;
     try
     {
-        (void)loader.texture("images/"_s, "jxl-test-animated"_s);
+        (void)loader.texture("art/images/"_s, "jxl-test-animated"_s);
     }
     catch (const floormat::exception&)
     {

@@ -30,11 +30,11 @@ StringView loader_::strip_prefix(StringView name)
     return name;
 }
 
-const StringView loader_::ANIM_PATH = "anim/"_s;
-const StringView loader_::SCENERY_PATH = "scenery/"_s;
+const StringView loader_::ANIM_PATH = "art/anim/"_s;
+const StringView loader_::SCENERY_PATH = "art/scenery/"_s;
 const StringView loader_::TEMP_PATH = "../../../"_s;
-const StringView loader_::VOBJ_PATH = "vobj/"_s;
-const StringView loader_::GROUND_TILESET_PATH = "ground/"_s;
-const StringView loader_::WALL_TILESET_PATH = "walls/"_s;
+const StringView loader_::VOBJ_PATH = "art/vobj/"_s;
+const StringView loader_::GROUND_TILESET_PATH = "art/ground/"_s;
+const StringView loader_::WALL_TILESET_PATH = "art/walls/"_s;
 
 } // namespace floormat

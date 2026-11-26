@@ -25,7 +25,7 @@ constexpr auto size = Vector2i{21, 52};
 
 void bitmask_test()
 {
-    auto img = loader.texture("images/", "bitmask-test1"_s);
+    auto img = loader.texture("art/images/"_s, "bitmask-test1"_s);
     auto bitmask = anim_atlas::make_bitmask(img);
     fm_assert(bitmask.size() >= usize{size.product()});
     fm_assert(img.pixelSize() == 4);
@@ -120,8 +120,8 @@ void bitmask_sweep_test()
 
 void bitmask_wide_test()
 {
-    // The sweep stops at 96 where anim/npc-walk.png is 3382 wide. 3391 is prime, leaves the widest
-    // possible tail after 16- and 32-pixel blocks, and 3391 % 8 == 7 walks every byte offset.
+    // bitmask_sweep_test() stops at width 96, and art/anim/npc-walk is 3382 wide. 3391 is prime, leaves
+    // the widest possible tail after 16- and 32-pixel blocks, and 3391 % 8 == 7 walks every byte offset.
     constexpr u32 W = 3391, H = 64;
     Array<unsigned char> px{NoInit, (usize)W*H*4};
     fill_pixels(px.data(), W, H, 0xa5f3u);

@@ -498,7 +498,7 @@ void check_missing_atlas(StringView name, u32 expected_count)
     const auto patched = Path::join(loader.TEMP_PATH, "test/test-save-missing-atlas.dat"_s);
     const auto file = Path::read(path);
     fm_assert(file);
-    constexpr auto from = "anim/npc-walk"_s, to = "anim/npc-gone"_s;
+    constexpr auto from = "anim/npc-walk"_s, to = "anim/npc-gone"_s, loaded_name = "art/anim/npc-gone"_s;
     write_patched(patched, *file, {from.data(), from.size()}, {to.data(), to.size()});
 
     auto w = world::deserialize(patched, loader_policy::ignore);
@@ -506,7 +506,7 @@ void check_missing_atlas(StringView name, u32 expected_count)
     double max_err = 0;
     for (auto& c : w.chunks())
         c.objects().visit<critter>([&](critter& C) {
-            fm_assert(C.atlas->name() == to);
+            fm_assert(C.atlas->name() == loaded_name);
             fm_assert(C.atlas->is_placeholder());
             fm_assert(C.atlas->info().fps == 30);
             fm_assert(C.frame == 0);
@@ -527,13 +527,13 @@ void check_missing_atlas(StringView name, u32 expected_count)
     count = 0;
     for (auto& c : w2.chunks())
         c.objects().visit<critter>([&](critter& C) {
-            fm_assert(C.atlas->name() == to);
+            fm_assert(C.atlas->name() == loaded_name);
             fm_assert(C.atlas->is_placeholder());
             fm_assert(C.atlas->info().fps == 30);
             count++;
         });
     fm_assert(count == expected_count);
-    fm_assert(loader.anim_atlas(to, {}, loader_policy::ignore) == loader.invalid_anim_atlas().atlas);
+    fm_assert(loader.anim_atlas(loaded_name, {}, loader_policy::ignore) == loader.invalid_anim_atlas().atlas);
 }
 
 void test_save_missing_atlas()
