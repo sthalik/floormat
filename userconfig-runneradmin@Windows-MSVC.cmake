@@ -3,6 +3,10 @@ sets(STRING
      CMAKE_BUILD_TYPE Debug
      CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL
 )
+if(NOT "$ENV{opencv_tag}" STREQUAL "")
+    sets(PATH OpenCV_DIR "${CMAKE_CURRENT_LIST_DIR}/artifacts/opencv/$ENV{opencv_tag}/windows-x64")
+    sets(BOOL OpenCV_STATIC ON)
+endif()
 function(fm-userconfig-src)
     add_compile_options(-W4)
 endfunction()

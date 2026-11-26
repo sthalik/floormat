@@ -34,11 +34,6 @@ jobs:
       with:
         submodules: recursive
 
-    - uses: abdes/gha-setup-ninja@master
-      with:
-        version: 1.11.1
-      if: runner.os != 'Linux'
-
     - name: Install Linux dependencies
       run: |
         sudo apt -q=2 update
@@ -49,30 +44,54 @@ jobs:
 
     - name: Install OSX dependencies
       run: |
-        brew install SDL2 google-benchmark llvm
+        brew install SDL2 google-benchmark llvm opencv
       if: runner.os == 'macOS'
 
-    - name: Install MSVC preview tools
+    - name: Install MSVC preview tools and v143
       run: |
-        $component = 'Microsoft.VisualStudio.Component.VC.Preview.Tools.x86.x64'
+        $components = @(
+          'Microsoft.VisualStudio.Component.VC.Preview.Tools.x86.x64',
+          'Microsoft.VisualStudio.Component.VC.14.44.17.14.x86.x64'
+        )
         if ($env:RUNNER_ARCH -eq 'ARM64') {
-          $component = 'Microsoft.VisualStudio.Component.VC.Preview.ARM64'
+          $components = @('Microsoft.VisualStudio.Component.VC.Preview.ARM64')
         }
         $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
-        $process = Start-Process -FilePath $installer -ArgumentList @(
-          'modify', '--installPath', '"C:\Program Files\Microsoft Visual Studio\18\Enterprise"',
-          '--add', $component, '--quiet', '--norestart'
-        ) -Wait -PassThru -WindowStyle Hidden
+        $arguments = @('modify', '--installPath', '"C:\Program Files\Microsoft Visual Studio\18\Enterprise"')
+        foreach ($c in $components) {
+          $arguments += '--add', $c
+        }
+        $arguments += '--quiet', '--norestart'
+        $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
         if ($process.ExitCode -notin 0, 3010) {
-          throw "MSVC preview tools installation failed: $($process.ExitCode)"
+          throw "MSVC tools installation failed: $($process.ExitCode)"
         }
       if: runner.os == 'Windows'
+
+    - name: Install opencv (Windows x64)
+      uses: cvpkg/opencv-action@main
+      with:
+        opencv_tag: '4.x'
+        BUILD_LIST: 'core,imgcodecs,imgproc'
+        BUILD_SHARED_LIBS: 'OFF'
+        BUILD_WITH_STATIC_CRT: 'OFF'
+      if: runner.os == 'Windows' && runner.arch == 'X64'
+
+    - uses: abdes/gha-setup-ninja@master
+      with:
+        version: 1.11.1
+      if: runner.os != 'Linux'
 
     - name: Configure
       run: ${{matrix.cmake}} -G "Ninja" -S ${{github.workspace}}/ -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} ${{ matrix.toolchain && format('--toolchain {0}/{1}', github.workspace, matrix.toolchain) || '' }}
 
     - name: Build
       run: ${{matrix.cmake}} --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install
+
+    - name: Check that the opencv tools were built
+      run: ls build/install/bin/floormat-anim-crop-tool* build/install/bin/floormat-wall-tileset-tool*
+      shell: bash
+      if: runner.os != 'Windows' || runner.arch != 'ARM64'
 
     - name: Test
       run: |
