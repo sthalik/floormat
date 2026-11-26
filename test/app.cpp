@@ -67,6 +67,7 @@ constexpr test_entry test_list[] = {
     FM_TEST(test_rtree_pool),
     FM_TEST(test_rtree_upstream),
     FM_TEST(test_simd_rtree),
+    FM_TEST(test_spatial_index),
     FM_TEST(test_astar_pool),
     FM_TEST(test_pool_registry),
     FM_TEST(test_coords),

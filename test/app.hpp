@@ -106,6 +106,7 @@ void test_slab_allocator();
 void test_slab_allocator_threads();
 void test_slide();
 void test_sorted_string_map();
+void test_spatial_index();
 void test_spinlock();
 void test_split();
 void test_sprite_atlas();
