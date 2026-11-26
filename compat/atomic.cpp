@@ -13,7 +13,6 @@
 #endif
 
 #if defined __GNUC__ && !defined __clang__
-// Same -Wattributes case as src/spritebatch.cpp.
 #pragma GCC diagnostic ignored "-Wattributes"
 // TSan doesn't model fences. borrowed-ptr-atomic.hpp avoids relying on one under TSan.
 #pragma GCC diagnostic ignored "-Wtsan"

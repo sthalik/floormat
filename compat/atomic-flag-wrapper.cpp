@@ -1,7 +1,6 @@
 #include "atomic-flag-wrapper.hpp"
 
 #if defined __GNUC__ && !defined __clang__
-// Same -Wattributes case as src/spritebatch.cpp.
 #pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
