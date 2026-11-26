@@ -1,14 +1,14 @@
 #pragma once
 #include "integer-types.hpp"
 
-namespace floormat::detail::inplace_function_impl {
+namespace floormat::detail::inplace_function {
 
 enum class ref_qualifier : u8 { none, lvalue, rvalue };
 
 template<bool Copyable, bool Const, bool Volatile, ref_qualifier Ref, bool Noexcept, usize Capacity, usize Alignment, typename R, typename... Args>
 class function_base;
 
-} // namespace floormat::detail::inplace_function_impl
+} // namespace floormat::detail::inplace_function
 
 namespace floormat {
 

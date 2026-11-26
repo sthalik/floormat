@@ -84,7 +84,7 @@ struct returns_value
 namespace floormat {
 
 namespace detail {
-static_assert(!inplace_function<void(), 8, 8>{});
+static_assert(!floormat::inplace_function<void(), 8, 8>{});
 } // namespace detail
 
 namespace {
@@ -352,10 +352,10 @@ static_assert(!std::is_constructible_v<CF, F>);
 static_assert(!std::is_assignable_v<CF&, F>);
 
 template<usize Capacity> using u64_function_base =
-    detail::inplace_function_impl::function_base<false, false, false, detail::inplace_function_impl::ref_qualifier::none,
+    detail::inplace_function::function_base<false, false, false, detail::inplace_function::ref_qualifier::none,
                                                  false, Capacity, 8, u64, u64>;
 template<typename T> constexpr inline bool same_signature_as_F =
-    detail::inplace_function_impl::same_signature<T, u64_function_base<40>>::value;
+    detail::inplace_function::same_signature<T, u64_function_base<40>>::value;
 struct derived_function final : u64_function_base<16> {};
 static_assert(same_signature_as_F<inplace_function<u64(u64), 16, 8>>);
 static_assert(same_signature_as_F<CF>);

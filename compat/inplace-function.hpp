@@ -24,15 +24,15 @@
     X(volatile, &&, false, true, rvalue)               \
     X(const volatile, &&, true, true, rvalue)
 
-namespace floormat::detail::inplace_function_impl {
+namespace floormat::detail::inplace_function {
 
 template<bool Const, bool Volatile, typename T>
 using add_cv = std::conditional_t<Const, std::conditional_t<Volatile, const volatile T, const T>,
                                          std::conditional_t<Volatile, volatile T, T>>;
 
-using common_function_impl::reference_converts_from_temporary;
-using common_function_impl::pointers_equal;
-using common_function_impl::is_empty_callable;
+using common_function::reference_converts_from_temporary;
+using common_function::pointers_equal;
+using common_function::is_empty_callable;
 
 template<typename T, typename U> struct same_signature
 {
@@ -52,7 +52,7 @@ template<typename T> using param = std::conditional_t<std::is_reference_v<T> || 
 
 template<typename F, typename Self, typename Call, bool Copyable, bool Noexcept, typename R, usize Capacity, usize Alignment, typename... Args>
 concept fits = !same_signature<std::remove_cvref_t<F>, Self>::value &&
-               !function_view_impl::is_function_view<std::remove_cvref_t<F>> &&
+               !function_view::is_function_view<std::remove_cvref_t<F>> &&
                sizeof(std::decay_t<F>) <= Capacity &&
                alignof(std::decay_t<F>) <= Alignment &&
                std::is_nothrow_move_constructible_v<std::decay_t<F>> &&
@@ -429,18 +429,18 @@ public:
     friend constexpr bool operator==(const function_base& f, std::nullptr_t) noexcept { return f.empty(); }
 };
 
-} // namespace floormat::detail::inplace_function_impl
+} // namespace floormat::detail::inplace_function
 
 namespace floormat {
 
 #define FM_INPLACE_FUNCTION_CLASS(NAME, COPYABLE, CV, REF, IS_CONST, IS_VOLATILE, REF_KIND)                     \
     template<typename R, typename... Args, bool Noexcept, usize Capacity, usize Alignment>                      \
     class NAME<R(Args...) CV REF noexcept(Noexcept), Capacity, Alignment> final:                                \
-        public detail::inplace_function_impl::function_base<COPYABLE, IS_CONST, IS_VOLATILE,                    \
-            detail::inplace_function_impl::ref_qualifier::REF_KIND, Noexcept, Capacity, Alignment, R, Args...>  \
+        public detail::inplace_function::function_base<COPYABLE, IS_CONST, IS_VOLATILE,                    \
+            detail::inplace_function::ref_qualifier::REF_KIND, Noexcept, Capacity, Alignment, R, Args...>  \
     {                                                                                                           \
-        using base_type = detail::inplace_function_impl::function_base<COPYABLE, IS_CONST, IS_VOLATILE,         \
-            detail::inplace_function_impl::ref_qualifier::REF_KIND, Noexcept, Capacity, Alignment, R, Args...>; \
+        using base_type = detail::inplace_function::function_base<COPYABLE, IS_CONST, IS_VOLATILE,         \
+            detail::inplace_function::ref_qualifier::REF_KIND, Noexcept, Capacity, Alignment, R, Args...>; \
                                                                                                                 \
     public:                                                                                                     \
         using base_type::base_type;                                                                             \

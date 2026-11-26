@@ -16,7 +16,7 @@
 #include <sanitizer/asan_interface.h>
 #endif
 
-namespace floormat::detail::inplace_array_impl {
+namespace floormat::detail::inplace_array {
 
 template<typename S, typename I>
 concept sentinel_for = requires(I& it, const S& s) { *it; ++it; it != s; };
@@ -55,7 +55,7 @@ union storage
     constexpr ~storage() noexcept;
 };
 
-} // namespace floormat::detail::inplace_array_impl
+} // namespace floormat::detail::inplace_array
 
 namespace floormat {
 
@@ -69,7 +69,7 @@ class inplace_array
     using stored_size_type = std::conditional_t<N <= 0xff && alignof(T) <= 1, u8,
                                                 std::conditional_t<N <= 0xffff && alignof(T) <= 2, u16, u32>>;
 
-    detail::inplace_array_impl::storage<T, N> _storage;
+    detail::inplace_array::storage<T, N> _storage;
     stored_size_type _size = 0;
 
     constexpr void start_storage_lifetime();
@@ -93,7 +93,7 @@ public:
     constexpr explicit inplace_array(u32 count);
     constexpr inplace_array(NoInitT, u32 count);
     constexpr inplace_array(u32 count, const T& value);
-    template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
+    template<typename I, typename S> requires detail::inplace_array::sentinel_for<S, I>
     constexpr inplace_array(I first, S last);
     constexpr inplace_array(std::initializer_list<T> list);
 
@@ -122,7 +122,7 @@ public:
     constexpr ~inplace_array() noexcept;
 
     constexpr void assign(u32 count, const T& value);
-    template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
+    template<typename I, typename S> requires detail::inplace_array::sentinel_for<S, I>
     constexpr void assign(I first, S last);
     constexpr void assign(std::initializer_list<T> list);
     template<typename R> requires range<R> constexpr void assign_range(R&& r);
@@ -180,7 +180,7 @@ public:
     constexpr T* insert(const T* pos, NoInitT);
     constexpr T* insert(const T* pos, u32 count, const T& value);
     constexpr T* insert(const T* pos, NoInitT, u32 count);
-    template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
+    template<typename I, typename S> requires detail::inplace_array::sentinel_for<S, I>
     constexpr T* insert(const T* pos, I first, S last);
     constexpr T* insert(const T* pos, std::initializer_list<T> list);
     template<typename R> requires range<R> constexpr T* insert_range(const T* pos, R&& r);
@@ -196,8 +196,8 @@ public:
 
 template<typename T, usize N>
 constexpr bool operator==(const inplace_array<T, N>& a, const inplace_array<T, N>& b);
-template<typename T, usize N> requires detail::inplace_array_impl::less_than_comparable<T>
-constexpr detail::inplace_array_impl::synth_three_way_result<T>
+template<typename T, usize N> requires detail::inplace_array::less_than_comparable<T>
+constexpr detail::inplace_array::synth_three_way_result<T>
 operator<=>(const inplace_array<T, N>& a, const inplace_array<T, N>& b);
 template<typename T, usize N>
 constexpr void swap(inplace_array<T, N>& a, inplace_array<T, N>& b) noexcept(noexcept(a.swap(b)));
@@ -212,7 +212,7 @@ struct container_traits<inplace_array<T, N>>
 
 } // namespace floormat
 
-namespace floormat::detail::inplace_array_impl {
+namespace floormat::detail::inplace_array {
 
 template<typename T, usize N>
 constexpr element_array<T, N>::element_array(ValueInitT): data() {}
@@ -238,7 +238,7 @@ constexpr storage<T, N>::storage() noexcept
 template<typename T, usize N>
 constexpr storage<T, N>::~storage() noexcept {}
 
-} // namespace floormat::detail::inplace_array_impl
+} // namespace floormat::detail::inplace_array
 
 namespace floormat {
 

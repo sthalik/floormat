@@ -125,7 +125,7 @@ bool with_gl_errors::close()
 
 namespace floormat::detail {
 
-bool check_glcall(function_view<void()> fn, StringView expression, gl_error_policy policy, std::source_location location)
+bool check_glcall(floormat::function_view<void()> fn, StringView expression, gl_error_policy policy, std::source_location location)
 {
     with_gl_errors scope{policy, expression, location};
     fn();

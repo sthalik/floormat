@@ -4,7 +4,7 @@
 #include "reverse-iterator.hpp"
 #include <cr/Optional.h>
 
-namespace floormat::detail::inplace_array_impl {
+namespace floormat::detail::inplace_array {
 
 template<typename T>
 constexpr synth_three_way_result<T> synth_three_way(const T& a, const T& b)
@@ -49,7 +49,7 @@ constexpr bool is_pointer_in_range(const T* first, const T* last, const T* p)
     }
 }
 
-} // namespace floormat::detail::inplace_array_impl
+} // namespace floormat::detail::inplace_array
 
 namespace floormat {
 
@@ -63,7 +63,7 @@ constexpr void inplace_array<T, N>::assign(u32 count, const T& value)
 }
 
 template<typename T, usize N>
-template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
+template<typename I, typename S> requires detail::inplace_array::sentinel_for<S, I>
 constexpr void inplace_array<T, N>::assign(I first, S last)
 {
     clear();
@@ -171,7 +171,7 @@ constexpr T* inplace_array<T, N>::insert(const T* pos, T&& value)
     else
     {
         T* src = __builtin_addressof(value);
-        if (detail::inplace_array_impl::is_pointer_in_range(pos, cend(), src)) [[unlikely]]
+        if (detail::inplace_array::is_pointer_in_range(pos, cend(), src)) [[unlikely]]
             src += 1;
         return construct_at(insert(pos, NoInit), move(*src));
     }
@@ -197,7 +197,7 @@ constexpr T* inplace_array<T, N>::insert(const T* pos, u32 count, const T& value
     else
     {
         const T* src = __builtin_addressof(value);
-        if (detail::inplace_array_impl::is_pointer_in_range(pos, cend(), src)) [[unlikely]]
+        if (detail::inplace_array::is_pointer_in_range(pos, cend(), src)) [[unlikely]]
             src += count;
         T* const first = insert(pos, NoInit, count);
         for (u32 i = 0; i < count; i++)
@@ -229,7 +229,7 @@ constexpr T* inplace_array<T, N>::insert(const T* pos, NoInitT, u32 count)
 }
 
 template<typename T, usize N>
-template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
+template<typename I, typename S> requires detail::inplace_array::sentinel_for<S, I>
 constexpr T* inplace_array<T, N>::insert(const T* pos, I first, S last)
 {
     const auto i = (u32)(pos - cbegin());
@@ -237,7 +237,7 @@ constexpr T* inplace_array<T, N>::insert(const T* pos, I first, S last)
     const u32 old_size = size();
     for (; first != last; ++first)
         emplace_back(*first);
-    detail::inplace_array_impl::rotate(begin() + i, begin() + old_size, end());
+    detail::inplace_array::rotate(begin() + i, begin() + old_size, end());
     return begin() + i;
 }
 
@@ -286,14 +286,14 @@ constexpr void inplace_array<T, N>::swap(inplace_array& other)
     }
 }
 
-template<typename T, usize N> requires detail::inplace_array_impl::less_than_comparable<T>
-constexpr detail::inplace_array_impl::synth_three_way_result<T>
+template<typename T, usize N> requires detail::inplace_array::less_than_comparable<T>
+constexpr detail::inplace_array::synth_three_way_result<T>
 operator<=>(const inplace_array<T, N>& a, const inplace_array<T, N>& b)
 {
-    using R = detail::inplace_array_impl::synth_three_way_result<T>;
+    using R = detail::inplace_array::synth_three_way_result<T>;
     const u32 n = a.size() < b.size() ? a.size() : b.size();
     for (u32 i = 0; i < n; i++)
-        if (const R c = detail::inplace_array_impl::synth_three_way(a[i], b[i]); std::is_neq(c))
+        if (const R c = detail::inplace_array::synth_three_way(a[i], b[i]); std::is_neq(c))
             return c;
     return a.size() <=> b.size();
 }

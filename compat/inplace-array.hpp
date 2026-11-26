@@ -22,7 +22,7 @@ constexpr inplace_array<T, N>::inplace_array(u32 count, const T& value): inplace
 }
 
 template<typename T, usize N>
-template<typename I, typename S> requires detail::inplace_array_impl::sentinel_for<S, I>
+template<typename I, typename S> requires detail::inplace_array::sentinel_for<S, I>
 constexpr inplace_array<T, N>::inplace_array(I first, S last): inplace_array{}
 {
     for (; first != last; ++first)

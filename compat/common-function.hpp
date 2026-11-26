@@ -2,7 +2,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace floormat::detail::common_function_impl {
+namespace floormat::detail::common_function {
 
 #ifdef __cpp_lib_reference_from_temporary
 template<typename R, typename T>
@@ -41,4 +41,4 @@ template<typename F> constexpr bool is_empty_callable(F& f)
         return false;
 }
 
-} // namespace floormat::detail::common_function_impl
+} // namespace floormat::detail::common_function

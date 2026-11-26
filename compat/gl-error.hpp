@@ -14,7 +14,7 @@ enum class gl_error_policy : u8 { warn, error, ignore, };
 
 namespace detail {
 
-[[nodiscard]] bool check_glcall(function_view<void()> fn, StringView expression, gl_error_policy policy,
+[[nodiscard]] bool check_glcall(floormat::function_view<void()> fn, StringView expression, gl_error_policy policy,
                                 std::source_location location = std::source_location::current());
 
 } // namespace detail
@@ -28,7 +28,7 @@ struct with_gl_errors final
     ~with_gl_errors() noexcept(false);
 
 private:
-    friend bool detail::check_glcall(function_view<void()> fn, StringView expression, gl_error_policy policy,
+    friend bool detail::check_glcall(floormat::function_view<void()> fn, StringView expression, gl_error_policy policy,
                                      std::source_location location);
 
     bool close();
