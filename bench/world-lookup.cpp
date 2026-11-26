@@ -2,7 +2,7 @@
 #include "src/chunk.hpp"
 #include "src/light.hpp"
 #include "src/tile-defs.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include <cr/Array.h>
 #include <benchmark/benchmark.h>
 

@@ -11,7 +11,7 @@
 #include "src/anim-atlas.hpp"
 #include "loader/loader.hpp"
 #include "compat/any-of.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.h"
 #include "compat/count-if.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/nanosecond.inl"

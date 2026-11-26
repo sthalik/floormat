@@ -1,6 +1,6 @@
 #pragma once
 #include "tile-image.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 
 namespace floormat {
 

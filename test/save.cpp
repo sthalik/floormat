@@ -15,7 +15,7 @@
 #include "loader/ground-cell.hpp"
 #include "loader/wall-cell.hpp"
 #include "loader/scenery-cell.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/crc64.hpp"
 #include "compat/exception.inl"
 #include "compat/nanosecond.inl"

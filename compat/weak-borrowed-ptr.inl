@@ -1,6 +1,5 @@
 #pragma once
 #include "weak-borrowed-ptr.hpp"
-#include "borrowed-ptr.inl"
 
 #ifdef __GNUG__
 #pragma GCC diagnostic push
@@ -60,26 +59,12 @@ template<typename T, typename P> basic_weak_bptr<T, P>::~basic_weak_bptr() noexc
     block::weak_release(blk);
 }
 
-template<typename T, typename P> template<detail::bptr::DerivedFrom<T> Y> basic_weak_bptr<T, P>::basic_weak_bptr(const basic_bptr<Y, P>& ptr) noexcept: blk{_copy(ptr.blk)} {}
-template<typename T, typename P> template<detail::bptr::DerivedFrom<T> Y> basic_weak_bptr<T, P>::basic_weak_bptr(const basic_weak_bptr<Y, P>& ptr) noexcept: blk{_copy(ptr.blk)} {}
 template<typename T, typename P> basic_weak_bptr<T, P>::basic_weak_bptr(const basic_weak_bptr& ptr) noexcept: blk{_copy(ptr.blk)} {}
 
-template<typename T, typename P> template<detail::bptr::DerivedFrom<T> Y> basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(const basic_bptr<Y, P>& ptr) noexcept { return _copy_assign(ptr.blk); }
-template<typename T, typename P> template<detail::bptr::DerivedFrom<T> Y> basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(const basic_weak_bptr<Y, P>& ptr) noexcept { return _copy_assign(ptr.blk); }
 template<typename T, typename P> basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(const basic_weak_bptr& ptr) noexcept { return _copy_assign(ptr.blk); }
-
-template<typename T, typename P>
-template<detail::bptr::DerivedFrom<T> Y>
-basic_weak_bptr<T, P>::basic_weak_bptr(basic_weak_bptr<Y, P>&& ptr) noexcept: blk{ptr.blk}
-{ ptr.blk = nullptr; }
 
 template<typename T, typename P> basic_weak_bptr<T, P>::basic_weak_bptr(basic_weak_bptr&& ptr) noexcept: blk{ptr.blk}
 { ptr.blk = nullptr; }
-
-template<typename T, typename P>
-template<detail::bptr::DerivedFrom<T> Y>
-basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(basic_weak_bptr<Y, P>&& ptr) noexcept
-{ return _move_assign(ptr.blk); }
 
 template<typename T, typename P> basic_weak_bptr<T, P>& basic_weak_bptr<T, P>::operator=(basic_weak_bptr&& ptr) noexcept { return _move_assign(ptr.blk); }
 

@@ -1,4 +1,5 @@
 #include "compat/exception.hpp"
+#include "compat/assert.hpp"
 #include "anim-atlas.hpp"
 #include <bit>
 #include <cstring>

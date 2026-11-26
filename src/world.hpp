@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/base-of.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include "chunk.hpp"
 #include "chunk-table.hpp"
 #include "object-table.hpp"

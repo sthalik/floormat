@@ -1,7 +1,7 @@
 #pragma once
 #include "atlas-loader-fwd.hpp"
 #include "loader.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include <cr/Optional.h>
 
 namespace floormat { struct anim_cell; class anim_atlas; }

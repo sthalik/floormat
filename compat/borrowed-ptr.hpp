@@ -1,6 +1,5 @@
 #pragma once
-#include "borrowed-ptr-fwd.hpp"
-#include "borrowed-ptr-policy.hpp"
+#include "borrowed-ptr.h"
 #include "assert.hpp"
 #include "defs.hpp"
 #if fm_ASAN
@@ -8,16 +7,6 @@
 #endif
 
 namespace floormat {
-struct bptr_base
-{
-    virtual ~bptr_base() noexcept;
-    bptr_base() noexcept;
-    bptr_base(const bptr_base&) noexcept;
-    bptr_base(bptr_base&&) noexcept;
-    bptr_base& operator=(const bptr_base&) noexcept;
-    bptr_base& operator=(bptr_base&&) noexcept;
-};
-
 // bptr{InPlace} puts the control block right in front of the object, so bptr{raw} finds it.
 // Must be the first polymorphic base. test/bptr-intrusive.cpp lists what can't work.
 template<typename Policy>
@@ -291,100 +280,9 @@ CORRADE_ALWAYS_INLINE control_block<Policy>* block_from_raw(U* ptr) noexcept
     }
 }
 
-template<typename From, typename To>
-concept StaticCastable = requires(From* from, To* to) {
-    static_cast<To*>(from);
-    static_cast<const bptr_base*>(from);
-    static_cast<const bptr_base*>(to);
-};
-
-template<typename From, typename To>
-concept DerivedFrom = requires(From* from, To* to) {
-    requires std::is_convertible_v<From&, To&>;
-};
-
-template<typename Y, typename T>
-concept ComparableWith = requires(Y* y, T* t) { y == t; };
-
 } // namespace floormat::detail::bptr
 
 namespace floormat {
-
-template<typename To, typename From, typename Policy> requires detail::bptr::StaticCastable<From, To>
-basic_bptr<To, Policy> static_pointer_cast(basic_bptr<From, Policy>&& p) noexcept;
-
-template<typename To, typename From, typename Policy> requires detail::bptr::StaticCastable<From, To>
-basic_bptr<To, Policy> static_pointer_cast(const basic_bptr<From, Policy>& p) noexcept;
-
-template<typename T, typename Policy>
-class basic_bptr final // NOLINT(*-special-member-functions)
-{
-    using block = detail::bptr::control_block<Policy>;
-    using count_type = Policy::counter::value_type;
-    static_assert(detail::bptr::ControlBlock<block>);
-
-    block* blk;
-
-    template<typename Y> basic_bptr(const basic_bptr<Y, Policy>& other, std::nullptr_t) noexcept;
-    template<typename Y> basic_bptr(basic_bptr<Y, Policy>&& other, std::nullptr_t) noexcept;
-    template<typename Y> basic_bptr& _copy_assign(const basic_bptr<Y, Policy>& other) noexcept;
-    template<typename Y> basic_bptr& _move_assign(basic_bptr<Y, Policy>&& other) noexcept;
-
-public:
-    template<typename... Ts>
-    //requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
-    CORRADE_ALWAYS_INLINE explicit basic_bptr(InPlaceInitT, Ts&&... args) noexcept(noexcept(std::remove_const_t<T>{std::declval<Ts>()...}));
-
-    CORRADE_ALWAYS_INLINE explicit basic_bptr(T* ptr) noexcept;
-    CORRADE_ALWAYS_INLINE basic_bptr() noexcept;
-    CORRADE_ALWAYS_INLINE basic_bptr(std::nullptr_t) noexcept; // NOLINT(*-explicit-conversions)
-    ~basic_bptr() noexcept;
-
-    basic_bptr& operator=(std::nullptr_t) noexcept;
-
-    basic_bptr(const basic_bptr<std::remove_const_t<T>, Policy>& ptr) noexcept requires std::is_const_v<T>;
-    basic_bptr(basic_bptr<std::remove_const_t<T>, Policy>&& ptr) noexcept requires std::is_const_v<T>;
-
-    basic_bptr(const basic_bptr&) noexcept;
-    basic_bptr& operator=(const basic_bptr&) noexcept;
-    template<detail::bptr::DerivedFrom<T> Y> basic_bptr(const basic_bptr<Y, Policy>&) noexcept;
-    template<detail::bptr::DerivedFrom<T> Y> basic_bptr& operator=(const basic_bptr<Y, Policy>&) noexcept;
-
-    basic_bptr(basic_bptr&&) noexcept;
-    basic_bptr& operator=(basic_bptr&&) noexcept;
-    template<detail::bptr::DerivedFrom<T> Y> basic_bptr(basic_bptr<Y, Policy>&&) noexcept;
-    template<detail::bptr::DerivedFrom<T> Y> basic_bptr& operator=(basic_bptr<Y, Policy>&&) noexcept;
-
-    void reset() noexcept;
-    template<detail::bptr::DerivedFrom<T> Y> void reset(Y* ptr) noexcept;
-    void destroy() noexcept;
-    void swap(basic_bptr& other) noexcept;
-    count_type use_count() const noexcept;
-    // true after destroy() through another copy, unlike operator bool
-    bool has_block() const noexcept;
-
-    T* get() const noexcept;
-    T* operator->() const noexcept;
-    T& operator*() const noexcept;
-
-    explicit operator bool() const noexcept;
-
-    bool operator==(const basic_bptr<const T, Policy>& other) const noexcept;
-    bool operator==(const basic_bptr<T, Policy>& other) const noexcept requires (!std::is_const_v<T>);
-    template<detail::bptr::ComparableWith<T> Y> bool operator==(const basic_bptr<Y, Policy>& other) const noexcept;
-    bool operator==(std::nullptr_t) const noexcept;
-
-    template<typename U, typename P> friend class basic_bptr;
-    template<typename U, typename P> friend class basic_weak_bptr;
-
-    template<typename To, typename From, typename P>
-    requires detail::bptr::StaticCastable<From, To>
-    friend basic_bptr<To, P> static_pointer_cast(basic_bptr<From, P>&& p) noexcept;
-
-    template<typename To, typename From, typename P>
-    requires detail::bptr::StaticCastable<From, To>
-    friend basic_bptr<To, P> static_pointer_cast(const basic_bptr<From, P>& p) noexcept;
-};
 
 // The guides must not overlap, or clang and MSVC find bptr{p} ambiguous.
 template<typename T> requires (!detail::bptr::Intrusive<T>) basic_bptr(T* ptr) -> basic_bptr<T, non_atomic_refcount>;
@@ -394,32 +292,134 @@ template<detail::bptr::Intrusive T> basic_bptr(T* ptr) -> basic_bptr<T, typename
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
-
-template<typename T, typename Policy>
-template<typename... Ts>
-//requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
-basic_bptr<T, Policy>::basic_bptr(InPlaceInitT, Ts&&... args) noexcept(noexcept(std::remove_const_t<T>{std::declval<Ts>()...})):
-    blk{detail::bptr::make_block<std::remove_const_t<T>, Policy>(forward<Ts>(args)...)}
-{}
-
-template<typename T, typename Policy> basic_bptr<T, Policy>::basic_bptr(std::nullptr_t) noexcept: blk{nullptr} {}
-template<typename T, typename Policy> basic_bptr<T, Policy>::basic_bptr() noexcept: basic_bptr{nullptr} {}
-
-template<typename T, typename Policy>
-basic_bptr<T, Policy>::basic_bptr(T* ptr) noexcept:
-    blk{detail::bptr::block_from_raw<std::remove_const_t<T>, Policy>(const_cast<std::remove_const_t<T>*>(ptr))}
-{}
-
-#ifdef __GNUG__
-#pragma GCC diagnostic pop
+#if defined __GNUC__ && !defined __clang__
+#pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
 // Defined in the header: the explicit instantiations in each class's .cpp skip member templates.
+template<typename T, typename Policy>
+template<typename... Ts>
+//requires std::is_constructible_v<std::remove_const_t<T>, Ts&&...>
+[[fm_always_inline]] basic_bptr<T, Policy>::basic_bptr(InPlaceInitT, Ts&&... args) noexcept(noexcept(std::remove_const_t<T>{std::declval<Ts>()...})):
+    blk{detail::bptr::make_block<std::remove_const_t<T>, Policy>(forward<Ts>(args)...)}
+{}
+
+template<typename T, typename P>
+template<typename Y>
+basic_bptr<T, P>::basic_bptr(const basic_bptr<Y, P>& other, std::nullptr_t) noexcept:
+    blk{other.blk}
+{
+    if (blk)
+        blk->add_ref();
+}
+
+template<typename T, typename P>
+template<typename Y>
+basic_bptr<T, P>::basic_bptr(basic_bptr<Y, P>&& other, std::nullptr_t) noexcept:
+    blk{other.blk}
+{
+    other.blk = nullptr;
+}
+
+template<typename T, typename P>
+template<typename Y>
+basic_bptr<T, P>& basic_bptr<T, P>::_copy_assign(const basic_bptr<Y, P>& other) noexcept
+{
+    if (blk != other.blk)
+    {
+        // Retain other's block before releasing ours: an aliased assignment
+        // (a = a->child) can destroy the object holding other when we decrement.
+        auto* new_blk = other.blk;
+        if (new_blk)
+            new_blk->add_ref();
+        auto* old = blk;
+        blk = new_blk;
+        block::release(old);
+    }
+    return *this;
+}
+
+template<typename T, typename P>
+template<typename Y>
+basic_bptr<T, P>& basic_bptr<T, P>::_move_assign(basic_bptr<Y, P>&& other) noexcept
+{
+    // Detach other before releasing ours, for self-move and a = move(a->child).
+    auto* new_blk = other.blk;
+    other.blk = nullptr;
+    auto* old = blk;
+    blk = new_blk;
+    block::release(old);
+    return *this;
+}
+
+template<typename T, typename P>
+template<detail::bptr::DerivedFrom<T> Y>
+basic_bptr<T, P>::basic_bptr(const basic_bptr<Y, P>& other) noexcept:
+    basic_bptr{other, nullptr}
+{}
+
+template<typename T, typename P>
+template<detail::bptr::DerivedFrom<T> Y>
+basic_bptr<T, P>& basic_bptr<T, P>::operator=(const basic_bptr<Y, P>& other) noexcept
+{ return _copy_assign(other); }
+
+template<typename T, typename P>
+template<detail::bptr::DerivedFrom<T> Y>
+basic_bptr<T, P>::basic_bptr(basic_bptr<Y, P>&& other) noexcept:
+    basic_bptr{move(other), nullptr}
+{}
+
+template<typename T, typename P>
+template<detail::bptr::DerivedFrom<T> Y>
+basic_bptr<T, P>& basic_bptr<T, P>::operator=(basic_bptr<Y, P>&& other) noexcept
+{ return _move_assign(move(other)); }
+
+template<typename T, typename P>
+template<detail::bptr::DerivedFrom<T> Y>
+void basic_bptr<T, P>::reset(Y* ptr) noexcept
+{
+    auto* old = blk;
+    blk = detail::bptr::block_from_raw<std::remove_const_t<Y>, P>(const_cast<std::remove_const_t<Y>*>(ptr));
+    block::release(old);
+}
+
 template<typename T, typename P>
 template<detail::bptr::ComparableWith<T> Y>
 bool basic_bptr<T, P>::operator==(const basic_bptr<Y, P>& other) const noexcept
 {
     return (blk ? blk->get() : nullptr) == (other.blk ? other.blk->get() : nullptr);
 }
+
+template<typename To, typename From, typename P>
+requires detail::bptr::StaticCastable<From, To>
+basic_bptr<To, P> static_pointer_cast(basic_bptr<From, P>&& p) noexcept
+{
+    if (p.blk && p.blk->get()) [[likely]]
+    {
+        basic_bptr<To, P> ret{nullptr};
+        ret.blk = p.blk;
+        p.blk = nullptr;
+        return ret;
+    }
+    return basic_bptr<To, P>{nullptr};
+}
+
+template<typename To, typename From, typename P>
+requires detail::bptr::StaticCastable<From, To>
+basic_bptr<To, P> static_pointer_cast(const basic_bptr<From, P>& p) noexcept
+{
+    if (p.blk && p.blk->get()) [[likely]]
+    {
+        basic_bptr<To, P> ret{nullptr};
+        p.blk->add_ref();
+        ret.blk = p.blk;
+        return ret;
+    }
+    return basic_bptr<To, P>{nullptr};
+}
+
+#ifdef __GNUG__
+#pragma GCC diagnostic pop
+#endif
 
 } // namespace floormat

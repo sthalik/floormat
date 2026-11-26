@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/pairwise.hpp"
 #include "compat/valgrind.hpp"

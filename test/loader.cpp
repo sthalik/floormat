@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.h"
 #include "src/ground-atlas.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/anim-atlas.hpp"

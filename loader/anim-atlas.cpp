@@ -3,7 +3,7 @@
 #include "anim-cell.hpp"
 #include "anim-traits.hpp"
 #include "src/anim-atlas.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 
 namespace floormat::detail::loader {
 

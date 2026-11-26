@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "run.hpp"
 #include "compat/array-size.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.h"
 #include "compat/debug.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/function-view.hpp"

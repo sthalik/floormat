@@ -13,7 +13,7 @@
 #include "src/tile-image.hpp"
 #include "src/tile-defs.hpp"
 #include "loader/loader.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/function-view.hpp"
 #include <bit>
 #include <cr/Optional.h>

@@ -21,6 +21,8 @@ using namespace floormat;
 
 namespace floormat {
 
+template class basic_bptr<world::unique_id, non_atomic_refcount>;
+
 world::world() : _unique_id{InPlace} {}
 
 world::world(world&& w) noexcept :

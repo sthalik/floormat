@@ -9,7 +9,7 @@
 #include "src/light.hpp"
 #include "src/hole.hpp"
 #include "loader/loader.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include <utility>
 
 namespace floormat {

@@ -11,7 +11,7 @@
 #include "shaders/shader.hpp"
 #include "floormat/main.hpp"
 #include "compat/enum-bitset.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include "compat/timer.hpp"
 #include <bit>
 #include <mg/Range.h>

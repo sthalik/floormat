@@ -7,7 +7,7 @@
 #include "shaders/lightmap.hpp"
 #include "shaders/texture-unit-cache.hpp"
 #include "loader/loader.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.h"
 #include <cr/Pair.h>
 #include <cr/StridedArrayView.h>
 #include <mg/Color.h>

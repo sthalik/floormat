@@ -6,7 +6,7 @@
 #include "src/wall-atlas.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/tile-image.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "floormat/main.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"

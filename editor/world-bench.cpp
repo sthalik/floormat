@@ -19,7 +19,7 @@
 #include "src/intra-coord.inl"
 #include "compat/array-size.hpp"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/nanosecond.hpp"
 #include "floormat/main.hpp"

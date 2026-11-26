@@ -2,7 +2,7 @@
 #include "src/chunk.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/tile-image.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.h"
 #include "loader/loader.hpp"
 
 namespace floormat {

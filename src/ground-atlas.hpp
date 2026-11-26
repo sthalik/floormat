@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include "pass-mode.hpp"
 #include "quads.hpp"
 #include "ground-def.hpp"

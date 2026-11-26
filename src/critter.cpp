@@ -13,6 +13,7 @@
 #include "compat/iota.hpp"
 #include "compat/exception.hpp"
 #include "compat/borrowed-ptr.inl"
+#include "compat/weak-borrowed-ptr.inl"
 #include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
 #include <array>
@@ -23,6 +24,7 @@ namespace floormat {
 
 template class basic_bptr<critter, non_atomic_refcount>;
 template class basic_bptr<const critter, non_atomic_refcount>;
+template class basic_weak_bptr<critter, non_atomic_refcount>;
 
 namespace {
 

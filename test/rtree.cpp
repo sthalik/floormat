@@ -17,7 +17,7 @@
 #include "src/old-rtree-search.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"
 #include "random/random.hpp"

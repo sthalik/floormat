@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/any-of.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/debug.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/function-view.hpp"

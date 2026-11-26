@@ -7,7 +7,7 @@
 #include "compat/count-if.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/format.inl"
-#include "compat/weak-borrowed-ptr.inl"
+#include "compat/weak-borrowed-ptr.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/timer.hpp"
 #include "compat/zip.hpp"

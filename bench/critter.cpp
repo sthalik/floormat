@@ -4,7 +4,7 @@
 #include "compat/function-view.hpp"
 #include "compat/constantly.hpp"
 #include "compat/nanosecond.inl"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/critter.hpp"
 #include "src/critter-script.hpp"

@@ -15,7 +15,7 @@
 #include "src/grid-pass.hpp"
 #include "src/point.inl"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/enumerate.hpp"
 #include "compat/function-view.hpp"
 #include "compat/nanosecond.inl"

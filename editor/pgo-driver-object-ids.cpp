@@ -8,7 +8,7 @@
 #include "src/light.hpp"
 #include "src/point.hpp"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/enumerate.hpp"
 #include "floormat/main.hpp"
 #include <mg/Functions.h>

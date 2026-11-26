@@ -6,7 +6,7 @@
 #include "src/object.hpp"
 #include "src/point.inl"
 #include "src/world.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include <initializer_list>
 
 namespace floormat {

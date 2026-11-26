@@ -5,7 +5,7 @@
 #include "spritebatch.hpp"
 #include "point.inl"
 #include "depth.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include "compat/map.hpp"
 
 namespace floormat {

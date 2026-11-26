@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include "rotation.hpp"
 #include "anim.hpp"
 #include "quads.hpp"

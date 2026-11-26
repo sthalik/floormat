@@ -11,7 +11,7 @@
 #include "src/point.inl"
 #include "src/wall-atlas.hpp"
 #include "src/world.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/function-view.hpp"
 #include "loader/loader.hpp"

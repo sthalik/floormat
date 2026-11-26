@@ -1,6 +1,6 @@
 #include "object-table.hpp"
 #include "object.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.h"
 #include "compat/multi-level-table.inl"
 
 namespace floormat {

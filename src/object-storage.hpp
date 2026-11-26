@@ -3,7 +3,7 @@
 #include "object-type.hpp"
 #include "scenery-type.hpp"
 #include "compat/defs.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include "compat/is-one-of.hpp"
 #include <concepts>
 #include <type_traits>

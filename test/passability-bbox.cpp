@@ -1,5 +1,5 @@
 #include "app.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/function-view.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"

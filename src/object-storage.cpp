@@ -1,7 +1,7 @@
 #include "object-storage.inl"
 #include "object.hpp"
 #include "scenery.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.h"
 #include "compat/stl/algorithm/sort.hpp"
 #include "compat/lower-bound.hpp"
 #include <array>

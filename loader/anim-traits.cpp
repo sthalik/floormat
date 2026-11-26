@@ -11,6 +11,7 @@
 #include "compat/exception.hpp"
 #include "compat/array-size.hpp"
 #include "compat/zip.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include <cr/Algorithms.h>
 #include <cr/GrowableArray.h>
 #include <cr/StridedArrayView.h>

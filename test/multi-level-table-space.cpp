@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "multi-level-table-common.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/count-if.hpp"
 #include "compat/zip.hpp"
 #include "src/chunk-table.hpp"

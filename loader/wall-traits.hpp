@@ -1,6 +1,6 @@
 #pragma once
 #include "atlas-loader-fwd.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 
 namespace floormat { struct wall_cell; class wall_atlas; }
 

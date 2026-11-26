@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/multi-level-table.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 
 namespace floormat {
 

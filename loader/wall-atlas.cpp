@@ -3,6 +3,7 @@
 #include "wall-traits.hpp"
 #include "atlas-loader.inl"
 #include "src/wall-atlas.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include <cr/StringIterable.h>
 
 namespace floormat::detail::loader {

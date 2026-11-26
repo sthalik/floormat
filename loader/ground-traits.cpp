@@ -5,6 +5,7 @@
 #include "src/tile-defs.hpp"
 #include "src/ground-atlas.hpp"
 #include "compat/assert.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include <cr/Optional.h>
 #include <mg/ImageView.h>
 #include <mg/ImageData.h>

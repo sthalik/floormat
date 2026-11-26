@@ -1,6 +1,7 @@
 #include "impl.hpp"
 #include "vobj-cell.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include "src/anim-atlas.hpp"
 #include "src/anim.hpp"
 #include "serialize/json-helper.hpp"

@@ -5,7 +5,7 @@
 #include "compat/strerror.hpp"
 #include "compat/hash.hpp"
 #include "compat/exception.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/hash-table-load-factor.hpp"
 #include "compat/crc64.hpp"
 #include "compat/stl/algorithm/sort.hpp"

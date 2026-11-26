@@ -1,6 +1,6 @@
 #pragma once
 #include "src/pass-mode.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include <cr/String.h>
 #include <mg/Vector2.h>
 

@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "run.hpp"
 #include "compat/any-of.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/function-view.hpp"
 #include "compat/constantly.hpp"
 #include "compat/nanosecond.inl"

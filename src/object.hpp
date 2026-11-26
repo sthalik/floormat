@@ -1,6 +1,6 @@
 #pragma once
 #include "compat/defs.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include "compat/propagate-const.hpp"
 #include "global-coords.hpp"
 #include "rotation.hpp"

@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include "compat/defs.hpp"
 #include "compat/array-size.hpp"
 #include "pass-mode.hpp"

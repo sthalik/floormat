@@ -1,7 +1,7 @@
 #pragma once
 #include "src/scenery-proto.hpp"
 #include "compat/array-size.hpp"
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include <array>
 #include <mg/Vector4.h>
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "compat/borrowed-ptr.hpp"
+#include "compat/borrowed-ptr.h"
 #include <nlohmann/json_fwd.hpp>
 
 namespace floormat {

@@ -1,6 +1,6 @@
 #include "app.hpp"
 #include "compat/exception.inl"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/nanosecond.hpp"
 #include "src/scenery-proto.hpp"
 #include "src/scenery.hpp"

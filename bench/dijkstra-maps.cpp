@@ -14,7 +14,7 @@
 #include "src/tile-image.hpp"
 #include "loader/loader.hpp"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/debug.hpp"
 #include "compat/function-view.hpp"
 #include <benchmark/benchmark.h>

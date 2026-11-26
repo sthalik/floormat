@@ -3,6 +3,7 @@
 #include "magnum-vector.hpp"
 #include "pass-mode.hpp"
 #include "compat/exception.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include "src/ground-atlas.hpp"
 #include "src/ground-def.hpp"
 #include "loader/loader.hpp"

@@ -6,6 +6,9 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
+#if defined __GNUC__ && !defined __clang__
+#pragma GCC diagnostic ignored "-Wattributes"
+#endif
 
 namespace floormat::detail::bptr {
 
@@ -95,7 +98,20 @@ void control_block<Policy>::destroy_object(control_block* b) noexcept
 
 namespace floormat {
 
-template<typename T, typename P> basic_bptr<T, P>::~basic_bptr() noexcept { block::release(blk); }
+template<typename T, typename P> [[fm_always_inline]] basic_bptr<T, P>::basic_bptr(std::nullptr_t) noexcept: blk{nullptr} {}
+template<typename T, typename P> [[fm_always_inline]] basic_bptr<T, P>::basic_bptr() noexcept: basic_bptr{nullptr} {}
+
+template<typename T, typename P>
+[[fm_always_inline]] basic_bptr<T, P>::basic_bptr(T* ptr) noexcept:
+    blk{detail::bptr::block_from_raw<std::remove_const_t<T>, P>(const_cast<std::remove_const_t<T>*>(ptr))}
+{}
+
+template<typename T, typename P>
+basic_bptr<T, P>::~basic_bptr() noexcept
+{
+    static_assert(detail::bptr::ControlBlock<block>);
+    block::release(blk);
+}
 
 template<typename T, typename P> basic_bptr<T, P>::basic_bptr(const basic_bptr<std::remove_const_t<T>, P>& ptr) noexcept requires std::is_const_v<T>: basic_bptr{ptr, nullptr} {}
 template<typename T, typename P> basic_bptr<T, P>::basic_bptr(basic_bptr<std::remove_const_t<T>, P>&& ptr) noexcept requires std::is_const_v<T>: basic_bptr{move(ptr), nullptr} {}
@@ -104,28 +120,6 @@ template<typename T, typename P> basic_bptr<T, P>::basic_bptr(const basic_bptr& 
 template<typename T, typename P> basic_bptr<T, P>::basic_bptr(basic_bptr&& other) noexcept: basic_bptr{move(other), nullptr} {}
 template<typename T, typename P> basic_bptr<T, P>& basic_bptr<T, P>::operator=(const basic_bptr& other) noexcept { return _copy_assign(other); }
 template<typename T, typename P> basic_bptr<T, P>& basic_bptr<T, P>::operator=(basic_bptr&& other) noexcept { return _move_assign(move(other)); }
-
-template<typename T, typename P>
-template<detail::bptr::DerivedFrom<T> Y>
-basic_bptr<T, P>::basic_bptr(const basic_bptr<Y, P>& other) noexcept:
-    basic_bptr{other, nullptr}
-{}
-
-template<typename T, typename P>
-template<detail::bptr::DerivedFrom<T> Y>
-basic_bptr<T, P>& basic_bptr<T, P>::operator=(const basic_bptr<Y, P>& other) noexcept
-{ return _copy_assign(other); }
-
-template<typename T, typename P>
-template<detail::bptr::DerivedFrom<T> Y>
-basic_bptr<T, P>::basic_bptr(basic_bptr<Y, P>&& other) noexcept:
-    basic_bptr{move(other), nullptr}
-{}
-
-template<typename T, typename P>
-template<detail::bptr::DerivedFrom<T> Y>
-basic_bptr<T, P>& basic_bptr<T, P>::operator=(basic_bptr<Y, P>&& other) noexcept
-{ return _move_assign(move(other)); }
 
 // Releasing the last reference can destroy the storage holding *this, so every release detaches
 // the block first and touches nothing of *this afterwards.
@@ -138,15 +132,6 @@ void basic_bptr<T, P>::reset() noexcept
 }
 
 template<typename T, typename P>
-template<detail::bptr::DerivedFrom<T> Y>
-void basic_bptr<T, P>::reset(Y* ptr) noexcept
-{
-    auto* old = blk;
-    blk = detail::bptr::block_from_raw<std::remove_const_t<Y>, P>(const_cast<std::remove_const_t<Y>*>(ptr));
-    block::release(old);
-}
-
-template<typename T, typename P>
 void basic_bptr<T, P>::destroy() noexcept
 {
     if (blk)
@@ -154,54 +139,6 @@ void basic_bptr<T, P>::destroy() noexcept
 }
 
 template<typename T, typename P> basic_bptr<T, P>& basic_bptr<T, P>::operator=(std::nullptr_t) noexcept { reset(); return *this; }
-
-template<typename T, typename P>
-template<typename Y>
-basic_bptr<T, P>::basic_bptr(const basic_bptr<Y, P>& other, std::nullptr_t) noexcept:
-    blk{other.blk}
-{
-    if (blk)
-        blk->add_ref();
-}
-
-template<typename T, typename P>
-template<typename Y>
-basic_bptr<T, P>::basic_bptr(basic_bptr<Y, P>&& other, std::nullptr_t) noexcept:
-    blk{other.blk}
-{
-    other.blk = nullptr;
-}
-
-template<typename T, typename P>
-template<typename Y>
-basic_bptr<T, P>& basic_bptr<T, P>::_copy_assign(const basic_bptr<Y, P>& other) noexcept
-{
-    if (blk != other.blk)
-    {
-        // Retain other's block before releasing ours: an aliased assignment
-        // (a = a->child) can destroy the object holding other when we decrement.
-        auto* new_blk = other.blk;
-        if (new_blk)
-            new_blk->add_ref();
-        auto* old = blk;
-        blk = new_blk;
-        block::release(old);
-    }
-    return *this;
-}
-
-template<typename T, typename P>
-template<typename Y>
-basic_bptr<T, P>& basic_bptr<T, P>::_move_assign(basic_bptr<Y, P>&& other) noexcept
-{
-    // Detach other before releasing ours, for self-move and a = move(a->child).
-    auto* new_blk = other.blk;
-    other.blk = nullptr;
-    auto* old = blk;
-    blk = new_blk;
-    block::release(old);
-    return *this;
-}
 
 template<typename T, typename P>
 T* basic_bptr<T, P>::get() const noexcept
@@ -244,34 +181,6 @@ auto basic_bptr<T, P>::use_count() const noexcept -> count_type
         return blk->use_count();
     else
         return 0;
-}
-
-template<typename To, typename From, typename P>
-requires detail::bptr::StaticCastable<From, To>
-basic_bptr<To, P> static_pointer_cast(basic_bptr<From, P>&& p) noexcept
-{
-    if (p.blk && p.blk->get()) [[likely]]
-    {
-        basic_bptr<To, P> ret{nullptr};
-        ret.blk = p.blk;
-        p.blk = nullptr;
-        return ret;
-    }
-    return basic_bptr<To, P>{nullptr};
-}
-
-template<typename To, typename From, typename P>
-requires detail::bptr::StaticCastable<From, To>
-basic_bptr<To, P> static_pointer_cast(const basic_bptr<From, P>& p) noexcept
-{
-    if (p.blk && p.blk->get()) [[likely]]
-    {
-        basic_bptr<To, P> ret{nullptr};
-        p.blk->add_ref();
-        ret.blk = p.blk;
-        return ret;
-    }
-    return basic_bptr<To, P>{nullptr};
 }
 
 } // namespace floormat

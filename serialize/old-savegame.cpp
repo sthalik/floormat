@@ -14,7 +14,7 @@
 #include "loader/scenery-cell.hpp"
 #include "compat/limits.hpp"
 #include "compat/strerror.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/nanosecond.hpp"
 #include <concepts>
 #include <vector>

@@ -17,7 +17,7 @@
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
 #include "src/old-rtree-search.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/function-view.hpp"
 #include "loader/loader.hpp"
 #include <benchmark/benchmark.h>

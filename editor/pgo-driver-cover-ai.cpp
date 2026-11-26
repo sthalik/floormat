@@ -18,7 +18,7 @@
 #include "src/intra-coord.inl"
 #include "compat/any-of.hpp"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.h"
 #include "compat/contains.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/tie.hpp"

@@ -5,7 +5,9 @@
 #include "src/tile-defs.hpp"
 #include "src/wall-atlas.hpp"
 #include "compat/array-size.hpp"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/exception.hpp"
+#include "compat/assert.hpp"
 #include <cstdio>
 #include <cr/Optional.h>
 #include <mg/ImageData.h>

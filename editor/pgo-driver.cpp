@@ -52,7 +52,7 @@
 #include "compat/enumerate.hpp"
 #include "compat/function-view.hpp"
 #include "compat/pairwise.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/nanosecond.inl"
 #include "compat/nanosecond.hpp"
 #include "compat/timer.hpp"

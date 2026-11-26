@@ -8,7 +8,7 @@
 #include "src/ground-atlas.hpp"
 #include "src/tile-image.hpp"
 #include "compat/assert.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/timer.hpp"
 #include "compat/zip.hpp"
 #include "loader/loader.hpp"

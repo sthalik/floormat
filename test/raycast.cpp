@@ -1,7 +1,7 @@
 #include "app.hpp"
 #include "compat/any-of.hpp"
 #include "compat/array-size.hpp"
-#include "compat/borrowed-ptr.inl"
+#include "compat/borrowed-ptr.hpp"
 #include "compat/function-view.hpp"
 #include "src/tile-constants.hpp"
 #include "src/raycast-diag.hpp"
