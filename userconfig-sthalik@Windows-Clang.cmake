@@ -277,7 +277,6 @@ endfunction()
 
 function(fm-userconfig-external-post)
     # Highway's SSE4 also needs AES and PCLMUL. Nothing uses them, and Sandy Bridge Core i3 lacks AES.
-    target_compile_definitions(floormat-hwy PUBLIC HWY_DISABLE_PCLMUL_AES)
     foreach(t jxl_dec-obj jxl_enc-obj jxl_cms)
         if(TARGET ${t})
             target_compile_definitions(${t} PRIVATE HWY_DISABLE_PCLMUL_AES)

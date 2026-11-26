@@ -415,9 +415,11 @@ foreach(t ${floormat-hwy-sorts})
 endforeach()
 add_library(floormat-hwy STATIC ${floormat-hwy-sources})
 target_include_directories(floormat-hwy SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/highway")
+# Highway's SSE4 also needs AES and PCLMUL. Nothing uses them, and Sandy Bridge Core i3 lacks AES.
 target_compile_definitions(floormat-hwy PUBLIC
     VQSORT_ONLY_STATIC=1
     HWY_WANT_SSE4=1
+    HWY_DISABLE_PCLMUL_AES
     "HWY_DISABLED_TARGETS=(HWY_AVX3_ZEN4|HWY_AVX3_DL|HWY_AVX3_SPR|HWY_AVX10_2)"
 )
 # VQSort replaces NaN before sorting. Below AVX3 its check is _mm_cmpunord_ps(v, v), which finite math folds to false.
