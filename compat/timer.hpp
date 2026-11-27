@@ -12,8 +12,8 @@ struct Time final
     friend Ns operator-(const Time& lhs, const Time& rhs) noexcept;
     [[nodiscard]] Ns update(const Time& ts = now()) & noexcept;
 
-    static float to_seconds(const Ns& ts) noexcept;
-    static float to_milliseconds(const Ns& ts) noexcept;
+    static float to_seconds(const Ns ts) noexcept;
+    static float to_milliseconds(const Ns ts) noexcept;
 
     static Time now() noexcept;
 

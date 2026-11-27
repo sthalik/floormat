@@ -69,7 +69,7 @@ Ns Time::update(const Time& ts) & noexcept
 bool Time::operator==(const Time&) const noexcept = default;
 std::strong_ordering Time::operator<=>(const Time&) const noexcept = default;
 
-float Time::to_seconds(const Ns& ts) noexcept
+float Time::to_seconds(const Ns ts) noexcept
 {
     if (ts.stamp == 0) [[unlikely]]
         return 0;
@@ -82,7 +82,7 @@ float Time::to_seconds(const Ns& ts) noexcept
     }
 }
 
-float Time::to_milliseconds(const Ns& ts) noexcept
+float Time::to_milliseconds(const Ns ts) noexcept
 {
     if (ts.stamp == 0) [[unlikely]]
         return 0;
