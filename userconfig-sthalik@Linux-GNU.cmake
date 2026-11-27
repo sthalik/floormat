@@ -16,6 +16,7 @@ sets(STRING
 #list(APPEND CMAKE_IGNORE_PREFIX_PATH "c:/msys64" "c:/msys64/clang64")
 
 add_link_options(-fuse-ld=gold)
+set(CMAKE_LINK_DEPENDS_USE_LINKER OFF)
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fconcepts-diagnostics-depth=3>)
 add_compile_options(-fdiagnostics-color=always)
 add_compile_options(-fstack-usage -Wstack-usage=12288)
