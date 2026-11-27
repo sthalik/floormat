@@ -376,6 +376,7 @@ add_subdirectory(serialize)
 add_subdirectory(editor)
 add_subdirectory(test)
 add_subdirectory(jxl-encoder)
+add_subdirectory(jxl-convert)
 add_subdirectory(anim-crop-tool)
 add_subdirectory(wall-tileset-tool)
 
