@@ -30,9 +30,9 @@ else()
     add_link_options(-static-libstdc++) # see https://gcc.gnu.org/pipermail/gcc-bugs/2022-May/787588.html
 endif()
 
+add_definitions(-D_GLIBCXX_USE_DEPRECATED=0 -D_GLIBCXX_USE_CXX11_ABI)
 if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     add_definitions(-D_GLIBCXX_ASSERTIONS)
-    add_definitions(-D_GLIBCXX_USE_DEPRECATED=0 -D_GLIBCXX_USE_CXX11_ABI)
     add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC)
     set(OpenCV_FOUND 0)
 else()
