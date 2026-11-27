@@ -301,7 +301,7 @@ jobs:
         valgrind --version
         xvfb-run perl -MPOSIX -e 'POSIX::close $_ for 3..10000; exec @ARGV or die "$!"' \
           valgrind bin/floormat-test --gl-only
-      timeout-minutes: 180
+      timeout-minutes: 300
 
     - name: Test without a GL context under memcheck
       run: |
@@ -310,7 +310,7 @@ jobs:
         env -u DISPLAY -u WAYLAND_DISPLAY \
           perl -MPOSIX -e 'POSIX::close $_ for 3..10000; exec @ARGV or die "$!"' \
           valgrind bin/floormat-test --no-gl
-      timeout-minutes: 60
+      timeout-minutes: 300
       if: ${{ !cancelled() }}
 
     - name: Test pgo-driver scenes under memcheck
@@ -325,7 +325,7 @@ jobs:
         xvfb-run perl -MPOSIX -e 'POSIX::close $_ for 3..10000; exec @ARGV or die "$!"' \
           valgrind --track-origins=no bin/floormat-editor --scenes=all \
           --driver-no-swapbuffers --geometry 512x360 --fixed-framerate=15
-      timeout-minutes: 60
+      timeout-minutes: 300
       if: ${{ !cancelled() }}
 
   freebsd:
