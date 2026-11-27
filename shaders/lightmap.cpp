@@ -90,6 +90,8 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
         .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.scratch, 0)
         .clearColor(0, Color4{0, 0, 0, 1});
 
+    // TODO: with ARB_texture_barrier, attach accum to fb and use texture barriers instead of accum_fb.
+    // Not done because that was slower on the AMD iGPU, though faster on NVIDIA.
     framebuffer.accum_fb = GL::Framebuffer{{ {}, size }};
     framebuffer.accum_fb
         .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.accum, 0)
