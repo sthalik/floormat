@@ -32,8 +32,23 @@ mat2 adjugate(mat2 m) {
     return mat2(m[1][1], -m[0][1], -m[1][0], m[0][0]);
 }
 
+float distance_to_segment(vec2 p, vec2 a, vec2 b) {
+    vec2 ab = b - a;
+    float t = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-30), 0.0, 1.0);
+    return distance(p, a + t * ab);
+}
+
 void main() {
-    if (mode == 0u) // shadow mode
+    if (mode == 0u &&
+        distance_to_segment(center_clip, a_segment.xy, a_segment.zw) > (max(range, radius) + 1.0) * 2.0 * scale.x)
+    {
+        v_penumbras = vec4(0);
+        v_edges = vec3(0);
+        v_proj_pos = vec3(0);
+        v_endpoints = vec4(0);
+        gl_Position = vec4(2, 2, 0, 1);
+    }
+    else if (mode == 0u) // shadow mode
     {
         vec2 endpoint_a = a_segment.xy;
         vec2 endpoint_b = a_segment.zw;

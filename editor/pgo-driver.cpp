@@ -1847,8 +1847,6 @@ task app::scene_cover()
 task app::scene_lightmap()
 {
     // All nine testable chunks. Every frame rebuilds the occlusion mesh and runs all 48 lights of the block.
-    //
-    // Each frame costs 2.4-4.5 s on CI's llvmpipe, so the count is kept low.
     constexpr u32 num_tested = 9, short_num_tested = 1, frames_per_light = 8, short_frames_per_light = 1;
     const bool shorten = pgo_driver_use_short_scenes();
     const auto tested = shorten ? short_num_tested : num_tested;

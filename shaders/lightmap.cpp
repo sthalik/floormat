@@ -18,6 +18,7 @@
 #include <mg/Color.h>
 #include <mg/Context.h>
 #include <mg/MeshView.h>
+#include <mg/Range.h>
 #include <mg/Shader.h>
 #include <mg/GL/Version.h>
 #include <mg/Renderer.h>
@@ -87,14 +88,16 @@ auto lightmap_shader::make_framebuffer(Vector2i size) -> Framebuffer
     framebuffer.fb = GL::Framebuffer{{ {}, size }};
     framebuffer.fb
         .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.scratch, 0)
-        .attachTexture(GL::Framebuffer::ColorAttachment{1}, framebuffer.accum, 0)
-        // clearColor() indexes by draw buffer, and a fresh FBO maps only
-        // draw buffer 0. Map both so the accum clear here and in bind() lands.
+        .clearColor(0, Color4{0, 0, 0, 1});
+
+    framebuffer.accum_fb = GL::Framebuffer{{ {}, size }};
+    framebuffer.accum_fb
+        .attachTexture(GL::Framebuffer::ColorAttachment{0}, framebuffer.accum, 0)
+        // lightmap.frag writes accum at output location 1.
         .mapForDraw({
-            { 0u, GL::Framebuffer::ColorAttachment{0} },
-            { 1u, GL::Framebuffer::ColorAttachment{1} },
+            { 0u, GL::Framebuffer::DrawAttachment::None },
+            { 1u, GL::Framebuffer::ColorAttachment{0} },
         })
-        .clearColor(0, Color4{0, 0, 0, 1})
         .clearColor(1, Color4{0, 0, 0, 1});
 
     return framebuffer;
@@ -271,11 +274,14 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
 
     block_uniform_buf.setSubData(0, {&block, 1});
 
+    const auto scissor_box = Math::intersect(
+        Range2Di{Vector2i{Math::floor(block.center_fragcoord - Vector2{block.range})},
+                 Vector2i{Math::ceil(block.center_fragcoord + Vector2{block.range})}}.padded(Vector2i{1}),
+        Range2Di{{}, Vector2i{(int)real_image_size}});
+    GL::Renderer::setScissor(scissor_box);
+
     // --- Pass 1: accumulate shadow mask to attachment 0 ---
-    framebuffer.fb.mapForDraw({
-        { 0u, GL::Framebuffer::ColorAttachment{0} },
-        { 1u, GL::Framebuffer::DrawAttachment::None },
-    });
+    framebuffer.fb.bind();
 
     // clear shadow mask to black (no shadow)
     framebuffer.fb.clearColor(0, Color4{0, 0, 0, 1});
@@ -284,32 +290,33 @@ void lightmap_shader::add_light(Vector2 neighbor_offset, const light_s& light)
     GL::Renderer::setBlendFunction(BlendFunction::One, BlendFunction::One);
 
     setUniform(ModeUniform, DrawShadowsMode);
+    setUniform(SamplerUniform, 0);
     fm_assert(occlusion_mesh.id());
     auto mesh_view = GL::MeshView{occlusion_mesh};
     mesh_view.setCount((i32)(count * Quads::indexes_per_quad));
     AbstractShaderProgram::draw(mesh_view);
 
-    // --- Pass 2: compute light * (1 - shadow), accumulate to attachment 1 ---
-    framebuffer.fb.mapForDraw({
-        { 0u, GL::Framebuffer::DrawAttachment::None },
-        { 1u, GL::Framebuffer::ColorAttachment{1} },
-    });
+    // --- Pass 2: compute light * (1 - shadow), accumulate to accum_fb ---
+    framebuffer.accum_fb.bind();
 
     setUniform(ModeUniform, BlendLightmapMode);
+    setUniform(SamplerUniform, scratch_texture_unit);
     AbstractShaderProgram::draw(light_mesh);
 }
 
 void lightmap_shader::bind()
 {
-    framebuffer.fb.bind();
-    framebuffer.fb.clearColor(1, Color4{0, 0, 0, 1});
+    framebuffer.accum_fb.bind();
+    framebuffer.accum_fb.clearColor(1, Color4{0, 0, 0, 1});
+    GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
     GL::Renderer::setBlendFunction(BlendFunction::One, BlendFunction::One);
-    setUniform(SamplerUniform, tuc.bind(framebuffer.scratch));
+    scratch_texture_unit = tuc.bind(framebuffer.scratch);
 }
 
 void lightmap_shader::finish()
 {
+    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
     using BlendFunction = Magnum::GL::Renderer::BlendFunction;
     GL::Renderer::setBlendFunction(BlendFunction::SourceAlpha, BlendFunction::OneMinusSourceAlpha);
 }

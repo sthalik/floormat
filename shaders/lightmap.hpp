@@ -35,7 +35,7 @@ struct lightmap_shader final : GL::AbstractShaderProgram
     ~lightmap_shader() override;
 
     struct Framebuffer final {
-        GL::Framebuffer fb{NoCreate};
+        GL::Framebuffer fb{NoCreate}, accum_fb{NoCreate};
         GL::Texture2D scratch{NoCreate}, accum{NoCreate};
     };
 
@@ -102,6 +102,7 @@ private:
     Array<Quads::indexes> indexes;
     u32 count = 0, capacity = 0;
     Framebuffer framebuffer;
+    i32 scratch_texture_unit = 0;
     GL::Mesh occlusion_mesh{NoCreate};
     static constexpr auto starting_capacity = 32;
 
