@@ -1,7 +1,7 @@
 sets(STRING
      CMAKE_C_FLAGS "-fno-plt -fPIC -m64"
      CMAKE_C_FLAGS_DEBUG "-O0 -g -ggdb -fstack-protector-all"
-     CMAKE_C_FLAGS_RELEASE "-O3 -ggdb -ffast-math -ftree-vectorize -funsafe-loop-optimizations -march=native -mtune=native -mavx -flto -fipa-pta -fno-semantic-interposition"
+     CMAKE_C_FLAGS_RELEASE "-O3 -ggdb -ffast-math -ftree-vectorize -funsafe-loop-optimizations -march=native -mtune=native -mavx -flto -fipa-pta -fno-semantic-interposition -ffunction-sections -fdata-sections"
 )
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIC")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fPIC")
@@ -35,6 +35,8 @@ if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     add_definitions(-D_GLIBCXX_USE_DEPRECATED=0 -D_GLIBCXX_USE_CXX11_ABI)
     add_definitions(-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC)
     set(OpenCV_FOUND 0)
+else()
+    add_link_options(-Wl,--gc-sections)
 endif()
 add_compile_definitions("$<IF:$<CONFIG:Debug,DEBUG>,,_FORTIFY_SOURCE=3>")
 
