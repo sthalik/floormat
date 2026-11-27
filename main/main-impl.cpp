@@ -24,7 +24,7 @@ int main_impl::exec()
 main_impl::~main_impl() noexcept
 {
     reset_world();
-    if (_frame_times_file)
+    if (_frame_times_file && _frame_times_file != stdout)
         std::fclose(_frame_times_file);
 }
 

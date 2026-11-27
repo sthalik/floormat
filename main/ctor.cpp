@@ -25,7 +25,9 @@ main_impl::main_impl(floormat_app& app, fm_settings&& se, int& argc, char** argv
         (void)setSwapInterval(0);
     set_fp_mask();
     arrayReserve(_clickable_scenery, 128);
-    if (!s.log_frame_times.isEmpty())
+    if (s.log_frame_times == "-"_s)
+        _frame_times_file = stdout;
+    else if (!s.log_frame_times.isEmpty())
     {
         _frame_times_file = std::fopen(s.log_frame_times.data(), "ab");
         if (!_frame_times_file)

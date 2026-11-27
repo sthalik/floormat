@@ -17,6 +17,7 @@
 #include "loader/loader.hpp"
 #include <cr/StringIterable.h>
 #include <cr/Arguments.h>
+#include <cr/Path.h>
 #include <cr/GrowableArray.h>
 
 namespace floormat {
@@ -140,7 +141,7 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .addOption("window", "windowed").setFromEnvironment("window", "FLOORMAT_WINDOW_MODE").setHelp("window", "window mode", "fullscreen|maximized|windowed|minimized")
         .addOption("fixed-framerate", "").setHelp("fixed-framerate", "feed update() a constant dt, 0 for the measured frame time; 60 with --scenes, else 0", "HZ")
         .addOption("load-game", "").setHelp("load-game", "load a savegame at startup; a bare name is taken as save/FILE", "FILE")
-        .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns to FILE, one per line", "FILE")
+        .addOption("log-frame-times", "").setHelp("log-frame-times", "append each drawEvent()'s duration in ns, one per line, to FILE or, for -, to stdout; a relative FILE is relative to the directory the editor started in", "FILE")
         .addBooleanOption("show-fps").setHelp("show-fps", "print FPS to stderr every 5 seconds")
         .addOption("atlas-layer-copy", "sparse-texture").setHelp("atlas-layer-copy", "how the sprite atlas texture grows: blit keeps the old and the new texture in VRAM at once, readback copies the old one's layers through system memory, pixel-buffer-readback copies them through GL pixel buffer objects, sparse-texture commits new layers in place where ARB_sparse_texture allows and blits otherwise", "blit|readback|pixel-buffer-readback|sparse-texture")
 #ifndef FLOORMAT_NO_PGO_DRIVER
@@ -152,7 +153,10 @@ fm_settings app::parse_cmdline(int argc, const char* const* const argv)
         .parse(argc, argv);
     if (const auto s = args.value<StringView>("load-game"))
         opts.load_game = resolve_load_game_path(s);
-    opts.log_frame_times = String{args.value<StringView>("log-frame-times")};
+    if (const auto s = args.value<StringView>("log-frame-times"); s && s != "-"_s)
+        opts.log_frame_times = Path::join(loader.startup_directory(), s);
+    else
+        opts.log_frame_times = String{s};
     opts.show_fps = args.isSet("show-fps");
     opts.vsync = parse_bool("vsync", args);
     if (const auto str = args.value<StringView>("atlas-layer-copy"); str == "blit"_s)
