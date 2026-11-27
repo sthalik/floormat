@@ -23,6 +23,8 @@ struct Time final
     u64 stamp;
 };
 
+void sleep(Ns sleep_duration) noexcept;
+
 #define fm_DATETIME_BUF_SIZE 32
 const char* format_datetime_to_string(char(&buf)[fm_DATETIME_BUF_SIZE]);
 

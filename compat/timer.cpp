@@ -8,6 +8,16 @@
 #include <cstdio>
 #include <mg/Time.h>
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#else
+#include <cerrno>
+#include <time.h>
+#endif
+
 namespace floormat {
 
 using std::chrono::duration_cast;
@@ -24,6 +34,19 @@ using Millis = duration<u64, std::milli>; // 32-bit rep would truncate ms-since-
 namespace {
 u64 get_time() noexcept { return duration_cast<Nsecs>(Clock::now().time_since_epoch()).count(); }
 const u64 Epoch = get_time();
+
+#ifdef _WIN32
+struct waitable_timer
+{
+    HANDLE handle = CreateWaitableTimerExW(nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+
+    ~waitable_timer() noexcept
+    {
+        if (handle)
+            CloseHandle(handle);
+    }
+};
+#endif
 } // namespace
 
 Time::Time() noexcept: Time{now()} {}
@@ -70,6 +93,40 @@ float Time::to_milliseconds(const Ns& ts) noexcept
         fm_assert(x >= 1e-10);
         return (float)x;
     }
+}
+
+void sleep(Ns sleep_duration) noexcept
+{
+#ifdef _WIN32
+    const u64 ms = sleep_duration.stamp / Millisecond.stamp + (sleep_duration.stamp % Millisecond.stamp != 0);
+    fm_assert(ms < INFINITE);
+    thread_local const waitable_timer timer;
+    u64 now = Time::now().stamp;
+    const u64 deadline = now + sleep_duration.stamp;
+    while (now < deadline)
+    {
+        const u64 remaining = deadline - now;
+        if (timer.handle)
+        {
+            LARGE_INTEGER duration;
+            duration.QuadPart = -(LONGLONG)((remaining + 99) / 100);
+            bool ok = SetWaitableTimer(timer.handle, &duration, 0, nullptr, nullptr, FALSE);
+            fm_assert(ok);
+            ok = WaitForSingleObject(timer.handle, INFINITE) == WAIT_OBJECT_0;
+            fm_assert(ok);
+        }
+        else
+            Sleep((DWORD)(remaining / Millisecond.stamp + (remaining % Millisecond.stamp != 0)));
+        now = Time::now().stamp;
+    }
+#else
+    timespec remaining = {
+        .tv_sec = (time_t)(sleep_duration.stamp / Second.stamp),
+        .tv_nsec = (long)(sleep_duration.stamp % Second.stamp),
+    };
+    while (nanosleep(&remaining, &remaining) != 0 && errno == EINTR)
+        continue;
+#endif
 }
 
 const char* format_datetime_to_string(char (&buf)[fm_DATETIME_BUF_SIZE])
