@@ -109,10 +109,7 @@ void main_impl::register_debug_callback()
 #endif
 
     if (GL::Context::current().isExtensionSupported<GL::Extensions::KHR::debug>())
-    {
         GL::Renderer::enable(GL::Renderer::Feature::DebugOutput);
-        GL::Renderer::enable(GL::Renderer::Feature::DebugOutputSynchronous);
-    }
 }
 
 } // namespace floormat
