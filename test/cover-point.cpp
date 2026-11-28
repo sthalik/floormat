@@ -3513,6 +3513,7 @@ void test_cover_script_cover_over_two_chunks_away()
     auto npc = add_critter(w, npc_pos);
     w.init_scripts();
     auto A = astar{};
+    w.set_grid_registry(&A.pool_registry());
     npc->script.do_reassign(critter_script::make_cover_script(A, threat->id, 8), npc);
     const auto fps = npc->atlas->info().fps;
     const auto frame = Second / fps;
