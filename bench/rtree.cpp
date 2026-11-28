@@ -54,6 +54,8 @@ constexpr u32 query_kind_count = (u32)std::size(box_sides);
 constexpr u32 query_count = 4096;
 constexpr u32 random_rect_entry_counts[] = { 8, 16, 32, 64, 96, 128, 160, 256, 512 };
 constexpr u32 cluster_entry_counts[] = { 32, 64, 96, 128, 160, 256, 512, 1000, 2000, 4000, 8000, 16000 };
+// cluster_entry_counts' sets share one generator, so a count added there changes every later set's entries.
+constexpr u32 separately_seeded_cluster_entry_counts[] = { 192 };
 constexpr u32 critter_count = 8;
 constexpr u64 first_critter_id = ~u64{} - critter_count;
 constexpr i32 pass_grid_bbox_sizes[] = { 16, 32, 64 };
@@ -1781,6 +1783,22 @@ std::array<Pointer<chunks_and_queries>, std::size(cluster_entry_counts)> make_cl
     return sets;
 }
 
+std::array<Pointer<chunks_and_queries>, std::size(separately_seeded_cluster_entry_counts)>
+make_separately_seeded_cluster_sets()
+{
+    std::array<Pointer<chunks_and_queries>, std::size(separately_seeded_cluster_entry_counts)> sets;
+    for (u32 i = 0; i < sets.size(); i++)
+    {
+        const auto n = separately_seeded_cluster_entry_counts[i];
+        Random::xoshiro256starstar rng;
+        Random::seed(rng, 3000 + i);
+        sets[i] = make_chunks_and_queries("clusters", n, {0, box_size, 128, 512, whole_chunk_side},
+                                          [&] { return make_cluster_entries(clusters_scene_mixture, scenery_bbox_sides,
+                                                                            n, rng); }, rng);
+    }
+    return sets;
+}
+
 using distribution_sets = std::array<std::array<Pointer<chunks_and_queries>, std::size(distribution_bbox_sides)>,
                                      std::size(distribution_mixtures)>;
 
@@ -1822,7 +1840,12 @@ const chunks_and_queries& get_random_rects_set(benchmark::State& state)
 const chunks_and_queries& get_cluster_set(benchmark::State& state)
 {
     static const auto sets = make_cluster_sets();
-    return find_set_by_entry_count(sets, cluster_entry_counts, state);
+    static const auto separately_seeded_sets = make_separately_seeded_cluster_sets();
+    if (std::ranges::find(separately_seeded_cluster_entry_counts, (u32)state.range(0))
+        != std::end(separately_seeded_cluster_entry_counts))
+        return find_set_by_entry_count(separately_seeded_sets, separately_seeded_cluster_entry_counts, state);
+    else
+        return find_set_by_entry_count(sets, cluster_entry_counts, state);
 }
 
 const chunks_and_queries& get_distribution_set(benchmark::State& state)
@@ -2284,9 +2307,12 @@ void random_rects_args(benchmark::Benchmark* b)
 
 void cluster_args(benchmark::Benchmark* b)
 {
+    std::vector<i64> entry_counts{std::begin(cluster_entry_counts), std::end(cluster_entry_counts)};
+    entry_counts.insert(entry_counts.end(), std::begin(separately_seeded_cluster_entry_counts),
+                        std::end(separately_seeded_cluster_entry_counts));
+    std::ranges::sort(entry_counts);
     b->ArgNames({"entries", "chunks", "box"})
-     ->ArgsProduct({{std::begin(cluster_entry_counts), std::end(cluster_entry_counts)}, {0, 1},
-                    box_side_args({0, box_size, 128, 512, whole_chunk_side})})
+     ->ArgsProduct({entry_counts, {0, 1}, box_side_args({0, box_size, 128, 512, whole_chunk_side})})
      ->Unit(benchmark::kNanosecond);
 }
 
