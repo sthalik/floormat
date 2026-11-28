@@ -7,9 +7,8 @@ cd -- "$(dirname -- "$0")"
 
 # Sub-nanosecond cases (World_*) measure loop overhead more than code, and Raycast_Dense_Old is
 # a retired implementation kept for reference. Neither tells you anything about codegen.
-# Merge_Skipped is out for the same reason: it early-outs and reads ~0 ns. Merge_Blocked is in
-# because its long streaks make the merge nearly free, so it is the most sensitive fixture to
-# anything in the per-quad path.
+# Merge_Blocked is in because its long streaks make the merge nearly free, so it is the most
+# sensitive fixture to anything in the per-quad path.
 filter='SpriteBatch_(Merge_(Blocked|Shuffled|Interleaved)|Chunk_|Emit_|Frame)|Raycast$|Raycast_Dense$|Loader_json|Grid_Build|Cover_(Build|Aligned)|Dijkstra|Critter_move|Bitmask'
 reps=5
 min_time=0.1s

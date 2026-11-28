@@ -415,7 +415,7 @@ void list_args(benchmark::Benchmark* b)
     b->Unit(benchmark::kNanosecond);
 }
 
-void run(benchmark::State& state, layout l, bool do_sort)
+void run(benchmark::State& state, layout l)
 {
     const auto& f = get_fixture((u32)state.range(0), l);
     auto sb = SpriteBatch{};
@@ -423,14 +423,14 @@ void run(benchmark::State& state, layout l, bool do_sort)
 
     // sort_vertex_buffer leaves verts, depths and starts alone, so undoing its swap restores
     // every input it reads.
-    sb.sort_vertex_buffer(do_sort);
-    if (do_sort && !check_order(state, sb, flatten(f.runs)))
+    sb.sort_vertex_buffer(true);
+    if (!check_order(state, sb, flatten(f.runs)))
         return;
     sb.unsort_vertex_buffer();
 
     for (auto _ : state)
     {
-        sb.sort_vertex_buffer(do_sort);
+        sb.sort_vertex_buffer(true);
         benchmark::DoNotOptimize(sb.merged_order().data());
         sb.unsort_vertex_buffer();
     }
@@ -439,25 +439,17 @@ void run(benchmark::State& state, layout l, bool do_sort)
 
 void SpriteBatch_Merge_Blocked(benchmark::State& state)
 {
-    run(state, layout::blocked, true);
+    run(state, layout::blocked);
 }
 
 void SpriteBatch_Merge_Interleaved(benchmark::State& state)
 {
-    run(state, layout::interleaved, true);
+    run(state, layout::interleaved);
 }
 
 void SpriteBatch_Merge_Shuffled(benchmark::State& state)
 {
-    run(state, layout::shuffled, true);
-}
-
-// do_sort=false early-outs before the tree is built, so this shares no code with the merge loop
-// and cannot control for its layout. It reads ~0 ns unless FLOORMAT_PERMUTE_VERTEXES is set,
-// which is the only thing left for it to measure.
-void SpriteBatch_Merge_Skipped(benchmark::State& state)
-{
-    run(state, layout::shuffled, false);
+    run(state, layout::shuffled);
 }
 
 void SpriteBatch_Chunk_Sorted(benchmark::State& state)
@@ -499,7 +491,6 @@ void SpriteBatch_Emit_List_Obj(benchmark::State& state)
 BENCHMARK(SpriteBatch_Merge_Blocked)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
 BENCHMARK(SpriteBatch_Merge_Interleaved)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
 BENCHMARK(SpriteBatch_Merge_Shuffled)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
-BENCHMARK(SpriteBatch_Merge_Skipped)->Arg(4)->Arg(16)->Arg(64)->Unit(benchmark::kMicrosecond);
 
 BENCHMARK(SpriteBatch_Chunk_Sorted)->Apply(chunk_args);
 BENCHMARK(SpriteBatch_Chunk_Unsorted)->Apply(chunk_args);

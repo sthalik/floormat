@@ -10,7 +10,6 @@
 #include "shaders/shader.hpp"
 #include "loader/loader.hpp"
 #include "compat/assume-aligned.hpp"
-#include "compat/setenv.hpp"
 #include <cstring>
 #include <cr/GrowableArray.h>
 #include <cr/Memory.h>
@@ -65,17 +64,6 @@ struct slot
     // them, so it drops back to 0 and the next identity upload rewrites from the start.
     u32 index_uploaded = 0;
 };
-
-// Set to gather vertices into a staging array in depth order and keep the index buffer identity,
-// so the two ways of applying the merged order can be A/B'd in one driver session.
-bool permute_vertexes()
-{
-    static const bool ret = [] {
-        const auto* s = getenv("FLOORMAT_PERMUTE_VERTEXES");
-        return s && *s && !(s[0] == '0' && !s[1]);
-    }();
-    return ret;
-}
 
 template<typename T> void reserve(Array<T>& A, u32 size) // todo reuse this, many places naively reserve without 1.5
 {
@@ -159,7 +147,6 @@ struct SpriteBatch::Impl
 
     quick_draw quick;
 
-    Array<Quads::vertexes> vertex_buffer;
     // index_buffer stays identity for its whole life, so every slot can share one monotone
     // upload watermark into it. A permuted order goes to index_permuted instead.
     Array<Quads::indexes> index_buffer, index_permuted;
@@ -219,7 +206,6 @@ void SpriteBatch::clear()
 {
     auto& impl = *this->impl;
     fm_debug2_assert(!impl.in_chunk);
-    arrayClear(impl.vertex_buffer);
     arrayClear(impl.verts);
     arrayClear(impl.depths);
     arrayClear(impl.starts);
@@ -372,21 +358,14 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     const auto size = impl.last_start;
     const auto k = (u32)impl.starts.size() - 1; // number of runs
 
-    fm_assert(impl.vertex_buffer.isEmpty());
     fm_debug_assert(impl.merge_output.isEmpty());
     fm_debug_assert(impl.m.runs.isEmpty());
     fm_debug_assert(impl.m.tree.isEmpty());
-    const bool pv = permute_vertexes();
-    if (pv)
-        reserve(impl.vertex_buffer, size);
 
     // Array::operator[] is bounds-checked unless NDEBUG is defined.
-    // Pointers must be taken after every reserve() that can reallocate.
     const auto* const D = impl.depths.data();
-    const auto* const Vin = impl.verts.data();
     const auto* const S = impl.sort_indexes.data();
     const auto* const Starts = impl.starts.data();
-    auto* const V = pv ? impl.vertex_buffer.data() : nullptr;
     const bool vq = vqsort_avx2_or_better();
 
 #ifndef FM_NO_DEBUG3
@@ -402,9 +381,6 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
     {
         // sort skipped (depth-buffered opaque pass), empty, or one run already sorted by
         // end_chunk — sort_indexes already holds the order draw() needs.
-        if (pv)
-            for (auto i = 0u; i < size; i++)
-                V[i] = Vin[S[i]];
         return;
     }
 
@@ -429,10 +405,6 @@ void SpriteBatch::sort_vertex_buffer(bool do_sort)
         merge_runs(D, S, Starts, k, size, impl.m.runs.data(), impl.m.tree.data(), M);
     }
 
-    if (pv)
-        for (auto i = 0u; i < size; i++)
-            V[i] = Vin[M[i]];
-
     // swap so draw() reads merged order from sort_indexes
     std::swap(impl.sort_indexes, impl.merge_output);
     impl.sort_indexes_in_orig_order = false;
@@ -442,7 +414,6 @@ void SpriteBatch::unsort_vertex_buffer()
 {
     auto& impl = *this->impl;
     fm_assert(!impl.in_chunk);
-    arrayClear(impl.vertex_buffer);
     // The early-out fills V and returns without swapping, so it leaves merge_output empty.
     if (!impl.merge_output.isEmpty())
     {
@@ -466,26 +437,22 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     fm_assert(size <= Quads::max_quads_per_buffer);
 
     const auto& S = impl.sort_indexes;
-    auto& V = impl.vertex_buffer;
-    fm_debug_assert(V.isEmpty());
     fm_debug_assert(size == S.size());
     fm_debug_assert(size <= impl.verts.size());
     fm_debug_assert(impl.starts.size() > 1);
     fm_debug_assert(impl.merge_output.isEmpty());
 
-    // Nothing permuted sort_indexes, so the merged order is the emission order and both the
-    // staging copy and the index permutation would come out identity.
+    // Nothing permuted sort_indexes, so the merged order is the emission order and the index
+    // permutation would come out identity.
     const bool direct = !do_sort && impl.sort_indexes_in_orig_order;
     if (!direct)
-        sort_vertex_buffer(do_sort); // modifies V when the staging path is on
+        sort_vertex_buffer(do_sort);
     ensure_allocated(size);
 
     auto& slot = impl.slots[impl.slot_idx];
-    const bool staged = !direct && permute_vertexes();
+    slot.vertex_buffer_handle.setSubData(0, ArrayView{ impl.verts.data(), size });
 
-    slot.vertex_buffer_handle.setSubData(0, ArrayView{ staged ? V.data() : impl.verts.data(), size });
-
-    if (staged || direct)
+    if (direct)
     {
         auto& I = impl.index_buffer;
         const auto Isz = (u32)I.size();
