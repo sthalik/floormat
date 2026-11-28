@@ -101,6 +101,7 @@ void test_scenery();
 void test_search_result_threads();
 void test_sequence_traits();
 void test_shader();
+void test_simd_rtree();
 void test_slab_allocator();
 void test_slab_allocator_threads();
 void test_slide();
