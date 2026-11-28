@@ -55,6 +55,16 @@ else()
         -Wl,-mllvm,-enable-ext-tsp-block-placement
         -Wl,-mllvm,-hot-cold-split
     )
+    # Without these, memcpy, memmove and memset calls go through lld's import thunks. Stock LLVM lacks the option.
+    include(CheckLinkerFlag)
+    check_linker_flag(CXX -Wl,-mllvm,-x86-dllimport-libcalls=memcpy fm_lld_has_x86_dllimport_libcalls)
+    if(fm_lld_has_x86_dllimport_libcalls)
+        add_link_options(
+            -Wl,-mllvm,-x86-dllimport-libcalls=memcpy
+            -Wl,-mllvm,-x86-dllimport-libcalls=memmove
+            -Wl,-mllvm,-x86-dllimport-libcalls=memset
+        )
+    endif()
     # Line discriminators for AutoFDO
     add_compile_options(-fdebug-info-for-profiling)
     if(FLOORMAT_PGO STREQUAL "generate" OR FLOORMAT_PGO STREQUAL "cs" OR FLOORMAT_PGO STREQUAL "use") # instrumented PGO, not AutoFDO
