@@ -1,0 +1,42 @@
+diff --git a/libcxx/src/support/win32/thread_win32.cpp b/libcxx/src/support/win32/thread_win32.cpp
+--- a/libcxx/src/support/win32/thread_win32.cpp
++++ b/libcxx/src/support/win32/thread_win32.cpp
+@@ -144,12 +144,25 @@ bool __libcpp_thread_id_less(__libcpp_thread_id __lhs, __libcpp_thread_id __rhs)
+ struct __libcpp_beginthreadex_thunk_data {
+   void* (*__func)(void*);
+   void* __arg;
++#if defined(__i386__) || defined(__x86_64__)
++  // Windows starts a thread at the default x87 control word and MXCSR. POSIX threads inherit the creator's.
++  unsigned short __x87_cw;
++#  ifdef __SSE__
++  unsigned __mxcsr;
++#  endif
++#endif
+ };
+
+ static inline _LIBCPP_HIDE_FROM_ABI unsigned WINAPI __libcpp_beginthreadex_thunk(void* __raw_data) {
+   auto* __data = static_cast<__libcpp_beginthreadex_thunk_data*>(__raw_data);
+   auto* __func = __data->__func;
+   void* __arg  = __data->__arg;
++#if defined(__i386__) || defined(__x86_64__)
++  __asm__ volatile("fldcw %0" : : "m"(__data->__x87_cw));
++#  ifdef __SSE__
++  __builtin_ia32_ldmxcsr(__data->__mxcsr);
++#  endif
++#endif
+   delete __data;
+   return static_cast<unsigned>(reinterpret_cast<uintptr_t>(__func(__arg)));
+ }
+@@ -160,6 +173,12 @@ int __libcpp_thread_create(__libcpp_thread_t* __t, void* (*__func)(void*), void*
+   auto* __data   = new __libcpp_beginthreadex_thunk_data;
+   __data->__func = __func;
+   __data->__arg  = __arg;
++#if defined(__i386__) || defined(__x86_64__)
++  __asm__ volatile("fnstcw %0" : "=m"(__data->__x87_cw));
++#  ifdef __SSE__
++  __data->__mxcsr = __builtin_ia32_stmxcsr();
++#  endif
++#endif
+
+   *__t = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, __libcpp_beginthreadex_thunk, __data, 0, nullptr));
+

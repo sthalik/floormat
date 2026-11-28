@@ -1,0 +1,55 @@
+diff --git a/lld/COFF/ICF.cpp b/lld/COFF/ICF.cpp
+--- a/lld/COFF/ICF.cpp
++++ b/lld/COFF/ICF.cpp
+@@ -21,6 +21,7 @@
+ #include "COFFLinkerContext.h"
+ #include "Chunks.h"
+ #include "Symbols.h"
++#include "Writer.h"
+ #include "lld/Common/Timer.h"
+ #include "llvm/Support/Parallel.h"
+ #include "llvm/Support/TimeProfiler.h"
+@@ -169,9 +170,16 @@ bool ICF::equalsConstant(const SectionChunk *a, const SectionChunk *b) {
+                   b->getRelocs().begin(), eq))
+     return false;
+
++  auto partialSectionName = [&](const SectionChunk *c) {
++    StringRef name = c->getSectionName();
++    return shouldStripSectionSuffix(c, name, ctx.config.mingw)
++               ? name.split('$').first
++               : name;
++  };
++
+   // Compare section attributes and contents.
+   return a->getOutputCharacteristics() == b->getOutputCharacteristics() &&
+-         a->getSectionName() == b->getSectionName() &&
++         partialSectionName(a) == partialSectionName(b) &&
+          a->header->SizeOfRawData == b->header->SizeOfRawData &&
+          a->checksum == b->checksum && a->getContents() == b->getContents() &&
+          a->getMachine() == b->getMachine() && assocEquals(a, b);
+diff --git a/lld/COFF/Writer.cpp b/lld/COFF/Writer.cpp
+--- a/lld/COFF/Writer.cpp
++++ b/lld/COFF/Writer.cpp
+@@ -1020,8 +1020,8 @@ void Writer::locateImportTables() {
+ // Return whether a SectionChunk's suffix (the dollar and any trailing
+ // suffix) should be removed and sorted into the main suffixless
+ // PartialSection.
+-static bool shouldStripSectionSuffix(SectionChunk *sc, StringRef name,
+-                                     bool isMinGW) {
++bool lld::coff::shouldStripSectionSuffix(const SectionChunk *sc,
++                                         StringRef name, bool isMinGW) {
+   // On MinGW, comdat groups are formed by putting the comdat group name
+   // after the '$' in the section name. For .eh_frame$<symbol>, that must
+   // still be sorted before the .eh_frame trailer from crtend.o, thus just
+diff --git a/lld/COFF/Writer.h b/lld/COFF/Writer.h
+--- a/lld/COFF/Writer.h
++++ b/lld/COFF/Writer.h
+@@ -21,6 +21,8 @@ static const int pageSize = 4096;
+ class COFFLinkerContext;
+
+ void writeResult(COFFLinkerContext &ctx);
++bool shouldStripSectionSuffix(const SectionChunk *sc, StringRef name,
++                              bool isMinGW);
+
+ class PartialSection {
+ public:
