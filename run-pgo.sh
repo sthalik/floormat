@@ -32,7 +32,7 @@ default_exes="floormat-test floormat-benchmark floormat-editor"
 # atlas loading counted once instead of once per pass.
 driver_repeat=${FM_DRIVER_REPEAT:-10}
 bench_reps=${FM_BENCH_REPS:-3}
-bench_min_time=${FM_BENCH_MIN_TIME:-1s}
+bench_min_time=${FM_BENCH_MIN_TIME:-0.05s}
 test_repeat=${FM_TEST_REPEAT:-10}
 
 # No colon: an empty FM_TIME_SCENES skips the timing instead of falling back to the default.
@@ -178,7 +178,7 @@ exe_args() {
     case "$(exe_tag "$1")" in
         editor) echo "$editor_args --scenes=all --driver-repeat $driver_repeat" ;;
         # Instrumented, the benchmark's default 0.5s per case turns one training run into
-        # minutes, and PGO reads the counts relative to each other, not their magnitude.
+        # an hour, and PGO reads the counts relative to each other, not their magnitude.
         # Repetitions rather than a longer min_time, because a repetition re-runs the fixture
         # as well, which is what another iteration means here.
         benchmark) echo "--benchmark_min_time=$bench_min_time --benchmark_repetitions=$bench_reps" ;;
