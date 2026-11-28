@@ -7,6 +7,7 @@
 #include "src/old-rtree-search.hpp"
 #include "src/rtree-pool.inl"
 #include "src/spatial-index.hpp"
+#include "src/spatial-index.inl"
 #include "src/chunk.hpp"
 #include "src/grid-pass.hpp"
 #include "src/scenery-proto.hpp"
@@ -64,6 +65,7 @@ static_assert(cmp::less_equal<>{}(2, 2) && !cmp::less_equal<>{}(3, 2) && cmp::le
 template<u32 M> using Chunk_RTree_Fanout = ::old_rtree<object_id, float, 2, float, (int)M, (int)M/2>;
 
 constexpr std::integer_sequence<u32, 4, 16, 24, 32, 48, 64> fanouts_other_than_8;
+constexpr std::integer_sequence<u32, 64, 128, 160, 192, 256> max_entries_before_tree_values;
 
 template<u32 M>
 struct alignas(64) Node
@@ -126,6 +128,16 @@ struct chunk_structures
     Math::Range2D<i16> bounding_rect;
     entry_arrays arrays;
     chunk_coords_ coord;
+    Array<entry> insertion_order;
+    // Padded with empty blocks to a multiple of 4 for search_blocks_4_at_a_time().
+    Array<entry_block<i16>> blocks_in_insertion_order;
+    spatial_index<i16, 64> spatial_index_64;
+    spatial_index<i16, 128> spatial_index_128;
+    spatial_index<i16, 160> spatial_index_160;
+    spatial_index<i16, 192> spatial_index_192;
+    spatial_index<i16, 256> spatial_index_256;
+    RTree<i16, 32> rtree_i16;
+    RTree<i32, 32> rtree_i32;
 };
 
 struct query
@@ -204,6 +216,24 @@ auto& nodes(C& c)
     }
 }
 
+template<u32 N, typename C>
+auto& get_spatial_index(C& c)
+{
+    if constexpr (N == 64)
+        return c.spatial_index_64;
+    else if constexpr (N == 128)
+        return c.spatial_index_128;
+    else if constexpr (N == 160)
+        return c.spatial_index_160;
+    else if constexpr (N == 192)
+        return c.spatial_index_192;
+    else
+    {
+        static_assert(N == 256);
+        return c.spatial_index_256;
+    }
+}
+
 u32 below(Random::xoshiro256starstar& rng, u32 n)
 {
     return u32((Random::next(rng) >> 32) * n >> 32);
@@ -243,6 +273,11 @@ u64 hash_sum(ArrayView<const entry> entries)
 u64 sum_of_coord_bits(const Math::Range2D<i16>& r)
 {
     return (u64)(u16)r.min().x() + (u16)r.min().y() + (u16)r.max().x() + (u16)r.max().y();
+}
+
+u64 sum_of_coord_bits(const Range2Di& r)
+{
+    return (u64)(u32)r.min().x() + (u32)r.min().y() + (u32)r.max().x() + (u32)r.max().y();
 }
 
 template<typename Rect>
@@ -360,6 +395,13 @@ void insert_entries(Tree& tree, ArrayView<const entry> entries)
     }
 }
 
+template<typename Index>
+void insert_integer_rects(Index& index, ArrayView<const entry> entries)
+{
+    for (const auto& e : entries)
+        index.Insert(typename Index::Rect{e.rect}, e.data);
+}
+
 void update_pointers(entry_arrays& a)
 {
     a.min_x = a.coord_storage[0].data();
@@ -415,10 +457,11 @@ void insert_entry(entry_arrays& a, const Math::Range2D<i16>& rect, u64 data)
     a.count = n + 1;
 }
 
-Array<entry_block<i16>> make_entry_blocks(ArrayView<const entry> entries)
+Array<entry_block<i16>> make_entry_blocks(ArrayView<const entry> entries, u32 block_count_multiple = 1)
 {
-    const auto n = (u32)entries.size();
-    Array<entry_block<i16>> blocks{ValueInit, (n + max_lanes - 1)/max_lanes};
+    const auto n = (u32)entries.size(), num_used_blocks = (n + max_lanes - 1)/max_lanes;
+    Array<entry_block<i16>> blocks{ValueInit, (num_used_blocks + block_count_multiple - 1)/block_count_multiple *
+                                              block_count_multiple};
     for (u32 i = 0; i < blocks.size()*max_lanes; i++)
     {
         auto& b = blocks[i / max_lanes];
@@ -694,6 +737,80 @@ int search_blocks(ArrayView<const entry_block<i16>> blocks, const Range2Di& quer
     return num_found;
 }
 
+// Reports hits in search_blocks()'s order. blocks.size() must be a multiple of 4.
+template<typename Compare = cmp::less_equal<>, typename F>
+int search_blocks_4_at_a_time(ArrayView<const entry_block<i16>> blocks, const Range2Di& query, F&& callback)
+{
+    fm_debug3_assert(blocks.size() % 4 == 0);
+#if HWY_MAX_BYTES <= 64
+    const auto rect = SearchRect<Compare>(query);
+    int num_found = 0;
+    // MSVC 19.53 rejects an implicit capture of a constexpr local of empty class type without an initializer.
+    constexpr hn::CappedTag<i16, max_lanes> d{};
+    constexpr auto N = (u32)hn::MaxLanes(d);
+    const auto q_min_x = hn::Set(d, rect.min().x()), q_min_y = hn::Set(d, rect.min().y());
+    const auto q_max_x = hn::Set(d, rect.max().x()), q_max_y = hn::Set(d, rect.max().y());
+    const auto overlapping_lanes = [&](const entry_block<i16>& b) HWY_ATTR {
+        u32 disjoint_bits = 0;
+        for (u32 i = 0; i < max_lanes; i += N)
+        {
+            const auto disjoint = hn::Or(hn::Or(hn::Gt(hn::Load(d, b.min_x + i), q_max_x),
+                                                hn::Gt(hn::Load(d, b.min_y + i), q_max_y)),
+                                         hn::Or(hn::Lt(hn::Load(d, b.max_x + i), q_min_x),
+                                                hn::Lt(hn::Load(d, b.max_y + i), q_min_y)));
+            disjoint_bits |= (u32)hn::BitsFromMask(d, disjoint) << i;
+        }
+        return ~disjoint_bits & ((1u << max_lanes) - 1);
+    };
+    for (u32 k = 0; k < blocks.size(); k += 4)
+    {
+        auto bits = overlapping_lanes(blocks[k]) | overlapping_lanes(blocks[k + 1]) << max_lanes |
+                    overlapping_lanes(blocks[k + 2]) << 2*max_lanes | overlapping_lanes(blocks[k + 3]) << 3*max_lanes;
+        for (; bits; bits &= bits - 1)
+        {
+            const auto j = (u32)std::countr_zero(bits);
+            const auto& b = blocks[k + j / max_lanes];
+            const auto i = j % max_lanes;
+            num_found++;
+            if (!callback(b.id[i], Math::Range2D<i16>{{b.min_x[i], b.min_y[i]}, {b.max_x[i], b.max_y[i]}}))
+                return num_found;
+        }
+    }
+    return num_found;
+#else
+    return search_blocks<Compare>(blocks, query, callback);
+#endif
+}
+
+// Returns the rect around the entries in blocks. Empty lanes hold the empty rect, which moves no bound.
+Math::Range2D<i16> bounding_rect_of_blocks(ArrayView<const entry_block<i16>> blocks)
+{
+#if HWY_MAX_BYTES <= 64
+    constexpr hn::CappedTag<i16, max_lanes> d;
+    constexpr auto N = (u32)hn::MaxLanes(d);
+    auto min_x = hn::Set(d, empty_rect_min), min_y = min_x;
+    auto max_x = hn::Set(d, empty_rect_max), max_y = max_x;
+    for (const auto& b : blocks)
+        for (u32 i = 0; i < max_lanes; i += N)
+        {
+            min_x = hn::Min(min_x, hn::Load(d, b.min_x + i));
+            min_y = hn::Min(min_y, hn::Load(d, b.min_y + i));
+            max_x = hn::Max(max_x, hn::Load(d, b.max_x + i));
+            max_y = hn::Max(max_y, hn::Load(d, b.max_y + i));
+        }
+    return {{hn::ReduceMin(d, min_x), hn::ReduceMin(d, min_y)}, {hn::ReduceMax(d, max_x), hn::ReduceMax(d, max_y)}};
+#else
+    Math::Vector2<i16> min{empty_rect_min}, max{empty_rect_max};
+    for (const auto& b : blocks)
+        for (u32 i = 0; i < max_lanes; i++)
+        {
+            min = Math::min(min, Math::Vector2<i16>{b.min_x[i], b.min_y[i]});
+            max = Math::max(max, Math::Vector2<i16>{b.max_x[i], b.max_y[i]});
+        }
+    return {min, max};
+#endif
+}
+
 // Returns the index of the entry with min corner `min` and data `data`, or a.count.
 u32 find_entry(const entry_arrays& a, const Math::Vector2<i16>& min, u64 data)
 {
@@ -768,6 +885,8 @@ using HWY_NAMESPACE::search_tree_with_float_query;
 using HWY_NAMESPACE::search_tree_with_stack;
 using HWY_NAMESPACE::search_arrays;
 using HWY_NAMESPACE::search_blocks;
+using HWY_NAMESPACE::search_blocks_4_at_a_time;
+using HWY_NAMESPACE::bounding_rect_of_blocks;
 using HWY_NAMESPACE::move_entry;
 using HWY_NAMESPACE::remove_entry;
 
@@ -819,6 +938,13 @@ constexpr scenery_mixture distribution_mixtures[] = {
 };
 constexpr const char* distribution_mixture_names[] = {"narrow and wide clusters", "uniform", "lattice clusters"};
 static_assert(std::size(distribution_mixture_names) == std::size(distribution_mixtures));
+
+constexpr u32 empty_middle_entry_counts[] = { 64, 96, 128, 160, 192, 256 };
+constexpr scenery_cluster control_cluster[] = { {{3, 3}, 1, 1} };
+constexpr scenery_cluster corner_clusters[] = { {{2, 2}, 1, 1}, {{13, 13}, 1, 1} };
+// Indexed by the number of clusters minus 1.
+constexpr scenery_mixture empty_middle_mixtures[] = { {control_cluster, 0}, {corner_clusters, 0} };
+constexpr i32 empty_middle_min = 7*tile_size_xy, empty_middle_max = 9*tile_size_xy;
 
 struct weighted_bbox_side
 {
@@ -954,9 +1080,18 @@ Optional<world> make_scene_world(scene s)
     fm_assert(false);
 }
 
-// c.old_tree_8 must hold the chunk's entries. The trees of fanouts_other_than_8 get them in insertion_order.
+// c.old_tree_8 must hold the chunk's entries. nodes_8 copies it, and entries, blocks and arrays list them in its
+// leaf order. The other structures get them in insertion_order.
 void fill_structures(chunk_structures& c, ArrayView<const entry> insertion_order)
 {
+    arrayReserve(c.insertion_order, Math::max(insertion_order.size(), usize{16}));
+    arrayAppend(c.insertion_order, insertion_order);
+    c.blocks_in_insertion_order = make_entry_blocks(insertion_order, 4);
+    [&]<u32... Ns>(std::integer_sequence<u32, Ns...>) {
+        (insert_integer_rects(get_spatial_index<Ns>(c), insertion_order), ...);
+    }(max_entries_before_tree_values);
+    insert_integer_rects(c.rtree_i16, insertion_order);
+    insert_integer_rects(c.rtree_i32, insertion_order);
     c.entries = leaf_entries(c.old_tree_8);
     [&]<u32... Ms>(std::integer_sequence<u32, Ms...>) {
         (insert_entries(old_tree<Ms>(c), insertion_order), ...);
@@ -1020,12 +1155,12 @@ template<typename Search>
 void check_hits_in_order(ArrayView<const entry> expected, const Search& search)
 {
     u32 i = 0;
-    const int count = search([&](u64 data, const Math::Range2D<i16>& r) {
+    const auto count = (u32)search([&](u64 data, const Math::Range2D<i16>& r) {
         fm_assert(i < expected.size() && expected[i] == entry{r, data});
         i++;
         return true;
     });
-    fm_assert(count == (int)expected.size() && i == expected.size());
+    fm_assert(count == expected.size() && i == expected.size());
 }
 
 template<typename Search>
@@ -1033,25 +1168,32 @@ void check_hits_in_any_order(ArrayView<const entry> expected, const Search& sear
 {
     u64 sum = 0;
     u32 i = 0;
-    const int count = search([&](u64 data, const Math::Range2D<i16>& r) {
+    const auto count = (u32)search([&](u64 data, const Math::Range2D<i16>& r) {
         sum += entry_hash({r, data});
         i++;
         return true;
     });
-    fm_assert(count == (int)expected.size() && i == expected.size() && sum == hash_sum(expected));
+    fm_assert(count == expected.size() && i == expected.size() && sum == hash_sum(expected));
+}
+
+// Returns the entries whose rects Compare selects with min and max, in the order of `entries`.
+template<typename Compare, typename T>
+Array<entry> linear_scan_hits(ArrayView<const entry> entries, const T min[2], const T max[2])
+{
+    constexpr Compare compare;
+    Array<entry> ret;
+    arrayReserve(ret, Math::max(entries.size(), usize{16}));
+    for (const auto& e : entries)
+        if (compare(e.rect.min().x(), max[0]) && compare(e.rect.min().y(), max[1]) &&
+            compare(min[0], e.rect.max().x()) && compare(min[1], e.rect.max().y()))
+            arrayAppend(ret, e);
+    return ret;
 }
 
 template<typename T>
 Array<entry> strict_hits(ArrayView<const entry> entries, const T min[2], const T max[2])
 {
-    constexpr cmp::less<> lt;
-    Array<entry> ret;
-    arrayReserve(ret, Math::max(entries.size(), usize{16}));
-    for (const auto& e : entries)
-        if (lt(e.rect.min().x(), max[0]) && lt(e.rect.min().y(), max[1]) &&
-            lt(min[0], e.rect.max().x()) && lt(min[1], e.rect.max().y()))
-            arrayAppend(ret, e);
-    return ret;
+    return linear_scan_hits<cmp::less<>>(entries, min, max);
 }
 
 template<u32 M>
@@ -1063,6 +1205,36 @@ void check_query_at_fanout(const chunk_structures& c, const query& q, ArrayView<
     const auto& root = nodes<M>(c).front();
     check_hits_in_order(hits, [&](auto&& f) { return search_tree(root, q.rect, f); });
     check_hits_in_any_order(strict, [&](auto&& f) { return search_tree<cmp::less<>>(root, q.rect, f); });
+}
+
+// Blocks report hits in insertion order, the tree in an order of its own.
+template<u32 N>
+void check_query_at_spatial_index(const chunk_structures& c, const Range2Di& r,
+                                  ArrayView<const entry> hits_in_insertion_order,
+                                  ArrayView<const entry> strict_in_insertion_order)
+{
+    const auto& index = get_spatial_index<N>(c);
+    fm_assert(index.Count() == c.insertion_order.size() && index.is_using_tree() == (index.Count() > N));
+    const auto search = [&](auto&& f) { return index.Search(r.min(), r.max(), f); };
+    const auto strict_search = [&](auto&& f) { return index.template Search<cmp::less<>>(r.min(), r.max(), f); };
+    if (index.is_using_tree())
+    {
+        check_hits_in_any_order(hits_in_insertion_order, search);
+        check_hits_in_any_order(strict_in_insertion_order, strict_search);
+    }
+    else
+    {
+        check_hits_in_order(hits_in_insertion_order, search);
+        check_hits_in_order(strict_in_insertion_order, strict_search);
+    }
+}
+
+template<typename Compare>
+u32 search_rtree_i32(const chunk_structures& c, const Range2Di& r, auto&& callback)
+{
+    return c.rtree_i32.Search<Compare>(r.min(), r.max(), [&](u64 data, const Range2Di& rect) {
+        return callback(data, Math::Range2D<i16>{rect});
+    });
 }
 
 // Returns the number of entries the old tree reports for q, whose float and integer bounds must be equal.
@@ -1092,6 +1264,27 @@ u32 check_query(const chunk_structures& c, const query& q)
     check_hits_in_order(strict, [&](auto&& f) { return search_arrays<lt>(c.arrays, r, f); });
     check_hits_in_order(strict, [&](auto&& f) { return search_blocks<lt>(c.blocks, r, f); });
     check_hits_in_order(strict, [&](auto&& f) { return search_tree_with_float_query<lt>(root, q.min, q.max, f); });
+
+    const auto hits_in_insertion_order = linear_scan_hits<cmp::less_equal<>>(c.insertion_order, min, max);
+    const auto strict_in_insertion_order = strict_hits(c.insertion_order, min, max);
+    fm_assert(hits_in_insertion_order.size() == hits_8.size() &&
+              hash_sum(hits_in_insertion_order) == hash_sum(hits_8));
+    fm_assert(strict_in_insertion_order.size() == strict.size() &&
+              hash_sum(strict_in_insertion_order) == hash_sum(strict));
+    [&]<u32... Ns>(std::integer_sequence<u32, Ns...>) {
+        (check_query_at_spatial_index<Ns>(c, r, hits_in_insertion_order, strict_in_insertion_order), ...);
+    }(max_entries_before_tree_values);
+    check_hits_in_any_order(hits_8, [&](auto&& f) { return c.rtree_i16.Search(r.min(), r.max(), f); });
+    check_hits_in_any_order(strict, [&](auto&& f) { return c.rtree_i16.Search<lt>(r.min(), r.max(), f); });
+    check_hits_in_any_order(hits_8, [&](auto&& f) { return search_rtree_i32<cmp::less_equal<>>(c, r, f); });
+    check_hits_in_any_order(strict, [&](auto&& f) { return search_rtree_i32<lt>(c, r, f); });
+    const ArrayView<const entry_block<i16>> blocks = c.blocks_in_insertion_order;
+    const auto used_blocks = blocks.prefix((c.insertion_order.size() + max_lanes - 1)/max_lanes);
+    check_hits_in_order(hits_in_insertion_order, [&](auto&& f) { return search_blocks(used_blocks, r, f); });
+    check_hits_in_order(hits_in_insertion_order, [&](auto&& f) { return search_blocks_4_at_a_time(blocks, r, f); });
+    check_hits_in_order(strict_in_insertion_order, [&](auto&& f) { return search_blocks<lt>(used_blocks, r, f); });
+    check_hits_in_order(strict_in_insertion_order,
+                        [&](auto&& f) { return search_blocks_4_at_a_time<lt>(blocks, r, f); });
     return (u32)hits_8.size();
 }
 
@@ -1647,6 +1840,90 @@ u32 box_side_index(i64 side)
     return (u32)(it - box_sides);
 }
 
+struct empty_middle_set : chunks_and_queries
+{
+    // Its bounding rect covers the chunk, since a critter crossed the chunk from corner to corner and left.
+    spatial_index<i16, 256> spatial_index_256_crossed_by_critter;
+};
+
+// Returns a set of one chunk. Its queries[1] hold queries of sides 0 and box_size in the chunk's middle that hit
+// no entry.
+Pointer<empty_middle_set> make_empty_middle_set(u32 m, u32 entry_count_index)
+{
+    const auto entry_count = empty_middle_entry_counts[entry_count_index];
+    Random::xoshiro256starstar rng;
+    Random::seed(rng, 1000 + m*std::size(empty_middle_entry_counts) + entry_count_index);
+    Pointer<empty_middle_set> ret{InPlaceInit};
+    ret->chunks = Array<chunk_structures>{ValueInit, 1};
+    ret->largest_chunk_index = 0;
+    auto& c = ret->chunks[0];
+    const auto insertion_order = make_cluster_entries(empty_middle_mixtures[m], scenery_bbox_sides, entry_count, rng);
+    insert_entries(c.old_tree_8, insertion_order);
+    fill_structures(c, insertion_order);
+    check_edge_queries(c, rng);
+
+    // The critter goes in first, so 256 entries still fit in blocks after it leaves.
+    auto& index = ret->spatial_index_256_crossed_by_critter;
+    const auto chunk_min = -half_tile<Vector2i>, chunk_max = chunk_min + chunk_size<Vector2i>;
+    const auto critter_size = Vector2i{box_size};
+    const Math::Range2D<i16> rect_at_nw_corner{Math::Vector2<i16>{chunk_min},
+                                               Math::Vector2<i16>{chunk_min + critter_size}};
+    const Math::Range2D<i16> rect_at_se_corner{Math::Vector2<i16>{chunk_max - critter_size},
+                                               Math::Vector2<i16>{chunk_max}};
+    index.Insert(rect_at_nw_corner, first_critter_id);
+    const bool found = index.Move(rect_at_nw_corner, first_critter_id, rect_at_se_corner, first_critter_id);
+    fm_assert(found);
+    index.Remove(rect_at_se_corner, first_critter_id);
+    insert_integer_rects(index, insertion_order);
+    fm_assert(!index.is_using_tree() && index.Count() == entry_count);
+    check_hits_in_order(insertion_order, [&](auto&& f) { return index.Search(chunk_min, chunk_max, f); });
+
+    const auto is_overlapping_any_entry = [&](const Range2Di& rect) {
+        return std::any_of(insertion_order.begin(), insertion_order.end(),
+                           [&](const entry& e) { return is_overlapping(e.rect, rect); });
+    };
+    const auto middle_size = (u32)(empty_middle_max - empty_middle_min + 1);
+    for (const auto side : {0, box_size})
+    {
+        const auto kind = box_side_index(side);
+        auto& queries = ret->queries[1][kind];
+        queries = Array<query>{ValueInit, query_count};
+        for (auto& q : queries)
+        {
+            do
+            {
+                const auto center = Vector2i{(i32)below(rng, middle_size), (i32)below(rng, middle_size)} +
+                                    Vector2i{empty_middle_min};
+                const auto min = center - Vector2i{side/2};
+                q = make_query(0, min, min + Vector2i{side});
+            }
+            while (is_overlapping_any_entry(q.rect));
+            fm_assert(check_query(c, q) == 0 && is_overlapping(c.bounding_rect, q.rect) == (m == 1));
+        }
+        ret->num_hits[1][kind] = 0;
+    }
+    return ret;
+}
+
+using empty_middle_sets = std::array<std::array<Pointer<empty_middle_set>, std::size(empty_middle_entry_counts)>,
+                                     std::size(empty_middle_mixtures)>;
+
+const empty_middle_set& get_empty_middle_set(benchmark::State& state)
+{
+    static const auto sets = [] {
+        empty_middle_sets ret;
+        for (u32 m = 0; m < ret.size(); m++)
+            for (u32 i = 0; i < ret[m].size(); i++)
+                ret[m][i] = make_empty_middle_set(m, i);
+        return ret;
+    }();
+    const auto* const it = std::find(std::begin(empty_middle_entry_counts), std::end(empty_middle_entry_counts),
+                                     (u32)state.range(0));
+    const auto m = (u32)state.range(1) - 1;
+    fm_assert(it != std::end(empty_middle_entry_counts) && m < sets.size());
+    return *sets[m][(u32)(it - empty_middle_entry_counts)];
+}
+
 template<typename Search>
 u64 checksum_of_hits(const Search& search)
 {
@@ -1688,6 +1965,31 @@ constexpr auto blocks_checksum_with_bounding_rect_test = [](const chunk_structur
         return blocks_checksum(c, q);
     else
         return u64{0};
+};
+
+constexpr auto blocks_in_insertion_order_checksum = [](const chunk_structures& c, const query& q) {
+    const auto num_used_blocks = (c.insertion_order.size() + max_lanes - 1)/max_lanes;
+    const auto blocks = c.blocks_in_insertion_order.prefix(num_used_blocks);
+    return checksum_of_hits([&](auto&& f) { return search_blocks(blocks, q.rect, f); });
+};
+
+constexpr auto blocks_in_insertion_order_4_at_a_time_checksum = [](const chunk_structures& c, const query& q) {
+    return checksum_of_hits([&](auto&& f) {
+        return search_blocks_4_at_a_time(c.blocks_in_insertion_order, q.rect, f);
+    });
+};
+
+template<u32 N>
+constexpr auto spatial_index_checksum = [](const chunk_structures& c, const query& q) {
+    return checksum_of_hits([&](auto&& f) { return get_spatial_index<N>(c).Search(q.rect.min(), q.rect.max(), f); });
+};
+
+constexpr auto rtree_i16_checksum = [](const chunk_structures& c, const query& q) {
+    return checksum_of_hits([&](auto&& f) { return c.rtree_i16.Search(q.rect.min(), q.rect.max(), f); });
+};
+
+constexpr auto rtree_i32_checksum = [](const chunk_structures& c, const query& q) {
+    return checksum_of_hits([&](auto&& f) { return c.rtree_i32.Search(q.rect.min(), q.rect.max(), f); });
 };
 
 template<typename F>
@@ -1838,6 +2140,67 @@ void RTree_Clusters_Search_Soa_Fanout_48(benchmark::State& state) { bench_cluste
 void RTree_Clusters_Search_Soa_Fanout_64(benchmark::State& state) { bench_cluster_search(state, soa_checksum<64>); }
 void RTree_Clusters_Search_Arrays(benchmark::State& state) { bench_cluster_search(state, arrays_checksum); }
 void RTree_Clusters_Search_Aosoa(benchmark::State& state) { bench_cluster_search(state, blocks_checksum); }
+void RTree_Clusters_Search_Aosoa_Insertion_Order(benchmark::State& state)
+{
+    bench_cluster_search(state, blocks_in_insertion_order_checksum);
+}
+void RTree_Clusters_Search_Aosoa_Insertion_Order_4_At_A_Time(benchmark::State& state)
+{
+    bench_cluster_search(state, blocks_in_insertion_order_4_at_a_time_checksum);
+}
+void RTree_Clusters_Search_Spatial_Index_64(benchmark::State& state)
+{
+    bench_cluster_search(state, spatial_index_checksum<64>);
+}
+void RTree_Clusters_Search_Spatial_Index_128(benchmark::State& state)
+{
+    bench_cluster_search(state, spatial_index_checksum<128>);
+}
+void RTree_Clusters_Search_Spatial_Index_160(benchmark::State& state)
+{
+    bench_cluster_search(state, spatial_index_checksum<160>);
+}
+void RTree_Clusters_Search_Spatial_Index_192(benchmark::State& state)
+{
+    bench_cluster_search(state, spatial_index_checksum<192>);
+}
+void RTree_Clusters_Search_Spatial_Index_256(benchmark::State& state)
+{
+    bench_cluster_search(state, spatial_index_checksum<256>);
+}
+void RTree_Clusters_Search_RTree_I16(benchmark::State& state) { bench_cluster_search(state, rtree_i16_checksum); }
+void RTree_Clusters_Search_RTree_I32(benchmark::State& state) { bench_cluster_search(state, rtree_i32_checksum); }
+
+template<typename F>
+void bench_empty_middle_search(benchmark::State& state, const F& search_checksum)
+{
+    run_search_loop(state, get_empty_middle_set(state), 1, box_side_index(state.range(2)), search_checksum);
+}
+
+void RTree_Empty_Middle_Search_Aosoa_Insertion_Order(benchmark::State& state)
+{
+    bench_empty_middle_search(state, blocks_in_insertion_order_checksum);
+}
+void RTree_Empty_Middle_Search_Spatial_Index_256(benchmark::State& state)
+{
+    bench_empty_middle_search(state, spatial_index_checksum<256>);
+}
+void RTree_Empty_Middle_Search_Spatial_Index_256_Crossed_By_Critter(benchmark::State& state)
+{
+    const auto& s = get_empty_middle_set(state);
+    const auto& index = s.spatial_index_256_crossed_by_critter;
+    run_search_loop(state, s, 1, box_side_index(state.range(2)), [&](const chunk_structures&, const query& q) {
+        return checksum_of_hits([&](auto&& f) { return index.Search(q.rect.min(), q.rect.max(), f); });
+    });
+}
+void RTree_Empty_Middle_Search_RTree_I16(benchmark::State& state)
+{
+    bench_empty_middle_search(state, rtree_i16_checksum);
+}
+void RTree_Empty_Middle_Search_Soa_Fanout_32(benchmark::State& state)
+{
+    bench_empty_middle_search(state, soa_checksum<32>);
+}
 
 void RTree_Distribution_Search_Old(benchmark::State& state) { bench_distribution_search(state, old_tree_checksum); }
 void RTree_Distribution_Search_Soa_Fanout_4(benchmark::State& state)
@@ -1919,6 +2282,16 @@ void cluster_args(benchmark::Benchmark* b)
      ->Unit(benchmark::kNanosecond);
 }
 
+// clusters: 1 puts the entries around tile (3, 3), so the bounding rect leaves the middle out, and 2 around tiles
+// (2, 2) and (13, 13). Every query goes to the one chunk and hits nothing.
+void empty_middle_args(benchmark::Benchmark* b)
+{
+    b->ArgNames({"entries", "clusters", "box"})
+     ->ArgsProduct({{std::begin(empty_middle_entry_counts), std::end(empty_middle_entry_counts)}, {1, 2},
+                    box_side_args({0, box_size})})
+     ->Unit(benchmark::kNanosecond);
+}
+
 // The arguments distribution and sizes index distribution_mixtures and distribution_bbox_sides.
 void distribution_args(benchmark::Benchmark* b)
 {
@@ -1976,6 +2349,21 @@ BENCHMARK(RTree_Clusters_Search_Soa_Fanout_48)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Soa_Fanout_64)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Arrays)->Apply(cluster_args);
 BENCHMARK(RTree_Clusters_Search_Aosoa)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Aosoa_Insertion_Order)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Aosoa_Insertion_Order_4_At_A_Time)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Spatial_Index_64)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Spatial_Index_128)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Spatial_Index_160)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Spatial_Index_192)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_Spatial_Index_256)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_RTree_I16)->Apply(cluster_args);
+BENCHMARK(RTree_Clusters_Search_RTree_I32)->Apply(cluster_args);
+
+BENCHMARK(RTree_Empty_Middle_Search_Aosoa_Insertion_Order)->Apply(empty_middle_args);
+BENCHMARK(RTree_Empty_Middle_Search_Spatial_Index_256)->Apply(empty_middle_args);
+BENCHMARK(RTree_Empty_Middle_Search_Spatial_Index_256_Crossed_By_Critter)->Apply(empty_middle_args);
+BENCHMARK(RTree_Empty_Middle_Search_RTree_I16)->Apply(empty_middle_args);
+BENCHMARK(RTree_Empty_Middle_Search_Soa_Fanout_32)->Apply(empty_middle_args);
 
 BENCHMARK(RTree_Distribution_Search_Old)->Apply(distribution_args);
 BENCHMARK(RTree_Distribution_Search_Soa_Fanout_4)->Apply(distribution_args);
@@ -2170,6 +2558,207 @@ void RTree_Remove_Insert_Arrays(benchmark::State& state)
     }
 }
 
+constexpr u32 largest_max_entries_before_tree = []<u32... Ns>(std::integer_sequence<u32, Ns...>) {
+    u32 ret = 0;
+    ((ret = Math::max(ret, Ns)), ...);
+    return ret;
+}(max_entries_before_tree_values);
+
+// Returns one draw of the clusters scene's mixture. The update benchmarks' chunks take prefixes of it.
+ArrayView<const entry> entries_for_update_benchmarks()
+{
+    static const auto entries = [] {
+        Random::xoshiro256starstar rng;
+        Random::seed(rng, 2000);
+        return make_cluster_entries(clusters_scene_mixture, scenery_bbox_sides, largest_max_entries_before_tree + 1,
+                                    rng);
+    }();
+    return entries;
+}
+
+// Calls f with std::integral_constant<u32, N>, for the N in max_entries_before_tree_values equal to n.
+template<typename F>
+void with_max_entries_before_tree(u32 n, const F& f)
+{
+    const bool found = [&]<u32... Ns>(std::integer_sequence<u32, Ns...>) {
+        return ((n == Ns && (f(std::integral_constant<u32, Ns>{}), true)) || ...);
+    }(max_entries_before_tree_values);
+    fm_assert(found);
+}
+
+// ensure_passability() inserts critters last too.
+template<typename Index>
+void insert_entries_then_critter(Index& index, u32 entry_count, const Math::Range2D<i16>& critter_rect)
+{
+    const auto entries = entries_for_update_benchmarks();
+    fm_assert(entry_count >= 1 && entry_count <= entries.size());
+    insert_integer_rects(index, entries.prefix(entry_count - 1));
+    index.Insert(typename Index::Rect{critter_rect}, first_critter_id);
+    fm_assert(index.Count() == entry_count);
+}
+
+constexpr auto do_nothing = [](const auto&) {};
+
+template<typename Index, typename F>
+void bench_critter_move(benchmark::State& state, Index& index, const F& after_move)
+{
+    using Rect = Index::Rect;
+    const auto rects = int16_box_rects_on_circle();
+    const auto point_count = (u32)rects.size();
+    insert_entries_then_critter(index, (u32)state.range(0), rects[0]);
+    u32 i = 0;
+    for (auto _ : state)
+    {
+        const auto& from = rects[i];
+        if (++i == point_count)
+            i = 0;
+        const bool found = index.Move(Rect{from}, first_critter_id, Rect{rects[i]}, first_critter_id);
+        fm_assert(found);
+        after_move(index);
+    }
+}
+
+template<typename Index, typename F>
+void bench_critter_remove_insert(benchmark::State& state, Index& index, const F& after_remove)
+{
+    using Rect = Index::Rect;
+    const auto rects = int16_box_rects_on_circle();
+    const auto point_count = (u32)rects.size();
+    insert_entries_then_critter(index, (u32)state.range(0), rects[0]);
+    u32 i = 0;
+    for (auto _ : state)
+    {
+        const auto& from = rects[i];
+        if (++i == point_count)
+            i = 0;
+        index.Remove(Rect{from}, first_critter_id);
+        after_remove(index);
+        index.Insert(Rect{rects[i]}, first_critter_id);
+    }
+    fm_assert(index.Count() == (u32)state.range(0));
+}
+
+// The scan that Move() and Remove() would need to keep the bounding rect exact.
+constexpr auto compute_bounding_rect = [](const auto& index) {
+    constexpr u32 capacity = entry_block<i16>::capacity;
+    auto rect = bounding_rect_of_blocks(index.raw_blocks().prefix((index.Count() + capacity - 1)/capacity));
+    benchmark::DoNotOptimize(rect);
+};
+
+// entries is max_entries_before_tree, so every entry stays in blocks.
+void RTree_Clusters_Move_Spatial_Index(benchmark::State& state)
+{
+    with_max_entries_before_tree((u32)state.range(0), [&](auto n) {
+        spatial_index<i16, decltype(n)::value> index;
+        bench_critter_move(state, index, do_nothing);
+        fm_assert(!index.is_using_tree());
+    });
+}
+
+void RTree_Clusters_Move_Spatial_Index_Computing_Bounding_Rect(benchmark::State& state)
+{
+    with_max_entries_before_tree((u32)state.range(0), [&](auto n) {
+        spatial_index<i16, decltype(n)::value> index;
+        bench_critter_move(state, index, compute_bounding_rect);
+        fm_assert(!index.is_using_tree());
+    });
+}
+
+void RTree_Clusters_Move_RTree_I16(benchmark::State& state)
+{
+    RTree<i16, 32> tree;
+    bench_critter_move(state, tree, do_nothing);
+}
+
+void RTree_Clusters_Move_Old_Fanout_32(benchmark::State& state)
+{
+    const auto rects = box_rects_on_circle();
+    const auto point_count = (u32)rects.size();
+    Chunk_RTree_Fanout<32> tree;
+    insert_entries(tree, entries_for_update_benchmarks().prefix((u32)state.range(0) - 1));
+    tree.Insert(rects[0].m_min, rects[0].m_max, first_critter_id);
+    u32 i = 0;
+    for (auto _ : state)
+    {
+        const auto& from = rects[i];
+        if (++i == point_count)
+            i = 0;
+        const auto& to = rects[i];
+        const bool found = tree.Move(from.m_min, from.m_max, first_critter_id, to.m_min, to.m_max, first_critter_id);
+        fm_assert(found);
+    }
+}
+
+void RTree_Clusters_Remove_Insert_Spatial_Index(benchmark::State& state)
+{
+    with_max_entries_before_tree((u32)state.range(0), [&](auto n) {
+        spatial_index<i16, decltype(n)::value> index;
+        bench_critter_remove_insert(state, index, do_nothing);
+        fm_assert(!index.is_using_tree());
+    });
+}
+
+void RTree_Clusters_Remove_Insert_Spatial_Index_Computing_Bounding_Rect(benchmark::State& state)
+{
+    with_max_entries_before_tree((u32)state.range(0), [&](auto n) {
+        spatial_index<i16, decltype(n)::value> index;
+        bench_critter_remove_insert(state, index, compute_bounding_rect);
+        fm_assert(!index.is_using_tree());
+    });
+}
+
+void RTree_Clusters_Remove_Insert_RTree_I16(benchmark::State& state)
+{
+    RTree<i16, 32> tree;
+    bench_critter_remove_insert(state, tree, do_nothing);
+}
+
+void RTree_Clusters_Remove_Insert_Old_Fanout_32(benchmark::State& state)
+{
+    const auto rects = box_rects_on_circle();
+    const auto point_count = (u32)rects.size();
+    Chunk_RTree_Fanout<32> tree;
+    insert_entries(tree, entries_for_update_benchmarks().prefix((u32)state.range(0) - 1));
+    tree.Insert(rects[0].m_min, rects[0].m_max, first_critter_id);
+    u32 i = 0;
+    for (auto _ : state)
+    {
+        const auto& from = rects[i];
+        if (++i == point_count)
+            i = 0;
+        const auto& to = rects[i];
+        tree.Remove(from.m_min, from.m_max, first_critter_id);
+        tree.Insert(to.m_min, to.m_max, first_critter_id);
+    }
+}
+
+// At entries = max_entries_before_tree + 1, the last insert moves every entry into the tree.
+void RTree_Clusters_Refill_Spatial_Index(benchmark::State& state)
+{
+    with_max_entries_before_tree((u32)state.range(0), [&](auto n) {
+        spatial_index<i16, decltype(n)::value> index;
+        const auto entries = entries_for_update_benchmarks().prefix((u32)state.range(1));
+        for (auto _ : state)
+        {
+            index.RemoveAll();
+            insert_integer_rects(index, entries);
+        }
+        fm_assert(index.Count() == entries.size() && index.is_using_tree() == (entries.size() > decltype(n)::value));
+    });
+}
+
+void RTree_Clusters_Refill_RTree_I16(benchmark::State& state)
+{
+    const auto entries = entries_for_update_benchmarks().prefix((u32)state.range(0));
+    RTree<i16, 32> tree;
+    for (auto _ : state)
+    {
+        tree.RemoveAll();
+        insert_integer_rects(tree, entries);
+    }
+    fm_assert(tree.Count() == entries.size());
+}
+
 void scene_args(benchmark::Benchmark* b)
 {
     b->ArgName("scene")->DenseRange(0, scene_count - 1);
@@ -2197,6 +2786,40 @@ BENCHMARK(RTree_Remove_Insert_Old)->Apply(scene_args)->Unit(benchmark::kNanoseco
 BENCHMARK(RTree_Remove_Insert_Old_Fanout_16)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Remove_Insert_Old_Fanout_32)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Remove_Insert_Arrays)->Apply(scene_args)->Unit(benchmark::kNanosecond);
+
+// entries counts the critter.
+void critter_update_args(benchmark::Benchmark* b)
+{
+    b->ArgName("entries")->Unit(benchmark::kNanosecond);
+    [&]<u32... Ns>(std::integer_sequence<u32, Ns...>) { (b->Arg(Ns), ...); }(max_entries_before_tree_values);
+}
+
+void spatial_index_refill_args(benchmark::Benchmark* b)
+{
+    b->ArgNames({"max_entries_before_tree", "entries"})->Unit(benchmark::kMicrosecond);
+    [&]<u32... Ns>(std::integer_sequence<u32, Ns...>) {
+        ([&] { b->Args({Ns, Ns}); b->Args({Ns, Ns + 1}); }(), ...);
+    }(max_entries_before_tree_values);
+}
+
+void rtree_refill_args(benchmark::Benchmark* b)
+{
+    b->ArgName("entries")->Unit(benchmark::kMicrosecond);
+    [&]<u32... Ns>(std::integer_sequence<u32, Ns...>) {
+        ([&] { b->Arg(Ns); b->Arg(Ns + 1); }(), ...);
+    }(max_entries_before_tree_values);
+}
+
+BENCHMARK(RTree_Clusters_Move_Spatial_Index)->Apply(critter_update_args);
+BENCHMARK(RTree_Clusters_Move_Spatial_Index_Computing_Bounding_Rect)->Apply(critter_update_args);
+BENCHMARK(RTree_Clusters_Move_RTree_I16)->Apply(critter_update_args);
+BENCHMARK(RTree_Clusters_Move_Old_Fanout_32)->Apply(critter_update_args);
+BENCHMARK(RTree_Clusters_Remove_Insert_Spatial_Index)->Apply(critter_update_args);
+BENCHMARK(RTree_Clusters_Remove_Insert_Spatial_Index_Computing_Bounding_Rect)->Apply(critter_update_args);
+BENCHMARK(RTree_Clusters_Remove_Insert_RTree_I16)->Apply(critter_update_args);
+BENCHMARK(RTree_Clusters_Remove_Insert_Old_Fanout_32)->Apply(critter_update_args);
+BENCHMARK(RTree_Clusters_Refill_Spatial_Index)->Apply(spatial_index_refill_args);
+BENCHMARK(RTree_Clusters_Refill_RTree_I16)->Apply(rtree_refill_args);
 
 } // namespace
 
