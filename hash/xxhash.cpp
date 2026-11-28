@@ -18,9 +18,9 @@ namespace {
 CORRADE_ALWAYS_INLINE usize do_xxhash(const void* __restrict buf, usize size) noexcept
 {
 #ifdef __AVX2__
-    return (usize)XXH3_64bits(buf, size);
-#elifdef __SSE2__
-    return (usize)XXH3_64bits(buf, size);
+    return XXH3_64bits(buf, size);
+#elif defined __SSE2__ || defined _MSC_VER && defined _M_AMD64
+    return XXH3_64bits(buf, size);
 #else
     constexpr auto seed = std::bit_cast<usize>(iota_array<u8, sizeof nullptr>);
     if constexpr(sizeof nullptr > 4)
