@@ -38,7 +38,7 @@ if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
 else()
     add_link_options(-Wl,--gc-sections)
 endif()
-add_compile_definitions("$<IF:$<CONFIG:Debug,DEBUG>,,_FORTIFY_SOURCE=3>")
+add_compile_definitions("$<IF:$<CONFIG:Debug>,,_FORTIFY_SOURCE=3>")
 
 set(FLOORMAT_SUBMODULE-SDL2 1)
 

@@ -212,16 +212,16 @@ if(MSVC)
 else()
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
         add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
-        #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE>>)
+        #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:Debug>:_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE>>)
         if(WIN32)
             # Clang 23 on MinGW disables sized deallocation since a libc++ DLL skips a replaced operator delete.
             # https://github.com/llvm/llvm-project/issues/96899
             add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fsized-deallocation>)
         endif()
     else()
-        #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:_GLIBCXX_ASSERTIONS>>)
-        #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:_GLIBCXX_DEBUG>>)
-        #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:_GLIBCXX_DEBUG_PEDANTIC>>)
+        #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:Debug>:_GLIBCXX_ASSERTIONS>>)
+        #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:Debug>:_GLIBCXX_DEBUG>>)
+        #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:Debug>:_GLIBCXX_DEBUG_PEDANTIC>>)
     endif()
 
     if(NOT APPLE)
@@ -291,7 +291,7 @@ include_directories(SYSTEM
     "${_fm-json-include-dirs}"
 )
 
-add_compile_definitions("$<$<NOT:$<CONFIG:Debug,DEBUG>>:FM_NO_DEBUG3>")
+add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:FM_NO_DEBUG3>")
 add_compile_definitions(JSON_HAS_FILESYSTEM=0 JSON_HAS_EXPERIMENTAL_FILESYSTEM=0 JSON_HAS_RANGES=0)
 
 fm_run_hook(fm-userconfig-src)

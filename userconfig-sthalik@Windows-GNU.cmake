@@ -29,12 +29,12 @@ add_compile_options(-fdiagnostics-color=always)
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fconcepts-diagnostics-depth=3>)
 
 add_definitions(-D_GLIBCXX_ASSERTIONS)
-add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:-D_GLIBCXX_DEBUG>>)
-add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:-D_GLIBCXX_DEBUG_PEDANTIC>>)
-add_compile_definitions($<$<NOT:$<CONFIG:Debug,DEBUG>>:_FORTIFY_SOURCE=2>)
-add_compile_definitions($<$<CONFIG:Debug,DEBUG>:_FORTIFY_SOURCE=3>)
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:Debug>:-D_GLIBCXX_DEBUG>>)
+add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:Debug>:-D_GLIBCXX_DEBUG_PEDANTIC>>)
+add_compile_definitions($<$<NOT:$<CONFIG:Debug>>:_FORTIFY_SOURCE=2>)
+add_compile_definitions($<$<CONFIG:Debug>:_FORTIFY_SOURCE=3>)
 # -Og defines no __NO_INLINE__, so xxhash keeps always_inline on functions it calls through pointers (gcc PR 107931)
-add_compile_definitions($<$<CONFIG:Debug,DEBUG>:XXH_NO_INLINE_HINTS=1>)
+add_compile_definitions($<$<CONFIG:Debug>:XXH_NO_INLINE_HINTS=1>)
 
 if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
     set(OpenCV_DIR "f:/build/opencv/build-gcc-debug-floormat/install" CACHE PATH "" FORCE)
@@ -143,7 +143,7 @@ function(fm-userconfig-src)
     add_compile_options(
         -Werror=format
         -Werror
-        $<$<CONFIG:Debug,DEBUG>:-Wno-error=maybe-uninitialized>
+        $<$<CONFIG:Debug>:-Wno-error=maybe-uninitialized>
         -Wno-error=float-equal
         -Wno-error=unused-parameter
         -Wno-error=unused-variable

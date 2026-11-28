@@ -71,7 +71,7 @@ endfunction()
 
 function(fm-userconfig-src)
     add_compile_options(-Wall -Wextra)
-    add_compile_definitions("$<$<NOT:$<CONFIG:Debug,DEBUG>>:FM_NO_DEBUG3>")
+    add_compile_definitions("$<$<NOT:$<CONFIG:Debug>>:FM_NO_DEBUG3>")
 endfunction()
 
 # Under full LTO a struct copy is compiled in the function it is inlined into, so these are
