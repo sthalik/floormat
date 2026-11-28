@@ -1616,8 +1616,9 @@ Pointer<benchmark_scene> make_benchmark_scene(StringView name, world& w, Random:
     {
         auto& c = chunks[n];
         c.coord = ch.coord();
-        insert_entries(c.old_tree_8, chunk_entries(ch));
-        fill_structures(c, leaf_entries(c.old_tree_8));
+        const auto insertion_order = chunk_entries(ch);
+        insert_entries(c.old_tree_8, insertion_order);
+        fill_structures(c, insertion_order);
         entry_counts[n] = (u32)c.entries.size();
         hole_entry_counts[n] = (u32)ch.hole_rtree()->Count();
         if (entry_counts[n] > entry_counts[largest])
@@ -2110,6 +2111,9 @@ void RTree_Search_Soa_Shuffled_Nodes(benchmark::State& state) { bench_search(sta
 void RTree_Search_Soa_Stack(benchmark::State& state) { bench_search(state, stack_search_checksum); }
 void RTree_Search_Arrays(benchmark::State& state) { bench_search(state, arrays_checksum); }
 void RTree_Search_Aosoa(benchmark::State& state) { bench_search(state, blocks_checksum); }
+static_assert(std::is_same_v<decltype(chunk_structures::spatial_index_128), Chunk_RTree>);
+void RTree_Search_Spatial_Index(benchmark::State& state) { bench_search(state, spatial_index_checksum<128>); }
+void RTree_Search_RTree_I16(benchmark::State& state) { bench_search(state, rtree_i16_checksum); }
 
 void RTree_Search_Dependent_Old(benchmark::State& state) { bench_dependent_search(state, old_tree_checksum); }
 void RTree_Search_Dependent_Soa(benchmark::State& state) { bench_dependent_search(state, soa_checksum<8>); }
@@ -2242,6 +2246,10 @@ void RTree_Pass_Grid_Search_Aosoa_Bounding_Rect(benchmark::State& state)
 {
     bench_pass_grid_search(state, blocks_checksum_with_bounding_rect_test);
 }
+void RTree_Pass_Grid_Search_Spatial_Index(benchmark::State& state)
+{
+    bench_pass_grid_search(state, spatial_index_checksum<128>);
+}
 
 std::vector<i64> box_side_args(std::initializer_list<i32> sides)
 {
@@ -2325,6 +2333,8 @@ BENCHMARK(RTree_Search_Soa_Shuffled_Nodes)->Apply(search_args);
 BENCHMARK(RTree_Search_Soa_Stack)->Apply(search_args);
 BENCHMARK(RTree_Search_Arrays)->Apply(search_args);
 BENCHMARK(RTree_Search_Aosoa)->Apply(search_args);
+BENCHMARK(RTree_Search_Spatial_Index)->Apply(search_args);
+BENCHMARK(RTree_Search_RTree_I16)->Apply(search_args);
 
 BENCHMARK(RTree_Search_Dependent_Old)->Apply(dependent_search_args);
 BENCHMARK(RTree_Search_Dependent_Soa)->Apply(dependent_search_args);
@@ -2381,6 +2391,7 @@ BENCHMARK(RTree_Pass_Grid_Search_Soa_Fanout_32)->Apply(pass_grid_search_args);
 BENCHMARK(RTree_Pass_Grid_Search_Soa_Fanout_64)->Apply(pass_grid_search_args);
 BENCHMARK(RTree_Pass_Grid_Search_Aosoa)->Apply(pass_grid_search_args);
 BENCHMARK(RTree_Pass_Grid_Search_Aosoa_Bounding_Rect)->Apply(pass_grid_search_args);
+BENCHMARK(RTree_Pass_Grid_Search_Spatial_Index)->Apply(pass_grid_search_args);
 
 void RTree_Ensure_Passability(benchmark::State& state)
 {
@@ -2557,6 +2568,89 @@ void RTree_Remove_Insert_Arrays(benchmark::State& state)
             j = 0;
     }
 }
+
+template<typename Index>
+void bench_move(benchmark::State& state)
+{
+    const auto* sc = get_benchmark_scene(state);
+    if (!sc)
+        return;
+    using Rect = Index::Rect;
+    Index index;
+    insert_integer_rects(index, sc->chunks[sc->largest_chunk_index].insertion_order);
+    const auto rects = int16_box_rects_on_circle();
+    const auto point_count = (u32)rects.size();
+
+    constexpr auto id = ~u64{};
+    index.Insert(Rect{rects[0]}, id);
+    u32 i = 0;
+    for (auto _ : state)
+    {
+        const auto& from = rects[i];
+        if (++i == point_count)
+            i = 0;
+        const bool found = index.Move(Rect{from}, id, Rect{rects[i]}, id);
+        fm_assert(found);
+    }
+}
+
+void RTree_Move_Spatial_Index(benchmark::State& state) { bench_move<Chunk_RTree>(state); }
+void RTree_Move_RTree_I16(benchmark::State& state) { bench_move<RTree<i16, 32>>(state); }
+
+template<typename Index>
+void bench_remove_insert(benchmark::State& state)
+{
+    const auto* sc = get_benchmark_scene(state);
+    if (!sc)
+        return;
+    using Rect = Index::Rect;
+    const auto& c = sc->chunks[sc->largest_chunk_index];
+    Index index;
+    insert_integer_rects(index, c.insertion_order);
+    const auto rects = int16_box_rects_on_circle();
+    const auto point_count = (u32)rects.size();
+    u32 positions[critter_count];
+    for (u32 j = 0; j < critter_count; j++)
+    {
+        positions[j] = j * (point_count / critter_count);
+        index.Insert(Rect{rects[positions[j]]}, first_critter_id + j);
+    }
+    u32 j = 0;
+    for (auto _ : state)
+    {
+        const auto& from = rects[positions[j]];
+        if (++positions[j] == point_count)
+            positions[j] = 0;
+        index.Remove(Rect{from}, first_critter_id + j);
+        index.Insert(Rect{rects[positions[j]]}, first_critter_id + j);
+        if (++j == critter_count)
+            j = 0;
+    }
+    fm_assert(index.Count() == c.insertion_order.size() + critter_count);
+}
+
+void RTree_Remove_Insert_Spatial_Index(benchmark::State& state) { bench_remove_insert<Chunk_RTree>(state); }
+void RTree_Remove_Insert_RTree_I16(benchmark::State& state) { bench_remove_insert<RTree<i16, 32>>(state); }
+
+template<typename Index>
+void bench_refill(benchmark::State& state)
+{
+    const auto* sc = get_benchmark_scene(state);
+    if (!sc)
+        return;
+    const auto& c = sc->chunks[sc->largest_chunk_index];
+    const ArrayView<const entry> entries = state.range(1) ? sc->largest_chunk_shuffled_entries : c.entries;
+    Index index;
+    for (auto _ : state)
+    {
+        index.RemoveAll();
+        insert_integer_rects(index, entries);
+    }
+    fm_assert(index.Count() == entries.size());
+}
+
+void RTree_Refill_Spatial_Index(benchmark::State& state) { bench_refill<Chunk_RTree>(state); }
+void RTree_Refill_RTree_I16(benchmark::State& state) { bench_refill<RTree<i16, 32>>(state); }
 
 constexpr u32 largest_max_entries_before_tree = []<u32... Ns>(std::integer_sequence<u32, Ns...>) {
     u32 ret = 0;
@@ -2774,6 +2868,8 @@ BENCHMARK(RTree_Move_Old)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Move_Old_Fanout_16)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Move_Old_Fanout_32)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Move_Arrays)->Apply(scene_args)->Unit(benchmark::kNanosecond);
+BENCHMARK(RTree_Move_Spatial_Index)->Apply(scene_args)->Unit(benchmark::kNanosecond);
+BENCHMARK(RTree_Move_RTree_I16)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Refill_Old_Fanout_4)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Old)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Old_Fanout_16)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
@@ -2782,10 +2878,14 @@ BENCHMARK(RTree_Refill_Old_Fanout_32)->Apply(refill_args)->Unit(benchmark::kMicr
 BENCHMARK(RTree_Refill_Old_Fanout_48)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Old_Fanout_64)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Refill_Arrays)->Apply(scene_args)->Unit(benchmark::kNanosecond);
+BENCHMARK(RTree_Refill_Spatial_Index)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
+BENCHMARK(RTree_Refill_RTree_I16)->Apply(refill_args)->Unit(benchmark::kMicrosecond);
 BENCHMARK(RTree_Remove_Insert_Old)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Remove_Insert_Old_Fanout_16)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Remove_Insert_Old_Fanout_32)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 BENCHMARK(RTree_Remove_Insert_Arrays)->Apply(scene_args)->Unit(benchmark::kNanosecond);
+BENCHMARK(RTree_Remove_Insert_Spatial_Index)->Apply(scene_args)->Unit(benchmark::kNanosecond);
+BENCHMARK(RTree_Remove_Insert_RTree_I16)->Apply(scene_args)->Unit(benchmark::kNanosecond);
 
 // entries counts the critter.
 void critter_update_args(benchmark::Benchmark* b)
