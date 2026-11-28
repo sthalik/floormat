@@ -287,13 +287,6 @@ struct visitor_ : visitor_base<IsNewest>
         visit(obj.pass, f);
     }
 
-    template<typename F> static inline void visit(tile_ref c, F&& f)
-    {
-        do_visit(c.ground(), f);
-        do_visit(c.wall_north(), f);
-        do_visit(c.wall_west(), f);
-    }
-
     template<typename F> static inline void visit(qual<chunk_coords_>& coord, F&& f)
     {
         visit(coord.x, f);
