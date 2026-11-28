@@ -213,6 +213,11 @@ else()
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang$")
         add_definitions(-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES)
         #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE>>)
+        if(WIN32)
+            # Clang 23 on MinGW disables sized deallocation since a libc++ DLL skips a replaced operator delete.
+            # https://github.com/llvm/llvm-project/issues/96899
+            add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fsized-deallocation>)
+        endif()
     else()
         #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:_GLIBCXX_ASSERTIONS>>)
         #add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG,Debug>:_GLIBCXX_DEBUG>>)
