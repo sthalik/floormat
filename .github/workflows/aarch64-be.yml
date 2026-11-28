@@ -48,7 +48,10 @@ jobs:
 
     - name: Test without a GL context
       working-directory: source
-      run: .github/test-aarch64-be.sh "$PWD/build/aarch64-be"
+      run: |
+        exec 9</run/host-cpu.lock
+        flock -s -w 1800 -E 75 9
+        .github/test-aarch64-be.sh "$PWD/build/aarch64-be"
       timeout-minutes: 60
 
     - name: Compiler cache statistics
