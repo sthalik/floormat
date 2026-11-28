@@ -5,7 +5,15 @@ file(GLOB sources CONFIGURE_DEPENDS "*.cpp")
 find_package(Threads QUIET REQUIRED)
 add_library(${self}_o OBJECT "${sources}")
 target_sources(${self}_o PRIVATE "../editor/mazes.cpp" "../editor/torture-test.cpp")
+if(NOT MSVC)
+    # The same timed code took up to 1.49 times as long at another offset mod 64.
+    target_compile_options(${self}_o PRIVATE -falign-functions=64)
+endif()
 add_executable(${self} dummy.cc)
+if(NOT MSVC AND CMAKE_CXX_COMPILER_LINKER_ID STREQUAL "LLD")
+    # Aligns the library functions LTO compiles into this exe too.
+    target_link_options(${self} PRIVATE "LINKER:-mllvm,-align-all-functions=6")
+endif()
 
 set(libs
     ${floormat_headless-library}
