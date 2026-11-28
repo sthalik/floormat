@@ -4,7 +4,7 @@ string(CONCAT _math
        " -fassociative-math -freciprocal-math -ffp-contract=fast")
 string(CONCAT _release
        "-O3 -march=x86-64-v2 -mtune=native -mavx -mavx2 -mprefer-vector-width=128 ${_math}"
-       " -fmerge-all-constants -fno-stack-protector -static -flto -flto-partition=none"
+       " -fmerge-all-constants -fno-stack-protector -static -flto"
        " -fipa-pta -fipa-icf -fipa-ra -fdevirtualize-speculatively -fno-semantic-interposition"
        " -funroll-loops -fvariable-expansion-in-unroller -favoid-store-forwarding -ftracer"
        " -floop-nest-optimize -fprefetch-loop-arrays -fira-loop-pressure"
