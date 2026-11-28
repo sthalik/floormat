@@ -41,6 +41,8 @@ if(CMAKE_BUILD_TYPE MATCHES "^[Dd][Ee][Bb][Uu][Gg]$")
 else()
     add_link_options(-Wl,--gc-sections)
     set(OpenCV_DIR "f:/build/opencv/build-gcc-release-floormat/install" CACHE PATH "" FORCE)
+    # Otherwise external/ uses MSYS2's SDL2 package, which links SDL2.dll.
+    set(FLOORMAT_SUBMODULE-SDL2 ON)
     if(NOT "${FLOORMAT_PGO}" STREQUAL "" AND NOT FLOORMAT_PGO_PROFDATA)
         set(FLOORMAT_PGO_PROFDATA "${CMAKE_CURRENT_LIST_DIR}/build/gcc-pgo-gcda" CACHE PATH "" FORCE)
     endif()
