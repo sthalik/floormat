@@ -99,66 +99,39 @@ ArrayView<chunk_coords_> main_impl::get_draw_bounds(Array<chunk_coords_>& output
     arrayResize(output, 0);
 
     const Vector2i win = window_size();
-
-    const auto pixel_to_chunk = [this](Vector2i screen_pos) {
-        return Vector2i(pixel_to_tile(screen_pos).chunk());
-    };
-
-    constexpr auto z_height = chunk_z_count*tile_size_z;
-    static_assert(z_height >= 0);
-
-    const auto p00 = pixel_to_chunk({         -chunk_overhang_x + extra_pixels.min().x(),          -z_height - chunk_overhang_y + extra_pixels.min().y()});
-    const auto p10 = pixel_to_chunk({win.x() + chunk_overhang_x + extra_pixels.max().x(),          -z_height - chunk_overhang_y + extra_pixels.min().y()});
-    const auto p01 = pixel_to_chunk({         -chunk_overhang_x + extra_pixels.min().x(), win.y() + z_height + chunk_overhang_y + extra_pixels.max().y()});
-    const auto p11 = pixel_to_chunk({win.x() + chunk_overhang_x + extra_pixels.max().x(), win.y() + z_height + chunk_overhang_y + extra_pixels.max().y()});
-
-    Vector2i min_xy = Math::min(Math::min(p00, p10), Math::min(p01, p11));
-    Vector2i max_xy = Math::max(Math::max(p00, p10), Math::max(p01, p11));
-
-#if 0
-    if (extra_pixels.min().isZero() && extra_pixels.max().isZero())
-        DBG << "min" << min_xy << "max" << max_xy;
-#endif
-
-    const Vector2i span = max_xy - min_xy + Vector2i{1, 1};
     const Vector2i base_camera = _shader.camera_offsetʹ();
+    const Vector2i lo = Vector2i{-chunk_overhang_x, -chunk_overhang_y} + extra_pixels.min();
+    const Vector2i hi = win + Vector2i{chunk_overhang_x, chunk_overhang_y} + extra_pixels.max();
 
-    fm_assert(span >= Vector2i{});
-    arrayReserve(output, usize((span.x()+1) * (span.y()+1)) * usize{chunk_z_count});
+    for (i32 z = chunk_z_max; z >= chunk_z_min; --z)
+    {
+        if (!_world.has_chunks_at_z(i8(z)))
+            continue;
 
-#if 0
-    if (extra_pixels.min().isZero() && extra_pixels.max().isZero())
-        DBG << ">>>";
-#endif
+        const auto pixel_to_chunk = [&](Vector2i screen_pos) {
+            return Vector2i(pixel_to_point(screen_pos, i8(z)).chunk());
+        };
+        const auto p00 = pixel_to_chunk(lo), p10 = pixel_to_chunk({hi.x(), lo.y()});
+        const auto p01 = pixel_to_chunk({lo.x(), hi.y()}), p11 = pixel_to_chunk(hi);
+        const Vector2i min_xy = Math::min(Math::min(p00, p10), Math::min(p01, p11));
+        const Vector2i max_xy = Math::max(Math::max(p00, p10), Math::max(p01, p11));
 
-    for (int z = int(chunk_z_max); z >= int(chunk_z_min); --z)
-        for (int y = max_xy.y(); y >= min_xy.y(); --y)
-            for (int x = max_xy.x(); x >= min_xy.x(); --x)
+        const usize n = arraySize(output) + usize((max_xy - min_xy + Vector2i{1}).product());
+        if (arrayCapacity(output) < n)
+            arrayReserve(output, n + n/2);
+
+        for (i32 y = max_xy.y(); y >= min_xy.y(); --y)
+            for (i32 x = max_xy.x(); x >= min_xy.x(); --x)
             {
-                const chunk_coords_ ch{(i16)x, (i16)y, (i8)z};
+                const chunk_coords_ ch{i16(x), i16(y), i8(z)};
                 if (_world.contains(ch))
                 {
                     const Vector2i camera = base_camera + with_shifted_camera_offset::get_projected_chunk_offset(ch);
-#if 0
-                    if (extra_pixels.min().isZero() && extra_pixels.max().isZero())
-                        DBG << "  test" << ch << check_chunk_visible(camera, win, extra_pixels);
-#endif
-
                     if (check_chunk_visible(camera, win, extra_pixels))
-                    {
                         arrayAppend(output, ch);
-#if 0
-                        if (extra_pixels.min().isZero() && extra_pixels.max().isZero())
-                            DBG << "  added" << ch;
-#endif
-                    }
                 }
             }
-
-#if 0
-    if (extra_pixels.min().isZero() && extra_pixels.max().isZero())
-        DBG << "<<<" << arraySize(output);
-#endif
+    }
 
     return output;
 }

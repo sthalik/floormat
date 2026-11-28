@@ -24,7 +24,7 @@ constexpr inline i32 tile_size_z = 192;
 constexpr inline u32 chunk_size_xy = chunk_size<u32>;
 static_assert((chunk_size_xy & (chunk_size_xy - 1)) == 0, "chunk_size_xy must be a power of two");
 
-constexpr inline i8  chunk_z_min = -1, chunk_z_max = 14;
+constexpr inline i8  chunk_z_min = -6, chunk_z_max = 14;
 constexpr inline i32 chunk_z_count = chunk_z_max - chunk_z_min + 1;
 
 constexpr inline u32 chunk_coord_bits = 16;

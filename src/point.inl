@@ -8,26 +8,12 @@ namespace floormat {
 
 constexpr point::point(Vector3i p)
 {
-    Vector2i c, t;
-
-    for (auto i = 0u; i < 2; i++)
-    {
-        const auto [ch, r] = floor_divmod<chunk_size<int>>(p[i] + half_tile<int>);
-        c[i] = ch;
-        t[i] = r / tile_size_xy;
-        _offset[i] = (i8)(r % tile_size_xy - half_tile<int>);
-    }
-
     const auto z = floor_div<tile_size_z>(p.z());
-    tile = local_coords{t};
-
-    // a pixel past the chunk range would wrap silently on the narrowing casts, so assert before them
-    fm_assert(c.x() >= chunk_xy_min && c.x() <= chunk_xy_max && c.y() >= chunk_xy_min && c.y() <= chunk_xy_max
+    // a pixel out of range would wrap to another position, so assert before packing
+    fm_assert(p.x() >= most_negative_point_xy && p.x() <= most_positive_point_xy
+           && p.y() >= most_negative_point_xy && p.y() <= most_positive_point_xy
            && z >= chunk_z_min && z <= chunk_z_max);
-
-    cx = (i16)c.x();
-    cy = (i16)c.y();
-    cz = (i8)z;
+    _bits = global_coords::pack_point(p);
 }
 
 constexpr u32 point::distance(point a, point b)
@@ -51,40 +37,32 @@ constexpr u32 point::distance_l1(point a, point b)
 
 constexpr std::strong_ordering operator<=>(const point& p1, const point& p2)
 {
-    if (auto val = p1.cz <=> p2.cz; val != std::strong_ordering::equal) return val;
-    if (auto val = p1.cy <=> p2.cy; val != std::strong_ordering::equal) return val;
-    if (auto val = p1.cx <=> p2.cx; val != std::strong_ordering::equal) return val;
-    if (auto val = p1.tile.y <=> p2.tile.y; val != std::strong_ordering::equal) return val;
-    if (auto val = p1.tile.x <=> p2.tile.x; val != std::strong_ordering::equal) return val;
-    if (auto val = p1._offset.y() <=> p2._offset.y(); val != std::strong_ordering::equal) return val;
-    if (auto val = p1._offset.x() <=> p2._offset.x(); val != std::strong_ordering::equal) return val;
-    return std::strong_ordering::equal;
+    // z, then chunk y, chunk x, tile y, tile x, offset y and offset x
+    constexpr auto key = [](u64 bits) {
+        using G = global_coords;
+        constexpr u32 offset_bits = std::countr_zero(u32{tile_size_xy}), tile_bits = std::countr_zero(TILE_MAX_DIM);
+        const u64 x = (bits & G::point_bitmasks[0]) >> G::point_shift_counts[0];
+        const u64 y = (bits & G::point_bitmasks[1]) >> G::point_shift_counts[1];
+        return (bits & G::point_bitmasks[2])
+             | (y / chunk_size_xy) << (chunk_coord_bits + 2*tile_bits + 2*offset_bits)
+             | (x / chunk_size_xy) << (2*tile_bits + 2*offset_bits)
+             | (y / u32{tile_size_xy} % TILE_MAX_DIM) << (tile_bits + 2*offset_bits)
+             | (x / u32{tile_size_xy} % TILE_MAX_DIM) << 2*offset_bits
+             | (y % u32{tile_size_xy}) << offset_bits | x % u32{tile_size_xy};
+    };
+    return key(p1._bits) <=> key(p2._bits);
 }
 
 constexpr Vector2i operator-(const point& p1, const point& p2)
 {
-    fm_debug3_assert(p1.cz == p2.cz);
-    Vector2i sum;
-    sum += chunk_size<Vector2i> * (Vector2i(p1.cx, p1.cy) - Vector2i(p2.cx, p2.cy));
-    sum += iTILE_SIZE2 * (Vector2i(p1.tile.x, p1.tile.y) - Vector2i(p2.tile.x, p2.tile.y));
-    sum += Vector2i(p1._offset) - Vector2i(p2._offset);
-    return sum;
+    fm_debug3_assert(p1.chunk3().z == p2.chunk3().z);
+    const auto d = Vector3i(p1) - Vector3i(p2);
+    return d.xy();
 }
 
 constexpr point::operator Vector3i() const
 {
-    Vector2i c{cx, cy}, t{tile};
-    Vector3i val;
-
-    for (auto i = 0u; i < 2; i++)
-    {
-        val[i] += chunk_size<int> * c[i];
-        val[i] += tile_size_xy * t[i];
-        val[i] += _offset[i];
-    }
-    val.z() = cz * tile_size_z;
-
-    return val;
+    return global_coords::unpack_point(_bits);
 }
 
 constexpr point::operator Vector3() const { return Vector3{Vector3i(*this)}; }

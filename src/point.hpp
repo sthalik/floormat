@@ -43,38 +43,45 @@ struct point
     friend point operator-(Vector2i delta, point pt);
 
 private:
-    struct unchecked_t {};
-    constexpr point(chunk_coords_ coord, local_coords tile, Vector2b offset, unchecked_t);
-
-    i16 cx = 0, cy = 0;
-    i8 cz = 0;
-    local_coords tile;
-    Vector2b _offset;
+    u64 _bits = global_coords::pack_point({});
 };
 
+static_assert(sizeof(point) == 8);
+
 constexpr point::point() = default;
-constexpr point::point(global_coords coord, Vector2b offset) : point{coord.chunk3(), coord.local(), offset} {}
-constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) :
-    point{coord, tile, offset, unchecked_t{}}
+constexpr point::point(global_coords coord, Vector2b offset) :
+    _bits{global_coords::pack_point(global_coords::unpack_point(coord._bits) + Vector3i{offset.x(), offset.y(), 0})}
 {
     fm_assert(offset >= -half_tile<Vector2b> && offset < half_tile<Vector2b>);
 }
-constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset, unchecked_t) :
-    cx{coord.x}, cy{coord.y}, cz{coord.z}, tile{tile}, _offset{offset}
+constexpr point::point(chunk_coords_ coord, local_coords tile, Vector2b offset) :
+    point{global_coords{coord, tile}, offset}
 {}
 
 constexpr bool point::operator==(const point&) const noexcept = default;
 
-constexpr global_coords point::coord() const { return {chunk3(), tile}; }
-
-constexpr chunk_coords_ point::chunk3() const
+constexpr global_coords point::coord() const
 {
-    [[assume(cz >= chunk_z_min && cz <= chunk_z_max)]];
-    return {cx, cy, cz};
+    using G = global_coords;
+    const u64 z = (_bits & G::point_bitmasks[2]) >> G::point_shift_counts[2];
+    u64 bits = (_bits & ~G::point_bitmasks[2])
+             | (((z - z % u32{tile_size_z}) << G::point_shift_counts[2]) & G::point_bitmasks[2]);
+    for (u32 i = 0; i < 2; i++)
+        bits = (bits & ~(u64{tile_size_xy - 1} << G::point_shift_counts[i]))
+             | (u64{half_tile<i32>} << G::point_shift_counts[i]);
+    return { bits, G::Unchecked{} };
 }
 
-constexpr chunk_coords point::chunk() const { return {cx, cy}; }
-constexpr local_coords point::local() const { return tile; }
-constexpr Vector2b point::offset() const { return _offset; }
+constexpr chunk_coords_ point::chunk3() const { return global_coords{_bits, global_coords::Unchecked{}}.chunk3(); }
+constexpr chunk_coords point::chunk() const { return global_coords{_bits, global_coords::Unchecked{}}.chunk(); }
+constexpr local_coords point::local() const { return global_coords{_bits, global_coords::Unchecked{}}.local(); }
+
+constexpr Vector2b point::offset() const
+{
+    using G = global_coords;
+    const auto x = u32((_bits & G::point_bitmasks[0]) >> G::point_shift_counts[0]);
+    const auto y = u32((_bits & G::point_bitmasks[1]) >> G::point_shift_counts[1]);
+    return { i8(i32(x % u32{tile_size_xy}) - half_tile<i32>), i8(i32(y % u32{tile_size_xy}) - half_tile<i32>), };
+}
 
 } // namespace floormat

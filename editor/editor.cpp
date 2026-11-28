@@ -63,9 +63,9 @@ global_coords editor::apply_snap(global_coords pos, global_coords last, snap_mod
     default:
         return pos;
     case snap_mode::horizontal:
-        return { pos.raw().x, last.raw().y, nullptr };
+        return { Vector2i(pos).x(), Vector2i(last).y(), pos.z() };
     case snap_mode::vertical:
-        return { last.raw().x, pos.raw().y, nullptr };
+        return { Vector2i(last).x(), Vector2i(pos).y(), last.z() };
     }
 }
 
@@ -85,16 +85,16 @@ void editor::on_mouse_move(world& world, global_coords& pos, int mods)
                 const auto draw_offset = draw_coord - last.draw_coord;
                 if (!!draw_offset[0] ^ !!draw_offset[1] && std::abs(draw_offset.sum()) > 1)
                 {
-                    const auto drawc = draw_coord.raw();
-                    auto lastc = last.draw_coord.raw();
-                    const auto [minx, maxx] = Math::minmax(drawc.x, lastc.x);
-                    const auto [miny, maxy] = Math::minmax(drawc.y, lastc.y);
+                    const auto drawc = Vector2i(draw_coord), lastc = Vector2i(last.draw_coord);
+                    const auto z = last.draw_coord.z();
+                    const auto [minx, maxx] = Math::minmax(drawc.x(), lastc.x());
+                    const auto [miny, maxy] = Math::minmax(drawc.y(), lastc.y());
                     if (draw_offset[0])
-                        for (u32 i = minx; i <= maxx; i++)
-                            on_click_(world, { i, lastc.y, nullptr }, last.btn);
+                        for (i32 i = minx; i <= maxx; i++)
+                            on_click_(world, { i, lastc.y(), z }, last.btn);
                     else
-                        for (u32 j = miny; j <= maxy; j++)
-                            on_click_(world, { lastc.x, j, nullptr }, last.btn);
+                        for (i32 j = miny; j <= maxy; j++)
+                            on_click_(world, { lastc.x(), j, z }, last.btn);
                 }
                 else
                     on_click_(world, draw_coord, last.btn);

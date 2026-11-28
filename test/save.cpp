@@ -1040,6 +1040,22 @@ void test_save_old_missing_tile_atlas()
     fm_assert(loader.wall_atlas("gone2"_s, loader_policy::ignore) == loader.invalid_wall_atlas().atlas);
 }
 
+void test_save_coord_extremes()
+{
+    const auto tmp = Path::join(loader.TEMP_PATH, "test/test-save-coord-extremes.dat"_s);
+    const chunk_coords_ coords[] = {
+        {0, 0, chunk_z_max}, {0, 0, chunk_z_min}, {chunk_xy_max, chunk_xy_max, 0}, {chunk_xy_min, chunk_xy_min, 0},
+    };
+    world w;
+    for (auto ch : coords)
+        (void)Test::make_test_chunk(w, ch);
+    auto w2 = reload_from_save(tmp, w);
+    for (auto ch : coords)
+        assert_chunks_equal(w.at(ch), w2.at(ch));
+    fm_assert(w2.has_chunks_at_z(chunk_z_min) && w2.has_chunks_at_z(chunk_z_max));
+    w2.chunk_table_prepare_frame();
+}
+
 } // namespace
 
 void Test::test_save()
@@ -1061,6 +1077,7 @@ void Test::test_saves()
     test_save_door_mid_swing();
     test_save_old_proto();
     test_save_old_missing_tile_atlas();
+    test_save_coord_extremes();
 }
 
 } // namespace floormat

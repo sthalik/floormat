@@ -24,10 +24,10 @@ inline void to_json(json& j, const chunk_coords_& val) { j = json{{"x", val.x}, 
 
 inline void from_json(const json& j, chunk_coords_& val)
 {
-    const i16 x = j.at("x"), y = j.at("y");
-    const int z = j.at("z");
+    const int x = j.at("x"), y = j.at("y"), z = j.at("z");
+    fm_soft_assert(x >= chunk_xy_min && x <= chunk_xy_max && y >= chunk_xy_min && y <= chunk_xy_max);
     fm_soft_assert(z >= chunk_z_min && z <= chunk_z_max);
-    val = chunk_coords_{x, y, i8(z)};
+    val = chunk_coords_{i16(x), i16(y), i8(z)};
 }
 
 inline void to_json(json& j, global_coords coord) { j = std::tuple<chunk_coords, local_coords, i8>{ coord.chunk(), coord.local(), coord.z() }; }

@@ -24,7 +24,10 @@ point point::normalize_coords(global_coords coord, Vector2b cur, Vector2i new_of
     const auto [tiles, r] = floor_divmod<tile_size_xy>(Vector2i(cur) + new_off + half_tile<Vector2i>);
     const auto c = coord + tiles;
     // r is in [0, tile_size_xy), so the offset is in range
-    return { c.chunk3(), c.local(), Vector2b(r - half_tile<Vector2i>), unchecked_t{} };
+    const auto offset = r - half_tile<Vector2i>;
+    point ret;
+    ret._bits = global_coords::pack_point(global_coords::unpack_point(c._bits) + Vector3i{offset, 0});
+    return ret;
 }
 
 point point::normalize_coords(point pt, Vector2i delta)

@@ -344,6 +344,11 @@ std::array<const chunk*, 8> world::neighbors(chunk_coords_ coord) const
     return _chunk_table.neighbors(coord);
 }
 
+bool world::has_chunks_at_z(i8 z) const noexcept
+{
+    return _chunk_table.has_chunks_at_z(z);
+}
+
 void world::chunk_table_prepare_frame()
 {
 #ifndef FM_NO_DEBUG3

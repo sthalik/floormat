@@ -202,7 +202,10 @@ constexpr i32 depth_offset_for_group(u32 depth)
 u32 variant_index(u32 frame_count, global_coords coord, variant_t variant, bool is_west)
 {
     if (variant == (variant_t)-1)
-        variant = (variant_t)(Vector2ui(coord.raw()).sum() + u32{is_west});
+    {
+        const auto t = Vector2i(coord);
+        variant = (variant_t)(u32(t.x() + t.y()) + u32{is_west});
+    }
     return variant % frame_count;
 }
 

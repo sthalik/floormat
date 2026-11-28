@@ -1114,7 +1114,7 @@ void app::populate_scene_lightmap()
 
 void app::populate_scene_benchmark_all_z()
 {
-    generate_scene(M->world(), chunk_z_min, chunk_z_max, true);
+    generate_scene(M->world(), -1, 14, true);
     M->reset_fps();
 }
 

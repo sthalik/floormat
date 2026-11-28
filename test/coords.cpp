@@ -150,7 +150,6 @@ void test_pixel_to_point()
 
 static_assert(!std::is_assignable_v<decltype((std::declval<chunk_coords_&>().x)), i16>);
 static_assert(!std::is_assignable_v<decltype((std::declval<chunk_coords_&>().z)), i8>);
-static_assert(!std::is_assignable_v<decltype((std::declval<global_coords&>().raw().x)), u32>);
 static_assert(std::is_trivially_copy_constructible_v<chunk_coords_> && std::is_trivially_destructible_v<chunk_coords_>);
 static_assert(std::is_trivially_copy_constructible_v<global_coords> && std::is_trivially_destructible_v<global_coords>);
 
@@ -196,20 +195,56 @@ static_assert(test_global_coords_assign());
 #endif
 
 // a failing fm_assert is not a constant expression, which leaves the requirement unsatisfied
-template<i8 Z> concept gc_x_carry_ok = requires {
+template<i8 Z> concept global_coords_accepts_x_carry = requires {
     typename std::integral_constant<int, (global_coords{chunk_coords{chunk_xy_max, 0}, local_coords{15, 0}, Z} + Vector2i{1, 0}).z()>;
 };
-template<i8 Z> concept gc_x_borrow_ok = requires {
+template<i8 Z> concept global_coords_accepts_x_borrow = requires {
     typename std::integral_constant<int, (global_coords{chunk_coords{chunk_xy_min, 0}, local_coords{0, 0}, Z} - Vector2i{1, 0}).z()>;
 };
-static_assert(!gc_x_carry_ok<chunk_z_max> && !gc_x_borrow_ok<chunk_z_min>);
-static_assert(!gc_x_carry_ok<0> && !gc_x_borrow_ok<0>);
+static_assert(!global_coords_accepts_x_carry<chunk_z_max> && !global_coords_accepts_x_borrow<chunk_z_min>);
+static_assert(!global_coords_accepts_x_carry<0> && !global_coords_accepts_x_borrow<0>);
 
-template<int Z> concept point_z_ok = requires {
+template<int Z> concept point_accepts_z = requires {
     typename std::integral_constant<int, point{Vector3i{0, 0, Z}}.chunk3().z>;
 };
-static_assert(point_z_ok<chunk_z_max*tile_size_z> && !point_z_ok<(chunk_z_max+1)*tile_size_z>);
-static_assert(!point_z_ok<256*tile_size_z>);
+static_assert(point_accepts_z<chunk_z_max*tile_size_z> && !point_accepts_z<(chunk_z_max+1)*tile_size_z>);
+static_assert(!point_accepts_z<256*tile_size_z>);
+static_assert(point_accepts_z<chunk_z_min*tile_size_z> && !point_accepts_z<chunk_z_min*tile_size_z - 1>);
+static_assert(point_accepts_z<(chunk_z_max+1)*tile_size_z - 1>);
+
+template<int X, int Y> concept point_accepts_xy = requires {
+    typename std::integral_constant<int, point{Vector3i{X, Y, 0}}.chunk3().z>;
+};
+static_assert(point_accepts_xy<most_negative_point_xy, most_positive_point_xy> && point_accepts_xy<most_positive_point_xy, most_negative_point_xy>);
+static_assert(!point_accepts_xy<most_negative_point_xy - 1, 0> && !point_accepts_xy<most_positive_point_xy + 1, 0>);
+static_assert(!point_accepts_xy<0, most_negative_point_xy - 1> && !point_accepts_xy<0, most_positive_point_xy + 1>);
+
+template<i8 Z> concept global_coords_accepts_y_carry = requires {
+    typename std::integral_constant<int, (global_coords{chunk_coords{0, chunk_xy_max}, local_coords{0, 15}, Z} + Vector2i{0, 1}).z()>;
+};
+static_assert(!global_coords_accepts_y_carry<chunk_z_max> && !global_coords_accepts_y_carry<0>);
+
+static_assert(global_coords{}.chunk3() == chunk_coords_{} && Vector3i(point{}) == Vector3i{});
+static_assert(Vector3i(point{Vector3i{-1, -1, -1}}) == Vector3i{-1, -1, -1});
+static_assert(Vector3i(point{most_negative_point}) == most_negative_point && Vector3i(point{most_positive_point}) == most_positive_point);
+static_assert(point{most_negative_point}.chunk3() == chunk_coords_{chunk_xy_min, chunk_xy_min, chunk_z_min}
+              && point{most_negative_point}.local() == local_coords{0, 0} && point{most_negative_point}.offset() == Vector2b{-32, -32});
+static_assert(point{most_positive_point}.chunk3() == chunk_coords_{chunk_xy_max, chunk_xy_max, chunk_z_max}
+              && point{most_positive_point}.local() == local_coords{15, 15} && point{most_positive_point}.offset() == Vector2b{31, 31});
+static_assert(point{{3, -4, 7}, {5, 6}, {-32, 31}}.offset() == Vector2b{-32, 31}
+              && point{{3, -4, 7}, {5, 6}, {-32, 31}}.coord() == global_coords{{3, -4, 7}, {5, 6}});
+
+constexpr auto point_in_level_3 = Vector3i{5, -7, 3*tile_size_z + 17};
+static_assert(Vector3i(point{point_in_level_3}) == point_in_level_3 && point{point_in_level_3}.chunk3().z == 3);
+static_assert(point{point_in_level_3}.coord() == point{Vector3i{5, -7, 3*tile_size_z}}.coord()
+              && point{point_in_level_3} != point{Vector3i{5, -7, 3*tile_size_z}});
+static_assert(point{Vector3i{0, 0, -1}}.chunk3().z == -1 && point{Vector3i{0, 0, tile_size_z}} > point{Vector3i{1000, 1000, tile_size_z - 1}});
+
+static_assert(global_coords{chunk_coords_{chunk_xy_min, chunk_xy_max, chunk_z_min}, local_coords{0, 15}}.chunk3()
+              == chunk_coords_{chunk_xy_min, chunk_xy_max, chunk_z_min});
+static_assert(global_coords{chunk_coords_{chunk_xy_max, chunk_xy_min, chunk_z_max}, local_coords{15, 0}}.local() == local_coords{15, 0});
+static_assert(Vector2i(global_coords{chunk_coords_{chunk_xy_min, chunk_xy_max, 0}, local_coords{0, 15}})
+              == Vector2i{chunk_xy_min*i32{TILE_MAX_DIM}, chunk_xy_max*i32{TILE_MAX_DIM} + 15});
 
 } // namespace
 

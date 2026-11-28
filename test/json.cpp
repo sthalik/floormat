@@ -59,6 +59,9 @@ void Test::test_json() // NOLINT(readability-convert-member-functions-to-static)
         const nlohmann::json j = g;
         fm_assert(j.get<global_coords>() == g);
         expect_throw([] { (void)nlohmann::json::parse(R"([{"x":0,"y":0},{"x":0,"y":0},15])").get<global_coords>(); });
+        expect_throw([] { (void)nlohmann::json{{"x", chunk_xy_min - 1}, {"y", 0}, {"z", 0}}.get<chunk_coords_>(); });
+        const auto g2 = global_coords{chunk_coords_{chunk_xy_min, chunk_xy_max, chunk_z_max}, local_coords{0, 15}};
+        fm_assert(nlohmann::json(g2).get<global_coords>() == g2);
         expect_throw([] { (void)nlohmann::json{{"x", 16}, {"y", 0}}.get<local_coords>(); });
     }
 }

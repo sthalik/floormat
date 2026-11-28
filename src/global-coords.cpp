@@ -29,15 +29,11 @@ usize chunk_coords_::hash() const noexcept
 
 usize global_coords::hash() const noexcept
 {
-    static_assert(sizeof *this == 4 + 4);
+    static_assert(sizeof *this == 8);
     return hash_buf(this, sizeof *this);
 }
 
-global_coords::raw_coords_::operator Vector2ui() const { return {x, y}; }
-
 namespace {
-
-constexpr auto chunk_xy_bias = global_coords::chunk_xy_bias::value;
 
 static_assert(sizeof(decltype(local_coords::x))*8 == 8);
 static_assert(sizeof(decltype(chunk_coords::x))*8 == 16);
@@ -47,10 +43,15 @@ static_assert(std::is_same_v<decltype(chunk_coords::x), decltype(chunk_coords::y
 static_assert(std::is_same_v<decltype(chunk_coords::x), decltype(chunk_coords::y)>);
 
 static_assert(TILE_MAX_DIM == (1 << 4));
+using G = global_coords;
+static_assert(u64(chunk_xy_max - chunk_xy_min + 1) * chunk_size_xy == (G::point_bitmasks[1] >> G::point_shift_counts[1]) + 1);
+static_assert(u64(chunk_z_count * tile_size_z) <= (G::point_bitmasks[2] >> G::point_shift_counts[2]) + 1);
+static_assert((G::point_bitmasks[0] | G::point_bitmasks[1] | G::point_bitmasks[2]) == ~u64{0}
+              && G::point_bitmasks[0] + G::point_bitmasks[1] + G::point_bitmasks[2] == ~u64{0});
 
 static_assert(global_coords{(int)TILE_MAX_DIM-1, (int)TILE_MAX_DIM-1, 0}.chunk() == global_coords{}.chunk());
 static_assert(global_coords{(int)TILE_MAX_DIM-1, (int)TILE_MAX_DIM, 0}.chunk() == chunk_coords{0, 1});
-static_assert(global_coords{1u + chunk_xy_bias << 4 | 3, 2u + chunk_xy_bias << 4 | 4, nullptr} == global_coords{{1, 2}, {3, 4}, -1});
+static_assert(global_coords{{1, 2}, {3, 4}, -1}.chunk3() == chunk_coords_{1, 2, -1} && global_coords{{1, 2}, {3, 4}, -1}.local() == local_coords{3, 4});
 
 static_assert(global_coords{-123, 456, 1}.z() == 1);
 static_assert(global_coords{-123, 511, 5}.chunk() == chunk_coords{-8, 31});

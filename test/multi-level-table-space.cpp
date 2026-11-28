@@ -20,12 +20,12 @@ namespace {
 using chunk_table_mlt = multi_level_table<chunk*, detail::chunk_table_params>;
 
 static_assert(move_only<chunk_table_mlt>);
-static_assert(top_bytes<chunk_table_mlt> == 2 << 20 && sizeof(chunk*) << chunk_table_mlt::page_bits == 2 << 20);
+static_assert(top_bytes<chunk_table_mlt> == 4 << 20 &&sizeof(chunk*) << chunk_table_mlt::page_bits == 2 << 20);
 
-static_assert(chunk_table_mlt::dims == 3 && chunk_table_mlt::key_bits == 36);
-static_assert(packs_to<chunk_table_mlt>({1, 0, 0}, 1) && packs_to<chunk_table_mlt>({0, 1, 0}, 1 << 9));
-static_assert(packs_to<chunk_table_mlt>({1 << 9, 0, 0}, u64{1} << 22) && packs_to<chunk_table_mlt>({0, 1 << 9, 0}, u64{1} << 29));
-static_assert(packs_to<chunk_table_mlt>({0, 0, 1}, 1 << 18) && packs_to<chunk_table_mlt>({0xffff, 0xffff, 15}, (u64{1} << 36) - 1));
+static_assert(chunk_table_mlt::dims == 3 && chunk_table_mlt::key_bits == 37);
+static_assert(packs_to<chunk_table_mlt>({1, 0, 0}, 1) && packs_to<chunk_table_mlt>({0, 1, 0}, 1 << 9) && packs_to<chunk_table_mlt>({0, 0, 1}, 1 << 18));
+static_assert(packs_to<chunk_table_mlt>({1 << 9, 0, 0}, u64{1} << 23) && packs_to<chunk_table_mlt>({0, 1 << 9, 0}, u64{1} << 30));
+static_assert(packs_to<chunk_table_mlt>({0xffff, 0xffff, 0x1f}, (u64{1} << 37) - 1));
 
 static_assert(space_deep_table::dims == 3 && space_deep_table::key_bits == 12);
 static_assert(packs_to<space_deep_table>({1, 0, 0}, 1) && packs_to<space_deep_table>({0, 1, 0}, 8) && packs_to<space_deep_table>({0, 0, 1}, 64));
@@ -40,8 +40,8 @@ static_assert(packs_to<space_large_table>({15, 15, 7}, 2047) && top_bytes<space_
 
 void check_chunk_table()
 {
-    const i16 coords[] = { INT16_MIN, INT16_MAX, -257, -256, 255, 256, };
-    const i8 zs[] = { chunk_z_min, chunk_z_max, };
+    const i16 coords[] = { chunk_xy_min, chunk_xy_max, -257, -256, 255, 256, };
+    const i8 zs[] = { chunk_z_min, chunk_z_max, -1, 0, };
     const auto fake = [](u32 i) { return reinterpret_cast<chunk*>(uptr{64} * (i + 1)); };
 
     detail::chunk_table t;
@@ -165,13 +165,15 @@ constexpr i16 chunk_coord(u32 outer, u32 side)
 
 constexpr u32 chunk_top_index(u32 oy, u32 ox, i8 z)
 {
-    return oy << 11 | ox << 4 | u32(z - chunk_z_min);
+    return oy << 12 | ox << 5 | u32(z - chunk_z_min);
 }
 
 constexpr u32 chunk_slot(u32 ly, u32 lx)
 {
     return ly << 9 | lx;
 }
+
+static_assert(chunk_coord(64, 256) == 0 && chunk_coord(0, 256) == chunk_xy_min && chunk_coord(0, 255) == chunk_xy_max);
 
 void check_chunk_table_layout()
 {
@@ -196,21 +198,23 @@ void check_chunk_table_layout()
     t.update_slot({0, -257, 0}, fake_chunk(7));
     t.update_slot({0, 256, 0}, fake_chunk(8));
     t.update_slot({0, 0, 1}, fake_chunk(9));
-    fm_assert(mlt.page_count() == 6);
+    t.update_slot({0, 0, -1}, fake_chunk(10));
+    fm_assert(mlt.page_count() == 7);
     const u32 tops[] = {
         chunk_top_index(64, 64, 0), chunk_top_index(64, 63, 0), chunk_top_index(64, 65, 0),
         chunk_top_index(63, 64, 0), chunk_top_index(65, 64, 0), chunk_top_index(64, 64, 1),
+        chunk_top_index(64, 64, -1),
     };
     for (u32 top : tops)
         fm_assert(count_if(mlt.raw_pages(), [&](const auto& rec) { return rec.top_index == top; }) == 1);
 
     t = {};
-    t.update_slot({INT16_MIN, 0, chunk_z_max}, fake_chunk(10));
-    t.update_slot({INT16_MAX, 0, chunk_z_max}, fake_chunk(11));
+    t.update_slot({chunk_xy_min, 0, chunk_z_max}, fake_chunk(11));
+    t.update_slot({chunk_xy_max, 0, chunk_z_max}, fake_chunk(12));
     fm_assert(mlt.page_count() == 1);
     fm_assert(mlt.raw_pages()[0].top_index == chunk_top_index(64, 0, chunk_z_max));
     page = mlt.raw_pages()[0].page;
-    fm_assert(page[chunk_slot(256, 256)] == fake_chunk(10) && page[chunk_slot(256, 255)] == fake_chunk(11));
+    fm_assert(page[chunk_slot(256, 256)] == fake_chunk(11) && page[chunk_slot(256, 255)] == fake_chunk(12));
 }
 
 void check_chunk_table_random()
@@ -247,8 +251,8 @@ void check_chunk_table_random()
         for (const auto& rec : mlt.raw_pages())
         {
             fm_assert(!rec.zero_index);
-            const u32 oy = rec.top_index >> 11, ox = rec.top_index >> 4 & 127;
-            const auto z = i8(i32(rec.top_index & 15) + chunk_z_min);
+            const u32 oy = rec.top_index >> 12, ox = rec.top_index >> 5 & 127;
+            const auto z = i8(i32(rec.top_index & 31) + chunk_z_min);
             for (u32 i = 0; i < 1u << 18; i++)
                 if (chunk* c = rec.page[i])
                 {
@@ -305,6 +309,29 @@ void check_chunk_table_random()
             check();
     }
     check();
+}
+
+void check_chunk_table_z_counts()
+{
+    detail::chunk_table t;
+    fm_assert(!t.has_chunks_at_z(0) && !t.has_chunks_at_z(chunk_z_min));
+    const chunk_coords_ chs[] = { {0, 0, 5}, {1, 0, -3}, {2, 0, chunk_z_max}, {3, 0, chunk_z_min}, {4, 0, 5}, };
+    for (u32 i = 0; const auto& ch : chs)
+        t.update_slot(ch, fake_chunk(i++));
+    fm_assert(t.has_chunks_at_z(5) && t.has_chunks_at_z(-3) && t.has_chunks_at_z(chunk_z_max) && t.has_chunks_at_z(chunk_z_min));
+    fm_assert(!t.has_chunks_at_z(0) && !t.has_chunks_at_z(4));
+    t.update_slot(chs[0], nullptr);
+    fm_assert(t.has_chunks_at_z(5));
+    t.update_slot(chs[4], nullptr);
+    fm_assert(!t.has_chunks_at_z(5));
+    t.update_slot(chs[4], nullptr);
+    fm_assert(!t.has_chunks_at_z(5) && t.has_chunks_at_z(-3));
+    auto t2 = move(t);
+    fm_assert(t2.has_chunks_at_z(-3) && !t.has_chunks_at_z(-3));
+
+    world w;
+    (void)w[chunk_coords_{0, 0, 7}];
+    fm_assert(w.has_chunks_at_z(7) && !w.has_chunks_at_z(6));
 }
 
 } // namespace
@@ -371,6 +398,7 @@ void mlt_test::test_space_tables()
     check_chunk_table();
     check_chunk_table_layout();
     check_chunk_table_random();
+    check_chunk_table_z_counts();
     check_world_ids();
     check_world_random_ids();
 }

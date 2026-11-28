@@ -1,6 +1,8 @@
 #pragma once
 #include "local-coords.hpp"
 #include "compat/construct-at.hpp"
+#include "compat/floor-divmod.hpp"
+#include <bit>
 #include <mg/Vector3.h>
 
 namespace floormat {
@@ -35,7 +37,9 @@ struct chunk_coords_ final {
     constexpr chunk_coords_() noexcept = default;
     constexpr chunk_coords_(i16 x, i16 y, i8 z) noexcept : x{x}, y{y}, z{z}
     {
-        fm_assert(z >= chunk_z_min && z <= chunk_z_max);
+        // Plain comparisons trip -Wtautological-type-limit-compare while chunk_coord_bits is 16.
+        fm_assert(u32(x - chunk_xy_min) <= u32(chunk_xy_max - chunk_xy_min)
+                  && u32(y - chunk_xy_min) <= u32(chunk_xy_max - chunk_xy_min) && z >= chunk_z_min && z <= chunk_z_max);
     }
     constexpr chunk_coords_(chunk_coords c, i8 z) noexcept : chunk_coords_{c.x, c.y, z} {}
     constexpr chunk_coords_(const chunk_coords_&) noexcept = default;
@@ -105,8 +109,17 @@ constexpr chunk_coords_& chunk_coords_::operator=(const chunk_coords_& other) no
 
 struct global_coords final
 {
-    struct raw_coords_ { u32 x, y; operator Vector2ui() const; };
-    using chunk_xy_bias = std::integral_constant<u32, 1u << (chunk_coord_bits-1)>; // 32768, biases chunk x/y non-negative
+    // Each coordinate is stored plus its bias. An x or y holds chunk - chunk_xy_min, tile and offset + half_tile,
+    // highest bits first. global_coords holds offset 0 and whole levels of z.
+    static constexpr Math::Vector3<u64> point_shift_counts{
+        0, chunk_coord_bits + std::countr_zero(chunk_size_xy), 2*(chunk_coord_bits + std::countr_zero(chunk_size_xy)),
+    };
+    static constexpr Math::Vector3<u64> point_bitmasks{
+        (u64{1} << point_shift_counts[1]) - 1,
+        (u64{1} << point_shift_counts[2]) - (u64{1} << point_shift_counts[1]),
+        ~u64{0} << point_shift_counts[2],
+    };
+    static constexpr Vector3i point_biases{-most_negative_point_xy, -most_negative_point_xy, -most_negative_point_z};
 
     constexpr global_coords() noexcept = default;
     constexpr global_coords(const global_coords&) noexcept = default;
@@ -114,32 +127,24 @@ struct global_coords final
     constexpr global_coords(chunk_coords c, local_coords xy, i8 z) noexcept :
         global_coords{chunk_coords_{c, z}, xy}
     {}
-    constexpr global_coords(u32 x, u32 y, std::nullptr_t) noexcept : x{x}, y{y}
-    {
-        i32 cx = i32((x & ~z_mask::value) >> 4) - s0::value, cy = i32(y >> 4) - s0::value;
-        fm_assert(cx >= chunk_xy_min && cx <= chunk_xy_max && cy >= chunk_xy_min && cy <= chunk_xy_max);
-    }
     constexpr global_coords(u32, u32, u32) = delete;
     constexpr global_coords(i32 x, i32 y, i8 z) noexcept :
-        x{u32(x + (s0::value<<4)) | u32(((z + z0::value) & 0x0f) << 20)},
-        y{u32(y + (s0::value<<4))}
+        _bits{pack_point({x*tile_size_xy, y*tile_size_xy, z*tile_size_z})}
     {
-        fm_assert((x>>4) >= chunk_xy_min && (x>>4) <= chunk_xy_max && (y>>4) >= chunk_xy_min && (y>>4) <= chunk_xy_max
-               && z >= chunk_z_min && z <= chunk_z_max);
+        constexpr i32 min_tile = chunk_xy_min * i32{TILE_MAX_DIM}, end_tile = (chunk_xy_max + 1) * i32{TILE_MAX_DIM};
+        fm_assert(x >= min_tile && x < end_tile && y >= min_tile && y < end_tile && z >= chunk_z_min && z <= chunk_z_max);
     }
     constexpr global_coords(chunk_coords_ c, local_coords xy) noexcept :
-        x{
-            u32((c.x + s0::value) << 4) | (xy.x & 0x0f) |
-            u32(((int)c.z + z0::value) & 0x0f) << 20
-        },
-        y{ u32((c.y + s0::value) << 4) | (xy.y & 0x0f) }
-    {}
+        _bits{pack_point({(c.x*i32{TILE_MAX_DIM} + xy.x)*tile_size_xy, (c.y*i32{TILE_MAX_DIM} + xy.y)*tile_size_xy,
+                          c.z*tile_size_z})}
+    {
+        [[assume(c.z >= chunk_z_min && c.z <= chunk_z_max)]];
+    }
 
     constexpr local_coords local() const noexcept;
     constexpr chunk_coords chunk() const noexcept;
     constexpr chunk_coords_ chunk3() const noexcept { return chunk_coords_(*this); }
     constexpr operator chunk_coords_() const noexcept;
-    constexpr raw_coords_ raw() const noexcept;
     constexpr i8 z() const noexcept;
 
     template<typename T> explicit constexpr inline operator Math::Vector2<T>() const noexcept;
@@ -155,11 +160,26 @@ struct global_coords final
     usize hash() const noexcept;
 
 private:
-    using u0 = std::integral_constant<u32, chunk_xy_bias::value>;
-    using s0 = std::integral_constant<i32, i32(u0::value)>;
-    using z0 = std::integral_constant<i32, (1 << 0)>;
-    using z_mask = std::integral_constant<u32, (1u << 4) - 1u << 20>;
-    const u32 x = u0::value<<4|z0::value<<20, y = u0::value<<4;
+    friend struct point;
+    struct Unchecked {};
+    constexpr global_coords(u64 bits, Unchecked) noexcept : _bits{bits} {}
+
+    static constexpr u64 pack_point(Vector3i px) noexcept
+    {
+        u64 bits = 0;
+        for (u32 i = 0; i < 3; i++)
+            bits |= (u64(u32(px[i] + point_biases[i])) << point_shift_counts[i]) & point_bitmasks[i];
+        return bits;
+    }
+    static constexpr Vector3i unpack_point(u64 bits) noexcept
+    {
+        Vector3i px;
+        for (u32 i = 0; i < 3; i++)
+            px[i] = i32((bits & point_bitmasks[i]) >> point_shift_counts[i]) - point_biases[i];
+        return px;
+    }
+
+    const u64 _bits = pack_point({});
 };
 
 constexpr global_coords& global_coords::operator=(const global_coords& other) noexcept
@@ -171,12 +191,16 @@ constexpr global_coords& global_coords::operator=(const global_coords& other) no
 
 constexpr local_coords global_coords::local() const noexcept
 {
-    return { u8(x & 0x0f), u8(y & 0x0f), };
+    const auto x = u32((_bits & point_bitmasks[0]) >> point_shift_counts[0]);
+    const auto y = u32((_bits & point_bitmasks[1]) >> point_shift_counts[1]);
+    return { u8(x / u32{tile_size_xy} % TILE_MAX_DIM), u8(y / u32{tile_size_xy} % TILE_MAX_DIM), };
 }
 
 constexpr chunk_coords global_coords::chunk() const noexcept
 {
-    return { i16(i32(((x & ~z_mask::value)>>4) - u0::value)), i16(i32((y>>4) - u0::value)), };
+    const auto x = u32((_bits & point_bitmasks[0]) >> point_shift_counts[0]);
+    const auto y = u32((_bits & point_bitmasks[1]) >> point_shift_counts[1]);
+    return { i16(i32(x / chunk_size_xy) + chunk_xy_min), i16(i32(y / chunk_size_xy) + chunk_xy_min), };
 }
 
 constexpr global_coords::operator chunk_coords_() const noexcept
@@ -184,17 +208,20 @@ constexpr global_coords::operator chunk_coords_() const noexcept
     return chunk_coords_{ chunk(), z() };
 }
 
-constexpr auto global_coords::raw() const noexcept -> raw_coords_ { return {x, y}; }
-
 constexpr i8 global_coords::z() const noexcept
 {
-    return ((x >> 20) & 0x0f) - z0::value;
+    const auto z = u32((_bits & point_bitmasks[2]) >> point_shift_counts[2]);
+    [[assume(z < u32(chunk_z_count * tile_size_z))]];
+    return i8(i32(z / u32{tile_size_z}) + chunk_z_min);
 }
 
 template<typename T> constexpr global_coords::operator Math::Vector2<T>() const noexcept
 {
     static_assert(std::is_signed_v<T> && sizeof(T) >= sizeof(i32));
-    return { (T)i32((x & ~z_mask::value) - (s0::value<<4)), (T)i32(y - (s0::value<<4)), };
+    const auto x = u32((_bits & point_bitmasks[0]) >> point_shift_counts[0]);
+    const auto y = u32((_bits & point_bitmasks[1]) >> point_shift_counts[1]);
+    return { T(i32(x / u32{tile_size_xy}) + chunk_xy_min * i32{TILE_MAX_DIM}),
+             T(i32(y / u32{tile_size_xy}) + chunk_xy_min * i32{TILE_MAX_DIM}), };
 }
 
 template<typename T> constexpr global_coords::operator Math::Vector3<T>() const noexcept
@@ -205,10 +232,14 @@ template<typename T> constexpr global_coords::operator Math::Vector3<T>() const 
 
 constexpr global_coords global_coords::operator+(Vector2i vec) const noexcept
 {
-    const auto nx = u32((i64)x+vec[0]);
-    // a carry out of chunk x lands in the z bits, which the constructor's range check masks off
-    fm_assert(((nx ^ x) & z_mask::value) == 0);
-    return { nx, u32((i64)y+vec[1]), nullptr };
+    u64 bits = _bits & point_bitmasks[2];
+    for (u32 i = 0; i < 2; i++)
+    {
+        const auto v = u64(i64((_bits & point_bitmasks[i]) >> point_shift_counts[i]) + i64{vec[i]} * tile_size_xy);
+        fm_assert(v <= point_bitmasks[i] >> point_shift_counts[i]);
+        bits |= (v << point_shift_counts[i]) & point_bitmasks[i];
+    }
+    return { bits, Unchecked{} };
 }
 
 constexpr global_coords& global_coords::operator+=(Vector2i vec) noexcept
@@ -218,9 +249,7 @@ constexpr global_coords& global_coords::operator+=(Vector2i vec) noexcept
 
 constexpr global_coords global_coords::operator-(Vector2i vec) const noexcept
 {
-    const auto nx = u32((i64)x-vec[0]);
-    fm_assert(((nx ^ x) & z_mask::value) == 0);
-    return { nx, u32((i64)y-vec[1]), nullptr };
+    return *this + -vec;
 }
 
 constexpr global_coords& global_coords::operator-=(Vector2i vec) noexcept

@@ -95,7 +95,7 @@ void World_FindObject(benchmark::State& state)
         for (i16 y = 0; y < find_side; y++)
             for (i16 x = 0; x < find_side; x++)
             {
-                const auto cz = i8(num_z == 1 ? 0 : chunk_z_min + z);
+                const auto cz = i8(num_z == 1 ? 0 : z - 1);
                 const chunk_coords_ ch{i16(x - find_side/2), i16(y - find_side/2), cz};
                 for (auto k = 0u; k < find_per_chunk; k++)
                     ids[i++] = w.make_object<light>(w.make_id(), {ch, local_coords{k % TILE_COUNT}}, p)->id;
@@ -120,7 +120,7 @@ void World_FindObject(benchmark::State& state)
         }
     state.counters["lookup"] = benchmark::Counter(num_objects, benchmark::Counter::kIsIterationInvariantRate | benchmark::Counter::kInvert);
 }
-BENCHMARK(World_FindObject)->ArgNames({"z", "shuffled"})->ArgsProduct({{1, chunk_z_count}, {0, 1}})->Unit(benchmark::kMillisecond);
+BENCHMARK(World_FindObject)->ArgNames({"z", "shuffled"})->ArgsProduct({{1, 16}, {0, 1}})->Unit(benchmark::kMillisecond);
 
 } // namespace
 

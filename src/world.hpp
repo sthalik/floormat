@@ -213,6 +213,7 @@ public:
 
     std::array<chunk*, 8> neighbors(chunk_coords_ coord);
     std::array<const chunk*, 8> neighbors(chunk_coords_ coord) const;
+    bool has_chunks_at_z(i8 z) const noexcept;
 
     void chunk_table_prepare_frame();
     void check_objects_in_sync() const;
