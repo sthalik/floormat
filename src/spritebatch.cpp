@@ -15,6 +15,8 @@
 #include <cr/Memory.h>
 #include <mg/Mesh.h>
 #include <mg/Buffer.h>
+#include <mg/Context.h>
+#include <mg/Extensions.h>
 
 #if defined __GNUC__ && !defined __clang__
 // GCC warns on always_inline without the inline keyword. That keyword would leave callers in other
@@ -53,17 +55,39 @@ struct quick_draw
     GL::Buffer _vertex_buffer{NoCreate}, _index_buffer{NoCreate};
 };
 
-constexpr u32 slot_count = 3;
+// A slot holds the buffers of one draw() call. Writing a mapped slot waits for the GPU to finish its last draw,
+// so there are enough for 3 frames of up to 4 draw() calls each.
+constexpr u32 mapped_slot_count = 12, unmapped_slot_count = 3;
 
 struct slot
 {
     GL::Mesh mesh{NoCreate};
     GL::Buffer vertex_buffer_handle{NoCreate};
     GL::Buffer index_buffer_handle{NoCreate};
+    Quads::vertexes* mapped_vertexes = nullptr;
+    u32 mapped_capacity = 0;
     // How much of this slot's index buffer holds identity indexes. A permuted upload overwrites
     // them, so it drops back to 0 and the next identity upload rewrites from the start.
     u32 index_uploaded = 0;
+    GLsync last_draw_fence = nullptr;
+
+    ~slot() noexcept
+    {
+        if (last_draw_fence)
+            glDeleteSync(last_draw_fence);
+        if (mapped_vertexes)
+            vertex_buffer_handle.unmap();
+    }
 };
+
+void wait_for_fence(GLsync fence)
+{
+    GLenum ret;
+    do
+        ret = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 1'000'000'000);
+    while (ret == GL_TIMEOUT_EXPIRED);
+    fm_assert(ret != GL_WAIT_FAILED);
+}
 
 template<typename T> void reserve(Array<T>& A, u32 size) // todo reuse this, many places naively reserve without 1.5
 {
@@ -152,13 +176,17 @@ struct SpriteBatch::Impl
     Array<Quads::indexes> index_buffer, index_permuted;
 
     Array<Quads::vertexes> verts;
+    Quads::vertexes* vertex_dest = nullptr;
+    // Counts quads. clear() zeroes it, so the next begin_chunk() calls reserve_vertex_dest().
+    u32 vertex_dest_capacity = 0;
     // depths[i] is the depth of quad sort_indexes[i]. Below AVX2, end_chunk<true> sorts both in
     // place, so the merge reads a key without going through sort_indexes first.
     Array<u32> depths;
     Array<u32> starts, sort_indexes, merge_output, perm;
     Array<u64> sort_keys;
 
-    slot slots[slot_count];
+    slot slots[mapped_slot_count];
+    u32 slot_count = unmapped_slot_count;
     u32 slot_idx = 0;
     u32 buffer_capacity = 0;
     u32 last_start = 0;
@@ -169,6 +197,9 @@ struct SpriteBatch::Impl
     // True only while sort_indexes[i] == i for all i. Cleared by both things that permute
     // sort_indexes: end_chunk<true> below AVX2 and sort_vertex_buffer(). Only clear() sets it back.
     bool sort_indexes_in_orig_order = true;
+    bool buffer_storage_supported = false;
+
+    void reserve_vertex_dest(u32 size);
 };
 
 ArrayView<const u32> SpriteBatch::merged_order() const { return impl->sort_indexes; }
@@ -182,6 +213,9 @@ SpriteBatch::SpriteBatch()
     arrayReserve(impl.starts, 16);
     arrayAppend(impl.starts, 0u);
     arrayReserve(impl.sort_indexes, 16);
+    impl.buffer_storage_supported = GL::Context::hasCurrent() &&
+        GL::Context::current().isExtensionSupported<GL::Extensions::ARB::buffer_storage>();
+    impl.slot_count = impl.buffer_storage_supported ? mapped_slot_count : unmapped_slot_count;
 }
 
 SpriteBatch::~SpriteBatch() noexcept = default;
@@ -191,15 +225,58 @@ SpriteBatch::~SpriteBatch() noexcept = default;
     auto& impl = *this->impl;
     fm_debug2_assert(!impl.in_chunk);
     fm_debug2_assert(impl.sort_indexes.size() == impl.last_start);
-    fm_debug2_assert(impl.last_start <= impl.verts.size());
+    fm_debug2_assert(impl.last_start <= impl.vertex_dest_capacity);
     impl.in_chunk = true;
     const auto size = impl.last_start + max_quads;
-    if (impl.verts.size() < size)
-    {
-        reserve(impl.verts, size);
+    if (impl.vertex_dest_capacity < size)
+        impl.reserve_vertex_dest(size);
+    if (impl.depths.size() < size)
         reserve(impl.depths, size);
-    }
     impl.emit_pos = impl.last_start;
+}
+
+void SpriteBatch::Impl::reserve_vertex_dest(u32 size)
+{
+    if (!buffer_storage_supported)
+    {
+        reserve(verts, size);
+        vertex_dest = verts.data();
+        vertex_dest_capacity = size;
+    }
+    else
+    {
+        auto& s = slots[slot_idx];
+        if (s.last_draw_fence)
+        {
+            wait_for_fence(s.last_draw_fence);
+            glDeleteSync(s.last_draw_fence);
+            s.last_draw_fence = nullptr;
+        }
+        if (s.mapped_capacity < size)
+        {
+            using SF = GL::Buffer::StorageFlag;
+            using MF = GL::Buffer::MapFlag;
+            const auto capacity = (u32)((float)size * 1.5f);
+            const auto bytes = (GLsizeiptr)(capacity * sizeof(Quads::vertexes));
+            auto buf = GL::Buffer{};
+            buf.setStorage((usize)bytes, SF::MapWrite|SF::MapPersistent|SF::MapCoherent|SF::ClientStorage);
+            auto* const V = reinterpret_cast<Quads::vertexes*>(
+                buf.map(0, bytes, MF::Write|MF::Persistent|MF::Coherent).data());
+            fm_assert(V);
+            // Copied on the GPU, since reading a mapping made without MapFlag::Read is undefined.
+            if (last_start > 0)
+                GL::Buffer::copy(s.vertex_buffer_handle, buf, 0, 0, (GLsizeiptr)(last_start * sizeof(Quads::vertexes)));
+            if (s.mapped_vertexes)
+                s.vertex_buffer_handle.unmap();
+            s.vertex_buffer_handle = move(buf);
+            // Its vertex array refers to the old buffer. draw() makes a new one.
+            s.mesh = GL::Mesh{NoCreate};
+            s.mapped_vertexes = V;
+            s.mapped_capacity = capacity;
+        }
+        vertex_dest = s.mapped_vertexes;
+        vertex_dest_capacity = s.mapped_capacity;
+    }
 }
 
 void SpriteBatch::clear()
@@ -215,6 +292,7 @@ void SpriteBatch::clear()
     arrayClear(impl.m.runs);
     arrayClear(impl.m.tree);
     //arrayClear(impl.index_buffer);
+    impl.vertex_dest_capacity = 0;
     impl.last_start = 0;
     impl.emit_pos = 0;
     impl.in_chunk = false;
@@ -227,14 +305,17 @@ void SpriteBatch::ensure_allocated(u32 count)
     if (count <= impl.buffer_capacity) [[likely]]
         return;
     u32 new_cap = 0;
-    for (auto& s : impl.slots)
+    for (auto i = 0u; i < impl.slot_count; i++)
     {
-        auto cap  = ensure_buffer_size<Quads::vertexes>(s.vertex_buffer_handle, impl.buffer_capacity, count);
-        const auto cap2 = ensure_buffer_size<Quads::indexes>(s.index_buffer_handle, impl.buffer_capacity, count);
-        (void)cap2;
-        fm_debug2_assert(cap == cap2);
+        auto& s = impl.slots[i];
+        new_cap = ensure_buffer_size<Quads::indexes>(s.index_buffer_handle, impl.buffer_capacity, count);
+        if (!impl.buffer_storage_supported)
+        {
+            const auto cap = ensure_buffer_size<Quads::vertexes>(s.vertex_buffer_handle, impl.buffer_capacity, count);
+            (void)cap;
+            fm_debug2_assert(cap == new_cap);
+        }
         s.index_uploaded = 0; // setData() orphaned the old contents
-        new_cap = cap;
     }
     impl.buffer_capacity = new_cap;
 }
@@ -244,8 +325,8 @@ void SpriteBatch::emit(const Quads::vertexes& vertexes, u32 depth)
     auto& impl = *this->impl;
     fm_debug3_assert(impl.in_chunk);
     const auto i = impl.emit_pos++;
-    fm_debug3_assert(i < impl.verts.size());
-    impl.verts.data()[i] = vertexes;
+    fm_debug3_assert(i < impl.vertex_dest_capacity);
+    impl.vertex_dest[i] = vertexes;
     impl.depths.data()[i] = depth;
 }
 
@@ -263,7 +344,7 @@ void SpriteBatch::end_chunk()
     const auto last = impl.emit_pos;
     auto& S = impl.sort_indexes;
 
-    fm_debug2_assert(last <= impl.verts.size());
+    fm_debug2_assert(last <= impl.vertex_dest_capacity);
 
     if (first == last) [[unlikely]]
         return;
@@ -307,7 +388,7 @@ void SpriteBatch::emit(SpriteList& list)
 
     const auto* const Vin = list.Vertexes.data();
     const auto* const Din = list.Depths.data();
-    auto* const V = impl.verts.data() + first;
+    auto* const V = impl.vertex_dest + first;
     auto* const D = impl.depths.data() + first;
     std::memcpy(V, Vin, size * sizeof *Vin);
     std::memcpy(D, Din, size * sizeof *Din);
@@ -438,7 +519,7 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
 
     const auto& S = impl.sort_indexes;
     fm_debug_assert(size == S.size());
-    fm_debug_assert(size <= impl.verts.size());
+    fm_debug_assert(size <= impl.vertex_dest_capacity);
     fm_debug_assert(impl.starts.size() > 1);
     fm_debug_assert(impl.merge_output.isEmpty());
 
@@ -450,7 +531,9 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
     ensure_allocated(size);
 
     auto& slot = impl.slots[impl.slot_idx];
-    slot.vertex_buffer_handle.setSubData(0, ArrayView{ impl.verts.data(), size });
+    // A coherent mapping makes emit()'s writes visible to the draw below.
+    if (!impl.buffer_storage_supported)
+        slot.vertex_buffer_handle.setSubData(0, ArrayView{ impl.verts.data(), size });
 
     if (direct)
     {
@@ -492,7 +575,12 @@ void SpriteBatch::draw(tile_shader& shader, bool do_sort)
 
     shader.draw(loader.atlas().texture(), mesh);
 
-    impl.slot_idx = (impl.slot_idx + 1) % slot_count;
+    if (impl.buffer_storage_supported)
+    {
+        fm_debug_assert(!slot.last_draw_fence);
+        slot.last_draw_fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    }
+    impl.slot_idx = (impl.slot_idx + 1) % impl.slot_count;
     clear();
 }
 

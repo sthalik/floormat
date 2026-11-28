@@ -237,6 +237,71 @@ void test_depth_order(state& s)
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 }
 
+// The full-screen quads keep the GPU busy while the CPU reuses slots, so a missing fence wait leaves wrong pixels.
+// Each slot's first batch outgrows its vertex buffer between its two chunks.
+void test_batch_draw(state& s)
+{
+    const auto& atlas = *loader.invalid_anim_atlas().atlas;
+    const auto& g = atlas.group(rotation::N);
+    const auto& f = atlas.frame(rotation::N, 0);
+    const auto uv = loader.atlas().texcoords_for(sprite{g.sprites[0]}, !g.mirror_from.isEmpty());
+    constexpr u32 num_full_screen_quads = 4096, num_batches = 32, quads_per_batch = 2, num_columns = 8;
+    // Screen offsets of (48, 0) and (0, 48) keep the 32×32 sprites apart, so no quad covers a missing one.
+    constexpr Vector3 first_center{-300, -100, 0}, column_offset{24, -24, 0}, row_offset{48, 48, 0};
+    constexpr Color4ub sprite_color{0, 0, 255, 255};
+    constexpr Quads::depths depths{Depth::bias, Depth::bias, Depth::bias, Depth::bias};
+    fm_assert(f.size == Vector2ui{32});
+    const auto size = Vector2i(f.size);
+
+    Array<Color4ub> expected{DirectInit, (usize)fb_size.product(), clear_color_ub};
+    s.fb.clearColor(0, clear_color);
+    s.fb.bind();
+    s.shader.set_tint({0, 0, 1, 1});
+
+    auto full_screen_quad = atlas.frame_quad({}, rotation::N, 0);
+    const auto quad_center = (full_screen_quad[0] + full_screen_quad[1] + full_screen_quad[2] + full_screen_quad[3])*.25f;
+    for (auto& v : full_screen_quad)
+        v = quad_center + (v - quad_center)*40;
+    s.sb.clear();
+    s.sb.begin_chunk(num_full_screen_quads);
+    for (auto i = 0u; i < num_full_screen_quads; i++)
+        s.sb.emit(Quads::make_vertexes(full_screen_quad, uv, depths), Depth::bias);
+    s.sb.end_chunk<false>();
+    s.sb.draw(s.shader, false);
+    s.fb.clearColor(0, clear_color);
+
+    for (auto i = 0u; i < num_batches; i++)
+    {
+        s.sb.clear();
+        for (auto k = 0u; k < quads_per_batch; k++)
+        {
+            const auto j = i*quads_per_batch + k;
+            const auto center = first_center + column_offset*(float)(j % num_columns) + row_offset*(float)(j / num_columns);
+            const auto p = Vector2(fb_size)*.5f + tile_shader::project(center + Vector3(g.offset)) - Vector2(f.ground);
+            const auto p0 = Vector2i(p);
+            fm_assert(Vector2(p0) == p);
+            fm_assert(p0.x() >= 0 && p0.y() >= 0 && p0.x() + size.x() <= fb_size.x() && p0.y() + size.y() <= fb_size.y());
+            for (auto y = p0.y(); y < p0.y() + size.y(); y++)
+                for (auto x = p0.x(); x < p0.x() + size.x(); x++)
+                    expected[(u32)((fb_size.y() - 1 - y)*fb_size.x() + x)] = sprite_color;
+
+            s.sb.begin_chunk(k == 0 ? 1 : 64);
+            s.sb.emit(Quads::make_vertexes(atlas.frame_quad(center, rotation::N, 0), uv, depths), Depth::bias);
+            s.sb.end_chunk<false>();
+        }
+        s.sb.draw(s.shader, i % 2 != 0);
+    }
+
+    const auto img = s.fb.read({{}, fb_size}, Image2D{PixelFormat::RGBA8Unorm});
+    const auto* pixels = reinterpret_cast<const Color4ub*>(img.data().data());
+    for (const auto& [i, e] : enumerate(expected))
+        if (const auto c = pixels[i]; c != e)
+            fm_abort("pixel (%u,%u) is %02x%02x%02x%02x, should be %02x%02x%02x%02x",
+                     i % (u32)fb_size.x(), (u32)fb_size.y() - 1 - i / (u32)fb_size.x(),
+                     c.r(), c.g(), c.b(), c.a(), e.r(), e.g(), e.b(), e.a());
+    s.shader.set_tint({1, 1, 1, 1});
+}
+
 } // namespace
 
 void test_emit_quick()
@@ -260,6 +325,7 @@ void test_emit_quick()
         test_frame(s, *v.atlas, rotation::N, 0);
     test_order(s);
     test_depth_order(s);
+    test_batch_draw(s);
 }
 
 } // namespace floormat::Test

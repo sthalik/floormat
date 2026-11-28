@@ -145,7 +145,7 @@ struct fixture
     }
 
     // Every run emitted with end_chunk<false> leaves sort_indexes untouched. That identity
-    // is what draw()'s direct path relies on when it uploads impl.verts unpermuted.
+    // is what draw()'s direct path relies on when it draws the vertexes in emission order.
     void check_identity()
     {
         sb.sort_vertex_buffer(false);
