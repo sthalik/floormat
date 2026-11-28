@@ -9,7 +9,7 @@
 #include "src/camera-offset.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
-#include "src/old-rtree-search.hpp"
+#include "src/spatial-index.hpp"
 #include "src/spritebatch.hpp"
 #include "src/point.inl"
 #include "src/depth.hpp"
@@ -140,7 +140,7 @@ void app::draw_collision_boxes()
                     if (x.id < TILE_COUNT * 3 + 1)
                         return true;
             shader.set_tint(x.pass == (u64)pass_mode::pass ? pass_tint : tint);
-            wireframe::draw_quad(shader, Vector2{rect.m_min}, Vector2{rect.m_max}, 3);
+            wireframe::draw_quad(shader, Vector2{rect.min()}, Vector2{rect.max()}, 3);
             return true;
         };
         c.rtree()->Search(min2f, max2f, draw);
@@ -175,7 +175,7 @@ void app::draw_collision_boxes()
                     if (x.pass == (u64)pass_mode::pass)
                         if (x.id < TILE_COUNT*3+1)
                             return true;
-                Vector2 start{rect.m_min}, end{rect.m_max};
+                const auto start = Vector2{rect.min()}, end = Vector2{rect.max()};
                 if ((t0 < start || t0 >= end).any())
                     return true;
                 wireframe::draw_quad(shader, start, end, 3);

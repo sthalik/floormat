@@ -9,7 +9,7 @@
 #include "src/grid-registry.hpp"
 #include "src/order-list.inl"
 #include "src/search-astar.hpp"
-#include "src/old-rtree.hpp"
+#include "src/spatial-index.h"
 #include "compat/array-size.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/thread-pool.hpp"
@@ -29,7 +29,7 @@ struct job_reads
     const chunk* chunk_at_missing_coord = nullptr;
     const critter* found_critter = nullptr;
     u64 max_pass_gen = 0, max_collider_gen = 0;
-    int num_rtree_entries = 0;
+    u32 num_rtree_entries = 0;
     bool is_thread_pool_running = false, is_thread_pool_running_in_second_world = false;
 };
 

@@ -7,6 +7,8 @@ class old_rtree;
 
 namespace floormat {
 
-using Chunk_RTree = ::old_rtree<object_id, float, 2, float>;
+template<typename ELEMTYPE, u32 max_entries_before_tree> struct spatial_index;
+
+using Chunk_RTree = spatial_index<i16, 128>;
 
 } // namespace floormat

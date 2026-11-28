@@ -2,8 +2,7 @@
 #include "pool-jobs-fixture.hpp"
 #include "src/chunk.hpp"
 #include "src/collision.hpp"
-#include "src/old-rtree.hpp"
-#include "src/old-rtree-search.hpp"
+#include "src/spatial-index.hpp"
 #include "compat/borrowed-ptr.inl"
 #include "compat/thread-pool.hpp"
 #include <array>
@@ -21,7 +20,7 @@ constexpr u32 num_repetitions = 2;
 struct rtree_entry
 {
     object_id id;
-    std::array<float, 4> rect;
+    RTree::Rect rect;
 
     bool operator==(const rtree_entry&) const = default;
 };
@@ -32,7 +31,7 @@ Array<rtree_entry> entries_of(const RTree& t)
     arrayReserve(ret, (usize)t.Count());
     const auto lo = Vector2{-2*(float)chunk_size_xy}, hi = Vector2{3*(float)chunk_size_xy};
     t.Search(lo.data(), hi.data(), [&](object_id id, const RTree::Rect& r) {
-        arrayAppend(ret, rtree_entry{id, {r.m_min[0], r.m_min[1], r.m_max[0], r.m_max[1]}});
+        arrayAppend(ret, rtree_entry{id, r});
         return true;
     });
     fm_assert_equal((usize)t.Count(), ret.size());
@@ -64,7 +63,7 @@ void check_same_rtrees(const world& w0, const world& w)
 void check_border_holes(const world& w)
 {
     const auto& c = *w.at(chunk_coords_{1, 1, 0});
-    fm_assert_equal(4, c.hole_rtree()->Count());
+    fm_assert_equal(4u, c.hole_rtree()->Count());
     bool has_see_through_piece = false;
     for (const auto& e : entries_of(*c.rtree()))
     {
@@ -120,12 +119,13 @@ void test_rtree_rebuild_jobs()
     ThreadPool pool2{2}, pool4{4}, pool8{8}, pool4_without_caller{4, false};
     const auto pools = std::array<ThreadPool*, 5>{ nullptr, &pool2, &pool4, &pool8, &pool4_without_caller };
     const fixture_atlases a;
-    const auto num_nodes = RTree::node_pool.alive_count(), num_list_nodes = RTree::list_node_pool.alive_count();
+    const auto num_nodes = RTree::tree_type::node_pool.alive_count();
+    const auto num_list_nodes = RTree::tree_type::list_node_pool.alive_count();
     for (auto i = 0u; i < num_repetitions; i++)
     {
         fm_assert(run_frames(pools, a) >= 10);
-        fm_assert_equal(num_nodes, RTree::node_pool.alive_count());
-        fm_assert_equal(num_list_nodes, RTree::list_node_pool.alive_count());
+        fm_assert_equal(num_nodes, RTree::tree_type::node_pool.alive_count());
+        fm_assert_equal(num_list_nodes, RTree::tree_type::list_node_pool.alive_count());
     }
 }
 

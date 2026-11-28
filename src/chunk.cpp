@@ -2,7 +2,7 @@
 #include "object.hpp"
 #include "world.hpp"
 #include "log.hpp"
-#include "old-rtree.h"
+#include "spatial-index.h"
 #include "grid.hpp"
 #include "ground-atlas.hpp"
 #include "compat/non-const.hpp"

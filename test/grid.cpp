@@ -17,7 +17,7 @@
 #include "src/point.inl"
 #include "src/raycast.hpp"
 #include "src/hole.hpp"
-#include "src/old-rtree.hpp"
+#include "src/spatial-index.h"
 #include "src/search.hpp"
 #include "src/world.hpp"
 #include "src/chunk.hpp"
@@ -33,6 +33,7 @@
 #include <hwy/targets.h>
 #include <algorithm>
 #include <bit>
+#include <cr/GrowableArray.h>
 
 namespace floormat::Test {
 

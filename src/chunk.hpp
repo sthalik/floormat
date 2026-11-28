@@ -76,7 +76,7 @@ public:
     bool is_scenery_modified() const noexcept;
     bool are_walls_modified() const noexcept;
 
-    using RTree = ::old_rtree<object_id, float, 2, float>;
+    using RTree = Chunk_RTree;
 
     void ensure_alloc_ground();
     void ensure_alloc_walls();

@@ -5,7 +5,7 @@
 #include "collision.hpp"
 #include "object.hpp"
 #include "search-pred.hpp"
-#include "old-rtree-search.hpp"
+#include "spatial-index.hpp"
 #include "compat/debug.hpp"
 #include "compat/function-view.hpp"
 #include <bit>
@@ -200,8 +200,8 @@ void PassGrid::build_impl(chunk* self)
                     return true;
                 all_empty = false;
 
-                const auto cr = cells_of(r.m_min[0] + off.x(), r.m_min[1] + off.y(),
-                                         r.m_max[0] + off.x(), r.m_max[1] + off.y());
+                const auto cr = cells_of(r.min().x() + off.x(), r.min().y() + off.y(),
+                                         r.max().x() + off.x(), r.max().y() + off.y());
                 if (cr.is_empty())
                     return true;
 

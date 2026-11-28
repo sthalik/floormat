@@ -6,6 +6,7 @@
 #include "src/old-rtree.hpp"
 #include "src/old-rtree-search.hpp"
 #include "src/rtree-pool.inl"
+#include "src/spatial-index.hpp"
 #include "src/chunk.hpp"
 #include "src/grid-pass.hpp"
 #include "src/scenery-proto.hpp"
@@ -61,7 +62,6 @@ static_assert(cmp::less<>{}(1, 2) && !cmp::less<>{}(2, 2) && cmp::less<>{}(1, 1.
 static_assert(cmp::less_equal<>{}(2, 2) && !cmp::less_equal<>{}(3, 2) && cmp::less_equal<int>{}(2, 2));
 
 template<u32 M> using Chunk_RTree_Fanout = ::old_rtree<object_id, float, 2, float, (int)M, (int)M/2>;
-static_assert(std::is_same_v<Chunk_RTree_Fanout<8>, Chunk_RTree>);
 
 constexpr std::integer_sequence<u32, 4, 16, 24, 32, 48, 64> fanouts_other_than_8;
 
@@ -101,12 +101,7 @@ struct alignas(64) entry_arrays
     Array<u64> data_storage;
 };
 
-struct alignas(64) entry_block
-{
-    i16 min_x[max_lanes], min_y[max_lanes], max_x[max_lanes], max_y[max_lanes];
-    u64 data[max_lanes];
-};
-static_assert(sizeof(entry_block) == 128);
+static_assert(sizeof(entry_block<i16>) == 128 && entry_block<i16>::capacity == max_lanes);
 
 struct chunk_structures
 {
@@ -127,7 +122,7 @@ struct chunk_structures
     const Node<8>* shuffled_root = nullptr;
     // The leaves of old_tree_8 in the order its search reports them.
     Array<entry> entries;
-    Array<entry_block> blocks;
+    Array<entry_block<i16>> blocks;
     Math::Range2D<i16> bounding_rect;
     entry_arrays arrays;
     chunk_coords_ coord;
@@ -339,6 +334,21 @@ Array<entry> leaf_entries(const Tree& tree)
     return ret;
 }
 
+// Returns the chunk's entries in insertion order while it keeps them in blocks, else in the R-tree's leaf order.
+Array<entry> chunk_entries(chunk& ch)
+{
+    const auto count = ch.rtree()->Count();
+    Array<entry> ret;
+    arrayReserve(ret, Math::max(count, 16u));
+    const auto lo = Vector2{-max_abs_coord}, hi = Vector2{max_abs_coord};
+    ch.rtree()->Search(lo.data(), hi.data(), [&](u64 data, const Chunk_RTree::Rect& r) {
+        arrayAppend(ret, entry{r, data});
+        return true;
+    });
+    fm_assert(ret.size() == count);
+    return ret;
+}
+
 template<typename Tree>
 void insert_entries(Tree& tree, ArrayView<const entry> entries)
 {
@@ -405,10 +415,10 @@ void insert_entry(entry_arrays& a, const Math::Range2D<i16>& rect, u64 data)
     a.count = n + 1;
 }
 
-Array<entry_block> make_entry_blocks(ArrayView<const entry> entries)
+Array<entry_block<i16>> make_entry_blocks(ArrayView<const entry> entries)
 {
     const auto n = (u32)entries.size();
-    Array<entry_block> blocks{ValueInit, (n + max_lanes - 1)/max_lanes};
+    Array<entry_block<i16>> blocks{ValueInit, (n + max_lanes - 1)/max_lanes};
     for (u32 i = 0; i < blocks.size()*max_lanes; i++)
     {
         auto& b = blocks[i / max_lanes];
@@ -420,13 +430,13 @@ Array<entry_block> make_entry_blocks(ArrayView<const entry> entries)
             b.min_y[k] = r.min().y();
             b.max_x[k] = r.max().x();
             b.max_y[k] = r.max().y();
-            b.data[k] = entries[i].data;
+            b.id[k] = entries[i].data;
         }
         else
         {
             b.min_x[k] = b.min_y[k] = empty_rect_min;
             b.max_x[k] = b.max_y[k] = empty_rect_max;
-            b.data[k] = 0;
+            b.id[k] = 0;
         }
     }
     return blocks;
@@ -645,7 +655,7 @@ int search_arrays(const entry_arrays& a, const Range2Di& query, F&& callback)
 }
 
 template<typename Compare = cmp::less_equal<>, typename F>
-int search_blocks(ArrayView<const entry_block> blocks, const Range2Di& query, F&& callback)
+int search_blocks(ArrayView<const entry_block<i16>> blocks, const Range2Di& query, F&& callback)
 {
     const auto rect = SearchRect<Compare>(query);
     int num_found = 0;
@@ -666,7 +676,7 @@ int search_blocks(ArrayView<const entry_block> blocks, const Range2Di& query, F&
             {
                 const auto k = i + (u32)std::countr_zero(bits);
                 num_found++;
-                if (!callback(b.data[k], Math::Range2D<i16>{{b.min_x[k], b.min_y[k]}, {b.max_x[k], b.max_y[k]}}))
+                if (!callback(b.id[k], Math::Range2D<i16>{{b.min_x[k], b.min_y[k]}, {b.max_x[k], b.max_y[k]}}))
                     return num_found;
             }
         }
@@ -677,7 +687,7 @@ int search_blocks(ArrayView<const entry_block> blocks, const Range2Di& query, F&
                 b.max_x[k] >= rect.min().x() && b.max_y[k] >= rect.min().y())
             {
                 num_found++;
-                if (!callback(b.data[k], Math::Range2D<i16>{{b.min_x[k], b.min_y[k]}, {b.max_x[k], b.max_y[k]}}))
+                if (!callback(b.id[k], Math::Range2D<i16>{{b.min_x[k], b.min_y[k]}, {b.max_x[k], b.max_y[k]}}))
                     return num_found;
             }
 #endif
@@ -1144,12 +1154,12 @@ void check_edge_queries(const chunk_structures& c, Random::xoshiro256starstar& r
     }
 }
 
-Array<Chunk_RTree::Rect> box_rects_on_circle()
+Array<Chunk_RTree_Fanout<8>::Rect> box_rects_on_circle()
 {
     constexpr u32 point_count = 1024;
     constexpr float radius = 300, half_box = box_size/2;
     constexpr auto center = chunk_size<float>/2 - half_tile<float>;
-    Array<Chunk_RTree::Rect> rects{ValueInit, point_count};
+    Array<Chunk_RTree_Fanout<8>::Rect> rects{ValueInit, point_count};
     for (u32 i = 0; i < point_count; i++)
     {
         const auto angle = 2*std::numbers::pi_v<float>*(float)i/(float)point_count;
@@ -1413,7 +1423,7 @@ Pointer<benchmark_scene> make_benchmark_scene(StringView name, world& w, Random:
     {
         auto& c = chunks[n];
         c.coord = ch.coord();
-        c.old_tree_8 = *ch.rtree();
+        insert_entries(c.old_tree_8, chunk_entries(ch));
         fill_structures(c, leaf_entries(c.old_tree_8));
         entry_counts[n] = (u32)c.entries.size();
         hole_entry_counts[n] = (u32)ch.hole_rtree()->Count();

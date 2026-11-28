@@ -1,6 +1,6 @@
 #pragma once
 #include "chunk.hpp"
-#include "old-rtree-search.hpp"
+#include "spatial-index.hpp"
 #include "compat/qualified.hpp"
 #include <concepts>
 #include <mg/Vector2.h>

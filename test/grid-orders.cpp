@@ -7,7 +7,7 @@
 #include "src/world.hpp"
 #include "src/chunk.hpp"
 #include "src/critter.hpp"
-#include "src/old-rtree-search.hpp"
+#include "src/spatial-index.hpp"
 #include "src/point.inl"
 #include "loader/loader.hpp"
 #include "compat/borrowed-ptr.inl"
@@ -66,7 +66,7 @@ void add_wall_in_each_chunk(world& w)
 struct rtree_entry
 {
     object_id id;
-    float x0, y0, x1, y1;
+    chunk::RTree::Rect rect;
 
     bool operator==(const rtree_entry&) const = default;
 };
@@ -76,7 +76,7 @@ void append_rtree_entries(const chunk::RTree& t, Array<rtree_entry>& out)
     const float lo[2] = { -2*chunk_size<float>, -2*chunk_size<float> };
     const float hi[2] = { 2*chunk_size<float>, 2*chunk_size<float> };
     t.Search(lo, hi, [&](object_id id, const chunk::RTree::Rect& r) {
-        arrayAppend(out, rtree_entry{id, r.m_min[0], r.m_min[1], r.m_max[0], r.m_max[1]});
+        arrayAppend(out, rtree_entry{id, r});
         return true;
     });
 }

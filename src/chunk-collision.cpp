@@ -5,7 +5,7 @@
 #include "world.hpp"
 #include "pass-through.hpp"
 #include "search.hpp"
-#include "old-rtree-search.hpp"
+#include "spatial-index.hpp"
 #include "rect-intersects.hpp"
 #include "hole.hpp"
 #include "hole-cut.hpp"
@@ -78,7 +78,7 @@ bool add_holes_from_chunk(Chunk_RTree& rtree, chunk& c, Vector2b chunk_offset)
             if (!rect_intersects(min, max, bounds.min(), bounds.max())) [[likely]]
                 continue;
         fm_assert((max > min).all());
-        rtree.Insert(Vector2(min).data(), Vector2(max).data(), make_id(collision_type::none, e.pass, e.id));
+        rtree.Insert({Vector2s{min}, Vector2s{max}}, make_id(collision_type::none, e.pass, e.id));
         has_holes = true;
     }
     return has_holes;
@@ -101,7 +101,7 @@ void filter_bbox_through_holes(Chunk_RTree& rtree, const Chunk_RTree& holes, obj
     fm_assert((bbox.max() > bbox.min()).all());
     fm_debug3_assert(has_integer_corners(bbox));
     if (!has_holes || min_pass > pass_mode::pass)
-        return rtree.Insert(bbox.min().data(), bbox.max().data(), id);
+        return rtree.Insert(Chunk_RTree::Rect{bbox}, id);
     const auto x = std::bit_cast<collision_data>(id);
 start:
     fm_assert((bbox.max() > bbox.min()).all());
@@ -110,14 +110,14 @@ start:
     auto found = chunk::find_hole_in_bbox(holes, bbox, min_pass);
 
     if (!found) [[likely]]
-        rtree.Insert(bbox.min().data(), bbox.max().data(), id);
+        rtree.Insert(Chunk_RTree::Rect{bbox}, id);
     else
     {
         const auto [hole, hole_pass] = *found;
         auto res = CutResult<float>::cut(bbox, hole);
         if (!res.found())
         {
-            rtree.Insert(bbox.min().data(), bbox.max().data(), id);
+            rtree.Insert(Chunk_RTree::Rect{bbox}, id);
             return;
         }
         if (hole_pass != pass_mode::pass)
@@ -149,10 +149,7 @@ Optional<Pair<Range2D, pass_mode>> chunk::find_hole_in_bbox(const Chunk_RTree& r
         auto x = std::bit_cast<collision_data>(data);
         if (x.pass >= (u64)min_pass /*&& x.type == (u64)collision_type::none*/)
         {
-            Range2D hole {
-                { r.m_min[0], r.m_min[1] },
-                { r.m_max[0], r.m_max[1] },
-            };
+            const auto hole = Range2D{r};
             if (Math::intersects(hole, bbox))
             {
                 ret = {InPlaceInit, hole, pass_mode(x.pass)};
@@ -171,7 +168,7 @@ void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_
         auto x = std::bit_cast<collision_data>(data);
         if (can_pass_through_mask(mask, pass_mode(x.pass)) /*&& x.type == (u64)collision_type::none*/)
         {
-            Vector2 hmin = {r.m_min[0], r.m_min[1]}, hmax = {r.m_max[0], r.m_max[1]};
+            const auto hmin = Vector2{r.min()}, hmax = Vector2{r.max()};
             if (rect_intersects(hmin, hmax, bb_min, bb_max))
             {
                 auto obj = c.world().find_object<struct hole>(x.id);
@@ -303,25 +300,22 @@ void chunk::_add_bbox_static_(const bptr<object>& e)
 
 void chunk::_rtree_remove(RTree& t, const bbox& x)
 {
-    auto start = Vector2(x.pos.min()), end = Vector2(x.pos.max());
-    t.Remove(start.data(), end.data(), std::bit_cast<object_id>(x.data));
+    t.Remove(RTree::Rect{x.pos}, std::bit_cast<object_id>(x.data));
 }
 
 void chunk::_rtree_insert(RTree& t, const bbox& x)
 {
     fm_assert((x.pos.max() > x.pos.min()).all());
-    auto start = Vector2(x.pos.min()), end = Vector2(x.pos.max());
-    t.Insert(start.data(), end.data(), std::bit_cast<object_id>(x.data));
+    t.Insert(RTree::Rect{x.pos}, std::bit_cast<object_id>(x.data));
 }
 
 void chunk::_rtree_move(RTree& t, const bbox& x0, const bbox& x1)
 {
     fm_assert((x1.pos.max() > x1.pos.min()).all());
-    auto start0 = Vector2(x0.pos.min()), end0 = Vector2(x0.pos.max());
-    auto start1 = Vector2(x1.pos.min()), end1 = Vector2(x1.pos.max());
+    const auto rect0 = RTree::Rect{x0.pos}, rect1 = RTree::Rect{x1.pos};
     const auto id0 = std::bit_cast<object_id>(x0.data), id1 = std::bit_cast<object_id>(x1.data);
-    if (!t.Move(start0.data(), end0.data(), id0, start1.data(), end1.data(), id1))
-        t.Insert(start1.data(), end1.data(), id1);
+    if (!t.Move(rect0, id0, rect1, id1))
+        t.Insert(rect1, id1);
 }
 
 void chunk::_remove_bbox_dynamic(const bbox& x)

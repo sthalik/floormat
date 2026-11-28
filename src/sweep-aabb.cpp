@@ -8,7 +8,7 @@
 #include "raycast-loop.hpp"
 #include "grid-pass.hpp"
 #include "grid-object.hpp"
-#include "old-rtree-search.hpp"
+#include "spatial-index.hpp"
 #include "compat/function-view.hpp"
 #include <bit>
 #include <mg/Functions.h>
@@ -71,9 +71,7 @@ void sweep_aabb(World& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
                     const auto x = std::bit_cast<collision_data>(data);
                     if (x.pass == (u64)pass_mode::pass)
                         return true;
-                    const auto rect = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-                    const auto r0 = Vector2i(rect.min()) + shift, r1 = Vector2i(rect.max()) + shift;
-                    fm_debug3_assert(Vector2(r0 - shift) == rect.min() && Vector2(r1 - shift) == rect.max());
+                    const auto r0 = Vector2i(r.min()) + shift, r1 = Vector2i(r.max()) + shift;
                     const auto step = first_blocked(r0, r1, k0, k1);
                     if (step >= bound)
                         return true;

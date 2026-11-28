@@ -2,7 +2,7 @@
 #include "src/tile-constants.hpp"
 #include "src/global-coords.hpp"
 #include "src/point.inl"
-#include "src/old-rtree-search.hpp"
+#include "src/spatial-index.hpp"
 #include "src/object.hpp"
 #include "src/light.hpp"
 #include "src/object-storage.inl"
@@ -97,7 +97,7 @@ object_id app::get_object_colliding_with_cursor(bool virtual_objects)
                 [[maybe_unused]] auto x = std::bit_cast<collision_data>(data);
                 if (x.type == (u64)collision_type::geometry)
                     return true;
-                Vector2 min{rect.m_min}, max{rect.m_max};
+                const auto min = Vector2{rect.min()}, max = Vector2{rect.max()};
                 if (t0 >= min && t0 < max)
                 {
                     if (auto e_ = world.find_object(x.id);
@@ -121,7 +121,7 @@ object_id app::get_object_colliding_with_cursor(bool virtual_objects)
                             continue;
                         const auto [min, max] = scenery_tile(L.coord.local(), L.offset, L.bbox_offset, L.bbox_size);
                         const collision_data x{(u64)collision_type::scenery, (u64)L.pass, L.id};
-                        if (!pick(std::bit_cast<u64>(x), {{(float)min.x(), (float)min.y()}, {(float)max.x(), (float)max.y()}}))
+                        if (!pick(std::bit_cast<u64>(x), rect_type{Range2Di{min, max}}))
                             break;
                     }
             }

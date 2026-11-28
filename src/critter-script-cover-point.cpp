@@ -8,7 +8,7 @@
 #include "search.hpp"
 #include "world.hpp"
 #include "chunk.hpp"
-#include "old-rtree-search.hpp"
+#include "spatial-index.hpp"
 #include "compat/floor-divmod.hpp"
 #include "compat/function-view.hpp"
 #include "compat/stl/algorithm/sort.hpp"
@@ -206,8 +206,7 @@ void visibility_tests<World>::collect_rects(Vector2i threat, Vector2i qlo, Vecto
             const auto clo = Vector2(qlo - origin), chi = Vector2(qhi - origin);
             c->rtree()->Search(clo.data(), chi.data(), [&](u64 data, const auto& r) {
                 const auto x = std::bit_cast<collision_data>(data);
-                const auto range = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
-                const auto pmin = Vector2i(Math::ceil(range.min())), pmax = Vector2i(Math::ceil(range.max()));
+                const auto pmin = Vector2i(r.min()), pmax = Vector2i(r.max());
                 if (x.pass < min_pass && (pmin < pmax).all()
                     && Search::without_critters(*c, x) != path_search_continue::pass)
                     arrayAppend(out, Range2Di{(pmin + origin - threat)*2 - Vector2i{1}, (pmax + origin - threat)*2 - Vector2i{1}});

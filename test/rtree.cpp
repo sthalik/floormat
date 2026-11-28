@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include "compat/all-of.hpp"
 #include "src/world.hpp"
 #include "src/critter.hpp"
 #include "src/scenery.hpp"
@@ -12,9 +11,8 @@
 #include "src/search.hpp"
 #include "src/point.inl"
 #include "src/rotation.inl"
-#include "src/old-rtree.hpp"
 #include "src/sweep-aabb.hpp"
-#include "src/old-rtree-search.hpp"
+#include "src/spatial-index.hpp"
 #include "loader/loader.hpp"
 #include "loader/scenery-cell.hpp"
 #include "compat/borrowed-ptr.hpp"
@@ -22,6 +20,7 @@
 #include "compat/nanosecond.inl"
 #include "random/random.hpp"
 #include <bit>
+#include <type_traits>
 #include <cr/Array.h>
 #include <cr/Optional.h>
 #include <mg/Range.h>
@@ -104,8 +103,8 @@ void test2()
     }
     fm_assert(moved);
     fm_assert_equal(ch2, C->coord.chunk3());
-    fm_assert_equal(0, c.rtree()->Count());
-    fm_assert_equal(1, c2.rtree()->Count());
+    fm_assert_equal(0u, c.rtree()->Count());
+    fm_assert_equal(1u, c2.rtree()->Count());
 }
 
 void test3()
@@ -180,8 +179,8 @@ void test_odd_bbox_size()
     u32 n = 0;
     const auto lo = Vector2{0}, hi = Vector2{(float)chunk_size_xy};
     c.rtree()->Search(lo.data(), hi.data(), [&](object_id, const chunk::RTree::Rect& r) {
-        fm_assert(Vector2(r.m_min[0], r.m_min[1]) == Vector2{8*64 - 31});
-        fm_assert(Vector2(r.m_max[0], r.m_max[1]) == Vector2{8*64 + 32});
+        fm_assert(Vector2i(r.min()) == Vector2i{8*64 - 31});
+        fm_assert(Vector2i(r.max()) == Vector2i{8*64 + 32});
         n++;
         return true;
     });
@@ -223,13 +222,6 @@ void test_place_in_missing_chunk()
     fm_assert(!w.at(missing));
 }
 
-// Magnum's float == is fuzzy: it takes 483.005 for 483.
-bool has_integer_corners(const chunk::RTree::Rect& r)
-{
-    const float corners[] = { r.m_min[0], r.m_min[1], r.m_max[0], r.m_max[1] };
-    return all_of(corners, [](float x) { return x == (float)(i32)x; });
-}
-
 Range2Di rtree_rect(chunk& c, object_id id)
 {
     c.ensure_passability();
@@ -239,8 +231,7 @@ Range2Di rtree_rect(chunk& c, object_id id)
         if (std::bit_cast<collision_data>(data).id == id)
         {
             fm_assert(!ret);
-            fm_assert(has_integer_corners(r));
-            ret = Range2Di{{(i32)r.m_min[0], (i32)r.m_min[1]}, {(i32)r.m_max[0], (i32)r.m_max[1]}};
+            ret = Range2Di{r};
         }
         return true;
     });
@@ -320,7 +311,7 @@ void test_same_rotation()
 }
 
 // An object's R-tree rect is its bbox, whether ensure_passability() inserts it or a move on a
-// clean chunk replaces it. Raycast's query relies on every rect having integer corners.
+// clean chunk replaces it.
 void test_rtree_rect_is_bbox()
 {
     constexpr auto ch = chunk_coords_{-1, 2, 0};
@@ -393,8 +384,7 @@ void test_rtree_rect_is_bbox()
     c.ensure_passability();
     u32 n = 0;
     const auto lo = Vector2{-(float)chunk_size_xy}, hi = Vector2{2*(float)chunk_size_xy};
-    c.rtree()->Search(lo.data(), hi.data(), [&](object_id, const chunk::RTree::Rect& r) {
-        fm_assert(has_integer_corners(r));
+    c.rtree()->Search(lo.data(), hi.data(), [&](object_id, const chunk::RTree::Rect&) {
         n++;
         return true;
     });
@@ -675,69 +665,79 @@ void test_hole_pass_modes()
     }
 }
 
-bool contains(const chunk::RTree::Rect& a, const chunk::RTree::Rect& b)
+using tree_type = chunk::RTree::tree_type;
+using tree_node = tree_type::Node;
+using tree_rect = tree_type::Rect;
+
+tree_rect branch_rect(const tree_node& n, u32 i)
 {
-    return a.m_min[0] <= b.m_min[0] && a.m_min[1] <= b.m_min[1] && b.m_max[0] <= a.m_max[0] && b.m_max[1] <= a.m_max[1];
+    return {{n.min_x[i], n.min_y[i]}, {n.max_x[i], n.max_y[i]}};
+}
+
+bool contains(const tree_rect& a, const tree_rect& b)
+{
+    return (a.min() <= b.min()).all() && (b.max() <= a.max()).all();
 }
 
 // Every internal rect covers its child's rects, every child is one level below its parent, a
 // non-root node holds MINNODES to MAXNODES entries, and an internal root at least two.
-void check_tree(const chunk::RTree::Node* n, bool is_root = true)
+void check_tree(const tree_node* n, bool is_root = true)
 {
-    fm_assert(n->m_count <= chunk::RTree::MAXNODES);
+    fm_assert(n->branch_count <= std::extent_v<decltype(tree_node::child)>);
     if (!is_root)
-        fm_assert(n->m_count >= chunk::RTree::MINNODES);
-    else if (n->m_level > 0)
-        fm_assert(n->m_count >= 2);
-    if (n->m_level == 0)
-        return;
-    for (int i = 0; i < n->m_count; i++)
-    {
-        const auto& b = n->m_branch[i];
-        fm_assert(b.m_child->m_level == n->m_level - 1);
-        for (int j = 0; j < b.m_child->m_count; j++)
-            fm_assert(contains(b.m_rect, b.m_child->m_branch[j].m_rect));
-        check_tree(b.m_child, false);
-    }
+        fm_assert(n->branch_count >= tree_type::MINNODES);
+    else if (n->level > 0)
+        fm_assert(n->branch_count >= 2);
+    if (n->level > 0)
+        for (u32 i = 0; i < n->branch_count; i++)
+        {
+            const auto* child = n->child[i];
+            fm_assert(child->level == n->level - 1);
+            for (u32 j = 0; j < child->branch_count; j++)
+                fm_assert(contains(branch_rect(*n, i), branch_rect(*child, j)));
+            check_tree(child, false);
+        }
 }
 
 struct entry_pos
 {
-    const chunk::RTree::Node* leaf = nullptr;
-    int index = -1;
-    const chunk::RTree::Rect* bound = nullptr;
+    const tree_node* leaf = nullptr;
+    u32 index = ~0u;
+    Optional<tree_rect> bound;
 };
 
 // The leaf holding data, the entry's index in it, and the leaf's rect in its parent node, which is
-// null when the leaf is the root. leaf is null when no leaf holds data. Visits every leaf, whatever
+// empty when the leaf is the root. leaf is null when no leaf holds data. Visits every leaf, whatever
 // the rects on the way.
-entry_pos find_entry(const chunk::RTree::Node* n, object_id data, const chunk::RTree::Rect* bound = nullptr)
+entry_pos find_entry(const tree_node* n, object_id data, Optional<tree_rect> bound = {})
 {
-    if (n->m_level == 0)
+    if (n->level == 0)
     {
-        for (int i = 0; i < n->m_count; i++)
-            if (n->m_branch[i].m_data == data)
+        for (u32 i = 0; i < n->branch_count; i++)
+            if (n->id[i] == data)
                 return { n, i, bound };
         return {};
     }
-    for (int i = 0; i < n->m_count; i++)
-        if (auto x = find_entry(n->m_branch[i].m_child, data, &n->m_branch[i].m_rect); x.leaf)
-            return x;
-    return {};
+    else
+    {
+        for (u32 i = 0; i < n->branch_count; i++)
+            if (auto x = find_entry(n->child[i], data, branch_rect(*n, i)); x.leaf)
+                return x;
+        return {};
+    }
 }
 
 // Same levels, entry counts, rects and data, branch by branch.
-void check_same(const chunk::RTree::Node* a, const chunk::RTree::Node* b)
+void check_same(const tree_node* a, const tree_node* b)
 {
-    fm_assert(a->m_level == b->m_level && a->m_count == b->m_count);
-    for (int i = 0; i < a->m_count; i++)
+    fm_assert(a->level == b->level && a->branch_count == b->branch_count);
+    for (u32 i = 0; i < a->branch_count; i++)
     {
-        const auto &x = a->m_branch[i], &y = b->m_branch[i];
-        fm_assert(contains(x.m_rect, y.m_rect) && contains(y.m_rect, x.m_rect));
-        if (a->m_level == 0)
-            fm_assert(x.m_data == y.m_data);
+        fm_assert(branch_rect(*a, i) == branch_rect(*b, i));
+        if (a->level == 0)
+            fm_assert(a->id[i] == b->id[i]);
         else
-            check_same(x.m_child, y.m_child);
+            check_same(a->child[i], b->child[i]);
     }
 }
 
@@ -757,18 +757,17 @@ void test_move()
             const auto min = Vector2i{rnd(1024), rnd(1024)};
             return Range2Di::fromSize(min, Vector2i{1 + rnd(max_size), 1 + rnd(max_size)});
         };
-        // Closed intervals, as RTree::Overlap() tests them.
+        // Closed intervals, as RTree::OverlappingBranches() tests them.
         const auto overlaps = [](const Range2Di& a, const Range2Di& b) {
             return (a.min() <= b.max()).all() && (b.min() <= a.max()).all();
         };
 
-        chunk::RTree t;
+        tree_type t;
         Array<entry> es{ValueInit, n};
         for (auto id = 1u; id <= n; id++)
         {
             es[id - 1] = { random_rect(64), id };
-            const auto lo = Vector2(es[id - 1].r.min()), hi = Vector2(es[id - 1].r.max());
-            t.Insert(lo.data(), hi.data(), id);
+            t.Insert(tree_rect{es[id - 1].r}, id);
         }
         auto ref = t;
 
@@ -782,27 +781,25 @@ void test_move()
             if (i % 16 == 0)
                 r1 = Range2Di::fromSize(r1.min(), Vector2i{1 + rnd(64), 1 + rnd(64)});
             const object_id data1 = object_id{i} << 32 | id;
-            const auto lo0 = Vector2(e.r.min()), hi0 = Vector2(e.r.max());
-            const auto lo1 = Vector2(r1.min()), hi1 = Vector2(r1.max());
-            fm_assert(!t.Move(lo0.data(), hi0.data(), n + 1, lo1.data(), hi1.data(), data1));
-            fm_assert_equal(int(n), t.Count());
+            const auto rect0 = tree_rect{e.r}, rect1 = tree_rect{r1};
+            fm_assert(!t.Move(rect0, n + 1, rect1, data1));
+            fm_assert_equal(n, t.Count());
             const auto pos0 = find_entry(t.raw_root(), e.data);
             fm_assert(pos0.leaf);
-            const auto rect1 = chunk::RTree::Rect{{lo1.x(), lo1.y()}, {hi1.x(), hi1.y()}};
             const bool fits = !pos0.bound || contains(*pos0.bound, rect1);
-            fm_assert(t.Move(lo0.data(), hi0.data(), e.data, lo1.data(), hi1.data(), data1));
+            fm_assert(t.Move(rect0, e.data, rect1, data1));
             if (fits)
             {
                 in_place++;
                 const auto pos1 = find_entry(t.raw_root(), data1);
                 fm_assert(pos1.leaf == pos0.leaf && pos1.index == pos0.index);
-                fm_assert(ref.Move(lo0.data(), hi0.data(), e.data, lo1.data(), hi1.data(), data1));
+                fm_assert(ref.Move(rect0, e.data, rect1, data1));
             }
             else
             {
                 outside++;
-                ref.Remove(lo0.data(), hi0.data(), e.data);
-                ref.Insert(lo1.data(), hi1.data(), data1);
+                ref.Remove(rect0, e.data);
+                ref.Insert(rect1, data1);
             }
             e = { r1, data1 };
             check_tree(t.raw_root());
@@ -813,10 +810,9 @@ void test_move()
             for (auto k = 0u; k < 8; k++)
             {
                 const auto q = random_rect(256);
-                const auto qlo = Vector2(q.min()), qhi = Vector2(q.max());
                 Array<bool> seen{ValueInit, n};
                 u32 found = 0, expected = 0;
-                t.Search(qlo.data(), qhi.data(), [&](object_id data, const chunk::RTree::Rect&) {
+                t.Search(q.min(), q.max(), [&](object_id data, const tree_rect&) {
                     const auto& x = es[(data & 0xffffffff) - 1];
                     fm_assert(x.data == data && overlaps(x.r, q) && !seen[(data & 0xffffffff) - 1]);
                     seen[(data & 0xffffffff) - 1] = true;
@@ -828,7 +824,7 @@ void test_move()
                 fm_assert_equal(expected, found);
             }
         }
-        fm_assert_equal(int(n), t.Count());
+        fm_assert_equal(n, t.Count());
         fm_assert(in_place > 0);
         if (n > 5)
             fm_assert(outside > 0);

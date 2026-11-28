@@ -6,7 +6,7 @@
 #include "world.hpp"
 #include "pass-mode.hpp"
 #include "object.hpp"
-#include "old-rtree-search.hpp"
+#include "spatial-index.hpp"
 #include "rect-intersects.hpp"
 #include "grid-pass.hpp"
 #include "point.inl"
@@ -36,7 +36,7 @@ bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const F& f)
         fm_debug3_assert(data.type != (u64)collision_type::none);
         if (data.pass == (u64)pass_mode::pass)
             return true;
-        auto rect = Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}};
+        const auto rect = Range2D{r};
         if (!rect_intersects(min, max, rect.min(), rect.max()))
             return true;
         if constexpr (std::is_invocable_v<const F&, Chunk&, collision_data>)

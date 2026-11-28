@@ -16,7 +16,7 @@
 #include "src/tile-constants.hpp"
 #include "src/world.hpp"
 #include "src/wall-atlas.hpp"
-#include "src/old-rtree-search.hpp"
+#include "src/spatial-index.hpp"
 #include "compat/borrowed-ptr.hpp"
 #include "compat/function-view.hpp"
 #include "loader/loader.hpp"
@@ -491,8 +491,7 @@ raycast_result_s do_raycasting_old(world& w, point from, point to, object_id sel
             if (x.id == self || x.pass == (u64)pass_mode::pass)
                 return;
             auto ret = ray_aabb_intersection(origin, dir_inv_norm,
-                                             {{{r.m_min[0]-fuzz2, r.m_min[1]-fuzz2},
-                                               {r.m_max[0]+fuzz2, r.m_max[1]+fuzz2}}},
+                                             {{Vector2{r.min()} - Vector2{fuzz2}, Vector2{r.max()} + Vector2{fuzz2}}},
                                              signs);
             if (!ret.result)
                 return;

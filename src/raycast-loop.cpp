@@ -11,7 +11,7 @@
 #include "grid-object.hpp"
 #include "grid-order.hpp"
 #include "search-pred.hpp"
-#include "old-rtree-search.hpp"
+#include "spatial-index.hpp"
 #include "compat/function-view.hpp"
 #include <cfloat>
 #include <bit>
@@ -922,8 +922,7 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                             fm_debug3_assert(x.type != (u64)collision_type::none);
                             if (x.id == self || x.pass >= min_pass)
                                 return true;
-                            find_intersecting_collider(std::true_type{}, *nb, nb_world, x,
-                                                       Range2D{{r.m_min[0], r.m_min[1]}, {r.m_max[0], r.m_max[1]}});
+                            find_intersecting_collider(std::true_type{}, *nb, nb_world, x, Range2D{r});
                             return Mode != raycast_mode::any_hit || b;
                         });
                     }

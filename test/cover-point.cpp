@@ -32,7 +32,7 @@
 #include "src/intra-coord.inl"
 #include "src/point.inl"
 #include "src/raycast.hpp"
-#include "src/old-rtree-search.hpp"
+#include "src/spatial-index.hpp"
 #include "src/search.hpp"
 #include "src/search-astar.hpp"
 #include "src/search-result.hpp"
@@ -159,7 +159,7 @@ bool is_safe_from_shots_at(world& w, point threat, object_id threat_id, point po
     // The test worlds hold one chunk, at the origin.
     const auto qlo = Vector2{-(float)chunk_size_xy}, qhi = Vector2{2*(float)chunk_size_xy};
     w[ch].rtree()->Search(qlo.data(), qhi.data(), [&](object_id, const chunk::RTree::Rect& r) {
-        add_box(Vector2i(Math::ceil(Vector2{r.m_min[0], r.m_min[1]})), Vector2i(Math::ceil(Vector2{r.m_max[0], r.m_max[1]})));
+        add_box(Vector2i(r.min()), Vector2i(r.max()));
         return true;
     });
     erase_if(slopes, [&](const slope& s) { return less(s, smin) || less(smax, s); });
