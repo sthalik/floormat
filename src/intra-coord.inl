@@ -9,9 +9,7 @@ namespace floormat {
 template<intra_coord_base::Type TYPE>
 constexpr basic_intra_coord<TYPE>::basic_intra_coord(const point& pt) :
     _v{Vector2i(basic_intra_coord<Wrapping>{pt.local(), pt.offset()})}
-{
-    fm_debug3_assert(is_in_range(_v));
-}
+{}
 
 template<intra_coord_base::Type TYPE>
 constexpr basic_intra_coord<TYPE>::basic_intra_coord(local_coords local, Vector2b offset) :
@@ -71,6 +69,7 @@ template<intra_coord_base::Type T> requires (T == intra_coord_base::Wrapping)
 constexpr point operator+(basic_intra_coord<T> a, Vector2i b)
 {
     const auto [chunks, pos] = floor_divmod<chunk_size<int>>(a._v + b);
+    fm_assert(bool(chunks >= Vector2i{chunk_xy_min} && chunks <= Vector2i{chunk_xy_max}));
     return point{chunk_coords_{(i16)chunks.x(), (i16)chunks.y(), 0}, intra_coord{pos}};
 }
 
