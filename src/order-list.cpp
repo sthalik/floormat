@@ -72,11 +72,9 @@ void order_list::append_buffers(ArrayView<const order_buffer> buffers)
     }
 }
 
-u32 order_list::add(const order& o, ArrayView<const u32> dependencies)
+u32 order_list::add(const order& o)
 {
     const auto position = (u32)_orders.size();
-    for (auto d : dependencies)
-        fm_assert(d < position);
     auto stored = o;
     if (!stored.giver && _running_position != (u32)-1)
         stored.giver = _orders[_running_position].giver;

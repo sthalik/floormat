@@ -26,8 +26,8 @@ public:
     // update_index is the object's position among the frame's objects that give orders. Keep the indices
     // dense, since order_list::append_buffers() makes a slot for each index up to the largest.
     void begin_object(u32 update_index);
-    // Returns the order's position among its object's orders, from 0. Each dependency is such a position.
-    u32 add(const order& o, ArrayView<const u32> dependencies = {});
+    // Returns the order's position among its object's orders, from 0.
+    u32 add(const order& o);
     void end_object();
     void clear();
     bool empty() const;
@@ -61,9 +61,8 @@ public:
     void append_buffers(ArrayView<const order_buffer> buffers);
     // Returns the order's position in the list. An order with giver 0 added by run_all's fn gets the giver of
     // the order running.
-    u32 add(const order& o, ArrayView<const u32> dependencies = {});
-    // Calls fn(order, position) on each order not yet run, by ascending position. A dependency always names an
-    // earlier position, so it has finished. fn may call add().
+    u32 add(const order& o);
+    // Calls fn(order, position) on each order not yet run, by ascending position. fn may call add().
     template<typename F> void run_all(F&& fn);
     void clear();
     u32 size() const;

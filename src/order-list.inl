@@ -12,13 +12,11 @@ inline void order_buffer::begin_object(u32 update_index)
     arrayAppend(_object_orders, object_orders{update_index, (u32)_orders.size(), 0});
 }
 
-inline u32 order_buffer::add(const order& o, ArrayView<const u32> dependencies)
+inline u32 order_buffer::add(const order& o)
 {
     fm_assert(_is_object_open);
     auto& object = _object_orders.back();
     const auto position = object.order_count;
-    for (auto d : dependencies)
-        fm_assert(d < position);
     arrayAppend(_orders, o);
     object.order_count++;
     return position;

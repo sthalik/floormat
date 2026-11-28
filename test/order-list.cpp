@@ -24,14 +24,11 @@ void check_not_shrunk(const std::array<usize, N>& before, const std::array<usize
         fm_assert(after[i] >= before[i]);
 }
 
-// Gives the object at update_index two orders, the second depending on the first.
 void add_two_orders(order_buffer& b, u32 update_index, object_id giver)
 {
     b.begin_object(update_index);
-    const auto first = b.add({ .giver = giver });
-    fm_assert_equal(0u, first);
-    const u32 dependencies[] = { first };
-    fm_assert_equal(1u, b.add({ .giver = giver }, dependencies));
+    fm_assert_equal(0u, b.add({ .giver = giver }));
+    fm_assert_equal(1u, b.add({ .giver = giver }));
     b.end_object();
 }
 
@@ -54,28 +51,6 @@ void test_merge_order()
     check_sequence(ran, { 0, 1, 2, 3, 4, 5 });
 }
 
-void test_no_dependencies()
-{
-    order_list list;
-    for (auto i = 0u; i < 4; i++)
-        fm_assert_equal(i, list.add({ .giver = 11 }));
-    Array<u32> ran;
-    list.run_all([&](order, u32 position) { arrayAppend(ran, position); });
-    check_sequence(ran, { 0, 1, 2, 3 });
-}
-
-void test_lowest_ready_first()
-{
-    order_list list;
-    const auto a = list.add({});
-    const u32 on_a[] = { a };
-    const auto b = list.add({}, on_a);
-    const auto c = list.add({});
-    Array<u32> ran;
-    list.run_all([&](order, u32 position) { arrayAppend(ran, position); });
-    check_sequence(ran, { a, b, c });
-}
-
 void test_order_gives_orders()
 {
     order_list list;
@@ -87,57 +62,9 @@ void test_order_gives_orders()
         if (position == a)
         {
             c = list.add({});
-            const u32 on_c[] = { c };
-            d = list.add({}, on_c);
+            d = list.add({});
         }
     });
-    check_sequence(ran, { a, b, c, d });
-}
-
-void test_dependency_on_finished_order()
-{
-    order_list list;
-    const auto a = list.add({}), b = list.add({});
-    u32 c = (u32)-1;
-    Array<u32> ran;
-    list.run_all([&](order, u32 position) {
-        arrayAppend(ran, position);
-        if (position == b)
-        {
-            const u32 on_a[] = { a };
-            c = list.add({}, on_a);
-        }
-    });
-    check_sequence(ran, { a, b, c });
-}
-
-void test_dependency_on_running_order()
-{
-    order_list list;
-    const auto a = list.add({}), b = list.add({});
-    u32 c = (u32)-1;
-    Array<u32> ran;
-    list.run_all([&](order, u32 position) {
-        arrayAppend(ran, position);
-        if (position == a)
-        {
-            const u32 on_a[] = { a };
-            c = list.add({}, on_a);
-        }
-    });
-    check_sequence(ran, { a, b, c });
-}
-
-void test_two_dependencies()
-{
-    order_list list;
-    const auto a = list.add({});
-    const u32 on_a[] = { a };
-    const auto b = list.add({}, on_a), c = list.add({}, on_a);
-    const u32 on_b_and_c[] = { b, c };
-    const auto d = list.add({}, on_b_and_c);
-    Array<u32> ran;
-    list.run_all([&](order, u32 position) { arrayAppend(ran, position); });
     check_sequence(ran, { a, b, c, d });
 }
 
@@ -169,10 +96,7 @@ void test_clear_and_reuse()
     list.run_all([&](order o, u32 position) {
         record(o, position);
         if (position < num_merged)
-        {
-            const u32 on_running[] = { position };
-            list.add({}, on_running);
-        }
+            list.add({});
     });
     fm_assert_equal(92uz, ran.size());
 
@@ -215,11 +139,7 @@ void test_second_run_all()
     check_sequence(ran, { a, b });
 
     arrayClear(ran);
-    const auto c = list.add({});
-    const u32 on_c[] = { c };
-    const auto d = list.add({}, on_c);
-    const u32 on_a[] = { a };
-    const auto e = list.add({}, on_a);
+    const auto c = list.add({}), d = list.add({}), e = list.add({});
     list.run_all(record);
     check_sequence(ran, { c, d, e });
 }
@@ -262,12 +182,7 @@ void test_giver()
 void test_order_list()
 {
     test_merge_order();
-    test_no_dependencies();
-    test_lowest_ready_first();
     test_order_gives_orders();
-    test_dependency_on_finished_order();
-    test_dependency_on_running_order();
-    test_two_dependencies();
     test_empty_list();
     test_clear_and_reuse();
     test_second_run_all();
