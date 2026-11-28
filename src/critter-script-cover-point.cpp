@@ -203,8 +203,7 @@ void visibility_tests<World>::collect_rects(Vector2i threat, Vector2i qlo, Vecto
             if (!c)
                 continue;
             const auto origin = Vector2i{cx, cy}*chunk_size<int>;
-            const auto clo = Vector2(qlo - origin), chi = Vector2(qhi - origin);
-            c->rtree()->Search(clo.data(), chi.data(), [&](u64 data, const auto& r) {
+            c->rtree()->Search(qlo - origin, qhi - origin, [&](u64 data, const auto& r) {
                 const auto x = std::bit_cast<collision_data>(data);
                 const auto pmin = Vector2i(r.min()), pmax = Vector2i(r.max());
                 if (x.pass < min_pass && (pmin < pmax).all()

@@ -145,16 +145,12 @@ start:
 Optional<Pair<Range2D, pass_mode>> chunk::find_hole_in_bbox(const Chunk_RTree& rtree, Range2D bbox, pass_mode min_pass)
 {
     Optional<Pair<Range2D, pass_mode>> ret;
-    rtree.Search(bbox.min().data(), bbox.max().data(), [&](u64 data, const Chunk_RTree::Rect& r) {
+    rtree.Search<cmp::less<>>(bbox.min().data(), bbox.max().data(), [&](u64 data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
         if (x.pass >= (u64)min_pass /*&& x.type == (u64)collision_type::none*/)
         {
-            const auto hole = Range2D{r};
-            if (Math::intersects(hole, bbox))
-            {
-                ret = {InPlaceInit, hole, pass_mode(x.pass)};
-                return false;
-            }
+            ret = {InPlaceInit, Range2D{r}, pass_mode(x.pass)};
+            return false;
         }
         return true;
     });
@@ -164,19 +160,15 @@ void chunk::get_all_holes_in_bbox(const hole_callback& fn, chunk& c, Vector2 bb_
                                   pass_through_mask mask)
 {
     const auto& rtree = *c.hole_rtree();
-    rtree.Search(bb_min.data(), bb_max.data(), [&](u64 data, const Chunk_RTree::Rect& r) {
+    rtree.Search<cmp::less<>>(bb_min.data(), bb_max.data(), [&](u64 data, const Chunk_RTree::Rect& r) {
         auto x = std::bit_cast<collision_data>(data);
         if (can_pass_through_mask(mask, pass_mode(x.pass)) /*&& x.type == (u64)collision_type::none*/)
         {
-            const auto hmin = Vector2{r.min()}, hmax = Vector2{r.max()};
-            if (rect_intersects(hmin, hmax, bb_min, bb_max))
-            {
-                auto obj = c.world().find_object<struct hole>(x.id);
-                fm_assert(obj);
-                int zmaxʹ = (int)obj->z_offset + (int)obj->height;
-                auto zmax = (u8)Math::clamp(zmaxʹ, 0, tile_size_z);
-                fn({hmin, hmax}, {obj->z_offset, zmax});
-            }
+            auto obj = c.world().find_object<struct hole>(x.id);
+            fm_assert(obj);
+            int zmaxʹ = (int)obj->z_offset + (int)obj->height;
+            auto zmax = (u8)Math::clamp(zmaxʹ, 0, tile_size_z);
+            fn({Vector2{r.min()}, Vector2{r.max()}}, {obj->z_offset, zmax});
         }
         return true;
     });

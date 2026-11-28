@@ -66,8 +66,7 @@ void sweep_aabb(World& w, chunk_coords_ ch, const Raycast::bresenham_line& line,
                 const auto imin = qmin - shift, imax = qmax - shift;
                 if (!Raycast::detail::within_chunk_bounds(imin, imax))
                     continue;
-                const auto fmin = Vector2(imin), fmax = Vector2(imax);
-                c->rtree()->Search(fmin.data(), fmax.data(), [&](u64 data, const auto& r) {
+                c->rtree()->Search(imin, imax, [&](u64 data, const auto& r) {
                     const auto x = std::bit_cast<collision_data>(data);
                     if (x.pass == (u64)pass_mode::pass)
                         return true;

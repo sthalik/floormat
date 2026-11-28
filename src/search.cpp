@@ -30,21 +30,18 @@ bool is_passable_1(Chunk& c, Vector2 min, Vector2 max, const F& f)
         return true;
 
     bool ret = true;
-    (void)is_passable_common(c, min, max, [&](u64 x, const Chunk_RTree::Rect& r) {
+    (void)is_passable_common(c, min, max, [&](u64 x, [[maybe_unused]] const Chunk_RTree::Rect& r) {
         auto data = std::bit_cast<collision_data>(x);
         // hole markers are stored in hole_rtree()
         fm_debug3_assert(data.type != (u64)collision_type::none);
         if (data.pass == (u64)pass_mode::pass)
-            return true;
-        const auto rect = Range2D{r};
-        if (!rect_intersects(min, max, rect.min(), rect.max()))
             return true;
         if constexpr (std::is_invocable_v<const F&, Chunk&, collision_data>)
         {
             if (f(c, data) == path_search_continue::pass)
                 return true;
         }
-        else if (f(c, data, rect) == path_search_continue::pass)
+        else if (f(c, data, Range2D{r}) == path_search_continue::pass)
             return true;
         return ret = false;
     });

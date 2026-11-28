@@ -911,12 +911,12 @@ raycast_result_s do_raycasting(std::conditional_t<EnableDiagnostics, raycast_dia
                         i32 nb_off_y = chunk_off_y + j - 1;
 
                         const auto nb_world = Vector2i{nb_off_x, nb_off_y} * chunk_size<i32>;
-                        const auto fmin = Vector2(query_min - nb_world), fmax = Vector2(query_max - nb_world);
+                        const auto imin = query_min - nb_world, imax = query_max - nb_world;
 
-                        if (!within_chunk_bounds(fmin, fmax))
+                        if (!within_chunk_bounds(imin, imax))
                             continue;
 
-                        nb->rtree()->Search(fmin.data(), fmax.data(), [&, min_pass](u64 data, const Rect& r)
+                        nb->rtree()->Search(imin, imax, [&, min_pass](u64 data, const Rect& r)
                         {
                             auto x = std::bit_cast<collision_data>(data);
                             fm_debug3_assert(x.type != (u64)collision_type::none);
